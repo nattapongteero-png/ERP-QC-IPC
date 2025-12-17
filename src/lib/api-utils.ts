@@ -130,3 +130,12 @@ export function createPaginatedResponse<T>(
     totalPages: Math.ceil(total / params.limit),
   };
 }
+
+// Alias functions for backward compatibility
+export function createErrorResponse(error: string, status?: number): { success: false; error: string } {
+  return { success: false, error };
+}
+
+export function createSuccessResponse<T>(data: T, message?: string): { success: true; data: T; message?: string } {
+  return { success: true, data, message };
+}

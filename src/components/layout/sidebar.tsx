@@ -15,13 +15,21 @@ import {
   Warehouse,
   FileText,
   AlertTriangle,
+  Boxes,
+  ArrowLeftRight,
+  ClipboardList,
+  TestTube,
+  AlertCircle,
+  Receipt,
+  ShoppingBag,
+  UserCheck,
 } from 'lucide-react';
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  children?: { name: string; href: string }[];
+  children?: { name: string; href: string; icon?: React.ComponentType<{ className?: string }> }[];
 }
 
 const navigation: NavItem[] = [
@@ -31,10 +39,11 @@ const navigation: NavItem[] = [
     href: '/inventory',
     icon: Warehouse,
     children: [
-      { name: 'Items', href: '/inventory/items' },
-      { name: 'Lots', href: '/inventory/lots' },
-      { name: 'Warehouses', href: '/inventory/warehouses' },
-      { name: 'Transactions', href: '/inventory/transactions' },
+      { name: 'Items', href: '/inventory/items', icon: Boxes },
+      { name: 'Lots', href: '/inventory/lots', icon: Package },
+      { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
+      { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },
+      { name: 'Expiry Alerts', href: '/inventory/expiry-alerts', icon: AlertTriangle },
     ],
   },
   {
@@ -42,9 +51,9 @@ const navigation: NavItem[] = [
     href: '/production',
     icon: Factory,
     children: [
-      { name: 'Work Orders', href: '/production/work-orders' },
-      { name: 'BOM/Recipes', href: '/production/bom' },
-      { name: 'Batch Records', href: '/production/batch-records' },
+      { name: 'Work Orders', href: '/production/work-orders', icon: ClipboardList },
+      { name: 'BOM/Recipes', href: '/production/bom', icon: FileText },
+      { name: 'Batch Records', href: '/production/batch-records', icon: FileText },
     ],
   },
   {
@@ -52,9 +61,9 @@ const navigation: NavItem[] = [
     href: '/quality',
     icon: ClipboardCheck,
     children: [
-      { name: 'Tests', href: '/quality/tests' },
-      { name: 'Specifications', href: '/quality/specs' },
-      { name: 'Deviations', href: '/quality/deviations' },
+      { name: 'Tests', href: '/quality/tests', icon: TestTube },
+      { name: 'Specifications', href: '/quality/specs', icon: FileText },
+      { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
     ],
   },
   {
@@ -62,8 +71,8 @@ const navigation: NavItem[] = [
     href: '/purchasing',
     icon: ShoppingCart,
     children: [
-      { name: 'Purchase Orders', href: '/purchasing/orders' },
-      { name: 'Vendors', href: '/purchasing/vendors' },
+      { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
+      { name: 'Vendors', href: '/purchasing/vendors', icon: Truck },
     ],
   },
   {
@@ -71,8 +80,8 @@ const navigation: NavItem[] = [
     href: '/sales',
     icon: Truck,
     children: [
-      { name: 'Sales Orders', href: '/sales/orders' },
-      { name: 'Customers', href: '/sales/customers' },
+      { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingBag },
+      { name: 'Customers', href: '/sales/customers', icon: UserCheck },
     ],
   },
   { name: 'Reports', href: '/reports', icon: FileText },
@@ -96,6 +105,10 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
     return pathname === href || pathname.startsWith(href + '/');
   };
 
+  const isChildActive = (href: string) => {
+    return pathname === href;
+  };
+
   return (
     <div className="flex flex-col h-full bg-gray-900 text-white w-64">
       {/* Logo */}
@@ -110,7 +123,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
           {navigation.map((item) => (
             <li key={item.name}>
               <Link
-                href={item.href}
+                href={item.children ? item.children[0].href : item.href}
                 className={`
                   flex items-center px-3 py-2 rounded-lg text-sm font-medium
                   ${isActive(item.href)
@@ -123,19 +136,20 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                 {item.name}
               </Link>
               {item.children && isActive(item.href) && (
-                <ul className="mt-1 ml-8 space-y-1">
+                <ul className="mt-1 ml-4 space-y-1">
                   {item.children.map((child) => (
                     <li key={child.name}>
                       <Link
                         href={child.href}
                         className={`
-                          block px-3 py-1.5 rounded-lg text-sm
-                          ${pathname === child.href
-                            ? 'text-emerald-400'
-                            : 'text-gray-400 hover:text-white'
+                          flex items-center px-3 py-1.5 rounded-lg text-sm
+                          ${isChildActive(child.href)
+                            ? 'text-emerald-400 bg-gray-800'
+                            : 'text-gray-400 hover:text-white hover:bg-gray-800'
                           }
                         `}
                       >
+                        {child.icon && <child.icon className="h-4 w-4 mr-2" />}
                         {child.name}
                       </Link>
                     </li>
