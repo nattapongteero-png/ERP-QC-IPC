@@ -1,0 +1,142 @@
+<!--
+Sync Impact Report
+==================
+Version change: N/A → 1.0.0 (initial adoption)
+Modified principles: None (new constitution)
+Added sections:
+  - Core Principles (5): Code Quality, Testing Standards, User Experience, Performance, Security & Compliance
+  - Quality Gates
+  - Development Workflow
+  - Governance
+Removed sections: None (new constitution)
+Templates requiring updates:
+  - .specify/templates/plan-template.md: ✅ Already has Constitution Check section
+  - .specify/templates/spec-template.md: ✅ Compatible (uses testable requirements format)
+  - .specify/templates/tasks-template.md: ✅ Compatible (supports test-first workflow)
+Follow-up TODOs: None
+-->
+
+# Herbal Medicine ERP Constitution
+
+## Core Principles
+
+### I. Code Quality Standards
+
+All code in this project MUST adhere to the following non-negotiable quality standards:
+
+- **Type Safety**: All code MUST use TypeScript with strict mode enabled. No `any` types except when interfacing with untyped external libraries, and such cases MUST include explicit type assertions with comments justifying the exception.
+- **Linting Compliance**: All code MUST pass ESLint checks with zero errors before merge. Warnings SHOULD be addressed unless documented with justification.
+- **Code Review**: All changes MUST be reviewed before merge to main branch. Self-review is acceptable for urgent hotfixes but MUST be followed by post-merge peer review within 24 hours.
+- **Single Responsibility**: Each module, component, and function MUST have a single, clearly defined purpose. Functions exceeding 50 lines SHOULD be refactored unless complexity justifies otherwise.
+- **No Hardcoded Values**: Configuration values, API endpoints, and business logic conditions MUST NOT be hardcoded. Use environment variables, configuration files, or database-driven settings.
+- **Error Handling**: All async operations MUST have explicit error handling. API endpoints MUST return appropriate HTTP status codes and structured error responses.
+
+**Rationale**: Consistent code quality reduces bugs, improves maintainability, and enables faster onboarding of new team members.
+
+### II. Testing Standards
+
+Testing is MANDATORY for production code. The following standards apply:
+
+- **Test Coverage**: New features MUST include unit tests covering at least the primary success path and one error path. Critical business logic (inventory calculations, QC decisions, financial calculations) MUST have comprehensive test coverage.
+- **Test-First Encouraged**: For complex features, tests SHOULD be written before implementation (TDD). Test failures MUST be observed before implementation proceeds.
+- **Unit Test Isolation**: Unit tests MUST NOT depend on external services, databases, or network calls. Use mocks and in-memory databases (SQLite) for isolation.
+- **Integration Tests**: API endpoints MUST have integration tests validating request/response contracts. Database operations MUST have integration tests validating data integrity.
+- **Test Naming**: Test names MUST clearly describe the scenario being tested using the pattern: `[unit]_[scenario]_[expectedResult]` or descriptive prose.
+- **Test Maintenance**: Failing tests MUST be fixed or explicitly skipped with documented justification and a TODO for resolution. Tests MUST NOT be deleted to make builds pass.
+
+**Rationale**: Comprehensive testing prevents regressions, documents expected behavior, and enables confident refactoring.
+
+### III. User Experience Consistency
+
+The user interface MUST provide a consistent, accessible, and responsive experience:
+
+- **Responsive Design**: All pages MUST be usable on desktop (1920px), tablet (768px-1024px), and mobile (320px-767px) viewports. iPad landscape orientation is a primary target.
+- **Loading States**: All async operations MUST display appropriate loading indicators. Users MUST NOT see blank screens or unresponsive UI during data fetching.
+- **Error Feedback**: All user-facing errors MUST display clear, actionable messages in the user's language (Thai or English based on context). Technical error details SHOULD be logged but NOT displayed to users.
+- **Form Validation**: All forms MUST validate inputs on blur and before submission. Validation errors MUST be displayed inline next to the relevant field.
+- **Consistent Styling**: Use Tailwind CSS utility classes consistently. Custom CSS SHOULD be avoided unless Tailwind utilities are insufficient. Component styling MUST follow existing patterns in the codebase.
+- **Accessibility**: Interactive elements MUST be keyboard accessible. Form inputs MUST have associated labels. Color MUST NOT be the only means of conveying information.
+
+**Rationale**: Consistent UX builds user trust, reduces training time, and ensures the system is usable across devices common in warehouse and production environments.
+
+### IV. Performance Requirements
+
+The system MUST meet the following performance standards:
+
+- **Page Load**: Initial page load MUST complete within 3 seconds on a standard broadband connection. Subsequent navigation SHOULD complete within 1 second.
+- **API Response**: API endpoints MUST respond within 500ms for simple queries and 2 seconds for complex reports. Endpoints exceeding these thresholds MUST implement pagination, caching, or background processing.
+- **Database Queries**: Queries MUST use appropriate indexes. N+1 query patterns are PROHIBITED. Queries fetching more than 1000 rows MUST implement pagination.
+- **Bundle Size**: Frontend bundle size SHOULD remain under 500KB gzipped. New dependencies MUST be justified and their size impact documented.
+- **Memory Usage**: Server processes SHOULD NOT exceed 512MB memory under normal load. Memory leaks MUST be investigated and resolved promptly.
+- **Concurrent Users**: The system MUST support at least 50 concurrent users without degradation.
+
+**Rationale**: Performance directly impacts user productivity and system reliability in a production environment where delays can affect manufacturing schedules.
+
+### V. Security and GMP Compliance
+
+As a pharmaceutical manufacturing system, security and compliance are non-negotiable:
+
+- **Authentication**: All API endpoints except public health checks MUST require authentication. JWT tokens MUST have appropriate expiration times.
+- **Authorization**: Users MUST only access data and functions permitted by their role. Role checks MUST be enforced at the API layer, not just the UI.
+- **Audit Trail**: All data modifications MUST be logged with timestamp, user ID, and before/after values. Audit logs MUST NOT be deletable through the application.
+- **Data Integrity**: Lot numbers, batch records, and QC results MUST NOT be editable after QC approval without creating a deviation record.
+- **Input Validation**: All user inputs MUST be validated and sanitized. SQL injection, XSS, and other OWASP Top 10 vulnerabilities MUST be prevented.
+- **Secrets Management**: Passwords, API keys, and other secrets MUST NOT be committed to the repository. Use environment variables or secret management services.
+
+**Rationale**: GMP compliance requires complete traceability and data integrity. Security vulnerabilities could compromise patient safety and regulatory standing.
+
+## Quality Gates
+
+All code changes MUST pass the following gates before merge:
+
+| Gate | Requirement | Enforcement |
+|------|-------------|-------------|
+| Type Check | `pnpm tsc --noEmit` passes | CI pipeline |
+| Lint | `pnpm lint` passes with no errors | CI pipeline |
+| Unit Tests | `pnpm test:run` passes | CI pipeline |
+| Build | `pnpm build` succeeds | CI pipeline |
+| Code Review | At least one approval | GitHub branch protection |
+
+## Development Workflow
+
+The following workflow MUST be followed for all changes:
+
+1. **Branch**: Create a feature branch from `main` with descriptive name.
+2. **Implement**: Make changes following constitution principles.
+3. **Test**: Run local tests and verify functionality.
+4. **Commit**: Create atomic commits with clear messages. Include issue references where applicable.
+5. **Push**: Push to remote and create pull request.
+6. **Review**: Address review feedback.
+7. **Merge**: Squash merge after approval and passing CI.
+
+**Commit Frequency**: Commit after completing each logical unit of work to prevent loss of progress and enable granular rollback.
+
+## Governance
+
+This constitution governs all development practices for the Herbal Medicine ERP project.
+
+### Amendment Process
+
+1. Propose amendments via pull request modifying this file.
+2. Document rationale for the change.
+3. Obtain team review and approval.
+4. Update version following semantic versioning:
+   - **MAJOR**: Removing or fundamentally changing principles
+   - **MINOR**: Adding new principles or expanding existing guidance
+   - **PATCH**: Clarifications, typo fixes, non-semantic refinements
+5. Update `LAST_AMENDED_DATE` to the amendment date.
+
+### Compliance
+
+- All pull requests SHOULD be checked against relevant constitution principles.
+- Constitution violations MUST be documented and justified if exceptions are granted.
+- Periodic reviews SHOULD assess whether principles remain appropriate as the project evolves.
+
+### Runtime Guidance
+
+For day-to-day development guidance, refer to:
+- `README.md` for setup and project overview
+- `.specify/` directory for feature specification workflows
+- Code comments and existing patterns for implementation guidance
+
+**Version**: 1.0.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-17
