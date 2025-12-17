@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   FileText,
   Download,
@@ -16,6 +17,7 @@ import {
   ClipboardCheck,
   TrendingUp,
 } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 interface ReportType {
   id: string;
@@ -116,7 +118,7 @@ export default function ReportsPage() {
       // Simulate report generation
       await new Promise((resolve) => setTimeout(resolve, 1500));
       alert(`Report ${reportId} generated successfully!`);
-    } catch (error) {
+    } catch {
       alert('Failed to generate report');
     } finally {
       setGenerating(null);
@@ -126,87 +128,93 @@ export default function ReportsPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-600">รายงานและการส่งออกข้อมูล</p>
-        </div>
+        <PageHeader
+          title="Reports"
+          description="รายงานและการส่งออกข้อมูล"
+        />
 
         {/* Filters */}
-        <Card>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
-              </label>
-              <Select
-                options={categories}
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              />
+        <Card elevation="raised">
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category
+                </label>
+                <Select
+                  options={categories}
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date From
+                </label>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date To
+                </label>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="w-full md:w-48">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date From
-              </label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </div>
-            <div className="w-full md:w-48">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date To
-              </label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </div>
-          </div>
+          </CardContent>
         </Card>
 
         {/* Report Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredReports.map((report) => (
-            <Card key={report.id} className="hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
-                  {report.icon}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{report.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {report.description}
-                  </p>
-                  <div className="mt-4 flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleGenerateReport(report.id)}
-                      disabled={generating === report.id}
-                    >
-                      {generating === report.id ? (
-                        'Generating...'
-                      ) : (
-                        <>
-                          <FileText className="h-4 w-4 mr-1" />
-                          Generate
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleGenerateReport(report.id)}
-                      disabled={generating === report.id}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Export
-                    </Button>
+          {filteredReports.map((report, index) => (
+            <Card
+              key={report.id}
+              elevation="raised"
+              interactive
+              className={cn(
+                'motion-safe:animate-fade-in motion-reduce:animate-none'
+              )}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <CardContent>
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+                    {report.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{report.name}</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {report.description}
+                    </p>
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleGenerateReport(report.id)}
+                        loading={generating === report.id}
+                        leftIcon={generating !== report.id ? <FileText className="h-4 w-4" /> : undefined}
+                      >
+                        {generating === report.id ? 'Generating...' : 'Generate'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleGenerateReport(report.id)}
+                        disabled={generating === report.id}
+                        leftIcon={<Download className="h-4 w-4" />}
+                      >
+                        Export
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </CardContent>
             </Card>
           ))}
         </div>

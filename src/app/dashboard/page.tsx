@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { CardSkeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Package,
   Factory,
@@ -11,7 +14,9 @@ import {
   ShoppingCart,
   Truck,
   Clock,
+  Inbox,
 } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 interface DashboardData {
   summary: {
@@ -23,9 +28,23 @@ interface DashboardData {
     pendingSOs: number;
     openDeviations: number;
   };
-  recentWorkOrders: any[];
-  inventoryByStatus: any[];
-  workOrdersByStatus: any[];
+  recentWorkOrders: Array<{
+    id: number;
+    woNumber: string;
+    batchNumber: string;
+    status: string;
+    plannedQuantity: number;
+    unit: string;
+  }>;
+  inventoryByStatus: Array<{
+    status: string;
+    count: number;
+    totalQuantity: number;
+  }>;
+  workOrdersByStatus: Array<{
+    status: string;
+    count: number;
+  }>;
 }
 
 export default function DashboardPage() {
@@ -94,27 +113,51 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">ภาพรวมระบบบริหารจัดการการผลิตยาสมุนไพร</p>
-        </div>
+        <PageHeader
+          title="Dashboard"
+          description="ภาพรวมระบบบริหารจัดการการผลิตยาสมุนไพร"
+        />
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <svg className="animate-spin h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
+          <div className="space-y-6">
+            {/* Stats Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} elevation="raised" padding="md">
+                  <div className="flex items-center gap-4 animate-pulse">
+                    <div className="h-12 w-12 rounded-lg bg-gray-200" />
+                    <div className="space-y-2">
+                      <div className="h-3 w-20 bg-gray-200 rounded" />
+                      <div className="h-6 w-12 bg-gray-200 rounded" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+            {/* Cards Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CardSkeleton lines={4} />
+              <CardSkeleton lines={4} />
+            </div>
           </div>
         ) : (
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-              {stats.map((stat) => (
-                <Card key={stat.name} className="p-4">
+              {stats.map((stat, index) => (
+                <Card
+                  key={stat.name}
+                  elevation="raised"
+                  padding="md"
+                  className={cn(
+                    'motion-safe:animate-fade-in',
+                    'motion-reduce:animate-none'
+                  )}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
                   <div className="flex items-center">
-                    <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    <div className={cn('p-3 rounded-lg', stat.bgColor)}>
+                      <stat.icon className={cn('h-6 w-6', stat.color)} />
                     </div>
                     <div className="ml-4">
                       <p className="text-sm text-gray-500">{stat.name}</p>
@@ -127,60 +170,92 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Work Orders */}
-              <Card title="Recent Work Orders" description="ใบสั่งผลิตล่าสุด">
-                {data?.recentWorkOrders && data.recentWorkOrders.length > 0 ? (
-                  <div className="space-y-3">
-                    {data.recentWorkOrders.map((wo: any) => (
-                      <div
-                        key={wo.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium text-gray-900">{wo.woNumber}</p>
-                          <p className="text-sm text-gray-500">Batch: {wo.batchNumber}</p>
+              <Card
+                title="Recent Work Orders"
+                description="ใบสั่งผลิตล่าสุด"
+                elevation="raised"
+              >
+                <CardContent>
+                  {data?.recentWorkOrders && data.recentWorkOrders.length > 0 ? (
+                    <div className="space-y-3">
+                      {data.recentWorkOrders.map((wo) => (
+                        <div
+                          key={wo.id}
+                          className={cn(
+                            'flex items-center justify-between',
+                            'p-3 bg-gray-50 rounded-lg',
+                            'hover:bg-gray-100 transition-colors duration-150',
+                            'motion-reduce:transition-none'
+                          )}
+                        >
+                          <div>
+                            <p className="font-medium text-gray-900">{wo.woNumber}</p>
+                            <p className="text-sm text-gray-500">Batch: {wo.batchNumber}</p>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={getStatusVariant(wo.status)} dot>
+                              {wo.status}
+                            </Badge>
+                            <p className="text-sm text-gray-500 mt-1">
+                              {wo.plannedQuantity} {wo.unit}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <Badge variant={getStatusVariant(wo.status)}>
-                            {wo.status}
-                          </Badge>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {wo.plannedQuantity} {wo.unit}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No recent work orders</p>
-                )}
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={<Inbox className="h-6 w-6" />}
+                      title="No recent work orders"
+                      description="Work orders will appear here once created"
+                      size="sm"
+                    />
+                  )}
+                </CardContent>
               </Card>
 
               {/* Inventory by Status */}
-              <Card title="Inventory by Status" description="สถานะสินค้าคงคลัง">
-                {data?.inventoryByStatus && data.inventoryByStatus.length > 0 ? (
-                  <div className="space-y-3">
-                    {data.inventoryByStatus.map((item: any) => (
-                      <div
-                        key={item.status}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex items-center">
-                          <Badge variant={getStatusVariant(item.status)}>
-                            {item.status}
-                          </Badge>
+              <Card
+                title="Inventory by Status"
+                description="สถานะสินค้าคงคลัง"
+                elevation="raised"
+              >
+                <CardContent>
+                  {data?.inventoryByStatus && data.inventoryByStatus.length > 0 ? (
+                    <div className="space-y-3">
+                      {data.inventoryByStatus.map((item) => (
+                        <div
+                          key={item.status}
+                          className={cn(
+                            'flex items-center justify-between',
+                            'p-3 bg-gray-50 rounded-lg',
+                            'hover:bg-gray-100 transition-colors duration-150',
+                            'motion-reduce:transition-none'
+                          )}
+                        >
+                          <div className="flex items-center">
+                            <Badge variant={getStatusVariant(item.status)} dot>
+                              {item.status}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-gray-900">{item.count} lots</p>
+                            <p className="text-sm text-gray-500">
+                              Total: {Number(item.totalQuantity || 0).toLocaleString()}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">{item.count} lots</p>
-                          <p className="text-sm text-gray-500">
-                            Total: {Number(item.totalQuantity || 0).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No inventory data</p>
-                )}
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={<Package className="h-6 w-6" />}
+                      title="No inventory data"
+                      description="Inventory status will appear here"
+                      size="sm"
+                    />
+                  )}
+                </CardContent>
               </Card>
             </div>
           </>

@@ -3,7 +3,8 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from './sidebar';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 interface User {
   id: number;
@@ -66,9 +67,9 @@ export function MainLayout({ children }: MainLayoutProps) {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-emerald-200 rounded-full animate-spin border-t-emerald-600 mx-auto"></div>
+            <div className="w-16 h-16 border-4 border-emerald-200 rounded-full animate-spin border-t-emerald-600 mx-auto motion-reduce:animate-none"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 bg-emerald-500 rounded-full animate-pulse"></div>
+              <div className="w-8 h-8 bg-emerald-500 rounded-full animate-pulse motion-reduce:animate-none"></div>
             </div>
           </div>
           <p className="mt-6 text-slate-600 font-medium">กำลังโหลด...</p>
@@ -84,12 +85,16 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Mobile/Tablet Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <div
+        className={cn(
+          'fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden',
+          'transition-opacity duration-300 ease-out',
+          'motion-reduce:transition-none',
+          sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
 
       {/* Sidebar - Desktop */}
       <div className="hidden lg:block lg:fixed lg:inset-y-0 lg:z-50">
@@ -97,22 +102,41 @@ export function MainLayout({ children }: MainLayoutProps) {
       </div>
 
       {/* Sidebar - Mobile/Tablet */}
-      <div className={`
-        fixed inset-y-0 left-0 z-50 lg:hidden
-        transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 lg:hidden',
+          'transform transition-transform duration-300 ease-out',
+          'motion-reduce:transition-none',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
         <Sidebar user={user} onLogout={handleLogout} onNavigate={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 lg:pl-64">
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
         {/* Mobile/Tablet Header */}
-        <header className="lg:hidden sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-slate-200/50 shadow-sm">
+        <header
+          className={cn(
+            'lg:hidden sticky top-0 z-30',
+            'bg-white/80 backdrop-blur-lg',
+            'border-b border-slate-200/50 shadow-sm',
+            'transition-shadow duration-200',
+            'motion-reduce:transition-none'
+          )}
+        >
           <div className="flex items-center justify-between px-4 py-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+              className={cn(
+                'p-2 rounded-xl',
+                'bg-slate-100 hover:bg-slate-200',
+                'text-slate-600',
+                'transition-colors duration-150',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2',
+                'motion-reduce:transition-none'
+              )}
+              aria-label="Open navigation menu"
             >
               <Menu className="h-6 w-6" />
             </button>
@@ -122,7 +146,14 @@ export function MainLayout({ children }: MainLayoutProps) {
               </div>
               <span className="font-semibold text-slate-800">Herbal ERP</span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <div
+              className={cn(
+                'w-10 h-10 rounded-xl',
+                'bg-gradient-to-br from-emerald-400 to-teal-500',
+                'flex items-center justify-center',
+                'shadow-lg shadow-emerald-500/20'
+              )}
+            >
               <span className="text-white text-sm font-bold">
                 {user.name.charAt(0).toUpperCase()}
               </span>
@@ -131,7 +162,13 @@ export function MainLayout({ children }: MainLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 md:p-6 lg:p-8">
+        <main
+          className={cn(
+            'flex-1',
+            'p-4 md:p-6 lg:p-8',
+            'animate-fade-in motion-reduce:animate-none'
+          )}
+        >
           {children}
         </main>
       </div>
