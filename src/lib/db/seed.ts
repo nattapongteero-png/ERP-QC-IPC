@@ -41,10 +41,10 @@ export async function seedDatabase() {
   
   // Create sample warehouses
   const warehouses = [
-    { code: 'WH-RM', name: 'Raw Material Warehouse', type: 'raw_material', location: 'Building A' },
-    { code: 'WH-FG', name: 'Finished Goods Warehouse', type: 'finished_goods', location: 'Building B' },
-    { code: 'WH-QR', name: 'Quarantine Area', type: 'quarantine', location: 'Building A' },
-    { code: 'WH-RJ', name: 'Rejected Material Area', type: 'rejected', location: 'Building C' },
+    { code: 'WH-RM', name: 'Raw Material Warehouse', type: 'raw_material', location: 'Building A', temperatureMin: 20, temperatureMax: 25, humidityMin: 45, humidityMax: 65 },
+    { code: 'WH-FG', name: 'Finished Goods Warehouse', type: 'finished_goods', location: 'Building B', temperatureMin: 20, temperatureMax: 25, humidityMin: 45, humidityMax: 65 },
+    { code: 'WH-QR', name: 'Quarantine Area', type: 'quarantine', location: 'Building A', temperatureMin: 20, temperatureMax: 25, humidityMin: 45, humidityMax: 65 },
+    { code: 'WH-RJ', name: 'Rejected Material Area', type: 'rejected', location: 'Building C', temperatureMin: 15, temperatureMax: 30, humidityMin: 40, humidityMax: 70 },
   ];
   
   for (const warehouse of warehouses) {

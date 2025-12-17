@@ -106,6 +106,10 @@ export const sqliteWarehouses = sqliteTable('warehouses', {
   name: text('name').notNull(),
   type: text('type').notNull(), // raw_material, finished_goods, quarantine, rejected
   location: text('location'),
+  temperatureMin: real('temperature_min'),
+  temperatureMax: real('temperature_max'),
+  humidityMin: real('humidity_min'),
+  humidityMax: real('humidity_max'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),

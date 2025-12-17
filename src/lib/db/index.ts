@@ -173,6 +173,10 @@ export async function initializeDatabase() {
           name TEXT NOT NULL,
           type TEXT NOT NULL,
           location TEXT,
+          temperature_min REAL,
+          temperature_max REAL,
+          humidity_min REAL,
+          humidity_max REAL,
           is_active INTEGER NOT NULL DEFAULT 1,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
