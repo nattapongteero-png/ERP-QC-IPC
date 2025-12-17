@@ -37,8 +37,8 @@
 
 **⚠️ CRITICAL**: No file moves until this phase is complete
 
-- [ ] T003 Verify git working tree is clean (no uncommitted changes)
-- [ ] T004 Create backup branch for safety: `git branch backup-before-reorganize`
+- [x] T003 Verify git working tree is clean (no uncommitted changes)
+- [x] T004 Create backup branch for safety: `git branch backup-before-reorganize`
 
 **Checkpoint**: Git state verified - file moves can begin
 
