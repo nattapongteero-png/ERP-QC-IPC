@@ -1,14 +1,12 @@
 <!--
 Sync Impact Report
 ==================
-Version change: N/A → 1.0.0 (initial adoption)
-Modified principles: None (new constitution)
-Added sections:
-  - Core Principles (5): Code Quality, Testing Standards, User Experience, Performance, Security & Compliance
-  - Quality Gates
-  - Development Workflow
-  - Governance
-Removed sections: None (new constitution)
+Version change: 1.0.0 → 1.1.0
+Modified principles:
+  - I. Code Quality Standards: Added "Error Verification" and "Frequent Commits" requirements
+  - Development Workflow: Enhanced steps 2-4 with mandatory error checking and commit requirements
+Added sections: None
+Removed sections: None
 Templates requiring updates:
   - .specify/templates/plan-template.md: ✅ Already has Constitution Check section
   - .specify/templates/spec-template.md: ✅ Compatible (uses testable requirements format)
@@ -30,8 +28,10 @@ All code in this project MUST adhere to the following non-negotiable quality sta
 - **Single Responsibility**: Each module, component, and function MUST have a single, clearly defined purpose. Functions exceeding 50 lines SHOULD be refactored unless complexity justifies otherwise.
 - **No Hardcoded Values**: Configuration values, API endpoints, and business logic conditions MUST NOT be hardcoded. Use environment variables, configuration files, or database-driven settings.
 - **Error Handling**: All async operations MUST have explicit error handling. API endpoints MUST return appropriate HTTP status codes and structured error responses.
+- **Error Verification**: After completing any code modification, developers MUST check for coding errors by running type checking (`pnpm tsc --noEmit`) and linting (`pnpm lint`). Code with errors MUST NOT be left in the codebase.
+- **Frequent Commits**: Code MUST be committed frequently after each completed task or logical unit of work to prevent loss of progress and enable easy rollback. Uncommitted code is at risk of being lost and makes debugging harder.
 
-**Rationale**: Consistent code quality reduces bugs, improves maintainability, and enables faster onboarding of new team members.
+**Rationale**: Consistent code quality reduces bugs, improves maintainability, and enables faster onboarding of new team members. Frequent commits and immediate error verification prevent accumulated technical debt and reduce the risk of losing work.
 
 ### II. Testing Standards
 
@@ -103,13 +103,17 @@ The following workflow MUST be followed for all changes:
 
 1. **Branch**: Create a feature branch from `main` with descriptive name.
 2. **Implement**: Make changes following constitution principles.
-3. **Test**: Run local tests and verify functionality.
-4. **Commit**: Create atomic commits with clear messages. Include issue references where applicable.
-5. **Push**: Push to remote and create pull request.
-6. **Review**: Address review feedback.
-7. **Merge**: Squash merge after approval and passing CI.
+3. **Verify**: After EACH code modification, MUST run error checks:
+   - Run `pnpm tsc --noEmit` to check for TypeScript errors
+   - Run `pnpm lint` to check for linting errors
+   - Fix all errors before proceeding
+4. **Commit**: MUST commit code immediately after completing each task or logical unit of work. Create atomic commits with clear messages. Include issue references where applicable.
+5. **Test**: Run local tests and verify functionality.
+6. **Push**: Push to remote and create pull request.
+7. **Review**: Address review feedback.
+8. **Merge**: Squash merge after approval and passing CI.
 
-**Commit Frequency**: Commit after completing each logical unit of work to prevent loss of progress and enable granular rollback.
+**Commit Frequency**: Commit after completing each logical unit of work to prevent loss of progress and enable granular rollback. This is NON-NEGOTIABLE - uncommitted code represents unprotected work.
 
 ## Governance
 
@@ -139,4 +143,4 @@ For day-to-day development guidance, refer to:
 - `.specify/` directory for feature specification workflows
 - Code comments and existing patterns for implementation guidance
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-17
+**Version**: 1.1.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-17
