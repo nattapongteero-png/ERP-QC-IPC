@@ -1,0 +1,60 @@
+import { getDb, schema } from './db';
+
+export interface AuditLogEntry {
+  userId?: number;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'APPROVE' | 'REJECT';
+  tableName?: string;
+  recordId?: number;
+  oldValue?: Record<string, any>;
+  newValue?: Record<string, any>;
+  ipAddress?: string;
+}
+
+export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
+  try {
+    const db = await getDb();
+    const useSqlite = process.env.NODE_ENV === 'test';
+    
+    if (useSqlite) {
+      // SQLite
+      await (db as any).insert(schema.sqliteAuditTrail).values({
+        userId: entry.userId,
+        action: entry.action,
+        tableName: entry.tableName,
+        recordId: entry.recordId,
+        oldValue: entry.oldValue ? JSON.stringify(entry.oldValue) : null,
+        newValue: entry.newValue ? JSON.stringify(entry.newValue) : null,
+        ipAddress: entry.ipAddress,
+      });
+    } else {
+      // MySQL
+      await (db as any).insert(schema.mysqlAuditTrail).values({
+        userId: entry.userId,
+        action: entry.action,
+        tableName: entry.tableName,
+        recordId: entry.recordId,
+        oldValue: entry.oldValue ? JSON.stringify(entry.oldValue) : null,
+        newValue: entry.newValue ? JSON.stringify(entry.newValue) : null,
+        ipAddress: entry.ipAddress,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to create audit log:', error);
+    // Don't throw - audit logging should not break the main operation
+  }
+}
+
+export function getClientIP(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIP = request.headers.get('x-real-ip');
+  
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  
+  if (realIP) {
+    return realIP;
+  }
+  
+  return 'unknown';
+}
