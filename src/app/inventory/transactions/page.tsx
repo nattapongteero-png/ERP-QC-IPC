@@ -405,33 +405,53 @@ export default function TransactionsPage() {
 
         <Card>
           {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="w-full md:w-48">
-              <Select
-                options={transactionTypes}
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              />
-            </div>
-            <div className="flex-1 flex gap-2 items-center">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-40"
-              />
-              <span className="text-gray-400">to</span>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-40"
-              />
-              <Button variant="secondary" onClick={handleSearch}>
-                <Filter className="h-4 w-4 mr-1" />
-                Filter
-              </Button>
+          <div className="flex flex-col gap-4 mb-6">
+            {/* Row 1: Type filter and Date range */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="w-full sm:w-48">
+                <Select
+                  options={transactionTypes}
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                />
+              </div>
+              
+              {/* Date Range Filter */}
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="hidden sm:flex items-center justify-center w-8 h-10 bg-gray-100 rounded-lg">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  
+                  <span className="text-gray-400 text-center sm:px-2">to</span>
+                  
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="flex-1">
+                      <Input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button variant="secondary" onClick={handleSearch} className="w-full sm:w-auto">
+                    <Filter className="h-4 w-4 mr-1" />
+                    Filter
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 
