@@ -14,7 +14,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 // GET /api/items/[id]
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const itemId = parseInt(id);
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // PUT /api/items/[id]
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const itemId = parseInt(id);
@@ -117,7 +117,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/items/[id]
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const itemId = parseInt(id);

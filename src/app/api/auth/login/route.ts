@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Create session
     await setSession({
-      userId: user.id,
+      userId: user.userId,
       email: user.email,
       role: user.role,
       name: user.name,
@@ -61,14 +61,14 @@ export async function POST(request: NextRequest) {
 
     // Log login
     await createAuditLog({
-      userId: user.id,
+      userId: user.userId,
       action: 'LOGIN',
       ipAddress: getClientIP(request),
     });
 
     return successResponse({
       user: {
-        id: user.id,
+        id: user.userId,
         email: user.email,
         name: user.name,
         role: user.role,

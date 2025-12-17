@@ -5,7 +5,7 @@ import mysql from 'mysql2/promise';
 import * as schema from './schema';
 
 // Environment detection - use custom DB_TYPE env var since Next.js overrides NODE_ENV
-function useSqlite(): boolean {
+export function useSqlite(): boolean {
   // Use DB_TYPE=sqlite for SQLite, otherwise use MySQL
   return process.env.DB_TYPE === 'sqlite';
 }
@@ -518,6 +518,21 @@ export async function initializeDatabase() {
   }
   
   return db;
+}
+
+// Synchronous db getter for services
+let cachedDb: any = null;
+
+export function db() {
+  if (cachedDb) return cachedDb;
+  if (useSqlite()) {
+    cachedDb = getSqliteDb();
+  } else {
+    // For MySQL, we need async initialization
+    // This is a workaround - in production, initialize at startup
+    throw new Error('MySQL requires async initialization. Use getDb() instead.');
+  }
+  return cachedDb;
 }
 
 export { schema };

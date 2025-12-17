@@ -23,7 +23,7 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
 
 // PUT /api/production/work-orders/[id]/status
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const workOrderId = parseInt(id);

@@ -69,6 +69,7 @@ export function serverErrorResponse(error: unknown): NextResponse<ApiResponse> {
 
 // Middleware helper for protected routes
 export async function withAuth(
+  request: Request,
   handler: (session: NonNullable<Awaited<ReturnType<typeof getSession>>>) => Promise<NextResponse>,
   requiredPermissions?: Permission[]
 ): Promise<NextResponse> {

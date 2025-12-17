@@ -14,7 +14,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 // PUT /api/quality/tests/[id]/result - Submit test result
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const testId = parseInt(id);

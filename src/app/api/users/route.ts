@@ -14,7 +14,7 @@ import { createAuditLog, getClientIP } from '@/lib/audit';
 
 // GET /api/users - List users
 export async function GET(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/users - Create user
 export async function POST(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const body = await request.json();
       const { email, password, name, role, department } = body;

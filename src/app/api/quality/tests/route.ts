@@ -13,7 +13,7 @@ import { createAuditLog, getClientIP } from '@/lib/audit';
 
 // GET /api/quality/tests - List quality tests
 export async function GET(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/quality/tests - Create quality test
 export async function POST(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const body = await request.json();
       const {

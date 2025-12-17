@@ -14,7 +14,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 // PUT /api/inventory/lots/[id]/status - Update lot status
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const lotId = parseInt(id);

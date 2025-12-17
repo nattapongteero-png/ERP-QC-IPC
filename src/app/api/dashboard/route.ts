@@ -9,7 +9,7 @@ import {
 
 // GET /api/dashboard - Get dashboard statistics
 export async function GET(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const db = await getDb();
       const useSqlite = process.env.DB_TYPE === 'sqlite';

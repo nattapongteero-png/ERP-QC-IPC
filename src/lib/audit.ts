@@ -2,7 +2,7 @@ import { getDb, schema } from './db';
 
 export interface AuditLogEntry {
   userId?: number;
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'APPROVE' | 'REJECT';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'APPROVE' | 'REJECT' | 'RESERVE' | 'ISSUE' | 'RECEIVE' | 'TRANSFER' | 'ADJUST' | 'RELEASE' | 'BLOCK';
   tableName?: string;
   recordId?: number;
   oldValue?: Record<string, any>;

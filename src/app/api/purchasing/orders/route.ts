@@ -23,7 +23,7 @@ function generatePONumber(): string {
 
 // GET /api/purchasing/orders - List purchase orders
 export async function GET(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/purchasing/orders - Create purchase order
 export async function POST(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const body = await request.json();
       const {

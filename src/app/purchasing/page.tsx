@@ -89,7 +89,7 @@ export default function PurchasingPage() {
       case 'partial':
         return 'info';
       default:
-        return 'secondary';
+        return 'default';
     }
   };
 

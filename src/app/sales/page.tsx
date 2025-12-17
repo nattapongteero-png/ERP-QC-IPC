@@ -89,7 +89,7 @@ export default function SalesPage() {
       case 'shipped':
         return 'info';
       default:
-        return 'secondary';
+        return 'default';
     }
   };
 

@@ -22,7 +22,7 @@ function generateDeviationNumber(): string {
 
 // GET /api/quality/deviations - List deviations
 export async function GET(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/quality/deviations - Create deviation
 export async function POST(request: NextRequest) {
-  return withAuth(async (session) => {
+  return withAuth(request, async (session) => {
     try {
       const body = await request.json();
       const {
