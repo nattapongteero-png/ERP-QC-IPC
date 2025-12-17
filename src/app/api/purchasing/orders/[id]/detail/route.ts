@@ -58,10 +58,12 @@ export async function GET(
           itemCode: items.code,
           itemName: items.nameTh,
           itemNameEn: items.nameEn,
-          itemUnit: items.unit,
+          itemUnit: items.primaryUnit,
           quantity: purchaseOrderLines.quantity,
           unitPrice: purchaseOrderLines.unitPrice,
-          receivedQty: purchaseOrderLines.receivedQty,
+          receivedQty: purchaseOrderLines.receivedQuantity,
+          unit: purchaseOrderLines.unit,
+          totalPrice: purchaseOrderLines.totalPrice,
         })
         .from(purchaseOrderLines)
         .leftJoin(items, eq(purchaseOrderLines.itemId, items.id))
@@ -70,7 +72,7 @@ export async function GET(
       // Calculate line totals and receiving status
       const linesWithTotals = linesResult.map((line: any) => ({
         ...line,
-        lineTotal: (line.quantity || 0) * (line.unitPrice || 0),
+        lineTotal: line.totalPrice || ((line.quantity || 0) * (line.unitPrice || 0)),
         pendingQty: (line.quantity || 0) - (line.receivedQty || 0),
         receivingStatus: line.receivedQty >= line.quantity ? 'complete' : 
                         line.receivedQty > 0 ? 'partial' : 'pending',

@@ -4,7 +4,7 @@ import {
   sqliteWarehouses, sqliteInventoryLots, sqliteItems, sqliteInventoryTransactions,
   mysqlWarehouses, mysqlInventoryLots, mysqlItems, mysqlInventoryTransactions
 } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, or } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
 
 export async function GET(
@@ -40,7 +40,7 @@ export async function GET(
           itemNameEn: items.nameEn,
           itemType: items.type,
           quantity: inventoryLots.quantity,
-          unit: items.unit,
+          unit: items.primaryUnit,
           status: inventoryLots.status,
           expiryDate: inventoryLots.expiryDate,
           receivedDate: inventoryLots.receivedDate,
@@ -49,18 +49,26 @@ export async function GET(
         .leftJoin(items, eq(inventoryLots.itemId, items.id))
         .where(eq(inventoryLots.warehouseId, parseInt(id)));
 
-      // Get recent transactions for this warehouse
+      // Get recent transactions for this warehouse (from or to)
       const transactionsResult = await db
         .select({
           id: transactions.id,
-          type: transactions.type,
+          transactionType: transactions.transactionType,
           lotId: transactions.lotId,
           quantity: transactions.quantity,
-          reference: transactions.reference,
+          unit: transactions.unit,
+          referenceType: transactions.referenceType,
+          referenceNumber: transactions.referenceNumber,
+          reason: transactions.reason,
           createdAt: transactions.createdAt,
         })
         .from(transactions)
-        .where(eq(transactions.warehouseId, parseInt(id)))
+        .where(
+          or(
+            eq(transactions.fromWarehouseId, parseInt(id)),
+            eq(transactions.toWarehouseId, parseInt(id))
+          )
+        )
         .orderBy(sql`${transactions.createdAt} DESC`)
         .limit(20);
 

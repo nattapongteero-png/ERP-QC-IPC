@@ -43,7 +43,7 @@ export async function GET(
             nameTh: items.nameTh,
             nameEn: items.nameEn,
             type: items.type,
-            unit: items.unit,
+            unit: items.primaryUnit,
           })
           .from(items)
           .where(eq(items.id, deviation.itemId));

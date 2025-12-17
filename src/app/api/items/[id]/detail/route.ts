@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, useSqlite } from '@/lib/db';
 import { 
-  sqliteItems, sqliteInventoryLots, sqliteWarehouses, sqliteBom, sqliteWorkOrders,
-  mysqlItems, mysqlInventoryLots, mysqlWarehouses, mysqlBom, mysqlWorkOrders
+  sqliteItems, sqliteInventoryLots, sqliteWarehouses, sqliteBOM, sqliteBOMLines, sqliteWorkOrders,
+  mysqlItems, mysqlInventoryLots, mysqlWarehouses, mysqlBOM, mysqlBOMLines, mysqlWorkOrders
 } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
@@ -18,7 +18,8 @@ export async function GET(
       const items = useSqlite() ? sqliteItems : mysqlItems;
       const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
       const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
-      const bom = useSqlite() ? sqliteBom : mysqlBom;
+      const bom = useSqlite() ? sqliteBOM : mysqlBOM;
+      const bomLines = useSqlite() ? sqliteBOMLines : mysqlBOMLines;
       const workOrders = useSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
 
       // Get item details
@@ -47,43 +48,83 @@ export async function GET(
         .leftJoin(warehouses, eq(inventoryLots.warehouseId, warehouses.id))
         .where(eq(inventoryLots.itemId, parseInt(id)));
 
-      // Get BOM components (if this item is a finished product)
+      // Get BOM that produces this item (if this item is a finished product)
       const bomResult = await db
         .select({
           id: bom.id,
-          componentId: bom.componentId,
-          componentCode: items.code,
-          componentName: items.nameTh,
-          componentNameEn: items.nameEn,
-          quantity: bom.quantity,
-          unit: items.unit,
-          lossPercent: bom.lossPercent,
+          code: bom.code,
+          name: bom.name,
+          version: bom.version,
+          status: bom.status,
+          batchSize: bom.batchSize,
+          batchUnit: bom.batchUnit,
         })
         .from(bom)
-        .leftJoin(items, eq(bom.componentId, items.id))
         .where(eq(bom.productId, parseInt(id)));
+
+      // Get BOM lines for each BOM (components)
+      const bomWithLines = await Promise.all(
+        bomResult.map(async (b: any) => {
+          const lines = await db
+            .select({
+              id: bomLines.id,
+              itemId: bomLines.itemId,
+              itemCode: items.code,
+              itemName: items.nameTh,
+              itemNameEn: items.nameEn,
+              quantity: bomLines.quantity,
+              unit: bomLines.unit,
+              sequence: bomLines.sequence,
+            })
+            .from(bomLines)
+            .leftJoin(items, eq(bomLines.itemId, items.id))
+            .where(eq(bomLines.bomId, b.id));
+          return { ...b, lines };
+        })
+      );
 
       // Get items that use this item as a component (where used)
       const whereUsedResult = await db
         .select({
-          id: bom.id,
+          bomLineId: bomLines.id,
+          bomId: bomLines.bomId,
+          bomCode: bom.code,
+          bomName: bom.name,
           productId: bom.productId,
-          productCode: items.code,
-          productName: items.nameTh,
-          productNameEn: items.nameEn,
-          quantity: bom.quantity,
+          quantity: bomLines.quantity,
+          unit: bomLines.unit,
         })
-        .from(bom)
-        .leftJoin(items, eq(bom.productId, items.id))
-        .where(eq(bom.componentId, parseInt(id)));
+        .from(bomLines)
+        .leftJoin(bom, eq(bomLines.bomId, bom.id))
+        .where(eq(bomLines.itemId, parseInt(id)));
+
+      // Enrich where used with product info
+      const whereUsedWithProduct = await Promise.all(
+        whereUsedResult.map(async (wu: any) => {
+          const productResult = await db
+            .select({
+              code: items.code,
+              nameTh: items.nameTh,
+              nameEn: items.nameEn,
+            })
+            .from(items)
+            .where(eq(items.id, wu.productId));
+          return {
+            ...wu,
+            productCode: productResult[0]?.code,
+            productName: productResult[0]?.nameTh,
+            productNameEn: productResult[0]?.nameEn,
+          };
+        })
+      );
 
       // Get recent work orders for this item
       const workOrdersResult = await db
         .select({
           id: workOrders.id,
           woNumber: workOrders.woNumber,
-          plannedQty: workOrders.plannedQty,
-          actualQty: workOrders.actualQty,
+          plannedQuantity: workOrders.plannedQuantity,
+          actualQuantity: workOrders.actualQuantity,
           status: workOrders.status,
           plannedStartDate: workOrders.plannedStartDate,
           actualEndDate: workOrders.actualEndDate,
@@ -142,8 +183,8 @@ export async function GET(
           },
           stockByWarehouse: Object.values(stockByWarehouse),
           lots: lotsResult,
-          bom: bomResult,
-          whereUsed: whereUsedResult,
+          bom: bomWithLines,
+          whereUsed: whereUsedWithProduct,
           recentWorkOrders: workOrdersResult,
         },
       });

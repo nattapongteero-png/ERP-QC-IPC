@@ -4,7 +4,8 @@ import { ReactNode } from 'react';
 
 interface Column<T> {
   key: string;
-  header: string;
+  header?: string;
+  title?: string; // alias for header
   render?: (item: T) => ReactNode;
   className?: string;
 }
@@ -12,10 +13,11 @@ interface Column<T> {
 interface TableProps<T> {
   columns: Column<T>[];
   data: T[];
-  keyField: keyof T;
+  keyField?: keyof T;
   isLoading?: boolean;
   emptyMessage?: string;
   onRowClick?: (item: T) => void;
+  renderRow?: (item: T, index: number) => ReactNode;
 }
 
 export function Table<T extends Record<string, any>>({
@@ -25,6 +27,7 @@ export function Table<T extends Record<string, any>>({
   isLoading,
   emptyMessage = 'No data available',
   onRowClick,
+  renderRow,
 }: TableProps<T>) {
   if (isLoading) {
     return (
@@ -55,28 +58,31 @@ export function Table<T extends Record<string, any>>({
                 key={column.key}
                 className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.className || ''}`}
               >
-                {column.header}
+                {column.header || column.title}
               </th>
             ))}
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {data.map((item) => (
-            <tr
-              key={String(item[keyField])}
-              className={onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}
-              onClick={() => onRowClick?.(item)}
-            >
-              {columns.map((column) => (
-                <td
-                  key={column.key}
-                  className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${column.className || ''}`}
-                >
-                  {column.render ? column.render(item) : item[column.key]}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {renderRow 
+            ? data.map((item, index) => renderRow(item, index))
+            : data.map((item, index) => (
+              <tr
+                key={keyField ? String(item[keyField]) : index}
+                className={onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}
+                onClick={() => onRowClick?.(item)}
+              >
+                {columns.map((column) => (
+                  <td
+                    key={column.key}
+                    className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${column.className || ''}`}
+                  >
+                    {column.render ? column.render(item) : item[column.key]}
+                  </td>
+                ))}
+              </tr>
+            ))
+          }
         </tbody>
       </table>
     </div>

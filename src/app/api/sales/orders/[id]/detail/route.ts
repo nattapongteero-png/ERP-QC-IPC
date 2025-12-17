@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, useSqlite } from '@/lib/db';
 import { 
-  sqliteSalesOrders, sqliteSalesOrderLines, sqliteItems, sqliteCustomers, sqliteInventoryLots,
-  mysqlSalesOrders, mysqlSalesOrderLines, mysqlItems, mysqlCustomers, mysqlInventoryLots
+  sqliteSalesOrders, sqliteSalesOrderLines, sqliteItems, sqliteInventoryLots,
+  mysqlSalesOrders, mysqlSalesOrderLines, mysqlItems, mysqlInventoryLots
 } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
@@ -18,31 +18,28 @@ export async function GET(
       const salesOrders = useSqlite() ? sqliteSalesOrders : mysqlSalesOrders;
       const salesOrderLines = useSqlite() ? sqliteSalesOrderLines : mysqlSalesOrderLines;
       const items = useSqlite() ? sqliteItems : mysqlItems;
-      const customers = useSqlite() ? sqliteCustomers : mysqlCustomers;
       const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
 
-      // Get SO details
+      // Get SO details (customer info is stored directly in sales_orders table)
       const soResult = await db
         .select({
           id: salesOrders.id,
           soNumber: salesOrders.soNumber,
-          customerId: salesOrders.customerId,
-          customerCode: customers.code,
-          customerName: customers.name,
-          customerContact: customers.contactPerson,
-          customerPhone: customers.phone,
-          customerEmail: customers.email,
-          customerAddress: customers.address,
+          customerName: salesOrders.customerName,
+          customerContact: salesOrders.customerContact,
+          customerAddress: salesOrders.customerAddress,
           orderDate: salesOrders.orderDate,
-          requestedDate: salesOrders.requestedDate,
+          requiredDate: salesOrders.requiredDate,
+          shippedDate: salesOrders.shippedDate,
           status: salesOrders.status,
           totalAmount: salesOrders.totalAmount,
+          currency: salesOrders.currency,
+          paymentTerms: salesOrders.paymentTerms,
           notes: salesOrders.notes,
           createdAt: salesOrders.createdAt,
           updatedAt: salesOrders.updatedAt,
         })
         .from(salesOrders)
-        .leftJoin(customers, eq(salesOrders.customerId, customers.id))
         .where(eq(salesOrders.id, parseInt(id)));
 
       if (soResult.length === 0) {
@@ -59,10 +56,11 @@ export async function GET(
           itemCode: items.code,
           itemName: items.nameTh,
           itemNameEn: items.nameEn,
-          itemUnit: items.unit,
+          itemUnit: items.primaryUnit,
           quantity: salesOrderLines.quantity,
           unitPrice: salesOrderLines.unitPrice,
-          shippedQty: salesOrderLines.shippedQty,
+          shippedQty: salesOrderLines.shippedQuantity,
+          totalPrice: salesOrderLines.totalPrice,
         })
         .from(salesOrderLines)
         .leftJoin(items, eq(salesOrderLines.itemId, items.id))
@@ -87,7 +85,7 @@ export async function GET(
 
           return {
             ...line,
-            lineTotal: (line.quantity || 0) * (line.unitPrice || 0),
+            lineTotal: line.totalPrice || ((line.quantity || 0) * (line.unitPrice || 0)),
             pendingQty: (line.quantity || 0) - (line.shippedQty || 0),
             fulfillmentStatus: line.shippedQty >= line.quantity ? 'shipped' : 
                               line.shippedQty > 0 ? 'partial' : 'pending',

@@ -16,7 +16,7 @@ export async function GET(
       const { id } = await params;
       const db = await getDb();
       const workOrders = useSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
-      const workOrderLines = useSqlite() ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
+      const workOrderMaterials = useSqlite() ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
       const items = useSqlite() ? sqliteItems : mysqlItems;
       const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
       const users = useSqlite() ? sqliteUsers : mysqlUsers;
@@ -31,15 +31,18 @@ export async function GET(
           productCode: items.code,
           productName: items.nameTh,
           productNameEn: items.nameEn,
-          productUnit: items.unit,
+          productUnit: items.primaryUnit,
           batchNumber: workOrders.batchNumber,
-          plannedQty: workOrders.plannedQty,
-          actualQty: workOrders.actualQty,
+          plannedQuantity: workOrders.plannedQuantity,
+          actualQuantity: workOrders.actualQuantity,
+          unit: workOrders.unit,
           status: workOrders.status,
+          priority: workOrders.priority,
           plannedStartDate: workOrders.plannedStartDate,
           plannedEndDate: workOrders.plannedEndDate,
           actualStartDate: workOrders.actualStartDate,
           actualEndDate: workOrders.actualEndDate,
+          yieldPercentage: workOrders.yieldPercentage,
           notes: workOrders.notes,
           createdAt: workOrders.createdAt,
           updatedAt: workOrders.updatedAt,
@@ -54,70 +57,77 @@ export async function GET(
 
       const workOrder = woResult[0];
 
-      // Get work order lines (materials)
-      const linesResult = await db
+      // Get work order materials
+      const materialsResult = await db
         .select({
-          id: workOrderLines.id,
-          itemId: workOrderLines.itemId,
+          id: workOrderMaterials.id,
+          itemId: workOrderMaterials.itemId,
           itemCode: items.code,
           itemName: items.nameTh,
           itemNameEn: items.nameEn,
-          itemUnit: items.unit,
-          plannedQty: workOrderLines.plannedQty,
-          actualQty: workOrderLines.actualQty,
-          lotId: workOrderLines.lotId,
+          itemUnit: items.primaryUnit,
+          plannedQuantity: workOrderMaterials.plannedQuantity,
+          actualQuantity: workOrderMaterials.actualQuantity,
+          unit: workOrderMaterials.unit,
+          status: workOrderMaterials.status,
+          lotId: workOrderMaterials.lotId,
         })
-        .from(workOrderLines)
-        .leftJoin(items, eq(workOrderLines.itemId, items.id))
-        .where(eq(workOrderLines.woId, parseInt(id)));
+        .from(workOrderMaterials)
+        .leftJoin(items, eq(workOrderMaterials.itemId, items.id))
+        .where(eq(workOrderMaterials.workOrderId, parseInt(id)));
 
-      // Get lot information for each line
-      const linesWithLots = await Promise.all(
-        linesResult.map(async (line: any) => {
-          if (line.lotId) {
+      // Get lot information for each material
+      const materialsWithLots = await Promise.all(
+        materialsResult.map(async (material: any) => {
+          if (material.lotId) {
             const lotResult = await db
               .select({
                 lotNumber: inventoryLots.lotNumber,
                 expiryDate: inventoryLots.expiryDate,
               })
               .from(inventoryLots)
-              .where(eq(inventoryLots.id, line.lotId));
+              .where(eq(inventoryLots.id, material.lotId));
             return {
-              ...line,
+              ...material,
               lotNumber: lotResult[0]?.lotNumber || null,
               lotExpiryDate: lotResult[0]?.expiryDate || null,
             };
           }
-          return { ...line, lotNumber: null, lotExpiryDate: null };
+          return { ...material, lotNumber: null, lotExpiryDate: null };
         })
       );
 
-      // Get QC tests for this work order
+      // Get QC tests for lots associated with this work order
       const qcTestsResult = await db
         .select({
           id: qualityTests.id,
-          testCode: qualityTests.testCode,
+          lotId: qualityTests.lotId,
           testType: qualityTests.testType,
           status: qualityTests.status,
           result: qualityTests.result,
-          testedAt: qualityTests.testedAt,
+          testDate: qualityTests.testDate,
         })
-        .from(qualityTests)
-        .where(eq(qualityTests.woId, parseInt(id)));
+        .from(qualityTests);
+
+      // Filter QC tests related to this work order's lots
+      const relatedLotIds = materialsWithLots
+        .filter((m: any) => m.lotId)
+        .map((m: any) => m.lotId);
+      const relatedQcTests = qcTestsResult.filter((t: any) => relatedLotIds.includes(t.lotId));
 
       // Calculate yield
-      const yieldPercent = workOrder.plannedQty && workOrder.actualQty
-        ? Math.round((workOrder.actualQty / workOrder.plannedQty) * 100 * 100) / 100
-        : null;
+      const yieldPercent = workOrder.plannedQuantity && workOrder.actualQuantity
+        ? Math.round((workOrder.actualQuantity / workOrder.plannedQuantity) * 100 * 100) / 100
+        : workOrder.yieldPercentage || null;
 
       // Calculate material consumption
-      const materialConsumption = linesWithLots.map((line: any) => ({
-        ...line,
-        consumptionPercent: line.plannedQty && line.actualQty
-          ? Math.round((line.actualQty / line.plannedQty) * 100 * 100) / 100
+      const materialConsumption = materialsWithLots.map((material: any) => ({
+        ...material,
+        consumptionPercent: material.plannedQuantity && material.actualQuantity
+          ? Math.round((material.actualQuantity / material.plannedQuantity) * 100 * 100) / 100
           : null,
-        variance: line.plannedQty && line.actualQty
-          ? line.actualQty - line.plannedQty
+        variance: material.plannedQuantity && material.actualQuantity
+          ? material.actualQuantity - material.plannedQuantity
           : null,
       }));
 
@@ -134,13 +144,13 @@ export async function GET(
         batchNumber: workOrder.batchNumber,
         productCode: workOrder.productCode,
         productName: workOrder.productName,
-        plannedQty: workOrder.plannedQty,
-        actualQty: workOrder.actualQty,
+        plannedQuantity: workOrder.plannedQuantity,
+        actualQuantity: workOrder.actualQuantity,
         yieldPercent,
         productionTimeHours,
         status: workOrder.status,
         materials: materialConsumption,
-        qcTests: qcTestsResult,
+        qcTests: relatedQcTests,
         timeline: {
           plannedStart: workOrder.plannedStartDate,
           plannedEnd: workOrder.plannedEndDate,
@@ -154,14 +164,14 @@ export async function GET(
         data: {
           workOrder,
           materials: materialConsumption,
-          qcTests: qcTestsResult,
+          qcTests: relatedQcTests,
           ebmr,
           summary: {
             yieldPercent,
             productionTimeHours,
-            materialCount: linesWithLots.length,
-            qcTestCount: qcTestsResult.length,
-            qcPassCount: qcTestsResult.filter((t: any) => t.result === 'pass').length,
+            materialCount: materialsWithLots.length,
+            qcTestCount: relatedQcTests.length,
+            qcPassCount: relatedQcTests.filter((t: any) => t.status === 'pass').length,
           },
         },
       });
