@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -23,13 +24,18 @@ import {
   Receipt,
   ShoppingBag,
   UserCheck,
+  ChevronDown,
+  ChevronRight,
+  Leaf,
+  Sparkles,
 } from 'lucide-react';
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  children?: { name: string; href: string; icon?: React.ComponentType<{ className?: string }> }[];
+  badge?: number;
+  children?: { name: string; href: string; icon?: React.ComponentType<{ className?: string }>; badge?: number }[];
 }
 
 const navigation: NavItem[] = [
@@ -100,6 +106,7 @@ interface SidebarProps {
 
 export function Sidebar({ user, onLogout }: SidebarProps) {
   const pathname = usePathname();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/');
@@ -109,76 +116,152 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
     return pathname === href;
   };
 
+  const toggleExpand = (name: string) => {
+    setExpandedItems(prev => 
+      prev.includes(name) 
+        ? prev.filter(item => item !== name)
+        : [...prev, name]
+    );
+  };
+
+  const isExpanded = (name: string) => {
+    return expandedItems.includes(name) || navigation.find(item => item.name === name && item.children && isActive(item.href));
+  };
+
   return (
-    <div className="flex flex-col h-full bg-gray-900 text-white w-64">
-      {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b border-gray-800">
-        <Package className="h-8 w-8 text-emerald-500" />
-        <span className="ml-2 text-lg font-bold">Herbal ERP</span>
+    <div className="flex flex-col h-full w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
+      {/* Logo Section */}
+      <div className="flex items-center h-20 px-6 border-b border-slate-700/50">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+              <Leaf className="h-6 w-6 text-white" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-3 h-3">
+              <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-white tracking-tight">Herbal ERP</h1>
+            <p className="text-[10px] text-slate-400 font-medium">Medicine Management</p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4">
-        <ul className="space-y-1 px-2">
+      <nav className="flex-1 overflow-y-auto py-6 px-3">
+        <div className="space-y-1">
           {navigation.map((item) => (
-            <li key={item.name}>
-              <Link
-                href={item.children ? item.children[0].href : item.href}
-                className={`
-                  flex items-center px-3 py-2 rounded-lg text-sm font-medium
-                  ${isActive(item.href)
-                    ? 'bg-emerald-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  }
-                `}
-              >
-                <item.icon className="h-5 w-5 mr-3" />
-                {item.name}
-              </Link>
-              {item.children && isActive(item.href) && (
-                <ul className="mt-1 ml-4 space-y-1">
-                  {item.children.map((child) => (
-                    <li key={child.name}>
-                      <Link
-                        href={child.href}
-                        className={`
-                          flex items-center px-3 py-1.5 rounded-lg text-sm
-                          ${isChildActive(child.href)
-                            ? 'text-emerald-400 bg-gray-800'
-                            : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                          }
-                        `}
-                      >
-                        {child.icon && <child.icon className="h-4 w-4 mr-2" />}
-                        {child.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+            <div key={item.name}>
+              {item.children ? (
+                // Parent with children
+                <div>
+                  <button
+                    onClick={() => toggleExpand(item.name)}
+                    className={`
+                      w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium
+                      transition-all duration-200 group
+                      ${isActive(item.href)
+                        ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        p-2 rounded-lg transition-all duration-200
+                        ${isActive(item.href) 
+                          ? 'bg-emerald-500/20 text-emerald-400' 
+                          : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
+                        }
+                      `}>
+                        <item.icon className="h-4 w-4" />
+                      </div>
+                      <span>{item.name}</span>
+                    </div>
+                    <ChevronDown className={`
+                      h-4 w-4 transition-transform duration-200
+                      ${isExpanded(item.name) ? 'rotate-180' : ''}
+                    `} />
+                  </button>
+                  
+                  {/* Submenu */}
+                  <div className={`
+                    overflow-hidden transition-all duration-300 ease-in-out
+                    ${isExpanded(item.name) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
+                  `}>
+                    <div className="mt-1 ml-4 pl-4 border-l border-slate-700/50 space-y-1">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.name}
+                          href={child.href}
+                          className={`
+                            flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                            transition-all duration-200
+                            ${isChildActive(child.href)
+                              ? 'bg-emerald-500/10 text-emerald-400 font-medium'
+                              : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                            }
+                          `}
+                        >
+                          {child.icon && (
+                            <child.icon className={`h-4 w-4 ${isChildActive(child.href) ? 'text-emerald-400' : ''}`} />
+                          )}
+                          <span>{child.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Single item without children
+                <Link
+                  href={item.href}
+                  className={`
+                    flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
+                    transition-all duration-200 group
+                    ${isActive(item.href)
+                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                    }
+                  `}
+                >
+                  <div className={`
+                    p-2 rounded-lg transition-all duration-200
+                    ${isActive(item.href) 
+                      ? 'bg-emerald-500/20 text-emerald-400' 
+                      : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
+                    }
+                  `}>
+                    <item.icon className="h-4 w-4" />
+                  </div>
+                  <span>{item.name}</span>
+                </Link>
               )}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       </nav>
 
-      {/* User info */}
+      {/* User Section */}
       {user && (
-        <div className="border-t border-gray-800 p-4">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-full bg-emerald-600 flex items-center justify-center">
-                <span className="text-sm font-medium">
+        <div className="p-4 border-t border-slate-700/50">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50">
+            <div className="relative">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <span className="text-sm font-bold text-white">
                   {user.name.charAt(0).toUpperCase()}
                 </span>
               </div>
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900"></div>
             </div>
-            <div className="ml-3 flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
-              <p className="text-xs text-gray-400 truncate">{user.role}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+              <p className="text-xs text-slate-400 truncate">{user.role}</p>
             </div>
             <button
               onClick={onLogout}
-              className="ml-2 p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"
+              className="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all duration-200"
               title="Logout"
             >
               <LogOut className="h-5 w-5" />
