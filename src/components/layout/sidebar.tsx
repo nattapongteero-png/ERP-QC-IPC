@@ -25,7 +25,6 @@ import {
   ShoppingBag,
   UserCheck,
   ChevronDown,
-  ChevronRight,
   Leaf,
   Sparkles,
 } from 'lucide-react';
@@ -102,9 +101,10 @@ interface SidebarProps {
     role: string;
   };
   onLogout?: () => void;
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ user, onLogout }: SidebarProps) {
+export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
@@ -128,28 +128,34 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
     return expandedItems.includes(name) || navigation.find(item => item.name === name && item.children && isActive(item.href));
   };
 
+  const handleLinkClick = () => {
+    if (onNavigate) {
+      onNavigate();
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
+    <div className="flex flex-col h-full w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 shadow-2xl">
       {/* Logo Section */}
-      <div className="flex items-center h-20 px-6 border-b border-slate-700/50">
+      <div className="flex items-center h-16 md:h-20 px-4 md:px-6 border-b border-slate-700/50">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <Leaf className="h-6 w-6 text-white" />
+            <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+              <Leaf className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
             <div className="absolute -top-1 -right-1 w-3 h-3">
               <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
             </div>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white tracking-tight">Herbal ERP</h1>
-            <p className="text-[10px] text-slate-400 font-medium">Medicine Management</p>
+            <h1 className="text-base md:text-lg font-bold text-white tracking-tight">Herbal ERP</h1>
+            <p className="text-[9px] md:text-[10px] text-slate-400 font-medium">Medicine Management</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-6 px-3">
+      <nav className="flex-1 overflow-y-auto py-4 md:py-6 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         <div className="space-y-1">
           {navigation.map((item) => (
             <div key={item.name}>
@@ -159,7 +165,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                   <button
                     onClick={() => toggleExpand(item.name)}
                     className={`
-                      w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium
+                      w-full flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-sm font-medium
                       transition-all duration-200 group
                       ${isActive(item.href)
                         ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
@@ -167,9 +173,9 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                       }
                     `}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3">
                       <div className={`
-                        p-2 rounded-lg transition-all duration-200
+                        p-1.5 md:p-2 rounded-lg transition-all duration-200
                         ${isActive(item.href) 
                           ? 'bg-emerald-500/20 text-emerald-400' 
                           : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
@@ -177,7 +183,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                       `}>
                         <item.icon className="h-4 w-4" />
                       </div>
-                      <span>{item.name}</span>
+                      <span className="text-sm">{item.name}</span>
                     </div>
                     <ChevronDown className={`
                       h-4 w-4 transition-transform duration-200
@@ -190,13 +196,14 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                     overflow-hidden transition-all duration-300 ease-in-out
                     ${isExpanded(item.name) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
                   `}>
-                    <div className="mt-1 ml-4 pl-4 border-l border-slate-700/50 space-y-1">
+                    <div className="mt-1 ml-3 md:ml-4 pl-3 md:pl-4 border-l border-slate-700/50 space-y-1">
                       {item.children.map((child) => (
                         <Link
                           key={child.name}
                           href={child.href}
+                          onClick={handleLinkClick}
                           className={`
-                            flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                            flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-sm
                             transition-all duration-200
                             ${isChildActive(child.href)
                               ? 'bg-emerald-500/10 text-emerald-400 font-medium'
@@ -217,8 +224,9 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                 // Single item without children
                 <Link
                   href={item.href}
+                  onClick={handleLinkClick}
                   className={`
-                    flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
+                    flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-sm font-medium
                     transition-all duration-200 group
                     ${isActive(item.href)
                       ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
@@ -227,7 +235,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                   `}
                 >
                   <div className={`
-                    p-2 rounded-lg transition-all duration-200
+                    p-1.5 md:p-2 rounded-lg transition-all duration-200
                     ${isActive(item.href) 
                       ? 'bg-emerald-500/20 text-emerald-400' 
                       : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
@@ -235,7 +243,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
                   `}>
                     <item.icon className="h-4 w-4" />
                   </div>
-                  <span>{item.name}</span>
+                  <span className="text-sm">{item.name}</span>
                 </Link>
               )}
             </div>
@@ -245,26 +253,26 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
 
       {/* User Section */}
       {user && (
-        <div className="p-4 border-t border-slate-700/50">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50">
-            <div className="relative">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+        <div className="p-3 md:p-4 border-t border-slate-700/50">
+          <div className="flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-xl bg-slate-800/50">
+            <div className="relative flex-shrink-0">
+              <div className="h-9 w-9 md:h-10 md:w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <span className="text-sm font-bold text-white">
                   {user.name.charAt(0).toUpperCase()}
                 </span>
               </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900"></div>
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-emerald-400 rounded-full border-2 border-slate-900"></div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{user.name}</p>
-              <p className="text-xs text-slate-400 truncate">{user.role}</p>
+              <p className="text-xs md:text-sm font-semibold text-white truncate">{user.name}</p>
+              <p className="text-[10px] md:text-xs text-slate-400 truncate">{user.role}</p>
             </div>
             <button
               onClick={onLogout}
-              className="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all duration-200"
+              className="p-1.5 md:p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all duration-200 flex-shrink-0"
               title="Logout"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-4 w-4 md:h-5 md:w-5" />
             </button>
           </div>
         </div>
