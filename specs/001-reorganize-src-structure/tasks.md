@@ -24,8 +24,8 @@
 
 **Purpose**: Create target directory structure
 
-- [ ] T001 Create docker/ directory at project root
-- [ ] T002 Verify docs/ directory exists at project root
+- [x] T001 Create docker/ directory at project root
+- [x] T002 Verify docs/ directory exists at project root
 
 **Checkpoint**: Directory structure ready for file moves
 
