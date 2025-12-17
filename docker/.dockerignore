@@ -1,12 +1,15 @@
 # Dependencies
 node_modules
 .pnpm-store
-
+mysql_data
 # Build outputs
 .next
 out
 dist
 build
+.claude
+.specify
+data
 
 # Development files
 *.log

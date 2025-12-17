@@ -1,13 +1,13 @@
 version: '3.8'
 
 # Development docker-compose configuration
-# Use: docker-compose -f docker-compose.dev.yml up
+# Use: docker-compose -f docker/docker-compose.dev.yml up
 
 services:
   app-dev:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ..
+      dockerfile: docker/Dockerfile.dev
     container_name: herbal-erp-dev
     restart: unless-stopped
     ports:
@@ -17,7 +17,7 @@ services:
       - DB_TYPE=sqlite
       - JWT_SECRET=dev-secret-key
     volumes:
-      - .:/app
+      - ..:/app
       - /app/node_modules
       - /app/.next
       - dev_data:/app/data
