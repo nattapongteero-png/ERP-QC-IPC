@@ -344,60 +344,60 @@ export default function TransactionsPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Inventory Transactions</h1>
-            <p className="text-gray-600">รายการเคลื่อนไหวสินค้าคงคลัง</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Inventory Transactions</h1>
+            <p className="text-sm sm:text-base text-gray-600">รายการเคลื่อนไหวสินค้าคงคลัง</p>
           </div>
-          <Button onClick={() => { resetForm(); setShowModal(true); }}>
+          <Button onClick={() => { resetForm(); setShowModal(true); }} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             New Transaction
           </Button>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <ArrowDownCircle className="h-5 w-5 text-green-600" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="!p-3 sm:!p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+                <ArrowDownCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Receive</p>
-                <p className="text-xl font-bold">{receiveCount}</p>
+                <p className="text-xs sm:text-sm text-gray-500">Receive</p>
+                <p className="text-lg sm:text-xl font-bold">{receiveCount}</p>
               </div>
             </div>
           </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <ArrowUpCircle className="h-5 w-5 text-red-600" />
+          <Card className="!p-3 sm:!p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
+                <ArrowUpCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Issue</p>
-                <p className="text-xl font-bold">{issueCount}</p>
+                <p className="text-xs sm:text-sm text-gray-500">Issue</p>
+                <p className="text-lg sm:text-xl font-bold">{issueCount}</p>
               </div>
             </div>
           </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <ArrowLeftRight className="h-5 w-5 text-blue-600" />
+          <Card className="!p-3 sm:!p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                <ArrowLeftRight className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Transfer</p>
-                <p className="text-xl font-bold">{transferCount}</p>
+                <p className="text-xs sm:text-sm text-gray-500">Transfer</p>
+                <p className="text-lg sm:text-xl font-bold">{transferCount}</p>
               </div>
             </div>
           </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <RefreshCw className="h-5 w-5 text-orange-600" />
+          <Card className="!p-3 sm:!p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Adjustment</p>
-                <p className="text-xl font-bold">{adjustCount}</p>
+                <p className="text-xs sm:text-sm text-gray-500">Adjustment</p>
+                <p className="text-lg sm:text-xl font-bold">{adjustCount}</p>
               </div>
             </div>
           </Card>
@@ -497,8 +497,8 @@ export default function TransactionsPage() {
 
       {/* Create Transaction Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold">New Transaction</h2>
             </div>
@@ -591,7 +591,7 @@ export default function TransactionsPage() {
 
               <div className="border-t pt-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Reference (Optional)</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Reference Type</label>
                     <Select
