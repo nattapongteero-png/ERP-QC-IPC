@@ -1,7 +1,7 @@
 # Dependencies
 node_modules
 .pnpm-store
-
+mysql_data
 # Build outputs
 .next
 out
