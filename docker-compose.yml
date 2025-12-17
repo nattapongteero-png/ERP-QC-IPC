@@ -7,14 +7,14 @@ services:
     container_name: herbal-erp-mysql
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "53306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
       - MYSQL_DATABASE=herbal_erp
       - MYSQL_USER=${MYSQL_USER:-herbal_user}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-herbal_password}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 30s
@@ -32,12 +32,14 @@ services:
     container_name: herbal-erp-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "33020:3000"
     environment:
       - NODE_ENV=production
       - DB_TYPE=mysql
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp
+      - NEXT_PUBLIC_APP_URL=https://herbal-erp.bmscloud.in.th
+      - NEXTAUTH_URL=https://herbal-erp.bmscloud.in.th
     depends_on:
       mysql:
         condition: service_healthy
