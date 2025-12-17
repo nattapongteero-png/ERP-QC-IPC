@@ -52,15 +52,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Move Dockerfile to docker/Dockerfile using `git mv Dockerfile docker/Dockerfile`
-- [ ] T006 [P] [US1] Move Dockerfile.dev to docker/Dockerfile.dev using `git mv Dockerfile.dev docker/Dockerfile.dev`
-- [ ] T007 [P] [US1] Move docker-compose.yml to docker/docker-compose.yml using `git mv docker-compose.yml docker/docker-compose.yml`
-- [ ] T008 [P] [US1] Move docker-compose.dev.yml to docker/docker-compose.dev.yml using `git mv docker-compose.dev.yml docker/docker-compose.dev.yml`
-- [ ] T009 [P] [US1] Move .dockerignore to docker/.dockerignore using `git mv .dockerignore docker/.dockerignore`
-- [ ] T010 [P] [US1] Move and rename DOCKER.md to docker/README.md using `git mv DOCKER.md docker/README.md`
-- [ ] T011 [US1] Move HANDOFF_SUMMARY.md to docs/HANDOFF_SUMMARY.md using `git mv HANDOFF_SUMMARY.md docs/HANDOFF_SUMMARY.md`
-- [ ] T012 [US1] Remove start_claude.sh from root if not needed using `rm start_claude.sh`
-- [ ] T013 [US1] Commit file moves with message "refactor: move Docker files to docker/ and docs reorganization"
+- [x] T005 [P] [US1] Move Dockerfile to docker/Dockerfile using `git mv Dockerfile docker/Dockerfile`
+- [x] T006 [P] [US1] Move Dockerfile.dev to docker/Dockerfile.dev using `git mv Dockerfile.dev docker/Dockerfile.dev`
+- [x] T007 [P] [US1] Move docker-compose.yml to docker/docker-compose.yml using `git mv docker-compose.yml docker/docker-compose.yml`
+- [x] T008 [P] [US1] Move docker-compose.dev.yml to docker/docker-compose.dev.yml using `git mv docker-compose.dev.yml docker/docker-compose.dev.yml`
+- [x] T009 [P] [US1] Move .dockerignore to docker/.dockerignore using `git mv .dockerignore docker/.dockerignore`
+- [x] T010 [P] [US1] Move and rename DOCKER.md to docker/README.md using `git mv DOCKER.md docker/README.md`
+- [x] T011 [US1] Move HANDOFF_SUMMARY.md to docs/HANDOFF_SUMMARY.md using `git mv HANDOFF_SUMMARY.md docs/HANDOFF_SUMMARY.md`
+- [x] T012 [US1] Remove start_claude.sh from root if not needed using `rm start_claude.sh`
+- [x] T013 [US1] Commit file moves with message "refactor: move Docker files to docker/ and docs reorganization"
 
 **Checkpoint**: Root directory now contains only configuration files and standard directories
 
@@ -74,16 +74,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Update docker/docker-compose.yml: change build context from `.` to `..` for app service
-- [ ] T015 [US2] Update docker/docker-compose.yml: change dockerfile from `Dockerfile` to `docker/Dockerfile` for app service
-- [ ] T016 [US2] Update docker/docker-compose.yml: change build context from `.` to `..` for app-mysql service
-- [ ] T017 [US2] Update docker/docker-compose.yml: change dockerfile from `Dockerfile` to `docker/Dockerfile` for app-mysql service
-- [ ] T018 [US2] Update docker/docker-compose.dev.yml: change build context from `.` to `..`
-- [ ] T019 [US2] Update docker/docker-compose.dev.yml: change dockerfile from `Dockerfile.dev` to `docker/Dockerfile.dev`
-- [ ] T020 [US2] Update docker/docker-compose.dev.yml: change volume mount from `.:/app` to `..:/app`
-- [ ] T021 [US2] Validate docker-compose.yml with `docker-compose -f docker/docker-compose.yml config`
-- [ ] T022 [US2] Validate docker-compose.dev.yml with `docker-compose -f docker/docker-compose.dev.yml config`
-- [ ] T023 [US2] Commit Docker path updates with message "fix: update Docker paths for new directory structure"
+- [x] T014 [US2] Update docker/docker-compose.yml: change build context from `.` to `..` for app service
+- [x] T015 [US2] Update docker/docker-compose.yml: change dockerfile from `Dockerfile` to `docker/Dockerfile` for app service
+- [x] T016 [US2] Update docker/docker-compose.yml: change build context from `.` to `..` for app-mysql service
+- [x] T017 [US2] Update docker/docker-compose.yml: change dockerfile from `Dockerfile` to `docker/Dockerfile` for app-mysql service
+- [x] T018 [US2] Update docker/docker-compose.dev.yml: change build context from `.` to `..`
+- [x] T019 [US2] Update docker/docker-compose.dev.yml: change dockerfile from `Dockerfile.dev` to `docker/Dockerfile.dev`
+- [x] T020 [US2] Update docker/docker-compose.dev.yml: change volume mount from `.:/app` to `..:/app`
+- [x] T021 [US2] Validate docker-compose.yml with `docker-compose -f docker/docker-compose.yml config`
+- [x] T022 [US2] Validate docker-compose.dev.yml with `docker-compose -f docker/docker-compose.dev.yml config`
+- [x] T023 [US2] Commit Docker path updates with message "fix: update Docker paths for new directory structure"
 
 **Checkpoint**: Docker configuration files have correct paths for new directory structure
 
