@@ -4,8 +4,8 @@ services:
   # Main application service
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: herbal-erp-app
     restart: unless-stopped
     ports:
@@ -54,8 +54,8 @@ services:
   # Application with MySQL (optional)
   app-mysql:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: herbal-erp-app-mysql
     restart: unless-stopped
     ports:
