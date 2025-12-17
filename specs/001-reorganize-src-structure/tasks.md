@@ -97,12 +97,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Run TypeScript check: `pnpm tsc --noEmit`
-- [ ] T025 [US3] Run linting check: `pnpm lint`
-- [ ] T026 [US3] Run test suite: `pnpm test:run`
-- [ ] T027 [US3] Run build process: `pnpm build`
-- [ ] T028 [US3] Verify git history preserved: `git log --follow docker/Dockerfile` shows history
-- [ ] T029 [US3] Commit verification results with message "test: verify all checks pass after reorganization"
+- [x] T024 [US3] Run TypeScript check: `pnpm tsc --noEmit`
+- [x] T025 [US3] Run linting check: `pnpm lint`
+- [x] T026 [US3] Run test suite: `pnpm test:run`
+- [x] T027 [US3] Run build process: `pnpm build`
+- [x] T028 [US3] Verify git history preserved: `git log --follow docker/Dockerfile` shows history
+- [x] T029 [US3] Commit verification results with message "test: verify all checks pass after reorganization"
 
 **Checkpoint**: All build and test functionality verified working
 
@@ -112,12 +112,12 @@
 
 **Purpose**: Documentation updates and final cleanup
 
-- [ ] T030 Update README.md Docker commands section with new paths (docker-compose -f docker/docker-compose.yml)
-- [ ] T031 [P] Verify root directory item count: `ls -la | grep -v "^d" | wc -l` shows ≤ 11 files
-- [ ] T032 [P] Verify docker/ directory contains 6 files: Dockerfile, Dockerfile.dev, docker-compose.yml, docker-compose.dev.yml, .dockerignore, README.md
-- [ ] T033 [P] Verify docs/ directory contains HANDOFF_SUMMARY.md
-- [ ] T034 Final commit with message "docs: update README with new Docker command paths"
-- [ ] T035 Delete backup branch if all verification passed: `git branch -d backup-before-reorganize`
+- [x] T030 Update README.md Docker commands section with new paths (docker-compose -f docker/docker-compose.yml)
+- [x] T031 [P] Verify root directory item count: `ls -la | grep -v "^d" | wc -l` shows ≤ 11 files
+- [x] T032 [P] Verify docker/ directory contains 6 files: Dockerfile, Dockerfile.dev, docker-compose.yml, docker-compose.dev.yml, .dockerignore, README.md
+- [x] T033 [P] Verify docs/ directory contains HANDOFF_SUMMARY.md
+- [x] T034 Final commit with message "docs: update README with new Docker command paths"
+- [x] T035 Delete backup branch if all verification passed: `git branch -d backup-before-reorganize`
 
 ---
 
