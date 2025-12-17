@@ -6,9 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit2, Trash2, Warehouse, MapPin, Thermometer } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Warehouse, MapPin, Thermometer, Eye, X, Droplets } from 'lucide-react';
 
 interface WarehouseData {
   id: number;
@@ -59,6 +58,11 @@ const getTypeVariant = (type: string): 'success' | 'warning' | 'danger' | 'info'
   }
 };
 
+const getTypeLabel = (type: string): string => {
+  const found = warehouseTypes.find(t => t.value === type);
+  return found ? found.label : type.replace('_', ' ');
+};
+
 export default function WarehousesPage() {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,6 +70,7 @@ export default function WarehousesPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<WarehouseData | null>(null);
+  const [viewingWarehouse, setViewingWarehouse] = useState<WarehouseData | null>(null);
   const [formData, setFormData] = useState<FormData>({
     code: '',
     name: '',
@@ -182,141 +187,165 @@ export default function WarehousesPage() {
     });
   };
 
-  const columns = [
-    { key: 'code', header: 'Code' },
-    { key: 'name', header: 'Name' },
-    {
-      key: 'type',
-      header: 'Type',
-      render: (w: WarehouseData) => (
-        <Badge variant={getTypeVariant(w.type)}>
-          {w.type.replace('_', ' ')}
-        </Badge>
-      ),
-    },
-    { 
-      key: 'location', 
-      header: 'Location',
-      render: (w: WarehouseData) => w.location || '-'
-    },
-    {
-      key: 'temperature',
-      header: 'Temperature',
-      render: (w: WarehouseData) => (
-        w.temperatureMin !== null && w.temperatureMax !== null
-          ? `${w.temperatureMin}°C - ${w.temperatureMax}°C`
-          : '-'
-      ),
-    },
-    {
-      key: 'humidity',
-      header: 'Humidity',
-      render: (w: WarehouseData) => (
-        w.humidityMin !== null && w.humidityMax !== null
-          ? `${w.humidityMin}% - ${w.humidityMax}%`
-          : '-'
-      ),
-    },
-    {
-      key: 'isActive',
-      header: 'Status',
-      render: (w: WarehouseData) => (
-        <Badge variant={w.isActive ? 'success' : 'danger'}>
-          {w.isActive ? 'Active' : 'Inactive'}
-        </Badge>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (w: WarehouseData) => (
-        <div className="flex gap-1">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(w);
-            }}
-          >
-            <Edit2 className="h-3 w-3" />
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(w);
-            }}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+  // Warehouse Card Component for mobile/tablet view
+  const WarehouseCard = ({ warehouse }: { warehouse: WarehouseData }) => (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg ${
+            warehouse.type === 'raw_material' ? 'bg-blue-100' :
+            warehouse.type === 'finished_goods' ? 'bg-green-100' :
+            warehouse.type === 'quarantine' ? 'bg-yellow-100' :
+            warehouse.type === 'rejected' ? 'bg-red-100' :
+            'bg-gray-100'
+          }`}>
+            <Warehouse className={`h-5 w-5 ${
+              warehouse.type === 'raw_material' ? 'text-blue-600' :
+              warehouse.type === 'finished_goods' ? 'text-green-600' :
+              warehouse.type === 'quarantine' ? 'text-yellow-600' :
+              warehouse.type === 'rejected' ? 'text-red-600' :
+              'text-gray-600'
+            }`} />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">{warehouse.name}</h3>
+            <p className="text-sm text-gray-500">{warehouse.code}</p>
+          </div>
         </div>
-      ),
-    },
-  ];
+        <Badge variant={warehouse.isActive ? 'success' : 'danger'} className="text-xs">
+          {warehouse.isActive ? 'Active' : 'Inactive'}
+        </Badge>
+      </div>
+
+      <div className="space-y-2 mb-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">Type</span>
+          <Badge variant={getTypeVariant(warehouse.type)} className="text-xs">
+            {getTypeLabel(warehouse.type)}
+          </Badge>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">Location</span>
+          <span className="text-gray-900">{warehouse.location || '-'}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500 flex items-center gap-1">
+            <Thermometer className="h-3 w-3" /> Temp
+          </span>
+          <span className="text-gray-900">
+            {warehouse.temperatureMin !== null && warehouse.temperatureMax !== null
+              ? `${warehouse.temperatureMin}°C - ${warehouse.temperatureMax}°C`
+              : '-'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500 flex items-center gap-1">
+            <Droplets className="h-3 w-3" /> Humidity
+          </span>
+          <span className="text-gray-900">
+            {warehouse.humidityMin !== null && warehouse.humidityMax !== null
+              ? `${warehouse.humidityMin}% - ${warehouse.humidityMax}%`
+              : '-'}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-3 border-t border-gray-100">
+        <Button
+          size="sm"
+          variant="secondary"
+          className="flex-1"
+          onClick={() => setViewingWarehouse(warehouse)}
+        >
+          <Eye className="h-3 w-3 mr-1" />
+          View
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="flex-1"
+          onClick={() => handleEdit(warehouse)}
+        >
+          <Edit2 className="h-3 w-3 mr-1" />
+          Edit
+        </Button>
+        <Button
+          size="sm"
+          variant="danger"
+          onClick={() => handleDelete(warehouse)}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Warehouses</h1>
-            <p className="text-gray-600">จัดการคลังสินค้าและสถานที่จัดเก็บ</p>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Warehouses</h1>
+            <p className="text-sm md:text-base text-gray-600">จัดการคลังสินค้าและสถานที่จัดเก็บ</p>
           </div>
-          <Button onClick={() => { resetForm(); setEditingWarehouse(null); setShowModal(true); }}>
+          <Button 
+            onClick={() => { resetForm(); setEditingWarehouse(null); setShowModal(true); }}
+            className="w-full sm:w-auto"
+          >
             <Plus className="h-4 w-4 mr-2" />
-            Add Warehouse
+            <span className="hidden sm:inline">Add Warehouse</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Warehouse className="h-5 w-5 text-blue-600" />
+        {/* Summary Cards - Responsive Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <Card className="!p-3 md:!p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg">
+                <Warehouse className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Warehouses</p>
-                <p className="text-xl font-bold">{warehouses.length}</p>
+                <p className="text-xs md:text-sm text-gray-500">Total</p>
+                <p className="text-lg md:text-xl font-bold">{warehouses.length}</p>
               </div>
             </div>
           </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <MapPin className="h-5 w-5 text-green-600" />
+          <Card className="!p-3 md:!p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-green-100 rounded-lg">
+                <MapPin className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Active</p>
-                <p className="text-xl font-bold">
+                <p className="text-xs md:text-sm text-gray-500">Active</p>
+                <p className="text-lg md:text-xl font-bold">
                   {warehouses.filter(w => w.isActive).length}
                 </p>
               </div>
             </div>
           </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-cyan-100 rounded-lg">
-                <Thermometer className="h-5 w-5 text-cyan-600" />
+          <Card className="!p-3 md:!p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-cyan-100 rounded-lg">
+                <Thermometer className="h-4 w-4 md:h-5 md:w-5 text-cyan-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Cold Storage</p>
-                <p className="text-xl font-bold">
+                <p className="text-xs md:text-sm text-gray-500">Cold</p>
+                <p className="text-lg md:text-xl font-bold">
                   {warehouses.filter(w => w.type === 'cold_storage').length}
                 </p>
               </div>
             </div>
           </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Warehouse className="h-5 w-5 text-yellow-600" />
+          <Card className="!p-3 md:!p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-yellow-100 rounded-lg">
+                <Warehouse className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Quarantine</p>
-                <p className="text-xl font-bold">
+                <p className="text-xs md:text-sm text-gray-500">Quarantine</p>
+                <p className="text-lg md:text-xl font-bold">
                   {warehouses.filter(w => w.type === 'quarantine').length}
                 </p>
               </div>
@@ -324,9 +353,9 @@ export default function WarehousesPage() {
           </Card>
         </div>
 
-        <Card>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+        {/* Filters */}
+        <Card className="!p-3 md:!p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <div className="relative">
                 <Input
@@ -334,6 +363,7 @@ export default function WarehousesPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="pr-10"
                 />
                 <button
                   onClick={handleSearch}
@@ -343,7 +373,7 @@ export default function WarehousesPage() {
                 </button>
               </div>
             </div>
-            <div className="w-full md:w-48">
+            <div className="w-full sm:w-48">
               <Select
                 options={warehouseTypes}
                 value={typeFilter}
@@ -351,30 +381,229 @@ export default function WarehousesPage() {
               />
             </div>
           </div>
-
-          {/* Table */}
-          <Table
-            columns={columns}
-            data={warehouses}
-            keyField="id"
-            isLoading={isLoading}
-            emptyMessage="No warehouses found"
-          />
         </Card>
+
+        {/* Content - Card view for mobile/tablet, Table for desktop */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : warehouses.length === 0 ? (
+          <Card className="!p-8 text-center">
+            <Warehouse className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No warehouses found</p>
+          </Card>
+        ) : (
+          <>
+            {/* Mobile/Tablet Card View - Show on screens smaller than xl (1280px) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 xl:hidden">
+              {warehouses.map((warehouse) => (
+                <WarehouseCard key={warehouse.id} warehouse={warehouse} />
+              ))}
+            </div>
+
+            {/* Desktop Table View - Show only on xl screens and above */}
+            <Card className="hidden xl:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Code</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Name</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Type</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Location</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Temperature</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Humidity</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {warehouses.map((warehouse) => (
+                    <tr key={warehouse.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4 font-medium text-gray-900">{warehouse.code}</td>
+                      <td className="py-3 px-4 text-gray-900">{warehouse.name}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant={getTypeVariant(warehouse.type)}>
+                          {getTypeLabel(warehouse.type)}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">{warehouse.location || '-'}</td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {warehouse.temperatureMin !== null && warehouse.temperatureMax !== null
+                          ? `${warehouse.temperatureMin}°C - ${warehouse.temperatureMax}°C`
+                          : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {warehouse.humidityMin !== null && warehouse.humidityMax !== null
+                          ? `${warehouse.humidityMin}% - ${warehouse.humidityMax}%`
+                          : '-'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
+                          {warehouse.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setViewingWarehouse(warehouse)}
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleEdit(warehouse)}
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDelete(warehouse)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          </>
+        )}
       </div>
+
+      {/* View Modal */}
+      {viewingWarehouse && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="p-4 md:p-6 border-b flex items-center justify-between">
+              <h2 className="text-lg md:text-xl font-bold">Warehouse Details</h2>
+              <button
+                onClick={() => setViewingWarehouse(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 md:p-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${
+                  viewingWarehouse.type === 'raw_material' ? 'bg-blue-100' :
+                  viewingWarehouse.type === 'finished_goods' ? 'bg-green-100' :
+                  viewingWarehouse.type === 'quarantine' ? 'bg-yellow-100' :
+                  viewingWarehouse.type === 'rejected' ? 'bg-red-100' :
+                  'bg-gray-100'
+                }`}>
+                  <Warehouse className={`h-8 w-8 ${
+                    viewingWarehouse.type === 'raw_material' ? 'text-blue-600' :
+                    viewingWarehouse.type === 'finished_goods' ? 'text-green-600' :
+                    viewingWarehouse.type === 'quarantine' ? 'text-yellow-600' :
+                    viewingWarehouse.type === 'rejected' ? 'text-red-600' :
+                    'text-gray-600'
+                  }`} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{viewingWarehouse.name}</h3>
+                  <p className="text-gray-500">{viewingWarehouse.code}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">Type</p>
+                  <Badge variant={getTypeVariant(viewingWarehouse.type)}>
+                    {getTypeLabel(viewingWarehouse.type)}
+                  </Badge>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">Status</p>
+                  <Badge variant={viewingWarehouse.isActive ? 'success' : 'danger'}>
+                    {viewingWarehouse.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">Location</p>
+                  <p className="font-medium">{viewingWarehouse.location || '-'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">Capacity</p>
+                  <p className="font-medium">{viewingWarehouse.capacity || '-'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-cyan-50 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Thermometer className="h-4 w-4 text-cyan-600" />
+                    <p className="text-xs text-cyan-700">Temperature</p>
+                  </div>
+                  <p className="font-medium text-cyan-900">
+                    {viewingWarehouse.temperatureMin !== null && viewingWarehouse.temperatureMax !== null
+                      ? `${viewingWarehouse.temperatureMin}°C - ${viewingWarehouse.temperatureMax}°C`
+                      : '-'}
+                  </p>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Droplets className="h-4 w-4 text-blue-600" />
+                    <p className="text-xs text-blue-700">Humidity</p>
+                  </div>
+                  <p className="font-medium text-blue-900">
+                    {viewingWarehouse.humidityMin !== null && viewingWarehouse.humidityMax !== null
+                      ? `${viewingWarehouse.humidityMin}% - ${viewingWarehouse.humidityMax}%`
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 md:p-6 border-t bg-gray-50 rounded-b-2xl flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setViewingWarehouse(null)}
+              >
+                Close
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  handleEdit(viewingWarehouse);
+                  setViewingWarehouse(null);
+                }}
+              >
+                <Edit2 className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-bold">
-                {editingWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}
-              </h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6 border-b sticky top-0 bg-white rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg md:text-xl font-bold">
+                  {editingWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}
+                </h2>
+                <button
+                  onClick={() => { setShowModal(false); setEditingWarehouse(null); }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 md:p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Code <span className="text-red-500">*</span>
@@ -419,23 +648,14 @@ export default function WarehousesPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Capacity
-                </label>
-                <Input
-                  type="number"
-                  value={formData.capacity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, capacity: parseFloat(e.target.value) }))}
-                  placeholder="Storage capacity"
-                />
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Environmental Conditions</h3>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="bg-cyan-50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Thermometer className="h-4 w-4 text-cyan-600" />
+                  <span className="text-sm font-medium text-cyan-800">Temperature Range (°C)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Temperature Min (°C)</label>
+                    <label className="block text-xs text-cyan-700 mb-1">Min</label>
                     <Input
                       type="number"
                       value={formData.temperatureMin ?? ''}
@@ -443,10 +663,11 @@ export default function WarehousesPage() {
                         ...prev, 
                         temperatureMin: e.target.value ? parseFloat(e.target.value) : null 
                       }))}
+                      placeholder="15"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Temperature Max (°C)</label>
+                    <label className="block text-xs text-cyan-700 mb-1">Max</label>
                     <Input
                       type="number"
                       value={formData.temperatureMax ?? ''}
@@ -454,10 +675,20 @@ export default function WarehousesPage() {
                         ...prev, 
                         temperatureMax: e.target.value ? parseFloat(e.target.value) : null 
                       }))}
+                      placeholder="25"
                     />
                   </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Droplets className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">Humidity Range (%)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Humidity Min (%)</label>
+                    <label className="block text-xs text-blue-700 mb-1">Min</label>
                     <Input
                       type="number"
                       value={formData.humidityMin ?? ''}
@@ -465,10 +696,11 @@ export default function WarehousesPage() {
                         ...prev, 
                         humidityMin: e.target.value ? parseFloat(e.target.value) : null 
                       }))}
+                      placeholder="40"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Humidity Max (%)</label>
+                    <label className="block text-xs text-blue-700 mb-1">Max</label>
                     <Input
                       type="number"
                       value={formData.humidityMax ?? ''}
@@ -476,6 +708,7 @@ export default function WarehousesPage() {
                         ...prev, 
                         humidityMax: e.target.value ? parseFloat(e.target.value) : null 
                       }))}
+                      placeholder="65"
                     />
                   </div>
                 </div>
@@ -487,17 +720,23 @@ export default function WarehousesPage() {
                   id="isActive"
                   checked={formData.isActive}
                   onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
                 />
-                <label htmlFor="isActive" className="text-sm text-gray-700">Active</label>
+                <label htmlFor="isActive" className="text-sm text-gray-700">
+                  Active
+                </label>
               </div>
             </div>
 
-            <div className="p-6 border-t flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => { setShowModal(false); setEditingWarehouse(null); resetForm(); }}>
+            <div className="p-4 md:p-6 border-t bg-gray-50 rounded-b-2xl flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => { setShowModal(false); setEditingWarehouse(null); }}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
+              <Button className="flex-1" onClick={handleSave}>
                 {editingWarehouse ? 'Update' : 'Create'}
               </Button>
             </div>
