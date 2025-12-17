@@ -148,20 +148,13 @@ export default function WorkOrdersPage() {
           {/* Filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1">
-              <div className="relative">
-                <Input
-                  placeholder="Search by WO number or batch..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <button
-                  onClick={handleSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
-                >
-                  <Search className="h-5 w-5" />
-                </button>
-              </div>
+              <Input
+                variant="search"
+                placeholder="Search by WO number or batch..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onSearch={handleSearch}
+              />
             </div>
             <div className="w-full md:w-48">
               <Select
