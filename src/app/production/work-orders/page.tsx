@@ -60,8 +60,11 @@ export default function WorkOrdersPage() {
       const data = await res.json();
 
       if (data.success) {
-        setWorkOrders(data.data.data);
-        setPagination((prev) => ({ ...prev, total: data.data.total }));
+        setWorkOrders(data.data?.items || []);
+        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+      } else {
+        console.error('API error:', data.error);
+        setWorkOrders([]);
       }
     } catch (error) {
       console.error('Failed to fetch work orders:', error);

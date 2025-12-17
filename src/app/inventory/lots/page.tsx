@@ -57,8 +57,11 @@ export default function LotsPage() {
       const data = await res.json();
 
       if (data.success) {
-        setLots(data.data.data);
-        setPagination((prev) => ({ ...prev, total: data.data.total }));
+        setLots(data.data?.items || []);
+        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+      } else {
+        console.error('API error:', data.error);
+        setLots([]);
       }
     } catch (error) {
       console.error('Failed to fetch lots:', error);

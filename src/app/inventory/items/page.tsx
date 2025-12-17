@@ -52,8 +52,11 @@ export default function ItemsPage() {
       const data = await res.json();
 
       if (data.success) {
-        setItems(data.data.data);
-        setPagination((prev) => ({ ...prev, total: data.data.total }));
+        setItems(data.data?.items || []);
+        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+      } else {
+        console.error('API error:', data.error);
+        setItems([]);
       }
     } catch (error) {
       console.error('Failed to fetch items:', error);

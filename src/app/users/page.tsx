@@ -56,8 +56,11 @@ export default function UsersPage() {
       const data = await res.json();
 
       if (data.success) {
-        setUsers(data.data.data);
-        setPagination((prev) => ({ ...prev, total: data.data.total }));
+        setUsers(data.data?.items || []);
+        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+      } else {
+        console.error('API error:', data.error);
+        setUsers([]);
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
