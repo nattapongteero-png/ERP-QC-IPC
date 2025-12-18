@@ -441,9 +441,19 @@ export async function syncDatabaseSchema(): Promise<{
   return result;
 }
 
-// Initialize database with schema sync
+// Initialize database with schema sync and lookup table seeding
 export async function initializeDatabaseWithSync(): Promise<void> {
   console.log('[Database] Initializing database with schema sync...');
   await syncDatabaseSchema();
+
+  // Seed lookup tables if they are empty
+  try {
+    const { seedLookupTables } = await import('./seed-lookup');
+    await seedLookupTables();
+  } catch (error) {
+    console.error('[Database] Failed to seed lookup tables:', error);
+    // Don't throw - allow server to start even if seeding fails
+  }
+
   console.log('[Database] Database initialization complete.');
 }
