@@ -182,6 +182,8 @@ export default function WorkOrdersPage() {
                   keyField="id"
                   isLoading={isLoading}
                   emptyMessage="No work orders found"
+                  striped
+                  hoverable
                   onRowClick={(wo) => router.push(`/production/work-orders/${wo.id}`)}
                 />
 

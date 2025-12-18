@@ -419,6 +419,8 @@ export default function ItemsPage() {
                   keyField="id"
                   isLoading={isLoading}
                   emptyMessage="No items found"
+                  striped
+                  hoverable
                   onRowClick={(item) => router.push(`/inventory/items/${item.id}`)}
                 />
 

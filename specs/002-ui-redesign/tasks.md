@@ -126,15 +126,15 @@
 
 ### Implementation for User Story 4
 
-- [ ] T039 [US4] Enhance Table component with striped rows, hover states, sort indicators, and loading skeleton in src/components/ui/table.tsx
-- [ ] T040 [P] [US4] Create TableSkeleton component for loading states in src/components/ui/table-skeleton.tsx
-- [ ] T041 [US4] Update inventory items list with enhanced table in src/app/inventory/items/page.tsx
-- [ ] T042 [P] [US4] Update inventory lots list with enhanced table in src/app/inventory/lots/page.tsx
-- [ ] T043 [P] [US4] Update purchase orders list with enhanced table in src/app/purchasing/orders/page.tsx
-- [ ] T044 [P] [US4] Update sales orders list with enhanced table in src/app/sales/orders/page.tsx
-- [ ] T045 [P] [US4] Update quality tests list with enhanced table in src/app/quality/tests/page.tsx
-- [ ] T046 [US4] Run type check and lint: `pnpm tsc --noEmit && pnpm lint`
-- [ ] T047 [US4] Commit User Story 4: `git add . && git commit -m "feat(ui): polish table and list views with row styling and hover states"`
+- [x] T039 [US4] Enhance Table component with striped rows, hover states, sort indicators, and loading skeleton in src/components/ui/table.tsx
+- [x] T040 [P] [US4] Create TableSkeleton component for loading states in src/components/ui/table-skeleton.tsx
+- [x] T041 [US4] Update inventory items list with enhanced table in src/app/inventory/items/page.tsx
+- [x] T042 [P] [US4] Update inventory lots list with enhanced table in src/app/inventory/lots/page.tsx
+- [x] T043 [P] [US4] Update purchase orders list with enhanced table in src/app/purchasing/orders/page.tsx
+- [x] T044 [P] [US4] Update sales orders list with enhanced table in src/app/sales/orders/page.tsx
+- [x] T045 [P] [US4] Update quality tests list with enhanced table in src/app/quality/tests/page.tsx
+- [x] T046 [US4] Run type check and lint: `pnpm tsc --noEmit && pnpm lint`
+- [x] T047 [US4] Commit User Story 4: `git add . && git commit -m "feat(ui): polish table and list views with row styling and hover states"`
 
 **Checkpoint**: User Story 4 complete - tables have polished visual appearance
 
