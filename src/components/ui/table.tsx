@@ -309,7 +309,7 @@ export const TableSkeleton = forwardRef<HTMLDivElement, TableSkeletonProps>(
                     <div
                       className="h-4 bg-gray-200 rounded"
                       style={{
-                        width: `${60 + Math.random() * 30}%`,
+                        width: `${70 + ((colIndex * 13) % 20)}%`,
                       }}
                     />
                   </td>
@@ -344,7 +344,7 @@ export const TableRowSkeleton = forwardRef<
         <td key={i} className={cn(compact ? 'px-4 py-2' : 'px-6 py-4')}>
           <div
             className="h-4 bg-gray-200 rounded"
-            style={{ width: `${60 + Math.random() * 30}%` }}
+            style={{ width: `${70 + ((i * 13) % 20)}%` }}
           />
         </td>
       ))}

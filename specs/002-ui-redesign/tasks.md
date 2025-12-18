@@ -163,13 +163,13 @@
 
 **Purpose**: Final improvements affecting multiple user stories, responsive testing, and accessibility verification
 
-- [ ] T054 [P] Verify responsive design at 375px, 768px, 1024px, 1920px viewports across all pages
-- [ ] T055 [P] Verify all interactive elements have visible focus indicators (WCAG 2.1 AA)
-- [ ] T056 [P] Verify color contrast ratios meet WCAG 2.1 AA standards (4.5:1 for text, 3:1 for large text)
-- [ ] T057 Test reduced motion preference handling across all animated components
-- [ ] T058 Review and fix any visual inconsistencies found during testing
-- [ ] T059 Run final type check and lint: `pnpm tsc --noEmit && pnpm lint`
-- [ ] T060 Final commit: `git add . && git commit -m "feat(ui): complete UI redesign with polish and accessibility verification"`
+- [x] T054 [P] Verify responsive design at 375px, 768px, 1024px, 1920px viewports across all pages
+- [x] T055 [P] Verify all interactive elements have visible focus indicators (WCAG 2.1 AA)
+- [x] T056 [P] Verify color contrast ratios meet WCAG 2.1 AA standards (4.5:1 for text, 3:1 for large text)
+- [x] T057 Test reduced motion preference handling across all animated components
+- [x] T058 Review and fix any visual inconsistencies found during testing
+- [x] T059 Run final type check and lint: `pnpm tsc --noEmit && pnpm lint`
+- [x] T060 Final commit: `git add . && git commit -m "feat(ui): complete UI redesign with polish and accessibility verification"`
 
 ---
 
