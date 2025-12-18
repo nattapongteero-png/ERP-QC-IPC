@@ -3,13 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit2, Trash2, Package, Leaf, FlaskConical, Box, Pill } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Plus, Edit2, Trash2, Package, Leaf, FlaskConical, Box, Pill, Inbox, X } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 interface Item {
   id: number;
@@ -180,7 +183,7 @@ export default function ItemsPage() {
       } else {
         alert(data.error || 'Failed to save item');
       }
-    } catch (error) {
+    } catch {
       alert('Failed to save item');
     }
   };
@@ -196,7 +199,7 @@ export default function ItemsPage() {
       } else {
         alert(data.error || 'Failed to delete item');
       }
-    } catch (error) {
+    } catch {
       alert('Failed to delete item');
     }
   };
@@ -242,7 +245,7 @@ export default function ItemsPage() {
   };
 
   const generateCode = () => {
-    const prefix = formData.type === 'raw_material' ? 'RM' 
+    const prefix = formData.type === 'raw_material' ? 'RM'
       : formData.type === 'packaging' ? 'PK'
       : formData.type === 'wip' ? 'WIP'
       : formData.type === 'finished_goods' ? 'FG'
@@ -276,7 +279,7 @@ export default function ItemsPage() {
       key: 'type',
       header: 'Type',
       render: (item: Item) => (
-        <Badge variant={getTypeVariant(item.type)}>
+        <Badge variant={getTypeVariant(item.type)} dot>
           {item.type.replace('_', ' ')}
         </Badge>
       ),
@@ -292,7 +295,7 @@ export default function ItemsPage() {
       key: 'isActive',
       header: 'Status',
       render: (item: Item) => (
-        <Badge variant={item.isActive ? 'success' : 'danger'}>
+        <Badge variant={item.isActive ? 'success' : 'danger'} dot>
           {item.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),
@@ -304,7 +307,7 @@ export default function ItemsPage() {
         <div className="flex gap-1">
           <Button
             size="sm"
-            variant="secondary"
+            variant="ghost"
             onClick={(e) => {
               e.stopPropagation();
               handleEdit(item);
@@ -314,11 +317,12 @@ export default function ItemsPage() {
           </Button>
           <Button
             size="sm"
-            variant="danger"
+            variant="ghost"
             onClick={(e) => {
               e.stopPropagation();
               handleDelete(item);
             }}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -333,138 +337,161 @@ export default function ItemsPage() {
   const packagingCount = items.filter(i => i.type === 'packaging').length;
   const activeCount = items.filter(i => i.isActive).length;
 
+  const summaryCards = [
+    { label: 'Raw Materials', count: rawMaterialCount, icon: Leaf, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
+    { label: 'Finished Goods', count: finishedGoodsCount, icon: Pill, bgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
+    { label: 'Packaging', count: packagingCount, icon: Box, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
+    { label: 'Active Items', count: activeCount, icon: Package, bgColor: 'bg-gray-100', iconColor: 'text-gray-600' },
+  ];
+
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Items</h1>
-            <p className="text-gray-600">จัดการรายการสินค้าและวัตถุดิบ</p>
-          </div>
-          <Button onClick={() => { resetForm(); setEditingItem(null); setShowModal(true); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Item
-          </Button>
-        </div>
+        <PageHeader
+          title="Items"
+          description="จัดการรายการสินค้าและวัตถุดิบ"
+          actions={
+            <Button onClick={() => { resetForm(); setEditingItem(null); setShowModal(true); }} leftIcon={<Plus className="h-4 w-4" />}>
+              Add Item
+            </Button>
+          }
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Leaf className="h-5 w-5 text-green-600" />
+          {summaryCards.map((card, index) => (
+            <Card
+              key={card.label}
+              elevation="raised"
+              padding="md"
+              className={cn(
+                'motion-safe:animate-fade-in motion-reduce:animate-none'
+              )}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn('p-2 rounded-lg', card.bgColor)}>
+                  <card.icon className={cn('h-5 w-5', card.iconColor)} />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">{card.label}</p>
+                  <p className="text-xl font-bold">{card.count}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Raw Materials</p>
-                <p className="text-xl font-bold">{rawMaterialCount}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Pill className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Finished Goods</p>
-                <p className="text-xl font-bold">{finishedGoodsCount}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Box className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Packaging</p>
-                <p className="text-xl font-bold">{packagingCount}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <Package className="h-5 w-5 text-gray-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Active Items</p>
-                <p className="text-xl font-bold">{activeCount}</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          ))}
         </div>
 
-        <Card>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Input
-                variant="search"
-                placeholder="Search by code or name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onSearch={handleSearch}
-              />
-            </div>
-            <div className="w-full md:w-48">
-              <Select
-                options={itemTypes}
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          <Table
-            columns={columns}
-            data={items}
-            keyField="id"
-            isLoading={isLoading}
-            emptyMessage="No items found"
-            onRowClick={(item) => router.push(`/inventory/items/${item.id}`)}
-          />
-
-          {/* Pagination */}
-          {pagination.total > pagination.limit && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total} items
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page === 1}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page * pagination.limit >= pagination.total}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                >
-                  Next
-                </Button>
+        <Card elevation="raised">
+          <CardContent>
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <Input
+                  variant="search"
+                  placeholder="Search by code or name..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onSearch={handleSearch}
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <Select
+                  options={itemTypes}
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                />
               </div>
             </div>
-          )}
+
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : items.length > 0 ? (
+              <>
+                <Table
+                  columns={columns}
+                  data={items}
+                  keyField="id"
+                  isLoading={isLoading}
+                  emptyMessage="No items found"
+                  onRowClick={(item) => router.push(`/inventory/items/${item.id}`)}
+                />
+
+                {/* Pagination */}
+                {pagination.total > pagination.limit && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <p className="text-sm text-gray-500">
+                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                      {pagination.total} items
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={pagination.page === 1}
+                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={pagination.page * pagination.limit >= pagination.total}
+                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <EmptyState
+                icon={<Inbox className="h-8 w-8" />}
+                title="No items found"
+                description="Get started by adding your first item"
+                action={{
+                  label: 'Add Item',
+                  onClick: () => { resetForm(); setEditingItem(null); setShowModal(true); },
+                }}
+              />
+            )}
+          </CardContent>
         </Card>
       </div>
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-bold">
+        <div
+          className={cn(
+            'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50',
+            'motion-safe:animate-fade-in motion-reduce:animate-none'
+          )}
+          onClick={() => { setShowModal(false); setEditingItem(null); resetForm(); }}
+        >
+          <div
+            className={cn(
+              'bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4',
+              'motion-safe:animate-scale-in motion-reduce:animate-none'
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">
                 {editingItem ? 'Edit Item' : 'Add New Item'}
               </h2>
+              <button
+                onClick={() => { setShowModal(false); setEditingItem(null); resetForm(); }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
             </div>
 
             <div className="p-6 space-y-4">
@@ -561,9 +588,9 @@ export default function ItemsPage() {
                       type="number"
                       step="0.001"
                       value={formData.conversionFactor ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        conversionFactor: e.target.value ? parseFloat(e.target.value) : null 
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        conversionFactor: e.target.value ? parseFloat(e.target.value) : null
                       }))}
                       placeholder="e.g., 1000 (1kg = 1000g)"
                     />
@@ -580,9 +607,9 @@ export default function ItemsPage() {
                     <Input
                       type="number"
                       value={formData.minStock ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        minStock: e.target.value ? parseFloat(e.target.value) : null 
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        minStock: e.target.value ? parseFloat(e.target.value) : null
                       }))}
                     />
                   </div>
@@ -591,9 +618,9 @@ export default function ItemsPage() {
                     <Input
                       type="number"
                       value={formData.maxStock ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        maxStock: e.target.value ? parseFloat(e.target.value) : null 
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        maxStock: e.target.value ? parseFloat(e.target.value) : null
                       }))}
                     />
                   </div>
@@ -602,9 +629,9 @@ export default function ItemsPage() {
                     <Input
                       type="number"
                       value={formData.reorderPoint ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        reorderPoint: e.target.value ? parseFloat(e.target.value) : null 
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        reorderPoint: e.target.value ? parseFloat(e.target.value) : null
                       }))}
                     />
                   </div>
@@ -620,9 +647,9 @@ export default function ItemsPage() {
                     <Input
                       type="number"
                       value={formData.shelfLifeDays ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        shelfLifeDays: e.target.value ? parseInt(e.target.value) : null 
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        shelfLifeDays: e.target.value ? parseInt(e.target.value) : null
                       }))}
                     />
                   </div>
@@ -643,14 +670,14 @@ export default function ItemsPage() {
                   id="isActive"
                   checked={formData.isActive}
                   onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <label htmlFor="isActive" className="text-sm text-gray-700">Active</label>
               </div>
             </div>
 
-            <div className="p-6 border-t flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => { setShowModal(false); setEditingItem(null); resetForm(); }}>
+            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => { setShowModal(false); setEditingItem(null); resetForm(); }}>
                 Cancel
               </Button>
               <Button onClick={handleSave}>

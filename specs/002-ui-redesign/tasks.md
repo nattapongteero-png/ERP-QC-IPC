@@ -64,8 +64,8 @@
 - [x] T013 [US1] Update MainLayout component with consistent spacing and transitions in src/components/layout/main-layout.tsx
 - [x] T014 [P] [US1] Create page header component pattern with consistent typography hierarchy in src/components/ui/page-header.tsx
 - [x] T015 [P] [US1] Update Dashboard page to use enhanced components and consistent spacing in src/app/dashboard/page.tsx
-- [ ] T016 [P] [US1] Update Inventory list page styling for consistency in src/app/inventory/items/page.tsx
-- [ ] T017 [P] [US1] Update Production module pages for consistency in src/app/production/page.tsx
+- [x] T016 [P] [US1] Update Inventory list page styling for consistency in src/app/inventory/items/page.tsx
+- [x] T017 [P] [US1] Update Production module pages for consistency in src/app/production/work-orders/page.tsx
 - [x] T018 [P] [US1] Update Quality module pages for consistency in src/app/quality/page.tsx
 - [x] T019 [P] [US1] Update Purchasing module pages for consistency in src/app/purchasing/page.tsx
 - [x] T020 [P] [US1] Update Sales module pages for consistency in src/app/sales/page.tsx
