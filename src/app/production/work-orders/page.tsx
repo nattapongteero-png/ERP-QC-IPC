@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table } from '@/components/ui/table';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
-import { Plus, Search } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Plus, Inbox } from 'lucide-react';
 
 interface WorkOrder {
   id: number;
@@ -88,9 +90,9 @@ export default function WorkOrdersPage() {
   };
 
   const getPriorityBadge = (priority: number) => {
-    if (priority <= 3) return <Badge variant="danger">High</Badge>;
-    if (priority <= 6) return <Badge variant="warning">Medium</Badge>;
-    return <Badge variant="default">Low</Badge>;
+    if (priority <= 3) return <Badge variant="danger" dot>High</Badge>;
+    if (priority <= 6) return <Badge variant="warning" dot>Medium</Badge>;
+    return <Badge variant="default" dot>Low</Badge>;
   };
 
   const columns = [
@@ -123,7 +125,7 @@ export default function WorkOrdersPage() {
       key: 'status',
       header: 'Status',
       render: (wo: WorkOrder) => (
-        <Badge variant={getStatusVariant(wo.status)}>
+        <Badge variant={getStatusVariant(wo.status)} dot>
           {wo.status.replace('_', ' ')}
         </Badge>
       ),
@@ -133,76 +135,99 @@ export default function WorkOrdersPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Work Orders</h1>
-            <p className="text-gray-600">จัดการใบสั่งผลิต</p>
-          </div>
-          <Button onClick={() => router.push('/production/work-orders/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Work Order
-          </Button>
-        </div>
+        <PageHeader
+          title="Work Orders"
+          description="จัดการใบสั่งผลิต"
+          actions={
+            <Button onClick={() => router.push('/production/work-orders/new')} leftIcon={<Plus className="h-4 w-4" />}>
+              Create Work Order
+            </Button>
+          }
+        />
 
-        <Card>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Input
-                variant="search"
-                placeholder="Search by WO number or batch..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onSearch={handleSearch}
-              />
-            </div>
-            <div className="w-full md:w-48">
-              <Select
-                options={statusOptions}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          <Table
-            columns={columns}
-            data={workOrders}
-            keyField="id"
-            isLoading={isLoading}
-            emptyMessage="No work orders found"
-            onRowClick={(wo) => router.push(`/production/work-orders/${wo.id}`)}
-          />
-
-          {/* Pagination */}
-          {pagination.total > pagination.limit && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total} work orders
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page === 1}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page * pagination.limit >= pagination.total}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                >
-                  Next
-                </Button>
+        <Card elevation="raised">
+          <CardContent>
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <Input
+                  variant="search"
+                  placeholder="Search by WO number or batch..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onSearch={handleSearch}
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <Select
+                  options={statusOptions}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                />
               </div>
             </div>
-          )}
+
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : workOrders.length > 0 ? (
+              <>
+                <Table
+                  columns={columns}
+                  data={workOrders}
+                  keyField="id"
+                  isLoading={isLoading}
+                  emptyMessage="No work orders found"
+                  striped
+                  hoverable
+                  onRowClick={(wo) => router.push(`/production/work-orders/${wo.id}`)}
+                />
+
+                {/* Pagination */}
+                {pagination.total > pagination.limit && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <p className="text-sm text-gray-500">
+                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                      {pagination.total} work orders
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={pagination.page === 1}
+                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={pagination.page * pagination.limit >= pagination.total}
+                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <EmptyState
+                icon={<Inbox className="h-8 w-8" />}
+                title="No work orders found"
+                description="Get started by creating your first work order"
+                action={{
+                  label: 'Create Work Order',
+                  onClick: () => router.push('/production/work-orders/new'),
+                }}
+              />
+            )}
+          </CardContent>
         </Card>
       </div>
     </MainLayout>

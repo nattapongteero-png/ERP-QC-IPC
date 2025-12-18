@@ -3,13 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, ClipboardCheck, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Plus, ClipboardCheck, AlertTriangle, Inbox } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 interface QualityTest {
   id: number;
@@ -109,7 +112,7 @@ export default function QualityPage() {
       key: 'status',
       header: 'Status',
       render: (test: QualityTest) => (
-        <Badge variant={getStatusVariant(test.status)}>
+        <Badge variant={getStatusVariant(test.status)} dot>
           {test.status.replace('_', ' ')}
         </Badge>
       ),
@@ -127,97 +130,107 @@ export default function QualityPage() {
   const passedCount = tests.filter((t) => t.status === 'passed').length;
   const failedCount = tests.filter((t) => t.status === 'failed').length;
 
+  const summaryCards = [
+    { label: 'Pending', count: pendingCount, icon: ClipboardCheck, color: 'blue' },
+    { label: 'In Progress', count: inProgressCount, icon: ClipboardCheck, color: 'yellow' },
+    { label: 'Passed', count: passedCount, icon: ClipboardCheck, color: 'green' },
+    { label: 'Failed', count: failedCount, icon: AlertTriangle, color: 'red' },
+  ];
+
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Quality Control</h1>
-            <p className="text-gray-600">จัดการการตรวจสอบคุณภาพ</p>
-          </div>
-          <Button onClick={() => router.push('/quality/tests/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Test
-          </Button>
-        </div>
+        <PageHeader
+          title="Quality Control"
+          description="จัดการการตรวจสอบคุณภาพ"
+          actions={
+            <Button onClick={() => router.push('/quality/tests/new')} leftIcon={<Plus className="h-4 w-4" />}>
+              New Test
+            </Button>
+          }
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-blue-50">
-            <div className="flex items-center gap-3">
-              <ClipboardCheck className="h-8 w-8 text-blue-500" />
-              <div>
-                <p className="text-sm text-blue-600">Pending</p>
-                <p className="text-2xl font-bold text-blue-700">{pendingCount}</p>
+          {summaryCards.map((card, index) => (
+            <Card
+              key={card.label}
+              elevation="raised"
+              padding="md"
+              className={cn(
+                `bg-${card.color}-50`,
+                'motion-safe:animate-fade-in motion-reduce:animate-none'
+              )}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <div className="flex items-center gap-3">
+                <card.icon className={cn('h-8 w-8', `text-${card.color}-500`)} />
+                <div>
+                  <p className={cn('text-sm', `text-${card.color}-600`)}>{card.label}</p>
+                  <p className={cn('text-2xl font-bold', `text-${card.color}-700`)}>{card.count}</p>
+                </div>
               </div>
-            </div>
-          </Card>
-          <Card className="bg-yellow-50">
-            <div className="flex items-center gap-3">
-              <ClipboardCheck className="h-8 w-8 text-yellow-500" />
-              <div>
-                <p className="text-sm text-yellow-600">In Progress</p>
-                <p className="text-2xl font-bold text-yellow-700">{inProgressCount}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="bg-green-50">
-            <div className="flex items-center gap-3">
-              <ClipboardCheck className="h-8 w-8 text-green-500" />
-              <div>
-                <p className="text-sm text-green-600">Passed</p>
-                <p className="text-2xl font-bold text-green-700">{passedCount}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="bg-red-50">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-8 w-8 text-red-500" />
-              <div>
-                <p className="text-sm text-red-600">Failed</p>
-                <p className="text-2xl font-bold text-red-700">{failedCount}</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          ))}
         </div>
 
-        <Card>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Input
-                variant="search"
-                placeholder="Search by test number or lot..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onSearch={handleSearch}
-              />
+        <Card elevation="raised">
+          <CardContent>
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <Input
+                  variant="search"
+                  placeholder="Search by test number or lot..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onSearch={handleSearch}
+                />
+              </div>
+              <div className="w-full md:w-40">
+                <Select
+                  options={testTypes}
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                />
+              </div>
+              <div className="w-full md:w-40">
+                <Select
+                  options={testStatuses}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="w-full md:w-40">
-              <Select
-                options={testTypes}
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              />
-            </div>
-            <div className="w-full md:w-40">
-              <Select
-                options={testStatuses}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              />
-            </div>
-          </div>
 
-          {/* Table */}
-          <Table
-            columns={columns}
-            data={tests}
-            keyField="id"
-            isLoading={isLoading}
-            emptyMessage="No quality tests found"
-            onRowClick={(test) => router.push(`/quality/tests/${test.id}`)}
-          />
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : tests.length > 0 ? (
+              <Table
+                columns={columns}
+                data={tests}
+                keyField="id"
+                isLoading={isLoading}
+                emptyMessage="No quality tests found"
+                onRowClick={(test) => router.push(`/quality/tests/${test.id}`)}
+              />
+            ) : (
+              <EmptyState
+                icon={<Inbox className="h-8 w-8" />}
+                title="No quality tests found"
+                description="Get started by creating your first quality test"
+                action={{
+                  label: 'New Test',
+                  onClick: () => router.push('/quality/tests/new'),
+                }}
+              />
+            )}
+          </CardContent>
         </Card>
       </div>
     </MainLayout>
