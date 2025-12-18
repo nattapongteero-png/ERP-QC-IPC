@@ -86,12 +86,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T025 [P] [US2] Create KPICard component with visual hierarchy (prominent number, subtitle, icon, trend) in src/components/ui/kpi-card.tsx
-- [ ] T026 [P] [US2] Create StatCard component for secondary statistics display in src/components/ui/stat-card.tsx
-- [ ] T027 [US2] Update Dashboard page with enhanced KPI cards and hover effects in src/app/dashboard/page.tsx
-- [ ] T028 [US2] Add loading skeletons for dashboard KPI cards using CardSkeleton
-- [ ] T029 [US2] Run type check and lint: `pnpm tsc --noEmit && pnpm lint`
-- [ ] T030 [US2] Commit User Story 2: `git add . && git commit -m "feat(ui): enhance dashboard with professional KPI visualization"`
+- [x] T025 [P] [US2] Create KPICard component with visual hierarchy (prominent number, subtitle, icon, trend) in src/components/ui/kpi-card.tsx
+- [x] T026 [P] [US2] Create StatCard component for secondary statistics display in src/components/ui/stat-card.tsx
+- [x] T027 [US2] Update Dashboard page with enhanced KPI cards and hover effects in src/app/dashboard/page.tsx
+- [x] T028 [US2] Add loading skeletons for dashboard KPI cards using CardSkeleton
+- [x] T029 [US2] Run type check and lint: `pnpm tsc --noEmit && pnpm lint`
+- [x] T030 [US2] Commit User Story 2: `git add . && git commit -m "feat(ui): enhance dashboard with professional KPI visualization"`
 
 **Checkpoint**: User Story 2 complete - dashboard displays elegant data visualization
 
