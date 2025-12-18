@@ -114,8 +114,8 @@ export default function WarehousesPage() {
 
   const handleSave = async () => {
     try {
-      const url = editingWarehouse 
-        ? `/api/warehouses/${editingWarehouse.id}` 
+      const url = editingWarehouse
+        ? `/api/warehouses/${editingWarehouse.id}`
         : '/api/warehouses';
       const method = editingWarehouse ? 'PUT' : 'POST';
 
@@ -131,11 +131,10 @@ export default function WarehousesPage() {
         setEditingWarehouse(null);
         resetForm();
         fetchWarehouses();
-      } else {
-        alert(data.error || 'Failed to save warehouse');
       }
-    } catch (error) {
-      alert('Failed to save warehouse');
+      // API errors handled by global error handler
+    } catch {
+      // Network errors handled by global error handler
     }
   };
 
@@ -147,11 +146,10 @@ export default function WarehousesPage() {
       const data = await res.json();
       if (data.success) {
         fetchWarehouses();
-      } else {
-        alert(data.error || 'Failed to delete warehouse');
       }
-    } catch (error) {
-      alert('Failed to delete warehouse');
+      // API errors handled by global error handler
+    } catch {
+      // Network errors handled by global error handler
     }
   };
 

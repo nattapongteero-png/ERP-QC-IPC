@@ -1,10 +1,72 @@
 'use client';
 
-import { InputHTMLAttributes, forwardRef, ReactNode } from 'react';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { Search, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
-interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+const inputVariants = cva(
+  'block w-full rounded-xl border-2 transition-all duration-200 ease-out motion-reduce:transition-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 placeholder:text-gray-400',
+  {
+    variants: {
+      variant: {
+        default: 'bg-white border-gray-200 hover:border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10',
+        search: 'bg-gray-50 border-gray-200 hover:bg-white hover:border-gray-300 focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10',
+        filled: 'bg-gray-100 border-transparent hover:bg-gray-50 hover:border-gray-200 focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10',
+      },
+      inputSize: {
+        sm: 'px-2.5 py-1.5 text-sm',
+        md: 'px-3.5 py-2.5 text-base',
+        lg: 'px-4 py-3 text-lg',
+        // shadcn/ui standard size
+        default: 'h-10 px-3 py-2 text-sm',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      inputSize: 'md',
+    },
+  }
+);
+
+const sizeStyles = {
+  sm: {
+    iconLeft: 'left-2.5',
+    iconRight: 'right-2.5',
+    iconSize: 'h-4 w-4',
+    paddingLeft: 'pl-8',
+    paddingRight: 'pr-8',
+    label: 'text-xs',
+  },
+  md: {
+    iconLeft: 'left-3',
+    iconRight: 'right-3',
+    iconSize: 'h-5 w-5',
+    paddingLeft: 'pl-10',
+    paddingRight: 'pr-10',
+    label: 'text-sm',
+  },
+  lg: {
+    iconLeft: 'left-3.5',
+    iconRight: 'right-3.5',
+    iconSize: 'h-6 w-6',
+    paddingLeft: 'pl-12',
+    paddingRight: 'pr-12',
+    label: 'text-sm',
+  },
+  default: {
+    iconLeft: 'left-3',
+    iconRight: 'right-3',
+    iconSize: 'h-4 w-4',
+    paddingLeft: 'pl-9',
+    paddingRight: 'pr-9',
+    label: 'text-sm',
+  },
+};
+
+export interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
+    VariantProps<typeof inputVariants> {
   /** Label text */
   label?: string;
   /** Helper/description text */
@@ -13,46 +75,17 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>
   error?: string;
   /** Success state */
   success?: boolean;
-  /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
-  /** Visual variant */
-  variant?: 'default' | 'search' | 'filled';
+  /** Size variant (use inputSize to avoid conflict with HTML size) */
+  size?: 'sm' | 'md' | 'lg' | 'default';
   /** Left icon */
-  leftIcon?: ReactNode;
+  leftIcon?: React.ReactNode;
   /** Right icon */
-  rightIcon?: ReactNode;
+  rightIcon?: React.ReactNode;
   /** Search handler on enter */
   onSearch?: () => void;
 }
 
-const sizeStyles = {
-  sm: {
-    input: 'px-2.5 py-1.5 text-sm',
-    iconLeft: 'left-2.5',
-    iconRight: 'right-2.5',
-    iconSize: 'h-4 w-4',
-    paddingLeft: 'pl-8',
-    paddingRight: 'pr-8',
-  },
-  md: {
-    input: 'px-3.5 py-2.5 text-base',
-    iconLeft: 'left-3',
-    iconRight: 'right-3',
-    iconSize: 'h-5 w-5',
-    paddingLeft: 'pl-10',
-    paddingRight: 'pr-10',
-  },
-  lg: {
-    input: 'px-4 py-3 text-lg',
-    iconLeft: 'left-3.5',
-    iconRight: 'right-3.5',
-    iconSize: 'h-6 w-6',
-    paddingLeft: 'pl-12',
-    paddingRight: 'pr-12',
-  },
-};
-
-export const Input = forwardRef<HTMLInputElement, InputProps>(
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
   (
     {
       className,
@@ -62,48 +95,25 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       success,
       id,
       size = 'md',
+      inputSize,
       variant = 'default',
       leftIcon,
       rightIcon,
       onSearch,
       disabled,
+      type,
       ...props
     },
     ref
   ) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
-    const sizeStyle = sizeStyles[size];
+    const effectiveSize = inputSize || size;
+    const sizeStyle = sizeStyles[effectiveSize];
 
     // Determine if we show an icon on the right (error/success indicator)
     const showStatusIcon = error || success;
     const hasLeftIcon = leftIcon || variant === 'search';
     const hasRightIcon = rightIcon || showStatusIcon;
-
-    const baseStyles = cn(
-      'block w-full rounded-xl border-2',
-      'transition-all duration-200 ease-out',
-      'motion-reduce:transition-none',
-      'disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60',
-      'placeholder:text-gray-400'
-    );
-
-    const variantStyles = {
-      default: cn(
-        'bg-white border-gray-200',
-        'hover:border-gray-300',
-        'focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10'
-      ),
-      search: cn(
-        'bg-gray-50 border-gray-200',
-        'hover:bg-white hover:border-gray-300',
-        'focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10'
-      ),
-      filled: cn(
-        'bg-gray-100 border-transparent',
-        'hover:bg-gray-50 hover:border-gray-200',
-        'focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10'
-      ),
-    };
 
     const stateStyles = cn(
       error && 'border-red-400 bg-red-50/50 focus:border-red-500 focus:ring-red-500/10',
@@ -124,7 +134,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             htmlFor={inputId}
             className={cn(
               'block font-medium text-gray-700 mb-1.5',
-              size === 'sm' ? 'text-xs' : 'text-sm'
+              sizeStyle.label
             )}
           >
             {label}
@@ -149,12 +159,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
+            type={type}
             disabled={disabled}
             className={cn(
-              baseStyles,
-              variantStyles[variant],
+              inputVariants({ variant, inputSize: effectiveSize }),
               stateStyles,
-              sizeStyle.input,
               hasLeftIcon && sizeStyle.paddingLeft,
               hasRightIcon && sizeStyle.paddingRight,
               className
@@ -194,7 +203,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={error ? `${inputId}-error` : `${inputId}-helper`}
             className={cn(
               'mt-1.5 flex items-center gap-1',
-              size === 'sm' ? 'text-xs' : 'text-sm',
+              sizeStyle.label,
               error ? 'text-red-600' : 'text-gray-500'
             )}
           >
@@ -214,10 +223,12 @@ interface SearchInputProps extends Omit<InputProps, 'variant' | 'leftIcon'> {
   onSearch?: () => void;
 }
 
-export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
+const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
   ({ onSearch, ...props }, ref) => {
     return <Input ref={ref} variant="search" onSearch={onSearch} {...props} />;
   }
 );
 
 SearchInput.displayName = 'SearchInput';
+
+export { Input, SearchInput, inputVariants };

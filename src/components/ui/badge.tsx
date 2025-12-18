@@ -1,28 +1,40 @@
 'use client';
 
-import { HTMLAttributes, forwardRef } from 'react';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils/cn';
 
-interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  /** Visual variant */
-  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info';
-  /** Size variant */
-  size?: 'sm' | 'md';
-  /** Dot indicator */
-  dot?: boolean;
-}
+const badgeVariants = cva(
+  'inline-flex items-center gap-1.5 rounded-full font-medium ring-1 ring-inset transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'bg-gray-100 text-gray-800 ring-gray-500/10',
+        primary: 'bg-emerald-100 text-emerald-800 ring-emerald-500/10',
+        secondary: 'bg-gray-200 text-gray-700 ring-gray-500/10',
+        success: 'bg-green-100 text-green-800 ring-green-500/10',
+        warning: 'bg-yellow-100 text-yellow-800 ring-yellow-500/10',
+        danger: 'bg-red-100 text-red-800 ring-red-500/10',
+        info: 'bg-blue-100 text-blue-800 ring-blue-500/10',
+        // shadcn/ui standard variants (aliases)
+        destructive: 'bg-red-100 text-red-800 ring-red-500/10',
+        outline: 'bg-transparent text-gray-800 ring-gray-300',
+      },
+      size: {
+        sm: 'px-2 py-0.5 text-xs',
+        md: 'px-2.5 py-1 text-sm',
+        // shadcn/ui standard size
+        default: 'px-2.5 py-0.5 text-xs',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'sm',
+    },
+  }
+);
 
-const variantStyles = {
-  default: 'bg-gray-100 text-gray-800 ring-gray-500/10',
-  primary: 'bg-emerald-100 text-emerald-800 ring-emerald-500/10',
-  secondary: 'bg-gray-200 text-gray-700 ring-gray-500/10',
-  success: 'bg-green-100 text-green-800 ring-green-500/10',
-  warning: 'bg-yellow-100 text-yellow-800 ring-yellow-500/10',
-  danger: 'bg-red-100 text-red-800 ring-red-500/10',
-  info: 'bg-blue-100 text-blue-800 ring-blue-500/10',
-};
-
-const dotColors = {
+const dotColors: Record<string, string> = {
   default: 'bg-gray-500',
   primary: 'bg-emerald-500',
   secondary: 'bg-gray-500',
@@ -30,35 +42,30 @@ const dotColors = {
   warning: 'bg-yellow-500',
   danger: 'bg-red-500',
   info: 'bg-blue-500',
+  destructive: 'bg-red-500',
+  outline: 'bg-gray-500',
 };
 
-const sizeStyles = {
-  sm: 'px-2 py-0.5 text-xs',
-  md: 'px-2.5 py-1 text-sm',
-};
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {
+  /** Dot indicator for status badges */
+  dot?: boolean;
+}
 
-export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
-  ({ className, variant = 'default', size = 'sm', dot = false, children, ...props }, ref) => {
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ className, variant = 'default', size, dot = false, children, ...props }, ref) => {
+    const variantKey = variant || 'default';
+
     return (
       <span
         ref={ref}
-        className={cn(
-          // Base styles
-          'inline-flex items-center gap-1.5 rounded-full font-medium',
-          'ring-1 ring-inset',
-          // Variant and size
-          variantStyles[variant],
-          sizeStyles[size],
-          className
-        )}
+        className={cn(badgeVariants({ variant, size }), className)}
         {...props}
       >
         {dot && (
           <span
-            className={cn(
-              'h-1.5 w-1.5 rounded-full',
-              dotColors[variant]
-            )}
+            className={cn('h-1.5 w-1.5 rounded-full', dotColors[variantKey])}
             aria-hidden="true"
           />
         )}
@@ -71,7 +78,7 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
 Badge.displayName = 'Badge';
 
 // Helper function to get badge variant based on status
-export function getStatusVariant(status: string): BadgeProps['variant'] {
+function getStatusVariant(status: string): BadgeProps['variant'] {
   const statusMap: Record<string, BadgeProps['variant']> = {
     // Inventory statuses
     quarantine: 'warning',
@@ -112,3 +119,5 @@ export function getStatusVariant(status: string): BadgeProps['variant'] {
 
   return statusMap[status] || 'default';
 }
+
+export { Badge, badgeVariants, getStatusVariant };

@@ -1,11 +1,59 @@
 import { NextResponse } from 'next/server';
 import { getSession, hasPermission, Permission, Role } from './auth';
 
+// Check if running in development mode
+export function isDevelopment(): boolean {
+  return process.env.NODE_ENV !== 'production';
+}
+
+export interface ErrorDetails {
+  message: string;
+  stack?: string;
+  name?: string;
+  cause?: string;
+  code?: string;
+  path?: string;
+  timestamp: string;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
+  // Debug information only included in development mode
+  debug?: ErrorDetails;
+}
+
+// Extract error details from unknown error type
+function extractErrorDetails(error: unknown, context?: string): ErrorDetails {
+  const timestamp = new Date().toISOString();
+
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause ? String(error.cause) : undefined,
+      code: (error as any).code,
+      path: context,
+      timestamp,
+    };
+  }
+
+  if (typeof error === 'string') {
+    return {
+      message: error,
+      path: context,
+      timestamp,
+    };
+  }
+
+  return {
+    message: String(error),
+    path: context,
+    timestamp,
+  };
 }
 
 export function successResponse<T>(data: T, message?: string): NextResponse<ApiResponse<T>> {
@@ -16,14 +64,23 @@ export function successResponse<T>(data: T, message?: string): NextResponse<ApiR
   });
 }
 
-export function errorResponse(error: string, status: number = 400): NextResponse<ApiResponse> {
-  return NextResponse.json(
-    {
-      success: false,
-      error,
-    },
-    { status }
-  );
+export function errorResponse(
+  error: string,
+  status: number = 400,
+  debugError?: unknown,
+  context?: string
+): NextResponse<ApiResponse> {
+  const response: ApiResponse = {
+    success: false,
+    error,
+  };
+
+  // Include debug information in development mode if error object is provided
+  if (isDevelopment() && debugError) {
+    response.debug = extractErrorDetails(debugError, context);
+  }
+
+  return NextResponse.json(response, { status });
 }
 
 export function unauthorizedResponse(message: string = 'Unauthorized'): NextResponse<ApiResponse> {
@@ -56,15 +113,24 @@ export function notFoundResponse(message: string = 'Not found'): NextResponse<Ap
   );
 }
 
-export function serverErrorResponse(error: unknown): NextResponse<ApiResponse> {
+export function serverErrorResponse(error: unknown, context?: string): NextResponse<ApiResponse> {
   console.error('Server error:', error);
-  return NextResponse.json(
-    {
-      success: false,
-      error: 'Internal server error',
-    },
-    { status: 500 }
-  );
+
+  const response: ApiResponse = {
+    success: false,
+    error: 'Internal server error',
+  };
+
+  // Include detailed error information in development mode
+  if (isDevelopment()) {
+    response.debug = extractErrorDetails(error, context);
+    // Also include the actual error message in development
+    if (error instanceof Error) {
+      response.error = error.message;
+    }
+  }
+
+  return NextResponse.json(response, { status: 500 });
 }
 
 // Middleware helper for protected routes

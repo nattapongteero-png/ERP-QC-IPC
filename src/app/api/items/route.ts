@@ -20,14 +20,14 @@ export async function GET(request: NextRequest) {
       const search = searchParams.get('search') || '';
       const type = searchParams.get('type') || '';
       const category = searchParams.get('category') || '';
-      
+
       const db = await getDb();
       const useSqlite = process.env.DB_TYPE === 'sqlite';
       const itemsTable = useSqlite ? schema.sqliteItems : schema.mysqlItems;
-      
-      // Build query
+
+      // Build query - onHand is now stored directly in items table
       let baseQuery = (db as any).select().from(itemsTable);
-      
+
       // Apply filters
       const conditions = [];
       if (search) {
@@ -45,24 +45,25 @@ export async function GET(request: NextRequest) {
       if (category) {
         conditions.push(eq(itemsTable.category, category));
       }
-      
+
       // Get total count
       let countQuery = (db as any).select({ count: sql`count(*)` }).from(itemsTable);
       if (conditions.length > 0) {
-        const whereClause = conditions.reduce((acc, cond, i) => 
+        const whereClause = conditions.reduce((acc, cond, i) =>
           i === 0 ? cond : sql`${acc} AND ${cond}`
         );
         baseQuery = baseQuery.where(whereClause);
         countQuery = countQuery.where(whereClause);
       }
-      
+
       const countResult = await countQuery;
       const total = Number(countResult[0]?.count || 0);
-      
+
       // Apply pagination
       const offset = (pagination.page - 1) * pagination.limit;
       const items = await baseQuery.limit(pagination.limit).offset(offset);
-      
+
+      // onHand is now stored in items table, no need to calculate from lots
       return successResponse(createPaginatedResponse(items, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);

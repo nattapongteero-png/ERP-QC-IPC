@@ -1,9 +1,114 @@
 'use client';
 
-import { ReactNode, HTMLAttributes, forwardRef } from 'react';
+import * as React from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
+// shadcn/ui compatible primitive table components
+const TableRoot = React.forwardRef<
+  HTMLTableElement,
+  React.HTMLAttributes<HTMLTableElement>
+>(({ className, ...props }, ref) => (
+  <div className="relative w-full overflow-auto">
+    <table
+      ref={ref}
+      className={cn('w-full caption-bottom text-sm', className)}
+      {...props}
+    />
+  </div>
+));
+TableRoot.displayName = 'TableRoot';
+
+const TableHeader = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <thead ref={ref} className={cn('[&_tr]:border-b', className)} {...props} />
+));
+TableHeader.displayName = 'TableHeader';
+
+const TableBody = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tbody
+    ref={ref}
+    className={cn('[&_tr:last-child]:border-0', className)}
+    {...props}
+  />
+));
+TableBody.displayName = 'TableBody';
+
+const TableFooter = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tfoot
+    ref={ref}
+    className={cn(
+      'border-t bg-gray-100/50 font-medium [&>tr]:last:border-b-0',
+      className
+    )}
+    {...props}
+  />
+));
+TableFooter.displayName = 'TableFooter';
+
+const TableRow = React.forwardRef<
+  HTMLTableRowElement,
+  React.HTMLAttributes<HTMLTableRowElement>
+>(({ className, ...props }, ref) => (
+  <tr
+    ref={ref}
+    className={cn(
+      'border-b transition-colors hover:bg-gray-100/50 data-[state=selected]:bg-gray-100',
+      className
+    )}
+    {...props}
+  />
+));
+TableRow.displayName = 'TableRow';
+
+const TableHead = React.forwardRef<
+  HTMLTableCellElement,
+  React.ThHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <th
+    ref={ref}
+    className={cn(
+      'h-12 px-4 text-left align-middle font-medium text-gray-500 [&:has([role=checkbox])]:pr-0',
+      className
+    )}
+    {...props}
+  />
+));
+TableHead.displayName = 'TableHead';
+
+const TableCell = React.forwardRef<
+  HTMLTableCellElement,
+  React.TdHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <td
+    ref={ref}
+    className={cn('p-4 align-middle [&:has([role=checkbox])]:pr-0', className)}
+    {...props}
+  />
+));
+TableCell.displayName = 'TableCell';
+
+const TableCaption = React.forwardRef<
+  HTMLTableCaptionElement,
+  React.HTMLAttributes<HTMLTableCaptionElement>
+>(({ className, ...props }, ref) => (
+  <caption
+    ref={ref}
+    className={cn('mt-4 text-sm text-gray-500', className)}
+    {...props}
+  />
+));
+TableCaption.displayName = 'TableCaption';
+
+// Data table with full features (original implementation)
 interface Column<T> {
   /** Unique column key */
   key: string;
@@ -12,7 +117,7 @@ interface Column<T> {
   /** Alias for header */
   title?: string;
   /** Cell render function */
-  render?: (item: T, index: number) => ReactNode;
+  render?: (item: T, index: number) => React.ReactNode;
   /** Sortable column */
   sortable?: boolean;
   /** Column alignment */
@@ -27,7 +132,7 @@ interface Column<T> {
   className?: string;
 }
 
-interface TableProps<T> extends HTMLAttributes<HTMLDivElement> {
+interface TableProps<T> extends React.HTMLAttributes<HTMLDivElement> {
   /** Column definitions */
   columns: Column<T>[];
   /** Data array */
@@ -41,7 +146,7 @@ interface TableProps<T> extends HTMLAttributes<HTMLDivElement> {
   /** Row click handler */
   onRowClick?: (item: T, index: number) => void;
   /** Custom row renderer */
-  renderRow?: (item: T, index: number) => ReactNode;
+  renderRow?: (item: T, index: number) => React.ReactNode;
   /** Current sort column */
   sortColumn?: string;
   /** Sort direction */
@@ -59,7 +164,7 @@ interface TableProps<T> extends HTMLAttributes<HTMLDivElement> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function Table<T extends Record<string, any>>({
+function Table<T extends Record<string, any>>({
   columns,
   data,
   keyField,
@@ -248,7 +353,7 @@ export function Table<T extends Record<string, any>>({
 }
 
 // Table Skeleton Component
-interface TableSkeletonProps extends HTMLAttributes<HTMLDivElement> {
+interface TableSkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Number of columns */
   columns?: number;
   /** Number of rows */
@@ -259,7 +364,7 @@ interface TableSkeletonProps extends HTMLAttributes<HTMLDivElement> {
   showHeader?: boolean;
 }
 
-export const TableSkeleton = forwardRef<HTMLDivElement, TableSkeletonProps>(
+const TableSkeleton = React.forwardRef<HTMLDivElement, TableSkeletonProps>(
   (
     {
       className,
@@ -327,14 +432,14 @@ export const TableSkeleton = forwardRef<HTMLDivElement, TableSkeletonProps>(
 TableSkeleton.displayName = 'TableSkeleton';
 
 // Individual Table Row Skeleton
-interface TableRowSkeletonProps extends HTMLAttributes<HTMLTableRowElement> {
+interface TableRowSkeletonProps extends React.HTMLAttributes<HTMLTableRowElement> {
   /** Number of columns */
   columns?: number;
   /** Compact mode */
   compact?: boolean;
 }
 
-export const TableRowSkeleton = forwardRef<
+const TableRowSkeleton = React.forwardRef<
   HTMLTableRowElement,
   TableRowSkeletonProps
 >(({ className, columns = 5, compact = false, ...props }, ref) => {
@@ -353,3 +458,17 @@ export const TableRowSkeleton = forwardRef<
 });
 
 TableRowSkeleton.displayName = 'TableRowSkeleton';
+
+export {
+  Table,
+  TableRoot,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+  TableSkeleton,
+  TableRowSkeleton,
+};

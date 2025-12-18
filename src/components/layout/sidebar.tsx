@@ -57,8 +57,8 @@ const navigation: NavItem[] = [
     href: '/production',
     icon: Factory,
     children: [
-      { name: 'Work Orders', href: '/production/work-orders', icon: ClipboardList },
       { name: 'BOM/Recipes', href: '/production/bom', icon: FileText },
+      { name: 'Work Orders', href: '/production/work-orders', icon: ClipboardList },
       { name: 'Batch Records', href: '/production/batch-records', icon: FileText },
     ],
   },

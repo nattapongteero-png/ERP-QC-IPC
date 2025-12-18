@@ -3,7 +3,7 @@
  * Real-world reporting with traceability, analytics, and GMP compliance reports
  */
 
-import { db, useSqlite } from '../db';
+import { getDb, useSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteItems,
@@ -69,7 +69,7 @@ export async function getInventoryValuationReport(): Promise<{
   items: Array<{ itemCode: string; itemName: string; quantity: number; unit: string; unitCost: number; totalValue: number }>;
 }> {
   const { items, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const inventoryData = await database
     .select({
@@ -143,7 +143,7 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
   summary: { expiredCount: number; expiredValue: number; nearExpiryCount: number; nearExpiryValue: number };
 }> {
   const { items, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -232,7 +232,7 @@ export async function getProductionYieldReport(
   batches: Array<{ woNumber: string; batchNumber: string; productName: string; plannedQty: number; actualQty: number; yieldPercent: number; status: string }>;
 }> {
   const { workOrders, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const conditions = [
     or(eq(workOrders.status, 'completed'), eq(workOrders.status, 'closed')),
@@ -318,7 +318,7 @@ export async function getTraceabilityReport(
   backwardTrace: Array<{ level: number; itemCode: string; itemName: string; lotNumber: string; quantity: number; date?: string; coaNumber?: string }>;
 }> {
   const { lots, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get source lot
   const [sourceLot] = await database
@@ -390,7 +390,7 @@ export async function getQualitySummaryReport(
   byTestType: Array<{ testType: string; total: number; passed: number; failed: number; passRate: number }>;
 }> {
   const { tests, deviations } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get test statistics
   const testConditions = [];
@@ -476,7 +476,7 @@ export async function getStockMovementReport(
   }>;
 }> {
   const { transactions, lots, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const conditions = [];
   if (dateFrom) conditions.push(gte(transactions.createdAt, dateFrom));
@@ -554,7 +554,7 @@ export async function getVendorPerformanceReport(): Promise<{
   }>;
 }> {
   const { vendors, purchaseOrders, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const vendorData = await database
     .select({

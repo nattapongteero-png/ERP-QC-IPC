@@ -1,71 +1,55 @@
 'use client';
 
-import { HTMLAttributes, forwardRef, ReactNode } from 'react';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils/cn';
+import { Skeleton } from './skeleton';
 
-interface StatCardProps extends HTMLAttributes<HTMLDivElement> {
-  /** Stat value */
-  value: string | number;
-  /** Stat label */
-  label: string;
-  /** Icon component */
-  icon?: ReactNode;
-  /** Color variant */
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
-  /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
-  /** Whether the card is clickable */
-  clickable?: boolean;
-}
+const statCardVariants = cva(
+  'rounded-xl border border-gray-200 motion-reduce:transition-none motion-reduce:hover:transform-none',
+  {
+    variants: {
+      variant: {
+        default: 'bg-gray-50',
+        primary: 'bg-emerald-50',
+        success: 'bg-green-50',
+        warning: 'bg-yellow-50',
+        danger: 'bg-red-50',
+        info: 'bg-blue-50',
+      },
+      size: {
+        sm: 'p-3',
+        md: 'p-4',
+        lg: 'p-5',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'md',
+    },
+  }
+);
 
-const variantStyles = {
-  default: {
-    bg: 'bg-gray-50',
-    iconBg: 'bg-gray-100',
-    iconColor: 'text-gray-600',
-    labelColor: 'text-gray-600',
-    valueColor: 'text-gray-900',
-  },
-  primary: {
-    bg: 'bg-emerald-50',
-    iconBg: 'bg-emerald-100',
-    iconColor: 'text-emerald-600',
-    labelColor: 'text-emerald-600',
-    valueColor: 'text-emerald-900',
-  },
-  success: {
-    bg: 'bg-green-50',
-    iconBg: 'bg-green-100',
-    iconColor: 'text-green-600',
-    labelColor: 'text-green-600',
-    valueColor: 'text-green-900',
-  },
-  warning: {
-    bg: 'bg-yellow-50',
-    iconBg: 'bg-yellow-100',
-    iconColor: 'text-yellow-600',
-    labelColor: 'text-yellow-600',
-    valueColor: 'text-yellow-900',
-  },
-  danger: {
-    bg: 'bg-red-50',
-    iconBg: 'bg-red-100',
-    iconColor: 'text-red-600',
-    labelColor: 'text-red-600',
-    valueColor: 'text-red-900',
-  },
-  info: {
-    bg: 'bg-blue-50',
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600',
-    labelColor: 'text-blue-600',
-    valueColor: 'text-blue-900',
-  },
+const iconVariants = {
+  default: { bg: 'bg-gray-100', color: 'text-gray-600' },
+  primary: { bg: 'bg-emerald-100', color: 'text-emerald-600' },
+  success: { bg: 'bg-green-100', color: 'text-green-600' },
+  warning: { bg: 'bg-yellow-100', color: 'text-yellow-600' },
+  danger: { bg: 'bg-red-100', color: 'text-red-600' },
+  info: { bg: 'bg-blue-100', color: 'text-blue-600' },
+};
+
+const textVariants = {
+  default: { label: 'text-gray-600', value: 'text-gray-900' },
+  primary: { label: 'text-emerald-600', value: 'text-emerald-900' },
+  success: { label: 'text-green-600', value: 'text-green-900' },
+  warning: { label: 'text-yellow-600', value: 'text-yellow-900' },
+  danger: { label: 'text-red-600', value: 'text-red-900' },
+  info: { label: 'text-blue-600', value: 'text-blue-900' },
 };
 
 const sizeStyles = {
   sm: {
-    padding: 'p-3',
     iconSize: 'h-8 w-8',
     iconPadding: 'p-1.5',
     iconInner: 'h-4 w-4',
@@ -74,7 +58,6 @@ const sizeStyles = {
     gap: 'gap-2',
   },
   md: {
-    padding: 'p-4',
     iconSize: 'h-10 w-10',
     iconPadding: 'p-2',
     iconInner: 'h-5 w-5',
@@ -83,7 +66,6 @@ const sizeStyles = {
     gap: 'gap-3',
   },
   lg: {
-    padding: 'p-5',
     iconSize: 'h-12 w-12',
     iconPadding: 'p-2.5',
     iconInner: 'h-6 w-6',
@@ -93,7 +75,20 @@ const sizeStyles = {
   },
 };
 
-export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
+export interface StatCardProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof statCardVariants> {
+  /** Stat value */
+  value: string | number;
+  /** Stat label */
+  label: string;
+  /** Icon component */
+  icon?: React.ReactNode;
+  /** Whether the card is clickable */
+  clickable?: boolean;
+}
+
+const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
   (
     {
       className,
@@ -108,16 +103,15 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
     },
     ref
   ) => {
-    const variantStyle = variantStyles[variant];
-    const sizeStyle = sizeStyles[size];
+    const iconStyle = iconVariants[variant || 'default'];
+    const textStyle = textVariants[variant || 'default'];
+    const sizeStyle = sizeStyles[size || 'md'];
 
     return (
       <div
         ref={ref}
         className={cn(
-          'rounded-xl border border-gray-200',
-          variantStyle.bg,
-          sizeStyle.padding,
+          statCardVariants({ variant, size }),
           clickable && [
             'cursor-pointer',
             'hover:shadow-md hover:-translate-y-0.5',
@@ -125,7 +119,6 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
             'transition-all duration-200 ease-out',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2',
           ],
-          'motion-reduce:transition-none motion-reduce:hover:transform-none',
           className
         )}
         onClick={onClick}
@@ -138,20 +131,20 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
             <div
               className={cn(
                 'flex-shrink-0 rounded-lg',
-                variantStyle.iconBg,
+                iconStyle.bg,
                 sizeStyle.iconPadding
               )}
             >
-              <div className={cn(variantStyle.iconColor, sizeStyle.iconInner)}>
+              <div className={cn(iconStyle.color, sizeStyle.iconInner)}>
                 {icon}
               </div>
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className={cn('font-medium truncate', variantStyle.labelColor, sizeStyle.labelSize)}>
+            <p className={cn('font-medium truncate', textStyle.label, sizeStyle.labelSize)}>
               {label}
             </p>
-            <p className={cn('font-bold', variantStyle.valueColor, sizeStyle.valueSize)}>
+            <p className={cn('font-bold', textStyle.value, sizeStyle.valueSize)}>
               {typeof value === 'number' ? value.toLocaleString() : value}
             </p>
           </div>
@@ -164,24 +157,22 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
 StatCard.displayName = 'StatCard';
 
 // Skeleton variant for loading state
-interface StatCardSkeletonProps extends HTMLAttributes<HTMLDivElement> {
-  /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
+interface StatCardSkeletonProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    Pick<VariantProps<typeof statCardVariants>, 'size'> {
   /** Show icon placeholder */
   showIcon?: boolean;
 }
 
-export const StatCardSkeleton = forwardRef<HTMLDivElement, StatCardSkeletonProps>(
+const StatCardSkeleton = React.forwardRef<HTMLDivElement, StatCardSkeletonProps>(
   ({ className, size = 'md', showIcon = true, ...props }, ref) => {
-    const sizeStyle = sizeStyles[size];
+    const sizeStyle = sizeStyles[size || 'md'];
 
     return (
       <div
         ref={ref}
         className={cn(
-          'rounded-xl border border-gray-200 bg-gray-50',
-          sizeStyle.padding,
-          'animate-pulse',
+          statCardVariants({ variant: 'default', size }),
           className
         )}
         aria-label="Loading stat data"
@@ -190,11 +181,11 @@ export const StatCardSkeleton = forwardRef<HTMLDivElement, StatCardSkeletonProps
       >
         <div className={cn('flex items-center', sizeStyle.gap)}>
           {showIcon && (
-            <div className={cn('bg-gray-200 rounded-lg', sizeStyle.iconSize)} />
+            <Skeleton variant="rectangular" className={cn('rounded-lg', sizeStyle.iconSize)} />
           )}
           <div className="flex-1 space-y-2">
-            <div className="h-3 w-20 bg-gray-200 rounded" />
-            <div className="h-5 w-12 bg-gray-200 rounded" />
+            <Skeleton width={80} height={12} />
+            <Skeleton width={48} height={20} />
           </div>
         </div>
         <span className="sr-only">Loading...</span>
@@ -204,3 +195,5 @@ export const StatCardSkeleton = forwardRef<HTMLDivElement, StatCardSkeletonProps
 );
 
 StatCardSkeleton.displayName = 'StatCardSkeleton';
+
+export { StatCard, StatCardSkeleton, statCardVariants };

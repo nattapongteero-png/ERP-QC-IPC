@@ -1,22 +1,22 @@
 'use client';
 
-import { HTMLAttributes, forwardRef, ReactNode } from 'react';
+import * as React from 'react';
 import { cn } from '@/lib/utils/cn';
 
-interface PageHeaderProps extends HTMLAttributes<HTMLDivElement> {
+export interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Page title */
   title: string;
   /** Page description/subtitle */
   description?: string;
   /** Actions to display on the right side */
-  actions?: ReactNode;
+  actions?: React.ReactNode;
   /** Breadcrumb component */
-  breadcrumb?: ReactNode;
+  breadcrumb?: React.ReactNode;
   /** Back button or navigation element */
-  backButton?: ReactNode;
+  backButton?: React.ReactNode;
 }
 
-export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(
+const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
   (
     {
       className,
@@ -93,76 +93,68 @@ PageHeader.displayName = 'PageHeader';
 
 // Sub-components for more complex page headers
 
-interface PageHeaderTitleProps extends HTMLAttributes<HTMLHeadingElement> {
-  children: ReactNode;
-}
-
-export const PageHeaderTitle = forwardRef<HTMLHeadingElement, PageHeaderTitleProps>(
-  ({ className, children, ...props }, ref) => {
-    return (
-      <h1
-        ref={ref}
-        className={cn(
-          'text-2xl md:text-3xl font-bold',
-          'text-gray-900',
-          'tracking-tight',
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </h1>
-    );
-  }
-);
+const PageHeaderTitle = React.forwardRef<
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, children, ...props }, ref) => (
+  <h1
+    ref={ref}
+    className={cn(
+      'text-2xl md:text-3xl font-bold',
+      'text-gray-900',
+      'tracking-tight',
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </h1>
+));
 
 PageHeaderTitle.displayName = 'PageHeaderTitle';
 
-interface PageHeaderDescriptionProps extends HTMLAttributes<HTMLParagraphElement> {
-  children: ReactNode;
-}
-
-export const PageHeaderDescription = forwardRef<HTMLParagraphElement, PageHeaderDescriptionProps>(
-  ({ className, children, ...props }, ref) => {
-    return (
-      <p
-        ref={ref}
-        className={cn(
-          'mt-1 text-sm md:text-base',
-          'text-gray-500',
-          'max-w-2xl',
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </p>
-    );
-  }
-);
+const PageHeaderDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, children, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn(
+      'mt-1 text-sm md:text-base',
+      'text-gray-500',
+      'max-w-2xl',
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </p>
+));
 
 PageHeaderDescription.displayName = 'PageHeaderDescription';
 
-interface PageHeaderActionsProps extends HTMLAttributes<HTMLDivElement> {
-  children: ReactNode;
-}
-
-export const PageHeaderActions = forwardRef<HTMLDivElement, PageHeaderActionsProps>(
-  ({ className, children, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          'flex items-center gap-3',
-          'flex-shrink-0',
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  }
-);
+const PageHeaderActions = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, children, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      'flex items-center gap-3',
+      'flex-shrink-0',
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+));
 
 PageHeaderActions.displayName = 'PageHeaderActions';
+
+export {
+  PageHeader,
+  PageHeaderTitle,
+  PageHeaderDescription,
+  PageHeaderActions,
+};

@@ -99,7 +99,13 @@ export async function POST(request: NextRequest) {
       const deviationsTable = useSqlite ? schema.sqliteDeviations : schema.mysqlDeviations;
       
       const deviationNumber = generateDeviationNumber();
-      
+
+      // Parse dates for MySQL (needs Date objects) vs SQLite (needs strings)
+      const now = new Date();
+      const parsedDueDate = dueDate
+        ? (useSqlite ? dueDate : new Date(dueDate))
+        : null;
+
       const result = await (db as any).insert(deviationsTable).values({
         deviationNumber,
         title,
@@ -110,7 +116,9 @@ export async function POST(request: NextRequest) {
         status: 'open',
         reportedBy: session.userId,
         assignedTo,
-        dueDate,
+        dueDate: parsedDueDate,
+        createdAt: useSqlite ? now.toISOString() : now,
+        updatedAt: useSqlite ? now.toISOString() : now,
       });
       
       const deviationId = useSqlite ? result.lastInsertRowid : result[0].insertId;

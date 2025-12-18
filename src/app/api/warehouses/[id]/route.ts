@@ -41,35 +41,45 @@ export async function PUT(
       const { id } = await params;
       const db = await getDb();
       const body = await request.json();
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
+      const isSqlite = useSqlite();
+      const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
+      const warehouseId = parseInt(id);
 
       const [existing] = await db
         .select()
         .from(warehouses)
-        .where(eq(warehouses.id, parseInt(id)));
+        .where(eq(warehouses.id, warehouseId));
 
       if (!existing) {
         return NextResponse.json({ success: false, error: 'Warehouse not found' }, { status: 404 });
       }
 
-      const [updated] = await db
+      const now = new Date();
+      const updateData = {
+        code: body.code,
+        name: body.name,
+        location: body.location || null,
+        type: body.type || 'general',
+        isActive: body.isActive ?? true,
+        updatedAt: isSqlite ? now.toISOString() : now,
+      };
+
+      await db
         .update(warehouses)
-        .set({
-          code: body.code,
-          name: body.name,
-          location: body.location || null,
-          type: body.type || 'general',
-          isActive: body.isActive ?? true,
-          updatedAt: new Date(),
-        })
-        .where(eq(warehouses.id, parseInt(id)))
-        .returning();
+        .set(updateData)
+        .where(eq(warehouses.id, warehouseId));
+
+      // Fetch updated record
+      const [updated] = await db
+        .select()
+        .from(warehouses)
+        .where(eq(warehouses.id, warehouseId));
 
       await createAuditLog({
         userId: user.userId,
         action: 'UPDATE',
         tableName: 'warehouses',
-        recordId: parseInt(id),
+        recordId: warehouseId,
         oldValue: existing,
         newValue: updated,
         ipAddress: getClientIP(request),
@@ -91,28 +101,32 @@ export async function DELETE(
     try {
       const { id } = await params;
       const db = await getDb();
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
+      const isSqlite = useSqlite();
+      const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
+      const warehouseId = parseInt(id);
 
       const [existing] = await db
         .select()
         .from(warehouses)
-        .where(eq(warehouses.id, parseInt(id)));
+        .where(eq(warehouses.id, warehouseId));
 
       if (!existing) {
         return NextResponse.json({ success: false, error: 'Warehouse not found' }, { status: 404 });
       }
 
+      const now = new Date();
+
       // Soft delete by setting isActive to false
       await db
         .update(warehouses)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(warehouses.id, parseInt(id)));
+        .set({ isActive: false, updatedAt: isSqlite ? now.toISOString() : now })
+        .where(eq(warehouses.id, warehouseId));
 
       await createAuditLog({
         userId: user.userId,
         action: 'DELETE',
         tableName: 'warehouses',
-        recordId: parseInt(id),
+        recordId: warehouseId,
         oldValue: existing,
         ipAddress: getClientIP(request),
       });

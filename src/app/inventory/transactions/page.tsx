@@ -8,9 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, Search, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, 
-  RefreshCw, Trash2, RotateCcw, Package, Calendar, Filter
+import {
+  Plus, Search, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight,
+  RefreshCw, Trash2, RotateCcw, Package, Filter
 } from 'lucide-react';
 
 interface Transaction {
@@ -209,11 +209,10 @@ export default function TransactionsPage() {
         resetForm();
         fetchTransactions();
         fetchLots(); // Refresh lots to get updated quantities
-      } else {
-        alert(data.error || 'Failed to create transaction');
       }
-    } catch (error) {
-      alert('Failed to create transaction');
+      // API errors handled by global error handler
+    } catch {
+      // Network errors handled by global error handler
     }
   };
 
@@ -403,58 +402,52 @@ export default function TransactionsPage() {
           </Card>
         </div>
 
-        <Card>
-          {/* Filters */}
-          <div className="flex flex-col gap-4 mb-6">
-            {/* Row 1: Type filter and Date range */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="w-full sm:w-48">
-                <Select
-                  options={transactionTypes}
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
+        {/* Filters Card */}
+        <Card className="p-6">
+          <div className="flex flex-col md:flex-row md:items-end gap-4">
+            <div className="w-full md:w-48">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Transaction Type
+              </label>
+              <Select
+                options={transactionTypes}
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Date From
+                </label>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
                 />
               </div>
-              
-              {/* Date Range Filter */}
-              <div className="flex-1">
-                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="hidden sm:flex items-center justify-center w-8 h-10 bg-gray-100 rounded-lg">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                    </div>
-                    <div className="flex-1">
-                      <Input
-                        type="date"
-                        value={dateFrom}
-                        onChange={(e) => setDateFrom(e.target.value)}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                  
-                  <span className="text-gray-400 text-center sm:px-2">to</span>
-                  
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="flex-1">
-                      <Input
-                        type="date"
-                        value={dateTo}
-                        onChange={(e) => setDateTo(e.target.value)}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                  
-                  <Button variant="secondary" onClick={handleSearch} className="w-full sm:w-auto">
-                    <Filter className="h-4 w-4 mr-1" />
-                    Filter
-                  </Button>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Date To
+                </label>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
               </div>
             </div>
-          </div>
 
+            <Button variant="secondary" onClick={handleSearch} className="w-full md:w-auto">
+              <Filter className="h-4 w-4 mr-1" />
+              Apply Filter
+            </Button>
+          </div>
+        </Card>
+
+        {/* Table Card */}
+        <Card className="p-6">
           {/* Table */}
           <Table
             columns={columns}

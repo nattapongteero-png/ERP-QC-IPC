@@ -5,7 +5,7 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import { DateRangePicker } from '@/components/ui/date-picker';
 import { PageHeader } from '@/components/ui/page-header';
 import {
   FileText,
@@ -117,9 +117,11 @@ export default function ReportsPage() {
     try {
       // Simulate report generation
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      alert(`Report ${reportId} generated successfully!`);
+      // TODO: Implement actual report generation API call
+      console.log(`Report ${reportId} generated successfully!`);
     } catch {
-      alert('Failed to generate report');
+      // API errors handled by global error handler
+      console.error('Failed to generate report');
     } finally {
       setGenerating(null);
     }
@@ -136,8 +138,8 @@ export default function ReportsPage() {
         {/* Filters */}
         <Card elevation="raised">
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Category
                 </label>
@@ -147,26 +149,14 @@ export default function ReportsPage() {
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 />
               </div>
-              <div className="w-full md:w-48">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date From
-                </label>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                />
-              </div>
-              <div className="w-full md:w-48">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date To
-                </label>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                />
-              </div>
+              <DateRangePicker
+                label="Report Date Range"
+                startDate={dateFrom}
+                endDate={dateTo}
+                onStartDateChange={(value) => setDateFrom(value)}
+                onEndDateChange={(value) => setDateTo(value)}
+                size="sm"
+              />
             </div>
           </CardContent>
         </Card>

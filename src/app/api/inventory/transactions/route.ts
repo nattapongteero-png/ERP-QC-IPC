@@ -131,9 +131,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Generate transaction number
-      const date = new Date();
+      const now = new Date();
+      const isSqlite = useSqlite();
       const prefix = type.substring(0, 3);
-      const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
       const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
       const transactionNumber = `${prefix}-${dateStr}-${random}`;
 
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
         referenceId: null,
         reason: notes || null,
         performedBy: user.userId,
-        createdAt: new Date().toISOString(),
+        createdAt: isSqlite ? now.toISOString() : now,
       }).returning();
 
       // Update lot quantity based on transaction type
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
       await db.update(lots).set({
         quantity: newQuantity,
         warehouseId: newWarehouseId,
-        updatedAt: new Date(),
+        updatedAt: isSqlite ? now.toISOString() : now,
       }).where(eq(lots.id, lotId));
 
       // Log audit

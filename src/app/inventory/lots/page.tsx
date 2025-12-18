@@ -7,11 +7,19 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   Plus, Search, CheckCircle, XCircle, Clock, AlertTriangle,
-  Package, ArrowRight, Eye
+  Package, ArrowRight, Eye, Loader2, BoxSelect, Check, ChevronRight
 } from 'lucide-react';
 
 interface Lot {
@@ -48,6 +56,15 @@ interface LotFormData {
   vendorId: number | null;
   cost: number;
   notes: string;
+}
+
+interface Item {
+  id: number;
+  code: string;
+  nameTh: string;
+  nameEn: string | null;
+  primaryUnit: string;
+  type: string;
 }
 
 const statusOptions = [
@@ -89,7 +106,6 @@ const getExpiryVariant = (days: number | null): 'success' | 'warning' | 'danger'
 export default function LotsPage() {
   const router = useRouter();
   const [lots, setLots] = useState<Lot[]>([]);
-  const [items, setItems] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,7 +130,58 @@ export default function LotsPage() {
     cost: 0,
     notes: '',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
+
+  // Item search dialog state
+  const [itemDialogOpen, setItemDialogOpen] = useState(false);
+  const [itemSearch, setItemSearch] = useState('');
+  const [searchItems, setSearchItems] = useState<Item[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [selectedItemTemp, setSelectedItemTemp] = useState<Item | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.lotNumber.trim()) {
+      errors.lotNumber = 'Lot number is required';
+    }
+
+    if (!formData.itemId || formData.itemId === 0) {
+      errors.itemId = 'Please select an item';
+    }
+
+    if (!formData.warehouseId || formData.warehouseId === 0) {
+      errors.warehouseId = 'Please select a warehouse';
+    }
+
+    if (!formData.quantity || formData.quantity <= 0) {
+      errors.quantity = 'Quantity must be greater than 0';
+    }
+
+    if (!formData.expiryDate) {
+      errors.expiryDate = 'Expiry date is required';
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expiryDate = new Date(formData.expiryDate);
+      if (expiryDate <= today) {
+        errors.expiryDate = 'Expiry date must be in the future';
+      }
+    }
+
+    if (formData.manufacturingDate && formData.expiryDate) {
+      const mfgDate = new Date(formData.manufacturingDate);
+      const expDate = new Date(formData.expiryDate);
+      if (mfgDate >= expDate) {
+        errors.manufacturingDate = 'Manufacturing date must be before expiry date';
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const fetchLots = async () => {
     setIsLoading(true);
@@ -142,19 +209,16 @@ export default function LotsPage() {
 
   const fetchMasterData = async () => {
     try {
-      const [itemsRes, warehousesRes, vendorsRes] = await Promise.all([
-        fetch('/api/items?limit=1000'),
+      const [warehousesRes, vendorsRes] = await Promise.all([
         fetch('/api/warehouses?limit=100'),
         fetch('/api/vendors?limit=100'),
       ]);
-      
-      const [itemsData, warehousesData, vendorsData] = await Promise.all([
-        itemsRes.json(),
+
+      const [warehousesData, vendorsData] = await Promise.all([
         warehousesRes.json(),
         vendorsRes.json(),
       ]);
-      
-      if (itemsData.success) setItems(itemsData.data?.items || []);
+
       if (warehousesData.success) setWarehouses(warehousesData.data?.items || []);
       if (vendorsData.success) setVendors(vendorsData.data?.items || []);
     } catch (error) {
@@ -167,55 +231,133 @@ export default function LotsPage() {
     fetchMasterData();
   }, [pagination.page, statusFilter]);
 
+  // Debounced item search for dialog
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (itemSearch.length >= 1 && itemDialogOpen) {
+        searchItemsApi();
+      } else if (itemSearch.length === 0 && itemDialogOpen) {
+        loadRecentItems();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [itemSearch, itemDialogOpen]);
+
+  // Load recent items when dialog opens
+  useEffect(() => {
+    if (itemDialogOpen && searchItems.length === 0) {
+      loadRecentItems();
+    }
+  }, [itemDialogOpen]);
+
+  const loadRecentItems = async () => {
+    setItemsLoading(true);
+    try {
+      const response = await fetch('/api/items?limit=20');
+      const result = await response.json();
+      if (result.success) {
+        setSearchItems(result.data?.items || []);
+      }
+    } catch (error) {
+      console.error('Failed to load items:', error);
+    } finally {
+      setItemsLoading(false);
+    }
+  };
+
+  const searchItemsApi = async () => {
+    setItemsLoading(true);
+    try {
+      const response = await fetch(`/api/items?search=${encodeURIComponent(itemSearch)}&limit=20`);
+      const result = await response.json();
+      if (result.success) {
+        setSearchItems(result.data?.items || []);
+      }
+    } catch (error) {
+      console.error('Failed to search items:', error);
+    } finally {
+      setItemsLoading(false);
+    }
+  };
+
+  const handleSelectItemTemp = (item: Item) => {
+    setSelectedItemTemp(item);
+  };
+
+  const handleConfirmItem = () => {
+    if (selectedItemTemp) {
+      setSelectedItem(selectedItemTemp);
+      setFormData(prev => ({
+        ...prev,
+        itemId: selectedItemTemp.id,
+        unit: selectedItemTemp.primaryUnit,
+      }));
+      if (formErrors.itemId) {
+        setFormErrors(prev => ({ ...prev, itemId: '' }));
+      }
+      setItemDialogOpen(false);
+      setItemSearch('');
+      setSelectedItemTemp(null);
+    }
+  };
+
+  const handleOpenItemDialog = () => {
+    setSelectedItemTemp(selectedItem);
+    setItemDialogOpen(true);
+  };
+
   const handleSearch = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
     fetchLots();
   };
 
   const handleCreateLot = async () => {
+    // Validate form before submitting
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       const res = await fetch('/api/inventory/lots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      
+
       const data = await res.json();
       if (data.success) {
         setShowModal(false);
         fetchLots();
         resetForm();
-      } else {
-        alert(data.error || 'Failed to create lot');
       }
-    } catch (error) {
-      alert('Failed to create lot');
+      // API errors handled by global error handler
+    } catch {
+      // Network errors handled by global error handler
     }
   };
 
   const handleQCAction = async (action: 'release' | 'reject') => {
     if (!selectedLot) return;
-    
+
     try {
       const res = await fetch(`/api/inventory/lots/${selectedLot.id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: action === 'release' ? 'released' : 'rejected',
           notes: `QC ${action}d on ${new Date().toISOString()}`
         }),
       });
-      
+
       const data = await res.json();
       if (data.success) {
         setShowQCModal(false);
         setSelectedLot(null);
         fetchLots();
-      } else {
-        alert(data.error || `Failed to ${action} lot`);
       }
-    } catch (error) {
-      alert(`Failed to ${action} lot`);
+      // API errors handled by global error handler
+    } catch {
+      // Network errors handled by global error handler
     }
   };
 
@@ -248,6 +390,11 @@ export default function LotsPage() {
       cost: 0,
       notes: '',
     });
+    setFormErrors({});
+    setSelectedItem(null);
+    setSelectedItemTemp(null);
+    setItemSearch('');
+    setSearchItems([]);
   };
 
   const generateLotNumber = () => {
@@ -415,9 +562,9 @@ export default function LotsPage() {
           </Card>
         </div>
 
-        <Card>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+        {/* Filters Card */}
+        <Card className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <Input
                 variant="search"
@@ -435,7 +582,10 @@ export default function LotsPage() {
               />
             </div>
           </div>
+        </Card>
 
+        {/* Table Card */}
+        <Card className="p-6">
           {/* Table */}
           <Table
             columns={columns}
@@ -495,13 +645,20 @@ export default function LotsPage() {
                   <div className="flex gap-2">
                     <Input
                       value={formData.lotNumber}
-                      onChange={(e) => setFormData(prev => ({ ...prev, lotNumber: e.target.value }))}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, lotNumber: e.target.value }));
+                        if (formErrors.lotNumber) setFormErrors(prev => ({ ...prev, lotNumber: '' }));
+                      }}
                       placeholder="LOT-YYYYMMDD-XXX"
+                      className={formErrors.lotNumber ? 'border-red-500' : ''}
                     />
                     <Button variant="secondary" onClick={generateLotNumber}>
                       Generate
                     </Button>
                   </div>
+                  {formErrors.lotNumber && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.lotNumber}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -520,21 +677,37 @@ export default function LotsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Item <span className="text-red-500">*</span>
                   </label>
-                  <Select
-                    options={[
-                      { value: '', label: 'Select Item' },
-                      ...items.map(i => ({ value: i.id.toString(), label: `${i.code} - ${i.nameTh}` }))
-                    ]}
-                    value={formData.itemId.toString()}
-                    onChange={(e) => {
-                      const item = items.find(i => i.id === parseInt(e.target.value));
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        itemId: parseInt(e.target.value),
-                        unit: item?.primaryUnit || 'kg'
-                      }));
-                    }}
-                  />
+                  {selectedItem ? (
+                    <div className={`flex items-center justify-between p-3 rounded-lg border ${formErrors.itemId ? 'border-red-500 bg-red-50' : 'bg-green-50 border-green-200'}`}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Package className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-green-800 text-sm">{selectedItem.code}</p>
+                          <p className="text-xs text-green-600">{selectedItem.nameTh}</p>
+                        </div>
+                      </div>
+                      <Button variant="secondary" size="sm" onClick={handleOpenItemDialog}>
+                        Change
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleOpenItemDialog}
+                      className={`w-full flex items-center justify-between p-3 border-2 border-dashed rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors group ${formErrors.itemId ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                    >
+                      <div className="flex items-center gap-2 text-gray-500 group-hover:text-green-600">
+                        <BoxSelect className="h-4 w-4" />
+                        <span className="text-sm">Click to select an item...</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-green-500" />
+                    </button>
+                  )}
+                  {formErrors.itemId && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.itemId}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -546,8 +719,15 @@ export default function LotsPage() {
                       ...warehouses.map(w => ({ value: w.id.toString(), label: w.name }))
                     ]}
                     value={formData.warehouseId.toString()}
-                    onChange={(e) => setFormData(prev => ({ ...prev, warehouseId: parseInt(e.target.value) }))}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, warehouseId: parseInt(e.target.value) || 0 }));
+                      if (formErrors.warehouseId) setFormErrors(prev => ({ ...prev, warehouseId: '' }));
+                    }}
+                    className={formErrors.warehouseId ? 'border-red-500' : ''}
                   />
+                  {formErrors.warehouseId && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.warehouseId}</p>
+                  )}
                 </div>
               </div>
 
@@ -558,9 +738,18 @@ export default function LotsPage() {
                   </label>
                   <Input
                     type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) }))}
+                    value={formData.quantity || ''}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }));
+                      if (formErrors.quantity) setFormErrors(prev => ({ ...prev, quantity: '' }));
+                    }}
+                    className={formErrors.quantity ? 'border-red-500' : ''}
+                    min="0"
+                    step="0.001"
                   />
+                  {formErrors.quantity && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.quantity}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -578,43 +767,46 @@ export default function LotsPage() {
                   <Input
                     type="number"
                     step="0.01"
-                    value={formData.cost}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) }))}
+                    value={formData.cost || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
+                    min="0"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Manufacturing Date
-                  </label>
-                  <Input
-                    type="date"
-                    value={formData.manufacturingDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, manufacturingDate: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expiry Date <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    type="date"
-                    value={formData.expiryDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Received Date
-                  </label>
-                  <Input
-                    type="date"
-                    value={formData.receivedDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, receivedDate: e.target.value }))}
-                  />
-                </div>
+                <DatePicker
+                  label="Manufacturing Date"
+                  value={formData.manufacturingDate}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, manufacturingDate: value }));
+                    if (formErrors.manufacturingDate) setFormErrors(prev => ({ ...prev, manufacturingDate: '' }));
+                  }}
+                  max={formData.expiryDate || undefined}
+                  error={formErrors.manufacturingDate}
+                  showQuickActions={false}
+                  size="sm"
+                />
+                <DatePicker
+                  label="Expiry Date"
+                  value={formData.expiryDate}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, expiryDate: value }));
+                    if (formErrors.expiryDate) setFormErrors(prev => ({ ...prev, expiryDate: '' }));
+                  }}
+                  min={formData.manufacturingDate || undefined}
+                  error={formErrors.expiryDate}
+                  required
+                  showQuickActions={false}
+                  size="sm"
+                />
+                <DatePicker
+                  label="Received Date"
+                  value={formData.receivedDate}
+                  onChange={(value) => setFormData(prev => ({ ...prev, receivedDate: value }))}
+                  showQuickActions={false}
+                  size="sm"
+                />
               </div>
 
               <div>
@@ -793,6 +985,132 @@ export default function LotsPage() {
           </div>
         </div>
       )}
+
+      {/* Item Selection Dialog */}
+      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-green-600" />
+              Select Item
+            </DialogTitle>
+            <DialogDescription>
+              Search and select an item to receive
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Search Input */}
+          <div className="relative">
+            <Input
+              placeholder="Search by item code or name..."
+              value={itemSearch}
+              onChange={(e) => setItemSearch(e.target.value)}
+              leftIcon={itemsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              autoFocus
+            />
+          </div>
+
+          {/* Item List */}
+          <div className="flex-1 overflow-auto min-h-[300px] border rounded-lg">
+            {itemsLoading && searchItems.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Loading items...
+              </div>
+            ) : searchItems.length > 0 ? (
+              <div className="divide-y">
+                {searchItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectItemTemp(item)}
+                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between ${
+                      selectedItemTemp?.id === item.id ? 'bg-green-50 border-l-4 border-green-500' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                        selectedItemTemp?.id === item.id ? 'bg-green-100' : 'bg-gray-100'
+                      }`}>
+                        <Package className={`h-5 w-5 ${
+                          selectedItemTemp?.id === item.id ? 'text-green-600' : 'text-gray-500'
+                        }`} />
+                      </div>
+                      <div>
+                        <p className={`font-semibold ${
+                          selectedItemTemp?.id === item.id ? 'text-green-800' : 'text-gray-900'
+                        }`}>
+                          {item.code}
+                        </p>
+                        <p className={`text-sm ${
+                          selectedItemTemp?.id === item.id ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {item.nameTh}
+                        </p>
+                        {item.nameEn && (
+                          <p className="text-xs text-gray-400">{item.nameEn}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" size="sm">{item.type}</Badge>
+                      <Badge variant="default" size="sm">{item.primaryUnit}</Badge>
+                      {selectedItemTemp?.id === item.id && (
+                        <Check className="h-5 w-5 text-green-600" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : itemSearch.length > 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
+                <Search className="h-12 w-12 text-gray-300 mb-3" />
+                <p className="font-medium">No items found</p>
+                <p className="text-sm text-center mt-1">
+                  Try a different search term or check if the item exists in the system
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
+                <Package className="h-12 w-12 text-gray-300 mb-3" />
+                <p className="font-medium">No items available</p>
+                <p className="text-sm text-center mt-1">
+                  Create items in the Items module first
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-4 border-t">
+            <p className="text-sm text-gray-500">
+              {selectedItemTemp ? (
+                <>Selected: <span className="font-medium text-green-600">{selectedItemTemp.code} - {selectedItemTemp.nameTh}</span></>
+              ) : (
+                'Click on an item to select it'
+              )}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setItemDialogOpen(false);
+                  setItemSearch('');
+                  setSelectedItemTemp(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleConfirmItem}
+                disabled={!selectedItemTemp}
+              >
+                Select Item
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }

@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Table } from '@/components/ui/table';
 
 interface LotDetail {
@@ -138,11 +139,10 @@ export default function LotDetailPage() {
       const data = await response.json();
       if (data.success) {
         fetchLotDetail();
-      } else {
-        alert(data.error || 'Failed to update status');
       }
-    } catch (err) {
-      alert('Failed to update status');
+      // API errors handled by global error handler
+    } catch {
+      // Network errors handled by global error handler
     } finally {
       setStatusLoading(false);
     }
@@ -150,7 +150,7 @@ export default function LotDetailPage() {
 
   const handleSave = async () => {
     if (!lot) return;
-    
+
     try {
       const response = await fetch(`/api/inventory/lots/${lot.id}`, {
         method: 'PUT',
@@ -161,11 +161,10 @@ export default function LotDetailPage() {
       if (data.success) {
         setIsEditing(false);
         fetchLotDetail();
-      } else {
-        alert(data.error || 'Failed to update lot');
       }
-    } catch (err) {
-      alert('Failed to update lot');
+      // API errors handled by global error handler
+    } catch {
+      // Network errors handled by global error handler
     }
   };
 
@@ -567,27 +566,37 @@ export default function LotDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Manufacturing Date</label>
                       {isEditing ? (
-                        <Input
-                          type="date"
+                        <DatePicker
+                          label="Manufacturing Date"
                           value={editForm.manufacturingDate}
-                          onChange={(e) => setEditForm({ ...editForm, manufacturingDate: e.target.value })}
+                          onChange={(value) => setEditForm({ ...editForm, manufacturingDate: value })}
+                          max={editForm.expiryDate || undefined}
+                          showQuickActions={false}
+                          size="sm"
                         />
                       ) : (
-                        <p className="font-medium">{formatDate(lot.manufacturingDate)}</p>
+                        <>
+                          <label className="text-sm text-gray-500">Manufacturing Date</label>
+                          <p className="font-medium">{formatDate(lot.manufacturingDate)}</p>
+                        </>
                       )}
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Expiry Date</label>
                       {isEditing ? (
-                        <Input
-                          type="date"
+                        <DatePicker
+                          label="Expiry Date"
                           value={editForm.expiryDate}
-                          onChange={(e) => setEditForm({ ...editForm, expiryDate: e.target.value })}
+                          onChange={(value) => setEditForm({ ...editForm, expiryDate: value })}
+                          min={editForm.manufacturingDate || undefined}
+                          showQuickActions={false}
+                          size="sm"
                         />
                       ) : (
-                        <p className="font-medium">{formatDate(lot.expiryDate)}</p>
+                        <>
+                          <label className="text-sm text-gray-500">Expiry Date</label>
+                          <p className="font-medium">{formatDate(lot.expiryDate)}</p>
+                        </>
                       )}
                     </div>
                   </div>
@@ -698,7 +707,7 @@ export default function LotDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>QC Tests</CardTitle>
-              <Button size="sm">+ New QC Test</Button>
+              <Button size="sm" onClick={() => router.push(`/quality/tests/new?lotId=${lot.id}`)}>+ New QC Test</Button>
             </CardHeader>
             <CardContent>
               <Table

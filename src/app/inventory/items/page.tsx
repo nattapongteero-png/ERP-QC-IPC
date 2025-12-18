@@ -31,6 +31,7 @@ interface Item {
   storageConditions: string | null;
   isActive: boolean;
   createdAt: string;
+  onHand: number;
 }
 
 interface FormData {
@@ -180,11 +181,10 @@ export default function ItemsPage() {
         setEditingItem(null);
         resetForm();
         fetchItems();
-      } else {
-        alert(data.error || 'Failed to save item');
       }
+      // API errors handled by global error handler
     } catch {
-      alert('Failed to save item');
+      // Network errors handled by global error handler
     }
   };
 
@@ -196,11 +196,10 @@ export default function ItemsPage() {
       const data = await res.json();
       if (data.success) {
         fetchItems();
-      } else {
-        alert(data.error || 'Failed to delete item');
       }
+      // API errors handled by global error handler
     } catch {
-      alert('Failed to delete item');
+      // Network errors handled by global error handler
     }
   };
 
@@ -286,6 +285,19 @@ export default function ItemsPage() {
     },
     { key: 'category', header: 'Category', render: (item: Item) => item.category || '-' },
     { key: 'primaryUnit', header: 'Unit' },
+    {
+      key: 'onHand',
+      header: 'On Hand',
+      render: (item: Item) => {
+        const isLow = item.minStock && item.onHand < item.minStock;
+        return (
+          <div className={cn('font-medium', isLow ? 'text-red-600' : '')}>
+            {item.onHand.toLocaleString()} {item.primaryUnit}
+            {isLow && <span className="text-xs ml-1">(Low)</span>}
+          </div>
+        );
+      },
+    },
     {
       key: 'shelfLife',
       header: 'Shelf Life',
@@ -382,10 +394,10 @@ export default function ItemsPage() {
           ))}
         </div>
 
+        {/* Filters Card */}
         <Card elevation="raised">
           <CardContent>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <Input
                   variant="search"
@@ -403,7 +415,12 @@ export default function ItemsPage() {
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
+        {/* Table Card */}
+        <Card elevation="raised">
+          <CardContent>
             {/* Table */}
             {isLoading ? (
               <div className="space-y-4">

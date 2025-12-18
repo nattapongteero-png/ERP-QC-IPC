@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, successResponse, errorResponse } from '@/lib/api-utils';
+import { withAuth, successResponse, errorResponse, serverErrorResponse } from '@/lib/api-utils';
 import {
   getInventoryValuationReport,
   getExpiryReport,
@@ -71,7 +71,7 @@ export async function GET(
       });
     } catch (error) {
       console.error('Report generation error:', error);
-      return errorResponse('Failed to generate report', 500);
+      return serverErrorResponse(error, '/api/reports');
     }
   });
 }

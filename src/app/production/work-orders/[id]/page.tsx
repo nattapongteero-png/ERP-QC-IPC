@@ -7,6 +7,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface WorkOrderDetail {
   workOrder: {
@@ -79,6 +89,25 @@ interface WorkOrderDetail {
   };
 }
 
+interface Item {
+  id: number;
+  code: string;
+  nameTh: string;
+  primaryUnit: string;
+}
+
+interface Lot {
+  id: number;
+  lotNumber: string;
+  quantity: number;
+  reservedQuantity: number;
+  unit: string;
+  expiryDate: string;
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+}
+
 export default function WorkOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -86,9 +115,41 @@ export default function WorkOrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'materials' | 'qc' | 'ebmr'>('overview');
 
+  // Add Material Dialog State
+  const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
+  const [items, setItems] = useState<Item[]>([]);
+  const [lots, setLots] = useState<Lot[]>([]);
+  const [itemSearch, setItemSearch] = useState('');
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
+  const [plannedQuantity, setPlannedQuantity] = useState('');
+  const [actualQuantity, setActualQuantity] = useState('');
+  const [addingMaterial, setAddingMaterial] = useState(false);
+
+  // Add QC Test Dialog State
+  const [qcDialogOpen, setQcDialogOpen] = useState(false);
+  const [testType, setTestType] = useState('');
+  const [testMethod, setTestMethod] = useState('');
+  const [testNotes, setTestNotes] = useState('');
+  const [addingQCTest, setAddingQCTest] = useState(false);
+
   useEffect(() => {
     fetchWorkOrderDetail();
   }, [params.id]);
+
+  useEffect(() => {
+    if (materialDialogOpen && itemSearch.length >= 2) {
+      searchItems();
+    }
+  }, [itemSearch, materialDialogOpen]);
+
+  useEffect(() => {
+    if (selectedItem) {
+      fetchLots(selectedItem.id);
+    } else {
+      setLots([]);
+    }
+  }, [selectedItem]);
 
   const fetchWorkOrderDetail = async () => {
     try {
@@ -102,6 +163,106 @@ export default function WorkOrderDetailPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const searchItems = async () => {
+    try {
+      const response = await fetch(`/api/items?search=${encodeURIComponent(itemSearch)}&limit=20`);
+      const result = await response.json();
+      if (result.success) {
+        setItems(result.data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to search items:', error);
+    }
+  };
+
+  const fetchLots = async (itemId: number) => {
+    try {
+      const response = await fetch(`/api/inventory/lots?itemId=${itemId}&status=released&limit=50`);
+      const result = await response.json();
+      if (result.success) {
+        setLots(result.data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch lots:', error);
+    }
+  };
+
+  const handleAddMaterial = async () => {
+    if (!selectedItem || !plannedQuantity) return;
+
+    setAddingMaterial(true);
+    try {
+      const response = await fetch(`/api/production/work-orders/${params.id}/materials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemId: selectedItem.id,
+          lotId: selectedLot?.id || null,
+          plannedQuantity: parseFloat(plannedQuantity),
+          actualQuantity: actualQuantity ? parseFloat(actualQuantity) : null,
+          unit: selectedItem.primaryUnit,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setMaterialDialogOpen(false);
+        resetMaterialForm();
+        fetchWorkOrderDetail();
+      }
+      // API errors handled by global error handler
+    } catch (error) {
+      console.error('Failed to add material:', error);
+      // Network errors handled by global error handler
+    } finally {
+      setAddingMaterial(false);
+    }
+  };
+
+  const resetMaterialForm = () => {
+    setSelectedItem(null);
+    setSelectedLot(null);
+    setPlannedQuantity('');
+    setActualQuantity('');
+    setItemSearch('');
+    setItems([]);
+    setLots([]);
+  };
+
+  const handleAddQCTest = async () => {
+    if (!testType) return;
+
+    setAddingQCTest(true);
+    try {
+      const response = await fetch(`/api/production/work-orders/${params.id}/qc-tests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testType,
+          testMethod: testMethod || null,
+          notes: testNotes || null,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setQcDialogOpen(false);
+        resetQCForm();
+        fetchWorkOrderDetail();
+      }
+      // API errors handled by global error handler
+    } catch (error) {
+      console.error('Failed to add QC test:', error);
+      // Network errors handled by global error handler
+    } finally {
+      setAddingQCTest(false);
+    }
+  };
+
+  const resetQCForm = () => {
+    setTestType('');
+    setTestMethod('');
+    setTestNotes('');
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -169,9 +330,9 @@ export default function WorkOrderDetailPage() {
     return (
       <MainLayout>
         <div className="text-center py-12">
-          <p className="text-gray-500">ไม่พบข้อมูล Work Order</p>
+          <p className="text-gray-500">Work Order not found</p>
           <Button variant="secondary" className="mt-4" onClick={() => router.push('/production/work-orders')}>
-            กลับไปหน้ารายการ
+            Back to List
           </Button>
         </div>
       </MainLayout>
@@ -189,7 +350,7 @@ export default function WorkOrderDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <Button variant="secondary" size="sm" onClick={() => router.push('/production/work-orders')}>
-                ← Back
+                &larr; Back
               </Button>
               <h1 className="text-2xl font-bold text-gray-900">Work Order: {workOrder.woNumber}</h1>
               <Badge variant={getStatusVariant(workOrder.status)}>
@@ -267,10 +428,10 @@ export default function WorkOrderDetailPage() {
         <div className="border-b border-gray-200">
           <nav className="flex gap-4">
             {[
-              { id: 'overview', label: '📊 Overview' },
-              { id: 'materials', label: '📦 Materials' },
-              { id: 'qc', label: '🔬 QC Tests' },
-              { id: 'ebmr', label: '📋 eBMR' },
+              { id: 'overview', label: 'Overview' },
+              { id: 'materials', label: 'Materials' },
+              { id: 'qc', label: 'QC Tests' },
+              { id: 'ebmr', label: 'eBMR' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -369,7 +530,9 @@ export default function WorkOrderDetailPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Material Consumption</CardTitle>
-                <Button variant="secondary" size="sm">+ Add Material</Button>
+                <Button variant="secondary" size="sm" onClick={() => setMaterialDialogOpen(true)}>
+                  + Add Material
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -430,7 +593,9 @@ export default function WorkOrderDetailPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Quality Control Tests</CardTitle>
-                <Button variant="secondary" size="sm">+ Add QC Test</Button>
+                <Button variant="secondary" size="sm" onClick={() => setQcDialogOpen(true)}>
+                  + Add QC Test
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -475,7 +640,7 @@ export default function WorkOrderDetailPage() {
               <CardHeader>
                 <div className="text-center">
                   <h2 className="text-xl font-bold">Electronic Batch Manufacturing Record (eBMR)</h2>
-                  <p className="text-gray-600">บันทึกการผลิตแบบอิเล็กทรอนิกส์</p>
+                  <p className="text-gray-600">Production Record</p>
                 </div>
               </CardHeader>
               <CardContent>
@@ -647,6 +812,208 @@ export default function WorkOrderDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Add Material Dialog */}
+      <Dialog open={materialDialogOpen} onOpenChange={setMaterialDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Material</DialogTitle>
+            <DialogDescription>
+              Add a material to this work order. Search for an item and optionally select a lot.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Item Search */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Item <span className="text-red-500">*</span>
+              </label>
+              {selectedItem ? (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                  <div>
+                    <p className="font-medium">{selectedItem.code}</p>
+                    <p className="text-sm text-gray-500">{selectedItem.nameTh}</p>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={() => setSelectedItem(null)}>
+                    Change
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <Input
+                    placeholder="Search item code or name..."
+                    value={itemSearch}
+                    onChange={(e) => setItemSearch(e.target.value)}
+                  />
+                  {items.length > 0 && (
+                    <div className="mt-2 max-h-40 overflow-auto border rounded-lg">
+                      {items.map((item) => (
+                        <button
+                          key={item.id}
+                          className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
+                          onClick={() => {
+                            setSelectedItem(item);
+                            setItems([]);
+                            setItemSearch('');
+                          }}
+                        >
+                          <p className="font-medium">{item.code}</p>
+                          <p className="text-sm text-gray-500">{item.nameTh}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Lot Selection */}
+            {selectedItem && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Lot (Optional)
+                </label>
+                {lots.length > 0 ? (
+                  <Select
+                    value={selectedLot?.id?.toString() || ''}
+                    onChange={(e) => {
+                      const lot = lots.find((l) => l.id.toString() === e.target.value);
+                      setSelectedLot(lot || null);
+                    }}
+                  >
+                    <option value="">Select a lot (optional)</option>
+                    {lots.map((lot) => (
+                      <option key={lot.id} value={lot.id}>
+                        {lot.lotNumber} - Available: {Number(lot.quantity) - Number(lot.reservedQuantity || 0)} {lot.unit}
+                        {lot.expiryDate && ` (Exp: ${new Date(lot.expiryDate).toLocaleDateString()})`}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <p className="text-sm text-gray-500 p-2 bg-gray-50 rounded">No released lots available for this item</p>
+                )}
+              </div>
+            )}
+
+            {/* Quantities */}
+            {selectedItem && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Planned Quantity <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      step="0.001"
+                      value={plannedQuantity}
+                      onChange={(e) => setPlannedQuantity(e.target.value)}
+                      placeholder="0.00"
+                    />
+                    <span className="flex items-center text-sm text-gray-500">{selectedItem.primaryUnit}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Actual Quantity
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      step="0.001"
+                      value={actualQuantity}
+                      onChange={(e) => setActualQuantity(e.target.value)}
+                      placeholder="0.00"
+                    />
+                    <span className="flex items-center text-sm text-gray-500">{selectedItem.primaryUnit}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setMaterialDialogOpen(false); resetMaterialForm(); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleAddMaterial}
+              disabled={!selectedItem || !plannedQuantity || addingMaterial}
+            >
+              {addingMaterial ? 'Adding...' : 'Add Material'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add QC Test Dialog */}
+      <Dialog open={qcDialogOpen} onOpenChange={setQcDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add QC Test</DialogTitle>
+            <DialogDescription>
+              Create a new quality control test for this work order.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Test Type <span className="text-red-500">*</span>
+              </label>
+              <Select value={testType} onChange={(e) => setTestType(e.target.value)}>
+                <option value="">Select test type</option>
+                <option value="identity">Identity Test</option>
+                <option value="purity">Purity Test</option>
+                <option value="potency">Potency Test</option>
+                <option value="microbial">Microbial Test</option>
+                <option value="heavy_metals">Heavy Metals Test</option>
+                <option value="pesticides">Pesticides Test</option>
+                <option value="moisture">Moisture Content</option>
+                <option value="dissolution">Dissolution Test</option>
+                <option value="disintegration">Disintegration Test</option>
+                <option value="appearance">Appearance</option>
+                <option value="other">Other</option>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Test Method
+              </label>
+              <Input
+                value={testMethod}
+                onChange={(e) => setTestMethod(e.target.value)}
+                placeholder="e.g., HPLC, TLC, USP Method..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes
+              </label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                rows={3}
+                value={testNotes}
+                onChange={(e) => setTestNotes(e.target.value)}
+                placeholder="Additional notes..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => { setQcDialogOpen(false); resetQCForm(); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleAddQCTest}
+              disabled={!testType || addingQCTest}
+            >
+              {addingQCTest ? 'Adding...' : 'Add QC Test'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }

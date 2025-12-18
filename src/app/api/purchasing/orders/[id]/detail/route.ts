@@ -70,13 +70,24 @@ export async function GET(
         .where(eq(purchaseOrderLines.poId, parseInt(id)));
 
       // Calculate line totals and receiving status
-      const linesWithTotals = linesResult.map((line: any) => ({
-        ...line,
-        lineTotal: line.totalPrice || ((line.quantity || 0) * (line.unitPrice || 0)),
-        pendingQty: (line.quantity || 0) - (line.receivedQty || 0),
-        receivingStatus: line.receivedQty >= line.quantity ? 'complete' : 
-                        line.receivedQty > 0 ? 'partial' : 'pending',
-      }));
+      // Note: MySQL decimal types return as strings, so we must convert to numbers
+      const linesWithTotals = linesResult.map((line: any) => {
+        const quantity = Number(line.quantity) || 0;
+        const receivedQty = Number(line.receivedQty) || 0;
+        const unitPrice = Number(line.unitPrice) || 0;
+        const totalPrice = Number(line.totalPrice) || 0;
+
+        return {
+          ...line,
+          quantity,
+          receivedQty,
+          unitPrice,
+          lineTotal: totalPrice || (quantity * unitPrice),
+          pendingQty: quantity - receivedQty,
+          receivingStatus: receivedQty >= quantity ? 'complete' :
+                          receivedQty > 0 ? 'partial' : 'pending',
+        };
+      });
 
       // Get received lots for this PO
       const receivedLots = await db
@@ -95,9 +106,9 @@ export async function GET(
         .leftJoin(items, eq(inventoryLots.itemId, items.id))
         .where(eq(inventoryLots.poNumber, po.poNumber));
 
-      // Calculate summary
-      const totalOrdered = linesWithTotals.reduce((sum: number, line: any) => sum + (line.quantity || 0), 0);
-      const totalReceived = linesWithTotals.reduce((sum: number, line: any) => sum + (line.receivedQty || 0), 0);
+      // Calculate summary (values already converted to numbers in linesWithTotals)
+      const totalOrdered = linesWithTotals.reduce((sum: number, line: any) => sum + line.quantity, 0);
+      const totalReceived = linesWithTotals.reduce((sum: number, line: any) => sum + line.receivedQty, 0);
       const totalPending = totalOrdered - totalReceived;
       const receivingProgress = totalOrdered > 0 ? Math.round((totalReceived / totalOrdered) * 100) : 0;
 

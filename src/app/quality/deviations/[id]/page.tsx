@@ -108,12 +108,25 @@ export default function DeviationDetailPage() {
 
   const handleSave = async () => {
     try {
-      // This would call the update API
-      alert('Saving CAPA information...');
-      setIsEditing(false);
-      fetchDeviationDetail();
+      const response = await fetch(`/api/quality/deviations/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rootCause: editForm.rootCause,
+          correctiveAction: editForm.correctiveAction,
+          preventiveAction: editForm.preventiveAction,
+          status: editForm.status,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setIsEditing(false);
+        fetchDeviationDetail();
+      }
+      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to save:', error);
+      // API errors handled by global error handler
     }
   };
 

@@ -24,7 +24,7 @@ services:
     networks:
       - herbal-erp-network
 
-  # Main application service (MySQL)
+  # Main application service (MySQL) - Production
   app:
     build:
       context: .
@@ -49,6 +49,44 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - herbal-erp-network
+
+  # Development application service with hot reload
+  app-dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: herbal-erp-app-dev
+    restart: unless-stopped
+    ports:
+      - "33021:3000"
+    environment:
+      - NODE_ENV=development
+      - DB_TYPE=mysql
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp
+      - NEXT_PUBLIC_APP_URL=https://herbal-erp-dev.bmscloud.in.th
+      - NEXTAUTH_URL=https://herbal-erp-dev.bmscloud.in.th
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    # Increase file descriptor limits for Turbopack file watching
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./next.config.ts:/app/next.config.ts
+      - ./tailwind.config.ts:/app/tailwind.config.ts
+      - ./postcss.config.mjs:/app/postcss.config.mjs
+      - ./components.json:/app/components.json
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - herbal-erp-network
 

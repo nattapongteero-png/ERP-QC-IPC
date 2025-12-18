@@ -96,12 +96,18 @@ export async function POST(request: NextRequest) {
       const soLinesTable = useSqlite ? schema.sqliteSalesOrderLines : schema.mysqlSalesOrderLines;
       
       const soNumber = generateSONumber();
-      
+
       // Calculate total
       const totalAmount = lines.reduce((sum: number, line: any) => {
         return sum + (line.quantity * line.unitPrice);
       }, 0);
-      
+
+      // Parse dates for MySQL (needs Date objects) vs SQLite (needs strings)
+      const now = new Date();
+      const parsedRequiredDate = requiredDate
+        ? (useSqlite ? requiredDate : new Date(requiredDate))
+        : null;
+
       // Create SO
       const result = await (db as any).insert(soTable).values({
         soNumber,
@@ -109,13 +115,15 @@ export async function POST(request: NextRequest) {
         customerContact,
         customerAddress,
         status: 'draft',
-        orderDate: useSqlite ? new Date().toISOString() : new Date(),
-        requiredDate,
+        orderDate: useSqlite ? now.toISOString() : now,
+        requiredDate: parsedRequiredDate,
         totalAmount,
         currency: 'THB',
         paymentTerms,
         notes,
         createdBy: session.userId,
+        createdAt: useSqlite ? now.toISOString() : now,
+        updatedAt: useSqlite ? now.toISOString() : now,
       });
       
       const soId = useSqlite ? result.lastInsertRowid : result[0].insertId;

@@ -112,31 +112,42 @@ export async function POST(request: NextRequest) {
       const poLinesTable = useSqlite ? schema.sqlitePurchaseOrderLines : schema.mysqlPurchaseOrderLines;
       
       const poNumber = generatePONumber();
-      
+
       // Calculate total
       const totalAmount = lines.reduce((sum: number, line: any) => {
         return sum + (line.quantity * line.unitPrice);
       }, 0);
-      
+
+      // Parse dates for MySQL (needs Date objects) vs SQLite (needs strings)
+      const now = new Date();
+      const parsedExpectedDate = expectedDate
+        ? (useSqlite ? expectedDate : new Date(expectedDate))
+        : null;
+
       // Create PO
       const result = await (db as any).insert(poTable).values({
         poNumber,
         vendorId,
         status: 'draft',
-        orderDate: useSqlite ? new Date().toISOString() : new Date(),
-        expectedDate,
+        orderDate: useSqlite ? now.toISOString() : now,
+        expectedDate: parsedExpectedDate,
         totalAmount,
         currency: 'THB',
         paymentTerms,
         shippingAddress,
         notes,
         createdBy: session.userId,
+        createdAt: useSqlite ? now.toISOString() : now,
+        updatedAt: useSqlite ? now.toISOString() : now,
       });
       
       const poId = useSqlite ? result.lastInsertRowid : result[0].insertId;
       
       // Create PO lines
       for (const line of lines) {
+        const lineExpectedDate = line.expectedDate
+          ? (useSqlite ? line.expectedDate : new Date(line.expectedDate))
+          : null;
         await (db as any).insert(poLinesTable).values({
           poId: Number(poId),
           itemId: line.itemId,
@@ -145,7 +156,7 @@ export async function POST(request: NextRequest) {
           unit: line.unit,
           unitPrice: line.unitPrice,
           totalPrice: line.quantity * line.unitPrice,
-          expectedDate: line.expectedDate,
+          expectedDate: lineExpectedDate,
           notes: line.notes,
         });
       }

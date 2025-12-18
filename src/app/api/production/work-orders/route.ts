@@ -116,9 +116,18 @@ export async function POST(request: NextRequest) {
       const db = await getDb();
       const useSqlite = process.env.DB_TYPE === 'sqlite';
       const workOrdersTable = useSqlite ? schema.sqliteWorkOrders : schema.mysqlWorkOrders;
-      
+
       const woNumber = generateWONumber();
-      
+
+      // Parse dates for MySQL (needs Date objects) vs SQLite (needs strings)
+      const now = new Date();
+      const parsedStartDate = plannedStartDate
+        ? (useSqlite ? plannedStartDate : new Date(plannedStartDate))
+        : null;
+      const parsedEndDate = plannedEndDate
+        ? (useSqlite ? plannedEndDate : new Date(plannedEndDate))
+        : null;
+
       const result = await (db as any).insert(workOrdersTable).values({
         woNumber,
         bomId,
@@ -128,10 +137,12 @@ export async function POST(request: NextRequest) {
         unit,
         status: 'planned',
         priority: priority || 5,
-        plannedStartDate,
-        plannedEndDate,
+        plannedStartDate: parsedStartDate,
+        plannedEndDate: parsedEndDate,
         notes,
         createdBy: session.userId,
+        createdAt: useSqlite ? now.toISOString() : now,
+        updatedAt: useSqlite ? now.toISOString() : now,
       });
       
       const workOrderId = useSqlite ? result.lastInsertRowid : result[0].insertId;

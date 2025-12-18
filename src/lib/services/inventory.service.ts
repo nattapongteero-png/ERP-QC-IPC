@@ -3,7 +3,7 @@
  * Real-world inventory management with FEFO algorithm and lot traceability
  */
 
-import { db, useSqlite } from '../db';
+import { getDb, useSqlite } from '../db';
 import { eq, and, gte, lte, desc, asc, sql, or } from 'drizzle-orm';
 import {
   sqliteInventoryLots,
@@ -70,6 +70,38 @@ function getTables() {
 }
 
 /**
+ * Recalculate and update item's onHand quantity from released lots
+ * Call this whenever lot quantities or statuses change
+ */
+export async function recalculateItemOnHand(itemId: number): Promise<number> {
+  const { lots, items } = getTables();
+  const database = await getDb();
+  const isSqlite = useSqlite();
+
+  // Sum quantities from released lots for this item
+  const [result] = await (database as any)
+    .select({
+      totalOnHand: sql`COALESCE(SUM(${lots.quantity}), 0)`,
+    })
+    .from(lots)
+    .where(and(eq(lots.itemId, itemId), eq(lots.status, 'released')));
+
+  const onHand = Number(result?.totalOnHand) || 0;
+
+  // Update item's onHand field
+  const now = new Date();
+  await (database as any)
+    .update(items)
+    .set({
+      onHand,
+      updatedAt: isSqlite ? now.toISOString() : now,
+    })
+    .where(eq(items.id, itemId));
+
+  return onHand;
+}
+
+/**
  * FEFO Algorithm - First Expiry First Out
  * Returns lots ordered by expiry date for picking
  */
@@ -79,7 +111,7 @@ export async function getLotsForPicking(
   warehouseId?: number
 ): Promise<{ allocated: LotAllocation[]; remaining: number }> {
   const { lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Build query conditions
   const conditions = [
@@ -138,7 +170,7 @@ export async function reserveLots(
   userId: number
 ): Promise<boolean> {
   const { lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   for (const alloc of allocations) {
     // Update reserved quantity
@@ -179,7 +211,7 @@ export async function issueMaterial(
   reason?: string
 ): Promise<number> {
   const { lots, transactions } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get current lot
   const [lot] = await database
@@ -259,7 +291,7 @@ export async function receiveMaterial(
   userId: number
 ): Promise<number> {
   const { lots, transactions } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Create new lot in quarantine status
   const [newLot] = await database
@@ -322,7 +354,7 @@ export async function updateLotStatus(
   coaNumber?: string
 ): Promise<boolean> {
   const { lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get current lot
   const [lot] = await database
@@ -369,7 +401,7 @@ export async function updateLotStatus(
  */
 export async function getStockSummary(itemId: number): Promise<StockSummary | null> {
   const { lots, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get item info
   const [item] = await database
@@ -430,7 +462,7 @@ export async function checkExpiryAlerts(daysThreshold: number = 30): Promise<{
   expired: Array<{ lotId: number; lotNumber: string; itemName: string; expiryDate: string }>;
 }> {
   const { lots, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const today = new Date().toISOString().split('T')[0];
   const thresholdDate = new Date();
@@ -495,7 +527,7 @@ export async function checkExpiryAlerts(daysThreshold: number = 30): Promise<{
  */
 export async function traceForward(lotId: number, level: number = 0): Promise<TraceabilityResult[]> {
   const { lots, transactions, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const results: TraceabilityResult[] = [];
 
@@ -571,7 +603,7 @@ export async function traceForward(lotId: number, level: number = 0): Promise<Tr
  */
 export async function traceBackward(lotId: number, level: number = 0): Promise<TraceabilityResult[]> {
   const { lots, transactions, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const results: TraceabilityResult[] = [];
 
@@ -674,7 +706,7 @@ export async function adjustInventory(
   approvedBy?: number
 ): Promise<number> {
   const { lots, transactions } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get current lot
   const [lot] = await database
@@ -737,7 +769,7 @@ export async function transferInventory(
   reason?: string
 ): Promise<{ newLotId: number; transactionId: number }> {
   const { lots, transactions } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get current lot
   const [lot] = await database

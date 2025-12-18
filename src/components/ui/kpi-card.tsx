@@ -1,10 +1,29 @@
 'use client';
 
-import { HTMLAttributes, forwardRef, ReactNode } from 'react';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils/cn';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Card } from './card';
+import { Skeleton } from './skeleton';
 
-interface KPICardProps extends HTMLAttributes<HTMLDivElement> {
+const trendVariants = cva(
+  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+  {
+    variants: {
+      trend: {
+        up: 'text-green-600 bg-green-50',
+        down: 'text-red-600 bg-red-50',
+        neutral: 'text-gray-600 bg-gray-50',
+      },
+    },
+    defaultVariants: {
+      trend: 'neutral',
+    },
+  }
+);
+
+export interface KPICardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Main value to display prominently */
   value: string | number;
   /** Label/title for the KPI */
@@ -12,7 +31,7 @@ interface KPICardProps extends HTMLAttributes<HTMLDivElement> {
   /** Optional subtitle or description */
   subtitle?: string;
   /** Icon component to display */
-  icon?: ReactNode;
+  icon?: React.ReactNode;
   /** Icon background color class */
   iconBgColor?: string;
   /** Icon color class */
@@ -22,10 +41,10 @@ interface KPICardProps extends HTMLAttributes<HTMLDivElement> {
   /** Trend value (e.g., "+12%", "-5%") */
   trendValue?: string;
   /** Optional footer content */
-  footer?: ReactNode;
+  footer?: React.ReactNode;
 }
 
-export const KPICard = forwardRef<HTMLDivElement, KPICardProps>(
+const KPICard = React.forwardRef<HTMLDivElement, KPICardProps>(
   (
     {
       className,
@@ -55,30 +74,11 @@ export const KPICard = forwardRef<HTMLDivElement, KPICardProps>(
       }
     };
 
-    const getTrendColor = () => {
-      switch (trend) {
-        case 'up':
-          return 'text-green-600 bg-green-50';
-        case 'down':
-          return 'text-red-600 bg-red-50';
-        case 'neutral':
-          return 'text-gray-600 bg-gray-50';
-        default:
-          return '';
-      }
-    };
-
     return (
-      <div
+      <Card
         ref={ref}
-        className={cn(
-          'bg-white rounded-xl border border-gray-200',
-          'shadow-sm hover:shadow-lg',
-          'transition-all duration-200 ease-out',
-          'motion-reduce:transition-none motion-reduce:hover:shadow-sm',
-          'p-5',
-          className
-        )}
+        elevation="raised"
+        className={cn('p-5', className)}
         {...props}
       >
         <div className="flex items-start justify-between">
@@ -97,12 +97,7 @@ export const KPICard = forwardRef<HTMLDivElement, KPICardProps>(
                 <span className="text-sm text-gray-500">{subtitle}</span>
               )}
               {trend && trendValue && (
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-                    getTrendColor()
-                  )}
-                >
+                <span className={cn(trendVariants({ trend }))}>
                   {getTrendIcon()}
                   {trendValue}
                 </span>
@@ -129,7 +124,7 @@ export const KPICard = forwardRef<HTMLDivElement, KPICardProps>(
             {footer}
           </div>
         )}
-      </div>
+      </Card>
     );
   }
 );
@@ -137,23 +132,20 @@ export const KPICard = forwardRef<HTMLDivElement, KPICardProps>(
 KPICard.displayName = 'KPICard';
 
 // Skeleton variant for loading state
-interface KPICardSkeletonProps extends HTMLAttributes<HTMLDivElement> {
+interface KPICardSkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Show icon placeholder */
   showIcon?: boolean;
   /** Show trend placeholder */
   showTrend?: boolean;
 }
 
-export const KPICardSkeleton = forwardRef<HTMLDivElement, KPICardSkeletonProps>(
+const KPICardSkeleton = React.forwardRef<HTMLDivElement, KPICardSkeletonProps>(
   ({ className, showIcon = true, showTrend = true, ...props }, ref) => {
     return (
-      <div
+      <Card
         ref={ref}
-        className={cn(
-          'bg-white rounded-xl border border-gray-200 p-5',
-          'animate-pulse',
-          className
-        )}
+        elevation="flat"
+        className={cn('p-5', className)}
         aria-label="Loading KPI data"
         role="status"
         {...props}
@@ -161,26 +153,28 @@ export const KPICardSkeleton = forwardRef<HTMLDivElement, KPICardSkeletonProps>(
         <div className="flex items-start justify-between">
           <div className="flex-1 space-y-3">
             {/* Label skeleton */}
-            <div className="h-4 w-24 bg-gray-200 rounded" />
+            <Skeleton width={96} height={16} />
             {/* Value skeleton */}
-            <div className="h-8 w-32 bg-gray-200 rounded" />
+            <Skeleton width={128} height={32} />
             {/* Subtitle/Trend skeleton */}
             {showTrend && (
               <div className="flex items-center gap-2">
-                <div className="h-3 w-16 bg-gray-200 rounded" />
-                <div className="h-5 w-12 bg-gray-200 rounded-full" />
+                <Skeleton width={64} height={12} />
+                <Skeleton width={48} height={20} variant="text" className="rounded-full" />
               </div>
             )}
           </div>
           {/* Icon skeleton */}
           {showIcon && (
-            <div className="h-12 w-12 bg-gray-200 rounded-xl" />
+            <Skeleton variant="rectangular" width={48} height={48} className="rounded-xl" />
           )}
         </div>
         <span className="sr-only">Loading...</span>
-      </div>
+      </Card>
     );
   }
 );
 
 KPICardSkeleton.displayName = 'KPICardSkeleton';
+
+export { KPICard, KPICardSkeleton, trendVariants };

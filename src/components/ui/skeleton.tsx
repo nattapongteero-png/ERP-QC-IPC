@@ -1,39 +1,50 @@
 'use client';
 
-import { HTMLAttributes, forwardRef } from 'react';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils/cn';
 
-interface SkeletonProps extends HTMLAttributes<HTMLDivElement> {
-  /** Skeleton variant */
-  variant?: 'text' | 'circular' | 'rectangular';
+const skeletonVariants = cva(
+  'bg-gray-200 motion-reduce:animate-none motion-reduce:before:animate-none',
+  {
+    variants: {
+      variant: {
+        text: 'h-4 w-full rounded-md',
+        circular: 'h-10 w-10 rounded-full',
+        rectangular: 'h-20 w-full rounded-lg',
+        // shadcn/ui default
+        default: 'rounded-md',
+      },
+      animation: {
+        pulse: 'animate-pulse-subtle',
+        shimmer: 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent',
+        none: '',
+      },
+    },
+    defaultVariants: {
+      variant: 'text',
+      animation: 'pulse',
+    },
+  }
+);
+
+export interface SkeletonProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof skeletonVariants> {
   /** Width (number for px, string for any CSS value) */
   width?: number | string;
   /** Height (number for px, string for any CSS value) */
   height?: number | string;
-  /** Animation style */
-  animation?: 'pulse' | 'shimmer' | 'none';
 }
 
-const variantStyles = {
-  text: 'h-4 w-full rounded-md',
-  circular: 'h-10 w-10 rounded-full',
-  rectangular: 'h-20 w-full rounded-lg',
-};
-
-const animationStyles = {
-  pulse: 'animate-pulse-subtle',
-  shimmer: 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent',
-  none: '',
-};
-
-export const Skeleton = forwardRef<HTMLDivElement, SkeletonProps>(
+const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
   (
     {
       className,
-      variant = 'text',
+      variant,
+      animation,
       width,
       height,
-      animation = 'pulse',
       style,
       ...props
     },
@@ -42,17 +53,7 @@ export const Skeleton = forwardRef<HTMLDivElement, SkeletonProps>(
     return (
       <div
         ref={ref}
-        className={cn(
-          // Base styles
-          'bg-gray-200',
-          // Variant
-          variantStyles[variant],
-          // Animation
-          animationStyles[animation],
-          // Reduced motion support
-          'motion-reduce:animate-none motion-reduce:before:animate-none',
-          className
-        )}
+        className={cn(skeletonVariants({ variant, animation }), className)}
         style={{
           width: typeof width === 'number' ? `${width}px` : width,
           height: typeof height === 'number' ? `${height}px` : height,
@@ -69,7 +70,7 @@ export const Skeleton = forwardRef<HTMLDivElement, SkeletonProps>(
 Skeleton.displayName = 'Skeleton';
 
 // Card skeleton preset
-interface CardSkeletonProps extends HTMLAttributes<HTMLDivElement> {
+interface CardSkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Number of text lines */
   lines?: number;
   /** Show avatar */
@@ -78,7 +79,7 @@ interface CardSkeletonProps extends HTMLAttributes<HTMLDivElement> {
   button?: boolean;
 }
 
-export const CardSkeleton = forwardRef<HTMLDivElement, CardSkeletonProps>(
+const CardSkeleton = React.forwardRef<HTMLDivElement, CardSkeletonProps>(
   ({ className, lines = 3, avatar = false, button = false, ...props }, ref) => {
     return (
       <div
@@ -118,12 +119,12 @@ export const CardSkeleton = forwardRef<HTMLDivElement, CardSkeletonProps>(
 CardSkeleton.displayName = 'CardSkeleton';
 
 // Table row skeleton preset
-interface TableRowSkeletonProps extends HTMLAttributes<HTMLTableRowElement> {
+interface TableRowSkeletonProps extends React.HTMLAttributes<HTMLTableRowElement> {
   /** Number of columns */
   columns: number;
 }
 
-export const TableRowSkeleton = forwardRef<HTMLTableRowElement, TableRowSkeletonProps>(
+const TableRowSkeleton = React.forwardRef<HTMLTableRowElement, TableRowSkeletonProps>(
   ({ className, columns, ...props }, ref) => {
     return (
       <tr ref={ref} className={cn('animate-pulse', className)} {...props}>
@@ -138,3 +139,5 @@ export const TableRowSkeleton = forwardRef<HTMLTableRowElement, TableRowSkeleton
 );
 
 TableRowSkeleton.displayName = 'TableRowSkeleton';
+
+export { Skeleton, CardSkeleton, TableRowSkeleton, skeletonVariants };

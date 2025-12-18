@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
-import { 
+import { getDb } from '@/lib/db';
+import {
   sqliteSalesOrders, sqliteSalesOrderLines, sqliteItems, sqliteInventoryLots,
   mysqlSalesOrders, mysqlSalesOrderLines, mysqlItems, mysqlInventoryLots
 } from '@/lib/db/schema';
@@ -11,14 +11,15 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (user) => {
+  return withAuth(request, async () => {
     try {
       const { id } = await params;
       const db = await getDb();
-      const salesOrders = useSqlite() ? sqliteSalesOrders : mysqlSalesOrders;
-      const salesOrderLines = useSqlite() ? sqliteSalesOrderLines : mysqlSalesOrderLines;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const isSqlite = process.env.DB_TYPE === 'sqlite';
+      const salesOrders = isSqlite ? sqliteSalesOrders : mysqlSalesOrders;
+      const salesOrderLines = isSqlite ? sqliteSalesOrderLines : mysqlSalesOrderLines;
+      const items = isSqlite ? sqliteItems : mysqlItems;
+      const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get SO details (customer info is stored directly in sales_orders table)
       const soResult = await db
@@ -67,8 +68,15 @@ export async function GET(
         .where(eq(salesOrderLines.soId, parseInt(id)));
 
       // Calculate line totals and fulfillment status
+      // Note: MySQL decimal types return as strings, so we must convert to numbers
       const linesWithTotals = await Promise.all(
         linesResult.map(async (line: any) => {
+          // Convert decimal values to numbers
+          const quantity = Number(line.quantity) || 0;
+          const unitPrice = Number(line.unitPrice) || 0;
+          const shippedQty = Number(line.shippedQty) || 0;
+          const totalPrice = Number(line.totalPrice) || 0;
+
           // Get available stock for this item using FEFO
           const availableLots = await db
             .select({
@@ -80,17 +88,23 @@ export async function GET(
             .from(inventoryLots)
             .where(eq(inventoryLots.itemId, line.itemId));
 
-          const releasedLots = availableLots.filter((lot: any) => lot.quantity > 0);
+          const releasedLots = availableLots
+            .map((lot: any) => ({ ...lot, quantity: Number(lot.quantity) || 0 }))
+            .filter((lot: any) => lot.quantity > 0);
           const totalAvailable = releasedLots.reduce((sum: number, lot: any) => sum + lot.quantity, 0);
+          const pendingQty = quantity - shippedQty;
 
           return {
             ...line,
-            lineTotal: line.totalPrice || ((line.quantity || 0) * (line.unitPrice || 0)),
-            pendingQty: (line.quantity || 0) - (line.shippedQty || 0),
-            fulfillmentStatus: line.shippedQty >= line.quantity ? 'shipped' : 
-                              line.shippedQty > 0 ? 'partial' : 'pending',
+            quantity,
+            unitPrice,
+            shippedQty,
+            lineTotal: totalPrice || (quantity * unitPrice),
+            pendingQty,
+            fulfillmentStatus: shippedQty >= quantity ? 'shipped' :
+                              shippedQty > 0 ? 'partial' : 'pending',
             availableStock: totalAvailable,
-            canFulfill: totalAvailable >= ((line.quantity || 0) - (line.shippedQty || 0)),
+            canFulfill: totalAvailable >= pendingQty,
             suggestedLots: releasedLots.sort((a: any, b: any) => {
               if (!a.expiryDate) return 1;
               if (!b.expiryDate) return -1;
@@ -100,9 +114,9 @@ export async function GET(
         })
       );
 
-      // Calculate summary
-      const totalOrdered = linesWithTotals.reduce((sum: number, line: any) => sum + (line.quantity || 0), 0);
-      const totalShipped = linesWithTotals.reduce((sum: number, line: any) => sum + (line.shippedQty || 0), 0);
+      // Calculate summary (values already converted to numbers in linesWithTotals)
+      const totalOrdered = linesWithTotals.reduce((sum: number, line: any) => sum + line.quantity, 0);
+      const totalShipped = linesWithTotals.reduce((sum: number, line: any) => sum + line.shippedQty, 0);
       const totalPending = totalOrdered - totalShipped;
       const fulfillmentProgress = totalOrdered > 0 ? Math.round((totalShipped / totalOrdered) * 100) : 0;
       const allCanFulfill = linesWithTotals.every((line: any) => line.canFulfill);
@@ -118,7 +132,7 @@ export async function GET(
             totalShipped,
             totalPending,
             fulfillmentProgress,
-            totalAmount: so.totalAmount || linesWithTotals.reduce((sum: number, line: any) => sum + line.lineTotal, 0),
+            totalAmount: Number(so.totalAmount) || linesWithTotals.reduce((sum: number, line: any) => sum + line.lineTotal, 0),
             allCanFulfill,
           },
         },

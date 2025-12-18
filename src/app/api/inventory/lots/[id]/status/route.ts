@@ -9,6 +9,7 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { recalculateItemOnHand } from '@/lib/services/inventory.service';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -67,7 +68,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         newValue: { status, reason },
         ipAddress: getClientIP(request),
       });
-      
+
+      // Recalculate item onHand if status changed to/from 'released'
+      if (status === 'released' || oldLot.status === 'released') {
+        await recalculateItemOnHand(oldLot.itemId);
+      }
+
       return successResponse({ id: lotId, status }, `Lot status updated to ${status}`);
     } catch (error) {
       return serverErrorResponse(error);

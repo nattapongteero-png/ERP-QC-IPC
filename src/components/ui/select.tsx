@@ -1,8 +1,50 @@
 'use client';
 
-import { SelectHTMLAttributes, forwardRef, ReactNode } from 'react';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { AlertCircle, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+
+const selectVariants = cva(
+  'block w-full rounded-xl border-2 appearance-none bg-white border-gray-200 transition-all duration-200 ease-out motion-reduce:transition-none hover:border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60',
+  {
+    variants: {
+      selectSize: {
+        sm: 'px-2.5 py-1.5 text-sm pr-8',
+        md: 'px-3.5 py-2.5 text-base pr-10',
+        lg: 'px-4 py-3 text-lg pr-12',
+        // shadcn/ui standard size
+        default: 'h-10 px-3 py-2 text-sm pr-9',
+      },
+    },
+    defaultVariants: {
+      selectSize: 'md',
+    },
+  }
+);
+
+const sizeStyles = {
+  sm: {
+    icon: 'right-2',
+    iconSize: 'h-4 w-4',
+    label: 'text-xs',
+  },
+  md: {
+    icon: 'right-3',
+    iconSize: 'h-5 w-5',
+    label: 'text-sm',
+  },
+  lg: {
+    icon: 'right-3.5',
+    iconSize: 'h-6 w-6',
+    label: 'text-sm',
+  },
+  default: {
+    icon: 'right-3',
+    iconSize: 'h-4 w-4',
+    label: 'text-sm',
+  },
+};
 
 interface SelectOption {
   value: string;
@@ -10,7 +52,9 @@ interface SelectOption {
   disabled?: boolean;
 }
 
-interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
+export interface SelectProps
+  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'>,
+    VariantProps<typeof selectVariants> {
   /** Label text */
   label?: string;
   /** Helper/description text */
@@ -19,33 +63,13 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'siz
   error?: string;
   /** Options array */
   options?: SelectOption[];
-  /** Children (alternative to options) */
-  children?: ReactNode;
   /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'default';
   /** Full width */
   fullWidth?: boolean;
 }
 
-const sizeStyles = {
-  sm: {
-    select: 'px-2.5 py-1.5 text-sm pr-8',
-    icon: 'right-2',
-    iconSize: 'h-4 w-4',
-  },
-  md: {
-    select: 'px-3.5 py-2.5 text-base pr-10',
-    icon: 'right-3',
-    iconSize: 'h-5 w-5',
-  },
-  lg: {
-    select: 'px-4 py-3 text-lg pr-12',
-    icon: 'right-3.5',
-    iconSize: 'h-6 w-6',
-  },
-};
-
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
+const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   (
     {
       className,
@@ -56,6 +80,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       options,
       children,
       size = 'md',
+      selectSize,
       fullWidth = true,
       disabled,
       ...props
@@ -63,7 +88,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     ref
   ) => {
     const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
-    const sizeStyle = sizeStyles[size];
+    const effectiveSize = selectSize || size;
+    const sizeStyle = sizeStyles[effectiveSize];
 
     return (
       <div className={cn('w-full', !fullWidth && 'w-auto')}>
@@ -72,7 +98,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             htmlFor={selectId}
             className={cn(
               'block font-medium text-gray-700 mb-1.5',
-              size === 'sm' ? 'text-xs' : 'text-sm'
+              sizeStyle.label
             )}
           >
             {label}
@@ -85,15 +111,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             disabled={disabled}
             className={cn(
-              'block w-full rounded-xl border-2 appearance-none',
-              'bg-white border-gray-200',
-              'transition-all duration-200 ease-out',
-              'motion-reduce:transition-none',
-              'hover:border-gray-300',
-              'focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10',
-              'disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60',
+              selectVariants({ selectSize: effectiveSize }),
               error && 'border-red-400 bg-red-50/50 focus:border-red-500 focus:ring-red-500/10',
-              sizeStyle.select,
               className
             )}
             aria-invalid={!!error}
@@ -129,7 +148,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={error ? `${selectId}-error` : `${selectId}-helper`}
             className={cn(
               'mt-1.5 flex items-center gap-1',
-              size === 'sm' ? 'text-xs' : 'text-sm',
+              sizeStyle.label,
               error ? 'text-red-600' : 'text-gray-500'
             )}
           >
@@ -143,3 +162,5 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 );
 
 Select.displayName = 'Select';
+
+export { Select, selectVariants };

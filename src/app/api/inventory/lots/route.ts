@@ -113,37 +113,50 @@ export async function POST(request: NextRequest) {
         poNumber,
         coaNumber,
       } = body;
-      
+
       if (!itemId || !lotNumber || !warehouseId || !quantity || !unit) {
         return errorResponse('Item ID, lot number, warehouse ID, quantity, and unit are required');
       }
-      
+
       const db = await getDb();
       const useSqlite = process.env.DB_TYPE === 'sqlite';
       const lotsTable = useSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
       const transactionsTable = useSqlite ? schema.sqliteInventoryTransactions : schema.mysqlInventoryTransactions;
-      
+
+      const now = new Date();
+      const nowStr = now.toISOString();
+
+      // Parse dates properly
+      const parsedMfgDate = manufacturingDate
+        ? (useSqlite ? manufacturingDate : new Date(manufacturingDate))
+        : null;
+      const parsedExpDate = expiryDate
+        ? (useSqlite ? expiryDate : new Date(expiryDate))
+        : null;
+
       // Create lot with quarantine status
       const result = await (db as any).insert(lotsTable).values({
         itemId,
         lotNumber,
-        batchNumber,
+        batchNumber: batchNumber || null,
         warehouseId,
-        locationId,
+        locationId: locationId || null,
         quantity,
         reservedQuantity: 0,
         unit,
         status: 'quarantine', // Always start in quarantine
-        manufacturingDate,
-        expiryDate,
-        receivedDate: useSqlite ? new Date().toISOString() : new Date(),
-        vendorId,
-        poNumber,
-        coaNumber,
+        manufacturingDate: parsedMfgDate,
+        expiryDate: parsedExpDate,
+        receivedDate: useSqlite ? nowStr : now,
+        vendorId: vendorId || null,
+        poNumber: poNumber || null,
+        coaNumber: coaNumber || null,
+        createdAt: useSqlite ? nowStr : now,
+        updatedAt: useSqlite ? nowStr : now,
       });
-      
+
       const lotId = useSqlite ? result.lastInsertRowid : result[0].insertId;
-      
+
       // Create receive transaction
       await (db as any).insert(transactionsTable).values({
         lotId: Number(lotId),
@@ -151,11 +164,16 @@ export async function POST(request: NextRequest) {
         quantity,
         unit,
         referenceType: poNumber ? 'PO' : null,
-        referenceNumber: poNumber,
+        referenceId: null,
+        referenceNumber: poNumber || null,
+        fromWarehouseId: null,
         toWarehouseId: warehouseId,
+        reason: null,
         performedBy: session.userId,
+        approvedBy: null,
+        createdAt: useSqlite ? nowStr : now,
       });
-      
+
       // Audit log
       await createAuditLog({
         userId: session.userId,
@@ -165,9 +183,10 @@ export async function POST(request: NextRequest) {
         newValue: { itemId, lotNumber, quantity, warehouseId },
         ipAddress: getClientIP(request),
       });
-      
+
       return successResponse({ id: Number(lotId) }, 'Inventory lot created successfully');
     } catch (error) {
+      console.error('Error creating inventory lot:', error);
       return serverErrorResponse(error);
     }
   }, ['inventory:write']);

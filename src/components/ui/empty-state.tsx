@@ -1,55 +1,66 @@
 'use client';
 
-import { HTMLAttributes, forwardRef, ReactNode } from 'react';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils/cn';
 import { Button } from './button';
+
+const emptyStateVariants = cva(
+  'flex flex-col items-center justify-center text-center',
+  {
+    variants: {
+      size: {
+        sm: 'py-6 px-4 gap-2',
+        md: 'py-10 px-6 gap-3',
+        lg: 'py-16 px-8 gap-4',
+      },
+    },
+    defaultVariants: {
+      size: 'md',
+    },
+  }
+);
+
+const iconSizeStyles = {
+  sm: 'h-8 w-8',
+  md: 'h-12 w-12',
+  lg: 'h-16 w-16',
+};
+
+const titleSizeStyles = {
+  sm: 'text-base font-medium',
+  md: 'text-lg font-semibold',
+  lg: 'text-xl font-semibold',
+};
+
+const descriptionSizeStyles = {
+  sm: 'text-sm',
+  md: 'text-base',
+  lg: 'text-base',
+};
 
 interface EmptyStateAction {
   label: string;
   onClick: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'default' | 'primary' | 'secondary' | 'ghost' | 'danger' | 'destructive';
 }
 
-interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
+export interface EmptyStateProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof emptyStateVariants> {
   /** Title text */
   title: string;
   /** Description text */
   description?: string;
   /** Icon component */
-  icon?: ReactNode;
+  icon?: React.ReactNode;
   /** Primary action button */
   action?: EmptyStateAction;
   /** Secondary action button */
   secondaryAction?: Omit<EmptyStateAction, 'variant'>;
-  /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
 }
 
-const sizeStyles = {
-  sm: {
-    container: 'py-6 px-4',
-    icon: 'h-8 w-8',
-    title: 'text-base font-medium',
-    description: 'text-sm',
-    gap: 'gap-2',
-  },
-  md: {
-    container: 'py-10 px-6',
-    icon: 'h-12 w-12',
-    title: 'text-lg font-semibold',
-    description: 'text-base',
-    gap: 'gap-3',
-  },
-  lg: {
-    container: 'py-16 px-8',
-    icon: 'h-16 w-16',
-    title: 'text-xl font-semibold',
-    description: 'text-base',
-    gap: 'gap-4',
-  },
-};
-
-export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
+const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
   (
     {
       className,
@@ -63,34 +74,32 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
     },
     ref
   ) => {
-    const styles = sizeStyles[size];
+    const effectiveSize = size || 'md';
+    const iconSize = iconSizeStyles[effectiveSize];
+    const titleSize = titleSizeStyles[effectiveSize];
+    const descriptionSize = descriptionSizeStyles[effectiveSize];
 
     return (
       <div
         ref={ref}
-        className={cn(
-          'flex flex-col items-center justify-center text-center',
-          styles.container,
-          styles.gap,
-          className
-        )}
+        className={cn(emptyStateVariants({ size }), className)}
         {...props}
       >
         {icon && (
           <div
             className={cn(
               'flex items-center justify-center rounded-full bg-gray-100 p-3 text-gray-400',
-              styles.icon
+              iconSize
             )}
             aria-hidden="true"
           >
             {icon}
           </div>
         )}
-        <div className={cn('space-y-1', styles.gap)}>
-          <h3 className={cn('text-gray-900', styles.title)}>{title}</h3>
+        <div className={cn('space-y-1', size === 'lg' ? 'gap-4' : size === 'md' ? 'gap-3' : 'gap-2')}>
+          <h3 className={cn('text-gray-900', titleSize)}>{title}</h3>
           {description && (
-            <p className={cn('text-gray-500 max-w-sm mx-auto', styles.description)}>
+            <p className={cn('text-gray-500 max-w-sm mx-auto', descriptionSize)}>
               {description}
             </p>
           )}
@@ -99,9 +108,9 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
           <div className="flex items-center gap-3 mt-4">
             {action && (
               <Button
-                variant={action.variant || 'primary'}
+                variant={action.variant || 'default'}
                 onClick={action.onClick}
-                size={size === 'lg' ? 'md' : 'sm'}
+                size={effectiveSize === 'lg' ? 'default' : 'sm'}
               >
                 {action.label}
               </Button>
@@ -110,7 +119,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
               <Button
                 variant="ghost"
                 onClick={secondaryAction.onClick}
-                size={size === 'lg' ? 'md' : 'sm'}
+                size={effectiveSize === 'lg' ? 'default' : 'sm'}
               >
                 {secondaryAction.label}
               </Button>
@@ -123,3 +132,5 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
 );
 
 EmptyState.displayName = 'EmptyState';
+
+export { EmptyState, emptyStateVariants };

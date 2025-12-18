@@ -3,7 +3,7 @@
  * Real-world production management with eBMR, work order workflows, and yield calculation
  */
 
-import { db, useSqlite } from '../db';
+import { getDb, useSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
 import {
   sqliteWorkOrders,
@@ -144,7 +144,7 @@ export async function explodeBOM(
   level: number = 0
 ): Promise<BOMExplosionResult[]> {
   const { bom, bomLines, items, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const results: BOMExplosionResult[] = [];
 
@@ -243,7 +243,7 @@ export async function createWorkOrder(
   userId: number
 ): Promise<number> {
   const { workOrders, bom, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get BOM details
   const [bomHeader] = await database
@@ -324,7 +324,7 @@ export async function updateWorkOrderStatus(
   reason?: string
 ): Promise<boolean> {
   const { workOrders } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get current work order
   const [wo] = await database
@@ -392,7 +392,7 @@ export async function dispenseMaterial(
   tolerancePercent: number = 2
 ): Promise<{ success: boolean; deviationRequired: boolean; message: string }> {
   const { workOrders, workOrderLines, bomLines, lots, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get work order
   const [wo] = await database
@@ -496,7 +496,7 @@ export async function dispenseMaterial(
  */
 export async function calculateYield(workOrderId: number): Promise<YieldCalculation> {
   const { workOrders, bom } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get work order with BOM
   const [wo] = await database
@@ -554,7 +554,7 @@ export async function recordProductionOutput(
   userId: number
 ): Promise<number> {
   const { workOrders, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get work order
   const [wo] = await database
@@ -640,7 +640,7 @@ export async function recordProductionOutput(
  */
 async function getBOMBatchSize(bomId: number): Promise<number> {
   const { bom } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const [bomHeader] = await database
     .select({ batchSize: bom.batchSize })
@@ -668,7 +668,7 @@ export async function calculateMRP(
   requiredDate: string;
 }>> {
   const { items, lots, bom } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const requirements: Array<{
     itemId: number;
@@ -770,7 +770,7 @@ export async function performLineClearance(
   userId: number
 ): Promise<boolean> {
   const { workOrders } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Validate all items are checked
   const uncheckedItems = checklist.filter((item: any) => !item.checked);
