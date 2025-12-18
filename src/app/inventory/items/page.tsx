@@ -494,173 +494,158 @@ export default function ItemsPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-5">
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Code <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={formData.code}
-                      onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                      placeholder="RM-001"
-                    />
-                    <Button variant="secondary" onClick={generateCode}>
-                      Gen
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    options={itemTypes.filter(t => t.value !== '')}
-                    value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                  <Input
+                    label="Code"
+                    value={formData.code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    placeholder="RM-001"
+                    helperText="Click Gen to auto-generate"
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={generateCode}
+                        className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
+                      >
+                        Gen
+                      </button>
+                    }
                   />
                 </div>
+                <Select
+                  label="Type"
+                  options={itemTypes.filter(t => t.value !== '')}
+                  value={formData.type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name (Thai) <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={formData.nameTh}
-                    onChange={(e) => setFormData(prev => ({ ...prev, nameTh: e.target.value }))}
-                    placeholder="ชื่อสินค้าภาษาไทย"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name (English)
-                  </label>
-                  <Input
-                    value={formData.nameEn}
-                    onChange={(e) => setFormData(prev => ({ ...prev, nameEn: e.target.value }))}
-                    placeholder="English name"
-                  />
-                </div>
+                <Input
+                  label="Name (Thai)"
+                  value={formData.nameTh}
+                  onChange={(e) => setFormData(prev => ({ ...prev, nameTh: e.target.value }))}
+                  placeholder="ชื่อสินค้าภาษาไทย"
+                />
+                <Input
+                  label="Name (English)"
+                  value={formData.nameEn}
+                  onChange={(e) => setFormData(prev => ({ ...prev, nameEn: e.target.value }))}
+                  placeholder="English name"
+                  helperText="Optional"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category
-                  </label>
-                  <Select
-                    options={categories}
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Unit <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    options={units}
-                    value={formData.primaryUnit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, primaryUnit: e.target.value }))}
-                  />
-                </div>
+                <Select
+                  label="Category"
+                  options={categories}
+                  value={formData.category}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                  helperText="Optional classification"
+                />
+                <Select
+                  label="Primary Unit"
+                  options={units}
+                  value={formData.primaryUnit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, primaryUnit: e.target.value }))}
+                />
               </div>
 
               {/* Secondary Unit */}
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Secondary Unit (Optional)</h3>
+              <div className="border-t pt-5">
+                <h3 className="text-sm font-semibold text-gray-800 mb-4">Secondary Unit</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Secondary Unit</label>
-                    <Select
-                      options={[{ value: '', label: 'None' }, ...units]}
-                      value={formData.secondaryUnit}
-                      onChange={(e) => setFormData(prev => ({ ...prev, secondaryUnit: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Conversion Factor</label>
-                    <Input
-                      type="number"
-                      step="0.001"
-                      value={formData.conversionFactor ?? ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        conversionFactor: e.target.value ? parseFloat(e.target.value) : null
-                      }))}
-                      placeholder="e.g., 1000 (1kg = 1000g)"
-                    />
-                  </div>
+                  <Select
+                    label="Secondary Unit"
+                    size="sm"
+                    options={[{ value: '', label: 'None' }, ...units]}
+                    value={formData.secondaryUnit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, secondaryUnit: e.target.value }))}
+                    helperText="Optional alternate unit"
+                  />
+                  <Input
+                    label="Conversion Factor"
+                    size="sm"
+                    type="number"
+                    step="0.001"
+                    value={formData.conversionFactor ?? ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      conversionFactor: e.target.value ? parseFloat(e.target.value) : null
+                    }))}
+                    placeholder="e.g., 1000"
+                    helperText="1 primary = X secondary"
+                  />
                 </div>
               </div>
 
               {/* Stock Levels */}
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Stock Levels</h3>
+              <div className="border-t pt-5">
+                <h3 className="text-sm font-semibold text-gray-800 mb-4">Stock Levels</h3>
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Min Stock</label>
-                    <Input
-                      type="number"
-                      value={formData.minStock ?? ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        minStock: e.target.value ? parseFloat(e.target.value) : null
-                      }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Max Stock</label>
-                    <Input
-                      type="number"
-                      value={formData.maxStock ?? ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        maxStock: e.target.value ? parseFloat(e.target.value) : null
-                      }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Reorder Point</label>
-                    <Input
-                      type="number"
-                      value={formData.reorderPoint ?? ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        reorderPoint: e.target.value ? parseFloat(e.target.value) : null
-                      }))}
-                    />
-                  </div>
+                  <Input
+                    label="Min Stock"
+                    size="sm"
+                    type="number"
+                    value={formData.minStock ?? ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      minStock: e.target.value ? parseFloat(e.target.value) : null
+                    }))}
+                    helperText="Minimum quantity"
+                  />
+                  <Input
+                    label="Max Stock"
+                    size="sm"
+                    type="number"
+                    value={formData.maxStock ?? ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      maxStock: e.target.value ? parseFloat(e.target.value) : null
+                    }))}
+                    helperText="Maximum quantity"
+                  />
+                  <Input
+                    label="Reorder Point"
+                    size="sm"
+                    type="number"
+                    value={formData.reorderPoint ?? ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      reorderPoint: e.target.value ? parseFloat(e.target.value) : null
+                    }))}
+                    helperText="When to reorder"
+                  />
                 </div>
               </div>
 
               {/* Storage */}
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Storage Information</h3>
+              <div className="border-t pt-5">
+                <h3 className="text-sm font-semibold text-gray-800 mb-4">Storage Information</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Shelf Life (Days)</label>
-                    <Input
-                      type="number"
-                      value={formData.shelfLifeDays ?? ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        shelfLifeDays: e.target.value ? parseInt(e.target.value) : null
-                      }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Storage Conditions</label>
-                    <Input
-                      value={formData.storageConditions}
-                      onChange={(e) => setFormData(prev => ({ ...prev, storageConditions: e.target.value }))}
-                      placeholder="e.g., 15-25°C, Dry place"
-                    />
-                  </div>
+                  <Input
+                    label="Shelf Life"
+                    size="sm"
+                    type="number"
+                    value={formData.shelfLifeDays ?? ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      shelfLifeDays: e.target.value ? parseInt(e.target.value) : null
+                    }))}
+                    helperText="Days until expiry"
+                  />
+                  <Input
+                    label="Storage Conditions"
+                    size="sm"
+                    value={formData.storageConditions}
+                    onChange={(e) => setFormData(prev => ({ ...prev, storageConditions: e.target.value }))}
+                    placeholder="e.g., 15-25°C, Dry place"
+                    helperText="Temperature, humidity"
+                  />
                 </div>
               </div>
 

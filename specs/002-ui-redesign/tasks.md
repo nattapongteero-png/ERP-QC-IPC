@@ -105,14 +105,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Enhance Input component with focus states, error/success styling, icons, and size variants in src/components/ui/input.tsx
-- [ ] T032 [P] [US3] Enhance Select component with matching focus states and error styling in src/components/ui/select.tsx
-- [ ] T033 [P] [US3] Create FormField wrapper component with label, helper text, and error display in src/components/ui/form-field.tsx
-- [ ] T034 [US3] Update inventory item creation form with enhanced inputs in src/app/inventory/items/new/page.tsx or relevant form
-- [ ] T035 [P] [US3] Update work order creation form with enhanced inputs in src/app/production/work-orders/new/page.tsx or relevant form
-- [ ] T036 [P] [US3] Update purchase order creation form with enhanced inputs in src/app/purchasing/orders/new/page.tsx or relevant form
-- [ ] T037 [US3] Run type check and lint: `pnpm tsc --noEmit && pnpm lint`
-- [ ] T038 [US3] Commit User Story 3: `git add . && git commit -m "feat(ui): improve form and input experience with focus states and validation"`
+- [x] T031 [US3] Enhance Input component with focus states, error/success styling, icons, and size variants in src/components/ui/input.tsx
+- [x] T032 [P] [US3] Enhance Select component with matching focus states and error styling in src/components/ui/select.tsx
+- [x] T033 [P] [US3] Create FormField wrapper component with label, helper text, and error display in src/components/ui/form-field.tsx
+- [x] T034 [US3] Update inventory item creation form with enhanced inputs in src/app/inventory/items/new/page.tsx or relevant form
+- [x] T035 [P] [US3] Update work order creation form with enhanced inputs in src/app/production/work-orders/new/page.tsx or relevant form
+- [x] T036 [P] [US3] Update purchase order creation form with enhanced inputs in src/app/purchasing/orders/new/page.tsx or relevant form
+- [x] T037 [US3] Run type check and lint: `pnpm tsc --noEmit && pnpm lint`
+- [x] T038 [US3] Commit User Story 3: `git add . && git commit -m "feat(ui): improve form and input experience with focus states and validation"`
 
 **Checkpoint**: User Story 3 complete - forms have refined input experience
 

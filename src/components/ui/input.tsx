@@ -1,61 +1,114 @@
 'use client';
 
-import { InputHTMLAttributes, forwardRef } from 'react';
-import { Search } from 'lucide-react';
+import { InputHTMLAttributes, forwardRef, ReactNode } from 'react';
+import { Search, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  /** Label text */
   label?: string;
+  /** Helper/description text */
+  helperText?: string;
+  /** Error message */
   error?: string;
+  /** Success state */
+  success?: boolean;
+  /** Size variant */
+  size?: 'sm' | 'md' | 'lg';
+  /** Visual variant */
   variant?: 'default' | 'search' | 'filled';
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
+  /** Left icon */
+  leftIcon?: ReactNode;
+  /** Right icon */
+  rightIcon?: ReactNode;
+  /** Search handler on enter */
   onSearch?: () => void;
 }
 
+const sizeStyles = {
+  sm: {
+    input: 'px-2.5 py-1.5 text-sm',
+    iconLeft: 'left-2.5',
+    iconRight: 'right-2.5',
+    iconSize: 'h-4 w-4',
+    paddingLeft: 'pl-8',
+    paddingRight: 'pr-8',
+  },
+  md: {
+    input: 'px-3.5 py-2.5 text-base',
+    iconLeft: 'left-3',
+    iconRight: 'right-3',
+    iconSize: 'h-5 w-5',
+    paddingLeft: 'pl-10',
+    paddingRight: 'pr-10',
+  },
+  lg: {
+    input: 'px-4 py-3 text-lg',
+    iconLeft: 'left-3.5',
+    iconRight: 'right-3.5',
+    iconSize: 'h-6 w-6',
+    paddingLeft: 'pl-12',
+    paddingRight: 'pr-12',
+  },
+};
+
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ 
-    className = '', 
-    label, 
-    error, 
-    id, 
-    variant = 'default',
-    leftIcon,
-    rightIcon,
-    onSearch,
-    ...props 
-  }, ref) => {
+  (
+    {
+      className,
+      label,
+      helperText,
+      error,
+      success,
+      id,
+      size = 'md',
+      variant = 'default',
+      leftIcon,
+      rightIcon,
+      onSearch,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
-    
-    const baseStyles = `
-      block w-full transition-all duration-200 ease-in-out
-      disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60
-      placeholder:text-gray-400
-    `;
-    
+    const sizeStyle = sizeStyles[size];
+
+    // Determine if we show an icon on the right (error/success indicator)
+    const showStatusIcon = error || success;
+    const hasLeftIcon = leftIcon || variant === 'search';
+    const hasRightIcon = rightIcon || showStatusIcon;
+
+    const baseStyles = cn(
+      'block w-full rounded-xl border-2',
+      'transition-all duration-200 ease-out',
+      'motion-reduce:transition-none',
+      'disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60',
+      'placeholder:text-gray-400'
+    );
+
     const variantStyles = {
-      default: `
-        px-4 py-2.5 border-2 rounded-xl
-        bg-white
-        border-gray-200
-        hover:border-gray-300
-        focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10
-        ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/10' : ''}
-      `,
-      search: `
-        pl-11 pr-4 py-2.5 border-2 rounded-xl
-        bg-gray-50
-        border-gray-200
-        hover:bg-white hover:border-gray-300
-        focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10
-      `,
-      filled: `
-        px-4 py-2.5 border-2 rounded-xl
-        bg-gray-100
-        border-transparent
-        hover:bg-gray-50 hover:border-gray-200
-        focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10
-      `,
+      default: cn(
+        'bg-white border-gray-200',
+        'hover:border-gray-300',
+        'focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10'
+      ),
+      search: cn(
+        'bg-gray-50 border-gray-200',
+        'hover:bg-white hover:border-gray-300',
+        'focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10'
+      ),
+      filled: cn(
+        'bg-gray-100 border-transparent',
+        'hover:bg-gray-50 hover:border-gray-200',
+        'focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10'
+      ),
     };
+
+    const stateStyles = cn(
+      error && 'border-red-400 bg-red-50/50 focus:border-red-500 focus:ring-red-500/10',
+      success && !error && 'border-emerald-400 bg-emerald-50/50 focus:border-emerald-500 focus:ring-emerald-500/10'
+    );
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && onSearch) {
@@ -63,53 +116,90 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       }
       props.onKeyDown?.(e);
     };
-    
+
     return (
       <div className="w-full">
         {label && (
-          <label 
-            htmlFor={inputId} 
-            className="block text-sm font-medium text-gray-700 mb-1.5"
+          <label
+            htmlFor={inputId}
+            className={cn(
+              'block font-medium text-gray-700 mb-1.5',
+              size === 'sm' ? 'text-xs' : 'text-sm'
+            )}
           >
             {label}
           </label>
         )}
+
         <div className="relative">
           {/* Left Icon or Search Icon */}
-          {(leftIcon || variant === 'search') && (
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-              {leftIcon || <Search className="h-5 w-5" />}
+          {hasLeftIcon && (
+            <div
+              className={cn(
+                'absolute top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none',
+                sizeStyle.iconLeft,
+                error && 'text-red-400',
+                success && !error && 'text-emerald-500'
+              )}
+            >
+              {leftIcon || <Search className={sizeStyle.iconSize} />}
             </div>
           )}
-          
+
           <input
             ref={ref}
             id={inputId}
-            className={`
-              ${baseStyles}
-              ${variantStyles[variant]}
-              ${leftIcon && variant !== 'search' ? 'pl-11' : ''}
-              ${rightIcon ? 'pr-11' : ''}
-              ${className}
-            `}
+            disabled={disabled}
+            className={cn(
+              baseStyles,
+              variantStyles[variant],
+              stateStyles,
+              sizeStyle.input,
+              hasLeftIcon && sizeStyle.paddingLeft,
+              hasRightIcon && sizeStyle.paddingRight,
+              className
+            )}
             onKeyDown={handleKeyDown}
+            aria-invalid={!!error}
+            aria-describedby={
+              error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
+            }
             {...props}
           />
-          
-          {/* Right Icon */}
-          {rightIcon && (
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-              {rightIcon}
+
+          {/* Right Icon - priority: custom rightIcon > status icon */}
+          {hasRightIcon && (
+            <div
+              className={cn(
+                'absolute top-1/2 -translate-y-1/2',
+                sizeStyle.iconRight,
+                rightIcon && 'text-gray-400',
+                !rightIcon && error && 'text-red-500',
+                !rightIcon && success && !error && 'text-emerald-500'
+              )}
+            >
+              {rightIcon || (
+                <>
+                  {error && <AlertCircle className={sizeStyle.iconSize} />}
+                  {success && !error && <CheckCircle2 className={sizeStyle.iconSize} />}
+                </>
+              )}
             </div>
           )}
         </div>
-        
-        {error && (
-          <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            {error}
+
+        {/* Helper Text or Error Message */}
+        {(error || helperText) && (
+          <p
+            id={error ? `${inputId}-error` : `${inputId}-helper`}
+            className={cn(
+              'mt-1.5 flex items-center gap-1',
+              size === 'sm' ? 'text-xs' : 'text-sm',
+              error ? 'text-red-600' : 'text-gray-500'
+            )}
+          >
+            {error && <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />}
+            {error || helperText}
           </p>
         )}
       </div>
@@ -126,14 +216,7 @@ interface SearchInputProps extends Omit<InputProps, 'variant' | 'leftIcon'> {
 
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   ({ onSearch, ...props }, ref) => {
-    return (
-      <Input
-        ref={ref}
-        variant="search"
-        onSearch={onSearch}
-        {...props}
-      />
-    );
+    return <Input ref={ref} variant="search" onSearch={onSearch} {...props} />;
   }
 );
 
