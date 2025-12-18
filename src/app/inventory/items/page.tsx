@@ -11,45 +11,9 @@ import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Plus, Edit2, Trash2, Package, Leaf, FlaskConical, Box, Pill, Inbox, X } from 'lucide-react';
+import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
+import { Plus, Edit2, Trash2, Package, Leaf, FlaskConical, Box, Pill, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-
-interface Item {
-  id: number;
-  code: string;
-  nameTh: string;
-  nameEn: string | null;
-  type: string;
-  category: string | null;
-  primaryUnit: string;
-  secondaryUnit: string | null;
-  conversionFactor: number | null;
-  minStock: number | null;
-  maxStock: number | null;
-  reorderPoint: number | null;
-  shelfLifeDays: number | null;
-  storageConditions: string | null;
-  isActive: boolean;
-  createdAt: string;
-  onHand: number;
-}
-
-interface FormData {
-  code: string;
-  nameTh: string;
-  nameEn: string;
-  type: string;
-  category: string;
-  primaryUnit: string;
-  secondaryUnit: string;
-  conversionFactor: number | null;
-  minStock: number | null;
-  maxStock: number | null;
-  reorderPoint: number | null;
-  shelfLifeDays: number | null;
-  storageConditions: string;
-  isActive: boolean;
-}
 
 const itemTypes = [
   { value: '', label: 'All Types' },
@@ -58,31 +22,6 @@ const itemTypes = [
   { value: 'wip', label: 'Work in Progress' },
   { value: 'finished_goods', label: 'Finished Goods' },
   { value: 'consumable', label: 'Consumable' },
-];
-
-const categories = [
-  { value: '', label: 'Select Category' },
-  { value: 'herb', label: 'Herb' },
-  { value: 'extract', label: 'Extract' },
-  { value: 'excipient', label: 'Excipient' },
-  { value: 'capsule', label: 'Capsule' },
-  { value: 'tablet', label: 'Tablet' },
-  { value: 'liquid', label: 'Liquid' },
-  { value: 'bottle', label: 'Bottle' },
-  { value: 'label', label: 'Label' },
-  { value: 'box', label: 'Box' },
-];
-
-const units = [
-  { value: 'kg', label: 'Kilogram (kg)' },
-  { value: 'g', label: 'Gram (g)' },
-  { value: 'mg', label: 'Milligram (mg)' },
-  { value: 'L', label: 'Liter (L)' },
-  { value: 'mL', label: 'Milliliter (mL)' },
-  { value: 'pcs', label: 'Pieces (pcs)' },
-  { value: 'bottle', label: 'Bottle' },
-  { value: 'box', label: 'Box' },
-  { value: 'pack', label: 'Pack' },
 ];
 
 const getTypeIcon = (type: string) => {
@@ -111,24 +50,8 @@ export default function ItemsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    code: '',
-    nameTh: '',
-    nameEn: '',
-    type: 'raw_material',
-    category: '',
-    primaryUnit: 'kg',
-    secondaryUnit: '',
-    conversionFactor: null,
-    minStock: null,
-    maxStock: null,
-    reorderPoint: null,
-    shelfLifeDays: null,
-    storageConditions: '',
-    isActive: true,
-  });
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
   const fetchItems = async () => {
@@ -164,27 +87,21 @@ export default function ItemsPage() {
     fetchItems();
   };
 
-  const handleSave = async () => {
-    try {
-      const url = editingItem ? `/api/items/${editingItem.id}` : '/api/items';
-      const method = editingItem ? 'PUT' : 'POST';
+  const handleSave = async (formData: ItemFormData) => {
+    const url = editingItem ? `/api/items/${editingItem.id}` : '/api/items';
+    const method = editingItem ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
 
-      const data = await res.json();
-      if (data.success) {
-        setShowModal(false);
-        setEditingItem(null);
-        resetForm();
-        fetchItems();
-      }
-      // API errors handled by global error handler
-    } catch {
-      // Network errors handled by global error handler
+    const data = await res.json();
+    if (data.success) {
+      setDialogOpen(false);
+      setEditingItem(null);
+      fetchItems();
     }
   };
 
@@ -197,7 +114,6 @@ export default function ItemsPage() {
       if (data.success) {
         fetchItems();
       }
-      // API errors handled by global error handler
     } catch {
       // Network errors handled by global error handler
     }
@@ -205,52 +121,12 @@ export default function ItemsPage() {
 
   const handleEdit = (item: Item) => {
     setEditingItem(item);
-    setFormData({
-      code: item.code,
-      nameTh: item.nameTh,
-      nameEn: item.nameEn || '',
-      type: item.type,
-      category: item.category || '',
-      primaryUnit: item.primaryUnit,
-      secondaryUnit: item.secondaryUnit || '',
-      conversionFactor: item.conversionFactor,
-      minStock: item.minStock,
-      maxStock: item.maxStock,
-      reorderPoint: item.reorderPoint,
-      shelfLifeDays: item.shelfLifeDays,
-      storageConditions: item.storageConditions || '',
-      isActive: item.isActive,
-    });
-    setShowModal(true);
+    setDialogOpen(true);
   };
 
-  const resetForm = () => {
-    setFormData({
-      code: '',
-      nameTh: '',
-      nameEn: '',
-      type: 'raw_material',
-      category: '',
-      primaryUnit: 'kg',
-      secondaryUnit: '',
-      conversionFactor: null,
-      minStock: null,
-      maxStock: null,
-      reorderPoint: null,
-      shelfLifeDays: null,
-      storageConditions: '',
-      isActive: true,
-    });
-  };
-
-  const generateCode = () => {
-    const prefix = formData.type === 'raw_material' ? 'RM'
-      : formData.type === 'packaging' ? 'PK'
-      : formData.type === 'wip' ? 'WIP'
-      : formData.type === 'finished_goods' ? 'FG'
-      : 'ITM';
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    setFormData(prev => ({ ...prev, code: `${prefix}-${random}` }));
+  const handleOpenCreate = () => {
+    setEditingItem(null);
+    setDialogOpen(true);
   };
 
   const columns = [
@@ -289,10 +165,11 @@ export default function ItemsPage() {
       key: 'onHand',
       header: 'On Hand',
       render: (item: Item) => {
-        const isLow = item.minStock && item.onHand < item.minStock;
+        const onHand = item.onHand ?? 0;
+        const isLow = item.minStock && onHand < item.minStock;
         return (
           <div className={cn('font-medium', isLow ? 'text-red-600' : '')}>
-            {item.onHand.toLocaleString()} {item.primaryUnit}
+            {onHand.toLocaleString()} {item.primaryUnit}
             {isLow && <span className="text-xs ml-1">(Low)</span>}
           </div>
         );
@@ -363,7 +240,7 @@ export default function ItemsPage() {
           title="Items"
           description="จัดการรายการสินค้าและวัตถุดิบ"
           actions={
-            <Button onClick={() => { resetForm(); setEditingItem(null); setShowModal(true); }} leftIcon={<Plus className="h-4 w-4" />}>
+            <Button onClick={handleOpenCreate} leftIcon={<Plus className="h-4 w-4" />}>
               Add Item
             </Button>
           }
@@ -421,7 +298,6 @@ export default function ItemsPage() {
         {/* Table Card */}
         <Card elevation="raised">
           <CardContent>
-            {/* Table */}
             {isLoading ? (
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
@@ -477,7 +353,7 @@ export default function ItemsPage() {
                 description="Get started by adding your first item"
                 action={{
                   label: 'Add Item',
-                  onClick: () => { resetForm(); setEditingItem(null); setShowModal(true); },
+                  onClick: handleOpenCreate,
                 }}
               />
             )}
@@ -485,212 +361,16 @@ export default function ItemsPage() {
         </Card>
       </div>
 
-      {/* Create/Edit Modal */}
-      {showModal && (
-        <div
-          className={cn(
-            'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50',
-            'motion-safe:animate-fade-in motion-reduce:animate-none'
-          )}
-          onClick={() => { setShowModal(false); setEditingItem(null); resetForm(); }}
-        >
-          <div
-            className={cn(
-              'bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4',
-              'motion-safe:animate-scale-in motion-reduce:animate-none'
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">
-                {editingItem ? 'Edit Item' : 'Add New Item'}
-              </h2>
-              <button
-                onClick={() => { setShowModal(false); setEditingItem(null); resetForm(); }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Input
-                    label="Code"
-                    value={formData.code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                    placeholder="RM-001"
-                    helperText="Click Gen to auto-generate"
-                    rightIcon={
-                      <button
-                        type="button"
-                        onClick={generateCode}
-                        className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
-                      >
-                        Gen
-                      </button>
-                    }
-                  />
-                </div>
-                <Select
-                  label="Type"
-                  options={itemTypes.filter(t => t.value !== '')}
-                  value={formData.type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Name (Thai)"
-                  value={formData.nameTh}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nameTh: e.target.value }))}
-                  placeholder="ชื่อสินค้าภาษาไทย"
-                />
-                <Input
-                  label="Name (English)"
-                  value={formData.nameEn}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nameEn: e.target.value }))}
-                  placeholder="English name"
-                  helperText="Optional"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  label="Category"
-                  options={categories}
-                  value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  helperText="Optional classification"
-                />
-                <Select
-                  label="Primary Unit"
-                  options={units}
-                  value={formData.primaryUnit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, primaryUnit: e.target.value }))}
-                />
-              </div>
-
-              {/* Secondary Unit */}
-              <div className="border-t pt-5">
-                <h3 className="text-sm font-semibold text-gray-800 mb-4">Secondary Unit</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <Select
-                    label="Secondary Unit"
-                    size="sm"
-                    options={[{ value: '', label: 'None' }, ...units]}
-                    value={formData.secondaryUnit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, secondaryUnit: e.target.value }))}
-                    helperText="Optional alternate unit"
-                  />
-                  <Input
-                    label="Conversion Factor"
-                    size="sm"
-                    type="number"
-                    step="0.001"
-                    value={formData.conversionFactor ?? ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      conversionFactor: e.target.value ? parseFloat(e.target.value) : null
-                    }))}
-                    placeholder="e.g., 1000"
-                    helperText="1 primary = X secondary"
-                  />
-                </div>
-              </div>
-
-              {/* Stock Levels */}
-              <div className="border-t pt-5">
-                <h3 className="text-sm font-semibold text-gray-800 mb-4">Stock Levels</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <Input
-                    label="Min Stock"
-                    size="sm"
-                    type="number"
-                    value={formData.minStock ?? ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      minStock: e.target.value ? parseFloat(e.target.value) : null
-                    }))}
-                    helperText="Minimum quantity"
-                  />
-                  <Input
-                    label="Max Stock"
-                    size="sm"
-                    type="number"
-                    value={formData.maxStock ?? ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      maxStock: e.target.value ? parseFloat(e.target.value) : null
-                    }))}
-                    helperText="Maximum quantity"
-                  />
-                  <Input
-                    label="Reorder Point"
-                    size="sm"
-                    type="number"
-                    value={formData.reorderPoint ?? ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      reorderPoint: e.target.value ? parseFloat(e.target.value) : null
-                    }))}
-                    helperText="When to reorder"
-                  />
-                </div>
-              </div>
-
-              {/* Storage */}
-              <div className="border-t pt-5">
-                <h3 className="text-sm font-semibold text-gray-800 mb-4">Storage Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Shelf Life"
-                    size="sm"
-                    type="number"
-                    value={formData.shelfLifeDays ?? ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      shelfLifeDays: e.target.value ? parseInt(e.target.value) : null
-                    }))}
-                    helperText="Days until expiry"
-                  />
-                  <Input
-                    label="Storage Conditions"
-                    size="sm"
-                    value={formData.storageConditions}
-                    onChange={(e) => setFormData(prev => ({ ...prev, storageConditions: e.target.value }))}
-                    placeholder="e.g., 15-25°C, Dry place"
-                    helperText="Temperature, humidity"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                />
-                <label htmlFor="isActive" className="text-sm text-gray-700">Active</label>
-              </div>
-            </div>
-
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => { setShowModal(false); setEditingItem(null); resetForm(); }}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave}>
-                {editingItem ? 'Update' : 'Create'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Reusable Item Edit Dialog */}
+      <ItemEditDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditingItem(null);
+        }}
+        item={editingItem}
+        onSave={handleSave}
+      />
     </MainLayout>
   );
 }
