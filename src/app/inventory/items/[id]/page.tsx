@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card } from '@/components/ui/card';
@@ -9,6 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Save, Trash2, Package, AlertTriangle } from 'lucide-react';
+import {
+  useItemCategories,
+  useItemUnits,
+  categoriesToOptions,
+  unitsToOptions,
+} from '@/hooks/use-lookup-data';
 
 interface Item {
   id: number;
@@ -34,6 +40,7 @@ interface Item {
   updatedAt: string;
 }
 
+// Item types are fixed business logic
 const itemTypes = [
   { value: 'raw_material', label: 'Raw Material (วัตถุดิบ)' },
   { value: 'extract', label: 'Extract (สารสกัด)' },
@@ -43,18 +50,7 @@ const itemTypes = [
   { value: 'finished_product', label: 'Finished Product (สินค้าสำเร็จรูป)' },
 ];
 
-const unitOptions = [
-  { value: 'kg', label: 'Kilogram (kg)' },
-  { value: 'g', label: 'Gram (g)' },
-  { value: 'mg', label: 'Milligram (mg)' },
-  { value: 'L', label: 'Liter (L)' },
-  { value: 'mL', label: 'Milliliter (mL)' },
-  { value: 'pcs', label: 'Pieces (pcs)' },
-  { value: 'bottle', label: 'Bottle' },
-  { value: 'box', label: 'Box' },
-  { value: 'pack', label: 'Pack' },
-];
-
+// Storage options (could be moved to lookup table in future)
 const storageOptions = [
   { value: 'room_temp', label: 'Room Temperature (15-30°C)' },
   { value: 'cool', label: 'Cool Storage (8-15°C)' },
@@ -67,7 +63,25 @@ export default function ItemDetailPage() {
   const router = useRouter();
   const params = useParams();
   const isNew = params.id === 'new';
-  
+
+  // Fetch categories and units from database
+  const { data: categories, isLoading: categoriesLoading } = useItemCategories();
+  const { data: units, isLoading: unitsLoading } = useItemUnits();
+
+  // Convert to select options
+  const categoryOptions = useMemo(
+    () => categoriesToOptions(categories, true),
+    [categories]
+  );
+  const unitOptions = useMemo(
+    () => unitsToOptions(units, false),
+    [units]
+  );
+  const unitOptionsWithNone = useMemo(
+    () => unitsToOptions(units, true),
+    [units]
+  );
+
   const [item, setItem] = useState<Partial<Item>>({
     code: '',
     nameTh: '',
@@ -270,10 +284,11 @@ export default function ItemDetailPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Category
                 </label>
-                <Input
+                <Select
+                  options={categoryOptions}
                   value={item.category || ''}
                   onChange={(e) => updateField('category', e.target.value)}
-                  placeholder="e.g., Herbal, Chemical"
+                  disabled={categoriesLoading}
                 />
               </div>
               
@@ -317,17 +332,19 @@ export default function ItemDetailPage() {
                   options={unitOptions}
                   value={item.primaryUnit || ''}
                   onChange={(e) => updateField('primaryUnit', e.target.value)}
+                  disabled={unitsLoading}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Secondary Unit
                 </label>
                 <Select
-                  options={[{ value: '', label: 'None' }, ...unitOptions]}
+                  options={unitOptionsWithNone}
                   value={item.secondaryUnit || ''}
                   onChange={(e) => updateField('secondaryUnit', e.target.value)}
+                  disabled={unitsLoading}
                 />
               </div>
               

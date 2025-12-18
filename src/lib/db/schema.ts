@@ -32,6 +32,33 @@ export const sqliteAuditTrail = sqliteTable('audit_trail', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Item Categories (หมวดหมู่สินค้า)
+export const sqliteItemCategories = sqliteTable('item_categories', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  nameTh: text('name_th').notNull(),
+  nameEn: text('name_en'),
+  description: text('description'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Item Units (หน่วยวัดสินค้า)
+export const sqliteItemUnits = sqliteTable('item_units', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  nameTh: text('name_th').notNull(),
+  nameEn: text('name_en'),
+  symbol: text('symbol'), // e.g., kg, g, L, pcs
+  description: text('description'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Item Master (วัตถุดิบ/สินค้า)
 export const sqliteItems = sqliteTable('items', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -502,6 +529,33 @@ export const mysqlAuditTrail = mysqlTable('audit_trail', {
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
+// Item Categories (หมวดหมู่สินค้า)
+export const mysqlItemCategories = mysqlTable('item_categories', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  nameTh: varchar('name_th', { length: 255 }).notNull(),
+  nameEn: varchar('name_en', { length: 255 }),
+  description: varchar('description', { length: 500 }),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Item Units (หน่วยวัดสินค้า)
+export const mysqlItemUnits = mysqlTable('item_units', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  nameTh: varchar('name_th', { length: 255 }).notNull(),
+  nameEn: varchar('name_en', { length: 255 }),
+  symbol: varchar('symbol', { length: 20 }), // e.g., kg, g, L, pcs
+  description: varchar('description', { length: 500 }),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
 // Item Master
 export const mysqlItems = mysqlTable('items', {
   id: int('id').primaryKey().autoincrement(),
@@ -947,6 +1001,10 @@ export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
 export type Item = typeof sqliteItems.$inferSelect;
 export type NewItem = typeof sqliteItems.$inferInsert;
+export type ItemCategory = typeof sqliteItemCategories.$inferSelect;
+export type NewItemCategory = typeof sqliteItemCategories.$inferInsert;
+export type ItemUnit = typeof sqliteItemUnits.$inferSelect;
+export type NewItemUnit = typeof sqliteItemUnits.$inferInsert;
 export type Vendor = typeof sqliteVendors.$inferSelect;
 export type NewVendor = typeof sqliteVendors.$inferInsert;
 export type InventoryLot = typeof sqliteInventoryLots.$inferSelect;

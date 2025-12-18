@@ -15,6 +15,12 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import {
+  useItemCategories,
+  useItemUnits,
+  categoriesToOptions,
+  unitsToOptions,
+} from '@/hooks/use-lookup-data';
+import {
   Package,
   Leaf,
   FlaskConical,
@@ -84,6 +90,7 @@ export interface ItemEditDialogProps {
 // Constants
 // ============================================================================
 
+// Item types are fixed business logic (not configurable via lookup tables)
 export const itemTypes = [
   { value: 'raw_material', label: 'Raw Material', icon: Leaf, color: 'text-green-600', bgColor: 'bg-green-50' },
   { value: 'packaging', label: 'Packaging', icon: Box, color: 'text-blue-600', bgColor: 'bg-blue-50' },
@@ -92,30 +99,7 @@ export const itemTypes = [
   { value: 'consumable', label: 'Consumable', icon: Package, color: 'text-gray-600', bgColor: 'bg-gray-50' },
 ];
 
-export const categories = [
-  { value: '', label: 'Select Category' },
-  { value: 'herb', label: 'Herb' },
-  { value: 'extract', label: 'Extract' },
-  { value: 'excipient', label: 'Excipient' },
-  { value: 'capsule', label: 'Capsule' },
-  { value: 'tablet', label: 'Tablet' },
-  { value: 'liquid', label: 'Liquid' },
-  { value: 'bottle', label: 'Bottle' },
-  { value: 'label', label: 'Label' },
-  { value: 'box', label: 'Box' },
-];
-
-export const units = [
-  { value: 'kg', label: 'Kilogram (kg)' },
-  { value: 'g', label: 'Gram (g)' },
-  { value: 'mg', label: 'Milligram (mg)' },
-  { value: 'L', label: 'Liter (L)' },
-  { value: 'mL', label: 'Milliliter (mL)' },
-  { value: 'pcs', label: 'Pieces (pcs)' },
-  { value: 'bottle', label: 'Bottle' },
-  { value: 'box', label: 'Box' },
-  { value: 'pack', label: 'Pack' },
-];
+// Categories and units are now fetched from database via hooks
 
 // ============================================================================
 // Helper Functions
@@ -291,6 +275,24 @@ export function ItemEditDialog({
   const [formData, setFormData] = React.useState<ItemFormData>(getDefaultFormData());
   const [isSaving, setIsSaving] = React.useState(false);
 
+  // Fetch categories and units from database
+  const { data: categories, isLoading: categoriesLoading } = useItemCategories();
+  const { data: units, isLoading: unitsLoading } = useItemUnits();
+
+  // Convert to select options
+  const categoryOptions = React.useMemo(
+    () => categoriesToOptions(categories, true),
+    [categories]
+  );
+  const unitOptions = React.useMemo(
+    () => unitsToOptions(units, false),
+    [units]
+  );
+  const unitOptionsWithNone = React.useMemo(
+    () => unitsToOptions(units, true),
+    [units]
+  );
+
   const isEditing = !!item;
 
   // Reset form when dialog opens/closes or item changes
@@ -412,9 +414,10 @@ export function ItemEditDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <Select
                     label="Category"
-                    options={categories}
+                    options={categoryOptions}
                     value={formData.category}
                     onChange={(e) => updateFormData('category', e.target.value)}
+                    disabled={categoriesLoading}
                   />
                   <div className="flex items-end gap-4 pb-1">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -441,16 +444,18 @@ export function ItemEditDialog({
                 <div className="grid grid-cols-3 gap-4">
                   <Select
                     label="Primary Unit"
-                    options={units}
+                    options={unitOptions}
                     value={formData.primaryUnit}
                     onChange={(e) => updateFormData('primaryUnit', e.target.value)}
+                    disabled={unitsLoading}
                   />
                   <Select
                     label="Secondary Unit"
-                    options={[{ value: '', label: 'None' }, ...units]}
+                    options={unitOptionsWithNone}
                     value={formData.secondaryUnit}
                     onChange={(e) => updateFormData('secondaryUnit', e.target.value)}
                     helperText="Optional"
+                    disabled={unitsLoading}
                   />
                   <Input
                     label="Conversion Factor"
@@ -467,7 +472,7 @@ export function ItemEditDialog({
                 {formData.secondaryUnit && formData.conversionFactor && (
                   <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-700">
                     <Info className="h-4 w-4 inline-block mr-2" />
-                    1 {units.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit} = {formData.conversionFactor.toLocaleString()} {units.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit}
+                    1 {unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit} = {formData.conversionFactor.toLocaleString()} {unitOptions.find(u => u.value === formData.secondaryUnit)?.label || formData.secondaryUnit}
                   </div>
                 )}
               </div>
@@ -551,8 +556,14 @@ export function ItemEditDialog({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Unit</span>
-                    <span className="font-medium">{units.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit}</span>
+                    <span className="font-medium">{unitOptions.find(u => u.value === formData.primaryUnit)?.label || formData.primaryUnit}</span>
                   </div>
+                  {formData.category && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Category</span>
+                      <span className="font-medium">{categoryOptions.find(c => c.value === formData.category)?.label || formData.category}</span>
+                    </div>
+                  )}
                   {formData.shelfLifeDays && (
                     <div className="flex justify-between">
                       <span className="text-gray-500">Shelf Life</span>
