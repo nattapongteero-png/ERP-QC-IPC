@@ -10,8 +10,8 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/ui/page-header';
 import {
   Building2,
@@ -88,7 +88,7 @@ export default function CustomerDetailPage({
   const router = useRouter();
   const [data, setData] = useState<CustomerDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -216,18 +216,18 @@ export default function CustomerDetailPage({
 
   const getStatusVariant = (
     status: string
-  ): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
+  ): 'primary' | 'danger' | 'secondary' | 'default' => {
     switch (status) {
       case 'delivered':
       case 'shipped':
-        return 'success';
+        return 'primary';
       case 'cancelled':
         return 'danger';
       case 'processing':
       case 'ready':
-        return 'warning';
+        return 'secondary';
       case 'confirmed':
-        return 'info';
+        return 'secondary';
       default:
         return 'default';
     }
@@ -235,17 +235,17 @@ export default function CustomerDetailPage({
 
   const getTypeVariant = (
     type: string
-  ): 'success' | 'info' | 'warning' | 'default' => {
+  ): 'primary' | 'secondary' | 'default' => {
     switch (type) {
       case 'hospital':
       case 'clinic':
-        return 'success';
+        return 'primary';
       case 'pharmacy':
       case 'distributor':
-        return 'info';
+        return 'secondary';
       case 'government':
       case 'traditional_medicine':
-        return 'warning';
+        return 'secondary';
       default:
         return 'default';
     }
@@ -306,6 +306,11 @@ export default function CustomerDetailPage({
 
   const { customer, recentSalesOrders, summary } = data;
 
+  const tabs: DxTabItem[] = [
+    { id: 0, text: 'Overview' },
+    { id: 1, text: `Sales Orders (${recentSalesOrders.length})` },
+  ];
+
   const soColumns: DxDataGridColumn[] = [
     { dataField: 'soNumber', caption: 'SO Number', width: 150 },
     {
@@ -331,7 +336,7 @@ export default function CustomerDetailPage({
       caption: 'Status',
       width: 120,
       cellRender: (cellInfo) => (
-        <Badge variant={getStatusVariant(cellInfo.data.status)} dot>
+        <Badge variant={getStatusVariant(cellInfo.data.status)}>
           {cellInfo.data.status.replace('_', ' ')}
         </Badge>
       ),
@@ -409,6 +414,8 @@ export default function CustomerDetailPage({
             items={customerTypes}
             value={editForm.customerType}
             onValueChange={(value) => setEditForm({ ...editForm, customerType: value })}
+            valueExpr="value"
+            displayExpr="label"
             placeholder="Select customer type"
           />
         </div>
@@ -508,6 +515,127 @@ export default function CustomerDetailPage({
         />
       </div>
     </div>
+  );
+
+  const renderOverviewTab = () => (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Contact Information */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900">
+            Contact Information
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Building2 className="h-4 w-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Contact Person</p>
+                <p className="text-gray-900">
+                  {customer.contactPerson || '-'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Phone className="h-4 w-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Phone</p>
+                <p className="text-gray-900">{customer.phone || '-'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Email</p>
+                <p className="text-gray-900">{customer.email || '-'}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+              <div>
+                <p className="text-sm text-gray-500">Address</p>
+                <p className="text-gray-900">
+                  {customer.address || '-'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Business Information */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900">
+            Business Information
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <FileText className="h-4 w-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Tax ID</p>
+                <p className="text-gray-900">{customer.taxId || '-'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <CreditCard className="h-4 w-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Credit Limit</p>
+                <p className="text-gray-900">
+                  {formatCurrency(customer.creditLimit)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Credit Term</p>
+                <p className="text-gray-900">
+                  {customer.creditTermDays
+                    ? `${customer.creditTermDays} days`
+                    : '-'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <CreditCard className="h-4 w-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Payment Terms</p>
+                <p className="text-gray-900">
+                  {customer.paymentTerms || '-'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Notes */}
+      {customer.notes && (
+        <div className="mt-6 pt-6 border-t">
+          <h3 className="font-semibold text-gray-900 mb-2">Notes</h3>
+          <p className="text-gray-600">{customer.notes}</p>
+        </div>
+      )}
+
+      {/* Status Breakdown */}
+      {Object.keys(summary.statusBreakdown).length > 0 && (
+        <div className="mt-6 pt-6 border-t">
+          <h3 className="font-semibold text-gray-900 mb-4">
+            Order Status Breakdown
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(summary.statusBreakdown).map(
+              ([status, count]) => (
+                <div key={status} className="flex items-center gap-2">
+                  <Badge variant={getStatusVariant(status)}>
+                    {status.replace('_', ' ')}
+                  </Badge>
+                  <span className="text-sm text-gray-600">{count}</span>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -614,7 +742,7 @@ export default function CustomerDetailPage({
                       {formatCustomerType(customer.customerType)}
                     </Badge>
                     {!customer.isActive && (
-                      <Badge variant="danger" dot>
+                      <Badge variant="danger">
                         Inactive
                       </Badge>
                     )}
@@ -627,158 +755,38 @@ export default function CustomerDetailPage({
 
         {/* Tabs */}
         <Card>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <CardHeader className="border-b pb-0">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="orders">
-                  Sales Orders ({recentSalesOrders.length})
-                </TabsTrigger>
-              </TabsList>
-            </CardHeader>
+          <CardHeader className="border-b pb-0">
+            <DxTabs
+              items={tabs}
+              selectedIndex={activeTabIndex}
+              onSelectedIndexChange={setActiveTabIndex}
+            />
+          </CardHeader>
 
-            <CardContent className="pt-6">
-              <TabsContent value="overview" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Contact Information */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900">
-                      Contact Information
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <Building2 className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Contact Person</p>
-                          <p className="text-gray-900">
-                            {customer.contactPerson || '-'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Phone className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Phone</p>
-                          <p className="text-gray-900">{customer.phone || '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Mail className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Email</p>
-                          <p className="text-gray-900">{customer.email || '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-gray-500">Address</p>
-                          <p className="text-gray-900">
-                            {customer.address || '-'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          <CardContent className="pt-6">
+            {activeTabIndex === 0 && renderOverviewTab()}
 
-                  {/* Business Information */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900">
-                      Business Information
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Tax ID</p>
-                          <p className="text-gray-900">{customer.taxId || '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Credit Limit</p>
-                          <p className="text-gray-900">
-                            {formatCurrency(customer.creditLimit)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Credit Term</p>
-                          <p className="text-gray-900">
-                            {customer.creditTermDays
-                              ? `${customer.creditTermDays} days`
-                              : '-'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Payment Terms</p>
-                          <p className="text-gray-900">
-                            {customer.paymentTerms || '-'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            {activeTabIndex === 1 && (
+              recentSalesOrders.length > 0 ? (
+                <DxDataGrid
+                  dataSource={recentSalesOrders}
+                  keyExpr="id"
+                  columns={soColumns}
+                  showBorders
+                  height={400}
+                  onRowClick={(e) => {
+                    if (e.data) {
+                      router.push(`/sales/orders/${e.data.id}`);
+                    }
+                  }}
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No sales orders found for this customer
                 </div>
-
-                {/* Notes */}
-                {customer.notes && (
-                  <div className="mt-6 pt-6 border-t">
-                    <h3 className="font-semibold text-gray-900 mb-2">Notes</h3>
-                    <p className="text-gray-600">{customer.notes}</p>
-                  </div>
-                )}
-
-                {/* Status Breakdown */}
-                {Object.keys(summary.statusBreakdown).length > 0 && (
-                  <div className="mt-6 pt-6 border-t">
-                    <h3 className="font-semibold text-gray-900 mb-4">
-                      Order Status Breakdown
-                    </h3>
-                    <div className="flex flex-wrap gap-3">
-                      {Object.entries(summary.statusBreakdown).map(
-                        ([status, count]) => (
-                          <div key={status} className="flex items-center gap-2">
-                            <Badge variant={getStatusVariant(status)} dot>
-                              {status.replace('_', ' ')}
-                            </Badge>
-                            <span className="text-sm text-gray-600">{count}</span>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="orders" className="mt-0">
-                {recentSalesOrders.length > 0 ? (
-                  <DxDataGrid
-                    dataSource={recentSalesOrders}
-                    keyExpr="id"
-                    columns={soColumns}
-                    showBorders
-                    height={400}
-                    onRowClick={(e) => {
-                      if (e.data) {
-                        router.push(`/sales/orders/${e.data.id}`);
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No sales orders found for this customer
-                  </div>
-                )}
-              </TabsContent>
-            </CardContent>
-          </Tabs>
+              )
+            )}
+          </CardContent>
         </Card>
       </div>
 
