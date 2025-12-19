@@ -92,6 +92,10 @@ export function ItemSearchDialog({
   const [hasSearched, setHasSearched] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Use ref to avoid infinite loop from excludeIds array reference changes
+  const excludeIdsRef = useRef(excludeIds);
+  excludeIdsRef.current = excludeIds;
+
   const handleSelect = useCallback((item: Item) => {
     onSelect(item);
     onOpenChange(false);
@@ -102,7 +106,7 @@ export function ItemSearchDialog({
     setHasSearched(true);
     try {
       const params = new URLSearchParams({
-        limit: '20',
+        limit: '50',
       });
       // Only add search param if there's a query
       if (query && query.trim()) {
@@ -117,8 +121,10 @@ export function ItemSearchDialog({
 
       if (data.success) {
         let items = data.data?.items || [];
-        if (excludeIds.length > 0) {
-          items = items.filter((item: Item) => !excludeIds.includes(item.id));
+        // Use ref to get current excludeIds without adding to dependencies
+        const currentExcludeIds = excludeIdsRef.current;
+        if (currentExcludeIds.length > 0) {
+          items = items.filter((item: Item) => !currentExcludeIds.includes(item.id));
         }
         setResults(items);
         setHighlightedIndex(0);
@@ -129,14 +135,15 @@ export function ItemSearchDialog({
     } finally {
       setIsSearching(false);
     }
-  }, [filterType, excludeIds]);
+  }, [filterType]);
 
   // Initial load when dialog opens
   useEffect(() => {
     if (open) {
       searchItems('');
     }
-  }, [open, searchItems]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Debounced search when typing
   useEffect(() => {
@@ -146,7 +153,8 @@ export function ItemSearchDialog({
       searchItems(search);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, searchItems, open]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, open]);
 
   // Reset when dialog closes
   useEffect(() => {
