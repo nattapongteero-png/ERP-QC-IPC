@@ -77,7 +77,7 @@ export function LotSearchDialog({
     setHasSearched(true);
     try {
       const params = new URLSearchParams({
-        limit: '20',
+        limit: '50',
       });
       if (query && query.trim()) {
         params.set('search', query.trim());
@@ -93,12 +93,16 @@ export function LotSearchDialog({
       const data = await res.json();
 
       if (data.success) {
-        let lots = data.data?.items || [];
+        // Use same fallback pattern as lots page
+        let lots = data.data?.items || data.data || [];
         if (excludeIds.length > 0) {
           lots = lots.filter((lot: Lot) => !excludeIds.includes(lot.id));
         }
         setResults(lots);
         setHighlightedIndex(0);
+      } else {
+        console.error('API returned error:', data.error);
+        setResults([]);
       }
     } catch (error) {
       console.error('Failed to search lots:', error);
