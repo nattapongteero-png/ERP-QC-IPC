@@ -133,6 +133,7 @@ export default function UsersPage() {
       dataField: 'email',
       caption: 'อีเมล',
       width: 220,
+      hideOnMobile: true,
     },
     {
       dataField: 'role',
@@ -148,6 +149,7 @@ export default function UsersPage() {
       dataField: 'department',
       caption: 'แผนก',
       width: 150,
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.department || '-',
     },
     {
@@ -165,6 +167,7 @@ export default function UsersPage() {
       caption: 'สร้างเมื่อ',
       width: 120,
       dataType: 'date',
+      hideOnMobile: true,
       cellRender: (cellInfo) => formatDate(cellInfo.data.createdAt),
     },
   ];
@@ -230,6 +233,8 @@ export default function UsersPage() {
                 columnChooser
                 virtualScrolling={users.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบผู้ใช้งาน"
               />

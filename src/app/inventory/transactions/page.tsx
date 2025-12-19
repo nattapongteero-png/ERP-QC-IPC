@@ -304,6 +304,7 @@ export default function TransactionsPage() {
       dataField: 'warehouse',
       caption: 'Warehouse',
       width: 200,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="text-sm">
           {cellInfo.data.type === 'TRANSFER' ? (
@@ -322,6 +323,7 @@ export default function TransactionsPage() {
       dataField: 'referenceType',
       caption: 'Reference',
       width: 120,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         cellInfo.data.referenceType ? (
           <span className="text-sm text-gray-600">
@@ -334,6 +336,7 @@ export default function TransactionsPage() {
       dataField: 'createdAt',
       caption: 'Date',
       width: 150,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="text-sm">
           <p>{formatDate(cellInfo.data.createdAt)}</p>
@@ -487,6 +490,8 @@ export default function TransactionsPage() {
                 columns={columns}
                 showBorders
                 height={500}
+                mobileHeight={400}
+                tabletHeight={500}
                 noDataText="No transactions found"
               />
 

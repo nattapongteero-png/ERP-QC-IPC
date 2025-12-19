@@ -94,7 +94,7 @@ export default function ExpiryAlertsPage() {
 
   const expiredColumns: DxDataGridColumn[] = [
     { dataField: 'lotNumber', caption: 'Lot Number', width: 150 },
-    { dataField: 'itemCode', caption: 'Item Code', width: 120 },
+    { dataField: 'itemCode', caption: 'Item Code', width: 120, hideOnMobile: true },
     { dataField: 'itemName', caption: 'Item Name' },
     {
       dataField: 'quantity',
@@ -102,7 +102,7 @@ export default function ExpiryAlertsPage() {
       width: 120,
       cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString()
     },
-    { dataField: 'expiryDate', caption: 'Expiry Date', width: 120 },
+    { dataField: 'expiryDate', caption: 'Expiry Date', width: 120, hideOnMobile: true },
     {
       dataField: 'daysExpired',
       caption: 'Days Expired',
@@ -115,7 +115,7 @@ export default function ExpiryAlertsPage() {
 
   const nearExpiryColumns: DxDataGridColumn[] = [
     { dataField: 'lotNumber', caption: 'Lot Number', width: 150 },
-    { dataField: 'itemCode', caption: 'Item Code', width: 120 },
+    { dataField: 'itemCode', caption: 'Item Code', width: 120, hideOnMobile: true },
     { dataField: 'itemName', caption: 'Item Name' },
     {
       dataField: 'quantity',
@@ -123,7 +123,7 @@ export default function ExpiryAlertsPage() {
       width: 120,
       cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString()
     },
-    { dataField: 'expiryDate', caption: 'Expiry Date', width: 120 },
+    { dataField: 'expiryDate', caption: 'Expiry Date', width: 120, hideOnMobile: true },
     {
       dataField: 'daysToExpiry',
       caption: 'Days to Expiry',
@@ -250,6 +250,8 @@ export default function ExpiryAlertsPage() {
                 columns={expiredColumns}
                 showBorders
                 height={300}
+                mobileHeight={400}
+                tabletHeight={500}
                 noDataText="No expired lots"
               />
             </div>
@@ -273,6 +275,8 @@ export default function ExpiryAlertsPage() {
                 columns={nearExpiryColumns}
                 showBorders
                 height={400}
+                mobileHeight={400}
+                tabletHeight={500}
                 noDataText="No near-expiry lots"
               />
             </div>
