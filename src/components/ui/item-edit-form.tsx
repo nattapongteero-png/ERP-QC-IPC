@@ -60,6 +60,7 @@ export interface Item {
   isActive: boolean;
   createdAt: string;
   onHand?: number;
+  onHandCost?: number;
 }
 
 export interface ItemFormData {

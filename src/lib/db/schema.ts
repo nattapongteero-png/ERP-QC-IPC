@@ -76,6 +76,7 @@ export const sqliteItems = sqliteTable('items', {
   maxStock: real('max_stock'),
   reorderPoint: real('reorder_point'),
   onHand: real('on_hand').notNull().default(0), // Cached on-hand quantity from released lots
+  onHandCost: real('on_hand_cost').notNull().default(0), // Cached total cost of on-hand inventory
   isLotControlled: integer('is_lot_controlled', { mode: 'boolean' }).notNull().default(true),
   isFEFO: integer('is_fefo', { mode: 'boolean' }).notNull().default(true),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
@@ -573,6 +574,7 @@ export const mysqlItems = mysqlTable('items', {
   maxStock: decimal('max_stock', { precision: 15, scale: 4 }),
   reorderPoint: decimal('reorder_point', { precision: 15, scale: 4 }),
   onHand: decimal('on_hand', { precision: 15, scale: 4 }).notNull().default('0'), // Cached on-hand quantity from released lots
+  onHandCost: decimal('on_hand_cost', { precision: 15, scale: 4 }).notNull().default('0'), // Cached total cost of on-hand inventory
   isLotControlled: mysqlBoolean('is_lot_controlled').notNull().default(true),
   isFEFO: mysqlBoolean('is_fefo').notNull().default(true),
   isActive: mysqlBoolean('is_active').notNull().default(true),

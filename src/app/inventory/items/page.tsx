@@ -166,11 +166,17 @@ export default function ItemsPage() {
       header: 'On Hand',
       render: (item: Item) => {
         const onHand = item.onHand ?? 0;
+        const onHandCost = item.onHandCost ?? 0;
         const isLow = item.minStock && onHand < item.minStock;
         return (
-          <div className={cn('font-medium', isLow ? 'text-red-600' : '')}>
-            {onHand.toLocaleString()} {item.primaryUnit}
-            {isLow && <span className="text-xs ml-1">(Low)</span>}
+          <div>
+            <div className={cn('font-medium', isLow ? 'text-red-600' : '')}>
+              {onHand.toLocaleString()} {item.primaryUnit}
+              {isLow && <span className="text-xs ml-1">(Low)</span>}
+            </div>
+            <div className="text-xs text-gray-500">
+              ฿{onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
           </div>
         );
       },
