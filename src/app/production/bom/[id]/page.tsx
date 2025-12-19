@@ -611,19 +611,19 @@ export default function BOMDetailPage() {
                 {showStatusMenu && statusActions.length > 0 && (
                   <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
                     <div className="py-1">
-                      <p className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <p className="px-4 py-2 text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Change Status
                       </p>
                       {statusActions.map((action) => (
                         <button
                           key={action.status}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-700"
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
                           onClick={() => {
                             openStatusDialog(action.status);
                             setShowStatusMenu(false);
                           }}
                         >
-                          <action.icon className="h-4 w-4" />
+                          <action.icon className="h-4 w-4 text-gray-700" />
                           {action.label}
                         </button>
                       ))}
@@ -652,14 +652,14 @@ export default function BOMDetailPage() {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-50">
                   <div className="py-1">
                     <button
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
                       onClick={() => { setEditDialogOpen(true); setShowActionsMenu(false); }}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4 text-gray-700" />
                       Edit BOM
                     </button>
                     <button
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
                       onClick={() => {
                         setCopyForm({
                           newCode: `${bom.code}-COPY`,
@@ -670,17 +670,17 @@ export default function BOMDetailPage() {
                         setShowActionsMenu(false);
                       }}
                     >
-                      <Copy className="h-4 w-4" />
+                      <Copy className="h-4 w-4 text-gray-700" />
                       Copy BOM
                     </button>
                     <div className="border-t my-1" />
                     {statusActions.map((action) => (
                       <button
                         key={action.status}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
                         onClick={() => openStatusDialog(action.status)}
                       >
-                        <action.icon className="h-4 w-4" />
+                        <action.icon className="h-4 w-4 text-gray-700" />
                         {action.label}
                       </button>
                     ))}
@@ -688,7 +688,7 @@ export default function BOMDetailPage() {
                       <>
                         <div className="border-t my-1" />
                         <button
-                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                          className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50 flex items-center gap-2"
                           onClick={() => { setDeleteDialogOpen(true); setShowActionsMenu(false); }}
                         >
                           <Trash2 className="h-4 w-4" />
