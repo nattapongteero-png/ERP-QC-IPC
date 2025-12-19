@@ -243,17 +243,17 @@ function NewQualityTestContent() {
                             key={lot.id}
                             type="button"
                             onClick={() => handleSelectLot(lot)}
-                            className="w-full text-left p-3 hover:bg-gray-50 transition-colors"
+                            className="w-full text-left p-3 hover:bg-gray-100 transition-colors cursor-pointer text-gray-900"
                           >
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="font-medium">{lot.lotNumber}</p>
-                                <p className="text-sm text-gray-500">
+                                <p className="font-medium text-gray-900">{lot.lotNumber}</p>
+                                <p className="text-sm text-gray-600">
                                   {lot.itemCode} - {lot.itemName}
                                 </p>
                               </div>
                               <div className="text-right text-sm">
-                                <p>
+                                <p className="text-gray-900">
                                   {lot.quantity} {lot.unit}
                                 </p>
                                 <p className="text-gray-500">Exp: {formatDate(lot.expiryDate)}</p>
