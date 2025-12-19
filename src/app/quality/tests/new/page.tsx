@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { PageHeader } from '@/components/ui/page-header';
+import { LotSearchDialog, Lot } from '@/components/ui/lot-search-dialog';
 import { FlaskConical, Search } from 'lucide-react';
 
 interface InventoryLot {
@@ -47,10 +48,8 @@ function NewQualityTestContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Search states
-  const [lotSearch, setLotSearch] = useState('');
-  const [lots, setLots] = useState<InventoryLot[]>([]);
-  const [isSearchingLots, setIsSearchingLots] = useState(false);
+  // Lot search dialog state
+  const [lotDialogOpen, setLotDialogOpen] = useState(false);
 
   // Selected states
   const [selectedLot, setSelectedLot] = useState<InventoryLot | null>(null);
@@ -97,22 +96,6 @@ function NewQualityTestContent() {
     }
   };
 
-  const searchLots = async () => {
-    if (!lotSearch.trim()) return;
-    setIsSearchingLots(true);
-    try {
-      const res = await fetch(`/api/inventory/lots?search=${encodeURIComponent(lotSearch)}&limit=10`);
-      const data = await res.json();
-      if (data.success) {
-        setLots(data.data?.items || []);
-      }
-    } catch (error) {
-      console.error('Failed to search lots:', error);
-    } finally {
-      setIsSearchingLots(false);
-    }
-  };
-
   const fetchSpecsForItem = async (itemId: number) => {
     try {
       const res = await fetch(`/api/quality/specs?itemId=${itemId}`);
@@ -126,11 +109,20 @@ function NewQualityTestContent() {
     }
   };
 
-  const handleSelectLot = (lot: InventoryLot) => {
-    setSelectedLot(lot);
+  const handleSelectLot = (lot: Lot) => {
+    const inventoryLot: InventoryLot = {
+      id: lot.id,
+      lotNumber: lot.lotNumber,
+      itemId: lot.itemId,
+      itemCode: lot.itemCode,
+      itemName: lot.itemName,
+      quantity: lot.quantity,
+      unit: lot.unit,
+      status: lot.status,
+      expiryDate: lot.expiryDate || '',
+    };
+    setSelectedLot(inventoryLot);
     setSelectedSpec(null);
-    setLots([]);
-    setLotSearch('');
     fetchSpecsForItem(lot.itemId);
   };
 
@@ -212,67 +204,25 @@ function NewQualityTestContent() {
                   <div className="text-center py-4 text-gray-500">Loading...</div>
                 ) : !selectedLot ? (
                   <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <DxTextBox
-                          placeholder="Search by lot number..."
-                          value={lotSearch}
-                          onValueChange={setLotSearch}
-                          mode="search"
-                          showClearButton
-                          onEnterKey={searchLots}
-                        />
-                      </div>
+                    <div className="flex items-center gap-4">
+                      <p className="text-gray-600">Click the button to search and select a lot</p>
                       <DxButton
+                        text="Select Lot"
                         icon="search"
-                        type="normal"
-                        stylingMode="outlined"
-                        onClick={searchLots}
-                        disabled={isSearchingLots}
+                        type="default"
+                        onClick={() => setLotDialogOpen(true)}
                       />
                     </div>
-
-                    {isSearchingLots && (
-                      <div className="text-center py-4 text-gray-500">Searching...</div>
-                    )}
-
-                    {lots.length > 0 && (
-                      <div className="border rounded-lg divide-y max-h-64 overflow-y-auto">
-                        {lots.map((lot) => (
-                          <button
-                            key={lot.id}
-                            type="button"
-                            onClick={() => handleSelectLot(lot)}
-                            className="w-full text-left p-3 hover:bg-gray-100 transition-colors cursor-pointer text-gray-900"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium text-gray-900">{lot.lotNumber}</p>
-                                <p className="text-sm text-gray-600">
-                                  {lot.itemCode} - {lot.itemName}
-                                </p>
-                              </div>
-                              <div className="text-right text-sm">
-                                <p className="text-gray-900">
-                                  {lot.quantity} {lot.unit}
-                                </p>
-                                <p className="text-gray-500">Exp: {formatDate(lot.expiryDate)}</p>
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-green-800">{selectedLot.lotNumber}</p>
-                        <p className="text-sm text-green-600">
+                        <p className="text-sm text-green-700">
                           {selectedLot.itemCode} - {selectedLot.itemName}
                         </p>
-                        <p className="text-sm text-green-600">
+                        <p className="text-sm text-green-700">
                           Qty: {selectedLot.quantity} {selectedLot.unit} | Exp:{' '}
                           {formatDate(selectedLot.expiryDate)}
                         </p>
@@ -281,11 +231,7 @@ function NewQualityTestContent() {
                         text="Change"
                         type="normal"
                         stylingMode="outlined"
-                        onClick={() => {
-                          setSelectedLot(null);
-                          setSelectedSpec(null);
-                          setSpecs([]);
-                        }}
+                        onClick={() => setLotDialogOpen(true)}
                       />
                     </div>
                   </div>
@@ -443,6 +389,14 @@ function NewQualityTestContent() {
           </div>
         </div>
       </div>
+
+      {/* Lot Search Dialog */}
+      <LotSearchDialog
+        open={lotDialogOpen}
+        onOpenChange={setLotDialogOpen}
+        onSelect={handleSelectLot}
+        title="Select Lot for QC Test"
+      />
     </MainLayout>
   );
 }
