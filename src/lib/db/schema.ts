@@ -435,6 +435,26 @@ export const sqliteSalesOrderLines = sqliteTable('sales_order_lines', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Customers (ลูกค้า)
+export const sqliteCustomers = sqliteTable('customers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  contactPerson: text('contact_person'),
+  phone: text('phone'),
+  email: text('email'),
+  address: text('address'),
+  taxId: text('tax_id'),
+  customerType: text('customer_type').notNull().default('regular'), // regular, wholesale, retail, export
+  creditLimit: real('credit_limit'),
+  creditTermDays: integer('credit_term_days'),
+  paymentTerms: text('payment_terms'),
+  notes: text('notes'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Equipment/Machines
 export const sqliteEquipment = sqliteTable('equipment', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -933,6 +953,26 @@ export const mysqlSalesOrderLines = mysqlTable('sales_order_lines', {
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
+// Customers (ลูกค้า)
+export const mysqlCustomers = mysqlTable('customers', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  contactPerson: varchar('contact_person', { length: 255 }),
+  phone: varchar('phone', { length: 50 }),
+  email: varchar('email', { length: 255 }),
+  address: mysqlText('address'),
+  taxId: varchar('tax_id', { length: 50 }),
+  customerType: varchar('customer_type', { length: 50 }).notNull().default('regular'), // regular, wholesale, retail, export
+  creditLimit: decimal('credit_limit', { precision: 15, scale: 2 }),
+  creditTermDays: int('credit_term_days'),
+  paymentTerms: varchar('payment_terms', { length: 100 }),
+  notes: mysqlText('notes'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
 // Equipment
 export const mysqlEquipment = mysqlTable('equipment', {
   id: int('id').primaryKey().autoincrement(),
@@ -1017,3 +1057,5 @@ export type PurchaseOrder = typeof sqlitePurchaseOrders.$inferSelect;
 export type NewPurchaseOrder = typeof sqlitePurchaseOrders.$inferInsert;
 export type SalesOrder = typeof sqliteSalesOrders.$inferSelect;
 export type NewSalesOrder = typeof sqliteSalesOrders.$inferInsert;
+export type Customer = typeof sqliteCustomers.$inferSelect;
+export type NewCustomer = typeof sqliteCustomers.$inferInsert;
