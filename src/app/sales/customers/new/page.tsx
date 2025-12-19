@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { PageHeader } from '@/components/ui/page-header';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Wand2 } from 'lucide-react';
 
 const customerTypes = [
   { value: 'regular', label: 'Regular' },
@@ -20,6 +20,7 @@ const customerTypes = [
 export default function NewCustomerPage() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -34,6 +35,24 @@ export default function NewCustomerPage() {
     paymentTerms: '',
     notes: '',
   });
+
+  const handleGenerateCode = async () => {
+    setIsGeneratingCode(true);
+    try {
+      const res = await fetch('/api/customers/next-code');
+      const result = await res.json();
+      if (result.success) {
+        setForm({ ...form, code: result.data.code });
+      } else {
+        alert(result.error || 'Failed to generate code');
+      }
+    } catch (error) {
+      console.error('Failed to generate code:', error);
+      alert('Failed to generate code');
+    } finally {
+      setIsGeneratingCode(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.code || !form.name) {
@@ -101,13 +120,28 @@ export default function NewCustomerPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Customer Code"
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value })}
-                required
-                placeholder="e.g., CUS001"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer Code <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    value={form.code}
+                    onChange={(e) => setForm({ ...form, code: e.target.value })}
+                    placeholder="e.g., CUS001"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleGenerateCode}
+                    disabled={isGeneratingCode}
+                    title="Generate Code"
+                  >
+                    <Wand2 className={`h-4 w-4 ${isGeneratingCode ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </div>
               <Input
                 label="Customer Name"
                 value={form.name}
