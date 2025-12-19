@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Plus, Users } from 'lucide-react';
 
 interface User {
   id: number;
@@ -83,22 +85,61 @@ export default function UsersPage() {
     return new Date(dateStr).toLocaleDateString('th-TH');
   };
 
+  const getRoleVariant = (
+    role: string
+  ): 'success' | 'info' | 'warning' | 'danger' | 'default' => {
+    switch (role) {
+      case 'admin':
+        return 'danger';
+      case 'manager':
+        return 'warning';
+      case 'production':
+      case 'qc':
+        return 'success';
+      case 'warehouse':
+      case 'purchasing':
+      case 'sales':
+        return 'info';
+      default:
+        return 'default';
+    }
+  };
+
+  const formatRole = (role: string): string => {
+    const roleMap: Record<string, string> = {
+      admin: 'Admin',
+      manager: 'Manager',
+      production: 'Production',
+      qc: 'QC',
+      warehouse: 'Warehouse',
+      purchasing: 'Purchasing',
+      sales: 'Sales',
+      accounting: 'Accounting',
+      user: 'User',
+    };
+    return roleMap[role] || role;
+  };
+
   const columns = [
-    { key: 'email', header: 'Email' },
     { key: 'name', header: 'Name' },
+    { key: 'email', header: 'Email' },
     {
       key: 'role',
       header: 'Role',
       render: (user: User) => (
-        <Badge variant="info">{user.role}</Badge>
+        <Badge variant={getRoleVariant(user.role)}>{formatRole(user.role)}</Badge>
       ),
     },
-    { key: 'department', header: 'Department' },
+    {
+      key: 'department',
+      header: 'Department',
+      render: (user: User) => user.department || '-',
+    },
     {
       key: 'isActive',
       header: 'Status',
       render: (user: User) => (
-        <Badge variant={user.isActive ? 'success' : 'danger'}>
+        <Badge variant={user.isActive ? 'success' : 'danger'} dot>
           {user.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),
@@ -113,76 +154,118 @@ export default function UsersPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-            <p className="text-gray-600">จัดการผู้ใช้งานระบบ</p>
-          </div>
-          <Button onClick={() => router.push('/users/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
-        </div>
+        <PageHeader
+          title="Users"
+          description="จัดการผู้ใช้งานระบบ"
+          actions={
+            <Button
+              onClick={() => router.push('/users/new')}
+              leftIcon={<Plus className="h-4 w-4" />}
+            >
+              Add User
+            </Button>
+          }
+        />
 
-        <Card>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Input
-                variant="search"
-                placeholder="Search by email or name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onSearch={handleSearch}
-              />
-            </div>
-            <div className="w-full md:w-48">
-              <Select
-                options={roleOptions}
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          <Table
-            columns={columns}
-            data={users}
-            keyField="id"
-            isLoading={isLoading}
-            emptyMessage="No users found"
-            onRowClick={(user) => router.push(`/users/${user.id}`)}
-          />
-
-          {/* Pagination */}
-          {pagination.total > pagination.limit && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total} users
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page === 1}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page * pagination.limit >= pagination.total}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                >
-                  Next
-                </Button>
+        <Card elevation="raised">
+          <CardContent>
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <Input
+                  variant="search"
+                  placeholder="Search by email or name..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onSearch={handleSearch}
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <Select
+                  options={roleOptions}
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                />
               </div>
             </div>
-          )}
+
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-14 bg-gray-100 rounded animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : users.length > 0 ? (
+              <>
+                <Table
+                  columns={columns}
+                  data={users}
+                  keyField="id"
+                  isLoading={isLoading}
+                  emptyMessage="No users found"
+                  onRowClick={(user) => router.push(`/users/${user.id}`)}
+                />
+
+                {/* Pagination */}
+                {pagination.total > pagination.limit && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <p className="text-sm text-gray-500">
+                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                      {Math.min(
+                        pagination.page * pagination.limit,
+                        pagination.total
+                      )}{' '}
+                      of {pagination.total} users
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={pagination.page === 1}
+                        onClick={() =>
+                          setPagination((prev) => ({
+                            ...prev,
+                            page: prev.page - 1,
+                          }))
+                        }
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={
+                          pagination.page * pagination.limit >= pagination.total
+                        }
+                        onClick={() =>
+                          setPagination((prev) => ({
+                            ...prev,
+                            page: prev.page + 1,
+                          }))
+                        }
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <EmptyState
+                icon={<Users className="h-8 w-8" />}
+                title="No users found"
+                description="Get started by adding your first user"
+                action={{
+                  label: 'Add User',
+                  onClick: () => router.push('/users/new'),
+                }}
+              />
+            )}
+          </CardContent>
         </Card>
       </div>
     </MainLayout>
