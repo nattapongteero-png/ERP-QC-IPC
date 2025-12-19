@@ -367,7 +367,7 @@ export default function TransactionsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Inventory Transactions</h1>
@@ -430,7 +430,7 @@ export default function TransactionsPage() {
         </div>
 
         {/* Filters Card */}
-        <Card className="p-6">
+        <Card className="p-6 md:py-1">
           <div className="flex flex-col md:flex-row md:items-end gap-4">
             <div className="w-full md:w-48">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -477,7 +477,7 @@ export default function TransactionsPage() {
         </Card>
 
         {/* Table Card */}
-        <Card className="p-6">
+        <Card className="p-6 flex-1 min-h-0 flex flex-col md:overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <DxLoadIndicator />
@@ -489,9 +489,7 @@ export default function TransactionsPage() {
                 keyExpr="id"
                 columns={columns}
                 showBorders
-                height={500}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 noDataText="No transactions found"
               />
 

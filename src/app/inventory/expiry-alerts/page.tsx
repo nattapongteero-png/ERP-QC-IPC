@@ -138,7 +138,7 @@ export default function ExpiryAlertsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Expiry Alerts</h1>
@@ -235,23 +235,21 @@ export default function ExpiryAlertsPage() {
 
         {/* Expired Lots */}
         {!apiError && !isLoading && (report?.expired?.length || 0) > 0 && (
-          <Card className="overflow-hidden">
-            <div className="p-4 sm:p-6 bg-red-50 border-b border-red-100">
+          <Card className="overflow-hidden flex-1 min-h-0 flex flex-col md:overflow-hidden">
+            <div className="p-4 sm:p-6 bg-red-50 border-b border-red-100 md:py-1">
               <h2 className="text-base sm:text-lg font-semibold text-red-800 flex items-center gap-2">
                 <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                 Expired Lots ({report?.expired.length})
               </h2>
               <p className="text-xs sm:text-sm text-red-600 mt-1">These lots have passed their expiry date and should be quarantined or disposed</p>
             </div>
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-6 flex-1 min-h-0 flex flex-col">
               <DxDataGrid
                 dataSource={report?.expired || []}
                 keyExpr="lotNumber"
                 columns={expiredColumns}
                 showBorders
-                height={300}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 noDataText="No expired lots"
               />
             </div>
@@ -260,23 +258,21 @@ export default function ExpiryAlertsPage() {
 
         {/* Near Expiry Lots */}
         {!apiError && !isLoading && (
-          <Card className="overflow-hidden">
-            <div className="p-4 sm:p-6 bg-yellow-50 border-b border-yellow-100">
+          <Card className="overflow-hidden flex-1 min-h-0 flex flex-col md:overflow-hidden">
+            <div className="p-4 sm:p-6 bg-yellow-50 border-b border-yellow-100 md:py-1">
               <h2 className="text-base sm:text-lg font-semibold text-yellow-800 flex items-center gap-2">
                 <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                 Near Expiry Lots ({report?.nearExpiry?.length || 0})
               </h2>
               <p className="text-xs sm:text-sm text-yellow-600 mt-1">These lots will expire within {daysThreshold} days - prioritize for FEFO picking</p>
             </div>
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-6 flex-1 min-h-0 flex flex-col">
               <DxDataGrid
                 dataSource={report?.nearExpiry || []}
                 keyExpr="lotNumber"
                 columns={nearExpiryColumns}
                 showBorders
-                height={400}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 noDataText="No near-expiry lots"
               />
             </div>
