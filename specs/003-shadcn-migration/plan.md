@@ -17,7 +17,7 @@ Migrate the existing custom UI component library to shadcn/ui to achieve a more 
 **Project Type**: Single Next.js web application
 **Performance Goals**: FCP < 2 seconds, interaction feedback < 100ms
 **Constraints**: Bundle size increase < 50KB gzipped, no regression in existing functionality
-**Scale/Scope**: 14 existing UI components to migrate, ~26 pages to update
+**Scale/Scope**: 14 existing UI components to migrate, 45 pages to update
 
 ## Constitution Check
 
