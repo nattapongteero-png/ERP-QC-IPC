@@ -275,21 +275,21 @@
 
 ### Theme Token Consolidation
 
-- [ ] T107 [US5] Document all CSS variables in src/app/globals.css with comments explaining each token
-- [ ] T108 [US5] Ensure all emerald color references use CSS variables (no hardcoded oklch values in components)
-- [ ] T109 [US5] Create theme documentation in specs/003-shadcn-migration/theme-guide.md
-- [ ] T110 Run `pnpm tsc --noEmit && pnpm lint` to verify theme consistency
-- [ ] T111 Commit: "docs: document theme system and consolidate tokens"
+- [X] T107 [US5] Document all CSS variables in src/app/globals.css with comments explaining each token
+- [X] T108 [US5] Ensure all emerald color references use CSS variables (no hardcoded oklch values in components)
+- [X] T109 [US5] Create theme documentation in specs/003-shadcn-migration/theme-guide.md
+- [X] T110 Run `pnpm tsc --noEmit && pnpm lint` to verify theme consistency
+- [X] T111 Commit: "docs: document theme system and consolidate tokens"
 
 ### Variant System
 
-- [ ] T112 [US5] Verify Button variants use CSS variables consistently in src/components/ui/button.tsx
-- [ ] T113 [US5] Verify Badge variants use CSS variables consistently in src/components/ui/badge.tsx
-- [ ] T114 [US5] Verify Card elevation styles use design tokens in src/components/ui/card.tsx
-- [ ] T115 Run `pnpm tsc --noEmit && pnpm lint` to verify variant system
-- [ ] T116 Commit: "refactor(ui): ensure all variants use theme tokens"
+- [X] T112 [US5] Verify Button variants use CSS variables consistently in src/components/ui/button.tsx
+- [X] T113 [US5] Verify Badge variants use CSS variables consistently in src/components/ui/badge.tsx
+- [X] T114 [US5] Verify Card elevation styles use design tokens in src/components/ui/card.tsx
+- [X] T115 Run `pnpm tsc --noEmit && pnpm lint` to verify variant system
+- [X] T116 Commit: "refactor(ui): ensure all variants use theme tokens"
 
-**Checkpoint**: User Story 5 complete - theme fully configurable via single file
+**Checkpoint**: User Story 5 complete - theme fully configurable via single file ✅
 
 ---
 
