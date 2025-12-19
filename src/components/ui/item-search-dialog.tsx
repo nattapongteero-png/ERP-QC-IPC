@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import {
   Search,
@@ -89,7 +90,6 @@ export function ItemSearchDialog({
   const [isSearching, setIsSearching] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [hasSearched, setHasSearched] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const handleSelect = useCallback((item: Item) => {
@@ -155,8 +155,6 @@ export function ItemSearchDialog({
       setResults([]);
       setHighlightedIndex(0);
       setHasSearched(false);
-    } else {
-      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open]);
 
@@ -231,218 +229,226 @@ export function ItemSearchDialog({
     );
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <DialogHeader className="pb-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Package className="h-5 w-5 text-blue-600" />
-            {title}
-          </DialogTitle>
-          <p className="text-sm text-gray-500 mt-1">
-            Search by item code, Thai name, or English name
-          </p>
-        </DialogHeader>
-
-        {/* Search Input */}
-        <div className="py-4 border-b -mx-6 px-6 bg-white">
-          <Input
-            ref={inputRef}
-            variant="search"
-            placeholder="Search items by code or name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search className="h-4 w-4 text-gray-400" />}
-            className="text-base"
-          />
-
-          {filterType && (
-            <div className="flex items-center gap-2 mt-3">
-              <span className="text-xs text-gray-500">Filtering:</span>
-              <Badge variant="default" className={`${getItemTypeStyle(filterType).bg} ${getItemTypeStyle(filterType).text}`}>
-                {getItemTypeStyle(filterType).label}
-              </Badge>
-            </div>
-          )}
+  const renderDialogContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="pb-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 -mx-4 -mt-4 px-4 pt-4 rounded-t-lg">
+        <div className="flex items-center gap-2 text-xl font-semibold">
+          <Package className="h-5 w-5 text-blue-600" />
+          {title}
         </div>
+        <p className="text-sm text-gray-500 mt-1">
+          Search by item code, Thai name, or English name
+        </p>
+      </div>
 
-        {/* Results Area */}
-        <div ref={listRef} className="flex-1 overflow-y-auto -mx-6 px-6 py-4 min-h-[300px]">
-          {isSearching ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4" />
-              <p className="text-gray-500">Searching items...</p>
-            </div>
-          ) : results.length > 0 ? (
-            <div className="space-y-2">
-              {results.map((item, index) => {
-                const itemType = getItemType(item);
-                const typeStyle = getItemTypeStyle(itemType);
-                const isHighlighted = index === highlightedIndex;
+      {/* Search Input */}
+      <div className="py-4 border-b -mx-4 px-4 bg-white">
+        <DxTextBox
+          placeholder="Search items by code or name..."
+          value={search}
+          onValueChange={setSearch}
+          mode="search"
+          showClearButton
+        />
 
-                return (
-                  <div
-                    key={item.id}
-                    data-index={index}
-                    onClick={() => handleSelect(item)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all duration-150 ${
-                      isHighlighted
-                        ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-md'
-                        : 'bg-white hover:bg-gray-50 border-gray-200 hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      {/* Left: Item Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="font-bold text-blue-600 text-lg">{item.code}</span>
-                          {itemType && (
-                            <Badge className={`${typeStyle.bg} ${typeStyle.text} text-xs`}>
-                              {typeStyle.label}
-                            </Badge>
-                          )}
-                          {item.category && (
-                            <Badge variant="outline" className="text-xs text-gray-500">
-                              <Tag className="h-3 w-3 mr-1" />
-                              {item.category}
-                            </Badge>
-                          )}
-                        </div>
+        {filterType && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-xs text-gray-500">Filtering:</span>
+            <Badge variant="default" className={`${getItemTypeStyle(filterType).bg} ${getItemTypeStyle(filterType).text}`}>
+              {getItemTypeStyle(filterType).label}
+            </Badge>
+          </div>
+        )}
+      </div>
 
-                        <div className="mb-2">
-                          <p className="font-medium text-gray-900">
-                            {item.nameTh || '-'}
-                          </p>
-                          {item.nameEn && (
-                            <p className="text-sm text-gray-500">{item.nameEn}</p>
-                          )}
-                        </div>
+      {/* Results Area */}
+      <div ref={listRef} className="flex-1 overflow-y-auto -mx-4 px-4 py-4 min-h-[300px]">
+        {isSearching ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <DxLoadIndicator />
+            <p className="text-gray-500 mt-4">Searching items...</p>
+          </div>
+        ) : results.length > 0 ? (
+          <div className="space-y-2">
+            {results.map((item, index) => {
+              const itemType = getItemType(item);
+              const typeStyle = getItemTypeStyle(itemType);
+              const isHighlighted = index === highlightedIndex;
 
-                        {/* Item details row */}
-                        <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
-                          <div className="flex items-center gap-1">
-                            <Box className="h-3.5 w-3.5" />
-                            <span>{item.primaryUnit || 'unit'}</span>
-                          </div>
-
-                          {showStock && (
-                            <StockIndicator item={item} />
-                          )}
-                        </div>
+              return (
+                <div
+                  key={item.id}
+                  data-index={index}
+                  onClick={() => handleSelect(item)}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all duration-150 ${
+                    isHighlighted
+                      ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-md'
+                      : 'bg-white hover:bg-gray-50 border-gray-200 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Left: Item Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-bold text-blue-600 text-lg">{item.code}</span>
+                        {itemType && (
+                          <Badge className={`${typeStyle.bg} ${typeStyle.text} text-xs`}>
+                            {typeStyle.label}
+                          </Badge>
+                        )}
+                        {item.category && (
+                          <Badge variant="outline" className="text-xs text-gray-500">
+                            <Tag className="h-3 w-3 mr-1" />
+                            {item.category}
+                          </Badge>
+                        )}
                       </div>
 
-                      {/* Right: Price & Action */}
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                        {showPrice !== 'none' && (
-                          <div className="text-right">
-                            {showPrice === 'both' ? (
-                              <>
-                                <div className="flex items-center gap-1 text-green-600">
-                                  <TrendingUp className="h-3.5 w-3.5" />
-                                  <span className="font-semibold">{formatCurrency(item.sellingPrice)}</span>
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                  Cost: {formatCurrency(item.costPrice)}
-                                </p>
-                              </>
-                            ) : showPrice === 'cost' ? (
-                              <div className="font-semibold text-gray-700">
-                                {formatCurrency(item.costPrice)}
-                              </div>
-                            ) : (
-                              <div className="font-semibold text-green-600">
-                                {formatCurrency(item.sellingPrice)}
-                              </div>
-                            )}
-                          </div>
+                      <div className="mb-2">
+                        <p className="font-medium text-gray-900">
+                          {item.nameTh || '-'}
+                        </p>
+                        {item.nameEn && (
+                          <p className="text-sm text-gray-500">{item.nameEn}</p>
                         )}
+                      </div>
 
-                        <Button
-                          size="sm"
-                          onClick={(e) => { e.stopPropagation(); handleSelect(item); }}
-                          className="min-w-[80px]"
-                        >
-                          Select
-                        </Button>
+                      {/* Item details row */}
+                      <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <Box className="h-3.5 w-3.5" />
+                          <span>{item.primaryUnit || 'unit'}</span>
+                        </div>
+
+                        {showStock && (
+                          <StockIndicator item={item} />
+                        )}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : hasSearched ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <Package className="h-16 w-16 text-gray-300 mb-4" />
-              <p className="text-lg font-medium mb-2">No items found</p>
-              {search ? (
-                <p className="text-sm text-gray-400 mb-4">
-                  No results for &quot;{search}&quot;
-                </p>
-              ) : (
-                <p className="text-sm text-gray-400 mb-4">
-                  No items available in the system
-                </p>
-              )}
-              {search && (
-                <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 max-w-md">
-                  <p className="font-medium mb-2">Search tips:</p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-400">
-                    <li>Try searching by item code (e.g., &quot;RM001&quot;)</li>
-                    <li>Search by partial name in Thai or English</li>
-                    <li>Check for typos in your search</li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <Search className="h-16 w-16 text-gray-300 mb-4" />
-              <p className="text-lg font-medium mb-2">Loading items...</p>
-            </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        <div className="pt-3 border-t -mx-6 px-6 pb-2 bg-gray-50 flex items-center justify-between rounded-b-lg">
-          {results.length > 0 ? (
-            <>
-              <div className="text-sm text-gray-500">
-                <span className="font-medium text-gray-700">{results.length}</span> item{results.length !== 1 ? 's' : ''} found
-                {excludeIds.length > 0 && (
-                  <span className="text-gray-400"> • {excludeIds.length} already selected</span>
-                )}
+                    {/* Right: Price & Action */}
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                      {showPrice !== 'none' && (
+                        <div className="text-right">
+                          {showPrice === 'both' ? (
+                            <>
+                              <div className="flex items-center gap-1 text-green-600">
+                                <TrendingUp className="h-3.5 w-3.5" />
+                                <span className="font-semibold">{formatCurrency(item.sellingPrice)}</span>
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                Cost: {formatCurrency(item.costPrice)}
+                              </p>
+                            </>
+                          ) : showPrice === 'cost' ? (
+                            <div className="font-semibold text-gray-700">
+                              {formatCurrency(item.costPrice)}
+                            </div>
+                          ) : (
+                            <div className="font-semibold text-green-600">
+                              {formatCurrency(item.sellingPrice)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <DxButton
+                        text="Select"
+                        type="default"
+                        onClick={(e) => { e?.stopPropagation(); handleSelect(item); }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : hasSearched ? (
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <Package className="h-16 w-16 text-gray-300 mb-4" />
+            <p className="text-lg font-medium mb-2">No items found</p>
+            {search ? (
+              <p className="text-sm text-gray-400 mb-4">
+                No results for &quot;{search}&quot;
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400 mb-4">
+                No items available in the system
+              </p>
+            )}
+            {search && (
+              <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 max-w-md">
+                <p className="font-medium mb-2">Search tips:</p>
+                <ul className="list-disc list-inside space-y-1 text-gray-400">
+                  <li>Try searching by item code (e.g., &quot;RM001&quot;)</li>
+                  <li>Search by partial name in Thai or English</li>
+                  <li>Check for typos in your search</li>
+                </ul>
               </div>
-              <div className="flex items-center gap-4 text-xs text-gray-400">
-                <div className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                    <ArrowUp className="h-3 w-3 inline" />
-                  </kbd>
-                  <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                    <ArrowDown className="h-3 w-3 inline" />
-                  </kbd>
-                  <span className="ml-1">Navigate</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                    <CornerDownLeft className="h-3 w-3 inline" />
-                  </kbd>
-                  <span className="ml-1">Select</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Esc</kbd>
-                  <span className="ml-1">Close</span>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-2 text-xs text-gray-400 w-full justify-center">
-              <Keyboard className="h-4 w-4" />
-              <span>Use keyboard shortcuts for faster navigation</span>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <Search className="h-16 w-16 text-gray-300 mb-4" />
+            <p className="text-lg font-medium mb-2">Loading items...</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="pt-3 border-t -mx-4 px-4 pb-2 bg-gray-50 flex items-center justify-between rounded-b-lg">
+        {results.length > 0 ? (
+          <>
+            <div className="text-sm text-gray-500">
+              <span className="font-medium text-gray-700">{results.length}</span> item{results.length !== 1 ? 's' : ''} found
+              {excludeIds.length > 0 && (
+                <span className="text-gray-400"> • {excludeIds.length} already selected</span>
+              )}
             </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            <div className="flex items-center gap-4 text-xs text-gray-400">
+              <div className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
+                  <ArrowUp className="h-3 w-3 inline" />
+                </kbd>
+                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
+                  <ArrowDown className="h-3 w-3 inline" />
+                </kbd>
+                <span className="ml-1">Navigate</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
+                  <CornerDownLeft className="h-3 w-3 inline" />
+                </kbd>
+                <span className="ml-1">Select</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Esc</kbd>
+                <span className="ml-1">Close</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-2 text-xs text-gray-400 w-full justify-center">
+            <Keyboard className="h-4 w-4" />
+            <span>Use keyboard shortcuts for faster navigation</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <DxPopup
+      visible={open}
+      onHiding={() => onOpenChange(false)}
+      title=""
+      width={900}
+      height={700}
+      showCloseButton
+      showTitle={false}
+    >
+      {renderDialogContent()}
+    </DxPopup>
   );
 }
