@@ -364,7 +364,7 @@ export default function LotsPage() {
   const handleViewTrace = async (lot: Lot) => {
     setSelectedLot(lot);
     try {
-      const res = await fetch(`/api/inventory/traceability?lotNumber=${lot.lotNumber}`);
+      const res = await fetch(`/api/inventory/traceability?lotId=${lot.id}`);
       const data = await res.json();
       if (data.success) {
         setTraceData(data.data);
