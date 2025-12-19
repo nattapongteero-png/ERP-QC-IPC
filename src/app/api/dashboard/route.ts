@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       const poTable = useSqlite ? schema.sqlitePurchaseOrders : schema.mysqlPurchaseOrders;
       const soTable = useSqlite ? schema.sqliteSalesOrders : schema.mysqlSalesOrders;
       const deviationsTable = useSqlite ? schema.sqliteDeviations : schema.mysqlDeviations;
+      const warehousesTable = useSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
       
       // Get counts
       const [
@@ -120,7 +121,21 @@ export async function GET(request: NextRequest) {
         })
         .from(workOrdersTable)
         .groupBy(workOrdersTable.status);
-      
+
+      // Get inventory by warehouse type
+      const inventoryByWarehouseType = await (db as any)
+        .select({
+          warehouseType: warehousesTable.type,
+          warehouseName: warehousesTable.name,
+          lotCount: sql`count(${lotsTable.id})`,
+          totalQuantity: sql`COALESCE(sum(${lotsTable.quantity}), 0)`,
+        })
+        .from(warehousesTable)
+        .leftJoin(lotsTable, eq(lotsTable.warehouseId, warehousesTable.id))
+        .where(eq(warehousesTable.isActive, true))
+        .groupBy(warehousesTable.type, warehousesTable.name)
+        .orderBy(warehousesTable.type);
+
       return successResponse({
         summary: {
           totalItems: itemsCount,
@@ -134,6 +149,7 @@ export async function GET(request: NextRequest) {
         recentWorkOrders,
         inventoryByStatus,
         workOrdersByStatus,
+        inventoryByWarehouseType,
       });
     } catch (error) {
       return serverErrorResponse(error);

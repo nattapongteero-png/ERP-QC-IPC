@@ -19,8 +19,38 @@ import {
   Inbox,
   TrendingUp,
   Calendar,
+  Warehouse,
+  Boxes,
+  Activity,
+  ShieldAlert,
+  XCircle,
+  Snowflake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+
+// Warehouse type configuration
+const warehouseTypeConfig: Record<string, {
+  label: string;
+  icon: typeof Package;
+  color: string;
+  bgColor: string;
+}> = {
+  raw_material: { label: 'Raw Material', icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  wip: { label: 'Work in Progress', icon: Activity, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  finished_goods: { label: 'Finished Goods', icon: Boxes, color: 'text-green-600', bgColor: 'bg-green-100' },
+  quarantine: { label: 'Quarantine', icon: ShieldAlert, color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
+  rejected: { label: 'Rejected', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
+  cold_storage: { label: 'Cold Storage', icon: Snowflake, color: 'text-cyan-600', bgColor: 'bg-cyan-100' },
+};
+
+const getWarehouseTypeConfig = (type: string) => {
+  return warehouseTypeConfig[type] || {
+    label: type.replace(/_/g, ' '),
+    icon: Warehouse,
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-100'
+  };
+};
 
 interface DashboardData {
   summary: {
@@ -48,6 +78,12 @@ interface DashboardData {
   workOrdersByStatus: Array<{
     status: string;
     count: number;
+  }>;
+  inventoryByWarehouseType: Array<{
+    warehouseType: string;
+    warehouseName: string;
+    lotCount: number;
+    totalQuantity: number;
   }>;
 }
 
@@ -94,6 +130,9 @@ export default function DashboardPage() {
             {/* Cards Skeleton */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <CardSkeleton lines={4} />
+              <CardSkeleton lines={4} />
+            </div>
+            <div className="grid grid-cols-1 gap-6">
               <CardSkeleton lines={4} />
             </div>
           </div>
@@ -300,6 +339,76 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Inventory by Warehouse Type */}
+            <Card
+              title="Inventory by Warehouse Type"
+              description="สินค้าคงคลังแยกตามประเภทคลัง"
+              elevation="raised"
+              className="motion-safe:animate-fade-in motion-reduce:animate-none"
+              style={{ animationDelay: '500ms' }}
+            >
+              <CardContent>
+                {data?.inventoryByWarehouseType && data.inventoryByWarehouseType.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {data.inventoryByWarehouseType.map((item, index) => {
+                      const config = getWarehouseTypeConfig(item.warehouseType);
+                      const Icon = config.icon;
+                      return (
+                        <div
+                          key={`${item.warehouseType}-${item.warehouseName}-${index}`}
+                          className={cn(
+                            'p-4 rounded-xl border border-gray-100',
+                            'bg-gradient-to-br from-white to-gray-50',
+                            'hover:shadow-md hover:border-gray-200',
+                            'transition-all duration-200',
+                            'motion-reduce:transition-none'
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={cn(
+                              'flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center',
+                              config.bgColor
+                            )}>
+                              <Icon className={cn('h-5 w-5', config.color)} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900 truncate">
+                                {item.warehouseName}
+                              </p>
+                              <p className={cn('text-xs font-medium', config.color)}>
+                                {config.label}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2">
+                            <div>
+                              <p className="text-xs text-gray-500">Lots</p>
+                              <p className="text-lg font-bold text-gray-900">
+                                {Number(item.lotCount || 0).toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Total Qty</p>
+                              <p className="text-lg font-bold text-gray-900">
+                                {Number(item.totalQuantity || 0).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={<Warehouse className="h-6 w-6" />}
+                    title="No warehouse data"
+                    description="Warehouse inventory will appear here once warehouses are set up"
+                    size="sm"
+                  />
+                )}
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
