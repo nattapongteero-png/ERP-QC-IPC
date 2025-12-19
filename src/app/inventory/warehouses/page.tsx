@@ -302,7 +302,7 @@ export default function WarehousesPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
           title="คลังสินค้า"
           description="จัดการคลังสินค้าและสถานที่จัดเก็บ"
@@ -317,14 +317,14 @@ export default function WarehousesPage() {
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
           {summaryCards.map((card, index) => (
             <Card
               key={card.label}
               elevation="raised"
-              padding="md"
+              padding="sm"
               className={cn(
-                'motion-safe:animate-fade-in motion-reduce:animate-none'
+                'motion-safe:animate-fade-in motion-reduce:animate-none md:py-2'
               )}
               style={{ animationDelay: `${index * 50}ms` }}
             >
@@ -342,8 +342,8 @@ export default function WarehousesPage() {
         </div>
 
         {/* Filters Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="md:py-1">
+          <CardContent className="py-2 md:py-2 lg:py-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <DxTextBox
@@ -369,8 +369,8 @@ export default function WarehousesPage() {
         </Card>
 
         {/* Table Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
             {warehouses.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={warehouses}
@@ -385,9 +385,7 @@ export default function WarehousesPage() {
                 searchPanel
                 columnChooser
                 virtualScrolling={warehouses.length > 100}
-                height={600}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 noDataText="ไม่พบคลังสินค้า"
               />
             ) : (

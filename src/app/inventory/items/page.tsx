@@ -287,7 +287,9 @@ export default function ItemsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      {/* Flex container - fills viewport on tablet, normal flow on mobile/desktop */}
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
+        {/* Header - compact on tablet */}
         <PageHeader
           title="รายการสินค้า"
           description="จัดการรายการสินค้าและวัตถุดิบ"
@@ -301,35 +303,36 @@ export default function ItemsPage() {
           }
         />
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Summary Cards - compact on tablet */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
           {summaryCards.map((card, index) => (
             <Card
               key={card.label}
               elevation="raised"
-              padding="md"
+              padding="sm"
               className={cn(
-                'motion-safe:animate-fade-in motion-reduce:animate-none'
+                'motion-safe:animate-fade-in motion-reduce:animate-none',
+                'md:py-2' // Extra compact on tablet
               )}
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <div className="flex items-center gap-3">
-                <div className={cn('p-2 rounded-lg', card.bgColor)}>
-                  <card.icon className={cn('h-5 w-5', card.iconColor)} />
+              <div className="flex items-center gap-2 md:gap-2 lg:gap-3">
+                <div className={cn('p-1.5 md:p-1.5 lg:p-2 rounded-lg', card.bgColor)}>
+                  <card.icon className={cn('h-4 w-4 md:h-4 md:w-4 lg:h-5 lg:w-5', card.iconColor)} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">{card.label}</p>
-                  <p className="text-xl font-bold">{card.count}</p>
+                  <p className="text-xs md:text-xs lg:text-sm text-gray-500">{card.label}</p>
+                  <p className="text-lg md:text-lg lg:text-xl font-bold">{card.count}</p>
                 </div>
               </div>
             </Card>
           ))}
         </div>
 
-        {/* Filters Card */}
-        <Card elevation="raised">
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
+        {/* Filters Card - compact on tablet */}
+        <Card elevation="raised" className="md:py-1">
+          <CardContent className="py-2 md:py-2 lg:py-4">
+            <div className="flex flex-col md:flex-row gap-2 md:gap-2 lg:gap-4">
               <div className="flex-1">
                 <DxTextBox
                   placeholder="ค้นหาด้วยรหัสหรือชื่อ..."
@@ -340,7 +343,7 @@ export default function ItemsPage() {
                   onEnterKey={() => fetchItems()}
                 />
               </div>
-              <div className="w-full md:w-48">
+              <div className="w-full md:w-40 lg:w-48">
                 <DxSelectBox
                   items={itemTypes}
                   value={typeFilter}
@@ -353,9 +356,9 @@ export default function ItemsPage() {
           </CardContent>
         </Card>
 
-        {/* Table Card */}
-        <Card elevation="raised">
-          <CardContent>
+        {/* Table Card - fills remaining space on tablet */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
             {items.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={items}
@@ -372,7 +375,7 @@ export default function ItemsPage() {
                 virtualScrolling={items.length > 100}
                 height={600}
                 mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบรายการสินค้า"
               />

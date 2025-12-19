@@ -513,7 +513,7 @@ export default function LotsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
           title="Inventory Lots"
           description="จัดการ Lot/Batch สินค้าคงคลัง"
@@ -528,8 +528,8 @@ export default function LotsPage() {
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card elevation="raised">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
+          <Card elevation="raised" padding="sm" className="md:py-2">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 rounded-lg">
@@ -542,7 +542,7 @@ export default function LotsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card elevation="raised">
+          <Card elevation="raised" padding="sm" className="md:py-2">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
@@ -555,7 +555,7 @@ export default function LotsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card elevation="raised">
+          <Card elevation="raised" padding="sm" className="md:py-2">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-100 rounded-lg">
@@ -568,7 +568,7 @@ export default function LotsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card elevation="raised">
+          <Card elevation="raised" padding="sm" className="md:py-2">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-100 rounded-lg">
@@ -584,8 +584,8 @@ export default function LotsPage() {
         </div>
 
         {/* Filters Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="md:py-1">
+          <CardContent className="py-2 md:py-2 lg:py-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <DxTextBox
@@ -611,8 +611,8 @@ export default function LotsPage() {
         </Card>
 
         {/* Table Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
             {lots.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={lots}
@@ -627,9 +627,7 @@ export default function LotsPage() {
                 searchPanel
                 columnChooser
                 virtualScrolling={lots.length > 100}
-                height={600}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบ Lot"
               />

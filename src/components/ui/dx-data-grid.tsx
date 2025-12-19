@@ -142,6 +142,8 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   tabletHeight?: number | string;
   /** Enable responsive column hiding based on hideOnMobile/hideOnTablet column props */
   responsiveColumns?: boolean;
+  /** Fill available height (use with flex container) - overrides height props on tablet */
+  fillHeight?: boolean;
 }
 
 /**
@@ -205,16 +207,19 @@ export function DxDataGrid<T = Record<string, unknown>>({
   mobileHeight,
   tabletHeight,
   responsiveColumns = true,
+  fillHeight = false,
 }: DxDataGridProps<T>) {
   // Detect device type for responsive behavior
   const { isMobile, isTablet } = useMobile();
 
   // Calculate responsive height
+  // On tablet with fillHeight, use 100% to fill flex container
   const responsiveHeight = useMemo(() => {
+    if (fillHeight && isTablet) return '100%';
     if (isMobile && mobileHeight) return mobileHeight;
     if (isTablet && tabletHeight) return tabletHeight;
     return height;
-  }, [isMobile, isTablet, mobileHeight, tabletHeight, height]);
+  }, [isMobile, isTablet, mobileHeight, tabletHeight, height, fillHeight]);
 
   // Filter columns based on device type when responsiveColumns is enabled
   const responsiveFilteredColumns = useMemo(() => {

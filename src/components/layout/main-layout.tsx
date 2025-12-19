@@ -180,8 +180,12 @@ export function MainLayout({ children }: MainLayoutProps) {
           id="main-content"
           tabIndex={-1}
           className={cn(
-            'flex-1',
-            'p-4 md:p-6 lg:p-8',
+            'flex-1 flex flex-col',
+            'p-4 md:p-4 lg:p-6',
+            // On tablet, fit content to viewport height (minus header)
+            'md:h-[calc(100vh-56px)] md:overflow-hidden',
+            // On desktop, allow scrolling
+            'lg:h-auto lg:overflow-visible',
             'animate-fade-in motion-reduce:animate-none',
             'focus:outline-none'
           )}
