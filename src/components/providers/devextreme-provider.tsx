@@ -14,8 +14,8 @@ import '@/styles/dx.mobile-overrides.css';
 // Thai translations
 import thMessages from '@/localization/th.json';
 
-// DevExtreme license key (base64 encoded)
-const LICENSE_KEY = "ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogIjkyMjY4ODllLTg0ZjUtNDViYS1iZDBhLTk2YWFjNzM1N2ZkMiIsCiAgIm1heFZlcnNpb25BbGxvd2VkIjogMjQxCn0=.B56odZPzNL+xQDyTdVRCztW0Utxw9hADVBHRxiRYEOAHUvIYMHRervj0n9fJKv9AtgJ7RjCHD7H/ykFRy+q26FU2WvAY6bO+rJutWd1mFUWBOMPtXfoyTZUSx5Ye8tTYCQWCzg==";
+// DevExtreme license key (base64 encoded) - supports up to v25.2.x
+const LICENSE_KEY = "ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogIjkyMjY4ODllLTg0ZjUtNDViYS1iZDBhLTk2YWFjNzM1N2ZkMiIsCiAgIm1heFZlcnNpb25BbGxvd2VkIjogMjUyCn0=.rRYplWY3hBop1otsFZsOm/7mi4iDCnPKrC7rJ7r2e+lLr/RuKzqLkc+3xhWrP5smjcHi3lI4O4yDU3sMV6SOcega3W9KyAxyhjoNoR21SKeHBFLlnqoggxavKrRe1nUUijipaQ==";
 
 interface DevExtremeProviderProps {
   children: React.ReactNode;
