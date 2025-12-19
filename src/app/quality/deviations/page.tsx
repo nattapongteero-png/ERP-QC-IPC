@@ -205,6 +205,7 @@ export default function DeviationsPage() {
       dataField: 'sourceType',
       caption: 'แหล่งที่มา',
       width: 120,
+      hideOnMobile: true,
       cellRender: (cellInfo) => getSourceTypeLabel(cellInfo.data.sourceType),
     },
     {
@@ -222,6 +223,7 @@ export default function DeviationsPage() {
       caption: 'กำหนดส่ง',
       width: 120,
       dataType: 'date',
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <span className={isOverdue(cellInfo.data.dueDate, cellInfo.data.status) ? 'text-red-600 font-medium' : ''}>
           {formatDate(cellInfo.data.dueDate)}
@@ -385,6 +387,8 @@ export default function DeviationsPage() {
                 columnChooser
                 virtualScrolling={deviations.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบความเบี่ยงเบน"
               />

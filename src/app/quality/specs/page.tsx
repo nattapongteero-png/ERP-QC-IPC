@@ -155,12 +155,14 @@ export default function QualitySpecsPage() {
       dataField: 'testMethod',
       caption: 'วิธีการ',
       width: 150,
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.testMethod || '-',
     },
     {
       dataField: 'specification',
       caption: 'ข้อกำหนด',
       width: 180,
+      hideOnMobile: true,
       cellRender: (cellInfo) => formatRange(cellInfo.data),
     },
     {
@@ -301,6 +303,8 @@ export default function QualitySpecsPage() {
                 columnChooser
                 virtualScrolling={specs.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบข้อกำหนดคุณภาพ"
               />
