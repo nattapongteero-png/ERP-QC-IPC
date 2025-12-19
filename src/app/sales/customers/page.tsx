@@ -213,7 +213,7 @@ export default function CustomersPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
           title="ลูกค้า"
           description="จัดการข้อมูลลูกค้า"
@@ -228,8 +228,8 @@ export default function CustomersPage() {
         />
 
         {/* Filters Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="md:py-1">
+          <CardContent className="py-2 md:py-1 lg:py-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <DxTextBox
@@ -264,8 +264,8 @@ export default function CustomersPage() {
         </Card>
 
         {/* Table Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
             {customers.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={customers}
@@ -280,9 +280,7 @@ export default function CustomersPage() {
                 searchPanel
                 columnChooser
                 virtualScrolling={customers.length > 100}
-                height={600}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบลูกค้า"
               />

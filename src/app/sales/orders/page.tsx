@@ -176,7 +176,7 @@ export default function SalesOrdersPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
           title="ใบสั่งขาย"
           description="จัดการใบสั่งขาย"
@@ -191,8 +191,8 @@ export default function SalesOrdersPage() {
         />
 
         {/* Filters Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="md:py-1">
+          <CardContent className="py-2 md:py-1 lg:py-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <DxTextBox
@@ -218,8 +218,8 @@ export default function SalesOrdersPage() {
         </Card>
 
         {/* Table Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
             {orders.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={orders}
@@ -234,9 +234,7 @@ export default function SalesOrdersPage() {
                 searchPanel
                 columnChooser
                 virtualScrolling={orders.length > 100}
-                height={600}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบใบสั่งขาย"
               />
