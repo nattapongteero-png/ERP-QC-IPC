@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Table } from '@/components/ui/table';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 
 interface LotDetail {
   id: number;
@@ -129,7 +130,7 @@ export default function LotDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!lot) return;
-    
+
     try {
       setStatusLoading(true);
       const response = await fetch(`/api/inventory/lots/${lot.id}/status`, {
@@ -141,7 +142,6 @@ export default function LotDetailPage() {
       if (data.success) {
         fetchLotDetail();
       }
-      // API errors handled by global error handler
     } catch {
       // Network errors handled by global error handler
     } finally {
@@ -163,7 +163,6 @@ export default function LotDetailPage() {
         setIsEditing(false);
         fetchLotDetail();
       }
-      // API errors handled by global error handler
     } catch {
       // Network errors handled by global error handler
     }
@@ -182,12 +181,12 @@ export default function LotDetailPage() {
 
   const getTransactionTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      'receive': 'รับเข้า',
-      'issue': 'เบิกออก',
-      'transfer': 'โอนย้าย',
-      'adjust': 'ปรับปรุง',
-      'scrap': 'ตัดทิ้ง',
-      'return': 'รับคืน',
+      'receive': 'Receive',
+      'issue': 'Issue',
+      'transfer': 'Transfer',
+      'adjust': 'Adjust',
+      'scrap': 'Scrap',
+      'return': 'Return',
     };
     return labels[type] || type;
   };
@@ -223,88 +222,97 @@ export default function LotDetailPage() {
   };
 
   // Transaction table columns
-  const transactionColumns = [
-    { key: 'createdAt', header: 'Date/Time', render: (tx: any) => formatDateTime(tx.createdAt) },
-    { 
-      key: 'transactionType', 
-      header: 'Type', 
-      render: (tx: any) => (
+  const transactionColumns: DxDataGridColumn[] = [
+    {
+      dataField: 'createdAt',
+      caption: 'Date/Time',
+      width: 160,
+      cellRender: (cellInfo) => formatDateTime(cellInfo.data.createdAt)
+    },
+    {
+      dataField: 'transactionType',
+      caption: 'Type',
+      width: 120,
+      cellRender: (cellInfo) => (
         <Badge variant={
-          tx.transactionType === 'receive' || tx.transactionType === 'return' ? 'success' :
-          tx.transactionType === 'issue' || tx.transactionType === 'scrap' ? 'danger' :
+          cellInfo.data.transactionType === 'receive' || cellInfo.data.transactionType === 'return' ? 'success' :
+          cellInfo.data.transactionType === 'issue' || cellInfo.data.transactionType === 'scrap' ? 'danger' :
           'default'
         }>
-          {getTransactionTypeLabel(tx.transactionType)}
+          {getTransactionTypeLabel(cellInfo.data.transactionType)}
         </Badge>
       )
     },
-    { 
-      key: 'quantity', 
-      header: 'Quantity', 
-      render: (tx: any) => (
+    {
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 130,
+      cellRender: (cellInfo) => (
         <span className={
-          tx.transactionType === 'receive' || tx.transactionType === 'return' ? 'text-green-600' :
-          tx.transactionType === 'issue' || tx.transactionType === 'scrap' ? 'text-red-600' : ''
+          cellInfo.data.transactionType === 'receive' || cellInfo.data.transactionType === 'return' ? 'text-green-600' :
+          cellInfo.data.transactionType === 'issue' || cellInfo.data.transactionType === 'scrap' ? 'text-red-600' : ''
         }>
-          {tx.transactionType === 'receive' || tx.transactionType === 'return' ? '+' : '-'}
-          {tx.quantity.toLocaleString()} {tx.unit}
+          {cellInfo.data.transactionType === 'receive' || cellInfo.data.transactionType === 'return' ? '+' : '-'}
+          {cellInfo.data.quantity.toLocaleString()} {cellInfo.data.unit}
         </span>
       )
     },
-    { 
-      key: 'reference', 
-      header: 'Reference', 
-      render: (tx: any) => tx.referenceType && tx.referenceNumber ? (
-        <span className="text-blue-600">{tx.referenceType}: {tx.referenceNumber}</span>
+    {
+      dataField: 'referenceNumber',
+      caption: 'Reference',
+      cellRender: (cellInfo) => cellInfo.data.referenceType && cellInfo.data.referenceNumber ? (
+        <span className="text-blue-600">{cellInfo.data.referenceType}: {cellInfo.data.referenceNumber}</span>
       ) : '-'
     },
-    { key: 'reason', header: 'Reason', render: (tx: any) => tx.reason || '-' },
-    { key: 'performedByName', header: 'Performed By', render: (tx: any) => tx.performedByName || '-' },
+    { dataField: 'reason', caption: 'Reason', cellRender: (cellInfo) => cellInfo.data.reason || '-' },
+    { dataField: 'performedByName', caption: 'Performed By', width: 130, cellRender: (cellInfo) => cellInfo.data.performedByName || '-' },
   ];
 
   // QC tests table columns
-  const qcTestColumns = [
-    { key: 'sampleNumber', header: 'Sample Number', render: (test: any) => <span className="font-medium">{test.sampleNumber || '-'}</span> },
-    { key: 'testType', header: 'Test Type' },
-    { 
-      key: 'status', 
-      header: 'Status', 
-      render: (test: any) => <Badge variant={getQcStatusVariant(test.status)}>{test.status}</Badge>
+  const qcTestColumns: DxDataGridColumn[] = [
+    { dataField: 'sampleNumber', caption: 'Sample Number', cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.sampleNumber || '-'}</span> },
+    { dataField: 'testType', caption: 'Test Type' },
+    {
+      dataField: 'status',
+      caption: 'Status',
+      width: 120,
+      cellRender: (cellInfo) => <Badge variant={getQcStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>
     },
-    { key: 'result', header: 'Result', render: (test: any) => test.result || '-' },
-    { key: 'testedByName', header: 'Tested By', render: (test: any) => test.testedByName || '-' },
-    { key: 'testDate', header: 'Test Date', render: (test: any) => formatDate(test.testDate) },
+    { dataField: 'result', caption: 'Result', cellRender: (cellInfo) => cellInfo.data.result || '-' },
+    { dataField: 'testedByName', caption: 'Tested By', cellRender: (cellInfo) => cellInfo.data.testedByName || '-' },
+    { dataField: 'testDate', caption: 'Test Date', width: 130, cellRender: (cellInfo) => formatDate(cellInfo.data.testDate) },
   ];
 
   // Work orders table columns
-  const workOrderColumns = [
-    { 
-      key: 'woNumber', 
-      header: 'WO Number', 
-      render: (wo: any) => <span className="font-medium text-blue-600 cursor-pointer hover:underline">{wo.woNumber}</span>
+  const workOrderColumns: DxDataGridColumn[] = [
+    {
+      dataField: 'woNumber',
+      caption: 'WO Number',
+      cellRender: (cellInfo) => <span className="font-medium text-blue-600 cursor-pointer hover:underline">{cellInfo.data.woNumber}</span>
     },
-    { 
-      key: 'status', 
-      header: 'Status', 
-      render: (wo: any) => (
+    {
+      dataField: 'status',
+      caption: 'Status',
+      width: 120,
+      cellRender: (cellInfo) => (
         <Badge variant={
-          wo.status === 'completed' ? 'success' :
-          wo.status === 'in_progress' ? 'warning' :
+          cellInfo.data.status === 'completed' ? 'success' :
+          cellInfo.data.status === 'in_progress' ? 'warning' :
           'default'
-        }>{wo.status}</Badge>
+        }>{cellInfo.data.status}</Badge>
       )
     },
-    { key: 'plannedQuantity', header: 'Planned Qty', render: (wo: any) => wo.plannedQuantity?.toLocaleString() || '-' },
-    { key: 'actualQuantity', header: 'Actual Qty', render: (wo: any) => wo.actualQuantity?.toLocaleString() || '-' },
-    { key: 'startDate', header: 'Start Date', render: (wo: any) => formatDate(wo.actualStartDate || wo.plannedStartDate) },
-    { key: 'actualEndDate', header: 'Completed Date', render: (wo: any) => formatDate(wo.actualEndDate) },
+    { dataField: 'plannedQuantity', caption: 'Planned Qty', width: 120, cellRender: (cellInfo) => cellInfo.data.plannedQuantity?.toLocaleString() || '-' },
+    { dataField: 'actualQuantity', caption: 'Actual Qty', width: 120, cellRender: (cellInfo) => cellInfo.data.actualQuantity?.toLocaleString() || '-' },
+    { dataField: 'startDate', caption: 'Start Date', width: 130, cellRender: (cellInfo) => formatDate(cellInfo.data.actualStartDate || cellInfo.data.plannedStartDate) },
+    { dataField: 'actualEndDate', caption: 'Completed Date', width: 140, cellRender: (cellInfo) => formatDate(cellInfo.data.actualEndDate) },
   ];
 
   if (loading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <DxLoadIndicator />
         </div>
       </MainLayout>
     );
@@ -315,7 +323,11 @@ export default function LotDetailPage() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center h-64">
           <p className="text-red-500 mb-4">{error || 'Lot not found'}</p>
-          <Button onClick={() => router.push('/inventory/lots')}>Back to Lots</Button>
+          <DxButton
+            text="Back to Lots"
+            type="default"
+            onClick={() => router.push('/inventory/lots')}
+          />
         </div>
       </MainLayout>
     );
@@ -328,50 +340,53 @@ export default function LotDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={() => router.push('/inventory/lots')}>
-                ← Back
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/inventory/lots')}
+              />
               <h1 className="text-2xl font-bold text-gray-900">Lot: {lot.lotNumber}</h1>
               <Badge variant={getStatusVariant(lot.status)}>{lot.status}</Badge>
             </div>
-            <p className="text-gray-500 mt-1">รายละเอียด Lot/Batch สินค้าคงคลัง</p>
+            <p className="text-gray-500 mt-1">Lot/Batch inventory details</p>
           </div>
           <div className="flex gap-2">
             {lot.status === 'quarantine' && (
               <>
-                <Button 
-                  variant="primary" 
+                <DxButton
+                  text="Release"
+                  icon="check"
+                  type="success"
                   onClick={() => handleStatusChange('released')}
                   disabled={statusLoading}
-                >
-                  ✓ Release
-                </Button>
-                <Button 
-                  variant="danger" 
+                />
+                <DxButton
+                  text="Reject"
+                  icon="close"
+                  type="danger"
                   onClick={() => handleStatusChange('rejected')}
                   disabled={statusLoading}
-                >
-                  ✗ Reject
-                </Button>
+                />
               </>
             )}
             {lot.status === 'released' && (
-              <Button 
-                variant="secondary" 
+              <DxButton
+                text="Block"
+                type="normal"
+                stylingMode="outlined"
                 onClick={() => handleStatusChange('blocked')}
                 disabled={statusLoading}
-              >
-                Block
-              </Button>
+              />
             )}
             {lot.status === 'blocked' && (
-              <Button 
-                variant="primary" 
+              <DxButton
+                text="Unblock"
+                type="success"
                 onClick={() => handleStatusChange('released')}
                 disabled={statusLoading}
-              >
-                Unblock
-              </Button>
+              />
             )}
           </div>
         </div>
@@ -486,21 +501,21 @@ export default function LotDetailPage() {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             {[
-              { id: 'info', label: 'Lot Information', icon: '📋' },
-              { id: 'transactions', label: 'Transaction History', icon: '📊' },
-              { id: 'qc', label: 'QC Tests', icon: '🔬' },
-              { id: 'traceability', label: 'Traceability', icon: '🔗' },
+              { id: 'info', label: 'Lot Information' },
+              { id: 'transactions', label: 'Transaction History' },
+              { id: 'qc', label: 'QC Tests' },
+              { id: 'traceability', label: 'Traceability' },
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-green-500 text-green-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {tab.icon} {tab.label}
+                {tab.label}
               </button>
             ))}
           </nav>
@@ -553,17 +568,25 @@ export default function LotDetailPage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Lot Details</CardTitle>
                 {!isEditing ? (
-                  <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
-                    Edit
-                  </Button>
+                  <DxButton
+                    text="Edit"
+                    type="normal"
+                    stylingMode="outlined"
+                    onClick={() => setIsEditing(true)}
+                  />
                 ) : (
                   <div className="flex gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => setIsEditing(false)}>
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={handleSave}>
-                      Save
-                    </Button>
+                    <DxButton
+                      text="Cancel"
+                      type="normal"
+                      stylingMode="outlined"
+                      onClick={() => setIsEditing(false)}
+                    />
+                    <DxButton
+                      text="Save"
+                      type="success"
+                      onClick={handleSave}
+                    />
                   </div>
                 )}
               </CardHeader>
@@ -577,9 +600,9 @@ export default function LotDetailPage() {
                     <div>
                       <label className="text-sm text-gray-500">Batch Number</label>
                       {isEditing ? (
-                        <Input
+                        <DxTextBox
                           value={editForm.batchNumber}
-                          onChange={(e) => setEditForm({ ...editForm, batchNumber: e.target.value })}
+                          onValueChange={(value) => setEditForm({ ...editForm, batchNumber: value })}
                         />
                       ) : (
                         <p className="font-medium">{lot.batchNumber || '-'}</p>
@@ -588,37 +611,27 @@ export default function LotDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
+                      <label className="text-sm text-gray-500 block mb-1">Manufacturing Date</label>
                       {isEditing ? (
-                        <DatePicker
-                          label="Manufacturing Date"
+                        <DxDateBox
                           value={editForm.manufacturingDate}
-                          onChange={(value) => setEditForm({ ...editForm, manufacturingDate: value })}
-                          max={editForm.expiryDate || undefined}
-                          showQuickActions={false}
-                          size="sm"
+                          onValueChange={(value) => setEditForm({ ...editForm, manufacturingDate: value || '' })}
+                          max={editForm.expiryDate ? new Date(editForm.expiryDate) : undefined}
                         />
                       ) : (
-                        <>
-                          <label className="text-sm text-gray-500">Manufacturing Date</label>
-                          <p className="font-medium">{formatDate(lot.manufacturingDate)}</p>
-                        </>
+                        <p className="font-medium">{formatDate(lot.manufacturingDate)}</p>
                       )}
                     </div>
                     <div>
+                      <label className="text-sm text-gray-500 block mb-1">Expiry Date</label>
                       {isEditing ? (
-                        <DatePicker
-                          label="Expiry Date"
+                        <DxDateBox
                           value={editForm.expiryDate}
-                          onChange={(value) => setEditForm({ ...editForm, expiryDate: value })}
-                          min={editForm.manufacturingDate || undefined}
-                          showQuickActions={false}
-                          size="sm"
+                          onValueChange={(value) => setEditForm({ ...editForm, expiryDate: value || '' })}
+                          min={editForm.manufacturingDate ? new Date(editForm.manufacturingDate) : undefined}
                         />
                       ) : (
-                        <>
-                          <label className="text-sm text-gray-500">Expiry Date</label>
-                          <p className="font-medium">{formatDate(lot.expiryDate)}</p>
-                        </>
+                        <p className="font-medium">{formatDate(lot.expiryDate)}</p>
                       )}
                     </div>
                   </div>
@@ -630,9 +643,9 @@ export default function LotDetailPage() {
                     <div>
                       <label className="text-sm text-gray-500">COA Number</label>
                       {isEditing ? (
-                        <Input
+                        <DxTextBox
                           value={editForm.coaNumber}
-                          onChange={(e) => setEditForm({ ...editForm, coaNumber: e.target.value })}
+                          onValueChange={(value) => setEditForm({ ...editForm, coaNumber: value })}
                         />
                       ) : (
                         <p className="font-medium">{lot.coaNumber || '-'}</p>
@@ -715,11 +728,13 @@ export default function LotDetailPage() {
               <CardTitle>Transaction History</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table
+              <DxDataGrid
+                dataSource={lot.transactions}
+                keyExpr="id"
                 columns={transactionColumns}
-                data={lot.transactions}
-                keyField="id"
-                emptyMessage="No transactions found"
+                showBorders
+                height={400}
+                noDataText="No transactions found"
               />
             </CardContent>
           </Card>
@@ -729,14 +744,21 @@ export default function LotDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>QC Tests</CardTitle>
-              <Button size="sm" onClick={() => router.push(`/quality/tests/new?lotId=${lot.id}`)}>+ New QC Test</Button>
+              <DxButton
+                text="New QC Test"
+                icon="plus"
+                type="default"
+                onClick={() => router.push(`/quality/tests/new?lotId=${lot.id}`)}
+              />
             </CardHeader>
             <CardContent>
-              <Table
+              <DxDataGrid
+                dataSource={lot.qcTests}
+                keyExpr="id"
                 columns={qcTestColumns}
-                data={lot.qcTests}
-                keyField="id"
-                emptyMessage="No QC tests found"
+                showBorders
+                height={400}
+                noDataText="No QC tests found"
               />
             </CardContent>
           </Card>
@@ -750,11 +772,13 @@ export default function LotDetailPage() {
                 <p className="text-sm text-gray-500">Work orders and finished products that used this lot</p>
               </CardHeader>
               <CardContent>
-                <Table
+                <DxDataGrid
+                  dataSource={lot.relatedWorkOrders}
+                  keyExpr="id"
                   columns={workOrderColumns}
-                  data={lot.relatedWorkOrders}
-                  keyField="id"
-                  emptyMessage="No related work orders found"
+                  showBorders
+                  height={300}
+                  noDataText="No related work orders found"
                 />
               </CardContent>
             </Card>

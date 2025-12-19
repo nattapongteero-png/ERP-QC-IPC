@@ -4,13 +4,14 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
-import { Table } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
+import { DxPopup } from '@/components/ui/dx-popup';
 import { PageHeader } from '@/components/ui/page-header';
 import {
   ArrowLeft,
@@ -81,12 +82,12 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   const router = useRouter();
   const [data, setData] = useState<SODetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(0);
   const [showFulfillModal, setShowFulfillModal] = useState(false);
   const [selectedLine, setSelectedLine] = useState<SOLine | null>(null);
   const [fulfillForm, setFulfillForm] = useState({
     lotId: '',
-    quantity: '',
+    quantity: 0,
   });
 
   const fetchSODetail = async () => {
@@ -113,7 +114,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     setSelectedLine(line);
     setFulfillForm({
       lotId: line.suggestedLots[0]?.id?.toString() || '',
-      quantity: Math.min(line.pendingQty, line.suggestedLots[0]?.quantity || 0).toString(),
+      quantity: Math.min(line.pendingQty, line.suggestedLots[0]?.quantity || 0),
     });
     setShowFulfillModal(true);
   };
@@ -199,9 +200,13 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           <AlertTriangle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
           <h2 className="text-xl font-semibold text-gray-900">Sales Order not found</h2>
           <p className="text-gray-500 mt-2">The requested sales order could not be found.</p>
-          <Button className="mt-4" onClick={() => router.push('/sales/orders')}>
-            Back to Orders
-          </Button>
+          <div className="mt-4">
+            <DxButton
+              text="Back to Orders"
+              type="default"
+              onClick={() => router.push('/sales/orders')}
+            />
+          </div>
         </div>
       </MainLayout>
     );
@@ -209,96 +214,106 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
 
   const { salesOrder: so, lines, summary } = data;
 
-  const lineColumns = [
+  const lineColumns: DxDataGridColumn[] = [
     {
-      key: 'item',
-      header: 'Item',
-      render: (line: SOLine) => (
+      dataField: 'itemCode',
+      caption: 'Item',
+      cellRender: (cellInfo) => (
         <div>
-          <p className="font-medium">{line.itemCode}</p>
-          <p className="text-sm text-gray-500">{line.itemName}</p>
+          <p className="font-medium">{cellInfo.data.itemCode}</p>
+          <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
         </div>
       ),
     },
     {
-      key: 'quantity',
-      header: 'Quantity',
-      render: (line: SOLine) => `${line.quantity} ${line.itemUnit}`,
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 120,
+      cellRender: (cellInfo) => `${cellInfo.data.quantity} ${cellInfo.data.itemUnit}`,
     },
     {
-      key: 'unitPrice',
-      header: 'Unit Price',
-      render: (line: SOLine) => formatCurrency(line.unitPrice),
+      dataField: 'unitPrice',
+      caption: 'Unit Price',
+      width: 120,
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.unitPrice),
     },
     {
-      key: 'lineTotal',
-      header: 'Line Total',
-      render: (line: SOLine) => formatCurrency(line.lineTotal),
+      dataField: 'lineTotal',
+      caption: 'Line Total',
+      width: 130,
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.lineTotal),
     },
     {
-      key: 'shipped',
-      header: 'Shipped',
-      render: (line: SOLine) => `${line.shippedQty || 0} / ${line.quantity} ${line.itemUnit}`,
+      dataField: 'shippedQty',
+      caption: 'Shipped',
+      width: 140,
+      cellRender: (cellInfo) => `${cellInfo.data.shippedQty || 0} / ${cellInfo.data.quantity} ${cellInfo.data.itemUnit}`,
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (line: SOLine) => (
-        <Badge variant={getStatusVariant(line.fulfillmentStatus)} dot>
-          {line.fulfillmentStatus}
+      dataField: 'fulfillmentStatus',
+      caption: 'Status',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.fulfillmentStatus)} dot>
+          {cellInfo.data.fulfillmentStatus}
         </Badge>
       ),
     },
   ];
 
-  const fulfillmentColumns = [
+  const fulfillmentColumns: DxDataGridColumn[] = [
     {
-      key: 'item',
-      header: 'Item',
-      render: (line: SOLine) => (
+      dataField: 'itemCode',
+      caption: 'Item',
+      cellRender: (cellInfo) => (
         <div>
-          <p className="font-medium">{line.itemCode}</p>
-          <p className="text-sm text-gray-500">{line.itemName}</p>
+          <p className="font-medium">{cellInfo.data.itemCode}</p>
+          <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
         </div>
       ),
     },
     {
-      key: 'ordered',
-      header: 'Ordered',
-      render: (line: SOLine) => `${line.quantity} ${line.itemUnit}`,
+      dataField: 'quantity',
+      caption: 'Ordered',
+      width: 100,
+      cellRender: (cellInfo) => `${cellInfo.data.quantity} ${cellInfo.data.itemUnit}`,
     },
     {
-      key: 'shipped',
-      header: 'Shipped',
-      render: (line: SOLine) => (
-        <span className="text-green-600 font-medium">{line.shippedQty || 0} {line.itemUnit}</span>
+      dataField: 'shippedQty',
+      caption: 'Shipped',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className="text-green-600 font-medium">{cellInfo.data.shippedQty || 0} {cellInfo.data.itemUnit}</span>
       ),
     },
     {
-      key: 'pending',
-      header: 'Pending',
-      render: (line: SOLine) => (
-        <span className="text-orange-600 font-medium">{line.pendingQty} {line.itemUnit}</span>
+      dataField: 'pendingQty',
+      caption: 'Pending',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className="text-orange-600 font-medium">{cellInfo.data.pendingQty} {cellInfo.data.itemUnit}</span>
       ),
     },
     {
-      key: 'available',
-      header: 'Available Stock',
-      render: (line: SOLine) => (
+      dataField: 'availableStock',
+      caption: 'Available Stock',
+      width: 130,
+      cellRender: (cellInfo) => (
         <div>
-          <span className={line.canFulfill ? 'text-green-600' : 'text-red-600'}>
-            {line.availableStock} {line.itemUnit}
+          <span className={cellInfo.data.canFulfill ? 'text-green-600' : 'text-red-600'}>
+            {cellInfo.data.availableStock} {cellInfo.data.itemUnit}
           </span>
-          {!line.canFulfill && <span className="text-red-500 text-xs block">Insufficient</span>}
+          {!cellInfo.data.canFulfill && <span className="text-red-500 text-xs block">Insufficient</span>}
         </div>
       ),
     },
     {
-      key: 'suggestedLots',
-      header: 'Suggested Lots (FEFO)',
-      render: (line: SOLine) => (
+      dataField: 'suggestedLots',
+      caption: 'Suggested Lots (FEFO)',
+      width: 200,
+      cellRender: (cellInfo) => (
         <div className="space-y-1">
-          {line.suggestedLots.slice(0, 2).map((lot) => (
+          {cellInfo.data.suggestedLots.slice(0, 2).map((lot: SOLine['suggestedLots'][0]) => (
             <div key={lot.id} className="text-xs bg-gray-100 rounded px-2 py-1">
               <span className="font-medium">{lot.lotNumber}</span>
               <span className="text-gray-500 ml-2">({lot.quantity})</span>
@@ -309,23 +324,196 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               )}
             </div>
           ))}
-          {line.suggestedLots.length === 0 && (
+          {cellInfo.data.suggestedLots.length === 0 && (
             <span className="text-red-500 text-xs">No lots available</span>
           )}
         </div>
       ),
     },
     {
-      key: 'actions',
-      header: 'Actions',
-      render: (line: SOLine) => (
-        line.pendingQty > 0 && line.canFulfill ? (
-          <Button size="sm" onClick={() => handleFulfill(line)}>
-            Pick & Ship
-          </Button>
+      dataField: 'actions',
+      caption: '',
+      width: 120,
+      cellRender: (cellInfo) => (
+        cellInfo.data.pendingQty > 0 && cellInfo.data.canFulfill ? (
+          <DxButton
+            text="Pick & Ship"
+            type="default"
+            stylingMode="outlined"
+            onClick={() => handleFulfill(cellInfo.data)}
+          />
         ) : null
       ),
     },
+  ];
+
+  const renderOverviewTab = () => (
+    <div className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* SO Info */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900">Order Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-500">SO Number</p>
+              <p className="font-medium">{so.soNumber}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Status</p>
+              <Badge variant={getStatusVariant(so.status)} dot>{getStatusLabel(so.status)}</Badge>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Order Date</p>
+              <p className="font-medium">{formatDate(so.orderDate)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Required Date</p>
+              <p className="font-medium">{formatDate(so.requiredDate)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Payment Terms</p>
+              <p className="font-medium">{so.paymentTerms || '-'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Line Items</p>
+              <p className="font-medium">{summary.lineCount} items</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Customer Info */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900">Customer Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <p className="text-sm text-gray-500">Customer Name</p>
+              <p className="font-medium">{so.customerName || '-'}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-sm text-gray-500">Contact Person</p>
+              <p className="font-medium">{so.customerContact || '-'}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-sm text-gray-500">Shipping Address</p>
+              <p className="font-medium">{so.customerAddress || '-'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Notes */}
+      {so.notes && (
+        <div className="mt-6 pt-6 border-t">
+          <h3 className="font-semibold text-gray-900 mb-2">Notes</h3>
+          <p className="text-gray-700">{so.notes}</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderLinesTab = () => (
+    <div className="p-6">
+      <DxDataGrid
+        dataSource={lines}
+        keyExpr="id"
+        columns={lineColumns}
+        showBorders
+        height={400}
+        noDataText="No order lines"
+      />
+    </div>
+  );
+
+  const renderFulfillmentTab = () => (
+    <div className="p-6">
+      <div className="mb-4">
+        <h3 className="font-semibold text-gray-900">Order Fulfillment (FEFO)</h3>
+        <p className="text-sm text-gray-500">Items are suggested based on First Expiry, First Out policy</p>
+      </div>
+      <DxDataGrid
+        dataSource={lines}
+        keyExpr="id"
+        columns={fulfillmentColumns}
+        showBorders
+        height={400}
+        noDataText="No fulfillment data"
+      />
+    </div>
+  );
+
+  const renderShippingTab = () => (
+    <div className="p-6">
+      <div className="text-center py-8 text-gray-500">
+        <Truck className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+        <p>No shipments recorded yet</p>
+      </div>
+    </div>
+  );
+
+  const renderFulfillModalContent = () => (
+    <div className="p-4">
+      <h2 className="text-lg font-semibold mb-4">Pick & Ship</h2>
+      {selectedLine && (
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-gray-500">Item</p>
+            <p className="font-medium">{selectedLine.itemCode} - {selectedLine.itemName}</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select Lot (FEFO)</label>
+            <DxSelectBox
+              items={selectedLine.suggestedLots.map((lot) => ({
+                value: lot.id.toString(),
+                text: `${lot.lotNumber} - Qty: ${lot.quantity} - Exp: ${lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}`,
+              }))}
+              value={fulfillForm.lotId}
+              onValueChange={(value) => {
+                const lot = selectedLine.suggestedLots.find((l) => l.id.toString() === value);
+                setFulfillForm({
+                  lotId: value,
+                  quantity: Math.min(selectedLine.pendingQty, lot?.quantity || 0),
+                });
+              }}
+              valueExpr="value"
+              displayExpr="text"
+              placeholder="Select a lot"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Quantity ({selectedLine.itemUnit})
+            </label>
+            <DxNumberBox
+              value={fulfillForm.quantity}
+              onValueChange={(value) => setFulfillForm({ ...fulfillForm, quantity: value || 0 })}
+              min={0}
+              max={selectedLine.pendingQty}
+            />
+            <p className="text-xs text-gray-500 mt-1">Pending: {selectedLine.pendingQty} {selectedLine.itemUnit}</p>
+          </div>
+        </div>
+      )}
+      <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+        <DxButton
+          text="Cancel"
+          type="normal"
+          stylingMode="outlined"
+          onClick={() => setShowFulfillModal(false)}
+        />
+        <DxButton
+          text="Confirm Ship"
+          type="success"
+          onClick={submitFulfill}
+        />
+      </div>
+    </div>
+  );
+
+  const tabItems: DxTabItem[] = [
+    { text: 'Overview' },
+    { text: `Order Lines (${lines.length})` },
+    { text: 'Fulfillment' },
+    { text: 'Shipping' },
   ];
 
   return (
@@ -336,14 +524,25 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           description={`Customer: ${so.customerName}`}
           actions={
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => router.push('/sales/orders')} leftIcon={<ArrowLeft className="h-4 w-4" />}>
-                Back
-              </Button>
-              <Button variant="secondary" onClick={() => window.print()} leftIcon={<Printer className="h-4 w-4" />}>
-                Print
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/sales/orders')}
+              />
+              <DxButton
+                text="Print"
+                icon="print"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => window.print()}
+              />
               {so.status === 'confirmed' && summary.allCanFulfill && (
-                <Button>Process All</Button>
+                <DxButton
+                  text="Process All"
+                  type="success"
+                />
               )}
             </div>
           }
@@ -456,153 +655,35 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
 
         {/* Tabs */}
         <Card>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <CardHeader className="border-b pb-0">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="lines">Order Lines ({lines.length})</TabsTrigger>
-                <TabsTrigger value="fulfillment">Fulfillment</TabsTrigger>
-                <TabsTrigger value="shipping">Shipping</TabsTrigger>
-              </TabsList>
-            </CardHeader>
+          <CardHeader className="border-b pb-0">
+            <DxTabs
+              items={tabItems}
+              selectedIndex={activeTab}
+              onSelectedIndexChange={setActiveTab}
+            />
+          </CardHeader>
 
-            <CardContent className="pt-6">
-              <TabsContent value="overview" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* SO Info */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900">Order Information</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">SO Number</p>
-                        <p className="font-medium">{so.soNumber}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Status</p>
-                        <Badge variant={getStatusVariant(so.status)} dot>{getStatusLabel(so.status)}</Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Order Date</p>
-                        <p className="font-medium">{formatDate(so.orderDate)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Required Date</p>
-                        <p className="font-medium">{formatDate(so.requiredDate)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Payment Terms</p>
-                        <p className="font-medium">{so.paymentTerms || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Line Items</p>
-                        <p className="font-medium">{summary.lineCount} items</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Customer Info */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900">Customer Information</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-500">Customer Name</p>
-                        <p className="font-medium">{so.customerName || '-'}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-500">Contact Person</p>
-                        <p className="font-medium">{so.customerContact || '-'}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-500">Shipping Address</p>
-                        <p className="font-medium">{so.customerAddress || '-'}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {so.notes && (
-                  <div className="mt-6 pt-6 border-t">
-                    <h3 className="font-semibold text-gray-900 mb-2">Notes</h3>
-                    <p className="text-gray-700">{so.notes}</p>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="lines" className="mt-0">
-                <Table columns={lineColumns} data={lines} keyField="id" />
-              </TabsContent>
-
-              <TabsContent value="fulfillment" className="mt-0">
-                <div className="mb-4">
-                  <h3 className="font-semibold text-gray-900">Order Fulfillment (FEFO)</h3>
-                  <p className="text-sm text-gray-500">Items are suggested based on First Expiry, First Out policy</p>
-                </div>
-                <Table columns={fulfillmentColumns} data={lines} keyField="id" />
-              </TabsContent>
-
-              <TabsContent value="shipping" className="mt-0">
-                <div className="text-center py-8 text-gray-500">
-                  <Truck className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <p>No shipments recorded yet</p>
-                </div>
-              </TabsContent>
-            </CardContent>
-          </Tabs>
+          <CardContent className="p-0">
+            {activeTab === 0 && renderOverviewTab()}
+            {activeTab === 1 && renderLinesTab()}
+            {activeTab === 2 && renderFulfillmentTab()}
+            {activeTab === 3 && renderShippingTab()}
+          </CardContent>
         </Card>
       </div>
 
       {/* Fulfill Modal */}
-      <Dialog open={showFulfillModal} onOpenChange={setShowFulfillModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Pick & Ship</DialogTitle>
-          </DialogHeader>
-          {selectedLine && (
-            <div className="space-y-4 py-4">
-              <div>
-                <p className="text-sm text-gray-500">Item</p>
-                <p className="font-medium">{selectedLine.itemCode} - {selectedLine.itemName}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Lot (FEFO)</label>
-                <Select
-                  value={fulfillForm.lotId}
-                  onChange={(e) => {
-                    const lot = selectedLine.suggestedLots.find((l) => l.id.toString() === e.target.value);
-                    setFulfillForm({
-                      lotId: e.target.value,
-                      quantity: Math.min(selectedLine.pendingQty, lot?.quantity || 0).toString(),
-                    });
-                  }}
-                  options={selectedLine.suggestedLots.map((lot) => ({
-                    value: lot.id.toString(),
-                    label: `${lot.lotNumber} - Qty: ${lot.quantity} - Exp: ${lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}`,
-                  }))}
-                />
-              </div>
-              <div>
-                <Input
-                  label={`Quantity (${selectedLine.itemUnit})`}
-                  type="number"
-                  value={fulfillForm.quantity}
-                  onChange={(e) => setFulfillForm({ ...fulfillForm, quantity: e.target.value })}
-                  max={selectedLine.pendingQty}
-                />
-                <p className="text-xs text-gray-500 mt-1">Pending: {selectedLine.pendingQty} {selectedLine.itemUnit}</p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowFulfillModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={submitFulfill}>
-              Confirm Ship
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DxPopup
+        visible={showFulfillModal}
+        onHiding={() => setShowFulfillModal(false)}
+        title=""
+        width={500}
+        height="auto"
+        showCloseButton
+        showTitle={false}
+      >
+        {renderFulfillModalContent()}
+      </DxPopup>
     </MainLayout>
   );
 }
