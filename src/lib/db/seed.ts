@@ -2,6 +2,15 @@ import { getDb, useSqlite, initializeDatabase } from './index';
 import { hashPassword } from '../auth';
 import * as schema from './schema';
 
+// Report category seed data
+const reportCategories = [
+  { name: 'Inventory Reports', description: 'Stock levels, valuations, and inventory movements', sortOrder: 1 },
+  { name: 'Production Reports', description: 'Work orders, batch records, and production yields', sortOrder: 2 },
+  { name: 'Quality Reports', description: 'Certificates of Analysis, test results, and deviations', sortOrder: 3 },
+  { name: 'Purchasing Reports', description: 'Purchase orders and vendor analysis', sortOrder: 4 },
+  { name: 'Sales Reports', description: 'Sales orders and customer analysis', sortOrder: 5 },
+];
+
 export async function seedDatabase() {
   // Initialize database tables
   await initializeDatabase();
@@ -141,6 +150,16 @@ export async function seedDatabase() {
     });
   }
   console.log('Sample vendors created');
+
+  // Seed report categories
+  const reportCategoriesTable = isSqlite ? schema.sqliteReportCategories : schema.mysqlReportCategories;
+  for (const category of reportCategories) {
+    await insertIgnoreDuplicate(reportCategoriesTable, {
+      ...category,
+      isActive: true,
+    });
+  }
+  console.log('Report categories created');
 
   console.log('Database seeded successfully!');
 }

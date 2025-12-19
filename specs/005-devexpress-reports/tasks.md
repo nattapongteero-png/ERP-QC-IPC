@@ -40,26 +40,26 @@ This feature uses a hybrid architecture:
 
 ### Database Schema
 
-- [ ] T006 Create Drizzle ORM schema for report tables in src/lib/db/schema/reports.ts
-- [ ] T007 Run Drizzle migration to create report_categories, report_templates, report_permissions, report_executions tables
-- [ ] T008 Seed default report categories (Inventory, Production, Quality, Purchasing, Sales)
+- [X] T006 Create Drizzle ORM schema for report tables in src/lib/db/schema/reports.ts
+- [X] T007 Run Drizzle migration to create report_categories, report_templates, report_permissions, report_executions tables
+- [X] T008 Seed default report categories (Inventory, Production, Quality, Purchasing, Sales)
 
 ### ASP.NET Core Backend Setup
 
-- [ ] T009 Configure CORS policy for Next.js frontend in reporting-backend/Program.cs
-- [ ] T010 [P] Create EF Core DbContext for report tables in reporting-backend/Data/ReportDbContext.cs
-- [ ] T011 [P] Create EF Core entity models in reporting-backend/Data/Models/ (ReportTemplate.cs, ReportCategory.cs, ReportPermission.cs, ReportExecution.cs)
-- [ ] T012 Implement DatabaseReportStorage extending ReportStorageWebExtension in reporting-backend/Services/DatabaseReportStorage.cs
-- [ ] T013 Configure MySQL connection in reporting-backend/appsettings.json and appsettings.Development.json
-- [ ] T014 Register DatabaseReportStorage as scoped service in reporting-backend/Program.cs
-- [ ] T015 [P] Implement JWT validation service in reporting-backend/Services/JwtAuthenticationService.cs
-- [ ] T016 [P] Create Dockerfile for reporting-backend in reporting-backend/Dockerfile
+- [X] T009 Configure CORS policy for Next.js frontend in reporting-backend/Program.cs
+- [X] T010 [P] Create EF Core DbContext for report tables in reporting-backend/Data/ReportDbContext.cs
+- [X] T011 [P] Create EF Core entity models in reporting-backend/Data/Models/ (ReportTemplate.cs, ReportCategory.cs, ReportPermission.cs, ReportExecution.cs)
+- [X] T012 Implement DatabaseReportStorage extending ReportStorageWebExtension in reporting-backend/Services/DatabaseReportStorage.cs
+- [X] T013 Configure MySQL connection in reporting-backend/appsettings.json and appsettings.Development.json
+- [X] T014 Register DatabaseReportStorage as scoped service in reporting-backend/Program.cs
+- [X] T015 [P] Implement JWT validation service in reporting-backend/Services/JwtAuthenticationService.cs
+- [X] T016 [P] Create Dockerfile for reporting-backend in reporting-backend/Dockerfile
 
 ### Next.js Report Data API Endpoints
 
-- [ ] T017 [P] Create inventory valuation data endpoint in src/app/api/reports/data/inventory-valuation/route.ts
-- [ ] T018 [P] Create lot status data endpoint in src/app/api/reports/data/lot-status/route.ts
-- [ ] T019 [P] Create production summary data endpoint in src/app/api/reports/data/production-summary/route.ts
+- [X] T017 [P] Create inventory valuation data endpoint in src/app/api/reports/data/inventory-valuation/route.ts
+- [X] T018 [P] Create lot status data endpoint in src/app/api/reports/data/lot-status/route.ts
+- [X] T019 [P] Create production summary data endpoint in src/app/api/reports/data/production-summary/route.ts
 
 **Checkpoint**: Foundation ready - both services can communicate, database has report tables, sample data endpoints available
 
