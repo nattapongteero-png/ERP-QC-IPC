@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { PageHeader } from '@/components/ui/page-header';
 import { ArrowLeft, Save, Wand2 } from 'lucide-react';
 
@@ -101,20 +101,20 @@ export default function NewCustomerPage() {
           description="สร้างลูกค้าใหม่"
           actions={
             <div className="flex gap-2">
-              <Button
-                variant="secondary"
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
                 onClick={() => router.push('/sales/customers')}
-                leftIcon={<ArrowLeft className="h-4 w-4" />}
-              >
-                Back
-              </Button>
-              <Button
+              />
+              <DxButton
+                text={isSaving ? 'Saving...' : 'Save Customer'}
+                icon="save"
+                type="success"
                 onClick={handleSave}
                 disabled={isSaving}
-                leftIcon={<Save className="h-4 w-4" />}
-              >
-                {isSaving ? 'Saving...' : 'Save Customer'}
-              </Button>
+              />
             </div>
           }
         />
@@ -130,106 +130,132 @@ export default function NewCustomerPage() {
                   Customer Code <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
-                  <Input
-                    value={form.code}
-                    onChange={(e) => setForm({ ...form, code: e.target.value })}
-                    placeholder="e.g., CUS001"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
+                  <div className="flex-1">
+                    <DxTextBox
+                      value={form.code}
+                      onValueChange={(value) => setForm({ ...form, code: value })}
+                      placeholder="e.g., CUS001"
+                    />
+                  </div>
+                  <DxButton
+                    icon="magic"
+                    type="normal"
+                    stylingMode="outlined"
                     onClick={handleGenerateCode}
                     disabled={isGeneratingCode}
-                    title="Generate Code"
-                  >
-                    <Wand2 className={`h-4 w-4 ${isGeneratingCode ? 'animate-spin' : ''}`} />
-                  </Button>
+                    hint="Generate Code"
+                  />
                 </div>
               </div>
-              <Input
-                label="Customer Name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-                placeholder="e.g., ABC Trading Co., Ltd."
-              />
-              <Input
-                label="Contact Person"
-                value={form.contactPerson}
-                onChange={(e) =>
-                  setForm({ ...form, contactPerson: e.target.value })
-                }
-                placeholder="e.g., John Doe"
-              />
-              <Input
-                label="Phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="e.g., 02-xxx-xxxx"
-              />
-              <Input
-                label="Email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="e.g., contact@customer.com"
-              />
-              <Input
-                label="Tax ID"
-                value={form.taxId}
-                onChange={(e) => setForm({ ...form, taxId: e.target.value })}
-                placeholder="e.g., 0-1234-56789-01-2"
-              />
-              <Select
-                label="Customer Type"
-                options={customerTypes}
-                value={form.customerType}
-                onChange={(e) =>
-                  setForm({ ...form, customerType: e.target.value })
-                }
-              />
-              <Input
-                label="Credit Limit (THB)"
-                type="number"
-                value={form.creditLimit}
-                onChange={(e) =>
-                  setForm({ ...form, creditLimit: e.target.value })
-                }
-                placeholder="e.g., 100000"
-              />
-              <Input
-                label="Credit Term (days)"
-                type="number"
-                value={form.creditTermDays}
-                onChange={(e) =>
-                  setForm({ ...form, creditTermDays: e.target.value })
-                }
-                placeholder="e.g., 30"
-              />
-              <Input
-                label="Payment Terms"
-                value={form.paymentTerms}
-                onChange={(e) =>
-                  setForm({ ...form, paymentTerms: e.target.value })
-                }
-                placeholder="e.g., Net 30"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer Name <span className="text-red-500">*</span>
+                </label>
+                <DxTextBox
+                  value={form.name}
+                  onValueChange={(value) => setForm({ ...form, name: value })}
+                  placeholder="e.g., ABC Trading Co., Ltd."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact Person
+                </label>
+                <DxTextBox
+                  value={form.contactPerson}
+                  onValueChange={(value) => setForm({ ...form, contactPerson: value })}
+                  placeholder="e.g., John Doe"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
+                </label>
+                <DxTextBox
+                  value={form.phone}
+                  onValueChange={(value) => setForm({ ...form, phone: value })}
+                  placeholder="e.g., 02-xxx-xxxx"
+                  mode="tel"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <DxTextBox
+                  value={form.email}
+                  onValueChange={(value) => setForm({ ...form, email: value })}
+                  placeholder="e.g., contact@customer.com"
+                  mode="email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tax ID
+                </label>
+                <DxTextBox
+                  value={form.taxId}
+                  onValueChange={(value) => setForm({ ...form, taxId: value })}
+                  placeholder="e.g., 0-1234-56789-01-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer Type
+                </label>
+                <DxSelectBox
+                  items={customerTypes}
+                  value={form.customerType}
+                  onValueChange={(value) => setForm({ ...form, customerType: value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Credit Limit (THB)
+                </label>
+                <DxTextBox
+                  value={form.creditLimit}
+                  onValueChange={(value) => setForm({ ...form, creditLimit: value })}
+                  placeholder="e.g., 100000"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Credit Term (days)
+                </label>
+                <DxTextBox
+                  value={form.creditTermDays}
+                  onValueChange={(value) => setForm({ ...form, creditTermDays: value })}
+                  placeholder="e.g., 30"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Terms
+                </label>
+                <DxTextBox
+                  value={form.paymentTerms}
+                  onValueChange={(value) => setForm({ ...form, paymentTerms: value })}
+                  placeholder="e.g., Net 30"
+                />
+              </div>
               <div className="md:col-span-2">
-                <Input
-                  label="Address"
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
+                </label>
+                <DxTextBox
                   value={form.address}
-                  onChange={(e) =>
-                    setForm({ ...form, address: e.target.value })
-                  }
+                  onValueChange={(value) => setForm({ ...form, address: value })}
                   placeholder="e.g., 123 Main Street, Bangkok 10110"
                 />
               </div>
               <div className="md:col-span-2">
-                <Input
-                  label="Notes"
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <DxTextBox
                   value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  onValueChange={(value) => setForm({ ...form, notes: value })}
                   placeholder="Additional notes about this customer..."
                 />
               </div>

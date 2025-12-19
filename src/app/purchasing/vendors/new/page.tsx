@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { PageHeader } from '@/components/ui/page-header';
-import { ArrowLeft, Save } from 'lucide-react';
 
 export default function NewVendorPage() {
   const router = useRouter();
@@ -65,12 +65,20 @@ export default function NewVendorPage() {
           description="สร้างผู้ขายใหม่"
           actions={
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => router.push('/purchasing/vendors')} leftIcon={<ArrowLeft className="h-4 w-4" />}>
-                Back
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving} leftIcon={<Save className="h-4 w-4" />}>
-                {isSaving ? 'Saving...' : 'Save Vendor'}
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/purchasing/vendors')}
+              />
+              <DxButton
+                text={isSaving ? 'Saving...' : 'Save Vendor'}
+                icon="save"
+                type="success"
+                onClick={handleSave}
+                disabled={isSaving}
+              />
             </div>
           }
         />
@@ -81,85 +89,109 @@ export default function NewVendorPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Vendor Code"
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value })}
-                required
-                placeholder="e.g., VND001"
-              />
-              <Input
-                label="Vendor Name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-                placeholder="e.g., ABC Supplies Co., Ltd."
-              />
-              <Input
-                label="Contact Person"
-                value={form.contactPerson}
-                onChange={(e) => setForm({ ...form, contactPerson: e.target.value })}
-                placeholder="e.g., John Doe"
-              />
-              <Input
-                label="Phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="e.g., 02-xxx-xxxx"
-              />
-              <Input
-                label="Email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="e.g., contact@vendor.com"
-              />
-              <Input
-                label="Tax ID"
-                value={form.taxId}
-                onChange={(e) => setForm({ ...form, taxId: e.target.value })}
-                placeholder="e.g., 0-1234-56789-01-2"
-              />
-              <Input
-                label="Lead Time (days)"
-                type="number"
-                value={form.leadTimeDays}
-                onChange={(e) => setForm({ ...form, leadTimeDays: e.target.value })}
-                placeholder="e.g., 7"
-              />
-              <Input
-                label="Payment Terms"
-                value={form.paymentTerms}
-                onChange={(e) => setForm({ ...form, paymentTerms: e.target.value })}
-                placeholder="e.g., Net 30"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Vendor Code <span className="text-red-500">*</span>
+                </label>
+                <DxTextBox
+                  value={form.code}
+                  onValueChange={(value) => setForm({ ...form, code: value })}
+                  placeholder="e.g., VND001"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Vendor Name <span className="text-red-500">*</span>
+                </label>
+                <DxTextBox
+                  value={form.name}
+                  onValueChange={(value) => setForm({ ...form, name: value })}
+                  placeholder="e.g., ABC Supplies Co., Ltd."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact Person
+                </label>
+                <DxTextBox
+                  value={form.contactPerson}
+                  onValueChange={(value) => setForm({ ...form, contactPerson: value })}
+                  placeholder="e.g., John Doe"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
+                </label>
+                <DxTextBox
+                  value={form.phone}
+                  onValueChange={(value) => setForm({ ...form, phone: value })}
+                  placeholder="e.g., 02-xxx-xxxx"
+                  mode="tel"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <DxTextBox
+                  value={form.email}
+                  onValueChange={(value) => setForm({ ...form, email: value })}
+                  placeholder="e.g., contact@vendor.com"
+                  mode="email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tax ID
+                </label>
+                <DxTextBox
+                  value={form.taxId}
+                  onValueChange={(value) => setForm({ ...form, taxId: value })}
+                  placeholder="e.g., 0-1234-56789-01-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Lead Time (days)
+                </label>
+                <DxTextBox
+                  value={form.leadTimeDays}
+                  onValueChange={(value) => setForm({ ...form, leadTimeDays: value })}
+                  placeholder="e.g., 7"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Terms
+                </label>
+                <DxTextBox
+                  value={form.paymentTerms}
+                  onValueChange={(value) => setForm({ ...form, paymentTerms: value })}
+                  placeholder="e.g., Net 30"
+                />
+              </div>
               <div className="md:col-span-2">
-                <Input
-                  label="Address"
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
+                </label>
+                <DxTextBox
                   value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  onValueChange={(value) => setForm({ ...form, address: value })}
                   placeholder="e.g., 123 Main Street, Bangkok 10110"
                 />
               </div>
               <div className="md:col-span-2 flex gap-6 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.isApproved}
-                    onChange={(e) => setForm({ ...form, isApproved: e.target.checked })}
-                    className="rounded border-gray-300"
-                  />
-                  <span className="text-sm text-gray-700">Approved Vendor</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.isVMI}
-                    onChange={(e) => setForm({ ...form, isVMI: e.target.checked })}
-                    className="rounded border-gray-300"
-                  />
-                  <span className="text-sm text-gray-700">VMI Vendor</span>
-                </label>
+                <DxCheckBox
+                  text="Approved Vendor (ผู้ขายที่ได้รับการอนุมัติ)"
+                  value={form.isApproved}
+                  onValueChange={(value) => setForm({ ...form, isApproved: value })}
+                />
+                <DxCheckBox
+                  text="VMI Vendor"
+                  value={form.isVMI}
+                  onValueChange={(value) => setForm({ ...form, isVMI: value })}
+                />
               </div>
             </div>
           </CardContent>

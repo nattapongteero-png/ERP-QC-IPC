@@ -4,13 +4,13 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
-import { Table } from '@/components/ui/table';
 import { ArrowLeft, Package, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 
 interface BOM {
@@ -238,6 +238,44 @@ function NewWorkOrderContent() {
     }
   };
 
+  const bomOptions = [
+    { value: '', label: '-- เลือก BOM --' },
+    ...boms.map((bom) => ({
+      value: bom.id.toString(),
+      label: `${bom.code} - ${bom.name} (${bom.productCode})`,
+    })),
+  ];
+
+  const materialColumns: DxDataGridColumn[] = [
+    { dataField: 'itemCode', caption: 'รหัสสินค้า', width: 120 },
+    { dataField: 'itemName', caption: 'ชื่อสินค้า' },
+    {
+      dataField: 'requiredQuantity',
+      caption: 'ต้องการ',
+      width: 120,
+      cellRender: (cellInfo) => `${cellInfo.data.requiredQuantity.toLocaleString()} ${cellInfo.data.unit}`,
+    },
+    {
+      dataField: 'availableStock',
+      caption: 'คงคลัง',
+      width: 120,
+      cellRender: (cellInfo) => `${cellInfo.data.availableStock.toLocaleString()} ${cellInfo.data.unit}`,
+    },
+    {
+      dataField: 'shortage',
+      caption: 'ขาด',
+      width: 120,
+      cellRender: (cellInfo) =>
+        cellInfo.data.shortage > 0 ? (
+          <span className="text-red-600 font-medium">
+            -{cellInfo.data.shortage.toLocaleString()} {cellInfo.data.unit}
+          </span>
+        ) : (
+          <span className="text-green-600">OK</span>
+        ),
+    },
+  ];
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -245,13 +283,12 @@ function NewWorkOrderContent() {
           title="Create Work Order"
           description="สร้างใบสั่งผลิตใหม่"
           backButton={
-            <Button
-              variant="ghost"
-              size="icon"
+            <DxButton
+              icon="back"
+              type="normal"
+              stylingMode="text"
               onClick={() => router.push('/production/work-orders')}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+            />
           }
         />
 
@@ -266,34 +303,35 @@ function NewWorkOrderContent() {
               <CardContent className="space-y-4">
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <Input
+                    <DxTextBox
                       placeholder="Search BOM by code or name..."
                       value={bomSearch}
-                      onChange={(e) => setBomSearch(e.target.value)}
-                      onSearch={() => fetchBoms(bomSearch, !!bomIdParam)}
-                      variant="search"
+                      onValueChange={setBomSearch}
+                      mode="search"
+                      showClearButton
+                      onEnterKey={() => fetchBoms(bomSearch, !!bomIdParam)}
                     />
                   </div>
-                  <Button variant="secondary" onClick={() => fetchBoms(bomSearch, !!bomIdParam)}>
-                    Search
-                  </Button>
+                  <DxButton
+                    text="Search"
+                    type="normal"
+                    stylingMode="outlined"
+                    onClick={() => fetchBoms(bomSearch, !!bomIdParam)}
+                  />
                 </div>
 
                 {errors.bom && <p className="text-sm text-red-600">{errors.bom}</p>}
 
-                <Select
-                  label="Select BOM"
-                  value={selectedBom?.id?.toString() || ''}
-                  onChange={(e) => handleBomSelect(e.target.value)}
-                  error={errors.bom}
-                >
-                  <option value="">-- Select a BOM --</option>
-                  {boms.map((bom) => (
-                    <option key={bom.id} value={bom.id}>
-                      {bom.code} - {bom.name} ({bom.productCode})
-                    </option>
-                  ))}
-                </Select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select BOM</label>
+                  <DxSelectBox
+                    items={bomOptions}
+                    value={selectedBom?.id?.toString() || ''}
+                    onValueChange={handleBomSelect}
+                    disabled={isLoading}
+                    placeholder="-- เลือก BOM --"
+                  />
+                </div>
 
                 {selectedBom && (
                   <div className="mt-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
@@ -338,85 +376,100 @@ function NewWorkOrderContent() {
                   <div>
                     <div className="flex items-end gap-2">
                       <div className="flex-1">
-                        <Input
-                          label="Batch Number"
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Batch Number <span className="text-red-500">*</span>
+                        </label>
+                        <DxTextBox
                           value={formData.batchNumber}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, batchNumber: e.target.value }))
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({ ...prev, batchNumber: value }))
                           }
-                          error={errors.batchNumber}
                           placeholder="e.g., PRD-240101-001"
                         />
                       </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
+                      <DxButton
+                        text="Generate"
+                        type="normal"
+                        stylingMode="outlined"
                         onClick={generateBatchNumber}
                         disabled={!selectedBom}
-                        className="mb-0.5"
-                      >
-                        Generate
-                      </Button>
+                      />
                     </div>
+                    {errors.batchNumber && (
+                      <p className="text-sm text-red-600 mt-1">{errors.batchNumber}</p>
+                    )}
                   </div>
 
-                  <Input
-                    label="Planned Quantity"
-                    type="number"
-                    value={formData.plannedQuantity}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, plannedQuantity: e.target.value }))
-                    }
-                    error={errors.plannedQuantity}
-                    placeholder="Enter quantity"
-                    rightIcon={
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Planned Quantity <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <DxTextBox
+                          value={formData.plannedQuantity}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({ ...prev, plannedQuantity: value }))
+                          }
+                          placeholder="Enter quantity"
+                        />
+                      </div>
                       <span className="text-gray-400 text-sm">
                         {selectedBom?.productUnit || selectedBom?.batchUnit || 'unit'}
                       </span>
-                    }
-                  />
+                    </div>
+                    {errors.plannedQuantity && (
+                      <p className="text-sm text-red-600 mt-1">{errors.plannedQuantity}</p>
+                    )}
+                  </div>
 
-                  <Select
-                    label="Priority"
-                    value={formData.priority}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, priority: e.target.value }))
-                    }
-                    options={priorityOptions}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                    <DxSelectBox
+                      items={priorityOptions}
+                      value={formData.priority}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, priority: value }))
+                      }
+                    />
+                  </div>
 
                   <div></div>
 
-                  <DatePicker
-                    label="Planned Start Date"
-                    value={formData.plannedStartDate}
-                    onChange={(value) =>
-                      setFormData((prev) => ({ ...prev, plannedStartDate: value }))
-                    }
-                    max={formData.plannedEndDate || undefined}
-                    showQuickActions={false}
-                    size="sm"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Planned Start Date
+                    </label>
+                    <DxDateBox
+                      value={formData.plannedStartDate}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, plannedStartDate: value || '' }))
+                      }
+                      max={formData.plannedEndDate || undefined}
+                      placeholder="เลือกวันเริ่มต้น"
+                    />
+                  </div>
 
-                  <DatePicker
-                    label="Planned End Date"
-                    value={formData.plannedEndDate}
-                    onChange={(value) =>
-                      setFormData((prev) => ({ ...prev, plannedEndDate: value }))
-                    }
-                    min={formData.plannedStartDate || undefined}
-                    showQuickActions={false}
-                    size="sm"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Planned End Date
+                    </label>
+                    <DxDateBox
+                      value={formData.plannedEndDate}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, plannedEndDate: value || '' }))
+                      }
+                      min={formData.plannedStartDate || undefined}
+                      placeholder="เลือกวันสิ้นสุด"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
-                  <textarea
-                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-base focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all"
-                    rows={3}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <DxTextBox
                     value={formData.notes}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, notes: value }))}
                     placeholder="Any additional notes..."
                   />
                 </div>
@@ -476,36 +529,12 @@ function NewWorkOrderContent() {
                       </div>
 
                       {/* Materials Table */}
-                      <Table
-                        columns={[
-                          { key: 'itemCode', header: 'Item Code' },
-                          { key: 'itemName', header: 'Item Name' },
-                          {
-                            key: 'required',
-                            header: 'Required',
-                            render: (m: Material) => `${m.requiredQuantity.toLocaleString()} ${m.unit}`,
-                          },
-                          {
-                            key: 'available',
-                            header: 'Available',
-                            render: (m: Material) => `${m.availableStock.toLocaleString()} ${m.unit}`,
-                          },
-                          {
-                            key: 'shortage',
-                            header: 'Shortage',
-                            render: (m: Material) =>
-                              m.shortage > 0 ? (
-                                <span className="text-red-600 font-medium">
-                                  -{m.shortage.toLocaleString()} {m.unit}
-                                </span>
-                              ) : (
-                                <span className="text-green-600">OK</span>
-                              ),
-                          },
-                        ]}
-                        data={bomExplosion.materials}
-                        keyField="itemId"
-                        compact
+                      <DxDataGrid
+                        dataSource={bomExplosion.materials}
+                        keyExpr="itemId"
+                        columns={materialColumns}
+                        height={300}
+                        noDataText="ไม่พบวัตถุดิบ"
                       />
 
                       {bomExplosion.summary.hasShortage && (
@@ -606,21 +635,20 @@ function NewWorkOrderContent() {
                 )}
               </CardContent>
               <CardFooter className="flex flex-col gap-3">
-                <Button
+                <DxButton
+                  text="Create Work Order"
+                  type="success"
+                  width="100%"
                   onClick={handleSubmit}
                   disabled={!selectedBom || !formData.batchNumber || !formData.plannedQuantity || isSubmitting}
-                  loading={isSubmitting}
-                  fullWidth
-                >
-                  Create Work Order
-                </Button>
-                <Button
-                  variant="secondary"
+                />
+                <DxButton
+                  text="Cancel"
+                  type="normal"
+                  stylingMode="outlined"
+                  width="100%"
                   onClick={() => router.push('/production/work-orders')}
-                  fullWidth
-                >
-                  Cancel
-                </Button>
+                />
               </CardFooter>
             </Card>
           </div>
