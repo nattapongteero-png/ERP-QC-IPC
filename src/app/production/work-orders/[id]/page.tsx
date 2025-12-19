@@ -684,7 +684,7 @@ export default function WorkOrderDetailPage() {
             <Card>
               <CardHeader>
                 <div className="text-center">
-                  <h2 className="text-xl font-bold">Electronic Batch Manufacturing Record (eBMR)</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Electronic Batch Manufacturing Record (eBMR)</h2>
                   <p className="text-gray-600">Production Record</p>
                 </div>
               </CardHeader>
@@ -692,12 +692,12 @@ export default function WorkOrderDetailPage() {
                 <div className="grid grid-cols-3 gap-4 border p-4 rounded-lg">
                   <div>
                     <p className="text-sm text-gray-500">Batch Number</p>
-                    <p className="font-bold text-lg">{ebmr.batchNumber || 'N/A'}</p>
+                    <p className="font-bold text-lg text-gray-900">{ebmr.batchNumber || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Product</p>
-                    <p className="font-bold">{ebmr.productCode}</p>
-                    <p className="text-sm text-gray-600">{ebmr.productName}</p>
+                    <p className="font-bold text-gray-900">{ebmr.productCode}</p>
+                    <p className="text-sm text-gray-700">{ebmr.productName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Status</p>
@@ -718,11 +718,11 @@ export default function WorkOrderDetailPage() {
                 <div className="grid grid-cols-4 gap-4">
                   <div className="border p-3 rounded-lg text-center">
                     <p className="text-sm text-gray-500">Planned Quantity</p>
-                    <p className="text-xl font-bold">{ebmr.plannedQty}</p>
+                    <p className="text-xl font-bold text-gray-900">{ebmr.plannedQty}</p>
                   </div>
                   <div className="border p-3 rounded-lg text-center">
                     <p className="text-sm text-gray-500">Actual Quantity</p>
-                    <p className="text-xl font-bold">{ebmr.actualQty || '-'}</p>
+                    <p className="text-xl font-bold text-gray-900">{ebmr.actualQty || '-'}</p>
                   </div>
                   <div className="border p-3 rounded-lg text-center">
                     <p className="text-sm text-gray-500">Yield</p>
@@ -732,7 +732,7 @@ export default function WorkOrderDetailPage() {
                   </div>
                   <div className="border p-3 rounded-lg text-center">
                     <p className="text-sm text-gray-500">Production Time</p>
-                    <p className="text-xl font-bold">{ebmr.productionTimeHours ? `${ebmr.productionTimeHours}h` : '-'}</p>
+                    <p className="text-xl font-bold text-gray-900">{ebmr.productionTimeHours ? `${ebmr.productionTimeHours}h` : '-'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -747,13 +747,13 @@ export default function WorkOrderDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="border p-3 rounded-lg">
                     <p className="text-sm text-gray-500 font-medium">Planned</p>
-                    <p>Start: {ebmr.timeline.plannedStart ? new Date(ebmr.timeline.plannedStart).toLocaleString('th-TH') : '-'}</p>
-                    <p>End: {ebmr.timeline.plannedEnd ? new Date(ebmr.timeline.plannedEnd).toLocaleString('th-TH') : '-'}</p>
+                    <p className="text-gray-900">Start: {ebmr.timeline.plannedStart ? new Date(ebmr.timeline.plannedStart).toLocaleString('th-TH') : '-'}</p>
+                    <p className="text-gray-900">End: {ebmr.timeline.plannedEnd ? new Date(ebmr.timeline.plannedEnd).toLocaleString('th-TH') : '-'}</p>
                   </div>
                   <div className="border p-3 rounded-lg">
                     <p className="text-sm text-gray-500 font-medium">Actual</p>
-                    <p>Start: {ebmr.timeline.actualStart ? new Date(ebmr.timeline.actualStart).toLocaleString('th-TH') : '-'}</p>
-                    <p>End: {ebmr.timeline.actualEnd ? new Date(ebmr.timeline.actualEnd).toLocaleString('th-TH') : '-'}</p>
+                    <p className="text-gray-900">Start: {ebmr.timeline.actualStart ? new Date(ebmr.timeline.actualStart).toLocaleString('th-TH') : '-'}</p>
+                    <p className="text-gray-900">End: {ebmr.timeline.actualEnd ? new Date(ebmr.timeline.actualEnd).toLocaleString('th-TH') : '-'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -768,23 +768,23 @@ export default function WorkOrderDetailPage() {
                 <table className="w-full border-collapse border">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border p-2 text-left">Item Code</th>
-                      <th className="border p-2 text-left">Item Name</th>
-                      <th className="border p-2 text-left">Lot Number</th>
-                      <th className="border p-2 text-right">Planned</th>
-                      <th className="border p-2 text-right">Actual</th>
-                      <th className="border p-2 text-right">Variance</th>
+                      <th className="border p-2 text-left text-gray-700">Item Code</th>
+                      <th className="border p-2 text-left text-gray-700">Item Name</th>
+                      <th className="border p-2 text-left text-gray-700">Lot Number</th>
+                      <th className="border p-2 text-right text-gray-700">Planned</th>
+                      <th className="border p-2 text-right text-gray-700">Actual</th>
+                      <th className="border p-2 text-right text-gray-700">Variance</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ebmr.materials.map((mat: any, index: number) => (
                       <tr key={index}>
-                        <td className="border p-2">{mat.itemCode}</td>
-                        <td className="border p-2">{mat.itemName}</td>
-                        <td className="border p-2">{mat.lotNumber || '-'}</td>
-                        <td className="border p-2 text-right">{mat.plannedQty} {mat.itemUnit}</td>
-                        <td className="border p-2 text-right">{mat.actualQty || '-'}</td>
-                        <td className="border p-2 text-right">{mat.variance !== null ? mat.variance : '-'}</td>
+                        <td className="border p-2 text-gray-900">{mat.itemCode}</td>
+                        <td className="border p-2 text-gray-900">{mat.itemName}</td>
+                        <td className="border p-2 text-gray-900">{mat.lotNumber || '-'}</td>
+                        <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {mat.itemUnit}</td>
+                        <td className="border p-2 text-right text-gray-900">{mat.actualQty || '-'}</td>
+                        <td className="border p-2 text-right text-gray-900">{mat.variance !== null ? mat.variance : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -801,21 +801,21 @@ export default function WorkOrderDetailPage() {
                 <table className="w-full border-collapse border">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border p-2 text-left">Test Code</th>
-                      <th className="border p-2 text-left">Test Type</th>
-                      <th className="border p-2 text-left">Result</th>
-                      <th className="border p-2 text-left">Tested At</th>
+                      <th className="border p-2 text-left text-gray-700">Test Code</th>
+                      <th className="border p-2 text-left text-gray-700">Test Type</th>
+                      <th className="border p-2 text-left text-gray-700">Result</th>
+                      <th className="border p-2 text-left text-gray-700">Tested At</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ebmr.qcTests.map((test: any, index: number) => (
                       <tr key={index}>
-                        <td className="border p-2">{test.testCode}</td>
-                        <td className="border p-2">{test.testType}</td>
-                        <td className="border p-2">
+                        <td className="border p-2 text-gray-900">{test.testCode}</td>
+                        <td className="border p-2 text-gray-900">{test.testType}</td>
+                        <td className="border p-2 text-gray-900">
                           <Badge variant={getStatusVariant(test.result)}>{test.result || test.status}</Badge>
                         </td>
-                        <td className="border p-2">{test.testedAt ? new Date(test.testedAt).toLocaleString('th-TH') : '-'}</td>
+                        <td className="border p-2 text-gray-900">{test.testedAt ? new Date(test.testedAt).toLocaleString('th-TH') : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -833,22 +833,22 @@ export default function WorkOrderDetailPage() {
                   <div className="border p-4 rounded-lg text-center">
                     <p className="text-sm text-gray-500 mb-8">Produced By</p>
                     <div className="border-t pt-2">
-                      <p className="text-sm">Name: _________________</p>
-                      <p className="text-sm">Date: _________________</p>
+                      <p className="text-sm text-gray-900">Name: _________________</p>
+                      <p className="text-sm text-gray-900">Date: _________________</p>
                     </div>
                   </div>
                   <div className="border p-4 rounded-lg text-center">
                     <p className="text-sm text-gray-500 mb-8">Verified By (QC)</p>
                     <div className="border-t pt-2">
-                      <p className="text-sm">Name: _________________</p>
-                      <p className="text-sm">Date: _________________</p>
+                      <p className="text-sm text-gray-900">Name: _________________</p>
+                      <p className="text-sm text-gray-900">Date: _________________</p>
                     </div>
                   </div>
                   <div className="border p-4 rounded-lg text-center">
                     <p className="text-sm text-gray-500 mb-8">Approved By (QA)</p>
                     <div className="border-t pt-2">
-                      <p className="text-sm">Name: _________________</p>
-                      <p className="text-sm">Date: _________________</p>
+                      <p className="text-sm text-gray-900">Name: _________________</p>
+                      <p className="text-sm text-gray-900">Date: _________________</p>
                     </div>
                   </div>
                 </div>
