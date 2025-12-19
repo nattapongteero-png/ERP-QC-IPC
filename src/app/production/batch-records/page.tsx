@@ -304,7 +304,6 @@ export default function BatchRecordsPage() {
                 headerFilter
                 export
                 exportFileName="batch-records"
-                searchPanel
                 columnChooser
                 virtualScrolling={records.length > 100}
                 fillHeight

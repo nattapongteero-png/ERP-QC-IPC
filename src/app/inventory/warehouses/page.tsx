@@ -382,7 +382,6 @@ export default function WarehousesPage() {
                 headerFilter
                 export
                 exportFileName="warehouses"
-                searchPanel
                 columnChooser
                 virtualScrolling={warehouses.length > 100}
                 fillHeight

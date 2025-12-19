@@ -370,7 +370,6 @@ export default function ItemsPage() {
                 headerFilter
                 export
                 exportFileName="items"
-                searchPanel
                 columnChooser
                 virtualScrolling={items.length > 100}
                 height={600}

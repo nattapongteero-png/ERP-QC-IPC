@@ -229,7 +229,6 @@ export default function UsersPage() {
                 headerFilter
                 export
                 exportFileName="users"
-                searchPanel
                 columnChooser
                 virtualScrolling={users.length > 100}
                 fillHeight

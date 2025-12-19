@@ -378,7 +378,6 @@ export default function QualityTestsPage() {
                 headerFilter
                 export
                 exportFileName="quality-tests"
-                searchPanel
                 columnChooser
                 virtualScrolling={tests.length > 100}
                 fillHeight

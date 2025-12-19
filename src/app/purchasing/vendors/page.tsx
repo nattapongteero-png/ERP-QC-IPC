@@ -225,7 +225,6 @@ export default function VendorsPage() {
                 headerFilter
                 export
                 exportFileName="vendors"
-                searchPanel
                 columnChooser
                 virtualScrolling={vendors.length > 100}
                 fillHeight

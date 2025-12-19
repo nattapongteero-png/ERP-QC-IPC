@@ -252,7 +252,6 @@ export default function WorkOrdersPage() {
                 headerFilter
                 export
                 exportFileName="work-orders"
-                searchPanel
                 columnChooser
                 virtualScrolling={workOrders.length > 100}
                 fillHeight

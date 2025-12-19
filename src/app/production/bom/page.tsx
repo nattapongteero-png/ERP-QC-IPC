@@ -218,7 +218,6 @@ export default function BOMListPage() {
                 headerFilter
                 export
                 exportFileName="bom-list"
-                searchPanel
                 columnChooser
                 virtualScrolling={boms.length > 100}
                 fillHeight

@@ -624,7 +624,6 @@ export default function LotsPage() {
                 headerFilter
                 export
                 exportFileName="inventory-lots"
-                searchPanel
                 columnChooser
                 virtualScrolling={lots.length > 100}
                 fillHeight

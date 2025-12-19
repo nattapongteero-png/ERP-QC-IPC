@@ -383,7 +383,6 @@ export default function DeviationsPage() {
                 headerFilter
                 export
                 exportFileName="deviations"
-                searchPanel
                 columnChooser
                 virtualScrolling={deviations.length > 100}
                 fillHeight

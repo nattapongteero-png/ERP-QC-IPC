@@ -299,7 +299,6 @@ export default function QualitySpecsPage() {
                 headerFilter
                 export
                 exportFileName="quality-specs"
-                searchPanel
                 columnChooser
                 virtualScrolling={specs.length > 100}
                 fillHeight

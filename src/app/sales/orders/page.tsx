@@ -231,7 +231,6 @@ export default function SalesOrdersPage() {
                 headerFilter
                 export
                 exportFileName="sales-orders"
-                searchPanel
                 columnChooser
                 virtualScrolling={orders.length > 100}
                 fillHeight
