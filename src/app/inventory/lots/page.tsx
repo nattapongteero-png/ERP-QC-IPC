@@ -11,16 +11,10 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Table } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  Plus, Search, CheckCircle, XCircle, Clock, AlertTriangle,
-  Package, ArrowRight, Eye, Loader2, BoxSelect, Check, ChevronRight
+  Plus, CheckCircle, XCircle, Clock, AlertTriangle,
+  Package, ArrowRight, Eye, BoxSelect, ChevronRight
 } from 'lucide-react';
+import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-search-dialog';
 
 interface Lot {
   id: number;
@@ -58,14 +52,7 @@ interface LotFormData {
   notes: string;
 }
 
-interface Item {
-  id: number;
-  code: string;
-  nameTh: string;
-  nameEn: string | null;
-  primaryUnit: string;
-  type: string;
-}
+// Use Item type from ItemSearchDialog component
 
 const statusOptions = [
   { value: '', label: 'All Status' },
@@ -135,11 +122,7 @@ export default function LotsPage() {
 
   // Item search dialog state
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
-  const [itemSearch, setItemSearch] = useState('');
-  const [searchItems, setSearchItems] = useState<Item[]>([]);
-  const [itemsLoading, setItemsLoading] = useState(false);
-  const [selectedItemTemp, setSelectedItemTemp] = useState<Item | null>(null);
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SearchItem | null>(null);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -177,6 +160,10 @@ export default function LotsPage() {
       if (mfgDate >= expDate) {
         errors.manufacturingDate = 'Manufacturing date must be before expiry date';
       }
+    }
+
+    if (!formData.cost || formData.cost <= 0) {
+      errors.cost = 'Cost per unit is required and must be greater than 0';
     }
 
     setFormErrors(errors);
@@ -231,79 +218,16 @@ export default function LotsPage() {
     fetchMasterData();
   }, [pagination.page, statusFilter]);
 
-  // Debounced item search for dialog
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (itemSearch.length >= 1 && itemDialogOpen) {
-        searchItemsApi();
-      } else if (itemSearch.length === 0 && itemDialogOpen) {
-        loadRecentItems();
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [itemSearch, itemDialogOpen]);
-
-  // Load recent items when dialog opens
-  useEffect(() => {
-    if (itemDialogOpen && searchItems.length === 0) {
-      loadRecentItems();
+  const handleSelectItem = (item: SearchItem) => {
+    setSelectedItem(item);
+    setFormData(prev => ({
+      ...prev,
+      itemId: item.id,
+      unit: item.primaryUnit,
+    }));
+    if (formErrors.itemId) {
+      setFormErrors(prev => ({ ...prev, itemId: '' }));
     }
-  }, [itemDialogOpen]);
-
-  const loadRecentItems = async () => {
-    setItemsLoading(true);
-    try {
-      const response = await fetch('/api/items?limit=20');
-      const result = await response.json();
-      if (result.success) {
-        setSearchItems(result.data?.items || []);
-      }
-    } catch (error) {
-      console.error('Failed to load items:', error);
-    } finally {
-      setItemsLoading(false);
-    }
-  };
-
-  const searchItemsApi = async () => {
-    setItemsLoading(true);
-    try {
-      const response = await fetch(`/api/items?search=${encodeURIComponent(itemSearch)}&limit=20`);
-      const result = await response.json();
-      if (result.success) {
-        setSearchItems(result.data?.items || []);
-      }
-    } catch (error) {
-      console.error('Failed to search items:', error);
-    } finally {
-      setItemsLoading(false);
-    }
-  };
-
-  const handleSelectItemTemp = (item: Item) => {
-    setSelectedItemTemp(item);
-  };
-
-  const handleConfirmItem = () => {
-    if (selectedItemTemp) {
-      setSelectedItem(selectedItemTemp);
-      setFormData(prev => ({
-        ...prev,
-        itemId: selectedItemTemp.id,
-        unit: selectedItemTemp.primaryUnit,
-      }));
-      if (formErrors.itemId) {
-        setFormErrors(prev => ({ ...prev, itemId: '' }));
-      }
-      setItemDialogOpen(false);
-      setItemSearch('');
-      setSelectedItemTemp(null);
-    }
-  };
-
-  const handleOpenItemDialog = () => {
-    setSelectedItemTemp(selectedItem);
-    setItemDialogOpen(true);
   };
 
   const handleSearch = () => {
@@ -392,9 +316,6 @@ export default function LotsPage() {
     });
     setFormErrors({});
     setSelectedItem(null);
-    setSelectedItemTemp(null);
-    setItemSearch('');
-    setSearchItems([]);
   };
 
   const generateLotNumber = () => {
@@ -630,7 +551,7 @@ export default function LotsPage() {
       {/* Create Lot Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold">Receive New Lot</h2>
               <p className="text-gray-600">รับสินค้าเข้าคลัง (สถานะ: Quarantine)</p>
@@ -688,14 +609,14 @@ export default function LotsPage() {
                           <p className="text-xs text-green-600">{selectedItem.nameTh}</p>
                         </div>
                       </div>
-                      <Button variant="secondary" size="sm" onClick={handleOpenItemDialog}>
+                      <Button variant="secondary" size="sm" onClick={() => setItemDialogOpen(true)}>
                         Change
                       </Button>
                     </div>
                   ) : (
                     <button
                       type="button"
-                      onClick={handleOpenItemDialog}
+                      onClick={() => setItemDialogOpen(true)}
                       className={`w-full flex items-center justify-between p-3 border-2 border-dashed rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors group ${formErrors.itemId ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                     >
                       <div className="flex items-center gap-2 text-gray-500 group-hover:text-green-600">
@@ -762,15 +683,23 @@ export default function LotsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cost per Unit
+                    Cost per Unit <span className="text-red-500">*</span>
                   </label>
                   <Input
                     type="number"
                     step="0.01"
                     value={formData.cost || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }));
+                      if (formErrors.cost) setFormErrors(prev => ({ ...prev, cost: '' }));
+                    }}
+                    className={formErrors.cost ? 'border-red-500' : ''}
                     min="0"
+                    placeholder="0.00"
                   />
+                  {formErrors.cost && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.cost}</p>
+                  )}
                 </div>
               </div>
 
@@ -987,130 +916,14 @@ export default function LotsPage() {
       )}
 
       {/* Item Selection Dialog */}
-      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-green-600" />
-              Select Item
-            </DialogTitle>
-            <DialogDescription>
-              Search and select an item to receive
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Search Input */}
-          <div className="relative">
-            <Input
-              placeholder="Search by item code or name..."
-              value={itemSearch}
-              onChange={(e) => setItemSearch(e.target.value)}
-              leftIcon={itemsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              autoFocus
-            />
-          </div>
-
-          {/* Item List */}
-          <div className="flex-1 overflow-auto min-h-[300px] border rounded-lg">
-            {itemsLoading && searchItems.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                Loading items...
-              </div>
-            ) : searchItems.length > 0 ? (
-              <div className="divide-y">
-                {searchItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSelectItemTemp(item)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between ${
-                      selectedItemTemp?.id === item.id ? 'bg-green-50 border-l-4 border-green-500' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                        selectedItemTemp?.id === item.id ? 'bg-green-100' : 'bg-gray-100'
-                      }`}>
-                        <Package className={`h-5 w-5 ${
-                          selectedItemTemp?.id === item.id ? 'text-green-600' : 'text-gray-500'
-                        }`} />
-                      </div>
-                      <div>
-                        <p className={`font-semibold ${
-                          selectedItemTemp?.id === item.id ? 'text-green-800' : 'text-gray-900'
-                        }`}>
-                          {item.code}
-                        </p>
-                        <p className={`text-sm ${
-                          selectedItemTemp?.id === item.id ? 'text-green-600' : 'text-gray-500'
-                        }`}>
-                          {item.nameTh}
-                        </p>
-                        {item.nameEn && (
-                          <p className="text-xs text-gray-400">{item.nameEn}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" size="sm">{item.type}</Badge>
-                      <Badge variant="default" size="sm">{item.primaryUnit}</Badge>
-                      {selectedItemTemp?.id === item.id && (
-                        <Check className="h-5 w-5 text-green-600" />
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : itemSearch.length > 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-                <Search className="h-12 w-12 text-gray-300 mb-3" />
-                <p className="font-medium">No items found</p>
-                <p className="text-sm text-center mt-1">
-                  Try a different search term or check if the item exists in the system
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-                <Package className="h-12 w-12 text-gray-300 mb-3" />
-                <p className="font-medium">No items available</p>
-                <p className="text-sm text-center mt-1">
-                  Create items in the Items module first
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <p className="text-sm text-gray-500">
-              {selectedItemTemp ? (
-                <>Selected: <span className="font-medium text-green-600">{selectedItemTemp.code} - {selectedItemTemp.nameTh}</span></>
-              ) : (
-                'Click on an item to select it'
-              )}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setItemDialogOpen(false);
-                  setItemSearch('');
-                  setSelectedItemTemp(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleConfirmItem}
-                disabled={!selectedItemTemp}
-              >
-                Select Item
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ItemSearchDialog
+        open={itemDialogOpen}
+        onOpenChange={setItemDialogOpen}
+        onSelect={handleSelectItem}
+        title="Select Item to Receive"
+        showPrice="cost"
+        showStock={true}
+      />
     </MainLayout>
   );
 }
