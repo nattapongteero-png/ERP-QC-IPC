@@ -154,6 +154,7 @@ export default function CustomersPage() {
       dataField: 'contactPerson',
       caption: 'ผู้ติดต่อ',
       width: 150,
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.contactPerson || '-',
     },
     {
@@ -166,6 +167,7 @@ export default function CustomersPage() {
       dataField: 'email',
       caption: 'อีเมล',
       width: 180,
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.email || '-',
     },
     {
@@ -173,6 +175,8 @@ export default function CustomersPage() {
       caption: 'วงเงินเครดิต',
       width: 140,
       dataType: 'number',
+      hideOnMobile: true,
+      hideOnTablet: true,
       cellRender: (cellInfo) => formatCurrency(cellInfo.data.creditLimit),
     },
     {
@@ -180,12 +184,15 @@ export default function CustomersPage() {
       caption: 'เครดิต (วัน)',
       width: 110,
       dataType: 'number',
+      hideOnMobile: true,
+      hideOnTablet: true,
       cellRender: (cellInfo) => cellInfo.data.creditTermDays ? `${cellInfo.data.creditTermDays} วัน` : '-',
     },
     {
       dataField: 'customerType',
       caption: 'ประเภท',
       width: 140,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <Badge variant={getTypeVariant(cellInfo.data.customerType)} dot>
           {formatCustomerType(cellInfo.data.customerType)}
@@ -274,6 +281,8 @@ export default function CustomersPage() {
                 columnChooser
                 virtualScrolling={customers.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบลูกค้า"
               />
