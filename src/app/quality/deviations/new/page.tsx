@@ -4,14 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { PageHeader } from '@/components/ui/page-header';
 import {
-  ArrowLeft,
-  Save,
   AlertTriangle,
   AlertCircle,
   AlertOctagon,
@@ -42,9 +40,7 @@ export default function NewDeviationPage() {
     dueDate: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!formData.title.trim()) {
       alert('Please enter a title');
       return;
@@ -73,10 +69,8 @@ export default function NewDeviationPage() {
       if (data.success) {
         router.push(`/quality/deviations/${data.data.id}`);
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to create deviation:', error);
-      // API errors handled by global error handler
     } finally {
       setIsSaving(false);
     }
@@ -127,242 +121,255 @@ export default function NewDeviationPage() {
           title="Report Deviation"
           description="Document a quality deviation for investigation"
           backButton={
-            <Button variant="ghost" size="sm" onClick={() => router.push('/quality/deviations')}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
+            <DxButton
+              text="Back"
+              icon="back"
+              type="normal"
+              stylingMode="text"
+              onClick={() => router.push('/quality/deviations')}
+            />
           }
         />
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Form */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Basic Information */}
-              <Card elevation="raised">
-                <CardHeader>
-                  <CardTitle>Deviation Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Input
-                      label="Title *"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Basic Information */}
+            <Card elevation="raised">
+              <CardHeader>
+                <CardTitle>Deviation Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <DxTextBox
                       placeholder="Brief description of the deviation"
                       value={formData.title}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, title: e.target.value }))
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, title: value }))
                       }
-                      required
                     />
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Description *
-                      </label>
-                      <textarea
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                        rows={5}
-                        placeholder="Provide detailed description of what happened, when, where, and any immediate actions taken..."
-                        value={formData.description}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, description: e.target.value }))
-                        }
-                        required
-                      />
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Classification */}
-              <Card elevation="raised">
-                <CardHeader>
-                  <CardTitle>Classification</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select
-                      label="Source Type"
-                      options={sourceTypeOptions}
-                      value={formData.sourceType}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      rows={5}
+                      placeholder="Provide detailed description of what happened, when, where, and any immediate actions taken..."
+                      value={formData.description}
                       onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, sourceType: e.target.value }))
+                        setFormData((prev) => ({ ...prev, description: e.target.value }))
                       }
                     />
-                    <Select
-                      label="Severity *"
-                      options={severityOptions}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Classification */}
+            <Card elevation="raised">
+              <CardHeader>
+                <CardTitle>Classification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Source Type
+                    </label>
+                    <DxSelectBox
+                      items={sourceTypeOptions}
+                      value={formData.sourceType}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, sourceType: value }))
+                      }
+                      placeholder="Select Source Type..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Severity <span className="text-red-500">*</span>
+                    </label>
+                    <DxSelectBox
+                      items={severityOptions}
                       value={formData.severity}
-                      onChange={(e) => {
-                        const newSeverity = e.target.value;
+                      onValueChange={(value) => {
                         setFormData((prev) => ({
                           ...prev,
-                          severity: newSeverity,
-                          dueDate: prev.dueDate || getDefaultDueDate(newSeverity),
+                          severity: value,
+                          dueDate: prev.dueDate || getDefaultDueDate(value),
                         }));
                       }}
                     />
                   </div>
+                </div>
 
-                  {/* Severity Description */}
-                  <div className={`mt-4 p-4 rounded-lg flex items-start gap-3 ${
-                    formData.severity === 'critical'
-                      ? 'bg-red-50 border border-red-200'
-                      : formData.severity === 'major'
-                      ? 'bg-yellow-50 border border-yellow-200'
-                      : 'bg-blue-50 border border-blue-200'
-                  }`}>
-                    {getSeverityIcon(formData.severity)}
-                    <div>
-                      <p className={`font-medium capitalize ${
-                        formData.severity === 'critical'
-                          ? 'text-red-800'
-                          : formData.severity === 'major'
-                          ? 'text-yellow-800'
-                          : 'text-blue-800'
-                      }`}>
-                        {formData.severity} Severity
-                      </p>
-                      <p className={`text-sm ${
-                        formData.severity === 'critical'
-                          ? 'text-red-600'
-                          : formData.severity === 'major'
-                          ? 'text-yellow-600'
-                          : 'text-blue-600'
-                      }`}>
-                        {getSeverityDescription(formData.severity)}
-                      </p>
-                    </div>
+                {/* Severity Description */}
+                <div className={`mt-4 p-4 rounded-lg flex items-start gap-3 ${
+                  formData.severity === 'critical'
+                    ? 'bg-red-50 border border-red-200'
+                    : formData.severity === 'major'
+                    ? 'bg-yellow-50 border border-yellow-200'
+                    : 'bg-blue-50 border border-blue-200'
+                }`}>
+                  {getSeverityIcon(formData.severity)}
+                  <div>
+                    <p className={`font-medium capitalize ${
+                      formData.severity === 'critical'
+                        ? 'text-red-800'
+                        : formData.severity === 'major'
+                        ? 'text-yellow-800'
+                        : 'text-blue-800'
+                    }`}>
+                      {formData.severity} Severity
+                    </p>
+                    <p className={`text-sm ${
+                      formData.severity === 'critical'
+                        ? 'text-red-600'
+                        : formData.severity === 'major'
+                        ? 'text-yellow-600'
+                        : 'text-blue-600'
+                    }`}>
+                      {getSeverityDescription(formData.severity)}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Timeline */}
-              <Card elevation="raised">
-                <CardHeader>
-                  <CardTitle>Timeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <DatePicker
-                      label="Due Date"
+            {/* Timeline */}
+            <Card elevation="raised">
+              <CardHeader>
+                <CardTitle>Timeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Due Date
+                    </label>
+                    <DxDateBox
                       value={formData.dueDate}
-                      onChange={(value) =>
-                        setFormData((prev) => ({ ...prev, dueDate: value }))
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, dueDate: value || '' }))
                       }
                       min={new Date().toISOString().split('T')[0]}
-                      showQuickActions={false}
-                      size="sm"
+                      placeholder="เลือกวันครบกำหนด"
                     />
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Suggested Timeline
-                      </label>
-                      <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-                        {formData.severity === 'critical' && 'Critical: Resolve within 3 days'}
-                        {formData.severity === 'major' && 'Major: Resolve within 14 days'}
-                        {formData.severity === 'minor' && 'Minor: Resolve within 30 days'}
-                      </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Suggested Timeline
+                    </label>
+                    <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
+                      {formData.severity === 'critical' && 'Critical: Resolve within 3 days'}
+                      {formData.severity === 'major' && 'Major: Resolve within 14 days'}
+                      {formData.severity === 'minor' && 'Minor: Resolve within 30 days'}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={!formData.title || !formData.description || isSaving}
-                    leftIcon={<Save className="h-4 w-4" />}
-                  >
-                    {isSaving ? 'Creating...' : 'Report Deviation'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => router.push('/quality/deviations')}
-                  >
-                    Cancel
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Help */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    About Deviations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 text-sm text-gray-600">
-                    <p>
-                      A deviation is any departure from approved procedures, specifications, or
-                      established standards.
-                    </p>
-                    <p>
-                      <strong>Report when:</strong>
-                    </p>
-                    <ul className="list-disc list-inside space-y-1 text-gray-500">
-                      <li>Process parameters outside limits</li>
-                      <li>Equipment malfunction</li>
-                      <li>Test results out of specification</li>
-                      <li>Documentation errors</li>
-                      <li>Environmental excursions</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Severity Guide */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Severity Classification</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2">
-                      <AlertOctagon className="h-4 w-4 text-red-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-red-800">Critical</p>
-                        <p className="text-xs text-gray-500">
-                          Direct impact on product safety, patient health, or regulatory compliance
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-yellow-800">Major</p>
-                        <p className="text-xs text-gray-500">
-                          Significant impact on product quality or process control
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-blue-800">Minor</p>
-                        <p className="text-xs text-gray-500">
-                          Limited impact, easily correctable, no direct quality effect
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </form>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <DxButton
+                  text={isSaving ? 'Creating...' : 'Report Deviation'}
+                  icon="save"
+                  type="success"
+                  width="100%"
+                  onClick={handleSubmit}
+                  disabled={!formData.title || !formData.description || isSaving}
+                />
+                <DxButton
+                  text="Cancel"
+                  type="normal"
+                  stylingMode="outlined"
+                  width="100%"
+                  onClick={() => router.push('/quality/deviations')}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Help */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  About Deviations
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm text-gray-600">
+                  <p>
+                    A deviation is any departure from approved procedures, specifications, or
+                    established standards.
+                  </p>
+                  <p>
+                    <strong>Report when:</strong>
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-500">
+                    <li>Process parameters outside limits</li>
+                    <li>Equipment malfunction</li>
+                    <li>Test results out of specification</li>
+                    <li>Documentation errors</li>
+                    <li>Environmental excursions</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Severity Guide */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Severity Classification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertOctagon className="h-4 w-4 text-red-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-red-800">Critical</p>
+                      <p className="text-xs text-gray-500">
+                        Direct impact on product safety, patient health, or regulatory compliance
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-yellow-800">Major</p>
+                      <p className="text-xs text-gray-500">
+                        Significant impact on product quality or process control
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-blue-800">Minor</p>
+                      <p className="text-xs text-gray-500">
+                        Limited impact, easily correctable, no direct quality effect
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

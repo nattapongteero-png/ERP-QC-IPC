@@ -1,30 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
-import { Table } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { DatePicker } from '@/components/ui/date-picker';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, CheckCircle, XCircle, Archive, Copy, Plus, DollarSign } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, CheckCircle, XCircle, Archive, Copy, Plus, DollarSign, ChevronDown } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 
 interface BOMLine {
@@ -85,16 +74,34 @@ export default function BOMDetailPage() {
   const router = useRouter();
   const [bom, setBom] = useState<BOMDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(event.target as Node)) {
+        setShowStatusMenu(false);
+      }
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setShowActionsMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     version: '',
-    batchSize: '',
+    batchSize: 0,
     batchUnit: '',
-    yieldTarget: '',
-    lossAllowance: '',
+    yieldTarget: 0,
+    lossAllowance: 0,
     effectiveDate: '',
     expiryDate: '',
   });
@@ -130,7 +137,7 @@ export default function BOMDetailPage() {
     itemCode: '',
     itemName: '',
     itemUnit: '',
-    quantity: '',
+    quantity: 0,
     isOptional: false,
     notes: '',
   });
@@ -140,7 +147,7 @@ export default function BOMDetailPage() {
   const [editLineDialogOpen, setEditLineDialogOpen] = useState(false);
   const [editingLine, setEditingLine] = useState<BOMLine | null>(null);
   const [editLineForm, setEditLineForm] = useState({
-    quantity: '',
+    quantity: 0,
     isOptional: false,
     notes: '',
   });
@@ -187,10 +194,10 @@ export default function BOMDetailPage() {
         setEditForm({
           name: result.data.name || '',
           version: result.data.version || '',
-          batchSize: result.data.batchSize?.toString() || '',
+          batchSize: result.data.batchSize || 0,
           batchUnit: result.data.batchUnit || '',
-          yieldTarget: result.data.yieldTarget?.toString() || '',
-          lossAllowance: result.data.lossAllowance?.toString() || '',
+          yieldTarget: result.data.yieldTarget || 0,
+          lossAllowance: result.data.lossAllowance || 0,
           effectiveDate: result.data.effectiveDate?.split('T')[0] || '',
           expiryDate: result.data.expiryDate?.split('T')[0] || '',
         });
@@ -212,10 +219,10 @@ export default function BOMDetailPage() {
         body: JSON.stringify({
           name: editForm.name,
           version: editForm.version,
-          batchSize: parseFloat(editForm.batchSize) || null,
+          batchSize: editForm.batchSize || null,
           batchUnit: editForm.batchUnit,
-          yieldTarget: parseFloat(editForm.yieldTarget) || null,
-          lossAllowance: parseFloat(editForm.lossAllowance) || null,
+          yieldTarget: editForm.yieldTarget || null,
+          lossAllowance: editForm.lossAllowance || null,
           effectiveDate: editForm.effectiveDate || null,
           expiryDate: editForm.expiryDate || null,
         }),
@@ -225,10 +232,8 @@ export default function BOMDetailPage() {
         setEditDialogOpen(false);
         fetchBOMDetail();
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to update BOM:', error);
-      // Network errors handled by global error handler
     } finally {
       setSaving(false);
     }
@@ -245,10 +250,8 @@ export default function BOMDetailPage() {
       if (result.success) {
         router.push('/production/bom');
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to delete BOM:', error);
-      // Network errors handled by global error handler
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
@@ -270,10 +273,8 @@ export default function BOMDetailPage() {
         setNewStatus('');
         fetchBOMDetail();
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to update status:', error);
-      // Network errors handled by global error handler
     } finally {
       setUpdatingStatus(false);
     }
@@ -282,6 +283,7 @@ export default function BOMDetailPage() {
   const openStatusDialog = (status: string) => {
     setNewStatus(status);
     setStatusDialogOpen(true);
+    setShowActionsMenu(false);
   };
 
   const handleCopy = async () => {
@@ -329,7 +331,7 @@ export default function BOMDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           itemId: newLine.itemId,
-          quantity: parseFloat(newLine.quantity),
+          quantity: newLine.quantity,
           unit: newLine.itemUnit,
           isOptional: newLine.isOptional,
           notes: newLine.notes || null,
@@ -343,7 +345,7 @@ export default function BOMDetailPage() {
           itemCode: '',
           itemName: '',
           itemUnit: '',
-          quantity: '',
+          quantity: 0,
           isOptional: false,
           notes: '',
         });
@@ -360,7 +362,7 @@ export default function BOMDetailPage() {
   const openEditLineDialog = (line: BOMLine) => {
     setEditingLine(line);
     setEditLineForm({
-      quantity: line.quantity.toString(),
+      quantity: line.quantity,
       isOptional: line.isOptional,
       notes: line.notes || '',
     });
@@ -375,7 +377,7 @@ export default function BOMDetailPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          quantity: parseFloat(editLineForm.quantity),
+          quantity: editLineForm.quantity,
           isOptional: editLineForm.isOptional,
           notes: editLineForm.notes || null,
         }),
@@ -437,7 +439,7 @@ export default function BOMDetailPage() {
 
   const getStatusActions = () => {
     if (!bom) return [];
-    const actions: { label: string; status: string; icon: any; variant: 'primary' | 'warning' | 'danger' }[] = [];
+    const actions: { label: string; status: string; icon: typeof CheckCircle; variant: 'primary' | 'warning' | 'danger' }[] = [];
 
     switch (bom.status) {
       case 'draft':
@@ -459,11 +461,100 @@ export default function BOMDetailPage() {
     return actions;
   };
 
+  // Grid columns for BOM lines
+  const bomLinesColumns: DxDataGridColumn[] = [
+    {
+      dataField: 'sequence',
+      caption: '#',
+      width: 60,
+      alignment: 'center',
+    },
+    {
+      dataField: 'itemCode',
+      caption: 'Item Code',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <span className="font-medium">{cellInfo.data.itemCode}</span>
+      ),
+    },
+    {
+      dataField: 'itemName',
+      caption: 'Item Name',
+    },
+    {
+      dataField: 'itemType',
+      caption: 'Type',
+      width: 120,
+      cellRender: (cellInfo) => getItemTypeBadge(cellInfo.data.itemType),
+    },
+    {
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 140,
+      cellRender: (cellInfo) => (
+        <span>{cellInfo.data.quantity?.toLocaleString()} {cellInfo.data.unit}</span>
+      ),
+    },
+    {
+      dataField: 'unitCost',
+      caption: 'Unit Cost',
+      width: 120,
+      alignment: 'right',
+      cellRender: (cellInfo) => {
+        const costInfo = bomCost?.breakdown.find(b => b.itemId === cellInfo.data.itemId);
+        return <span className="text-gray-600">{costInfo ? `${costInfo.unitCost.toLocaleString()} THB` : '-'}</span>;
+      },
+    },
+    {
+      dataField: 'totalCost',
+      caption: 'Total Cost',
+      width: 120,
+      alignment: 'right',
+      cellRender: (cellInfo) => {
+        const costInfo = bomCost?.breakdown.find(b => b.itemId === cellInfo.data.itemId);
+        return <span className="font-medium text-green-700">{costInfo ? `${costInfo.totalCost.toLocaleString()} THB` : '-'}</span>;
+      },
+    },
+    {
+      dataField: 'isOptional',
+      caption: 'Optional',
+      width: 100,
+      cellRender: (cellInfo) => (
+        cellInfo.data.isOptional ?
+          <Badge variant="warning">Optional</Badge> :
+          <Badge variant="primary">Required</Badge>
+      ),
+    },
+    {
+      dataField: 'actions',
+      caption: 'Actions',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <div className="flex gap-1">
+          <DxButton
+            icon="edit"
+            type="normal"
+            stylingMode="text"
+            onClick={() => openEditLineDialog(cellInfo.data)}
+            hint="Edit"
+          />
+          <DxButton
+            icon="trash"
+            type="danger"
+            stylingMode="text"
+            onClick={() => openDeleteLineDialog(cellInfo.data)}
+            hint="Delete"
+          />
+        </div>
+      ),
+    },
+  ];
+
   if (loading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <DxLoadIndicator />
         </div>
       </MainLayout>
     );
@@ -474,9 +565,13 @@ export default function BOMDetailPage() {
       <MainLayout>
         <div className="text-center py-12">
           <p className="text-gray-500">BOM not found</p>
-          <Button variant="secondary" className="mt-4" onClick={() => router.push('/production/bom')}>
-            Back to List
-          </Button>
+          <DxButton
+            text="Back to List"
+            type="normal"
+            stylingMode="outlined"
+            className="mt-4"
+            onClick={() => router.push('/production/bom')}
+          />
         </div>
       </MainLayout>
     );
@@ -491,63 +586,120 @@ export default function BOMDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={() => router.push('/production/bom')}>
-                &larr; Back
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/production/bom')}
+              />
               <h1 className="text-2xl font-bold text-gray-900">{bom.code}</h1>
-              <Badge variant={getStatusVariant(bom.status)}>
-                {bom.status}
-              </Badge>
+              {/* Status with dropdown for changing */}
+              <div className="relative" ref={statusMenuRef}>
+                <button
+                  onClick={() => setShowStatusMenu(!showStatusMenu)}
+                  className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                  title="Click to change status"
+                >
+                  <Badge variant={getStatusVariant(bom.status)}>
+                    {bom.status}
+                  </Badge>
+                  {statusActions.length > 0 && (
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  )}
+                </button>
+                {showStatusMenu && statusActions.length > 0 && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+                    <div className="py-1">
+                      <p className="px-4 py-2 text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Change Status
+                      </p>
+                      {statusActions.map((action) => (
+                        <button
+                          key={action.status}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
+                          onClick={() => {
+                            openStatusDialog(action.status);
+                            setShowStatusMenu(false);
+                          }}
+                        >
+                          <action.icon className="h-4 w-4 text-gray-700" />
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <p className="text-gray-600 mt-1">{bom.name}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="primary" onClick={() => router.push(`/production/work-orders/new?bomId=${bom.id}`)}>
-              Create Work Order
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit BOM
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  setCopyForm({
-                    newCode: `${bom.code}-COPY`,
-                    newVersion: '1.0',
-                    newName: `${bom.name} (Copy)`,
-                  });
-                  setCopyDialogOpen(true);
-                }}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy BOM
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {statusActions.map((action) => (
-                  <DropdownMenuItem key={action.status} onClick={() => openStatusDialog(action.status)}>
-                    <action.icon className="h-4 w-4 mr-2" />
-                    {action.label}
-                  </DropdownMenuItem>
-                ))}
-                {bom.status === 'draft' && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => setDeleteDialogOpen(true)}
+            <DxButton
+              text="Create Work Order"
+              type="default"
+              onClick={() => router.push(`/production/work-orders/new?bomId=${bom.id}`)}
+            />
+            <div className="relative" ref={actionsMenuRef}>
+              <DxButton
+                icon="overflow"
+                type="normal"
+                stylingMode="outlined"
+                hint="More actions"
+                onClick={() => setShowActionsMenu(!showActionsMenu)}
+              />
+              {showActionsMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-50">
+                  <div className="py-1">
+                    <button
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
+                      onClick={() => { setEditDialogOpen(true); setShowActionsMenu(false); }}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete BOM
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                      <Edit className="h-4 w-4 text-gray-700" />
+                      Edit BOM
+                    </button>
+                    <button
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
+                      onClick={() => {
+                        setCopyForm({
+                          newCode: `${bom.code}-COPY`,
+                          newVersion: '1.0',
+                          newName: `${bom.name} (Copy)`,
+                        });
+                        setCopyDialogOpen(true);
+                        setShowActionsMenu(false);
+                      }}
+                    >
+                      <Copy className="h-4 w-4 text-gray-700" />
+                      Copy BOM
+                    </button>
+                    <div className="border-t my-1" />
+                    {statusActions.map((action) => (
+                      <button
+                        key={action.status}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
+                        onClick={() => openStatusDialog(action.status)}
+                      >
+                        <action.icon className="h-4 w-4 text-gray-700" />
+                        {action.label}
+                      </button>
+                    ))}
+                    {bom.status === 'draft' && (
+                      <>
+                        <div className="border-t my-1" />
+                        <button
+                          className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50 flex items-center gap-2"
+                          onClick={() => { setDeleteDialogOpen(true); setShowActionsMenu(false); }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete BOM
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -595,7 +747,9 @@ export default function BOMDetailPage() {
                   <p className="text-sm text-green-700 font-medium">Material Cost</p>
                 </div>
                 {loadingCost ? (
-                  <div className="animate-pulse h-8 bg-green-200 rounded w-24 mx-auto"></div>
+                  <div className="flex justify-center">
+                    <DxLoadIndicator height={32} width={32} />
+                  </div>
                 ) : bomCost ? (
                   <>
                     <p className="text-2xl font-bold text-green-700">
@@ -624,19 +778,19 @@ export default function BOMDetailPage() {
               <dl className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-sm text-gray-500">Product Code</dt>
-                  <dd className="font-medium">{bom.productCode}</dd>
+                  <dd className="font-medium text-gray-900">{bom.productCode}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Product Name</dt>
-                  <dd className="font-medium">{bom.productName}</dd>
+                  <dd className="font-medium text-gray-900">{bom.productName}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Unit</dt>
-                  <dd className="font-medium">{bom.productUnit}</dd>
+                  <dd className="font-medium text-gray-900">{bom.productUnit}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Version</dt>
-                  <dd className="font-medium">{bom.version}</dd>
+                  <dd className="font-medium text-gray-900">{bom.version}</dd>
                 </div>
               </dl>
             </CardContent>
@@ -651,19 +805,19 @@ export default function BOMDetailPage() {
               <dl className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-sm text-gray-500">Effective Date</dt>
-                  <dd className="font-medium">{formatDate(bom.effectiveDate)}</dd>
+                  <dd className="font-medium text-gray-900">{formatDate(bom.effectiveDate)}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Expiry Date</dt>
-                  <dd className="font-medium">{formatDate(bom.expiryDate)}</dd>
+                  <dd className="font-medium text-gray-900">{formatDate(bom.expiryDate)}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Created</dt>
-                  <dd className="font-medium">{formatDate(bom.createdAt)}</dd>
+                  <dd className="font-medium text-gray-900">{formatDate(bom.createdAt)}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Updated</dt>
-                  <dd className="font-medium">{formatDate(bom.updatedAt)}</dd>
+                  <dd className="font-medium text-gray-900">{formatDate(bom.updatedAt)}</dd>
                 </div>
               </dl>
             </CardContent>
@@ -674,344 +828,330 @@ export default function BOMDetailPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Bill of Materials</CardTitle>
-            <Button
-              variant="secondary"
-              size="sm"
+            <DxButton
+              text="Add Material"
+              icon="plus"
+              type="normal"
+              stylingMode="outlined"
               onClick={() => setAddLineDialogOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Material
-            </Button>
+            />
           </CardHeader>
           <CardContent>
-            <Table
-              columns={[
-                { key: 'sequence', title: '#' },
-                { key: 'itemCode', title: 'Item Code' },
-                { key: 'itemName', title: 'Item Name' },
-                { key: 'itemType', title: 'Type' },
-                { key: 'quantity', title: 'Quantity' },
-                { key: 'unitCost', title: 'Unit Cost' },
-                { key: 'totalCost', title: 'Total Cost' },
-                { key: 'isOptional', title: 'Optional' },
-                { key: 'actions', title: 'Actions' },
-              ]}
-              data={bom.lines || []}
-              renderRow={(line) => {
-                const costInfo = bomCost?.breakdown.find(b => b.itemId === line.itemId);
-                return (
-                  <tr key={line.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-center">{line.sequence}</td>
-                    <td className="px-4 py-3 font-medium">{line.itemCode}</td>
-                    <td className="px-4 py-3">{line.itemName}</td>
-                    <td className="px-4 py-3">{getItemTypeBadge(line.itemType)}</td>
-                    <td className="px-4 py-3">{line.quantity?.toLocaleString()} {line.unit}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">
-                      {costInfo ? `${costInfo.unitCost.toLocaleString()} THB` : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-green-700">
-                      {costInfo ? `${costInfo.totalCost.toLocaleString()} THB` : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {line.isOptional ?
-                        <Badge variant="warning">Optional</Badge> :
-                        <Badge variant="primary">Required</Badge>
-                      }
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => openEditLineDialog(line)}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => openDeleteLineDialog(line)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }}
+            <DxDataGrid
+              dataSource={bom.lines || []}
+              keyExpr="id"
+              columns={bomLinesColumns}
+              showBorders
+              rowAlternationEnabled
+              noDataText="No materials defined for this BOM"
             />
-            {(!bom.lines || bom.lines.length === 0) && (
-              <p className="text-center text-gray-500 py-8">No materials defined for this BOM</p>
-            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit BOM</DialogTitle>
-            <DialogDescription>
-              Update the BOM details. Material lines cannot be edited here.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <Input
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
-                <Input
-                  value={editForm.version}
-                  onChange={(e) => setEditForm({ ...editForm, version: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Batch Unit</label>
-                <Input
-                  value={editForm.batchUnit}
-                  onChange={(e) => setEditForm({ ...editForm, batchUnit: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Batch Size</label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={editForm.batchSize}
-                  onChange={(e) => setEditForm({ ...editForm, batchSize: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Yield Target (%)</label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={editForm.yieldTarget}
-                  onChange={(e) => setEditForm({ ...editForm, yieldTarget: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Loss Allowance (%)</label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={editForm.lossAllowance}
-                  onChange={(e) => setEditForm({ ...editForm, lossAllowance: e.target.value })}
-                />
-              </div>
-              <div></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <DatePicker
-                label="Effective Date"
-                value={editForm.effectiveDate}
-                onChange={(value) => setEditForm({ ...editForm, effectiveDate: value })}
-                max={editForm.expiryDate || undefined}
-                showQuickActions={false}
-                size="sm"
-              />
-              <DatePicker
-                label="Expiry Date"
-                value={editForm.expiryDate}
-                onChange={(value) => setEditForm({ ...editForm, expiryDate: value })}
-                min={editForm.effectiveDate || undefined}
-                showQuickActions={false}
-                size="sm"
-              />
-            </div>
+      <DxPopup
+        visible={editDialogOpen}
+        onHiding={() => setEditDialogOpen(false)}
+        title="Edit BOM"
+        width={500}
+        height="auto"
+        showCloseButton
+      >
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-gray-500 mb-4">
+            Update the BOM details. Material lines cannot be edited here.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <DxTextBox
+              value={editForm.name}
+              onValueChange={(value) => setEditForm({ ...editForm, name: value })}
+            />
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleSaveEdit} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete BOM</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this BOM? This action cannot be undone.
-              Only draft BOMs can be deleted.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Deleting...' : 'Delete BOM'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Status Change Dialog */}
-      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Change BOM Status</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to change the status from &quot;{bom.status}&quot; to &quot;{newStatus}&quot;?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setStatusDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleStatusChange} disabled={updatingStatus}>
-              {updatingStatus ? 'Updating...' : 'Confirm'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Copy BOM Dialog */}
-      <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Copy BOM</DialogTitle>
-            <DialogDescription>
-              Create a copy of this BOM with a new code. The copy will be created as a draft.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">New BOM Code *</label>
-              <Input
-                value={copyForm.newCode}
-                onChange={(e) => setCopyForm({ ...copyForm, newCode: e.target.value })}
-                placeholder="Enter new BOM code"
-              />
-            </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
-              <Input
-                value={copyForm.newVersion}
-                onChange={(e) => setCopyForm({ ...copyForm, newVersion: e.target.value })}
-                placeholder="1.0"
+              <DxTextBox
+                value={editForm.version}
+                onValueChange={(value) => setEditForm({ ...editForm, version: value })}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <Input
-                value={copyForm.newName}
-                onChange={(e) => setCopyForm({ ...copyForm, newName: e.target.value })}
-                placeholder="Enter new BOM name"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Batch Unit</label>
+              <DxTextBox
+                value={editForm.batchUnit}
+                onValueChange={(value) => setEditForm({ ...editForm, batchUnit: value })}
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setCopyDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleCopy} disabled={copying || !copyForm.newCode}>
-              {copying ? 'Copying...' : 'Copy BOM'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Batch Size</label>
+              <DxNumberBox
+                value={editForm.batchSize}
+                onValueChange={(value) => setEditForm({ ...editForm, batchSize: value || 0 })}
+                format="#,##0.###"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Yield Target (%)</label>
+              <DxNumberBox
+                value={editForm.yieldTarget}
+                onValueChange={(value) => setEditForm({ ...editForm, yieldTarget: value || 0 })}
+                format="#,##0.#"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Loss Allowance (%)</label>
+              <DxNumberBox
+                value={editForm.lossAllowance}
+                onValueChange={(value) => setEditForm({ ...editForm, lossAllowance: value || 0 })}
+                format="#,##0.#"
+              />
+            </div>
+            <div></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
+              <DxDateBox
+                value={editForm.effectiveDate}
+                onValueChange={(value) => setEditForm({ ...editForm, effectiveDate: value || '' })}
+                max={editForm.expiryDate || undefined}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+              <DxDateBox
+                value={editForm.expiryDate}
+                onValueChange={(value) => setEditForm({ ...editForm, expiryDate: value || '' })}
+                min={editForm.effectiveDate || undefined}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setEditDialogOpen(false)}
+            />
+            <DxButton
+              text={saving ? 'Saving...' : 'Save Changes'}
+              type="default"
+              onClick={handleSaveEdit}
+              disabled={saving}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Delete Confirmation Dialog */}
+      <DxPopup
+        visible={deleteDialogOpen}
+        onHiding={() => setDeleteDialogOpen(false)}
+        title="Delete BOM"
+        width={400}
+        height="auto"
+        showCloseButton
+      >
+        <div className="p-4">
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to delete this BOM? This action cannot be undone.
+            Only draft BOMs can be deleted.
+          </p>
+          <div className="flex justify-end gap-2">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setDeleteDialogOpen(false)}
+            />
+            <DxButton
+              text={deleting ? 'Deleting...' : 'Delete BOM'}
+              type="danger"
+              onClick={handleDelete}
+              disabled={deleting}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Status Change Dialog */}
+      <DxPopup
+        visible={statusDialogOpen}
+        onHiding={() => setStatusDialogOpen(false)}
+        title="Change BOM Status"
+        width={400}
+        height="auto"
+        showCloseButton
+      >
+        <div className="p-4">
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to change the status from &quot;{bom.status}&quot; to &quot;{newStatus}&quot;?
+          </p>
+          <div className="flex justify-end gap-2">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setStatusDialogOpen(false)}
+            />
+            <DxButton
+              text={updatingStatus ? 'Updating...' : 'Confirm'}
+              type="default"
+              onClick={handleStatusChange}
+              disabled={updatingStatus}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Copy BOM Dialog */}
+      <DxPopup
+        visible={copyDialogOpen}
+        onHiding={() => setCopyDialogOpen(false)}
+        title="Copy BOM"
+        width={450}
+        height="auto"
+        showCloseButton
+      >
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-gray-500">
+            Create a copy of this BOM with a new code. The copy will be created as a draft.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">New BOM Code *</label>
+            <DxTextBox
+              value={copyForm.newCode}
+              onValueChange={(value) => setCopyForm({ ...copyForm, newCode: value })}
+              placeholder="Enter new BOM code"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
+            <DxTextBox
+              value={copyForm.newVersion}
+              onValueChange={(value) => setCopyForm({ ...copyForm, newVersion: value })}
+              placeholder="1.0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <DxTextBox
+              value={copyForm.newName}
+              onValueChange={(value) => setCopyForm({ ...copyForm, newName: value })}
+              placeholder="Enter new BOM name"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setCopyDialogOpen(false)}
+            />
+            <DxButton
+              text={copying ? 'Copying...' : 'Copy BOM'}
+              type="default"
+              onClick={handleCopy}
+              disabled={copying || !copyForm.newCode}
+            />
+          </div>
+        </div>
+      </DxPopup>
 
       {/* Add Line Dialog */}
-      <Dialog open={addLineDialogOpen} onOpenChange={setAddLineDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Material</DialogTitle>
-            <DialogDescription>
-              Add a new material/ingredient to this BOM.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Material *</label>
-              {newLine.itemId ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 p-2 border rounded bg-gray-50">
-                    <p className="font-medium">{newLine.itemCode}</p>
-                    <p className="text-sm text-gray-500">{newLine.itemName}</p>
-                  </div>
-                  <Button variant="secondary" size="sm" onClick={() => setItemSearchOpen(true)}>
-                    Change
-                  </Button>
+      <DxPopup
+        visible={addLineDialogOpen}
+        onHiding={() => setAddLineDialogOpen(false)}
+        title="Add Material"
+        width={450}
+        height="auto"
+        showCloseButton
+      >
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-gray-500">
+            Add a new material/ingredient to this BOM.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Material *</label>
+            {newLine.itemId ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 p-2 border rounded bg-gray-50">
+                  <p className="font-medium">{newLine.itemCode}</p>
+                  <p className="text-sm text-gray-500">{newLine.itemName}</p>
                 </div>
-              ) : (
-                <Button variant="secondary" onClick={() => setItemSearchOpen(true)} className="w-full">
-                  Select Material
-                </Button>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={newLine.quantity}
-                  onChange={(e) => setNewLine({ ...newLine, quantity: e.target.value })}
-                  placeholder="0.00"
+                <DxButton
+                  text="Change"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setItemSearchOpen(true)}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                <Input
-                  value={newLine.itemUnit}
-                  disabled
-                  className="bg-gray-50"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isOptional"
-                checked={newLine.isOptional}
-                onChange={(e) => setNewLine({ ...newLine, isOptional: e.target.checked })}
-                className="rounded border-gray-300"
+            ) : (
+              <DxButton
+                text="Select Material"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => setItemSearchOpen(true)}
+                width="100%"
               />
-              <label htmlFor="isOptional" className="text-sm text-gray-700">
-                Optional material
-              </label>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
+              <DxNumberBox
+                value={newLine.quantity}
+                onValueChange={(value) => setNewLine({ ...newLine, quantity: value || 0 })}
+                format="#,##0.###"
+                placeholder="0.00"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-              <Input
-                value={newLine.notes}
-                onChange={(e) => setNewLine({ ...newLine, notes: e.target.value })}
-                placeholder="Optional notes"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <DxTextBox
+                value={newLine.itemUnit}
+                readOnly
+                className="bg-gray-50"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setAddLineDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
+          <div>
+            <DxCheckBox
+              value={newLine.isOptional}
+              onValueChange={(value) => setNewLine({ ...newLine, isOptional: value })}
+              text="Optional material"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <DxTextBox
+              value={newLine.notes}
+              onValueChange={(value) => setNewLine({ ...newLine, notes: value })}
+              placeholder="Optional notes"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setAddLineDialogOpen(false)}
+            />
+            <DxButton
+              text={addingLine ? 'Adding...' : 'Add Material'}
+              type="default"
               onClick={handleAddLine}
               disabled={addingLine || !newLine.itemId || !newLine.quantity}
-            >
-              {addingLine ? 'Adding...' : 'Add Material'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            />
+          </div>
+        </div>
+      </DxPopup>
 
       {/* Item Search Dialog */}
       <ItemSearchDialog
@@ -1023,93 +1163,101 @@ export default function BOMDetailPage() {
       />
 
       {/* Edit Line Dialog */}
-      <Dialog open={editLineDialogOpen} onOpenChange={setEditLineDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Material</DialogTitle>
-            <DialogDescription>
-              Update the quantity or settings for {editingLine?.itemCode}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-3 border rounded bg-gray-50">
-              <p className="font-medium">{editingLine?.itemCode}</p>
-              <p className="text-sm text-gray-500">{editingLine?.itemName}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  value={editLineForm.quantity}
-                  onChange={(e) => setEditLineForm({ ...editLineForm, quantity: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                <Input
-                  value={editingLine?.unit || ''}
-                  disabled
-                  className="bg-gray-50"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="editIsOptional"
-                checked={editLineForm.isOptional}
-                onChange={(e) => setEditLineForm({ ...editLineForm, isOptional: e.target.checked })}
-                className="rounded border-gray-300"
+      <DxPopup
+        visible={editLineDialogOpen}
+        onHiding={() => setEditLineDialogOpen(false)}
+        title="Edit Material"
+        width={450}
+        height="auto"
+        showCloseButton
+      >
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-gray-500">
+            Update the quantity or settings for {editingLine?.itemCode}.
+          </p>
+          <div className="p-3 border rounded bg-gray-50">
+            <p className="font-medium">{editingLine?.itemCode}</p>
+            <p className="text-sm text-gray-500">{editingLine?.itemName}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
+              <DxNumberBox
+                value={editLineForm.quantity}
+                onValueChange={(value) => setEditLineForm({ ...editLineForm, quantity: value || 0 })}
+                format="#,##0.###"
               />
-              <label htmlFor="editIsOptional" className="text-sm text-gray-700">
-                Optional material
-              </label>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-              <Input
-                value={editLineForm.notes}
-                onChange={(e) => setEditLineForm({ ...editLineForm, notes: e.target.value })}
-                placeholder="Optional notes"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <DxTextBox
+                value={editingLine?.unit || ''}
+                readOnly
+                className="bg-gray-50"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setEditLineDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
+          <div>
+            <DxCheckBox
+              value={editLineForm.isOptional}
+              onValueChange={(value) => setEditLineForm({ ...editLineForm, isOptional: value })}
+              text="Optional material"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <DxTextBox
+              value={editLineForm.notes}
+              onValueChange={(value) => setEditLineForm({ ...editLineForm, notes: value })}
+              placeholder="Optional notes"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setEditLineDialogOpen(false)}
+            />
+            <DxButton
+              text={savingLine ? 'Saving...' : 'Save Changes'}
+              type="default"
               onClick={handleUpdateLine}
               disabled={savingLine || !editLineForm.quantity}
-            >
-              {savingLine ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            />
+          </div>
+        </div>
+      </DxPopup>
 
       {/* Delete Line Dialog */}
-      <Dialog open={deleteLineDialogOpen} onOpenChange={setDeleteLineDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Remove Material</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove {lineToDelete?.itemCode} ({lineToDelete?.itemName}) from this BOM?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setDeleteLineDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDeleteLine} disabled={deletingLine}>
-              {deletingLine ? 'Removing...' : 'Remove Material'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DxPopup
+        visible={deleteLineDialogOpen}
+        onHiding={() => setDeleteLineDialogOpen(false)}
+        title="Remove Material"
+        width={400}
+        height="auto"
+        showCloseButton
+      >
+        <div className="p-4">
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to remove {lineToDelete?.itemCode} ({lineToDelete?.itemName}) from this BOM?
+          </p>
+          <div className="flex justify-end gap-2">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setDeleteLineDialogOpen(false)}
+            />
+            <DxButton
+              text={deletingLine ? 'Removing...' : 'Remove Material'}
+              type="danger"
+              onClick={handleDeleteLine}
+              disabled={deletingLine}
+            />
+          </div>
+        </div>
+      </DxPopup>
     </MainLayout>
   );
 }

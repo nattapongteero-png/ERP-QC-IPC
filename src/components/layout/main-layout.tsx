@@ -84,6 +84,20 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className={cn(
+          'sr-only focus:not-sr-only',
+          'focus:absolute focus:top-4 focus:left-4 focus:z-[100]',
+          'focus:px-4 focus:py-2 focus:rounded-lg',
+          'focus:bg-emerald-600 focus:text-white focus:shadow-lg',
+          'focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2'
+        )}
+      >
+        Skip to main content
+      </a>
+
       {/* Mobile/Tablet Overlay */}
       <div
         className={cn(
@@ -163,10 +177,17 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         {/* Page Content */}
         <main
+          id="main-content"
+          tabIndex={-1}
           className={cn(
-            'flex-1',
-            'p-4 md:p-6 lg:p-8',
-            'animate-fade-in motion-reduce:animate-none'
+            'flex-1 flex flex-col',
+            'p-4 md:p-4 lg:p-6',
+            // On tablet, fit content to viewport height (minus header)
+            'md:h-[calc(100vh-56px)] md:overflow-hidden',
+            // On desktop, allow scrolling
+            'lg:h-auto lg:overflow-visible',
+            'animate-fade-in motion-reduce:animate-none',
+            'focus:outline-none'
           )}
         >
           {children}

@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
-import { Table } from '@/components/ui/table';
 import {
   ArrowLeft,
   Edit,
@@ -73,8 +76,8 @@ export default function QualitySpecDetailPage() {
     testName: '',
     testMethod: '',
     specification: '',
-    minValue: '' as string | number,
-    maxValue: '' as string | number,
+    minValue: null as number | null,
+    maxValue: null as number | null,
     unit: '',
     isCritical: false,
   });
@@ -91,8 +94,8 @@ export default function QualitySpecDetailPage() {
           testName: data.data.testName || '',
           testMethod: data.data.testMethod || '',
           specification: data.data.specification || '',
-          minValue: data.data.minValue ?? '',
-          maxValue: data.data.maxValue ?? '',
+          minValue: data.data.minValue,
+          maxValue: data.data.maxValue,
           unit: data.data.unit || '',
           isCritical: data.data.isCritical || false,
         });
@@ -118,21 +121,15 @@ export default function QualitySpecDetailPage() {
       const res = await fetch(`/api/quality/specs/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...editForm,
-          minValue: editForm.minValue !== '' ? Number(editForm.minValue) : null,
-          maxValue: editForm.maxValue !== '' ? Number(editForm.maxValue) : null,
-        }),
+        body: JSON.stringify(editForm),
       });
       const data = await res.json();
       if (data.success) {
         setIsEditing(false);
         fetchSpec();
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to update spec:', error);
-      // API errors handled by global error handler
     } finally {
       setIsSaving(false);
     }
@@ -151,10 +148,8 @@ export default function QualitySpecDetailPage() {
       if (data.success) {
         fetchSpec();
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to toggle status:', error);
-      // API errors handled by global error handler
     } finally {
       setIsSaving(false);
     }
@@ -172,10 +167,8 @@ export default function QualitySpecDetailPage() {
       } else {
         setShowDeleteConfirm(false);
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to delete spec:', error);
-      // API errors handled by global error handler
     } finally {
       setIsSaving(false);
     }
@@ -190,10 +183,10 @@ export default function QualitySpecDetailPage() {
     });
   };
 
-  const getStatusBadgeVariant = (status: string): 'success' | 'danger' | 'warning' | 'default' => {
+  const getStatusBadgeVariant = (status: string): 'primary' | 'danger' | 'warning' | 'default' => {
     switch (status) {
       case 'pass':
-        return 'success';
+        return 'primary';
       case 'fail':
         return 'danger';
       case 'retest':
@@ -203,41 +196,42 @@ export default function QualitySpecDetailPage() {
     }
   };
 
-  const testColumns = [
+  const testColumns: DxDataGridColumn[] = [
     {
-      key: 'testType',
-      header: 'Type',
-      render: (test: any) => (
-        <Badge variant="info" size="sm">
-          {test.testType}
+      dataField: 'testType',
+      caption: 'Type',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <Badge variant="secondary" size="sm">
+          {cellInfo.data.testType}
         </Badge>
       ),
     },
     {
-      key: 'sampleNumber',
-      header: 'Sample',
-      render: (test: any) => test.sampleNumber || '-',
+      dataField: 'sampleNumber',
+      caption: 'Sample',
+      cellRender: (cellInfo) => cellInfo.data.sampleNumber || '-',
     },
     {
-      key: 'result',
-      header: 'Result',
-      render: (test: any) => (
+      dataField: 'result',
+      caption: 'Result',
+      cellRender: (cellInfo) => (
         <span className="font-medium">
-          {test.numericResult !== null ? test.numericResult : test.result || '-'}
+          {cellInfo.data.numericResult !== null ? cellInfo.data.numericResult : cellInfo.data.result || '-'}
         </span>
       ),
     },
     {
-      key: 'testDate',
-      header: 'Test Date',
-      render: (test: any) => formatDate(test.testDate),
+      dataField: 'testDate',
+      caption: 'Test Date',
+      cellRender: (cellInfo) => formatDate(cellInfo.data.testDate),
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (test: any) => (
-        <Badge variant={getStatusBadgeVariant(test.status)} dot size="sm">
-          {test.status}
+      dataField: 'status',
+      caption: 'Status',
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusBadgeVariant(cellInfo.data.status)} dot size="sm">
+          {cellInfo.data.status}
         </Badge>
       ),
     },
@@ -246,9 +240,8 @@ export default function QualitySpecDetailPage() {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="space-y-6">
-          <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
-          <div className="h-96 bg-gray-200 rounded animate-pulse" />
+        <div className="flex items-center justify-center h-64">
+          <DxLoadIndicator />
         </div>
       </MainLayout>
     );
@@ -260,13 +253,13 @@ export default function QualitySpecDetailPage() {
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold text-gray-900">Specification not found</h2>
           <p className="text-gray-500 mt-2">The specification you are looking for does not exist.</p>
-          <Button
-            variant="secondary"
+          <DxButton
+            text="Back to Specifications"
+            type="normal"
+            stylingMode="outlined"
             className="mt-4"
             onClick={() => router.push('/quality/specs')}
-          >
-            Back to Specifications
-          </Button>
+          />
         </div>
       </MainLayout>
     );
@@ -279,10 +272,13 @@ export default function QualitySpecDetailPage() {
           title={spec.testName}
           description={`${spec.itemCode} - ${spec.itemName}`}
           backButton={
-            <Button variant="ghost" size="sm" onClick={() => router.push('/quality/specs')}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
+            <DxButton
+              text="Back"
+              icon="back"
+              type="normal"
+              stylingMode="text"
+              onClick={() => router.push('/quality/specs')}
+            />
           }
           actions={
             <div className="flex items-center gap-2">
@@ -292,7 +288,7 @@ export default function QualitySpecDetailPage() {
                   Critical
                 </Badge>
               )}
-              <Badge variant={spec.isActive ? 'success' : 'default'} dot size="md">
+              <Badge variant={spec.isActive ? 'primary' : 'default'} dot size="md">
                 {spec.isActive ? 'Active' : 'Inactive'}
               </Badge>
             </div>
@@ -314,21 +310,18 @@ export default function QualitySpecDetailPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
+                  <DxButton
+                    text="Cancel"
+                    type="normal"
+                    stylingMode="outlined"
                     onClick={() => setShowDeleteConfirm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
+                  />
+                  <DxButton
+                    text="Delete"
+                    type="danger"
                     onClick={handleDelete}
                     disabled={isSaving}
-                  >
-                    Delete
-                  </Button>
+                  />
                 </div>
               </div>
             </CardContent>
@@ -378,29 +371,33 @@ export default function QualitySpecDetailPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Specification Details */}
-            <Card elevation="raised">
+            <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Specification Details</CardTitle>
                   {!isEditing ? (
-                    <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
+                    <DxButton
+                      text="Edit"
+                      icon="edit"
+                      type="normal"
+                      stylingMode="outlined"
+                      onClick={() => setIsEditing(true)}
+                    />
                   ) : (
                     <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
+                      <DxButton
+                        text="Cancel"
+                        type="normal"
+                        stylingMode="outlined"
                         onClick={() => setIsEditing(false)}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Cancel
-                      </Button>
-                      <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                        <Save className="h-4 w-4 mr-1" />
-                        Save
-                      </Button>
+                      />
+                      <DxButton
+                        text="Save"
+                        icon="save"
+                        type="default"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                      />
                     </div>
                   )}
                 </div>
@@ -409,71 +406,60 @@ export default function QualitySpecDetailPage() {
                 {isEditing ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input
-                        label="Test Name"
-                        value={editForm.testName}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({ ...prev, testName: e.target.value }))
-                        }
-                      />
-                      <Input
-                        label="Test Method"
-                        value={editForm.testMethod}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({ ...prev, testMethod: e.target.value }))
-                        }
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Test Name</label>
+                        <DxTextBox
+                          value={editForm.testName}
+                          onValueChange={(value) => setEditForm({ ...editForm, testName: value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Test Method</label>
+                        <DxTextBox
+                          value={editForm.testMethod}
+                          onValueChange={(value) => setEditForm({ ...editForm, testMethod: value })}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Specification</label>
+                      <DxTextBox
+                        value={editForm.specification}
+                        onValueChange={(value) => setEditForm({ ...editForm, specification: value })}
+                        placeholder="e.g., White to off-white powder"
                       />
                     </div>
-                    <Input
-                      label="Specification"
-                      value={editForm.specification}
-                      onChange={(e) =>
-                        setEditForm((prev) => ({ ...prev, specification: e.target.value }))
-                      }
-                      placeholder="e.g., White to off-white powder"
-                    />
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Input
-                        label="Min Value"
-                        type="number"
-                        step="any"
-                        value={editForm.minValue}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({ ...prev, minValue: e.target.value }))
-                        }
-                      />
-                      <Input
-                        label="Max Value"
-                        type="number"
-                        step="any"
-                        value={editForm.maxValue}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({ ...prev, maxValue: e.target.value }))
-                        }
-                      />
-                      <Input
-                        label="Unit"
-                        value={editForm.unit}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({ ...prev, unit: e.target.value }))
-                        }
-                        placeholder="e.g., mg, %, pH"
-                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Min Value</label>
+                        <DxNumberBox
+                          value={editForm.minValue}
+                          onValueChange={(value) => setEditForm({ ...editForm, minValue: value })}
+                          format="#,##0.###"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Max Value</label>
+                        <DxNumberBox
+                          value={editForm.maxValue}
+                          onValueChange={(value) => setEditForm({ ...editForm, maxValue: value })}
+                          format="#,##0.###"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                        <DxTextBox
+                          value={editForm.unit}
+                          onValueChange={(value) => setEditForm({ ...editForm, unit: value })}
+                          placeholder="e.g., mg, %, pH"
+                        />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="isCritical"
-                        checked={editForm.isCritical}
-                        onChange={(e) =>
-                          setEditForm((prev) => ({ ...prev, isCritical: e.target.checked }))
-                        }
-                        className="rounded border-gray-300"
-                      />
-                      <label htmlFor="isCritical" className="text-sm font-medium text-gray-700">
-                        Critical Test Parameter
-                      </label>
-                    </div>
+                    <DxCheckBox
+                      value={editForm.isCritical}
+                      onValueChange={(value) => setEditForm({ ...editForm, isCritical: value })}
+                      text="Critical Test Parameter"
+                    />
                   </div>
                 ) : (
                   <dl className="grid grid-cols-2 gap-4">
@@ -519,31 +505,30 @@ export default function QualitySpecDetailPage() {
             </Card>
 
             {/* Recent Tests */}
-            <Card elevation="raised">
+            <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <FlaskConical className="h-5 w-5" />
                     Recent Tests
                   </CardTitle>
-                  <Button
-                    variant="secondary"
-                    size="sm"
+                  <DxButton
+                    text="New Test"
+                    type="normal"
+                    stylingMode="outlined"
                     onClick={() => router.push('/quality/tests/new')}
-                  >
-                    New Test
-                  </Button>
+                  />
                 </div>
               </CardHeader>
               <CardContent>
                 {spec.recentTests.length > 0 ? (
-                  <Table
+                  <DxDataGrid
+                    dataSource={spec.recentTests}
+                    keyExpr="id"
                     columns={testColumns}
-                    data={spec.recentTests}
-                    keyField="id"
-                    striped
-                    hoverable
-                    onRowClick={(test) => router.push(`/quality/tests/${test.id}`)}
+                    showBorders
+                    rowAlternationEnabled
+                    onRowClick={(e) => router.push(`/quality/tests/${e.data.id}`)}
                   />
                 ) : (
                   <p className="text-center py-8 text-gray-500">
@@ -586,33 +571,23 @@ export default function QualitySpecDetailPage() {
                 <CardTitle className="text-sm">Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button
-                  variant={spec.isActive ? 'secondary' : 'primary'}
-                  className="w-full"
+                <DxButton
+                  text={spec.isActive ? 'Deactivate' : 'Activate'}
+                  type={spec.isActive ? 'normal' : 'default'}
+                  stylingMode={spec.isActive ? 'outlined' : 'contained'}
+                  width="100%"
                   onClick={handleToggleActive}
                   disabled={isSaving}
-                >
-                  {spec.isActive ? (
-                    <>
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Deactivate
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Activate
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="danger"
-                  className="w-full"
+                />
+                <DxButton
+                  text="Delete"
+                  icon="trash"
+                  type="danger"
+                  stylingMode="outlined"
+                  width="100%"
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={isSaving || spec.stats.totalTests > 0}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
+                />
                 {spec.stats.totalTests > 0 && (
                   <p className="text-xs text-gray-500 text-center">
                     Cannot delete - has {spec.stats.totalTests} associated tests

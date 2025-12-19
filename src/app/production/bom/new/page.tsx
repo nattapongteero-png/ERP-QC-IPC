@@ -1,28 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
-import { DatePicker } from '@/components/ui/date-picker';
 import { PageHeader } from '@/components/ui/page-header';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import {
   Trash2,
   Plus,
   Search,
   Package,
   ChevronRight,
-  Loader2,
   BoxSelect,
   Check,
 } from 'lucide-react';
@@ -241,7 +236,7 @@ export default function NewBOMPage() {
     setMaterialDialogOpen(false);
   };
 
-  const handleUpdateLine = (id: number, field: keyof BOMLine, value: any) => {
+  const handleUpdateLine = (id: number, field: keyof BOMLine, value: string | number | boolean) => {
     setLines(lines.map(line =>
       line.id === id ? { ...line, [field]: value } : line
     ));
@@ -308,6 +303,229 @@ export default function NewBOMPage() {
     }
   };
 
+  const renderProductDialogContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Search Input */}
+      <div className="p-4 border-b">
+        <DxTextBox
+          placeholder="Search by product code or name..."
+          value={productSearch}
+          onValueChange={setProductSearch}
+          mode="search"
+          showClearButton
+        />
+      </div>
+
+      {/* Product List */}
+      <div className="flex-1 overflow-auto min-h-[300px]">
+        {productsLoading && products.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <DxLoadIndicator />
+            <span className="ml-2">Loading products...</span>
+          </div>
+        ) : products.length > 0 ? (
+          <div className="divide-y">
+            {products.map((product) => (
+              <button
+                key={product.id}
+                onClick={() => handleSelectProduct(product)}
+                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between ${
+                  selectedProductTemp?.id === product.id ? 'bg-emerald-50 border-l-4 border-emerald-500' : ''
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                    selectedProductTemp?.id === product.id ? 'bg-emerald-100' : 'bg-gray-100'
+                  }`}>
+                    <Package className={`h-5 w-5 ${
+                      selectedProductTemp?.id === product.id ? 'text-emerald-600' : 'text-gray-500'
+                    }`} />
+                  </div>
+                  <div>
+                    <p className={`font-semibold ${
+                      selectedProductTemp?.id === product.id ? 'text-emerald-800' : 'text-gray-900'
+                    }`}>
+                      {product.code}
+                    </p>
+                    <p className={`text-sm ${
+                      selectedProductTemp?.id === product.id ? 'text-emerald-600' : 'text-gray-500'
+                    }`}>
+                      {product.nameTh}
+                    </p>
+                    {product.nameEn && (
+                      <p className="text-xs text-gray-400">{product.nameEn}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" size="sm">{product.primaryUnit}</Badge>
+                  {selectedProductTemp?.id === product.id && (
+                    <Check className="h-5 w-5 text-emerald-600" />
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : productSearch.length > 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
+            <Search className="h-12 w-12 text-gray-300 mb-3" />
+            <p className="font-medium">No products found</p>
+            <p className="text-sm text-center mt-1">
+              Try a different search term or check if the product exists in the system
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
+            <Package className="h-12 w-12 text-gray-300 mb-3" />
+            <p className="font-medium">No finished products available</p>
+            <p className="text-sm text-center mt-1">
+              Create finished products in the Items module first
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between p-4 border-t">
+        <p className="text-sm text-gray-500">
+          {selectedProductTemp ? (
+            <>Selected: <span className="font-medium text-emerald-600">{selectedProductTemp.code}</span></>
+          ) : (
+            'Click on a product to select it'
+          )}
+        </p>
+        <div className="flex gap-2">
+          <DxButton
+            text="Cancel"
+            type="normal"
+            stylingMode="outlined"
+            onClick={() => {
+              setProductDialogOpen(false);
+              setProductSearch('');
+              setSelectedProductTemp(null);
+            }}
+          />
+          <DxButton
+            text="Select Product"
+            type="success"
+            onClick={handleConfirmProduct}
+            disabled={!selectedProductTemp}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderMaterialDialogContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Search Input */}
+      <div className="p-4 border-b">
+        <DxTextBox
+          placeholder="Search by material code or name..."
+          value={itemSearch}
+          onValueChange={setItemSearch}
+          mode="search"
+          showClearButton
+        />
+      </div>
+
+      {/* Material List */}
+      <div className="flex-1 overflow-auto min-h-[300px]">
+        {itemsLoading && items.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <DxLoadIndicator />
+            <span className="ml-2">Loading materials...</span>
+          </div>
+        ) : items.length > 0 ? (
+          <div className="divide-y">
+            {items.map((item) => {
+              const isAlreadyAdded = lines.some(line => line.itemId === item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => !isAlreadyAdded && handleAddItem(item)}
+                  disabled={isAlreadyAdded}
+                  className={`w-full p-4 text-left transition-colors flex items-center justify-between ${
+                    isAlreadyAdded
+                      ? 'bg-gray-50 cursor-not-allowed opacity-60'
+                      : 'hover:bg-emerald-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                      isAlreadyAdded ? 'bg-gray-100' : 'bg-emerald-100'
+                    }`}>
+                      <BoxSelect className={`h-5 w-5 ${
+                        isAlreadyAdded ? 'text-gray-400' : 'text-emerald-600'
+                      }`} />
+                    </div>
+                    <div>
+                      <p className={`font-semibold ${
+                        isAlreadyAdded ? 'text-gray-400' : 'text-gray-900'
+                      }`}>
+                        {item.code}
+                      </p>
+                      <p className={`text-sm ${
+                        isAlreadyAdded ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {item.nameTh}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" size="sm">
+                      {item.type.replace('_', ' ')}
+                    </Badge>
+                    <Badge variant="outline" size="sm">{item.primaryUnit}</Badge>
+                    {isAlreadyAdded && (
+                      <Badge variant="success" size="sm">
+                        <Check className="h-3 w-3 mr-1" />
+                        Added
+                      </Badge>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : itemSearch.length > 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
+            <Search className="h-12 w-12 text-gray-300 mb-3" />
+            <p className="font-medium">No materials found</p>
+            <p className="text-sm text-center mt-1">
+              Try a different search term or check if the material exists in the system
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
+            <BoxSelect className="h-12 w-12 text-gray-300 mb-3" />
+            <p className="font-medium">No materials available</p>
+            <p className="text-sm text-center mt-1">
+              Create raw materials or packaging items in the Items module first
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between p-4 border-t">
+        <p className="text-sm text-gray-500">
+          Click on a material to add it to the BOM
+        </p>
+        <DxButton
+          text="Close"
+          type="normal"
+          stylingMode="outlined"
+          onClick={() => {
+            setMaterialDialogOpen(false);
+            setItemSearch('');
+            setItems([]);
+          }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -341,9 +559,12 @@ export default function NewBOMPage() {
                           <p className="text-sm text-emerald-600">{selectedProduct.nameTh}</p>
                         </div>
                       </div>
-                      <Button variant="secondary" size="sm" onClick={handleOpenProductDialog}>
-                        Change
-                      </Button>
+                      <DxButton
+                        text="Change"
+                        type="normal"
+                        stylingMode="outlined"
+                        onClick={handleOpenProductDialog}
+                      />
                     </div>
                   ) : (
                     <button
@@ -365,9 +586,9 @@ export default function NewBOMPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       BOM Code <span className="text-red-500">*</span>
                     </label>
-                    <Input
+                    <DxTextBox
                       value={code}
-                      onChange={(e) => setCode(e.target.value)}
+                      onValueChange={setCode}
                       placeholder="e.g., BOM-PROD001"
                     />
                   </div>
@@ -375,9 +596,9 @@ export default function NewBOMPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Version
                     </label>
-                    <Input
+                    <DxTextBox
                       value={version}
-                      onChange={(e) => setVersion(e.target.value)}
+                      onValueChange={setVersion}
                       placeholder="1.0"
                     />
                   </div>
@@ -387,9 +608,9 @@ export default function NewBOMPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     BOM Name <span className="text-red-500">*</span>
                   </label>
-                  <Input
+                  <DxTextBox
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onValueChange={setName}
                     placeholder="e.g., BOM for Product ABC"
                   />
                 </div>
@@ -399,11 +620,9 @@ export default function NewBOMPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Batch Size <span className="text-red-500">*</span>
                     </label>
-                    <Input
-                      type="number"
-                      step="0.001"
+                    <DxTextBox
                       value={batchSize}
-                      onChange={(e) => setBatchSize(e.target.value)}
+                      onValueChange={setBatchSize}
                       placeholder="e.g., 1000"
                     />
                   </div>
@@ -411,9 +630,9 @@ export default function NewBOMPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Batch Unit <span className="text-red-500">*</span>
                     </label>
-                    <Input
+                    <DxTextBox
                       value={batchUnit}
-                      onChange={(e) => setBatchUnit(e.target.value)}
+                      onValueChange={setBatchUnit}
                       placeholder="e.g., kg, L, pcs"
                     />
                   </div>
@@ -424,11 +643,9 @@ export default function NewBOMPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Yield Target (%)
                     </label>
-                    <Input
-                      type="number"
-                      step="0.1"
+                    <DxTextBox
                       value={yieldTarget}
-                      onChange={(e) => setYieldTarget(e.target.value)}
+                      onValueChange={setYieldTarget}
                       placeholder="95"
                     />
                   </div>
@@ -436,23 +653,24 @@ export default function NewBOMPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Loss Allowance (%)
                     </label>
-                    <Input
-                      type="number"
-                      step="0.1"
+                    <DxTextBox
                       value={lossAllowance}
-                      onChange={(e) => setLossAllowance(e.target.value)}
+                      onValueChange={setLossAllowance}
                       placeholder="5"
                     />
                   </div>
                 </div>
 
-                <DatePicker
-                  label="Effective Date"
-                  value={effectiveDate}
-                  onChange={(value) => setEffectiveDate(value)}
-                  showQuickActions={false}
-                  size="sm"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Effective Date
+                  </label>
+                  <DxDateBox
+                    value={effectiveDate}
+                    onValueChange={(value) => setEffectiveDate(value || '')}
+                    placeholder="เลือกวันที่มีผลบังคับใช้"
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -461,14 +679,13 @@ export default function NewBOMPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Materials / Ingredients</CardTitle>
-                  <Button
-                    variant="secondary"
-                    size="sm"
+                  <DxButton
+                    text="Add Material"
+                    icon="plus"
+                    type="normal"
+                    stylingMode="outlined"
                     onClick={() => setMaterialDialogOpen(true)}
-                    leftIcon={<Plus className="h-4 w-4" />}
-                  >
-                    Add Material
-                  </Button>
+                  />
                 </div>
               </CardHeader>
               <CardContent>
@@ -497,45 +714,40 @@ export default function NewBOMPage() {
                               <p className="text-sm text-gray-500">{line.itemName}</p>
                             </td>
                             <td className="px-4 py-2">
-                              <Input
-                                type="number"
-                                step="0.001"
-                                value={line.quantity || ''}
-                                onChange={(e) => handleUpdateLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
-                                className="w-24"
+                              <DxTextBox
+                                value={line.quantity?.toString() || ''}
+                                onValueChange={(value) => handleUpdateLine(line.id, 'quantity', parseFloat(value) || 0)}
+                                width={100}
                               />
                             </td>
                             <td className="px-4 py-2">
-                              <Input
+                              <DxTextBox
                                 value={line.unit}
-                                onChange={(e) => handleUpdateLine(line.id, 'unit', e.target.value)}
-                                className="w-20"
+                                onValueChange={(value) => handleUpdateLine(line.id, 'unit', value)}
+                                width={80}
                               />
                             </td>
                             <td className="px-4 py-2">
-                              <input
-                                type="checkbox"
-                                checked={line.isOptional}
-                                onChange={(e) => handleUpdateLine(line.id, 'isOptional', e.target.checked)}
-                                className="h-4 w-4 text-emerald-600 rounded border-gray-300"
+                              <DxCheckBox
+                                value={line.isOptional}
+                                onValueChange={(value) => handleUpdateLine(line.id, 'isOptional', value)}
                               />
                             </td>
                             <td className="px-4 py-2">
-                              <Input
+                              <DxTextBox
                                 value={line.notes}
-                                onChange={(e) => handleUpdateLine(line.id, 'notes', e.target.value)}
+                                onValueChange={(value) => handleUpdateLine(line.id, 'notes', value)}
                                 placeholder="Notes..."
-                                className="w-32"
+                                width={130}
                               />
                             </td>
                             <td className="px-4 py-2 text-center">
-                              <Button
-                                variant="danger"
-                                size="sm"
+                              <DxButton
+                                icon="trash"
+                                type="danger"
+                                stylingMode="text"
                                 onClick={() => handleRemoveLine(line.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              />
                             </td>
                           </tr>
                         ))}
@@ -577,21 +789,21 @@ export default function NewBOMPage() {
                 </div>
 
                 <div className="pt-4 border-t space-y-2">
-                  <Button
-                    variant="primary"
-                    className="w-full"
+                  <DxButton
+                    text={saving ? 'Creating...' : 'Create BOM'}
+                    icon="save"
+                    type="success"
+                    width="100%"
                     onClick={handleSubmit}
                     disabled={saving || !code || !name || !selectedProduct || !batchSize || lines.length === 0}
-                  >
-                    {saving ? 'Creating...' : 'Create BOM'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="w-full"
+                  />
+                  <DxButton
+                    text="Cancel"
+                    type="normal"
+                    stylingMode="outlined"
+                    width="100%"
                     onClick={() => router.push('/production/bom')}
-                  >
-                    Cancel
-                  </Button>
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -600,250 +812,28 @@ export default function NewBOMPage() {
       </div>
 
       {/* Product Selection Dialog */}
-      <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-emerald-600" />
-              Select Product
-            </DialogTitle>
-            <DialogDescription>
-              Search and select a finished product for this BOM
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Search Input */}
-          <div className="relative">
-            <Input
-              placeholder="Search by product code or name..."
-              value={productSearch}
-              onChange={(e) => setProductSearch(e.target.value)}
-              leftIcon={productsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              autoFocus
-            />
-          </div>
-
-          {/* Product List */}
-          <div className="flex-1 overflow-auto min-h-[300px] border rounded-lg">
-            {productsLoading && products.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                Loading products...
-              </div>
-            ) : products.length > 0 ? (
-              <div className="divide-y">
-                {products.map((product) => (
-                  <button
-                    key={product.id}
-                    onClick={() => handleSelectProduct(product)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between ${
-                      selectedProductTemp?.id === product.id ? 'bg-emerald-50 border-l-4 border-emerald-500' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                        selectedProductTemp?.id === product.id ? 'bg-emerald-100' : 'bg-gray-100'
-                      }`}>
-                        <Package className={`h-5 w-5 ${
-                          selectedProductTemp?.id === product.id ? 'text-emerald-600' : 'text-gray-500'
-                        }`} />
-                      </div>
-                      <div>
-                        <p className={`font-semibold ${
-                          selectedProductTemp?.id === product.id ? 'text-emerald-800' : 'text-gray-900'
-                        }`}>
-                          {product.code}
-                        </p>
-                        <p className={`text-sm ${
-                          selectedProductTemp?.id === product.id ? 'text-emerald-600' : 'text-gray-500'
-                        }`}>
-                          {product.nameTh}
-                        </p>
-                        {product.nameEn && (
-                          <p className="text-xs text-gray-400">{product.nameEn}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" size="sm">{product.primaryUnit}</Badge>
-                      {selectedProductTemp?.id === product.id && (
-                        <Check className="h-5 w-5 text-emerald-600" />
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : productSearch.length > 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-                <Search className="h-12 w-12 text-gray-300 mb-3" />
-                <p className="font-medium">No products found</p>
-                <p className="text-sm text-center mt-1">
-                  Try a different search term or check if the product exists in the system
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-                <Package className="h-12 w-12 text-gray-300 mb-3" />
-                <p className="font-medium">No finished products available</p>
-                <p className="text-sm text-center mt-1">
-                  Create finished products in the Items module first
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <p className="text-sm text-gray-500">
-              {selectedProductTemp ? (
-                <>Selected: <span className="font-medium text-emerald-600">{selectedProductTemp.code}</span></>
-              ) : (
-                'Click on a product to select it'
-              )}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setProductDialogOpen(false);
-                  setProductSearch('');
-                  setSelectedProductTemp(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleConfirmProduct}
-                disabled={!selectedProductTemp}
-              >
-                Select Product
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DxPopup
+        visible={productDialogOpen}
+        onHiding={() => setProductDialogOpen(false)}
+        title="Select Product"
+        width={700}
+        height={600}
+        showCloseButton
+      >
+        {renderProductDialogContent()}
+      </DxPopup>
 
       {/* Material Selection Dialog */}
-      <Dialog open={materialDialogOpen} onOpenChange={setMaterialDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BoxSelect className="h-5 w-5 text-emerald-600" />
-              Select Material
-            </DialogTitle>
-            <DialogDescription>
-              Search and select materials/ingredients to add to this BOM
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Search Input */}
-          <div className="relative">
-            <Input
-              placeholder="Search by material code or name..."
-              value={itemSearch}
-              onChange={(e) => setItemSearch(e.target.value)}
-              leftIcon={itemsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              autoFocus
-            />
-          </div>
-
-          {/* Material List */}
-          <div className="flex-1 overflow-auto min-h-[300px] border rounded-lg">
-            {itemsLoading && items.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                Loading materials...
-              </div>
-            ) : items.length > 0 ? (
-              <div className="divide-y">
-                {items.map((item) => {
-                  const isAlreadyAdded = lines.some(line => line.itemId === item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => !isAlreadyAdded && handleAddItem(item)}
-                      disabled={isAlreadyAdded}
-                      className={`w-full p-4 text-left transition-colors flex items-center justify-between ${
-                        isAlreadyAdded
-                          ? 'bg-gray-50 cursor-not-allowed opacity-60'
-                          : 'hover:bg-emerald-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                          isAlreadyAdded ? 'bg-gray-100' : 'bg-emerald-100'
-                        }`}>
-                          <BoxSelect className={`h-5 w-5 ${
-                            isAlreadyAdded ? 'text-gray-400' : 'text-emerald-600'
-                          }`} />
-                        </div>
-                        <div>
-                          <p className={`font-semibold ${
-                            isAlreadyAdded ? 'text-gray-400' : 'text-gray-900'
-                          }`}>
-                            {item.code}
-                          </p>
-                          <p className={`text-sm ${
-                            isAlreadyAdded ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                            {item.nameTh}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" size="sm">
-                          {item.type.replace('_', ' ')}
-                        </Badge>
-                        <Badge variant="outline" size="sm">{item.primaryUnit}</Badge>
-                        {isAlreadyAdded && (
-                          <Badge variant="success" size="sm">
-                            <Check className="h-3 w-3 mr-1" />
-                            Added
-                          </Badge>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : itemSearch.length > 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-                <Search className="h-12 w-12 text-gray-300 mb-3" />
-                <p className="font-medium">No materials found</p>
-                <p className="text-sm text-center mt-1">
-                  Try a different search term or check if the material exists in the system
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-                <BoxSelect className="h-12 w-12 text-gray-300 mb-3" />
-                <p className="font-medium">No materials available</p>
-                <p className="text-sm text-center mt-1">
-                  Create raw materials or packaging items in the Items module first
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <p className="text-sm text-gray-500">
-              Click on a material to add it to the BOM
-            </p>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setMaterialDialogOpen(false);
-                setItemSearch('');
-                setItems([]);
-              }}
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DxPopup
+        visible={materialDialogOpen}
+        onHiding={() => setMaterialDialogOpen(false)}
+        title="Select Material"
+        width={700}
+        height={600}
+        showCloseButton
+      >
+        {renderMaterialDialogContent()}
+      </DxPopup>
     </MainLayout>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { ApiErrorProvider, useApiErrors } from '@/contexts/api-error-context';
 import { GlobalApiErrors } from '@/components/ui/global-api-errors';
+import { DevExtremeProvider } from '@/components/providers/devextreme-provider';
 
 // Component that intercepts fetch calls
 function FetchInterceptor({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,9 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
         return originalFetch.apply(this, args);
       }
 
+      // Skip error logging for auth endpoints (401 is expected when not logged in)
+      const isAuthEndpoint = url.startsWith('/api/auth/');
+
       try {
         const response = await originalFetch.apply(this, args);
 
@@ -33,7 +37,12 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
           const data = await clonedResponse.json();
 
           // Check if the API returned an error
-          if (!data.success && data.error) {
+          // Skip auth endpoints (401 is expected) and auth-related errors (session expired/not logged in)
+          const isAuthError = data.error === 'Please login to continue' ||
+                              data.error === 'Session expired' ||
+                              data.error === 'Unauthorized';
+
+          if (!data.success && data.error && !isAuthEndpoint && !isAuthError) {
             console.group('🚨 API Error');
             console.error('URL:', url);
             console.error('Method:', method);
@@ -59,6 +68,12 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
 
         return response;
       } catch (error) {
+        // Ignore AbortError - these are expected when requests are cancelled
+        // (e.g., dialog closes, new search starts, component unmounts)
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw error;
+        }
+
         // Network error
         const errorMessage = error instanceof Error ? error.message : 'Network error';
         addError({
@@ -92,9 +107,11 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ApiErrorProvider>
-      <FetchInterceptor>{children}</FetchInterceptor>
-      <GlobalApiErrors />
-    </ApiErrorProvider>
+    <DevExtremeProvider>
+      <ApiErrorProvider>
+        <FetchInterceptor>{children}</FetchInterceptor>
+        <GlobalApiErrors />
+      </ApiErrorProvider>
+    </DevExtremeProvider>
   );
 }

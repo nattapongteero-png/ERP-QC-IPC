@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Plus, Users } from 'lucide-react';
+import { Users, Inbox } from 'lucide-react';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 interface Vendor {
   id: number;
@@ -28,13 +29,13 @@ interface Vendor {
 }
 
 const approvalStatuses = [
-  { value: '', label: 'All Statuses' },
-  { value: 'true', label: 'Approved' },
-  { value: 'false', label: 'Not Approved' },
+  { value: '', label: 'ทุกสถานะ' },
+  { value: 'true', label: 'อนุมัติแล้ว' },
+  { value: 'false', label: 'รอดำเนินการ' },
 ];
 
 const vmiStatuses = [
-  { value: '', label: 'All Types' },
+  { value: '', label: 'ทุกประเภท' },
   { value: 'true', label: 'VMI' },
   { value: 'false', label: 'Non-VMI' },
 ];
@@ -46,16 +47,12 @@ export default function VendorsPage() {
   const [search, setSearch] = useState('');
   const [approvalFilter, setApprovalFilter] = useState('');
   const [vmiFilter, setVmiFilter] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const fetchVendors = async () => {
+  const fetchVendors = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.set('search', search);
+      const params = new URLSearchParams();
+      params.set('limit', '1000');
       if (approvalFilter) params.set('isApproved', approvalFilter);
       if (vmiFilter) params.set('isVMI', vmiFilter);
 
@@ -63,8 +60,18 @@ export default function VendorsPage() {
       const data = await res.json();
 
       if (data.success) {
-        setVendors(data.data?.items || []);
-        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+        let fetchedVendors = data.data?.items || [];
+
+        // Client-side search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedVendors = fetchedVendors.filter((vendor: Vendor) =>
+            vendor.code?.toLowerCase().includes(searchLower) ||
+            vendor.name?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setVendors(fetchedVendors);
       } else {
         setVendors([]);
       }
@@ -74,38 +81,77 @@ export default function VendorsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [approvalFilter, vmiFilter, search]);
 
   useEffect(() => {
     fetchVendors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, approvalFilter, vmiFilter]);
+  }, [fetchVendors]);
 
-  const handleSearch = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchVendors();
+  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
+    if (e.data?.id) {
+      router.push(`/purchasing/vendors/${e.data.id}`);
+    }
   };
 
-  const columns = [
-    { key: 'code', header: 'Code' },
-    { key: 'name', header: 'Name' },
-    { key: 'contactPerson', header: 'Contact Person', render: (v: Vendor) => v.contactPerson || '-' },
-    { key: 'phone', header: 'Phone', render: (v: Vendor) => v.phone || '-' },
-    { key: 'email', header: 'Email', render: (v: Vendor) => v.email || '-' },
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
     {
-      key: 'leadTimeDays',
-      header: 'Lead Time',
-      render: (v: Vendor) => v.leadTimeDays ? `${v.leadTimeDays} days` : '-',
+      dataField: 'code',
+      caption: 'รหัส',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className="font-mono font-medium">{cellInfo.data.code}</span>
+      ),
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (v: Vendor) => (
+      dataField: 'name',
+      caption: 'ชื่อผู้ขาย',
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-gray-500" />
+          <span className="font-medium">{cellInfo.data.name}</span>
+        </div>
+      ),
+    },
+    {
+      dataField: 'contactPerson',
+      caption: 'ผู้ติดต่อ',
+      width: 150,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => cellInfo.data.contactPerson || '-',
+    },
+    {
+      dataField: 'phone',
+      caption: 'โทรศัพท์',
+      width: 130,
+      cellRender: (cellInfo) => cellInfo.data.phone || '-',
+    },
+    {
+      dataField: 'email',
+      caption: 'อีเมล',
+      width: 180,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => cellInfo.data.email || '-',
+    },
+    {
+      dataField: 'leadTimeDays',
+      caption: 'Lead Time',
+      width: 100,
+      dataType: 'number',
+      hideOnMobile: true,
+      cellRender: (cellInfo) => cellInfo.data.leadTimeDays ? `${cellInfo.data.leadTimeDays} วัน` : '-',
+    },
+    {
+      dataField: 'status',
+      caption: 'สถานะ',
+      width: 160,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
         <div className="flex gap-1">
-          <Badge variant={v.isApproved ? 'success' : 'warning'} dot>
-            {v.isApproved ? 'Approved' : 'Pending'}
+          <Badge variant={cellInfo.data.isApproved ? 'success' : 'warning'} dot>
+            {cellInfo.data.isApproved ? 'อนุมัติแล้ว' : 'รอดำเนินการ'}
           </Badge>
-          {v.isVMI && (
+          {cellInfo.data.isVMI && (
             <Badge variant="info">VMI</Badge>
           )}
         </div>
@@ -115,104 +161,83 @@ export default function VendorsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
-          title="Vendors"
+          title="ผู้ขาย"
           description="จัดการข้อมูลผู้ขาย"
           actions={
-            <Button onClick={() => router.push('/purchasing/vendors/new')} leftIcon={<Plus className="h-4 w-4" />}>
-              New Vendor
-            </Button>
+            <DxButton
+              text="เพิ่มผู้ขาย"
+              icon="plus"
+              type="success"
+              onClick={() => router.push('/purchasing/vendors/new')}
+            />
           }
         />
 
-        <Card elevation="raised">
-          <CardContent>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+        {/* Filters Card */}
+        <Card elevation="raised" className="md:py-1">
+          <CardContent className="py-2 md:py-1 lg:py-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
-                <Input
-                  variant="search"
-                  placeholder="Search by code or name..."
+                <DxTextBox
+                  placeholder="ค้นหาด้วยรหัสหรือชื่อ..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onSearch={handleSearch}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchVendors()}
                 />
               </div>
               <div className="w-full md:w-40">
-                <Select
-                  options={approvalStatuses}
+                <DxSelectBox
+                  items={approvalStatuses}
                   value={approvalFilter}
-                  onChange={(e) => setApprovalFilter(e.target.value)}
+                  onValueChange={setApprovalFilter}
+                  placeholder="สถานะ"
+                  showClearButton
                 />
               </div>
               <div className="w-full md:w-32">
-                <Select
-                  options={vmiStatuses}
+                <DxSelectBox
+                  items={vmiStatuses}
                   value={vmiFilter}
-                  onChange={(e) => setVmiFilter(e.target.value)}
+                  onValueChange={setVmiFilter}
+                  placeholder="ประเภท"
+                  showClearButton
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Table */}
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : vendors.length > 0 ? (
-              <>
-                <Table
-                  columns={columns}
-                  data={vendors}
-                  keyField="id"
-                  isLoading={isLoading}
-                  emptyMessage="No vendors found"
-                  onRowClick={(vendor) => router.push(`/purchasing/vendors/${vendor.id}`)}
-                />
-
-                {/* Pagination */}
-                {pagination.total > pagination.limit && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-500">
-                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                      {pagination.total} vendors
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page === 1}
-                        onClick={() =>
-                          setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
-                        }
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page * pagination.limit >= pagination.total}
-                        onClick={() =>
-                          setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
-                        }
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+        {/* Table Card */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
+            {vendors.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={vendors}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="vendors"
+                columnChooser
+                virtualScrolling={vendors.length > 100}
+                fillHeight
+                onRowClick={handleRowClick}
+                noDataText="ไม่พบผู้ขาย"
+              />
             ) : (
               <EmptyState
-                icon={<Users className="h-8 w-8" />}
-                title="No vendors found"
-                description="Get started by adding your first vendor"
+                icon={<Inbox className="h-8 w-8" />}
+                title="ไม่พบผู้ขาย"
+                description="เริ่มต้นด้วยการเพิ่มผู้ขายใหม่"
                 action={{
-                  label: 'New Vendor',
+                  label: 'เพิ่มผู้ขาย',
                   onClick: () => router.push('/purchasing/vendors/new'),
                 }}
               />

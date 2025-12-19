@@ -2,8 +2,11 @@
 
 **Feature Branch**: `002-ui-redesign`
 **Created**: 2025-12-17
-**Status**: Draft
+**Status**: Deprecated
+**Superseded By**: `003-shadcn-migration`
 **Input**: User description: "i want ui every page to look more elegant and professional"
+
+> ⚠️ **DEPRECATION NOTICE**: Feature 002 was exploratory design work that informed the approach for Feature 003. The shadcn/ui migration (003) provides a more maintainable implementation using an established component library. All UI enhancement goals from this spec are addressed in 003. Do not implement this feature independently.
 
 ## Overview
 

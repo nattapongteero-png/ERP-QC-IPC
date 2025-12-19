@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Plus, Inbox } from 'lucide-react';
+import { Inbox } from 'lucide-react';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 interface SalesOrder {
   id: number;
@@ -25,15 +26,49 @@ interface SalesOrder {
 }
 
 const soStatuses = [
-  { value: '', label: 'All Statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'confirmed', label: 'Confirmed' },
-  { value: 'processing', label: 'Processing' },
-  { value: 'ready', label: 'Ready to Ship' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: '', label: 'ทุกสถานะ' },
+  { value: 'draft', label: 'ร่าง' },
+  { value: 'confirmed', label: 'ยืนยันแล้ว' },
+  { value: 'processing', label: 'กำลังดำเนินการ' },
+  { value: 'ready', label: 'พร้อมส่ง' },
+  { value: 'shipped', label: 'จัดส่งแล้ว' },
+  { value: 'delivered', label: 'ส่งมอบแล้ว' },
+  { value: 'cancelled', label: 'ยกเลิก' },
 ];
+
+const getStatusVariant = (status: string): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
+  switch (status) {
+    case 'delivered':
+    case 'shipped':
+      return 'success';
+    case 'cancelled':
+      return 'danger';
+    case 'processing':
+    case 'ready':
+      return 'warning';
+    case 'confirmed':
+      return 'info';
+    default:
+      return 'default';
+  }
+};
+
+const getStatusLabel = (status: string): string => {
+  const found = soStatuses.find(s => s.value === status);
+  return found ? found.label : status;
+};
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('th-TH');
+};
+
+const formatCurrency = (amount: number, currency: string = 'THB') => {
+  return new Intl.NumberFormat('th-TH', {
+    style: 'currency',
+    currency,
+  }).format(amount || 0);
+};
 
 export default function SalesOrdersPage() {
   const router = useRouter();
@@ -41,24 +76,30 @@ export default function SalesOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.set('search', search);
+      const params = new URLSearchParams();
+      params.set('limit', '1000');
       if (statusFilter) params.set('status', statusFilter);
 
       const res = await fetch(`/api/sales/orders?${params}`);
       const data = await res.json();
 
       if (data.success) {
-        setOrders(data.data?.items || []);
-        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+        let fetchedOrders = data.data?.items || [];
+
+        // Client-side search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedOrders = fetchedOrders.filter((order: SalesOrder) =>
+            order.soNumber?.toLowerCase().includes(searchLower) ||
+            order.customerName?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setOrders(fetchedOrders);
       } else {
         setOrders([]);
       }
@@ -68,169 +109,141 @@ export default function SalesOrdersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, search]);
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, statusFilter]);
+  }, [fetchOrders]);
 
-  const handleSearch = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchOrders();
-  };
-
-  const getStatusVariant = (status: string): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
-    switch (status) {
-      case 'delivered':
-      case 'shipped':
-        return 'success';
-      case 'cancelled':
-        return 'danger';
-      case 'processing':
-      case 'ready':
-        return 'warning';
-      case 'confirmed':
-        return 'info';
-      default:
-        return 'default';
+  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
+    if (e.data?.id) {
+      router.push(`/sales/orders/${e.data.id}`);
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('th-TH');
-  };
-
-  const formatCurrency = (amount: number, currency: string = 'THB') => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency,
-    }).format(amount || 0);
-  };
-
-  const columns = [
-    { key: 'soNumber', header: 'SO Number' },
-    { key: 'customerName', header: 'Customer' },
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
     {
-      key: 'orderDate',
-      header: 'Order Date',
-      render: (order: SalesOrder) => formatDate(order.orderDate),
+      dataField: 'soNumber',
+      caption: 'เลขที่ SO',
+      width: 140,
+      cellRender: (cellInfo) => (
+        <span className="font-mono font-medium">{cellInfo.data.soNumber}</span>
+      ),
+      // Keep visible: order number
     },
     {
-      key: 'requiredDate',
-      header: 'Required Date',
-      render: (order: SalesOrder) => formatDate(order.requiredDate),
+      dataField: 'customerName',
+      caption: 'ลูกค้า',
+      // Keep visible: customer name
     },
     {
-      key: 'totalAmount',
-      header: 'Total Amount',
-      render: (order: SalesOrder) => formatCurrency(order.totalAmount, order.currency),
+      dataField: 'orderDate',
+      caption: 'วันที่สั่งซื้อ',
+      width: 120,
+      dataType: 'date',
+      cellRender: (cellInfo) => formatDate(cellInfo.data.orderDate),
+      hideOnMobile: true, // Hide on mobile: dates
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (order: SalesOrder) => (
-        <Badge variant={getStatusVariant(order.status)} dot>
-          {order.status.replace('_', ' ')}
+      dataField: 'requiredDate',
+      caption: 'วันที่ต้องการ',
+      width: 120,
+      dataType: 'date',
+      cellRender: (cellInfo) => formatDate(cellInfo.data.requiredDate),
+      hideOnMobile: true, // Hide on mobile: dates
+    },
+    {
+      dataField: 'totalAmount',
+      caption: 'ยอดรวม',
+      width: 150,
+      dataType: 'number',
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.totalAmount, cellInfo.data.currency),
+      // Keep visible: total
+    },
+    {
+      dataField: 'status',
+      caption: 'สถานะ',
+      width: 130,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.status)} dot>
+          {getStatusLabel(cellInfo.data.status)}
         </Badge>
       ),
+      // Keep visible: status
     },
   ];
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
-          title="Sales Orders"
+          title="ใบสั่งขาย"
           description="จัดการใบสั่งขาย"
           actions={
-            <Button onClick={() => router.push('/sales/orders/new')} leftIcon={<Plus className="h-4 w-4" />}>
-              New SO
-            </Button>
+            <DxButton
+              text="สร้างใบสั่งขาย"
+              icon="plus"
+              type="success"
+              onClick={() => router.push('/sales/orders/new')}
+            />
           }
         />
 
-        <Card elevation="raised">
-          <CardContent>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+        {/* Filters Card */}
+        <Card elevation="raised" className="md:py-1">
+          <CardContent className="py-2 md:py-1 lg:py-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
-                <Input
-                  variant="search"
-                  placeholder="Search by SO number or customer..."
+                <DxTextBox
+                  placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onSearch={handleSearch}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchOrders()}
                 />
               </div>
               <div className="w-full md:w-48">
-                <Select
-                  options={soStatuses}
+                <DxSelectBox
+                  items={soStatuses}
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onValueChange={setStatusFilter}
+                  placeholder="สถานะ"
+                  showClearButton
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Table */}
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : orders.length > 0 ? (
-              <>
-                <Table
-                  columns={columns}
-                  data={orders}
-                  keyField="id"
-                  isLoading={isLoading}
-                  emptyMessage="No sales orders found"
-                  onRowClick={(order) => router.push(`/sales/orders/${order.id}`)}
-                />
-
-                {/* Pagination */}
-                {pagination.total > pagination.limit && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-500">
-                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                      {pagination.total} orders
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page === 1}
-                        onClick={() =>
-                          setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
-                        }
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page * pagination.limit >= pagination.total}
-                        onClick={() =>
-                          setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
-                        }
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+        {/* Table Card */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
+            {orders.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={orders}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="sales-orders"
+                columnChooser
+                virtualScrolling={orders.length > 100}
+                fillHeight
+                onRowClick={handleRowClick}
+                noDataText="ไม่พบใบสั่งขาย"
+              />
             ) : (
               <EmptyState
                 icon={<Inbox className="h-8 w-8" />}
-                title="No sales orders found"
-                description="Get started by creating your first sales order"
+                title="ไม่พบใบสั่งขาย"
+                description="เริ่มต้นด้วยการสร้างใบสั่งขายใหม่"
                 action={{
-                  label: 'New SO',
+                  label: 'สร้างใบสั่งขาย',
                   onClick: () => router.push('/sales/orders/new'),
                 }}
               />

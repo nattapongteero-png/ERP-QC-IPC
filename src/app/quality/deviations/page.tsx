@@ -1,24 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
-  Plus,
   AlertTriangle,
   AlertCircle,
-  CheckCircle,
   Clock,
   AlertOctagon,
 } from 'lucide-react';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 interface Deviation {
   id: number;
@@ -42,19 +41,78 @@ interface Deviation {
 }
 
 const statusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'open', label: 'Open' },
-  { value: 'investigating', label: 'Investigating' },
-  { value: 'resolved', label: 'Resolved' },
-  { value: 'closed', label: 'Closed' },
+  { value: '', label: 'ทุกสถานะ' },
+  { value: 'open', label: 'เปิด' },
+  { value: 'investigating', label: 'กำลังสอบสวน' },
+  { value: 'resolved', label: 'แก้ไขแล้ว' },
+  { value: 'closed', label: 'ปิด' },
 ];
 
 const severityOptions = [
-  { value: '', label: 'All Severities' },
-  { value: 'minor', label: 'Minor' },
-  { value: 'major', label: 'Major' },
-  { value: 'critical', label: 'Critical' },
+  { value: '', label: 'ทุกระดับ' },
+  { value: 'minor', label: 'เล็กน้อย' },
+  { value: 'major', label: 'สำคัญ' },
+  { value: 'critical', label: 'วิกฤต' },
 ];
+
+const getStatusLabel = (status: string): string => {
+  const found = statusOptions.find(s => s.value === status);
+  return found ? found.label : status;
+};
+
+const getSeverityLabel = (severity: string): string => {
+  const found = severityOptions.find(s => s.value === severity);
+  return found ? found.label : severity;
+};
+
+const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'info' | 'default' => {
+  switch (status) {
+    case 'closed':
+      return 'success';
+    case 'resolved':
+      return 'info';
+    case 'investigating':
+      return 'warning';
+    case 'open':
+    default:
+      return 'default';
+  }
+};
+
+const getSeverityBadgeVariant = (severity: string): 'danger' | 'warning' | 'default' => {
+  switch (severity) {
+    case 'critical':
+      return 'danger';
+    case 'major':
+      return 'warning';
+    case 'minor':
+    default:
+      return 'default';
+  }
+};
+
+const getSourceTypeLabel = (type: string): string => {
+  const labels: Record<string, string> = {
+    production: 'การผลิต',
+    quality: 'คุณภาพ',
+    warehouse: 'คลังสินค้า',
+  };
+  return labels[type] || type || '-';
+};
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('th-TH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const isOverdue = (dueDate: string, status: string) => {
+  if (!dueDate || status === 'closed' || status === 'resolved') return false;
+  return new Date(dueDate) < new Date();
+};
 
 export default function DeviationsPage() {
   const router = useRouter();
@@ -63,16 +121,12 @@ export default function DeviationsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const fetchDeviations = async () => {
+  const fetchDeviations = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.set('search', search);
+      const params = new URLSearchParams();
+      params.set('limit', '1000');
       if (statusFilter) params.set('status', statusFilter);
       if (severityFilter) params.set('severity', severityFilter);
 
@@ -80,8 +134,18 @@ export default function DeviationsPage() {
       const data = await res.json();
 
       if (data.success) {
-        setDeviations(data.data?.items || []);
-        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+        let fetchedDeviations = data.data?.items || [];
+
+        // Client-side search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedDeviations = fetchedDeviations.filter((dev: Deviation) =>
+            dev.deviationNumber?.toLowerCase().includes(searchLower) ||
+            dev.title?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setDeviations(fetchedDeviations);
       } else {
         console.error('API error:', data.error);
         setDeviations([]);
@@ -92,125 +156,17 @@ export default function DeviationsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, severityFilter, search]);
 
   useEffect(() => {
     fetchDeviations();
-  }, [pagination.page, statusFilter, severityFilter]);
+  }, [fetchDeviations]);
 
-  const handleSearch = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchDeviations();
-  };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const isOverdue = (dueDate: string, status: string) => {
-    if (!dueDate || status === 'closed' || status === 'resolved') return false;
-    return new Date(dueDate) < new Date();
-  };
-
-  const getStatusBadgeVariant = (status: string): 'primary' | 'success' | 'warning' | 'secondary' | 'default' => {
-    switch (status) {
-      case 'closed':
-        return 'primary';
-      case 'resolved':
-        return 'success';
-      case 'investigating':
-        return 'warning';
-      case 'open':
-        return 'secondary';
-      default:
-        return 'default';
+  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
+    if (e.data?.id) {
+      router.push(`/quality/deviations/${e.data.id}`);
     }
   };
-
-  const getSeverityBadgeVariant = (severity: string): 'danger' | 'warning' | 'default' => {
-    switch (severity) {
-      case 'critical':
-        return 'danger';
-      case 'major':
-        return 'warning';
-      case 'minor':
-      default:
-        return 'default';
-    }
-  };
-
-  const getSourceTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      production: 'Production',
-      quality: 'Quality',
-      warehouse: 'Warehouse',
-    };
-    return labels[type] || type || '-';
-  };
-
-  const columns = [
-    {
-      key: 'deviationNumber',
-      header: 'Deviation #',
-      render: (dev: Deviation) => (
-        <div>
-          <p className="font-medium">{dev.deviationNumber}</p>
-          {isOverdue(dev.dueDate, dev.status) && (
-            <Badge variant="danger" size="sm">
-              Overdue
-            </Badge>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'title',
-      header: 'Title',
-      render: (dev: Deviation) => (
-        <div className="max-w-xs">
-          <p className="font-medium truncate">{dev.title}</p>
-          <p className="text-sm text-gray-500 truncate">{dev.description}</p>
-        </div>
-      ),
-    },
-    {
-      key: 'sourceType',
-      header: 'Source',
-      render: (dev: Deviation) => getSourceTypeLabel(dev.sourceType),
-    },
-    {
-      key: 'severity',
-      header: 'Severity',
-      render: (dev: Deviation) => (
-        <Badge variant={getSeverityBadgeVariant(dev.severity)}>
-          {dev.severity}
-        </Badge>
-      ),
-    },
-    {
-      key: 'dueDate',
-      header: 'Due Date',
-      render: (dev: Deviation) => (
-        <span className={isOverdue(dev.dueDate, dev.status) ? 'text-red-600 font-medium' : ''}>
-          {formatDate(dev.dueDate)}
-        </span>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (dev: Deviation) => (
-        <Badge variant={getStatusBadgeVariant(dev.status)} dot>
-          {dev.status}
-        </Badge>
-      ),
-    },
-  ];
 
   // Calculate summary stats
   const openCount = deviations.filter((d) => d.status === 'open').length;
@@ -218,71 +174,139 @@ export default function DeviationsPage() {
   const criticalCount = deviations.filter((d) => d.severity === 'critical' && d.status !== 'closed').length;
   const overdueCount = deviations.filter((d) => isOverdue(d.dueDate, d.status)).length;
 
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
+    {
+      dataField: 'deviationNumber',
+      caption: 'เลขที่',
+      width: 140,
+      cellRender: (cellInfo) => (
+        <div>
+          <p className="font-mono font-medium">{cellInfo.data.deviationNumber}</p>
+          {isOverdue(cellInfo.data.dueDate, cellInfo.data.status) && (
+            <Badge variant="danger" size="sm">
+              เกินกำหนด
+            </Badge>
+          )}
+        </div>
+      ),
+    },
+    {
+      dataField: 'title',
+      caption: 'หัวข้อ',
+      cellRender: (cellInfo) => (
+        <div className="max-w-xs">
+          <p className="font-medium truncate">{cellInfo.data.title}</p>
+          <p className="text-xs text-gray-500 truncate">{cellInfo.data.description}</p>
+        </div>
+      ),
+    },
+    {
+      dataField: 'sourceType',
+      caption: 'แหล่งที่มา',
+      width: 120,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => getSourceTypeLabel(cellInfo.data.sourceType),
+    },
+    {
+      dataField: 'severity',
+      caption: 'ระดับ',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <Badge variant={getSeverityBadgeVariant(cellInfo.data.severity)}>
+          {getSeverityLabel(cellInfo.data.severity)}
+        </Badge>
+      ),
+    },
+    {
+      dataField: 'dueDate',
+      caption: 'กำหนดส่ง',
+      width: 120,
+      dataType: 'date',
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <span className={isOverdue(cellInfo.data.dueDate, cellInfo.data.status) ? 'text-red-600 font-medium' : ''}>
+          {formatDate(cellInfo.data.dueDate)}
+        </span>
+      ),
+    },
+    {
+      dataField: 'status',
+      caption: 'สถานะ',
+      width: 130,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusBadgeVariant(cellInfo.data.status)} dot>
+          {getStatusLabel(cellInfo.data.status)}
+        </Badge>
+      ),
+    },
+  ];
+
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
-          title="Deviations"
-          description="Track and manage quality deviations and CAPA"
+          title="ความเบี่ยงเบน"
+          description="ติดตามและจัดการความเบี่ยงเบนและ CAPA"
           actions={
-            <Button
+            <DxButton
+              text="รายงานความเบี่ยงเบน"
+              icon="plus"
+              type="success"
               onClick={() => router.push('/quality/deviations/new')}
-              leftIcon={<Plus className="h-4 w-4" />}
-            >
-              Report Deviation
-            </Button>
+            />
           }
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
+          <Card elevation="raised">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Open</p>
+                  <p className="text-sm text-gray-500">เปิด</p>
                   <p className="text-xl font-bold">{openCount}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card elevation="raised">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 rounded-lg">
                   <Clock className="h-5 w-5 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Investigating</p>
+                  <p className="text-sm text-gray-500">กำลังสอบสวน</p>
                   <p className="text-xl font-bold text-yellow-600">{investigatingCount}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card elevation="raised">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-100 rounded-lg">
                   <AlertOctagon className="h-5 w-5 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Critical</p>
+                  <p className="text-sm text-gray-500">วิกฤต</p>
                   <p className="text-xl font-bold text-red-600">{criticalCount}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card elevation="raised">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-100 rounded-lg">
                   <AlertTriangle className="h-5 w-5 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Overdue</p>
+                  <p className="text-sm text-gray-500">เกินกำหนด</p>
                   <p className="text-xl font-bold text-orange-600">{overdueCount}</p>
                 </div>
               </div>
@@ -298,10 +322,10 @@ export default function DeviationsPage() {
                 <AlertOctagon className="h-6 w-6 text-red-600" />
                 <div>
                   <p className="font-medium text-red-800">
-                    {criticalCount} Critical Deviation{criticalCount > 1 ? 's' : ''} Require Attention
+                    {criticalCount} ความเบี่ยงเบนวิกฤตต้องการการดำเนินการ
                   </p>
                   <p className="text-sm text-red-600">
-                    Critical deviations may impact product safety or efficacy. Please address immediately.
+                    ความเบี่ยงเบนวิกฤตอาจส่งผลกระทบต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์ กรุณาดำเนินการทันที
                   </p>
                 </div>
               </div>
@@ -309,91 +333,69 @@ export default function DeviationsPage() {
           </Card>
         )}
 
-        <Card elevation="raised">
+        {/* Filters Card */}
+        <Card elevation="raised" className="md:py-1">
           <CardContent>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
-                <Input
-                  variant="search"
-                  placeholder="Search by deviation number or title..."
+                <DxTextBox
+                  placeholder="ค้นหาด้วยเลขที่หรือหัวข้อ..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onSearch={handleSearch}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchDeviations()}
                 />
               </div>
               <div className="w-full md:w-40">
-                <Select
-                  options={statusOptions}
+                <DxSelectBox
+                  items={statusOptions}
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onValueChange={setStatusFilter}
+                  placeholder="สถานะ"
+                  showClearButton
                 />
               </div>
               <div className="w-full md:w-40">
-                <Select
-                  options={severityOptions}
+                <DxSelectBox
+                  items={severityOptions}
                   value={severityFilter}
-                  onChange={(e) => setSeverityFilter(e.target.value)}
+                  onValueChange={setSeverityFilter}
+                  placeholder="ระดับ"
+                  showClearButton
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Table */}
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : deviations.length > 0 ? (
-              <>
-                <Table
-                  columns={columns}
-                  data={deviations}
-                  keyField="id"
-                  isLoading={isLoading}
-                  emptyMessage="No deviations found"
-                  striped
-                  hoverable
-                  onRowClick={(dev) => router.push(`/quality/deviations/${dev.id}`)}
-                />
-
-                {/* Pagination */}
-                {pagination.total > pagination.limit && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-500">
-                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                      {pagination.total} deviations
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page === 1}
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page * pagination.limit >= pagination.total}
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+        {/* Table Card */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col">
+            {deviations.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={deviations}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="deviations"
+                columnChooser
+                virtualScrolling={deviations.length > 100}
+                fillHeight
+                onRowClick={handleRowClick}
+                noDataText="ไม่พบความเบี่ยงเบน"
+              />
             ) : (
               <EmptyState
                 icon={<AlertTriangle className="h-8 w-8" />}
-                title="No deviations found"
-                description="Report a new deviation when quality issues are identified"
+                title="ไม่พบความเบี่ยงเบน"
+                description="รายงานความเบี่ยงเบนใหม่เมื่อพบปัญหาคุณภาพ"
                 action={{
-                  label: 'Report Deviation',
+                  label: 'รายงานความเบี่ยงเบน',
                   onClick: () => router.push('/quality/deviations/new'),
                 }}
               />

@@ -4,15 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxPopup } from '@/components/ui/dx-popup';
 import { PageHeader } from '@/components/ui/page-header';
-import { Table } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
-import { ArrowLeft, Plus, Trash2, Package, Building2 } from 'lucide-react';
+import { Package, Building2 } from 'lucide-react';
 
 interface Vendor {
   id: number;
@@ -162,44 +162,52 @@ export default function NewPurchaseOrderPage() {
     return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(amount);
   };
 
-  const lineColumns = [
+  const vendorOptions = [
+    { value: '', label: '-- เลือกผู้ขาย --' },
+    ...vendors.map((v) => ({ value: v.id.toString(), label: `${v.code} - ${v.name}` })),
+  ];
+
+  const lineColumns: DxDataGridColumn[] = [
     {
-      key: 'item',
-      header: 'Item',
-      render: (line: POLine) => (
+      dataField: 'itemCode',
+      caption: 'สินค้า',
+      cellRender: (cellInfo) => (
         <div>
-          <p className="font-medium">{line.itemCode}</p>
-          <p className="text-sm text-gray-500">{line.itemName}</p>
+          <p className="font-medium">{cellInfo.data.itemCode}</p>
+          <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
         </div>
       ),
     },
     {
-      key: 'quantity',
-      header: 'Quantity',
-      render: (line: POLine) => `${line.quantity.toLocaleString()} ${line.itemUnit}`,
+      dataField: 'quantity',
+      caption: 'จำนวน',
+      width: 120,
+      cellRender: (cellInfo) => `${cellInfo.data.quantity.toLocaleString()} ${cellInfo.data.itemUnit}`,
     },
     {
-      key: 'unitPrice',
-      header: 'Unit Price',
-      render: (line: POLine) => formatCurrency(line.unitPrice),
+      dataField: 'unitPrice',
+      caption: 'ราคาต่อหน่วย',
+      width: 150,
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.unitPrice),
     },
     {
-      key: 'lineTotal',
-      header: 'Line Total',
-      render: (line: POLine) => formatCurrency(line.lineTotal),
+      dataField: 'lineTotal',
+      caption: 'รวม',
+      width: 150,
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.lineTotal),
     },
     {
-      key: 'actions',
-      header: '',
-      render: (line: POLine) => (
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => handleRemoveLine(line.itemId)}
-          leftIcon={<Trash2 className="h-4 w-4" />}
-        >
-          Remove
-        </Button>
+      dataField: 'actions',
+      caption: '',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <DxButton
+          text="ลบ"
+          icon="trash"
+          type="danger"
+          stylingMode="text"
+          onClick={() => handleRemoveLine(cellInfo.data.itemId)}
+        />
       ),
     },
   ];
@@ -211,9 +219,13 @@ export default function NewPurchaseOrderPage() {
           title="Create Purchase Order"
           description="สร้างใบสั่งซื้อใหม่"
           actions={
-            <Button variant="secondary" onClick={() => router.push('/purchasing/orders')} leftIcon={<ArrowLeft className="h-4 w-4" />}>
-              Back
-            </Button>
+            <DxButton
+              text="Back"
+              icon="back"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => router.push('/purchasing/orders')}
+            />
           }
         />
 
@@ -229,17 +241,21 @@ export default function NewPurchaseOrderPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Select
-                  label="Vendor"
-                  value={formData.vendorId}
-                  onChange={(e) => setFormData({ ...formData, vendorId: e.target.value })}
-                  error={errors.vendorId}
-                  disabled={loadingVendors}
-                  options={[
-                    { value: '', label: '-- Select a vendor --' },
-                    ...vendors.map((v) => ({ value: v.id.toString(), label: `${v.code} - ${v.name}` })),
-                  ]}
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vendor <span className="text-red-500">*</span>
+                  </label>
+                  <DxSelectBox
+                    items={vendorOptions}
+                    value={formData.vendorId}
+                    onValueChange={(value) => setFormData({ ...formData, vendorId: value })}
+                    disabled={loadingVendors}
+                    placeholder="-- เลือกผู้ขาย --"
+                  />
+                  {errors.vendorId && (
+                    <p className="text-sm text-red-600 mt-1">{errors.vendorId}</p>
+                  )}
+                </div>
 
                 {selectedVendor && (
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -269,24 +285,27 @@ export default function NewPurchaseOrderPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <DatePicker
-                    label="Expected Delivery Date"
-                    value={formData.expectedDate}
-                    onChange={(value) => setFormData({ ...formData, expectedDate: value })}
-                    min={new Date().toISOString().split('T')[0]}
-                    showQuickActions={false}
-                    size="sm"
-                    error={errors.expectedDate}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Expected Delivery Date <span className="text-red-500">*</span>
+                    </label>
+                    <DxDateBox
+                      value={formData.expectedDate}
+                      onValueChange={(value) => setFormData({ ...formData, expectedDate: value || '' })}
+                      min={new Date().toISOString().split('T')[0]}
+                      placeholder="เลือกวันที่คาดว่าจะได้รับ"
+                    />
+                    {errors.expectedDate && (
+                      <p className="text-sm text-red-600 mt-1">{errors.expectedDate}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
-                  <textarea
-                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-base focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-                    rows={3}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <DxTextBox
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onValueChange={(value) => setFormData({ ...formData, notes: value })}
                     placeholder="Any additional notes..."
                   />
                 </div>
@@ -301,29 +320,37 @@ export default function NewPurchaseOrderPage() {
                     <Package className="h-5 w-5 text-gray-400" />
                     3. Order Items
                   </CardTitle>
-                  <Button onClick={() => setIsItemDialogOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
-                    Add Item
-                  </Button>
+                  <DxButton
+                    text="Add Item"
+                    icon="plus"
+                    type="default"
+                    onClick={() => setIsItemDialogOpen(true)}
+                  />
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {errors.lines && <p className="text-sm text-red-600">{errors.lines}</p>}
                 {lines.length > 0 ? (
-                  <Table columns={lineColumns} data={lines} keyField="itemId" emptyMessage="No items added" />
+                  <>
+                    <DxDataGrid
+                      dataSource={lines}
+                      keyExpr="itemId"
+                      columns={lineColumns}
+                      height={300}
+                      noDataText="ไม่มีรายการสินค้า"
+                    />
+                    <div className="flex justify-end pt-4 border-t">
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">Total Amount</p>
+                        <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalAmount)}</p>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
                     <Package className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                     <p>No items added yet</p>
                     <p className="text-sm">Click &quot;Add Item&quot; to search and add items</p>
-                  </div>
-                )}
-
-                {lines.length > 0 && (
-                  <div className="flex justify-end pt-4 border-t">
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">Total Amount</p>
-                      <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalAmount)}</p>
-                    </div>
                   </div>
                 )}
               </CardContent>
@@ -365,17 +392,20 @@ export default function NewPurchaseOrderPage() {
                 )}
               </CardContent>
               <CardFooter className="flex flex-col gap-3">
-                <Button
+                <DxButton
+                  text="Create Purchase Order"
+                  type="success"
+                  width="100%"
                   onClick={handleSubmit}
                   disabled={!formData.vendorId || lines.length === 0 || isSubmitting}
-                  loading={isSubmitting}
-                  fullWidth
-                >
-                  Create Purchase Order
-                </Button>
-                <Button variant="secondary" onClick={() => router.push('/purchasing/orders')} fullWidth>
-                  Cancel
-                </Button>
+                />
+                <DxButton
+                  text="Cancel"
+                  type="normal"
+                  stylingMode="outlined"
+                  width="100%"
+                  onClick={() => router.push('/purchasing/orders')}
+                />
               </CardFooter>
             </Card>
           </div>
@@ -393,63 +423,71 @@ export default function NewPurchaseOrderPage() {
       />
 
       {/* Quantity & Price Dialog */}
-      <Dialog open={isQuantityDialogOpen} onOpenChange={setIsQuantityDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enter Quantity & Price</DialogTitle>
-          </DialogHeader>
-          {selectedItem && (
-            <div className="space-y-4 py-4">
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="font-medium text-blue-900">{selectedItem.code}</p>
-                <p className="text-sm text-blue-700">{selectedItem.nameTh || selectedItem.nameEn}</p>
-                <p className="text-xs text-blue-600 mt-1">Unit: {selectedItem.primaryUnit || 'unit'}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label={`Quantity (${selectedItem.primaryUnit || 'unit'})`}
-                  type="number"
-                  value={itemQuantity}
-                  onChange={(e) => setItemQuantity(e.target.value)}
-                  min={1}
-                  required
-                  autoFocus
-                />
-                <Input
-                  label="Unit Price (THB)"
-                  type="number"
-                  value={itemUnitPrice}
-                  onChange={(e) => setItemUnitPrice(e.target.value)}
-                  min={0}
-                  step="0.01"
-                  required
-                />
-              </div>
-
-              {itemQuantity && itemUnitPrice && (
-                <div className="text-right p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm text-gray-600">Line Total: </span>
-                  <span className="font-bold text-blue-600">
-                    {formatCurrency(parseFloat(itemQuantity) * parseFloat(itemUnitPrice))}
-                  </span>
-                </div>
-              )}
+      <DxPopup
+        visible={isQuantityDialogOpen}
+        onHiding={() => setIsQuantityDialogOpen(false)}
+        title="Enter Quantity & Price"
+        width={500}
+        height="auto"
+        showCloseButton
+      >
+        {selectedItem && (
+          <div className="space-y-4 p-4">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="font-medium text-blue-900">{selectedItem.code}</p>
+              <p className="text-sm text-blue-700">{selectedItem.nameTh || selectedItem.nameEn}</p>
+              <p className="text-xs text-blue-600 mt-1">Unit: {selectedItem.primaryUnit || 'unit'}</p>
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsQuantityDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddItemToOrder}
-              disabled={!itemQuantity || !itemUnitPrice || parseFloat(itemQuantity) <= 0}
-            >
-              Add to Order
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quantity ({selectedItem.primaryUnit || 'unit'})
+                </label>
+                <DxTextBox
+                  value={itemQuantity}
+                  onValueChange={setItemQuantity}
+                  placeholder="Enter quantity"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Unit Price (THB)
+                </label>
+                <DxTextBox
+                  value={itemUnitPrice}
+                  onValueChange={setItemUnitPrice}
+                  placeholder="Enter price"
+                />
+              </div>
+            </div>
+
+            {itemQuantity && itemUnitPrice && (
+              <div className="text-right p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-600">Line Total: </span>
+                <span className="font-bold text-blue-600">
+                  {formatCurrency(parseFloat(itemQuantity) * parseFloat(itemUnitPrice))}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <DxButton
+                text="Cancel"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => setIsQuantityDialogOpen(false)}
+              />
+              <DxButton
+                text="Add to Order"
+                type="success"
+                onClick={handleAddItemToOrder}
+                disabled={!itemQuantity || !itemUnitPrice || parseFloat(itemQuantity) <= 0}
+              />
+            </div>
+          </div>
+        )}
+      </DxPopup>
     </MainLayout>
   );
 }

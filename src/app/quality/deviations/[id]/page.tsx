@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 
 interface DeviationDetail {
   deviation: {
@@ -68,12 +71,20 @@ interface DeviationDetail {
   };
 }
 
+const statusOptions = [
+  { value: 'open', label: 'Open' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'pending_verification', label: 'Pending Verification' },
+  { value: 'verified', label: 'Verified' },
+  { value: 'closed', label: 'Closed' },
+];
+
 export default function DeviationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [data, setData] = useState<DeviationDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'investigation' | 'capa' | 'history'>('overview');
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     rootCause: '',
@@ -81,6 +92,13 @@ export default function DeviationDetailPage() {
     preventiveAction: '',
     status: '',
   });
+
+  const tabs: DxTabItem[] = [
+    { text: 'Overview', icon: 'chart' },
+    { text: 'Investigation', icon: 'search' },
+    { text: 'CAPA', icon: 'checklist' },
+    { text: 'History', icon: 'clock' },
+  ];
 
   useEffect(() => {
     fetchDeviationDetail();
@@ -123,10 +141,8 @@ export default function DeviationDetailPage() {
         setIsEditing(false);
         fetchDeviationDetail();
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to save:', error);
-      // API errors handled by global error handler
     }
   };
 
@@ -164,7 +180,7 @@ export default function DeviationDetailPage() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <DxLoadIndicator />
         </div>
       </MainLayout>
     );
@@ -174,10 +190,14 @@ export default function DeviationDetailPage() {
     return (
       <MainLayout>
         <div className="text-center py-12">
-          <p className="text-gray-500">ไม่พบข้อมูล Deviation</p>
-          <Button variant="secondary" className="mt-4" onClick={() => router.push('/quality')}>
-            กลับไปหน้ารายการ
-          </Button>
+          <p className="text-gray-500">Deviation not found</p>
+          <DxButton
+            text="Back to List"
+            type="normal"
+            stylingMode="outlined"
+            className="mt-4"
+            onClick={() => router.push('/quality')}
+          />
         </div>
       </MainLayout>
     );
@@ -192,9 +212,13 @@ export default function DeviationDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={() => router.push('/quality')}>
-                ← Back
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/quality')}
+              />
               <h1 className="text-2xl font-bold text-gray-900">{deviation.deviationCode}</h1>
               <Badge variant={getStatusVariant(deviation.status)}>
                 {deviation.status}
@@ -210,19 +234,34 @@ export default function DeviationDetailPage() {
           </div>
           <div className="flex gap-2">
             {!isEditing && deviation.status !== 'closed' && (
-              <Button variant="primary" onClick={() => setIsEditing(true)}>
-                Update CAPA
-              </Button>
+              <DxButton
+                text="Update CAPA"
+                type="default"
+                onClick={() => setIsEditing(true)}
+              />
             )}
             {isEditing && (
               <>
-                <Button variant="secondary" onClick={() => setIsEditing(false)}>Cancel</Button>
-                <Button variant="primary" onClick={handleSave}>Save</Button>
+                <DxButton
+                  text="Cancel"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setIsEditing(false)}
+                />
+                <DxButton
+                  text="Save"
+                  type="success"
+                  onClick={handleSave}
+                />
               </>
             )}
-            <Button variant="secondary" onClick={() => window.print()}>
-              Print Report
-            </Button>
+            <DxButton
+              text="Print Report"
+              icon="print"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => window.print()}
+            />
           </div>
         </div>
 
@@ -284,31 +323,14 @@ export default function DeviationDetailPage() {
         )}
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="flex gap-4">
-            {[
-              { id: 'overview', label: '📊 Overview' },
-              { id: 'investigation', label: '🔍 Investigation' },
-              { id: 'capa', label: '📋 CAPA' },
-              { id: 'history', label: '📜 History' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <DxTabs
+          items={tabs}
+          selectedIndex={activeTabIndex}
+          onItemClick={(e) => setActiveTabIndex(e.itemIndex || 0)}
+        />
 
         {/* Tab Content */}
-        {activeTab === 'overview' && (
+        {activeTabIndex === 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Deviation Info */}
             <Card>
@@ -415,7 +437,7 @@ export default function DeviationDetailPage() {
           </div>
         )}
 
-        {activeTab === 'investigation' && (
+        {activeTabIndex === 1 && (
           <Card>
             <CardHeader>
               <CardTitle>Root Cause Investigation</CardTitle>
@@ -425,12 +447,11 @@ export default function DeviationDetailPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Root Cause Analysis</label>
-                    <textarea
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                      rows={6}
+                    <DxTextArea
                       value={editForm.rootCause}
-                      onChange={(e) => setEditForm({ ...editForm, rootCause: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, rootCause: value })}
                       placeholder="Describe the root cause analysis using 5-Why or Fishbone diagram methodology..."
+                      height={150}
                     />
                   </div>
                 </div>
@@ -446,7 +467,7 @@ export default function DeviationDetailPage() {
           </Card>
         )}
 
-        {activeTab === 'capa' && (
+        {activeTabIndex === 2 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Corrective Action */}
             <Card>
@@ -455,12 +476,11 @@ export default function DeviationDetailPage() {
               </CardHeader>
               <CardContent>
                 {isEditing ? (
-                  <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    rows={6}
+                  <DxTextArea
                     value={editForm.correctiveAction}
-                    onChange={(e) => setEditForm({ ...editForm, correctiveAction: e.target.value })}
+                    onValueChange={(value) => setEditForm({ ...editForm, correctiveAction: value })}
                     placeholder="Describe the corrective actions taken to address the immediate issue..."
+                    height={150}
                   />
                 ) : (
                   <p className="text-gray-600 whitespace-pre-wrap">
@@ -477,12 +497,11 @@ export default function DeviationDetailPage() {
               </CardHeader>
               <CardContent>
                 {isEditing ? (
-                  <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    rows={6}
+                  <DxTextArea
                     value={editForm.preventiveAction}
-                    onChange={(e) => setEditForm({ ...editForm, preventiveAction: e.target.value })}
+                    onValueChange={(value) => setEditForm({ ...editForm, preventiveAction: value })}
                     placeholder="Describe the preventive actions to prevent recurrence..."
+                    height={150}
                   />
                 ) : (
                   <p className="text-gray-600 whitespace-pre-wrap">
@@ -500,16 +519,13 @@ export default function DeviationDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="max-w-xs">
-                    <Select
+                    <DxSelectBox
+                      items={statusOptions}
                       value={editForm.status}
-                      onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    >
-                      <option value="open">Open</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="pending_verification">Pending Verification</option>
-                      <option value="verified">Verified</option>
-                      <option value="closed">Closed</option>
-                    </Select>
+                      onValueChange={(value) => setEditForm({ ...editForm, status: value })}
+                      valueExpr="value"
+                      displayExpr="label"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -517,7 +533,7 @@ export default function DeviationDetailPage() {
           </div>
         )}
 
-        {activeTab === 'history' && (
+        {activeTabIndex === 3 && (
           <Card>
             <CardHeader>
               <CardTitle>Activity History</CardTitle>

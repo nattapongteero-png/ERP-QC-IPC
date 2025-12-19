@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -396,10 +397,13 @@ export function ItemEditForm({
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-4">
               {onCancel && (
-                <Button variant="ghost" onClick={onCancel} className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </Button>
+                <DxButton
+                  text="Back"
+                  icon="back"
+                  type="normal"
+                  stylingMode="text"
+                  onClick={onCancel}
+                />
               )}
               <div className={cn('p-3 rounded-2xl', typeConfig.bgColor, typeConfig.borderColor, 'border')}>
                 <TypeIcon className={cn('h-7 w-7', typeConfig.color)} />
@@ -427,10 +431,12 @@ export function ItemEditForm({
                 </Badge>
               )}
               {showDelete && onDelete && (
-                <Button variant="danger" onClick={onDelete} className="gap-2">
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
+                <DxButton
+                  text="Delete"
+                  icon="trash"
+                  type="danger"
+                  onClick={onDelete}
+                />
               )}
             </div>
           </div>
@@ -465,48 +471,48 @@ export function ItemEditForm({
               >
                 <div className="grid grid-cols-2 gap-5">
                   <div className="col-span-1">
-                    <Input
-                      label="Item Code"
-                      value={formData.code}
-                      onChange={(e) => updateFormData('code', e.target.value)}
-                      placeholder="RM-0001"
-                      rightIcon={
-                        <button
-                          type="button"
-                          onClick={handleGenerateCode}
-                          className="flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 whitespace-nowrap"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          Generate
-                        </button>
-                      }
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Item Code</label>
+                    <div className="flex gap-2">
+                      <DxTextBox
+                        value={formData.code}
+                        onValueChange={(value) => updateFormData('code', value)}
+                        placeholder="RM-0001"
+                        className="flex-1"
+                      />
+                      <DxButton
+                        text="Generate"
+                        type="normal"
+                        stylingMode="outlined"
+                        onClick={handleGenerateCode}
+                      />
+                    </div>
                   </div>
                   <div className="col-span-1">
-                    <Select
-                      label="Category"
-                      options={categoryOptions}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <DxSelectBox
+                      items={categoryOptions}
                       value={formData.category}
-                      onChange={(e) => updateFormData('category', e.target.value)}
+                      onValueChange={(value) => updateFormData('category', value)}
+                      valueExpr="value"
+                      displayExpr="label"
                       disabled={categoriesLoading}
+                      placeholder="Select category"
                     />
                   </div>
                   <div className="col-span-1">
-                    <Input
-                      label="Name (Thai)"
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name (Thai)</label>
+                    <DxTextBox
                       value={formData.nameTh}
-                      onChange={(e) => updateFormData('nameTh', e.target.value)}
+                      onValueChange={(value) => updateFormData('nameTh', value)}
                       placeholder="ชื่อสินค้าภาษาไทย"
-                      leftIcon={<Globe className="h-4 w-4 text-gray-400" />}
                     />
                   </div>
                   <div className="col-span-1">
-                    <Input
-                      label="Name (English)"
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
+                    <DxTextBox
                       value={formData.nameEn}
-                      onChange={(e) => updateFormData('nameEn', e.target.value)}
+                      onValueChange={(value) => updateFormData('nameEn', value)}
                       placeholder="English name (optional)"
-                      leftIcon={<Globe className="h-4 w-4 text-gray-400" />}
                     />
                   </div>
                 </div>
@@ -520,31 +526,40 @@ export function ItemEditForm({
               >
                 <div className="space-y-5">
                   <div className="grid grid-cols-3 gap-5">
-                    <Select
-                      label="Primary Unit"
-                      options={unitOptions}
-                      value={formData.primaryUnit}
-                      onChange={(e) => updateFormData('primaryUnit', e.target.value)}
-                      disabled={unitsLoading}
-                    />
-                    <Select
-                      label="Secondary Unit"
-                      options={unitOptionsWithNone}
-                      value={formData.secondaryUnit}
-                      onChange={(e) => updateFormData('secondaryUnit', e.target.value)}
-                      helperText="Optional alternative unit"
-                      disabled={unitsLoading}
-                    />
-                    <Input
-                      label="Conversion Factor"
-                      type="number"
-                      step="0.001"
-                      value={formData.conversionFactor ?? ''}
-                      onChange={(e) => updateFormData('conversionFactor', e.target.value ? parseFloat(e.target.value) : null)}
-                      placeholder="e.g., 1000"
-                      helperText="1 primary = X secondary"
-                      disabled={!formData.secondaryUnit}
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Primary Unit</label>
+                      <DxSelectBox
+                        items={unitOptions}
+                        value={formData.primaryUnit}
+                        onValueChange={(value) => updateFormData('primaryUnit', value)}
+                        valueExpr="value"
+                        displayExpr="label"
+                        disabled={unitsLoading}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Unit</label>
+                      <DxSelectBox
+                        items={unitOptionsWithNone}
+                        value={formData.secondaryUnit}
+                        onValueChange={(value) => updateFormData('secondaryUnit', value)}
+                        valueExpr="value"
+                        displayExpr="label"
+                        disabled={unitsLoading}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Optional alternative unit</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Conversion Factor</label>
+                      <DxNumberBox
+                        value={formData.conversionFactor}
+                        onValueChange={(value) => updateFormData('conversionFactor', value)}
+                        placeholder="e.g., 1000"
+                        disabled={!formData.secondaryUnit}
+                        format="#,##0.###"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">1 primary = X secondary</p>
+                    </div>
                   </div>
 
                   {formData.secondaryUnit && formData.conversionFactor && (
@@ -567,32 +582,36 @@ export function ItemEditForm({
                 description="Stock thresholds and reorder settings"
               >
                 <div className="grid grid-cols-3 gap-5">
-                  <Input
-                    label="Minimum Stock"
-                    type="number"
-                    value={formData.minStock ?? ''}
-                    onChange={(e) => updateFormData('minStock', e.target.value ? parseFloat(e.target.value) : null)}
-                    placeholder="0"
-                    helperText="Alert when stock falls below"
-                    leftIcon={<AlertTriangle className="h-4 w-4 text-red-400" />}
-                  />
-                  <Input
-                    label="Maximum Stock"
-                    type="number"
-                    value={formData.maxStock ?? ''}
-                    onChange={(e) => updateFormData('maxStock', e.target.value ? parseFloat(e.target.value) : null)}
-                    placeholder="0"
-                    helperText="Maximum storage capacity"
-                  />
-                  <Input
-                    label="Reorder Point"
-                    type="number"
-                    value={formData.reorderPoint ?? ''}
-                    onChange={(e) => updateFormData('reorderPoint', e.target.value ? parseFloat(e.target.value) : null)}
-                    placeholder="0"
-                    helperText="Trigger reorder when reached"
-                    leftIcon={<Tag className="h-4 w-4 text-amber-400" />}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Stock</label>
+                    <DxNumberBox
+                      value={formData.minStock}
+                      onValueChange={(value) => updateFormData('minStock', value)}
+                      placeholder="0"
+                      format="#,##0.##"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Alert when stock falls below</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Stock</label>
+                    <DxNumberBox
+                      value={formData.maxStock}
+                      onValueChange={(value) => updateFormData('maxStock', value)}
+                      placeholder="0"
+                      format="#,##0.##"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Maximum storage capacity</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Point</label>
+                    <DxNumberBox
+                      value={formData.reorderPoint}
+                      onValueChange={(value) => updateFormData('reorderPoint', value)}
+                      placeholder="0"
+                      format="#,##0.##"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Trigger reorder when reached</p>
+                  </div>
                 </div>
               </SectionCard>
 
@@ -603,22 +622,25 @@ export function ItemEditForm({
                 description="Shelf life and storage conditions"
               >
                 <div className="grid grid-cols-2 gap-5">
-                  <Input
-                    label="Shelf Life (Days)"
-                    type="number"
-                    value={formData.shelfLifeDays ?? ''}
-                    onChange={(e) => updateFormData('shelfLifeDays', e.target.value ? parseInt(e.target.value) : null)}
-                    placeholder="e.g., 365"
-                    helperText="Days until expiration"
-                    leftIcon={<Calendar className="h-4 w-4 text-gray-400" />}
-                  />
-                  <Input
-                    label="Storage Conditions"
-                    value={formData.storageConditions}
-                    onChange={(e) => updateFormData('storageConditions', e.target.value)}
-                    placeholder="e.g., 15-25°C, Dry, Away from light"
-                    helperText="Temperature, humidity, special requirements"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Shelf Life (Days)</label>
+                    <DxNumberBox
+                      value={formData.shelfLifeDays}
+                      onValueChange={(value) => updateFormData('shelfLifeDays', value)}
+                      placeholder="e.g., 365"
+                      format="#,##0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Days until expiration</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Storage Conditions</label>
+                    <DxTextBox
+                      value={formData.storageConditions}
+                      onValueChange={(value) => updateFormData('storageConditions', value)}
+                      placeholder="e.g., 15-25°C, Dry, Away from light"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Temperature, humidity, special requirements</p>
+                  </div>
                 </div>
               </SectionCard>
             </div>
@@ -763,24 +785,21 @@ export function ItemEditForm({
           </div>
           <div className="flex items-center gap-3">
             {onCancel && (
-              <Button
-                variant="ghost"
+              <DxButton
+                text="Cancel"
+                type="normal"
+                stylingMode="text"
                 onClick={onCancel}
                 disabled={isSaving}
-                className="px-6"
-              >
-                Cancel
-              </Button>
+              />
             )}
-            <Button
+            <DxButton
+              text={isSaving ? 'Saving...' : isEditing ? 'Update Item' : 'Create Item'}
+              icon="save"
+              type="success"
               onClick={handleSave}
               disabled={isSaving || !formData.code || !formData.nameTh}
-              loading={isSaving}
-              className="px-6 gap-2"
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Saving...' : isEditing ? 'Update Item' : 'Create Item'}
-            </Button>
+            />
           </div>
         </div>
       </div>

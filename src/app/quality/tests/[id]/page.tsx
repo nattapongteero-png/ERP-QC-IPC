@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 
 interface TestDetail {
   test: {
@@ -69,12 +71,20 @@ interface TestDetail {
   };
 }
 
+const resultOptions = [
+  { value: '', label: 'Select Result' },
+  { value: 'pass', label: 'Pass' },
+  { value: 'fail', label: 'Fail' },
+  { value: 'retest', label: 'Retest Required' },
+];
+
 export default function QualityTestDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [data, setData] = useState<TestDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState({
     actualValue: '',
     result: '',
@@ -105,6 +115,7 @@ export default function QualityTestDetailPage() {
   };
 
   const handleSubmitResult = async () => {
+    setIsSaving(true);
     try {
       const response = await fetch(`/api/quality/tests/${params.id}/result`, {
         method: 'PUT',
@@ -118,6 +129,8 @@ export default function QualityTestDetailPage() {
       }
     } catch (error) {
       console.error('Failed to submit result:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -145,7 +158,7 @@ export default function QualityTestDetailPage() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <DxLoadIndicator />
         </div>
       </MainLayout>
     );
@@ -155,10 +168,14 @@ export default function QualityTestDetailPage() {
     return (
       <MainLayout>
         <div className="text-center py-12">
-          <p className="text-gray-500">ไม่พบข้อมูล Quality Test</p>
-          <Button variant="secondary" className="mt-4" onClick={() => router.push('/quality')}>
-            กลับไปหน้ารายการ
-          </Button>
+          <p className="text-gray-500">Quality Test not found</p>
+          <DxButton
+            text="Back to List"
+            type="normal"
+            stylingMode="outlined"
+            className="mt-4"
+            onClick={() => router.push('/quality')}
+          />
         </div>
       </MainLayout>
     );
@@ -173,9 +190,13 @@ export default function QualityTestDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={() => router.push('/quality')}>
-                ← Back
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/quality')}
+              />
               <h1 className="text-2xl font-bold text-gray-900">QC Test: {test.testCode}</h1>
               <Badge variant={getStatusVariant(test.status)}>
                 {test.status}
@@ -190,19 +211,35 @@ export default function QualityTestDetailPage() {
           </div>
           <div className="flex gap-2">
             {test.status === 'pending' && !isEditing && (
-              <Button variant="primary" onClick={() => setIsEditing(true)}>
-                Enter Result
-              </Button>
+              <DxButton
+                text="Enter Result"
+                type="default"
+                onClick={() => setIsEditing(true)}
+              />
             )}
             {isEditing && (
               <>
-                <Button variant="secondary" onClick={() => setIsEditing(false)}>Cancel</Button>
-                <Button variant="primary" onClick={handleSubmitResult}>Save Result</Button>
+                <DxButton
+                  text="Cancel"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setIsEditing(false)}
+                />
+                <DxButton
+                  text={isSaving ? 'Saving...' : 'Save Result'}
+                  type="success"
+                  onClick={handleSubmitResult}
+                  disabled={isSaving}
+                />
               </>
             )}
-            <Button variant="secondary" onClick={() => window.print()}>
-              Print Report
-            </Button>
+            <DxButton
+              text="Print Report"
+              icon="print"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => window.print()}
+            />
           </div>
         </div>
 
@@ -411,33 +448,29 @@ export default function QualityTestDetailPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Actual Value {specification?.unit && `(${specification.unit})`}
                     </label>
-                    <Input
-                      type="text"
+                    <DxTextBox
                       value={editForm.actualValue}
-                      onChange={(e) => setEditForm({ ...editForm, actualValue: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, actualValue: value })}
                       placeholder={specification ? `Range: ${specification.minValue || '-'} to ${specification.maxValue || '-'}` : 'Enter value'}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Result</label>
-                    <Select
+                    <DxSelectBox
+                      items={resultOptions}
                       value={editForm.result}
-                      onChange={(e) => setEditForm({ ...editForm, result: e.target.value })}
-                    >
-                      <option value="">Select Result</option>
-                      <option value="pass">Pass</option>
-                      <option value="fail">Fail</option>
-                      <option value="retest">Retest Required</option>
-                    </Select>
+                      onValueChange={(value) => setEditForm({ ...editForm, result: value })}
+                      valueExpr="value"
+                      displayExpr="label"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                    <textarea
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                      rows={3}
+                    <DxTextArea
                       value={editForm.notes}
-                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, notes: value })}
                       placeholder="Enter any observations or notes"
+                      height={80}
                     />
                   </div>
                 </div>

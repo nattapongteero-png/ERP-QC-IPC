@@ -1,0 +1,212 @@
+/**
+ * DevExtreme Mobile Overrides
+ * Optimizations for phone (< 768px) and tablet (768px - 1024px) devices
+ */
+
+/* ================================
+   Mobile (< 768px)
+   ================================ */
+@media (max-width: 767px) {
+  /* DataGrid - Smaller text and padding */
+  .dx-datagrid-headers .dx-datagrid-text-content {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .dx-datagrid-rowsview .dx-data-row td {
+    font-size: 13px;
+    padding: 8px 6px;
+  }
+
+  /* DataGrid - Smaller header cells */
+  .dx-datagrid-headers td {
+    padding: 10px 6px;
+  }
+
+  /* DataGrid - Compact filter row */
+  .dx-datagrid-filter-row td {
+    padding: 4px 6px;
+  }
+
+  .dx-datagrid-filter-row .dx-texteditor {
+    height: 32px;
+  }
+
+  /* Touch-friendly buttons (44px minimum) */
+  .dx-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .dx-button .dx-button-content {
+    padding: 8px 12px;
+  }
+
+  /* Touch-friendly row action buttons */
+  .dx-datagrid .dx-link {
+    padding: 8px;
+    margin: 0 2px;
+  }
+
+  /* Popup - Better mobile padding */
+  .dx-popup-content {
+    padding: 12px;
+  }
+
+  /* Form - Compact labels */
+  .dx-field-label {
+    font-size: 12px;
+  }
+
+  /* TextEditor - Touch-friendly height */
+  .dx-texteditor {
+    min-height: 40px;
+  }
+
+  .dx-texteditor-input {
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+
+  /* SelectBox/DateBox dropdowns */
+  .dx-dropdowneditor-button {
+    width: 40px;
+  }
+
+  /* Tabs - Scrollable on mobile */
+  .dx-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dx-tab {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  /* Pager - Compact on mobile */
+  .dx-pager .dx-pages {
+    gap: 4px;
+  }
+
+  .dx-pager .dx-page {
+    min-width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  /* DataGrid pager info - Hide on small mobile */
+  .dx-pager .dx-info {
+    display: none;
+  }
+
+  /* Checkbox - Larger touch target */
+  .dx-checkbox-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* LoadPanel - Full width on mobile */
+  .dx-loadpanel-content {
+    min-width: 200px;
+  }
+}
+
+/* ================================
+   Small Mobile (< 430px)
+   ================================ */
+@media (max-width: 429px) {
+  /* Extra compact DataGrid */
+  .dx-datagrid-headers .dx-datagrid-text-content {
+    font-size: 11px;
+  }
+
+  .dx-datagrid-rowsview .dx-data-row td {
+    font-size: 12px;
+    padding: 6px 4px;
+  }
+
+  /* Hide page size selector on very small screens */
+  .dx-pager .dx-page-sizes {
+    display: none;
+  }
+
+  /* Compact popup toolbar */
+  .dx-popup-bottom .dx-toolbar-items-container {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .dx-popup-bottom .dx-toolbar-item {
+    margin-left: 0 !important;
+  }
+}
+
+/* ================================
+   Tablet (768px - 1024px)
+   ================================ */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Slightly smaller text */
+  .dx-datagrid-headers .dx-datagrid-text-content {
+    font-size: 13px;
+  }
+
+  .dx-datagrid-rowsview .dx-data-row td {
+    font-size: 14px;
+    padding: 10px 8px;
+  }
+
+  /* Touch-friendly buttons */
+  .dx-button {
+    min-height: 40px;
+  }
+
+  /* Form fields */
+  .dx-texteditor {
+    min-height: 38px;
+  }
+}
+
+/* ================================
+   Touch Device Optimizations
+   ================================ */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  .dx-datagrid-rowsview .dx-row {
+    min-height: 48px;
+  }
+
+  /* Remove hover effects that don't work on touch */
+  .dx-datagrid-rowsview .dx-row:hover {
+    background-color: inherit;
+  }
+
+  /* Active state for touch feedback */
+  .dx-datagrid-rowsview .dx-row:active {
+    background-color: rgba(5, 150, 105, 0.1);
+  }
+
+  /* Larger click area for links */
+  .dx-link {
+    padding: 10px;
+    margin: -10px;
+  }
+
+  /* Better scrollbar for touch */
+  .dx-datagrid-rowsview::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* ================================
+   Reduced Motion Support
+   ================================ */
+@media (prefers-reduced-motion: reduce) {
+  .dx-datagrid,
+  .dx-popup,
+  .dx-overlay-content {
+    transition: none !important;
+    animation: none !important;
+  }
+}

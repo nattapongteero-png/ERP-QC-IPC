@@ -4,12 +4,13 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
 import { Badge } from '@/components/ui/badge';
-import { Table } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import {
   Building2,
@@ -23,9 +24,6 @@ import {
   Package,
   CheckCircle,
   AlertCircle,
-  Edit,
-  ArrowLeft,
-  Trash2,
 } from 'lucide-react';
 
 interface Vendor {
@@ -86,7 +84,7 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   const [data, setData] = useState<VendorDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -205,17 +203,17 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
     }).format(amount);
   };
 
-  const getStatusVariant = (status: string): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
+  const getStatusVariant = (status: string): 'primary' | 'danger' | 'secondary' | 'default' => {
     switch (status) {
       case 'approved':
       case 'received':
-        return 'success';
+        return 'primary';
       case 'cancelled':
         return 'danger';
       case 'pending_approval':
-        return 'warning';
+        return 'secondary';
       case 'partial':
-        return 'info';
+        return 'secondary';
       default:
         return 'default';
     }
@@ -244,9 +242,12 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
           <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
           <h2 className="text-xl font-semibold text-gray-900">Vendor not found</h2>
           <p className="text-gray-500 mt-2">The requested vendor could not be found.</p>
-          <Button className="mt-4" onClick={() => router.push('/purchasing/vendors')}>
-            Back to Vendors
-          </Button>
+          <DxButton
+            text="Back to Vendors"
+            type="default"
+            onClick={() => router.push('/purchasing/vendors')}
+            className="mt-4"
+          />
         </div>
       </MainLayout>
     );
@@ -254,59 +255,307 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
 
   const { vendor, recentPurchaseOrders, approvedItems, summary } = data;
 
-  const poColumns = [
-    { key: 'poNumber', header: 'PO Number' },
+  const tabs: DxTabItem[] = [
+    { id: 0, text: 'Overview' },
+    { id: 1, text: `Purchase Orders (${recentPurchaseOrders.length})` },
+    { id: 2, text: `Approved Items (${approvedItems.length})` },
+  ];
+
+  const poColumns: DxDataGridColumn[] = [
+    { dataField: 'poNumber', caption: 'PO Number', width: 150 },
     {
-      key: 'orderDate',
-      header: 'Order Date',
-      render: (po: PurchaseOrder) => formatDate(po.orderDate),
+      dataField: 'orderDate',
+      caption: 'Order Date',
+      width: 120,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.orderDate),
     },
     {
-      key: 'expectedDate',
-      header: 'Expected Date',
-      render: (po: PurchaseOrder) => formatDate(po.expectedDate),
+      dataField: 'expectedDate',
+      caption: 'Expected Date',
+      width: 120,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.expectedDate),
     },
     {
-      key: 'totalAmount',
-      header: 'Total Amount',
-      render: (po: PurchaseOrder) => formatCurrency(po.totalAmount, po.currency),
+      dataField: 'totalAmount',
+      caption: 'Total Amount',
+      width: 150,
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.totalAmount, cellInfo.data.currency),
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (po: PurchaseOrder) => (
-        <Badge variant={getStatusVariant(po.status)} dot>
-          {po.status.replace('_', ' ')}
+      dataField: 'status',
+      caption: 'Status',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.status)}>
+          {cellInfo.data.status.replace('_', ' ')}
         </Badge>
       ),
     },
   ];
 
-  const itemColumns = [
-    { key: 'itemCode', header: 'Item Code', render: (item: ApprovedItem) => item.itemCode || '-' },
-    { key: 'itemName', header: 'Item Name (TH)', render: (item: ApprovedItem) => item.itemName || '-' },
-    { key: 'itemNameEn', header: 'Item Name (EN)', render: (item: ApprovedItem) => item.itemNameEn || '-' },
+  const itemColumns: DxDataGridColumn[] = [
+    { dataField: 'itemCode', caption: 'Item Code', width: 120 },
+    { dataField: 'itemName', caption: 'Item Name (TH)' },
+    { dataField: 'itemNameEn', caption: 'Item Name (EN)' },
     {
-      key: 'approvalDate',
-      header: 'Approval Date',
-      render: (item: ApprovedItem) => formatDate(item.approvalDate),
+      dataField: 'approvalDate',
+      caption: 'Approval Date',
+      width: 120,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.approvalDate),
     },
     {
-      key: 'expiryDate',
-      header: 'Expiry Date',
-      render: (item: ApprovedItem) => formatDate(item.expiryDate),
+      dataField: 'expiryDate',
+      caption: 'Expiry Date',
+      width: 120,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.expiryDate),
     },
     {
-      key: 'isPreferred',
-      header: 'Preferred',
-      render: (item: ApprovedItem) =>
-        item.isPreferred ? (
-          <Badge variant="success">Preferred</Badge>
+      dataField: 'isPreferred',
+      caption: 'Preferred',
+      width: 100,
+      cellRender: (cellInfo) =>
+        cellInfo.data.isPreferred ? (
+          <Badge variant="primary">Preferred</Badge>
         ) : (
           <span className="text-gray-400">-</span>
         ),
     },
   ];
+
+  const renderEditDialogContent = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Vendor Code <span className="text-red-500">*</span>
+          </label>
+          <DxTextBox
+            value={editForm.code}
+            onValueChange={(value) => setEditForm({ ...editForm, code: value })}
+            placeholder="Enter vendor code"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Vendor Name <span className="text-red-500">*</span>
+          </label>
+          <DxTextBox
+            value={editForm.name}
+            onValueChange={(value) => setEditForm({ ...editForm, name: value })}
+            placeholder="Enter vendor name"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Contact Person
+          </label>
+          <DxTextBox
+            value={editForm.contactPerson}
+            onValueChange={(value) => setEditForm({ ...editForm, contactPerson: value })}
+            placeholder="Enter contact person"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Phone
+          </label>
+          <DxTextBox
+            value={editForm.phone}
+            onValueChange={(value) => setEditForm({ ...editForm, phone: value })}
+            placeholder="Enter phone number"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
+          <DxTextBox
+            value={editForm.email}
+            onValueChange={(value) => setEditForm({ ...editForm, email: value })}
+            placeholder="Enter email"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tax ID
+          </label>
+          <DxTextBox
+            value={editForm.taxId}
+            onValueChange={(value) => setEditForm({ ...editForm, taxId: value })}
+            placeholder="Enter tax ID"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Lead Time (days)
+          </label>
+          <DxTextBox
+            value={editForm.leadTimeDays}
+            onValueChange={(value) => setEditForm({ ...editForm, leadTimeDays: value })}
+            placeholder="Enter lead time"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Payment Terms
+          </label>
+          <DxTextBox
+            value={editForm.paymentTerms}
+            onValueChange={(value) => setEditForm({ ...editForm, paymentTerms: value })}
+            placeholder="Enter payment terms"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Address
+          </label>
+          <DxTextBox
+            value={editForm.address}
+            onValueChange={(value) => setEditForm({ ...editForm, address: value })}
+            placeholder="Enter address"
+          />
+        </div>
+        <div className="md:col-span-2 flex gap-6">
+          <DxCheckBox
+            value={editForm.isApproved}
+            onValueChange={(value) => setEditForm({ ...editForm, isApproved: value })}
+            text="Approved Vendor"
+          />
+          <DxCheckBox
+            value={editForm.isVMI}
+            onValueChange={(value) => setEditForm({ ...editForm, isVMI: value })}
+            text="VMI Vendor"
+          />
+          <DxCheckBox
+            value={editForm.isActive}
+            onValueChange={(value) => setEditForm({ ...editForm, isActive: value })}
+            text="Active"
+          />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <DxButton
+          text="Cancel"
+          type="normal"
+          stylingMode="outlined"
+          onClick={() => setIsEditDialogOpen(false)}
+        />
+        <DxButton
+          text={isSaving ? 'Saving...' : 'Save Changes'}
+          type="success"
+          onClick={handleSave}
+          disabled={isSaving}
+        />
+      </div>
+    </div>
+  );
+
+  const renderDeleteDialogContent = () => (
+    <div className="space-y-4">
+      <p className="text-gray-600">
+        Are you sure you want to delete this vendor? If the vendor has related purchase orders,
+        it will be deactivated instead.
+      </p>
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <DxButton
+          text="Cancel"
+          type="normal"
+          stylingMode="outlined"
+          onClick={() => setIsDeleteDialogOpen(false)}
+        />
+        <DxButton
+          text={isSaving ? 'Deleting...' : 'Delete'}
+          type="danger"
+          onClick={handleDelete}
+          disabled={isSaving}
+        />
+      </div>
+    </div>
+  );
+
+  const renderOverviewTab = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Contact Information */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-900">Contact Information</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Building2 className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="text-sm text-gray-500">Contact Person</p>
+              <p className="text-gray-900">{vendor.contactPerson || '-'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Phone className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="text-sm text-gray-500">Phone</p>
+              <p className="text-gray-900">{vendor.phone || '-'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Mail className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="text-sm text-gray-500">Email</p>
+              <p className="text-gray-900">{vendor.email || '-'}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+            <div>
+              <p className="text-sm text-gray-500">Address</p>
+              <p className="text-gray-900">{vendor.address || '-'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Business Information */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-900">Business Information</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <FileText className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="text-sm text-gray-500">Tax ID</p>
+              <p className="text-gray-900">{vendor.taxId || '-'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Clock className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="text-sm text-gray-500">Lead Time</p>
+              <p className="text-gray-900">{vendor.leadTimeDays ? `${vendor.leadTimeDays} days` : '-'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <CreditCard className="h-4 w-4 text-gray-400" />
+            <div>
+              <p className="text-sm text-gray-500">Payment Terms</p>
+              <p className="text-gray-900">{vendor.paymentTerms || '-'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Status Breakdown */}
+      {Object.keys(summary.statusBreakdown).length > 0 && (
+        <div className="md:col-span-2 mt-6 pt-6 border-t">
+          <h3 className="font-semibold text-gray-900 mb-4">Order Status Breakdown</h3>
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(summary.statusBreakdown).map(([status, count]) => (
+              <div key={status} className="flex items-center gap-2">
+                <Badge variant={getStatusVariant(status)}>
+                  {status.replace('_', ' ')}
+                </Badge>
+                <span className="text-sm text-gray-600">{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <MainLayout>
@@ -316,15 +565,25 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
           description={`รหัส: ${vendor.code}`}
           actions={
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => router.push('/purchasing/vendors')} leftIcon={<ArrowLeft className="h-4 w-4" />}>
-                Back
-              </Button>
-              <Button variant="secondary" onClick={() => setIsEditDialogOpen(true)} leftIcon={<Edit className="h-4 w-4" />}>
-                Edit
-              </Button>
-              <Button variant="danger" onClick={() => setIsDeleteDialogOpen(true)} leftIcon={<Trash2 className="h-4 w-4" />}>
-                Delete
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/purchasing/vendors')}
+              />
+              <DxButton
+                text="Edit"
+                icon="edit"
+                type="default"
+                onClick={() => setIsEditDialogOpen(true)}
+              />
+              <DxButton
+                text="Delete"
+                icon="trash"
+                type="danger"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              />
             </div>
           }
         />
@@ -382,10 +641,10 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm text-gray-500">Status</p>
                   <div className="flex gap-1 flex-wrap">
-                    <Badge variant={vendor.isApproved ? 'success' : 'warning'} dot>
+                    <Badge variant={vendor.isApproved ? 'primary' : 'secondary'}>
                       {vendor.isApproved ? 'Approved' : 'Pending'}
                     </Badge>
-                    {vendor.isVMI && <Badge variant="info">VMI</Badge>}
+                    {vendor.isVMI && <Badge variant="default">VMI</Badge>}
                   </div>
                 </div>
               </div>
@@ -395,248 +654,80 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
 
         {/* Tabs */}
         <Card>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <CardHeader className="border-b pb-0">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="orders">Purchase Orders ({recentPurchaseOrders.length})</TabsTrigger>
-                <TabsTrigger value="items">Approved Items ({approvedItems.length})</TabsTrigger>
-              </TabsList>
-            </CardHeader>
+          <CardHeader className="border-b pb-0">
+            <DxTabs
+              items={tabs}
+              selectedIndex={activeTabIndex}
+              onSelectedIndexChange={setActiveTabIndex}
+            />
+          </CardHeader>
 
-            <CardContent className="pt-6">
-              <TabsContent value="overview" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Contact Information */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900">Contact Information</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <Building2 className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Contact Person</p>
-                          <p className="text-gray-900">{vendor.contactPerson || '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Phone className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Phone</p>
-                          <p className="text-gray-900">{vendor.phone || '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Mail className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Email</p>
-                          <p className="text-gray-900">{vendor.email || '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-gray-500">Address</p>
-                          <p className="text-gray-900">{vendor.address || '-'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          <CardContent className="pt-6">
+            {activeTabIndex === 0 && renderOverviewTab()}
 
-                  {/* Business Information */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-900">Business Information</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Tax ID</p>
-                          <p className="text-gray-900">{vendor.taxId || '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Lead Time</p>
-                          <p className="text-gray-900">{vendor.leadTimeDays ? `${vendor.leadTimeDays} days` : '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">Payment Terms</p>
-                          <p className="text-gray-900">{vendor.paymentTerms || '-'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            {activeTabIndex === 1 && (
+              recentPurchaseOrders.length > 0 ? (
+                <DxDataGrid
+                  dataSource={recentPurchaseOrders}
+                  keyExpr="id"
+                  columns={poColumns}
+                  showBorders
+                  height={400}
+                  onRowClick={(e) => {
+                    if (e.data) {
+                      router.push(`/purchasing/orders/${e.data.id}`);
+                    }
+                  }}
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No purchase orders found for this vendor
                 </div>
+              )
+            )}
 
-                {/* Status Breakdown */}
-                {Object.keys(summary.statusBreakdown).length > 0 && (
-                  <div className="mt-6 pt-6 border-t">
-                    <h3 className="font-semibold text-gray-900 mb-4">Order Status Breakdown</h3>
-                    <div className="flex flex-wrap gap-3">
-                      {Object.entries(summary.statusBreakdown).map(([status, count]) => (
-                        <div key={status} className="flex items-center gap-2">
-                          <Badge variant={getStatusVariant(status)} dot>
-                            {status.replace('_', ' ')}
-                          </Badge>
-                          <span className="text-sm text-gray-600">{count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="orders" className="mt-0">
-                {recentPurchaseOrders.length > 0 ? (
-                  <Table
-                    columns={poColumns}
-                    data={recentPurchaseOrders}
-                    keyField="id"
-                    onRowClick={(po) => router.push(`/purchasing/orders/${po.id}`)}
-                  />
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No purchase orders found for this vendor
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="items" className="mt-0">
-                {approvedItems.length > 0 ? (
-                  <Table columns={itemColumns} data={approvedItems} keyField="id" />
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No approved items found for this vendor
-                  </div>
-                )}
-              </TabsContent>
-            </CardContent>
-          </Tabs>
+            {activeTabIndex === 2 && (
+              approvedItems.length > 0 ? (
+                <DxDataGrid
+                  dataSource={approvedItems}
+                  keyExpr="id"
+                  columns={itemColumns}
+                  showBorders
+                  height={400}
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No approved items found for this vendor
+                </div>
+              )
+            )}
+          </CardContent>
         </Card>
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Vendor</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <Input
-              label="Vendor Code"
-              value={editForm.code}
-              onChange={(e) => setEditForm({ ...editForm, code: e.target.value })}
-              required
-            />
-            <Input
-              label="Vendor Name"
-              value={editForm.name}
-              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              required
-            />
-            <Input
-              label="Contact Person"
-              value={editForm.contactPerson}
-              onChange={(e) => setEditForm({ ...editForm, contactPerson: e.target.value })}
-            />
-            <Input
-              label="Phone"
-              value={editForm.phone}
-              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={editForm.email}
-              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-            />
-            <Input
-              label="Tax ID"
-              value={editForm.taxId}
-              onChange={(e) => setEditForm({ ...editForm, taxId: e.target.value })}
-            />
-            <Input
-              label="Lead Time (days)"
-              type="number"
-              value={editForm.leadTimeDays}
-              onChange={(e) => setEditForm({ ...editForm, leadTimeDays: e.target.value })}
-            />
-            <Input
-              label="Payment Terms"
-              value={editForm.paymentTerms}
-              onChange={(e) => setEditForm({ ...editForm, paymentTerms: e.target.value })}
-            />
-            <div className="md:col-span-2">
-              <Input
-                label="Address"
-                value={editForm.address}
-                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-              />
-            </div>
-            <div className="md:col-span-2 flex gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editForm.isApproved}
-                  onChange={(e) => setEditForm({ ...editForm, isApproved: e.target.checked })}
-                  className="rounded border-gray-300"
-                />
-                <span className="text-sm text-gray-700">Approved Vendor</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editForm.isVMI}
-                  onChange={(e) => setEditForm({ ...editForm, isVMI: e.target.checked })}
-                  className="rounded border-gray-300"
-                />
-                <span className="text-sm text-gray-700">VMI Vendor</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editForm.isActive}
-                  onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
-                  className="rounded border-gray-300"
-                />
-                <span className="text-sm text-gray-700">Active</span>
-              </label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DxPopup
+        visible={isEditDialogOpen}
+        onHiding={() => setIsEditDialogOpen(false)}
+        title="Edit Vendor"
+        width={700}
+        height="auto"
+        showCloseButton
+      >
+        {renderEditDialogContent()}
+      </DxPopup>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Vendor</DialogTitle>
-          </DialogHeader>
-          <p className="text-gray-600">
-            Are you sure you want to delete this vendor? If the vendor has related purchase orders,
-            it will be deactivated instead.
-          </p>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDelete} disabled={isSaving}>
-              {isSaving ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DxPopup
+        visible={isDeleteDialogOpen}
+        onHiding={() => setIsDeleteDialogOpen(false)}
+        title="Delete Vendor"
+        width={450}
+        height="auto"
+        showCloseButton
+      >
+        {renderDeleteDialogContent()}
+      </DxPopup>
     </MainLayout>
   );
 }

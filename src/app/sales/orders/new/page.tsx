@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table } from '@/components/ui/table';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
-import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { CustomerSearchDialog, Customer } from '@/components/ui/customer-search-dialog';
+import { Save, Plus, Trash2, Search, Building2, Phone, Mail, MapPin, X } from 'lucide-react';
 
 interface SOLine {
   itemId: number;
@@ -24,6 +27,8 @@ interface SOLine {
 export default function NewSalesOrderPage() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [form, setForm] = useState({
     customerName: '',
     customerContact: '',
@@ -34,6 +39,28 @@ export default function NewSalesOrderPage() {
   });
   const [lines, setLines] = useState<SOLine[]>([]);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setForm({
+      ...form,
+      customerName: customer.name,
+      customerContact: customer.contactPerson || '',
+      customerAddress: customer.address || '',
+      paymentTerms: customer.paymentTerms || '',
+    });
+  };
+
+  const handleClearCustomer = () => {
+    setSelectedCustomer(null);
+    setForm({
+      ...form,
+      customerName: '',
+      customerContact: '',
+      customerAddress: '',
+      paymentTerms: '',
+    });
+  };
 
   const handleSelectItem = (item: Item) => {
     setLines([...lines, {
@@ -62,8 +89,8 @@ export default function NewSalesOrderPage() {
   };
 
   const handleSave = async () => {
-    if (!form.customerName) {
-      alert('Customer name is required');
+    if (!selectedCustomer && !form.customerName) {
+      alert('Please select a customer');
       return;
     }
     if (lines.length === 0) {
@@ -109,53 +136,78 @@ export default function NewSalesOrderPage() {
     }).format(amount);
   };
 
-  const lineColumns = [
-    { key: 'itemCode', header: 'Item Code' },
-    { key: 'itemName', header: 'Item Name' },
-    { key: 'unit', header: 'Unit' },
+  // Define columns for DevExtreme DataGrid
+  const lineColumns: DxDataGridColumn[] = [
     {
-      key: 'quantity',
-      header: 'Quantity',
-      render: (line: SOLine, index: number) => (
-        <Input
-          type="number"
-          value={line.quantity}
-          onChange={(e) => handleLineChange(index, 'quantity', parseFloat(e.target.value) || 0)}
-          className="w-24"
-          min={0}
+      dataField: 'itemCode',
+      caption: 'Item Code',
+      width: 120,
+    },
+    {
+      dataField: 'itemName',
+      caption: 'Item Name',
+    },
+    {
+      dataField: 'unit',
+      caption: 'Unit',
+      width: 80,
+    },
+    {
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <DxTextBox
+          value={cellInfo.data.quantity?.toString() || '0'}
+          onValueChange={(value) => {
+            const index = lines.findIndex(l => l.itemId === cellInfo.data.itemId);
+            if (index !== -1) {
+              handleLineChange(index, 'quantity', parseFloat(value) || 0);
+            }
+          }}
+          width={80}
         />
       ),
     },
     {
-      key: 'unitPrice',
-      header: 'Unit Price',
-      render: (line: SOLine, index: number) => (
-        <Input
-          type="number"
-          value={line.unitPrice}
-          onChange={(e) => handleLineChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-          className="w-28"
-          min={0}
+      dataField: 'unitPrice',
+      caption: 'Unit Price',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <DxTextBox
+          value={cellInfo.data.unitPrice?.toString() || '0'}
+          onValueChange={(value) => {
+            const index = lines.findIndex(l => l.itemId === cellInfo.data.itemId);
+            if (index !== -1) {
+              handleLineChange(index, 'unitPrice', parseFloat(value) || 0);
+            }
+          }}
+          width={100}
         />
       ),
     },
     {
-      key: 'lineTotal',
-      header: 'Line Total',
-      render: (line: SOLine) => formatCurrency(line.quantity * line.unitPrice),
+      dataField: 'lineTotal',
+      caption: 'Line Total',
+      width: 120,
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.quantity * cellInfo.data.unitPrice),
     },
     {
-      key: 'actions',
-      header: '',
-      render: (_: SOLine, index: number) => (
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => handleRemoveLine(index)}
-          leftIcon={<Trash2 className="h-4 w-4" />}
-        >
-          Remove
-        </Button>
+      dataField: 'actions',
+      caption: '',
+      width: 80,
+      cellRender: (cellInfo) => (
+        <DxButton
+          icon="trash"
+          type="danger"
+          stylingMode="text"
+          onClick={() => {
+            const index = lines.findIndex(l => l.itemId === cellInfo.data.itemId);
+            if (index !== -1) {
+              handleRemoveLine(index);
+            }
+          }}
+        />
       ),
     },
   ];
@@ -168,12 +220,20 @@ export default function NewSalesOrderPage() {
           description="สร้างใบสั่งขายใหม่"
           actions={
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => router.push('/sales/orders')} leftIcon={<ArrowLeft className="h-4 w-4" />}>
-                Back
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving} leftIcon={<Save className="h-4 w-4" />}>
-                {isSaving ? 'Saving...' : 'Save Order'}
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/sales/orders')}
+              />
+              <DxButton
+                text={isSaving ? 'Saving...' : 'Save Order'}
+                icon="save"
+                type="success"
+                onClick={handleSave}
+                disabled={isSaving}
+              />
             </div>
           }
         />
@@ -184,45 +244,116 @@ export default function NewSalesOrderPage() {
             <CardTitle>Customer Information</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Customer Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Customer <span className="text-red-500">*</span>
+              </label>
+              {selectedCustomer ? (
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-emerald-700 text-lg">{selectedCustomer.code}</span>
+                        <Badge className="bg-emerald-100 text-emerald-700 text-xs">
+                          {selectedCustomer.customerType.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                      <p className="font-semibold text-gray-900 text-lg">{selectedCustomer.name}</p>
+                      <div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
+                        {selectedCustomer.contactPerson && (
+                          <span className="flex items-center gap-1">
+                            <Building2 className="h-3.5 w-3.5" />
+                            {selectedCustomer.contactPerson}
+                          </span>
+                        )}
+                        {selectedCustomer.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3.5 w-3.5" />
+                            {selectedCustomer.phone}
+                          </span>
+                        )}
+                        {selectedCustomer.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3.5 w-3.5" />
+                            {selectedCustomer.email}
+                          </span>
+                        )}
+                      </div>
+                      {selectedCustomer.address && (
+                        <p className="mt-2 text-sm text-gray-500 flex items-start gap-1">
+                          <MapPin className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                          <span>{selectedCustomer.address}</span>
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <DxButton
+                        text="Change"
+                        type="normal"
+                        stylingMode="outlined"
+                        onClick={() => setIsCustomerDialogOpen(true)}
+                      />
+                      <DxButton
+                        icon="close"
+                        type="danger"
+                        stylingMode="text"
+                        onClick={handleClearCustomer}
+                        hint="Clear customer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerDialogOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition-colors text-gray-500 hover:text-emerald-600"
+                >
+                  <Search className="h-5 w-5" />
+                  <span>Click to search and select a customer...</span>
+                </button>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Customer Name"
-                value={form.customerName}
-                onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                required
-                placeholder="e.g., ABC Company"
-              />
-              <Input
-                label="Contact Person"
-                value={form.customerContact}
-                onChange={(e) => setForm({ ...form, customerContact: e.target.value })}
-                placeholder="e.g., John Doe"
-              />
-              <Input
-                label="Required Date"
-                type="date"
-                value={form.requiredDate}
-                onChange={(e) => setForm({ ...form, requiredDate: e.target.value })}
-              />
-              <Input
-                label="Payment Terms"
-                value={form.paymentTerms}
-                onChange={(e) => setForm({ ...form, paymentTerms: e.target.value })}
-                placeholder="e.g., Net 30"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Required Date
+                </label>
+                <DxDateBox
+                  value={form.requiredDate}
+                  onValueChange={(value) => setForm({ ...form, requiredDate: value || '' })}
+                  placeholder="เลือกวันที่ต้องการ"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Terms
+                </label>
+                <DxTextBox
+                  value={form.paymentTerms}
+                  onValueChange={(value) => setForm({ ...form, paymentTerms: value })}
+                  placeholder="e.g., Net 30"
+                />
+              </div>
               <div className="md:col-span-2">
-                <Input
-                  label="Shipping Address"
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Shipping Address
+                </label>
+                <DxTextBox
                   value={form.customerAddress}
-                  onChange={(e) => setForm({ ...form, customerAddress: e.target.value })}
+                  onValueChange={(value) => setForm({ ...form, customerAddress: value })}
                   placeholder="e.g., 123 Main Street, Bangkok"
                 />
               </div>
               <div className="md:col-span-2">
-                <Input
-                  label="Notes"
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <DxTextBox
                   value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  onValueChange={(value) => setForm({ ...form, notes: value })}
                   placeholder="Additional notes..."
                 />
               </div>
@@ -235,18 +366,24 @@ export default function NewSalesOrderPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Order Lines</CardTitle>
-              <Button onClick={() => setIsItemDialogOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
-                Add Item
-              </Button>
+              <DxButton
+                text="Add Item"
+                icon="plus"
+                type="default"
+                onClick={() => setIsItemDialogOpen(true)}
+              />
             </div>
           </CardHeader>
           <CardContent>
             {lines.length > 0 ? (
               <>
-                <Table
+                <DxDataGrid
+                  dataSource={lines}
+                  keyExpr="itemId"
                   columns={lineColumns}
-                  data={lines}
-                  keyField="itemId"
+                  showBorders
+                  height={300}
+                  noDataText="ไม่มีรายการสินค้า"
                 />
                 <div className="flex justify-end mt-4 pt-4 border-t">
                   <div className="text-right">
@@ -258,14 +395,26 @@ export default function NewSalesOrderPage() {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <p>No items added yet</p>
-                <Button className="mt-2" variant="secondary" onClick={() => setIsItemDialogOpen(true)}>
-                  Add First Item
-                </Button>
+                <DxButton
+                  text="Add First Item"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setIsItemDialogOpen(true)}
+                  className="mt-2"
+                />
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Customer Search Dialog */}
+      <CustomerSearchDialog
+        open={isCustomerDialogOpen}
+        onOpenChange={setIsCustomerDialogOpen}
+        onSelect={handleSelectCustomer}
+        title="Search Customers"
+      />
 
       {/* Item Search Dialog */}
       <ItemSearchDialog

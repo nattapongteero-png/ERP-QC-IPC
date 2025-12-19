@@ -3,10 +3,11 @@
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils/cn';
+import { Card } from './card';
 import { Skeleton } from './skeleton';
 
 const statCardVariants = cva(
-  'rounded-xl border border-gray-200 motion-reduce:transition-none motion-reduce:hover:transform-none',
+  'motion-reduce:transition-none motion-reduce:hover:transform-none',
   {
     variants: {
       variant: {
@@ -108,8 +109,10 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
     const sizeStyle = sizeStyles[size || 'md'];
 
     return (
-      <div
+      <Card
         ref={ref}
+        elevation="flat"
+        interactive={clickable}
         className={cn(
           statCardVariants({ variant, size }),
           clickable && [
@@ -144,12 +147,12 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
             <p className={cn('font-medium truncate', textStyle.label, sizeStyle.labelSize)}>
               {label}
             </p>
-            <p className={cn('font-bold', textStyle.value, sizeStyle.valueSize)}>
+            <p className={cn('font-bold tracking-tight', textStyle.value, sizeStyle.valueSize)}>
               {typeof value === 'number' ? value.toLocaleString() : value}
             </p>
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 );
@@ -169,8 +172,9 @@ const StatCardSkeleton = React.forwardRef<HTMLDivElement, StatCardSkeletonProps>
     const sizeStyle = sizeStyles[size || 'md'];
 
     return (
-      <div
+      <Card
         ref={ref}
+        elevation="flat"
         className={cn(
           statCardVariants({ variant: 'default', size }),
           className
@@ -189,7 +193,7 @@ const StatCardSkeleton = React.forwardRef<HTMLDivElement, StatCardSkeletonProps>
           </div>
         </div>
         <span className="sr-only">Loading...</span>
-      </div>
+      </Card>
     );
   }
 );

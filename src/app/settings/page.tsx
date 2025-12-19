@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { PageHeader } from '@/components/ui/page-header';
-import { Save, Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface Settings {
@@ -67,9 +67,13 @@ export default function SettingsPage() {
           title="Settings"
           description="ตั้งค่าระบบ"
           actions={
-            <Button onClick={handleSave} loading={isSaving} leftIcon={<Save className="h-4 w-4" />}>
-              {isSaving ? 'Saving...' : 'Save Settings'}
-            </Button>
+            <DxButton
+              text={isSaving ? 'Saving...' : 'Save Settings'}
+              icon="save"
+              type="success"
+              onClick={handleSave}
+              disabled={isSaving}
+            />
           }
         />
 
@@ -103,46 +107,46 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Company Name (English)
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.companyName}
-                  onChange={(e) => handleChange('companyName', e.target.value)}
+                  onValueChange={(value) => handleChange('companyName', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Company Name (Thai)
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.companyNameTh}
-                  onChange={(e) => handleChange('companyNameTh', e.target.value)}
+                  onValueChange={(value) => handleChange('companyNameTh', value)}
                 />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Address
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.address}
-                  onChange={(e) => handleChange('address', e.target.value)}
+                  onValueChange={(value) => handleChange('address', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
+                  onValueChange={(value) => handleChange('phone', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email
                 </label>
-                <Input
-                  type="email"
+                <DxTextBox
                   value={settings.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
+                  onValueChange={(value) => handleChange('email', value)}
+                  mode="email"
                 />
               </div>
             </div>
@@ -160,27 +164,27 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tax ID
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.taxId}
-                  onChange={(e) => handleChange('taxId', e.target.value)}
+                  onValueChange={(value) => handleChange('taxId', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   FDA License Number
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.fdaLicense}
-                  onChange={(e) => handleChange('fdaLicense', e.target.value)}
+                  onValueChange={(value) => handleChange('fdaLicense', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   GMP Certificate Number
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.gmpCertificate}
-                  onChange={(e) => handleChange('gmpCertificate', e.target.value)}
+                  onValueChange={(value) => handleChange('gmpCertificate', value)}
                 />
               </div>
             </div>
@@ -198,36 +202,36 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Lot Number Prefix
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.lotPrefix}
-                  onChange={(e) => handleChange('lotPrefix', e.target.value)}
+                  onValueChange={(value) => handleChange('lotPrefix', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   PO Number Prefix
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.poPrefix}
-                  onChange={(e) => handleChange('poPrefix', e.target.value)}
+                  onValueChange={(value) => handleChange('poPrefix', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   SO Number Prefix
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.soPrefix}
-                  onChange={(e) => handleChange('soPrefix', e.target.value)}
+                  onValueChange={(value) => handleChange('soPrefix', value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Work Order Prefix
                 </label>
-                <Input
+                <DxTextBox
                   value={settings.woPrefix}
-                  onChange={(e) => handleChange('woPrefix', e.target.value)}
+                  onValueChange={(value) => handleChange('woPrefix', value)}
                 />
               </div>
             </div>

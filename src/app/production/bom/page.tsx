@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Plus, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 interface BOM {
   id: number;
@@ -29,12 +30,22 @@ interface BOM {
 }
 
 const statusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'active', label: 'Active' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'obsolete', label: 'Obsolete' },
+  { value: '', label: 'ทุกสถานะ' },
+  { value: 'draft', label: 'ร่าง' },
+  { value: 'active', label: 'ใช้งาน' },
+  { value: 'approved', label: 'อนุมัติแล้ว' },
+  { value: 'obsolete', label: 'ยกเลิก' },
 ];
+
+const getStatusLabel = (status: string): string => {
+  const found = statusOptions.find(s => s.value === status);
+  return found ? found.label : status;
+};
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('th-TH');
+};
 
 export default function BOMListPage() {
   const router = useRouter();
@@ -42,167 +53,184 @@ export default function BOMListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const fetchBOMs = async () => {
+  const fetchBOMs = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.set('search', search);
+      const params = new URLSearchParams();
+      params.set('limit', '1000');
       if (statusFilter) params.set('status', statusFilter);
 
       const res = await fetch(`/api/bom?${params}`);
       const data = await res.json();
 
       if (data.success) {
-        setBoms(data.data?.items || []);
-        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+        let fetchedBoms = data.data?.items || [];
+
+        // Client-side search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedBoms = fetchedBoms.filter((bom: BOM) =>
+            bom.code?.toLowerCase().includes(searchLower) ||
+            bom.name?.toLowerCase().includes(searchLower) ||
+            bom.productCode?.toLowerCase().includes(searchLower) ||
+            bom.productName?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setBoms(fetchedBoms);
       } else {
         console.error('API error:', data.error);
         setBoms([]);
       }
     } catch (error) {
       console.error('Failed to fetch BOMs:', error);
+      setBoms([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, search]);
 
   useEffect(() => {
     fetchBOMs();
-  }, [pagination.page, statusFilter]);
+  }, [fetchBOMs]);
 
-  const handleSearch = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchBOMs();
+  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
+    if (e.data?.id) {
+      router.push(`/production/bom/${e.data.id}`);
+    }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('th-TH');
-  };
-
-  const columns = [
-    { key: 'code', header: 'BOM Code' },
-    { key: 'name', header: 'BOM Name' },
-    { key: 'productCode', header: 'Product Code' },
-    { key: 'productName', header: 'Product Name' },
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
     {
-      key: 'standardBatchSize',
-      header: 'Batch Size',
-      render: (bom: BOM) => `${bom.standardBatchSize?.toLocaleString() || '-'} ${bom.batchUnit || ''}`,
+      dataField: 'code',
+      caption: 'รหัส BOM',
+      width: 130,
+      cellRender: (cellInfo) => (
+        <span className="font-mono font-medium">{cellInfo.data.code}</span>
+      ),
     },
-    { key: 'version', header: 'Version' },
     {
-      key: 'status',
-      header: 'Status',
-      render: (bom: BOM) => (
-        <Badge variant={getStatusVariant(bom.status)} dot>
-          {bom.status}
+      dataField: 'name',
+      caption: 'ชื่อ BOM',
+    },
+    {
+      dataField: 'productCode',
+      caption: 'รหัสสินค้า',
+      width: 130,
+      hideOnMobile: true,
+    },
+    {
+      dataField: 'productName',
+      caption: 'ชื่อสินค้า',
+      hideOnMobile: true,
+    },
+    {
+      dataField: 'standardBatchSize',
+      caption: 'ขนาด Batch',
+      width: 130,
+      dataType: 'number',
+      hideOnMobile: true,
+      cellRender: (cellInfo) =>
+        `${cellInfo.data.standardBatchSize?.toLocaleString() || '-'} ${cellInfo.data.batchUnit || ''}`,
+    },
+    {
+      dataField: 'version',
+      caption: 'เวอร์ชัน',
+      width: 100,
+      hideOnMobile: true,
+    },
+    {
+      dataField: 'status',
+      caption: 'สถานะ',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.status)} dot>
+          {getStatusLabel(cellInfo.data.status)}
         </Badge>
       ),
     },
     {
-      key: 'createdAt',
-      header: 'Created',
-      render: (bom: BOM) => formatDate(bom.createdAt),
+      dataField: 'createdAt',
+      caption: 'สร้างเมื่อ',
+      width: 110,
+      dataType: 'date',
+      hideOnMobile: true,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.createdAt),
     },
   ];
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
-          title="Bill of Materials"
-          description="Manage product recipes and formulas"
+          title="สูตรการผลิต (BOM)"
+          description="จัดการสูตรการผลิตและส่วนประกอบ"
           actions={
-            <Button onClick={() => router.push('/production/bom/new')} leftIcon={<Plus className="h-4 w-4" />}>
-              Create BOM
-            </Button>
+            <DxButton
+              text="สร้าง BOM"
+              icon="plus"
+              type="success"
+              onClick={() => router.push('/production/bom/new')}
+            />
           }
         />
 
-        <Card elevation="raised">
+        {/* Filters Card */}
+        <Card elevation="raised" className="md:py-1">
           <CardContent>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
-                <Input
-                  variant="search"
-                  placeholder="Search by BOM code or name..."
+                <DxTextBox
+                  placeholder="ค้นหาด้วยรหัส BOM หรือชื่อ..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onSearch={handleSearch}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchBOMs()}
                 />
               </div>
               <div className="w-full md:w-48">
-                <Select
-                  options={statusOptions}
+                <DxSelectBox
+                  items={statusOptions}
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onValueChange={setStatusFilter}
+                  placeholder="สถานะ"
+                  showClearButton
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Table */}
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : boms.length > 0 ? (
-              <>
-                <Table
-                  columns={columns}
-                  data={boms}
-                  keyField="id"
-                  isLoading={isLoading}
-                  emptyMessage="No BOMs found"
-                  striped
-                  hoverable
-                  onRowClick={(bom) => router.push(`/production/bom/${bom.id}`)}
-                />
-
-                {/* Pagination */}
-                {pagination.total > pagination.limit && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-500">
-                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                      {pagination.total} BOMs
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page === 1}
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page * pagination.limit >= pagination.total}
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+        {/* Table Card */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col">
+            {boms.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={boms}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="bom-list"
+                columnChooser
+                virtualScrolling={boms.length > 100}
+                fillHeight
+                onRowClick={handleRowClick}
+                noDataText="ไม่พบสูตรการผลิต"
+              />
             ) : (
               <EmptyState
                 icon={<FileText className="h-8 w-8" />}
-                title="No BOMs found"
-                description="Get started by creating your first Bill of Materials"
+                title="ไม่พบสูตรการผลิต"
+                description="เริ่มต้นด้วยการสร้างสูตรการผลิตใหม่"
                 action={{
-                  label: 'Create BOM',
+                  label: 'สร้าง BOM',
                   onClick: () => router.push('/production/bom/new'),
                 }}
               />

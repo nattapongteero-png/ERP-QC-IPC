@@ -1,28 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxPopup, DxConfirmDialog } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit2, Trash2, Warehouse, MapPin, Thermometer, Eye, X, Droplets } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   WarehouseEditDialog,
   type Warehouse as WarehouseType,
   type WarehouseFormData,
   type WarehouseSummary,
 } from '@/components/ui/warehouse-edit-dialog';
+import { Warehouse, MapPin, Thermometer, Droplets, Inbox } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 const warehouseTypes = [
-  { value: '', label: 'All Types' },
-  { value: 'raw_material', label: 'Raw Material' },
-  { value: 'wip', label: 'Work in Progress' },
-  { value: 'finished_goods', label: 'Finished Goods' },
-  { value: 'quarantine', label: 'Quarantine' },
-  { value: 'rejected', label: 'Rejected' },
-  { value: 'cold_storage', label: 'Cold Storage' },
+  { value: '', label: 'ทุกประเภท' },
+  { value: 'raw_material', label: 'วัตถุดิบ' },
+  { value: 'wip', label: 'งานระหว่างทำ' },
+  { value: 'finished_goods', label: 'สินค้าสำเร็จรูป' },
+  { value: 'quarantine', label: 'กักกัน' },
+  { value: 'rejected', label: 'ตีกลับ' },
+  { value: 'cold_storage', label: 'ห้องเย็น' },
 ];
 
 const getTypeVariant = (type: string): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
@@ -50,26 +55,39 @@ export default function WarehousesPage() {
   const [editingWarehouse, setEditingWarehouse] = useState<WarehouseType | null>(null);
   const [warehouseSummary, setWarehouseSummary] = useState<WarehouseSummary | null>(null);
   const [viewingWarehouse, setViewingWarehouse] = useState<WarehouseType | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; warehouse: WarehouseType | null }>({ open: false, warehouse: null });
 
-  const fetchWarehouses = async () => {
+  const fetchWarehouses = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.set('search', search);
+      params.set('limit', '1000');
       if (typeFilter) params.set('type', typeFilter);
 
       const res = await fetch(`/api/warehouses?${params}`);
       const data = await res.json();
 
       if (data.success) {
-        setWarehouses(data.data?.items || data.data || []);
+        let fetchedWarehouses = data.data?.items || data.data || [];
+
+        // Client-side search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedWarehouses = fetchedWarehouses.filter((warehouse: WarehouseType) =>
+            warehouse.code?.toLowerCase().includes(searchLower) ||
+            warehouse.name?.toLowerCase().includes(searchLower) ||
+            warehouse.location?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setWarehouses(fetchedWarehouses);
       }
     } catch (error) {
       console.error('Failed to fetch warehouses:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [typeFilter, search]);
 
   const fetchWarehouseDetail = async (warehouseId: number) => {
     try {
@@ -86,11 +104,7 @@ export default function WarehousesPage() {
 
   useEffect(() => {
     fetchWarehouses();
-  }, [typeFilter]);
-
-  const handleSearch = () => {
-    fetchWarehouses();
-  };
+  }, [fetchWarehouses]);
 
   const handleSave = async (formData: WarehouseFormData) => {
     try {
@@ -112,30 +126,29 @@ export default function WarehousesPage() {
         setWarehouseSummary(null);
         fetchWarehouses();
       }
-      // API errors handled by global error handler
     } catch {
       // Network errors handled by global error handler
     }
   };
 
-  const handleDelete = async (warehouse: WarehouseType) => {
-    if (!confirm(`Are you sure you want to delete warehouse "${warehouse.name}"?`)) return;
+  const handleDelete = async () => {
+    if (!deleteConfirm.warehouse) return;
 
     try {
-      const res = await fetch(`/api/warehouses/${warehouse.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/warehouses/${deleteConfirm.warehouse.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         fetchWarehouses();
       }
-      // API errors handled by global error handler
     } catch {
       // Network errors handled by global error handler
+    } finally {
+      setDeleteConfirm({ open: false, warehouse: null });
     }
   };
 
   const handleEdit = async (warehouse: WarehouseType) => {
     setEditingWarehouse(warehouse);
-    // Fetch summary data for existing warehouse
     const summary = await fetchWarehouseDetail(warehouse.id);
     setWarehouseSummary(summary);
     setShowDialog(true);
@@ -147,396 +160,363 @@ export default function WarehousesPage() {
     setShowDialog(true);
   };
 
-  // Warehouse Card Component for mobile/tablet view
-  const WarehouseCard = ({ warehouse }: { warehouse: WarehouseType }) => (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${
-            warehouse.type === 'raw_material' ? 'bg-blue-100' :
-            warehouse.type === 'finished_goods' ? 'bg-green-100' :
-            warehouse.type === 'quarantine' ? 'bg-yellow-100' :
-            warehouse.type === 'rejected' ? 'bg-red-100' :
-            'bg-gray-100'
-          }`}>
-            <Warehouse className={`h-5 w-5 ${
-              warehouse.type === 'raw_material' ? 'text-blue-600' :
-              warehouse.type === 'finished_goods' ? 'text-green-600' :
-              warehouse.type === 'quarantine' ? 'text-yellow-600' :
-              warehouse.type === 'rejected' ? 'text-red-600' :
-              'text-gray-600'
-            }`} />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">{warehouse.name}</h3>
-            <p className="text-sm text-gray-500">{warehouse.code}</p>
-          </div>
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
+    {
+      dataField: 'code',
+      caption: 'รหัส',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className="font-mono font-medium">{cellInfo.data.code}</span>
+      ),
+    },
+    {
+      dataField: 'name',
+      caption: 'ชื่อคลัง',
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-2">
+          <Warehouse className="h-4 w-4 text-gray-500" />
+          <span className="font-medium">{cellInfo.data.name}</span>
         </div>
-        <Badge variant={warehouse.isActive ? 'success' : 'danger'} className="text-xs">
-          {warehouse.isActive ? 'Active' : 'Inactive'}
+      ),
+    },
+    {
+      dataField: 'type',
+      caption: 'ประเภท',
+      width: 140,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <Badge variant={getTypeVariant(cellInfo.data.type)} dot>
+          {getTypeLabel(cellInfo.data.type)}
         </Badge>
-      </div>
-
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Type</span>
-          <Badge variant={getTypeVariant(warehouse.type)} className="text-xs">
-            {getTypeLabel(warehouse.type)}
-          </Badge>
+      ),
+    },
+    {
+      dataField: 'location',
+      caption: 'ที่ตั้ง',
+      width: 150,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-1">
+          <MapPin className="h-3 w-3 text-gray-400" />
+          <span>{cellInfo.data.location || '-'}</span>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Location</span>
-          <span className="text-gray-900">{warehouse.location || '-'}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500 flex items-center gap-1">
-            <Thermometer className="h-3 w-3" /> Temp
-          </span>
-          <span className="text-gray-900">
-            {warehouse.temperatureMin !== null && warehouse.temperatureMax !== null
-              ? `${warehouse.temperatureMin}°C - ${warehouse.temperatureMax}°C`
+      ),
+    },
+    {
+      dataField: 'temperatureMin',
+      caption: 'อุณหภูมิ',
+      width: 140,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-1">
+          <Thermometer className="h-3 w-3 text-cyan-500" />
+          <span>
+            {cellInfo.data.temperatureMin !== null && cellInfo.data.temperatureMax !== null
+              ? `${cellInfo.data.temperatureMin}°C - ${cellInfo.data.temperatureMax}°C`
               : '-'}
           </span>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500 flex items-center gap-1">
-            <Droplets className="h-3 w-3" /> Humidity
-          </span>
-          <span className="text-gray-900">
-            {warehouse.humidityMin !== null && warehouse.humidityMax !== null
-              ? `${warehouse.humidityMin}% - ${warehouse.humidityMax}%`
+      ),
+    },
+    {
+      dataField: 'humidityMin',
+      caption: 'ความชื้น',
+      width: 130,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-1">
+          <Droplets className="h-3 w-3 text-blue-500" />
+          <span>
+            {cellInfo.data.humidityMin !== null && cellInfo.data.humidityMax !== null
+              ? `${cellInfo.data.humidityMin}% - ${cellInfo.data.humidityMax}%`
               : '-'}
           </span>
         </div>
-      </div>
+      ),
+    },
+    {
+      dataField: 'isActive',
+      caption: 'สถานะ',
+      width: 100,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <Badge variant={cellInfo.data.isActive ? 'success' : 'danger'} dot>
+          {cellInfo.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+        </Badge>
+      ),
+    },
+    {
+      dataField: 'actions',
+      caption: 'จัดการ',
+      width: 150,
+      allowSorting: false,
+      allowFiltering: false,
+      cellRender: (cellInfo) => (
+        <div className="flex gap-1">
+          <DxButton
+            icon="info"
+            stylingMode="text"
+            hint="ดูรายละเอียด"
+            onClick={(e) => {
+              e.event?.stopPropagation();
+              setViewingWarehouse(cellInfo.data);
+            }}
+          />
+          <DxButton
+            icon="edit"
+            stylingMode="text"
+            hint="แก้ไข"
+            onClick={(e) => {
+              e.event?.stopPropagation();
+              handleEdit(cellInfo.data);
+            }}
+          />
+          <DxButton
+            icon="trash"
+            stylingMode="text"
+            type="danger"
+            hint="ลบ"
+            onClick={(e) => {
+              e.event?.stopPropagation();
+              setDeleteConfirm({ open: true, warehouse: cellInfo.data });
+            }}
+          />
+        </div>
+      ),
+    },
+  ];
 
-      <div className="flex gap-2 pt-3 border-t border-gray-100">
-        <Button
-          size="sm"
-          variant="secondary"
-          className="flex-1"
-          onClick={() => setViewingWarehouse(warehouse)}
-        >
-          <Eye className="h-3 w-3 mr-1" />
-          View
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          className="flex-1"
-          onClick={() => handleEdit(warehouse)}
-        >
-          <Edit2 className="h-3 w-3 mr-1" />
-          Edit
-        </Button>
-        <Button
-          size="sm"
-          variant="danger"
-          onClick={() => handleDelete(warehouse)}
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
-    </div>
-  );
+  // Calculate summary stats
+  const totalCount = warehouses.length;
+  const activeCount = warehouses.filter(w => w.isActive).length;
+  const coldStorageCount = warehouses.filter(w => w.type === 'cold_storage').length;
+  const quarantineCount = warehouses.filter(w => w.type === 'quarantine').length;
+
+  const summaryCards = [
+    { label: 'ทั้งหมด', count: totalCount, icon: Warehouse, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
+    { label: 'ใช้งานอยู่', count: activeCount, icon: MapPin, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
+    { label: 'ห้องเย็น', count: coldStorageCount, icon: Thermometer, bgColor: 'bg-cyan-100', iconColor: 'text-cyan-600' },
+    { label: 'กักกัน', count: quarantineCount, icon: Warehouse, bgColor: 'bg-yellow-100', iconColor: 'text-yellow-600' },
+  ];
 
   return (
     <MainLayout>
-      <div className="space-y-4 md:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Warehouses</h1>
-            <p className="text-sm md:text-base text-gray-600">จัดการคลังสินค้าและสถานที่จัดเก็บ</p>
-          </div>
-          <Button
-            onClick={handleCreate}
-            className="w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Add Warehouse</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </div>
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
+        <PageHeader
+          title="คลังสินค้า"
+          description="จัดการคลังสินค้าและสถานที่จัดเก็บ"
+          actions={
+            <DxButton
+              text="เพิ่มคลัง"
+              icon="plus"
+              type="success"
+              onClick={handleCreate}
+            />
+          }
+        />
 
-        {/* Summary Cards - Responsive Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <Card className="!p-3 md:!p-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg">
-                <Warehouse className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-xs md:text-sm text-gray-500">Total</p>
-                <p className="text-lg md:text-xl font-bold">{warehouses.length}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="!p-3 md:!p-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="p-1.5 md:p-2 bg-green-100 rounded-lg">
-                <MapPin className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-xs md:text-sm text-gray-500">Active</p>
-                <p className="text-lg md:text-xl font-bold">
-                  {warehouses.filter(w => w.isActive).length}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="!p-3 md:!p-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="p-1.5 md:p-2 bg-cyan-100 rounded-lg">
-                <Thermometer className="h-4 w-4 md:h-5 md:w-5 text-cyan-600" />
-              </div>
-              <div>
-                <p className="text-xs md:text-sm text-gray-500">Cold</p>
-                <p className="text-lg md:text-xl font-bold">
-                  {warehouses.filter(w => w.type === 'cold_storage').length}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="!p-3 md:!p-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="p-1.5 md:p-2 bg-yellow-100 rounded-lg">
-                <Warehouse className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-xs md:text-sm text-gray-500">Quarantine</p>
-                <p className="text-lg md:text-xl font-bold">
-                  {warehouses.filter(w => w.type === 'quarantine').length}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <Card className="!p-3 md:!p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <Input
-                variant="search"
-                placeholder="Search by code or name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onSearch={handleSearch}
-              />
-            </div>
-            <div className="w-full sm:w-48">
-              <Select
-                options={warehouseTypes}
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              />
-            </div>
-          </div>
-        </Card>
-
-        {/* Content - Card view for mobile/tablet, Table for desktop */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : warehouses.length === 0 ? (
-          <Card className="!p-8 text-center">
-            <Warehouse className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No warehouses found</p>
-          </Card>
-        ) : (
-          <>
-            {/* Mobile/Tablet Card View - Show on screens smaller than xl (1280px) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 xl:hidden">
-              {warehouses.map((warehouse) => (
-                <WarehouseCard key={warehouse.id} warehouse={warehouse} />
-              ))}
-            </div>
-
-            {/* Desktop Table View - Show only on xl screens and above */}
-            <Card className="hidden xl:block overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Code</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Name</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Type</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Location</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Temperature</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Humidity</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {warehouses.map((warehouse) => (
-                    <tr key={warehouse.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-gray-900">{warehouse.code}</td>
-                      <td className="py-3 px-4 text-gray-900">{warehouse.name}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={getTypeVariant(warehouse.type)}>
-                          {getTypeLabel(warehouse.type)}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-gray-600">{warehouse.location || '-'}</td>
-                      <td className="py-3 px-4 text-gray-600">
-                        {warehouse.temperatureMin !== null && warehouse.temperatureMax !== null
-                          ? `${warehouse.temperatureMin}°C - ${warehouse.temperatureMax}°C`
-                          : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-gray-600">
-                        {warehouse.humidityMin !== null && warehouse.humidityMax !== null
-                          ? `${warehouse.humidityMin}% - ${warehouse.humidityMax}%`
-                          : '-'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
-                          {warehouse.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setViewingWarehouse(warehouse)}
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleEdit(warehouse)}
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => handleDelete(warehouse)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-          </>
-        )}
-      </div>
-
-      {/* View Modal */}
-      {viewingWarehouse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="p-4 md:p-6 border-b flex items-center justify-between">
-              <h2 className="text-lg md:text-xl font-bold">Warehouse Details</h2>
-              <button
-                onClick={() => setViewingWarehouse(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-4 md:p-6 space-y-4">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${
-                  viewingWarehouse.type === 'raw_material' ? 'bg-blue-100' :
-                  viewingWarehouse.type === 'finished_goods' ? 'bg-green-100' :
-                  viewingWarehouse.type === 'quarantine' ? 'bg-yellow-100' :
-                  viewingWarehouse.type === 'rejected' ? 'bg-red-100' :
-                  'bg-gray-100'
-                }`}>
-                  <Warehouse className={`h-8 w-8 ${
-                    viewingWarehouse.type === 'raw_material' ? 'text-blue-600' :
-                    viewingWarehouse.type === 'finished_goods' ? 'text-green-600' :
-                    viewingWarehouse.type === 'quarantine' ? 'text-yellow-600' :
-                    viewingWarehouse.type === 'rejected' ? 'text-red-600' :
-                    'text-gray-600'
-                  }`} />
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
+          {summaryCards.map((card, index) => (
+            <Card
+              key={card.label}
+              elevation="raised"
+              padding="sm"
+              className={cn(
+                'motion-safe:animate-fade-in motion-reduce:animate-none md:py-2'
+              )}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn('p-2 rounded-lg', card.bgColor)}>
+                  <card.icon className={cn('h-5 w-5', card.iconColor)} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">{viewingWarehouse.name}</h3>
-                  <p className="text-gray-500">{viewingWarehouse.code}</p>
+                  <p className="text-sm text-gray-500">{card.label}</p>
+                  <p className="text-xl font-bold">{card.count}</p>
                 </div>
               </div>
+            </Card>
+          ))}
+        </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1">Type</p>
-                  <Badge variant={getTypeVariant(viewingWarehouse.type)}>
-                    {getTypeLabel(viewingWarehouse.type)}
-                  </Badge>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1">Status</p>
-                  <Badge variant={viewingWarehouse.isActive ? 'success' : 'danger'}>
-                    {viewingWarehouse.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1">Location</p>
-                  <p className="font-medium">{viewingWarehouse.location || '-'}</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1">Capacity</p>
-                  <p className="font-medium">{viewingWarehouse.capacity || '-'}</p>
-                </div>
+        {/* Filters Card */}
+        <Card elevation="raised" className="md:py-1">
+          <CardContent className="py-2 md:py-2 lg:py-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <DxTextBox
+                  placeholder="ค้นหาด้วยรหัส ชื่อ หรือที่ตั้ง..."
+                  value={search}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchWarehouses()}
+                />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-cyan-50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Thermometer className="h-4 w-4 text-cyan-600" />
-                    <p className="text-xs text-cyan-700">Temperature</p>
-                  </div>
-                  <p className="font-medium text-cyan-900">
-                    {viewingWarehouse.temperatureMin !== null && viewingWarehouse.temperatureMax !== null
-                      ? `${viewingWarehouse.temperatureMin}°C - ${viewingWarehouse.temperatureMax}°C`
-                      : '-'}
-                  </p>
-                </div>
-                <div className="bg-blue-50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Droplets className="h-4 w-4 text-blue-600" />
-                    <p className="text-xs text-blue-700">Humidity</p>
-                  </div>
-                  <p className="font-medium text-blue-900">
-                    {viewingWarehouse.humidityMin !== null && viewingWarehouse.humidityMax !== null
-                      ? `${viewingWarehouse.humidityMin}% - ${viewingWarehouse.humidityMax}%`
-                      : '-'}
-                  </p>
-                </div>
+              <div className="w-full md:w-48">
+                <DxSelectBox
+                  items={warehouseTypes}
+                  value={typeFilter}
+                  onValueChange={setTypeFilter}
+                  placeholder="เลือกประเภท"
+                  showClearButton
+                />
               </div>
             </div>
-            <div className="p-4 md:p-6 border-t bg-gray-50 rounded-b-2xl flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setViewingWarehouse(null)}
-              >
-                Close
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => {
+          </CardContent>
+        </Card>
+
+        {/* Table Card */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
+            {warehouses.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={warehouses}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="warehouses"
+                columnChooser
+                virtualScrolling={warehouses.length > 100}
+                fillHeight
+                noDataText="ไม่พบคลังสินค้า"
+              />
+            ) : (
+              <EmptyState
+                icon={<Inbox className="h-8 w-8" />}
+                title="ไม่พบคลังสินค้า"
+                description="เริ่มต้นด้วยการเพิ่มคลังสินค้าใหม่"
+                action={{
+                  label: 'เพิ่มคลัง',
+                  onClick: handleCreate,
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* View Detail Popup */}
+      <DxPopup
+        visible={!!viewingWarehouse}
+        onVisibleChange={(visible) => !visible && setViewingWarehouse(null)}
+        title="รายละเอียดคลังสินค้า"
+        width={500}
+        height="auto"
+        showCloseButton
+        toolbarItems={[
+          {
+            widget: 'dxButton',
+            toolbar: 'bottom',
+            location: 'after',
+            options: {
+              text: 'แก้ไข',
+              icon: 'edit',
+              type: 'default',
+              onClick: () => {
+                if (viewingWarehouse) {
                   handleEdit(viewingWarehouse);
                   setViewingWarehouse(null);
-                }}
-              >
-                <Edit2 className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
+                }
+              },
+            },
+          },
+          {
+            widget: 'dxButton',
+            toolbar: 'bottom',
+            location: 'after',
+            options: {
+              text: 'ปิด',
+              stylingMode: 'outlined',
+              onClick: () => setViewingWarehouse(null),
+            },
+          },
+        ]}
+      >
+        {viewingWarehouse && (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                'p-3 rounded-xl',
+                viewingWarehouse.type === 'raw_material' ? 'bg-blue-100' :
+                viewingWarehouse.type === 'finished_goods' ? 'bg-green-100' :
+                viewingWarehouse.type === 'quarantine' ? 'bg-yellow-100' :
+                viewingWarehouse.type === 'rejected' ? 'bg-red-100' :
+                'bg-gray-100'
+              )}>
+                <Warehouse className={cn(
+                  'h-8 w-8',
+                  viewingWarehouse.type === 'raw_material' ? 'text-blue-600' :
+                  viewingWarehouse.type === 'finished_goods' ? 'text-green-600' :
+                  viewingWarehouse.type === 'quarantine' ? 'text-yellow-600' :
+                  viewingWarehouse.type === 'rejected' ? 'text-red-600' :
+                  'text-gray-600'
+                )} />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">{viewingWarehouse.name}</h3>
+                <p className="text-gray-500">{viewingWarehouse.code}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500 mb-1">ประเภท</p>
+                <Badge variant={getTypeVariant(viewingWarehouse.type)}>
+                  {getTypeLabel(viewingWarehouse.type)}
+                </Badge>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500 mb-1">สถานะ</p>
+                <Badge variant={viewingWarehouse.isActive ? 'success' : 'danger'}>
+                  {viewingWarehouse.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                </Badge>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500 mb-1">ที่ตั้ง</p>
+                <p className="font-medium">{viewingWarehouse.location || '-'}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500 mb-1">ความจุ</p>
+                <p className="font-medium">{viewingWarehouse.capacity || '-'}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-cyan-50 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Thermometer className="h-4 w-4 text-cyan-600" />
+                  <p className="text-xs text-cyan-700">อุณหภูมิ</p>
+                </div>
+                <p className="font-medium text-cyan-900">
+                  {viewingWarehouse.temperatureMin !== null && viewingWarehouse.temperatureMax !== null
+                    ? `${viewingWarehouse.temperatureMin}°C - ${viewingWarehouse.temperatureMax}°C`
+                    : '-'}
+                </p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Droplets className="h-4 w-4 text-blue-600" />
+                  <p className="text-xs text-blue-700">ความชื้น</p>
+                </div>
+                <p className="font-medium text-blue-900">
+                  {viewingWarehouse.humidityMin !== null && viewingWarehouse.humidityMax !== null
+                    ? `${viewingWarehouse.humidityMin}% - ${viewingWarehouse.humidityMax}%`
+                    : '-'}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </DxPopup>
 
-      {/* Create/Edit Dialog - Full Screen */}
+      {/* Create/Edit Dialog */}
       <WarehouseEditDialog
         open={showDialog}
         onOpenChange={(open) => {
@@ -549,6 +529,17 @@ export default function WarehousesPage() {
         warehouse={editingWarehouse}
         summary={warehouseSummary}
         onSave={handleSave}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DxConfirmDialog
+        visible={deleteConfirm.open}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm({ open: false, warehouse: null })}
+        title="ยืนยันการลบ"
+        message={`คุณต้องการลบคลังสินค้า "${deleteConfirm.warehouse?.name}" หรือไม่?`}
+        confirmText="ลบ"
+        confirmType="danger"
       />
     </MainLayout>
   );

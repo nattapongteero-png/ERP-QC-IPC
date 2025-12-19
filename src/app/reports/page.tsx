@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
-import { DateRangePicker } from '@/components/ui/date-picker';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { PageHeader } from '@/components/ui/page-header';
 import {
   FileText,
@@ -138,31 +138,46 @@ export default function ReportsPage() {
         {/* Filters */}
         <Card elevation="raised">
           <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Category
                 </label>
-                <Select
-                  options={categories}
+                <DxSelectBox
+                  items={categories}
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  onValueChange={setCategoryFilter}
+                  valueExpr="value"
+                  displayExpr="label"
+                  placeholder="Select Category"
                 />
               </div>
-              <DateRangePicker
-                label="Report Date Range"
-                startDate={dateFrom}
-                endDate={dateTo}
-                onStartDateChange={(value) => setDateFrom(value)}
-                onEndDateChange={(value) => setDateTo(value)}
-                size="sm"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date From
+                </label>
+                <DxDateBox
+                  value={dateFrom}
+                  onValueChange={(value) => setDateFrom(value || '')}
+                  placeholder="Select start date"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date To
+                </label>
+                <DxDateBox
+                  value={dateTo}
+                  onValueChange={(value) => setDateTo(value || '')}
+                  placeholder="Select end date"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Report Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredReports.map((report, index) => (
             <Card
               key={report.id}
@@ -184,23 +199,21 @@ export default function ReportsPage() {
                       {report.description}
                     </p>
                     <div className="mt-4 flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleGenerateReport(report.id)}
-                        loading={generating === report.id}
-                        leftIcon={generating !== report.id ? <FileText className="h-4 w-4" /> : undefined}
-                      >
-                        {generating === report.id ? 'Generating...' : 'Generate'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
+                      <DxButton
+                        text={generating === report.id ? 'Generating...' : 'Generate'}
+                        icon={generating !== report.id ? 'doc' : undefined}
+                        type="default"
                         onClick={() => handleGenerateReport(report.id)}
                         disabled={generating === report.id}
-                        leftIcon={<Download className="h-4 w-4" />}
-                      >
-                        Export
-                      </Button>
+                      />
+                      <DxButton
+                        text="Export"
+                        icon="download"
+                        type="normal"
+                        stylingMode="outlined"
+                        onClick={() => handleGenerateReport(report.id)}
+                        disabled={generating === report.id}
+                      />
                     </div>
                   </div>
                 </div>

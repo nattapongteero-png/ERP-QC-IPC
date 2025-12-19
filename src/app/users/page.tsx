@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Users, Inbox } from 'lucide-react';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 interface User {
   id: number;
@@ -22,17 +25,45 @@ interface User {
 }
 
 const roleOptions = [
-  { value: '', label: 'All Roles' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'production', label: 'Production' },
-  { value: 'qc', label: 'QC' },
-  { value: 'warehouse', label: 'Warehouse' },
-  { value: 'purchasing', label: 'Purchasing' },
-  { value: 'sales', label: 'Sales' },
-  { value: 'accounting', label: 'Accounting' },
-  { value: 'user', label: 'User' },
+  { value: '', label: 'ทุกบทบาท' },
+  { value: 'admin', label: 'ผู้ดูแลระบบ' },
+  { value: 'manager', label: 'ผู้จัดการ' },
+  { value: 'production', label: 'ฝ่ายผลิต' },
+  { value: 'qc', label: 'ฝ่าย QC' },
+  { value: 'warehouse', label: 'ฝ่ายคลัง' },
+  { value: 'purchasing', label: 'ฝ่ายจัดซื้อ' },
+  { value: 'sales', label: 'ฝ่ายขาย' },
+  { value: 'accounting', label: 'ฝ่ายบัญชี' },
+  { value: 'user', label: 'ผู้ใช้ทั่วไป' },
 ];
+
+const getRoleVariant = (role: string): 'success' | 'info' | 'warning' | 'danger' | 'default' => {
+  switch (role) {
+    case 'admin':
+      return 'danger';
+    case 'manager':
+      return 'warning';
+    case 'production':
+    case 'qc':
+      return 'success';
+    case 'warehouse':
+    case 'purchasing':
+    case 'sales':
+      return 'info';
+    default:
+      return 'default';
+  }
+};
+
+const formatRole = (role: string): string => {
+  const found = roleOptions.find(r => r.value === role);
+  return found ? found.label : role;
+};
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('th-TH');
+};
 
 export default function UsersPage() {
   const router = useRouter();
@@ -40,149 +71,182 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.set('search', search);
+      const params = new URLSearchParams();
+      params.set('limit', '1000');
       if (roleFilter) params.set('role', roleFilter);
 
       const res = await fetch(`/api/users?${params}`);
       const data = await res.json();
 
       if (data.success) {
-        setUsers(data.data?.items || []);
-        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+        let fetchedUsers = data.data?.items || [];
+
+        // Client-side search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedUsers = fetchedUsers.filter((user: User) =>
+            user.email?.toLowerCase().includes(searchLower) ||
+            user.name?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setUsers(fetchedUsers);
       } else {
         console.error('API error:', data.error);
         setUsers([]);
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [roleFilter, search]);
 
   useEffect(() => {
     fetchUsers();
-  }, [pagination.page, roleFilter]);
+  }, [fetchUsers]);
 
-  const handleSearch = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchUsers();
+  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
+    if (e.data?.id) {
+      router.push(`/users/${e.data.id}`);
+    }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('th-TH');
-  };
-
-  const columns = [
-    { key: 'email', header: 'Email' },
-    { key: 'name', header: 'Name' },
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
     {
-      key: 'role',
-      header: 'Role',
-      render: (user: User) => (
-        <Badge variant="info">{user.role}</Badge>
+      dataField: 'name',
+      caption: 'ชื่อ',
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-gray-500" />
+          <span className="font-medium">{cellInfo.data.name}</span>
+        </div>
       ),
     },
-    { key: 'department', header: 'Department' },
     {
-      key: 'isActive',
-      header: 'Status',
-      render: (user: User) => (
-        <Badge variant={user.isActive ? 'success' : 'danger'}>
-          {user.isActive ? 'Active' : 'Inactive'}
+      dataField: 'email',
+      caption: 'อีเมล',
+      width: 220,
+      hideOnMobile: true,
+    },
+    {
+      dataField: 'role',
+      caption: 'บทบาท',
+      width: 130,
+      cellRender: (cellInfo) => (
+        <Badge variant={getRoleVariant(cellInfo.data.role)}>
+          {formatRole(cellInfo.data.role)}
         </Badge>
       ),
     },
     {
-      key: 'createdAt',
-      header: 'Created',
-      render: (user: User) => formatDate(user.createdAt),
+      dataField: 'department',
+      caption: 'แผนก',
+      width: 150,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => cellInfo.data.department || '-',
+    },
+    {
+      dataField: 'isActive',
+      caption: 'สถานะ',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <Badge variant={cellInfo.data.isActive ? 'success' : 'danger'} dot>
+          {cellInfo.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+        </Badge>
+      ),
+    },
+    {
+      dataField: 'createdAt',
+      caption: 'สร้างเมื่อ',
+      width: 120,
+      dataType: 'date',
+      hideOnMobile: true,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.createdAt),
     },
   ];
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-            <p className="text-gray-600">จัดการผู้ใช้งานระบบ</p>
-          </div>
-          <Button onClick={() => router.push('/users/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
-        </div>
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
+        <PageHeader
+          title="ผู้ใช้งาน"
+          description="จัดการผู้ใช้งานระบบ"
+          actions={
+            <DxButton
+              text="เพิ่มผู้ใช้"
+              icon="plus"
+              type="success"
+              onClick={() => router.push('/users/new')}
+            />
+          }
+        />
 
-        <Card>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Input
-                variant="search"
-                placeholder="Search by email or name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onSearch={handleSearch}
-              />
-            </div>
-            <div className="w-full md:w-48">
-              <Select
-                options={roleOptions}
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          <Table
-            columns={columns}
-            data={users}
-            keyField="id"
-            isLoading={isLoading}
-            emptyMessage="No users found"
-            onRowClick={(user) => router.push(`/users/${user.id}`)}
-          />
-
-          {/* Pagination */}
-          {pagination.total > pagination.limit && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total} users
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page === 1}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page * pagination.limit >= pagination.total}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                >
-                  Next
-                </Button>
+        {/* Filters Card */}
+        <Card elevation="raised" className="md:py-1">
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <DxTextBox
+                  placeholder="ค้นหาด้วยอีเมลหรือชื่อ..."
+                  value={search}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchUsers()}
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <DxSelectBox
+                  items={roleOptions}
+                  value={roleFilter}
+                  onValueChange={setRoleFilter}
+                  placeholder="บทบาท"
+                  showClearButton
+                />
               </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
+
+        {/* Table Card */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col">
+            {users.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={users}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="users"
+                columnChooser
+                virtualScrolling={users.length > 100}
+                fillHeight
+                onRowClick={handleRowClick}
+                noDataText="ไม่พบผู้ใช้งาน"
+              />
+            ) : (
+              <EmptyState
+                icon={<Inbox className="h-8 w-8" />}
+                title="ไม่พบผู้ใช้งาน"
+                description="เริ่มต้นด้วยการเพิ่มผู้ใช้ใหม่"
+                action={{
+                  label: 'เพิ่มผู้ใช้',
+                  onClick: () => router.push('/users/new'),
+                }}
+              />
+            )}
+          </CardContent>
         </Card>
       </div>
     </MainLayout>
