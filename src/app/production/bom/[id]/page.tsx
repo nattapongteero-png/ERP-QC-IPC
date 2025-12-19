@@ -726,19 +726,19 @@ export default function BOMDetailPage() {
               <dl className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-sm text-gray-500">Product Code</dt>
-                  <dd className="font-medium">{bom.productCode}</dd>
+                  <dd className="font-medium text-gray-900">{bom.productCode}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Product Name</dt>
-                  <dd className="font-medium">{bom.productName}</dd>
+                  <dd className="font-medium text-gray-900">{bom.productName}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Unit</dt>
-                  <dd className="font-medium">{bom.productUnit}</dd>
+                  <dd className="font-medium text-gray-900">{bom.productUnit}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Version</dt>
-                  <dd className="font-medium">{bom.version}</dd>
+                  <dd className="font-medium text-gray-900">{bom.version}</dd>
                 </div>
               </dl>
             </CardContent>
@@ -753,19 +753,19 @@ export default function BOMDetailPage() {
               <dl className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-sm text-gray-500">Effective Date</dt>
-                  <dd className="font-medium">{formatDate(bom.effectiveDate)}</dd>
+                  <dd className="font-medium text-gray-900">{formatDate(bom.effectiveDate)}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Expiry Date</dt>
-                  <dd className="font-medium">{formatDate(bom.expiryDate)}</dd>
+                  <dd className="font-medium text-gray-900">{formatDate(bom.expiryDate)}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Created</dt>
-                  <dd className="font-medium">{formatDate(bom.createdAt)}</dd>
+                  <dd className="font-medium text-gray-900">{formatDate(bom.createdAt)}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-gray-500">Updated</dt>
-                  <dd className="font-medium">{formatDate(bom.updatedAt)}</dd>
+                  <dd className="font-medium text-gray-900">{formatDate(bom.updatedAt)}</dd>
                 </div>
               </dl>
             </CardContent>
