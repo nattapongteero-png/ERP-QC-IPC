@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
         email,
         address,
         taxId,
-        customerType: customerType || 'regular',
+        customerType: customerType || 'hospital',
         creditLimit,
         creditTermDays,
         paymentTerms,

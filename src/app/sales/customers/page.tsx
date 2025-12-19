@@ -28,10 +28,15 @@ interface Customer {
 
 const customerTypes = [
   { value: '', label: 'All Types' },
-  { value: 'regular', label: 'Regular' },
-  { value: 'wholesale', label: 'Wholesale' },
-  { value: 'retail', label: 'Retail' },
+  { value: 'hospital', label: 'Hospital' },
+  { value: 'clinic', label: 'Clinic' },
+  { value: 'pharmacy', label: 'Pharmacy' },
+  { value: 'distributor', label: 'Distributor' },
+  { value: 'traditional_medicine', label: 'Traditional Medicine' },
+  { value: 'spa_wellness', label: 'Spa & Wellness' },
+  { value: 'government', label: 'Government' },
   { value: 'export', label: 'Export' },
+  { value: 'other', label: 'Other' },
 ];
 
 const activeStatuses = [
@@ -91,15 +96,33 @@ export default function CustomersPage() {
     type: string
   ): 'success' | 'info' | 'warning' | 'default' => {
     switch (type) {
-      case 'wholesale':
+      case 'hospital':
+      case 'clinic':
         return 'success';
-      case 'export':
+      case 'pharmacy':
+      case 'distributor':
         return 'info';
-      case 'retail':
+      case 'government':
+      case 'traditional_medicine':
         return 'warning';
       default:
         return 'default';
     }
+  };
+
+  const formatCustomerType = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      hospital: 'Hospital',
+      clinic: 'Clinic',
+      pharmacy: 'Pharmacy',
+      distributor: 'Distributor',
+      traditional_medicine: 'Traditional Medicine',
+      spa_wellness: 'Spa & Wellness',
+      government: 'Government',
+      export: 'Export',
+      other: 'Other',
+    };
+    return typeMap[type] || type;
   };
 
   const formatCurrency = (amount: number | null) => {
@@ -135,9 +158,9 @@ export default function CustomersPage() {
       key: 'status',
       header: 'Status',
       render: (c: Customer) => (
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           <Badge variant={getTypeVariant(c.customerType)}>
-            {c.customerType.charAt(0).toUpperCase() + c.customerType.slice(1)}
+            {formatCustomerType(c.customerType)}
           </Badge>
           {!c.isActive && (
             <Badge variant="danger" dot>

@@ -76,10 +76,15 @@ interface CustomerDetail {
 }
 
 const customerTypes = [
-  { value: 'regular', label: 'Regular' },
-  { value: 'wholesale', label: 'Wholesale' },
-  { value: 'retail', label: 'Retail' },
-  { value: 'export', label: 'Export' },
+  { value: 'hospital', label: 'Hospital (โรงพยาบาล)' },
+  { value: 'clinic', label: 'Clinic (คลินิก)' },
+  { value: 'pharmacy', label: 'Pharmacy (ร้านขายยา)' },
+  { value: 'distributor', label: 'Distributor (ตัวแทนจำหน่าย)' },
+  { value: 'traditional_medicine', label: 'Traditional Medicine Center (ศูนย์การแพทย์แผนไทย)' },
+  { value: 'spa_wellness', label: 'Spa & Wellness (สปาและเวลเนส)' },
+  { value: 'government', label: 'Government Agency (หน่วยงานราชการ)' },
+  { value: 'export', label: 'Export (ส่งออก)' },
+  { value: 'other', label: 'Other (อื่นๆ)' },
 ];
 
 export default function CustomerDetailPage({
@@ -240,15 +245,33 @@ export default function CustomerDetailPage({
     type: string
   ): 'success' | 'info' | 'warning' | 'default' => {
     switch (type) {
-      case 'wholesale':
+      case 'hospital':
+      case 'clinic':
         return 'success';
-      case 'export':
+      case 'pharmacy':
+      case 'distributor':
         return 'info';
-      case 'retail':
+      case 'government':
+      case 'traditional_medicine':
         return 'warning';
       default:
         return 'default';
     }
+  };
+
+  const formatCustomerType = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      hospital: 'Hospital',
+      clinic: 'Clinic',
+      pharmacy: 'Pharmacy',
+      distributor: 'Distributor',
+      traditional_medicine: 'Traditional Medicine',
+      spa_wellness: 'Spa & Wellness',
+      government: 'Government',
+      export: 'Export',
+      other: 'Other',
+    };
+    return typeMap[type] || type;
   };
 
   if (isLoading) {
@@ -422,8 +445,7 @@ export default function CustomerDetailPage({
                   <p className="text-xs sm:text-sm text-gray-500">Status</p>
                   <div className="flex gap-1 flex-wrap">
                     <Badge variant={getTypeVariant(customer.customerType)}>
-                      {customer.customerType.charAt(0).toUpperCase() +
-                        customer.customerType.slice(1)}
+                      {formatCustomerType(customer.customerType)}
                     </Badge>
                     {!customer.isActive && (
                       <Badge variant="danger" dot>

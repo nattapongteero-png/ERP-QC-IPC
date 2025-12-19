@@ -445,7 +445,7 @@ export const sqliteCustomers = sqliteTable('customers', {
   email: text('email'),
   address: text('address'),
   taxId: text('tax_id'),
-  customerType: text('customer_type').notNull().default('regular'), // regular, wholesale, retail, export
+  customerType: text('customer_type').notNull().default('hospital'), // hospital, clinic, pharmacy, distributor, traditional_medicine, spa_wellness, government, export, other
   creditLimit: real('credit_limit'),
   creditTermDays: integer('credit_term_days'),
   paymentTerms: text('payment_terms'),
@@ -963,7 +963,7 @@ export const mysqlCustomers = mysqlTable('customers', {
   email: varchar('email', { length: 255 }),
   address: mysqlText('address'),
   taxId: varchar('tax_id', { length: 50 }),
-  customerType: varchar('customer_type', { length: 50 }).notNull().default('regular'), // regular, wholesale, retail, export
+  customerType: varchar('customer_type', { length: 50 }).notNull().default('hospital'), // hospital, clinic, pharmacy, distributor, traditional_medicine, spa_wellness, government, export, other
   creditLimit: decimal('credit_limit', { precision: 15, scale: 2 }),
   creditTermDays: int('credit_term_days'),
   paymentTerms: varchar('payment_terms', { length: 100 }),

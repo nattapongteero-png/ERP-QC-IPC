@@ -11,10 +11,15 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ArrowLeft, Save, Wand2 } from 'lucide-react';
 
 const customerTypes = [
-  { value: 'regular', label: 'Regular' },
-  { value: 'wholesale', label: 'Wholesale' },
-  { value: 'retail', label: 'Retail' },
-  { value: 'export', label: 'Export' },
+  { value: 'hospital', label: 'Hospital (โรงพยาบาล)' },
+  { value: 'clinic', label: 'Clinic (คลินิก)' },
+  { value: 'pharmacy', label: 'Pharmacy (ร้านขายยา)' },
+  { value: 'distributor', label: 'Distributor (ตัวแทนจำหน่าย)' },
+  { value: 'traditional_medicine', label: 'Traditional Medicine Center (ศูนย์การแพทย์แผนไทย)' },
+  { value: 'spa_wellness', label: 'Spa & Wellness (สปาและเวลเนส)' },
+  { value: 'government', label: 'Government Agency (หน่วยงานราชการ)' },
+  { value: 'export', label: 'Export (ส่งออก)' },
+  { value: 'other', label: 'Other (อื่นๆ)' },
 ];
 
 export default function NewCustomerPage() {
@@ -29,7 +34,7 @@ export default function NewCustomerPage() {
     email: '',
     address: '',
     taxId: '',
-    customerType: 'regular',
+    customerType: 'hospital',
     creditLimit: '',
     creditTermDays: '',
     paymentTerms: '',
