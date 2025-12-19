@@ -93,78 +93,78 @@
 
 ### Regression Verification (FR-002 Coverage)
 
-- [ ] T032A [US1] Create component API compatibility checklist documenting all existing component props/usage
-- [ ] T032B [US1] Verify Button usage in 3 sample pages still works after migration
-- [ ] T032C [US1] Verify Form components in 1 sample create/edit page still submit correctly
-- [ ] T032D [US1] Verify Table components in 1 sample list page still sort/filter correctly
+- [x] T032A [US1] Create component API compatibility checklist documenting all existing component props/usage
+- [x] T032B [US1] Verify Button usage in 3 sample pages still works after migration
+- [x] T032C [US1] Verify Form components in 1 sample create/edit page still submit correctly
+- [x] T032D [US1] Verify Table components in 1 sample list page still sort/filter correctly
 
 ### Page Updates - Inventory Module
 
-- [ ] T033 [P] [US1] Update Dashboard page to use migrated components in src/app/dashboard/page.tsx
-- [ ] T034 [P] [US1] Update Inventory Items page to use migrated components in src/app/inventory/items/page.tsx
-- [ ] T035 [P] [US1] Update Inventory Items detail page in src/app/inventory/items/[id]/page.tsx
-- [ ] T036 [P] [US1] Update Inventory Lots page in src/app/inventory/lots/page.tsx
-- [ ] T037 [P] [US1] Update Inventory Lots detail page in src/app/inventory/lots/[id]/page.tsx
-- [ ] T038 [P] [US1] Update Inventory Warehouses page in src/app/inventory/warehouses/page.tsx
-- [ ] T039 [P] [US1] Update Inventory Warehouses detail page in src/app/inventory/warehouses/[id]/page.tsx
-- [ ] T040 [P] [US1] Update Inventory Transactions page in src/app/inventory/transactions/page.tsx
-- [ ] T041 [P] [US1] Update Inventory Expiry Alerts page in src/app/inventory/expiry-alerts/page.tsx
-- [ ] T042 Run `pnpm tsc --noEmit && pnpm lint` to verify inventory pages
-- [ ] T043 Commit: "feat(ui): update inventory pages to use shadcn components"
+- [x] T033 [P] [US1] Update Dashboard page to use migrated components in src/app/dashboard/page.tsx
+- [x] T034 [P] [US1] Update Inventory Items page to use migrated components in src/app/inventory/items/page.tsx
+- [x] T035 [P] [US1] Update Inventory Items detail page in src/app/inventory/items/[id]/page.tsx
+- [x] T036 [P] [US1] Update Inventory Lots page in src/app/inventory/lots/page.tsx
+- [x] T037 [P] [US1] Update Inventory Lots detail page in src/app/inventory/lots/[id]/page.tsx
+- [x] T038 [P] [US1] Update Inventory Warehouses page in src/app/inventory/warehouses/page.tsx
+- [x] T039 [P] [US1] Update Inventory Warehouses detail page in src/app/inventory/warehouses/[id]/page.tsx
+- [x] T040 [P] [US1] Update Inventory Transactions page in src/app/inventory/transactions/page.tsx
+- [x] T041 [P] [US1] Update Inventory Expiry Alerts page in src/app/inventory/expiry-alerts/page.tsx
+- [x] T042 Run `pnpm tsc --noEmit && pnpm lint` to verify inventory pages
+- [x] T043 Commit: "feat(ui): update inventory pages to use shadcn components"
 
 ### Page Updates - Production & Quality Modules
 
-- [ ] T044 [P] [US1] Update Production page in src/app/production/page.tsx
-- [ ] T045 [P] [US1] Update Production Work Orders page in src/app/production/work-orders/page.tsx
-- [ ] T046 [P] [US1] Update Production Work Orders detail page in src/app/production/work-orders/[id]/page.tsx
-- [ ] T047 [P] [US1] Update Quality page in src/app/quality/page.tsx
-- [ ] T048 [P] [US1] Update Quality Tests detail page in src/app/quality/tests/[id]/page.tsx
-- [ ] T049 [P] [US1] Update Quality Deviations detail page in src/app/quality/deviations/[id]/page.tsx
-- [ ] T050 Run `pnpm tsc --noEmit && pnpm lint` to verify production/quality pages
-- [ ] T051 Commit: "feat(ui): update production and quality pages to use shadcn components"
+- [x] T044 [P] [US1] Update Production page in src/app/production/page.tsx
+- [x] T045 [P] [US1] Update Production Work Orders page in src/app/production/work-orders/page.tsx
+- [x] T046 [P] [US1] Update Production Work Orders detail page in src/app/production/work-orders/[id]/page.tsx
+- [x] T047 [P] [US1] Update Quality page in src/app/quality/page.tsx
+- [x] T048 [P] [US1] Update Quality Tests detail page in src/app/quality/tests/[id]/page.tsx
+- [x] T049 [P] [US1] Update Quality Deviations detail page in src/app/quality/deviations/[id]/page.tsx
+- [x] T050 Run `pnpm tsc --noEmit && pnpm lint` to verify production/quality pages
+- [x] T051 Commit: "feat(ui): update production and quality pages to use shadcn components"
 
 ### Page Updates - Purchasing & Sales Modules
 
-- [ ] T052 [P] [US1] Update Purchasing page in src/app/purchasing/page.tsx
-- [ ] T053 [P] [US1] Update Purchasing Orders detail page in src/app/purchasing/orders/[id]/page.tsx
-- [ ] T054 [P] [US1] Update Sales page in src/app/sales/page.tsx
-- [ ] T055 [P] [US1] Update Sales Orders detail page in src/app/sales/orders/[id]/page.tsx
-- [ ] T056 Run `pnpm tsc --noEmit && pnpm lint` to verify purchasing/sales pages
-- [ ] T057 Commit: "feat(ui): update purchasing and sales pages to use shadcn components"
+- [x] T052 [P] [US1] Update Purchasing page in src/app/purchasing/page.tsx
+- [x] T053 [P] [US1] Update Purchasing Orders detail page in src/app/purchasing/orders/[id]/page.tsx
+- [x] T054 [P] [US1] Update Sales page in src/app/sales/page.tsx
+- [x] T055 [P] [US1] Update Sales Orders detail page in src/app/sales/orders/[id]/page.tsx
+- [x] T056 Run `pnpm tsc --noEmit && pnpm lint` to verify purchasing/sales pages
+- [x] T057 Commit: "feat(ui): update purchasing and sales pages to use shadcn components"
 
 ### Page Updates - Remaining Pages
 
-- [ ] T058 [P] [US1] Update Reports page in src/app/reports/page.tsx
-- [ ] T059 [P] [US1] Update Users page in src/app/users/page.tsx
-- [ ] T060 [P] [US1] Update Settings page in src/app/settings/page.tsx
-- [ ] T061 [P] [US1] Update Login page in src/app/login/page.tsx
-- [ ] T062 Run `pnpm tsc --noEmit && pnpm lint` to verify remaining pages
-- [ ] T063 Commit: "feat(ui): update remaining pages to use shadcn components"
+- [x] T058 [P] [US1] Update Reports page in src/app/reports/page.tsx
+- [x] T059 [P] [US1] Update Users page in src/app/users/page.tsx
+- [x] T060 [P] [US1] Update Settings page in src/app/settings/page.tsx
+- [x] T061 [P] [US1] Update Login page in src/app/login/page.tsx
+- [x] T062 Run `pnpm tsc --noEmit && pnpm lint` to verify remaining pages
+- [x] T063 Commit: "feat(ui): update remaining pages to use shadcn components"
 
 ### Page Updates - Additional Pages (Discovered in Analysis)
 
-- [ ] T129 [P] [US1] Update root page in src/app/page.tsx
-- [ ] T130 [P] [US1] Update Inventory landing page in src/app/inventory/page.tsx
-- [ ] T131 [P] [US1] Update Production Batch Records page in src/app/production/batch-records/page.tsx
-- [ ] T132 [P] [US1] Update Production Batch Records detail in src/app/production/batch-records/[id]/page.tsx
-- [ ] T133 [P] [US1] Update Production BOM page in src/app/production/bom/page.tsx
-- [ ] T134 [P] [US1] Update Production BOM detail in src/app/production/bom/[id]/page.tsx
-- [ ] T135 [P] [US1] Update Production BOM new in src/app/production/bom/new/page.tsx
-- [ ] T136 [P] [US1] Update Production Work Orders new in src/app/production/work-orders/new/page.tsx
-- [ ] T137 [P] [US1] Update Quality Tests page in src/app/quality/tests/page.tsx
-- [ ] T138 [P] [US1] Update Quality Tests new in src/app/quality/tests/new/page.tsx
-- [ ] T139 [P] [US1] Update Quality Deviations page in src/app/quality/deviations/page.tsx
-- [ ] T140 [P] [US1] Update Quality Deviations new in src/app/quality/deviations/new/page.tsx
-- [ ] T141 [P] [US1] Update Quality Specs page in src/app/quality/specs/page.tsx
-- [ ] T142 [P] [US1] Update Quality Specs detail in src/app/quality/specs/[id]/page.tsx
-- [ ] T143 [P] [US1] Update Quality Specs new in src/app/quality/specs/new/page.tsx
-- [ ] T144 [P] [US1] Update Purchasing Orders new in src/app/purchasing/orders/new/page.tsx
-- [ ] T145 [P] [US1] Update Purchasing Vendors page in src/app/purchasing/vendors/page.tsx
-- [ ] T146 [P] [US1] Update Purchasing Vendors detail in src/app/purchasing/vendors/[id]/page.tsx
-- [ ] T147 [P] [US1] Update Purchasing Vendors new in src/app/purchasing/vendors/new/page.tsx
-- [ ] T148 [P] [US1] Update Sales Orders new in src/app/sales/orders/new/page.tsx
-- [ ] T149 Run `pnpm tsc --noEmit && pnpm lint` to verify additional pages
-- [ ] T150 Commit: "feat(ui): update remaining discovered pages to shadcn"
+- [x] T129 [P] [US1] Update root page in src/app/page.tsx
+- [x] T130 [P] [US1] Update Inventory landing page in src/app/inventory/page.tsx
+- [x] T131 [P] [US1] Update Production Batch Records page in src/app/production/batch-records/page.tsx
+- [x] T132 [P] [US1] Update Production Batch Records detail in src/app/production/batch-records/[id]/page.tsx
+- [x] T133 [P] [US1] Update Production BOM page in src/app/production/bom/page.tsx
+- [x] T134 [P] [US1] Update Production BOM detail in src/app/production/bom/[id]/page.tsx
+- [x] T135 [P] [US1] Update Production BOM new in src/app/production/bom/new/page.tsx
+- [x] T136 [P] [US1] Update Production Work Orders new in src/app/production/work-orders/new/page.tsx
+- [x] T137 [P] [US1] Update Quality Tests page in src/app/quality/tests/page.tsx
+- [x] T138 [P] [US1] Update Quality Tests new in src/app/quality/tests/new/page.tsx
+- [x] T139 [P] [US1] Update Quality Deviations page in src/app/quality/deviations/page.tsx
+- [x] T140 [P] [US1] Update Quality Deviations new in src/app/quality/deviations/new/page.tsx
+- [x] T141 [P] [US1] Update Quality Specs page in src/app/quality/specs/page.tsx
+- [x] T142 [P] [US1] Update Quality Specs detail in src/app/quality/specs/[id]/page.tsx
+- [x] T143 [P] [US1] Update Quality Specs new in src/app/quality/specs/new/page.tsx
+- [x] T144 [P] [US1] Update Purchasing Orders new in src/app/purchasing/orders/new/page.tsx
+- [x] T145 [P] [US1] Update Purchasing Vendors page in src/app/purchasing/vendors/page.tsx
+- [x] T146 [P] [US1] Update Purchasing Vendors detail in src/app/purchasing/vendors/[id]/page.tsx
+- [x] T147 [P] [US1] Update Purchasing Vendors new in src/app/purchasing/vendors/new/page.tsx
+- [x] T148 [P] [US1] Update Sales Orders new in src/app/sales/orders/new/page.tsx
+- [x] T149 Run `pnpm tsc --noEmit && pnpm lint` to verify additional pages
+- [x] T150 Commit: "feat(ui): update remaining discovered pages to shadcn"
 
 **Checkpoint**: User Story 1 complete - all core components migrated and pages updated
 
