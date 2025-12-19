@@ -1,27 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
-import { Plus, Edit2, Trash2, Package, Leaf, FlaskConical, Box, Pill, Inbox } from 'lucide-react';
+import { DxConfirmDialog } from '@/components/ui/dx-popup';
+import { Leaf, FlaskConical, Box, Pill, Package, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 const itemTypes = [
-  { value: '', label: 'All Types' },
-  { value: 'raw_material', label: 'Raw Material' },
-  { value: 'packaging', label: 'Packaging' },
-  { value: 'wip', label: 'Work in Progress' },
-  { value: 'finished_goods', label: 'Finished Goods' },
-  { value: 'consumable', label: 'Consumable' },
+  { value: '', label: 'ทุกประเภท' },
+  { value: 'raw_material', label: 'วัตถุดิบ' },
+  { value: 'packaging', label: 'บรรจุภัณฑ์' },
+  { value: 'wip', label: 'งานระหว่างทำ' },
+  { value: 'finished_goods', label: 'สินค้าสำเร็จรูป' },
+  { value: 'consumable', label: 'วัสดุสิ้นเปลือง' },
 ];
 
 const getTypeIcon = (type: string) => {
@@ -44,6 +46,11 @@ const getTypeVariant = (type: string): 'success' | 'warning' | 'danger' | 'info'
   }
 };
 
+const getTypeLabel = (type: string): string => {
+  const found = itemTypes.find(t => t.value === type);
+  return found?.label || type.replace('_', ' ');
+};
+
 export default function ItemsPage() {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
@@ -52,40 +59,44 @@ export default function ItemsPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; item: Item | null }>({ open: false, item: null });
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.set('search', search);
+      const params = new URLSearchParams();
+      // Fetch all items for client-side pagination/filtering via DevExtreme
+      params.set('limit', '1000');
       if (typeFilter) params.set('type', typeFilter);
 
       const res = await fetch(`/api/items?${params}`);
       const data = await res.json();
 
       if (data.success) {
-        setItems(data.data?.items || []);
-        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+        let fetchedItems = data.data?.items || [];
+
+        // Client-side search filter (DevExtreme will handle this better with remote data source)
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedItems = fetchedItems.filter((item: Item) =>
+            item.code?.toLowerCase().includes(searchLower) ||
+            item.nameTh?.toLowerCase().includes(searchLower) ||
+            item.nameEn?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setItems(fetchedItems);
       }
     } catch (error) {
       console.error('Failed to fetch items:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [typeFilter, search]);
 
   useEffect(() => {
     fetchItems();
-  }, [pagination.page, typeFilter]);
-
-  const handleSearch = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchItems();
-  };
+  }, [fetchItems]);
 
   const handleSave = async (formData: ItemFormData) => {
     const url = editingItem ? `/api/items/${editingItem.id}` : '/api/items';
@@ -105,17 +116,19 @@ export default function ItemsPage() {
     }
   };
 
-  const handleDelete = async (item: Item) => {
-    if (!confirm(`Are you sure you want to delete "${item.nameTh}"?`)) return;
+  const handleDelete = async () => {
+    if (!deleteConfirm.item) return;
 
     try {
-      const res = await fetch(`/api/items/${item.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/items/${deleteConfirm.item.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         fetchItems();
       }
     } catch {
       // Network errors handled by global error handler
+    } finally {
+      setDeleteConfirm({ open: false, item: null });
     }
   };
 
@@ -129,50 +142,70 @@ export default function ItemsPage() {
     setDialogOpen(true);
   };
 
-  const columns = [
+  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
+    if (e.data?.id) {
+      router.push(`/inventory/items/${e.data.id}`);
+    }
+  };
+
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
     {
-      key: 'code',
-      header: 'Code',
-      render: (item: Item) => (
+      dataField: 'code',
+      caption: 'รหัส',
+      width: 120,
+      cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
-          {getTypeIcon(item.type)}
-          <span className="font-mono">{item.code}</span>
+          {getTypeIcon(cellInfo.data.type)}
+          <span className="font-mono">{cellInfo.data.code}</span>
         </div>
       ),
     },
     {
-      key: 'name',
-      header: 'Name',
-      render: (item: Item) => (
+      dataField: 'nameTh',
+      caption: 'ชื่อสินค้า',
+      cellRender: (cellInfo) => (
         <div>
-          <p className="font-medium">{item.nameTh}</p>
-          {item.nameEn && <p className="text-xs text-gray-500">{item.nameEn}</p>}
+          <p className="font-medium">{cellInfo.data.nameTh}</p>
+          {cellInfo.data.nameEn && <p className="text-xs text-gray-500">{cellInfo.data.nameEn}</p>}
         </div>
       ),
     },
     {
-      key: 'type',
-      header: 'Type',
-      render: (item: Item) => (
-        <Badge variant={getTypeVariant(item.type)} dot>
-          {item.type.replace('_', ' ')}
+      dataField: 'type',
+      caption: 'ประเภท',
+      width: 140,
+      cellRender: (cellInfo) => (
+        <Badge variant={getTypeVariant(cellInfo.data.type)} dot>
+          {getTypeLabel(cellInfo.data.type)}
         </Badge>
       ),
     },
-    { key: 'category', header: 'Category', render: (item: Item) => item.category || '-' },
-    { key: 'primaryUnit', header: 'Unit' },
     {
-      key: 'onHand',
-      header: 'On Hand',
-      render: (item: Item) => {
-        const onHand = item.onHand ?? 0;
-        const onHandCost = item.onHandCost ?? 0;
-        const isLow = item.minStock && onHand < item.minStock;
+      dataField: 'category',
+      caption: 'หมวดหมู่',
+      width: 120,
+      cellRender: (cellInfo) => cellInfo.data.category || '-',
+    },
+    {
+      dataField: 'primaryUnit',
+      caption: 'หน่วย',
+      width: 80,
+    },
+    {
+      dataField: 'onHand',
+      caption: 'คงคลัง',
+      width: 140,
+      dataType: 'number',
+      cellRender: (cellInfo) => {
+        const onHand = cellInfo.data.onHand ?? 0;
+        const onHandCost = cellInfo.data.onHandCost ?? 0;
+        const isLow = cellInfo.data.minStock && onHand < cellInfo.data.minStock;
         return (
           <div>
             <div className={cn('font-medium', isLow ? 'text-red-600' : '')}>
-              {onHand.toLocaleString()} {item.primaryUnit}
-              {isLow && <span className="text-xs ml-1">(Low)</span>}
+              {onHand.toLocaleString()} {cellInfo.data.primaryUnit}
+              {isLow && <span className="text-xs ml-1">(ต่ำ)</span>}
             </div>
             <div className="text-xs text-gray-500">
               ฿{onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -182,45 +215,49 @@ export default function ItemsPage() {
       },
     },
     {
-      key: 'shelfLife',
-      header: 'Shelf Life',
-      render: (item: Item) => item.shelfLifeDays ? `${item.shelfLifeDays} days` : '-',
+      dataField: 'shelfLifeDays',
+      caption: 'อายุการเก็บ',
+      width: 100,
+      dataType: 'number',
+      cellRender: (cellInfo) => cellInfo.data.shelfLifeDays ? `${cellInfo.data.shelfLifeDays} วัน` : '-',
     },
     {
-      key: 'isActive',
-      header: 'Status',
-      render: (item: Item) => (
-        <Badge variant={item.isActive ? 'success' : 'danger'} dot>
-          {item.isActive ? 'Active' : 'Inactive'}
+      dataField: 'isActive',
+      caption: 'สถานะ',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <Badge variant={cellInfo.data.isActive ? 'success' : 'danger'} dot>
+          {cellInfo.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
         </Badge>
       ),
     },
     {
-      key: 'actions',
-      header: 'Actions',
-      render: (item: Item) => (
+      dataField: 'actions',
+      caption: 'จัดการ',
+      width: 120,
+      allowSorting: false,
+      allowFiltering: false,
+      cellRender: (cellInfo) => (
         <div className="flex gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
+          <DxButton
+            icon="edit"
+            stylingMode="text"
+            hint="แก้ไข"
             onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(item);
+              e.event?.stopPropagation();
+              handleEdit(cellInfo.data);
             }}
-          >
-            <Edit2 className="h-3 w-3" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
+          />
+          <DxButton
+            icon="trash"
+            stylingMode="text"
+            type="danger"
+            hint="ลบ"
             onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(item);
+              e.event?.stopPropagation();
+              setDeleteConfirm({ open: true, item: cellInfo.data });
             }}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          />
         </div>
       ),
     },
@@ -233,22 +270,25 @@ export default function ItemsPage() {
   const activeCount = items.filter(i => i.isActive).length;
 
   const summaryCards = [
-    { label: 'Raw Materials', count: rawMaterialCount, icon: Leaf, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
-    { label: 'Finished Goods', count: finishedGoodsCount, icon: Pill, bgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
-    { label: 'Packaging', count: packagingCount, icon: Box, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
-    { label: 'Active Items', count: activeCount, icon: Package, bgColor: 'bg-gray-100', iconColor: 'text-gray-600' },
+    { label: 'วัตถุดิบ', count: rawMaterialCount, icon: Leaf, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
+    { label: 'สินค้าสำเร็จรูป', count: finishedGoodsCount, icon: Pill, bgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
+    { label: 'บรรจุภัณฑ์', count: packagingCount, icon: Box, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
+    { label: 'รายการที่ใช้งาน', count: activeCount, icon: Package, bgColor: 'bg-gray-100', iconColor: 'text-gray-600' },
   ];
 
   return (
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Items"
+          title="รายการสินค้า"
           description="จัดการรายการสินค้าและวัตถุดิบ"
           actions={
-            <Button onClick={handleOpenCreate} leftIcon={<Plus className="h-4 w-4" />}>
-              Add Item
-            </Button>
+            <DxButton
+              text="เพิ่มรายการ"
+              icon="plus"
+              type="success"
+              onClick={handleOpenCreate}
+            />
           }
         />
 
@@ -282,19 +322,22 @@ export default function ItemsPage() {
           <CardContent>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
-                <Input
-                  variant="search"
-                  placeholder="Search by code or name..."
+                <DxTextBox
+                  placeholder="ค้นหาด้วยรหัสหรือชื่อ..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onSearch={handleSearch}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchItems()}
                 />
               </div>
               <div className="w-full md:w-48">
-                <Select
-                  options={itemTypes}
+                <DxSelectBox
+                  items={itemTypes}
                   value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
+                  onValueChange={setTypeFilter}
+                  placeholder="เลือกประเภท"
+                  showClearButton
                 />
               </div>
             </div>
@@ -304,61 +347,31 @@ export default function ItemsPage() {
         {/* Table Card */}
         <Card elevation="raised">
           <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : items.length > 0 ? (
-              <>
-                <Table
-                  columns={columns}
-                  data={items}
-                  keyField="id"
-                  isLoading={isLoading}
-                  emptyMessage="No items found"
-                  striped
-                  hoverable
-                  onRowClick={(item) => router.push(`/inventory/items/${item.id}`)}
-                />
-
-                {/* Pagination */}
-                {pagination.total > pagination.limit && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-500">
-                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                      {pagination.total} items
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page === 1}
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page * pagination.limit >= pagination.total}
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+            {items.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={items}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="items"
+                searchPanel
+                columnChooser
+                virtualScrolling={items.length > 100}
+                height={600}
+                onRowClick={handleRowClick}
+                noDataText="ไม่พบรายการสินค้า"
+              />
             ) : (
               <EmptyState
                 icon={<Inbox className="h-8 w-8" />}
-                title="No items found"
-                description="Get started by adding your first item"
+                title="ไม่พบรายการสินค้า"
+                description="เริ่มต้นด้วยการเพิ่มรายการสินค้าใหม่"
                 action={{
-                  label: 'Add Item',
+                  label: 'เพิ่มรายการ',
                   onClick: handleOpenCreate,
                 }}
               />
@@ -376,6 +389,17 @@ export default function ItemsPage() {
         }}
         item={editingItem}
         onSave={handleSave}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DxConfirmDialog
+        visible={deleteConfirm.open}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm({ open: false, item: null })}
+        title="ยืนยันการลบ"
+        message={`คุณต้องการลบรายการ "${deleteConfirm.item?.nameTh}" หรือไม่?`}
+        confirmText="ลบ"
+        confirmType="danger"
       />
     </MainLayout>
   );
