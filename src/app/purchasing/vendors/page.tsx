@@ -117,6 +117,7 @@ export default function VendorsPage() {
       dataField: 'contactPerson',
       caption: 'ผู้ติดต่อ',
       width: 150,
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.contactPerson || '-',
     },
     {
@@ -129,6 +130,7 @@ export default function VendorsPage() {
       dataField: 'email',
       caption: 'อีเมล',
       width: 180,
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.email || '-',
     },
     {
@@ -136,12 +138,14 @@ export default function VendorsPage() {
       caption: 'Lead Time',
       width: 100,
       dataType: 'number',
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.leadTimeDays ? `${cellInfo.data.leadTimeDays} วัน` : '-',
     },
     {
       dataField: 'status',
       caption: 'สถานะ',
       width: 160,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="flex gap-1">
           <Badge variant={cellInfo.data.isApproved ? 'success' : 'warning'} dot>
@@ -225,6 +229,8 @@ export default function VendorsPage() {
                 columnChooser
                 virtualScrolling={vendors.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบผู้ขาย"
               />
