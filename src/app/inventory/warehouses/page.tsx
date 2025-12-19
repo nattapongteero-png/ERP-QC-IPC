@@ -184,6 +184,7 @@ export default function WarehousesPage() {
       dataField: 'type',
       caption: 'ประเภท',
       width: 140,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <Badge variant={getTypeVariant(cellInfo.data.type)} dot>
           {getTypeLabel(cellInfo.data.type)}
@@ -194,6 +195,7 @@ export default function WarehousesPage() {
       dataField: 'location',
       caption: 'ที่ตั้ง',
       width: 150,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-1">
           <MapPin className="h-3 w-3 text-gray-400" />
@@ -205,6 +207,7 @@ export default function WarehousesPage() {
       dataField: 'temperatureMin',
       caption: 'อุณหภูมิ',
       width: 140,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-1">
           <Thermometer className="h-3 w-3 text-cyan-500" />
@@ -220,6 +223,7 @@ export default function WarehousesPage() {
       dataField: 'humidityMin',
       caption: 'ความชื้น',
       width: 130,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-1">
           <Droplets className="h-3 w-3 text-blue-500" />
@@ -235,6 +239,7 @@ export default function WarehousesPage() {
       dataField: 'isActive',
       caption: 'สถานะ',
       width: 100,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <Badge variant={cellInfo.data.isActive ? 'success' : 'danger'} dot>
           {cellInfo.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
@@ -312,7 +317,7 @@ export default function WarehousesPage() {
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {summaryCards.map((card, index) => (
             <Card
               key={card.label}
@@ -381,6 +386,8 @@ export default function WarehousesPage() {
                 columnChooser
                 virtualScrolling={warehouses.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 noDataText="ไม่พบคลังสินค้า"
               />
             ) : (

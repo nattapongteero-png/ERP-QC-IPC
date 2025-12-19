@@ -130,10 +130,12 @@ export default function SalesOrdersPage() {
       cellRender: (cellInfo) => (
         <span className="font-mono font-medium">{cellInfo.data.soNumber}</span>
       ),
+      // Keep visible: order number
     },
     {
       dataField: 'customerName',
       caption: 'ลูกค้า',
+      // Keep visible: customer name
     },
     {
       dataField: 'orderDate',
@@ -141,6 +143,7 @@ export default function SalesOrdersPage() {
       width: 120,
       dataType: 'date',
       cellRender: (cellInfo) => formatDate(cellInfo.data.orderDate),
+      hideOnMobile: true, // Hide on mobile: dates
     },
     {
       dataField: 'requiredDate',
@@ -148,6 +151,7 @@ export default function SalesOrdersPage() {
       width: 120,
       dataType: 'date',
       cellRender: (cellInfo) => formatDate(cellInfo.data.requiredDate),
+      hideOnMobile: true, // Hide on mobile: dates
     },
     {
       dataField: 'totalAmount',
@@ -155,6 +159,7 @@ export default function SalesOrdersPage() {
       width: 150,
       dataType: 'number',
       cellRender: (cellInfo) => formatCurrency(cellInfo.data.totalAmount, cellInfo.data.currency),
+      // Keep visible: total
     },
     {
       dataField: 'status',
@@ -165,6 +170,7 @@ export default function SalesOrdersPage() {
           {getStatusLabel(cellInfo.data.status)}
         </Badge>
       ),
+      // Keep visible: status
     },
   ];
 
@@ -229,6 +235,8 @@ export default function SalesOrdersPage() {
                 columnChooser
                 virtualScrolling={orders.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบใบสั่งขาย"
               />
