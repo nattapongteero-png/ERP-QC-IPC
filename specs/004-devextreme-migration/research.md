@@ -11,6 +11,8 @@
 3. Thai language/locale support
 4. Zod validation integration
 5. Bundle size optimization
+6. DevExtreme layout patterns (Tailwind replacement)
+7. Legacy cleanup plan (removing Tailwind/Radix/shadcn)
 
 ---
 
@@ -74,10 +76,7 @@ DevExtreme provides enterprise-grade components that work with React 19, and the
 npx devextreme build-theme --input-file=devextreme-theme/emerald-metadata.json --output-file=public/css/dx.material.emerald.css
 ```
 
-**Tailwind Integration:**
-- Import DevExtreme CSS **after** Tailwind in `globals.css`
-- Use `!important` prefix on Tailwind utilities when needed to override DevExtreme
-- Optionally remove `dx-theme-material-typography` class from body if conflicts occur
+**Note:** Tailwind CSS will be completely removed from the project. DevExtreme theme will be the only CSS framework.
 
 ### Rationale
 ThemeBuilder CLI is the official, supported method for theme customization. It provides full control over colors while maintaining compatibility with DevExtreme version upgrades.
@@ -238,6 +237,187 @@ The bundle size increase is justified by:
 
 ---
 
+## 6. DevExtreme Layout Patterns (Tailwind Replacement)
+
+### Decision
+**Use DevExtreme's built-in layout components to replace all Tailwind utility classes.**
+
+### Key Components
+
+**ResponsiveBox** - Replaces Tailwind flexbox/grid utilities:
+```typescript
+import ResponsiveBox, { Row, Col, Item, Location } from 'devextreme-react/responsive-box';
+
+<ResponsiveBox>
+  <Row ratio={1} />
+  <Row ratio={2} />
+  <Col ratio={1} />
+  <Col ratio={2} />
+  <Item>
+    <Location row={0} col={0} />
+    <div>Header</div>
+  </Item>
+  <Item>
+    <Location row={1} col={0} colspan={2} />
+    <div>Content</div>
+  </Item>
+</ResponsiveBox>
+```
+
+**Box** - Replaces Tailwind flexbox for simpler layouts:
+```typescript
+import Box, { Item } from 'devextreme-react/box';
+
+<Box direction="row" width="100%" height="100%">
+  <Item ratio={1}>Sidebar</Item>
+  <Item ratio={3}>Content</Item>
+</Box>
+```
+
+**Drawer** - Replaces sidebar with responsive behavior:
+```typescript
+import Drawer from 'devextreme-react/drawer';
+
+<Drawer
+  opened={drawerOpen}
+  openedStateMode="shrink"
+  position="left"
+  revealMode="slide"
+  component={Sidebar}
+>
+  <MainContent />
+</Drawer>
+```
+
+**Toolbar** - Replaces header layouts:
+```typescript
+import Toolbar, { Item } from 'devextreme-react/toolbar';
+
+<Toolbar>
+  <Item location="before" widget="dxButton" options={{ icon: 'menu' }} />
+  <Item location="center" text="Page Title" />
+  <Item location="after" widget="dxButton" options={{ icon: 'user' }} />
+</Toolbar>
+```
+
+### Tailwind → DevExtreme Mapping
+
+| Tailwind Class | DevExtreme Equivalent |
+|----------------|----------------------|
+| `flex`, `flex-row`, `flex-col` | `<Box direction="row/col">` |
+| `grid`, `grid-cols-*` | `<ResponsiveBox>` with Row/Col |
+| `gap-*` | CSS `gap` property or item margins |
+| `p-*`, `m-*` | Inline styles or CSS classes |
+| `w-*`, `h-*` | `width`, `height` props |
+| `justify-*`, `items-*` | `align`, `crossAlign` props on Box |
+| `hidden`, `block` | `visible` prop |
+| `sm:`, `md:`, `lg:` | ResponsiveBox `screenByWidth` |
+| `rounded-*` | CSS `border-radius` |
+| `bg-*` | CSS `background-color` |
+| `text-*` | CSS font properties |
+
+### Spacing and Sizing
+
+Without Tailwind utilities, use:
+
+1. **CSS Custom Properties** (defined in globals.css):
+```css
+:root {
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-4: 16px;
+  --spacing-8: 32px;
+}
+```
+
+2. **DevExtreme CSS classes** (from theme):
+```typescript
+<div className="dx-card dx-card-content">Content</div>
+```
+
+3. **Inline styles** for dynamic values:
+```typescript
+<Box style={{ padding: 16, margin: 8 }}>Content</Box>
+```
+
+### Responsive Breakpoints
+
+DevExtreme ResponsiveBox uses `screenByWidth` function:
+```typescript
+function screenByWidth(width: number): string {
+  if (width < 768) return 'xs';  // Mobile
+  if (width < 992) return 'sm';  // Tablet
+  if (width < 1200) return 'md'; // Desktop
+  return 'lg';                    // Large desktop
+}
+
+<ResponsiveBox screenByWidth={screenByWidth}>
+  <Item>
+    <Location screen="lg" row={0} col={0} />
+    <Location screen="xs sm md" row={0} col={0} colspan={2} />
+    <Sidebar />
+  </Item>
+</ResponsiveBox>
+```
+
+### Rationale
+DevExtreme's layout components provide the same responsive capabilities as Tailwind while maintaining a consistent component-based approach. This eliminates the dual styling system and reduces bundle size by removing Tailwind.
+
+### Alternatives Considered
+| Alternative | Rejected Because |
+|-------------|------------------|
+| Keep Tailwind for layout only | Inconsistent styling, two systems to maintain, larger bundle |
+| Plain CSS Grid/Flexbox | More verbose, no component abstraction, harder to maintain |
+| Another CSS framework | Would still have dual systems, DevExtreme already provides layout |
+
+---
+
+## 7. Legacy Cleanup Plan
+
+### Packages to Remove
+
+```bash
+npm uninstall tailwindcss @tailwindcss/forms @tailwindcss/typography postcss autoprefixer
+npm uninstall @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-tooltip @radix-ui/react-separator @radix-ui/react-slot
+npm uninstall class-variance-authority clsx tailwind-merge
+```
+
+### Files to Delete
+
+```text
+tailwind.config.ts
+postcss.config.js
+src/components/ui/button.tsx (old)
+src/components/ui/dialog.tsx (old)
+src/components/ui/dropdown-menu.tsx (old)
+src/components/ui/tooltip.tsx (old)
+src/components/ui/separator.tsx (old)
+src/components/ui/tabs.tsx (old)
+src/components/ui/input.tsx (old)
+src/components/ui/select.tsx (old)
+src/components/ui/date-picker.tsx (old)
+src/components/ui/table.tsx (old)
+src/lib/utils.ts (cn() function)
+```
+
+### Verification Commands
+
+```bash
+# Verify no Tailwind classes remain
+grep -r "className=.*['\"].*\b(flex|grid|p-|m-|w-|h-|bg-|text-|rounded|border)\b" src/
+
+# Verify no Radix imports remain
+grep -r "@radix-ui" src/
+
+# Verify no CVA imports remain
+grep -r "class-variance-authority\|cva(" src/
+
+# Verify no tailwind-merge imports remain
+grep -r "tailwind-merge\|twMerge\|cn(" src/
+```
+
+---
+
 ## Installation Requirements
 
 ### Dependencies to Add
@@ -270,8 +450,9 @@ npm install devextreme-themebuilder@25.1 --save-dev --save-exact
 | Bundle size exceeds 500KB limit | HIGH | Lazy loading, code splitting, document justification |
 | React 19 security vulnerabilities | CRITICAL | Use React 19.0.3+ and Next.js 15.0.7+ |
 | Thai translation incomplete | MEDIUM | Start with critical UI strings, add progressively |
-| Tailwind CSS conflicts | MEDIUM | Import order, scoped selectors, !important overrides |
+| Layout migration complexity | HIGH | DevExtreme provides Box/ResponsiveBox/Drawer; follow mapping table |
 | Zod integration complexity | LOW | Documented adapter pattern, similar to existing validation |
+| Incomplete cleanup | MEDIUM | Verification commands to grep for residual Tailwind/Radix code |
 
 ---
 

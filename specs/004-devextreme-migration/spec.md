@@ -123,6 +123,11 @@ Users navigate the application using the sidebar and header. After migration, la
 - **FR-013**: System MUST preserve search dialog functionality with equivalent or better filtering performance
 - **FR-014**: System MUST maintain export capabilities for data tables (Excel, CSV formats)
 - **FR-015**: System MUST support virtual scrolling for tables with large datasets (1000+ rows)
+- **FR-016**: System MUST remove all Tailwind CSS dependencies and utility classes after migration completion
+- **FR-017**: System MUST remove all Radix UI primitive dependencies after migration completion
+- **FR-018**: System MUST remove all shadcn/ui component files after migration completion
+- **FR-019**: System MUST use DevExtreme's built-in layout and spacing system (Box, ResponsiveBox) instead of Tailwind utilities
+- **FR-020**: System MUST use DevExtreme's built-in CSS classes for all styling (no external CSS frameworks)
 
 ### Non-Functional Requirements
 
@@ -150,6 +155,9 @@ Users navigate the application using the sidebar and header. After migration, la
 - **SC-005**: Form validation feedback appears within 100ms of user input
 - **SC-006**: Zero increase in user-reported UI bugs in the first month after deployment
 - **SC-007**: All existing automated tests pass without modification (excluding component-specific test updates)
+- **SC-008**: Zero Tailwind CSS classes remain in the codebase after migration (verified by grep)
+- **SC-009**: Zero Radix UI or shadcn imports remain in the codebase after migration
+- **SC-010**: Package.json contains no Tailwind, Radix, or shadcn dependencies after cleanup
 
 ## Assumptions
 
@@ -168,3 +176,25 @@ Users navigate the application using the sidebar and header. After migration, la
 - Adding new pages or workflows
 - Performance optimization beyond maintaining current performance levels
 - Mobile native app development
+
+## In Scope (Cleanup)
+
+The following libraries and files will be **completely removed** after migration:
+
+**NPM Packages to Remove:**
+- `tailwindcss` and all Tailwind plugins
+- `@radix-ui/*` (all Radix UI packages)
+- `class-variance-authority` (CVA)
+- `clsx` and `tailwind-merge`
+- `lucide-react` (if DevExtreme icons are sufficient, otherwise keep)
+
+**Files to Remove:**
+- `tailwind.config.ts`
+- `postcss.config.js` (if only used for Tailwind)
+- All files in `src/components/ui/` that use Radix UI primitives
+- Any `.css` files containing Tailwind `@apply` directives
+
+**Code to Refactor:**
+- All `className` attributes using Tailwind utility classes
+- All imports from `@radix-ui/*`
+- All CVA variant definitions

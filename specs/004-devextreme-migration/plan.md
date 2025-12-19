@@ -5,7 +5,7 @@
 
 ## Summary
 
-Migrate all 30 existing UI components from custom Radix UI/Tailwind-based implementation to DevExtreme by DevExpress. This enables enterprise-grade features including advanced data grids with sorting/filtering/export, rich form controls with validation, and consistent theming. The migration maintains existing functionality while leveraging DevExtreme's React 19 and Next.js 15 compatibility.
+Migrate all 30 existing UI components from custom Radix UI/Tailwind-based implementation to DevExtreme by DevExpress, then **completely remove** Tailwind CSS, Radix UI, and shadcn/ui from the project. This enables enterprise-grade features including advanced data grids with sorting/filtering/export, rich form controls with validation, and consistent theming. DevExtreme will handle ALL styling including layout and spacing (no external CSS frameworks).
 
 ## Technical Context
 
@@ -35,7 +35,7 @@ Migrate all 30 existing UI components from custom Radix UI/Tailwind-based implem
 | III. UX | Loading states | PASS | Will use DevExtreme LoadIndicator + existing skeletons |
 | III. UX | Error feedback in user's language | PASS | Thai locale via custom dictionary |
 | III. UX | Form validation inline | PASS | DevExtreme Validator component + Zod adapter |
-| III. UX | Consistent styling (Tailwind) | WATCH | DevExtreme CSS may conflict; requires emerald theme + import order |
+| III. UX | Consistent styling | PASS | DevExtreme-only styling with custom emerald theme; Tailwind will be removed |
 | III. UX | Accessibility | PASS | DevExtreme is WCAG 2.1 compliant |
 | IV. Performance | Page load < 3 seconds | WATCH | Bundle size increase requires lazy loading |
 | IV. Performance | Bundle size < 500KB gzipped | VIOLATION | DevExtreme adds ~1-3MB; requires justification |
@@ -102,7 +102,13 @@ public/
     └── dx.material.emerald.css      # GENERATED: Custom theme
 ```
 
-**Structure Decision**: Maintain existing Next.js App Router structure. Add DevExtreme wrapper components in `src/components/ui/` with `dx-` prefix to distinguish from existing components during migration. Keep layout components with minimal DevExtreme usage since sidebar/navigation work well with current implementation.
+**Structure Decision**: Maintain existing Next.js App Router structure. Replace all UI components with DevExtreme equivalents. After migration, remove `tailwind.config.ts`, `postcss.config.js`, and all Tailwind/Radix dependencies. Layout components (sidebar, main-layout) will use DevExtreme Drawer and ResponsiveBox for responsive behavior.
+
+**Files to Remove After Migration:**
+- `tailwind.config.ts`
+- `postcss.config.js`
+- All old component files in `src/components/ui/` (replaced by DevExtreme wrappers)
+- `src/app/globals.css` Tailwind directives (keep only DevExtreme theme import)
 
 ## Migration Phases
 
@@ -142,7 +148,33 @@ public/
 5. Update Empty State, Skeleton components
 6. Migrate Badge with DevExtreme styling patterns
 
-### Phase 5: Integration & Testing
+### Phase 5: Layout Components Migration
+
+1. Migrate Sidebar → DevExtreme Drawer component
+2. Migrate MainLayout → DevExtreme ResponsiveBox + Drawer
+3. Migrate PageHeader → DevExtreme Toolbar
+4. Replace all Tailwind utility classes with DevExtreme CSS classes
+5. Update responsive breakpoints to use DevExtreme media queries
+6. Verify navigation and responsive behavior
+
+### Phase 6: Legacy Cleanup
+
+1. Remove all Tailwind CSS classes from remaining files
+2. Remove all `@radix-ui/*` imports and replace with DevExtreme
+3. Uninstall deprecated packages:
+   - `tailwindcss`, `@tailwindcss/*`
+   - `@radix-ui/*`
+   - `class-variance-authority`
+   - `clsx`, `tailwind-merge`
+4. Delete configuration files:
+   - `tailwind.config.ts`
+   - `postcss.config.js`
+5. Clean up `globals.css` (remove Tailwind directives)
+6. Delete old component files that have been replaced
+7. Verify zero Tailwind/Radix references remain (grep verification)
+8. Update package.json and run `npm install` to clean lock file
+
+### Phase 7: Integration & Testing
 
 1. Run full E2E test suite
 2. Performance audit (Lighthouse, bundle analysis)
@@ -150,6 +182,7 @@ public/
 4. Visual regression testing
 5. Fix any remaining issues
 6. Update component documentation
+7. Final verification: grep for Tailwind/Radix references
 
 ## Component Mapping
 
@@ -172,9 +205,9 @@ public/
 | Card, KpiCard, StatCard | Custom (styled) | P3 |
 | Skeleton | LoadIndicator + Custom | P3 |
 | EmptyState | Custom (styled) | P3 |
-| PageHeader | Custom (styled) | P3 |
-| Sidebar | Keep existing | - |
-| MainLayout | Keep existing | - |
+| Sidebar | Drawer | P5 |
+| MainLayout | ResponsiveBox + Drawer | P5 |
+| PageHeader | Toolbar | P5 |
 
 ## Complexity Tracking
 
