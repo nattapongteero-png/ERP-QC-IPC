@@ -7,35 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit2, Trash2, Warehouse, MapPin, Thermometer, Eye, X, Droplets } from 'lucide-react';
-
-interface WarehouseData {
-  id: number;
-  code: string;
-  name: string;
-  type: string;
-  location: string | null;
-  capacity: number | null;
-  temperatureMin: number | null;
-  temperatureMax: number | null;
-  humidityMin: number | null;
-  humidityMax: number | null;
-  isActive: boolean;
-  createdAt: string;
-}
-
-interface FormData {
-  code: string;
-  name: string;
-  type: string;
-  location: string;
-  capacity: number;
-  temperatureMin: number | null;
-  temperatureMax: number | null;
-  humidityMin: number | null;
-  humidityMax: number | null;
-  isActive: boolean;
-}
+import { Plus, Edit2, Trash2, Warehouse, MapPin, Thermometer, Eye, X, Droplets } from 'lucide-react';
+import {
+  WarehouseEditDialog,
+  type Warehouse as WarehouseType,
+  type WarehouseFormData,
+  type WarehouseSummary,
+} from '@/components/ui/warehouse-edit-dialog';
 
 const warehouseTypes = [
   { value: '', label: 'All Types' },
@@ -64,25 +42,14 @@ const getTypeLabel = (type: string): string => {
 };
 
 export default function WarehousesPage() {
-  const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState<WarehouseData | null>(null);
-  const [viewingWarehouse, setViewingWarehouse] = useState<WarehouseData | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    code: '',
-    name: '',
-    type: 'raw_material',
-    location: '',
-    capacity: 0,
-    temperatureMin: null,
-    temperatureMax: null,
-    humidityMin: null,
-    humidityMax: null,
-    isActive: true,
-  });
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<WarehouseType | null>(null);
+  const [warehouseSummary, setWarehouseSummary] = useState<WarehouseSummary | null>(null);
+  const [viewingWarehouse, setViewingWarehouse] = useState<WarehouseType | null>(null);
 
   const fetchWarehouses = async () => {
     setIsLoading(true);
@@ -104,6 +71,19 @@ export default function WarehousesPage() {
     }
   };
 
+  const fetchWarehouseDetail = async (warehouseId: number) => {
+    try {
+      const res = await fetch(`/api/warehouses/${warehouseId}/detail`);
+      const data = await res.json();
+      if (data.success) {
+        return data.data.summary as WarehouseSummary;
+      }
+    } catch (error) {
+      console.error('Failed to fetch warehouse detail:', error);
+    }
+    return null;
+  };
+
   useEffect(() => {
     fetchWarehouses();
   }, [typeFilter]);
@@ -112,7 +92,7 @@ export default function WarehousesPage() {
     fetchWarehouses();
   };
 
-  const handleSave = async () => {
+  const handleSave = async (formData: WarehouseFormData) => {
     try {
       const url = editingWarehouse
         ? `/api/warehouses/${editingWarehouse.id}`
@@ -127,9 +107,9 @@ export default function WarehousesPage() {
 
       const data = await res.json();
       if (data.success) {
-        setShowModal(false);
+        setShowDialog(false);
         setEditingWarehouse(null);
-        resetForm();
+        setWarehouseSummary(null);
         fetchWarehouses();
       }
       // API errors handled by global error handler
@@ -138,7 +118,7 @@ export default function WarehousesPage() {
     }
   };
 
-  const handleDelete = async (warehouse: WarehouseData) => {
+  const handleDelete = async (warehouse: WarehouseType) => {
     if (!confirm(`Are you sure you want to delete warehouse "${warehouse.name}"?`)) return;
 
     try {
@@ -153,40 +133,22 @@ export default function WarehousesPage() {
     }
   };
 
-  const handleEdit = (warehouse: WarehouseData) => {
+  const handleEdit = async (warehouse: WarehouseType) => {
     setEditingWarehouse(warehouse);
-    setFormData({
-      code: warehouse.code,
-      name: warehouse.name,
-      type: warehouse.type,
-      location: warehouse.location || '',
-      capacity: warehouse.capacity || 0,
-      temperatureMin: warehouse.temperatureMin,
-      temperatureMax: warehouse.temperatureMax,
-      humidityMin: warehouse.humidityMin,
-      humidityMax: warehouse.humidityMax,
-      isActive: warehouse.isActive,
-    });
-    setShowModal(true);
+    // Fetch summary data for existing warehouse
+    const summary = await fetchWarehouseDetail(warehouse.id);
+    setWarehouseSummary(summary);
+    setShowDialog(true);
   };
 
-  const resetForm = () => {
-    setFormData({
-      code: '',
-      name: '',
-      type: 'raw_material',
-      location: '',
-      capacity: 0,
-      temperatureMin: null,
-      temperatureMax: null,
-      humidityMin: null,
-      humidityMax: null,
-      isActive: true,
-    });
+  const handleCreate = () => {
+    setEditingWarehouse(null);
+    setWarehouseSummary(null);
+    setShowDialog(true);
   };
 
   // Warehouse Card Component for mobile/tablet view
-  const WarehouseCard = ({ warehouse }: { warehouse: WarehouseData }) => (
+  const WarehouseCard = ({ warehouse }: { warehouse: WarehouseType }) => (
     <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -287,8 +249,8 @@ export default function WarehousesPage() {
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">Warehouses</h1>
             <p className="text-sm md:text-base text-gray-600">จัดการคลังสินค้าและสถานที่จัดเก็บ</p>
           </div>
-          <Button 
-            onClick={() => { resetForm(); setEditingWarehouse(null); setShowModal(true); }}
+          <Button
+            onClick={handleCreate}
             className="w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -574,165 +536,20 @@ export default function WarehousesPage() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-4 md:p-6 border-b sticky top-0 bg-white rounded-t-2xl">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg md:text-xl font-bold">
-                  {editingWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}
-                </h2>
-                <button
-                  onClick={() => { setShowModal(false); setEditingWarehouse(null); }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-4 md:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Code <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={formData.code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                    placeholder="WH-001"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    options={warehouseTypes.filter(t => t.value !== '')}
-                    value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Warehouse name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
-                </label>
-                <Input
-                  value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  placeholder="Building A, Floor 1"
-                />
-              </div>
-
-              <div className="bg-cyan-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Thermometer className="h-4 w-4 text-cyan-600" />
-                  <span className="text-sm font-medium text-cyan-800">Temperature Range (°C)</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-cyan-700 mb-1">Min</label>
-                    <Input
-                      type="number"
-                      value={formData.temperatureMin ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        temperatureMin: e.target.value ? parseFloat(e.target.value) : null 
-                      }))}
-                      placeholder="15"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-cyan-700 mb-1">Max</label>
-                    <Input
-                      type="number"
-                      value={formData.temperatureMax ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        temperatureMax: e.target.value ? parseFloat(e.target.value) : null 
-                      }))}
-                      placeholder="25"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Droplets className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">Humidity Range (%)</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-blue-700 mb-1">Min</label>
-                    <Input
-                      type="number"
-                      value={formData.humidityMin ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        humidityMin: e.target.value ? parseFloat(e.target.value) : null 
-                      }))}
-                      placeholder="40"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-blue-700 mb-1">Max</label>
-                    <Input
-                      type="number"
-                      value={formData.humidityMax ?? ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        humidityMax: e.target.value ? parseFloat(e.target.value) : null 
-                      }))}
-                      placeholder="65"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                  className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
-                />
-                <label htmlFor="isActive" className="text-sm text-gray-700">
-                  Active
-                </label>
-              </div>
-            </div>
-
-            <div className="p-4 md:p-6 border-t bg-gray-50 rounded-b-2xl flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => { setShowModal(false); setEditingWarehouse(null); }}
-              >
-                Cancel
-              </Button>
-              <Button className="flex-1" onClick={handleSave}>
-                {editingWarehouse ? 'Update' : 'Create'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create/Edit Dialog - Full Screen */}
+      <WarehouseEditDialog
+        open={showDialog}
+        onOpenChange={(open) => {
+          setShowDialog(open);
+          if (!open) {
+            setEditingWarehouse(null);
+            setWarehouseSummary(null);
+          }
+        }}
+        warehouse={editingWarehouse}
+        summary={warehouseSummary}
+        onSave={handleSave}
+      />
     </MainLayout>
   );
 }
