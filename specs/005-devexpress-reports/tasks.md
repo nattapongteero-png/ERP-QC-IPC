@@ -24,11 +24,11 @@ This feature uses a hybrid architecture:
 
 **Purpose**: Project initialization and dependency installation
 
-- [ ] T001 Install DevExpress Reporting npm packages (devexpress-reporting-react@25.1-stable, devexpress-reporting@25.1-stable, @devexpress/analytics-core@25.1-stable, ace-builds) in package.json
-- [ ] T002 Create ASP.NET Core reporting backend project using `dotnet new dx.aspnetcore.reporting.backend` in reporting-backend/
-- [ ] T003 [P] Add environment variable NEXT_PUBLIC_REPORTING_BACKEND_URL to .env.local and .env.example
-- [ ] T004 [P] Create TypeScript types for reports in src/types/reports.ts
-- [ ] T005 [P] Update docker-compose.yml to include reporting-backend service
+- [X] T001 Install DevExpress Reporting npm packages (devexpress-reporting-react@25.1-stable, devexpress-reporting@25.1-stable, @devexpress/analytics-core@25.1-stable, ace-builds) in package.json
+- [X] T002 Create ASP.NET Core reporting backend project using `dotnet new dx.aspnetcore.reporting.backend` in reporting-backend/
+- [X] T003 [P] Add environment variable NEXT_PUBLIC_REPORTING_BACKEND_URL to .env.local and .env.example
+- [X] T004 [P] Create TypeScript types for reports in src/types/reports.ts
+- [X] T005 [P] Update docker-compose.yml to include reporting-backend service
 
 ---
 

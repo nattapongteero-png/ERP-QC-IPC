@@ -1,6 +1,33 @@
 version: '3.8'
 
 services:
+  # DevExpress Reporting Backend Service (.NET)
+  reporting-backend:
+    build:
+      context: ./reporting-backend
+      dockerfile: Dockerfile
+    container_name: herbal-erp-reporting
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
+      - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+
   # MySQL database service
   mysql:
     image: mysql:8.0
