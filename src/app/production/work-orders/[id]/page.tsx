@@ -4,19 +4,16 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
-import { Table } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 
 interface WorkOrderDetail {
   workOrder: {
@@ -108,12 +105,26 @@ interface Lot {
   itemName: string;
 }
 
+const testTypeOptions = [
+  { value: 'identity', label: 'Identity Test' },
+  { value: 'purity', label: 'Purity Test' },
+  { value: 'potency', label: 'Potency Test' },
+  { value: 'microbial', label: 'Microbial Test' },
+  { value: 'heavy_metals', label: 'Heavy Metals Test' },
+  { value: 'pesticides', label: 'Pesticides Test' },
+  { value: 'moisture', label: 'Moisture Content' },
+  { value: 'dissolution', label: 'Dissolution Test' },
+  { value: 'disintegration', label: 'Disintegration Test' },
+  { value: 'appearance', label: 'Appearance' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function WorkOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [data, setData] = useState<WorkOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'materials' | 'qc' | 'ebmr'>('overview');
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   // Add Material Dialog State
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
@@ -122,8 +133,8 @@ export default function WorkOrderDetailPage() {
   const [itemSearch, setItemSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
-  const [plannedQuantity, setPlannedQuantity] = useState('');
-  const [actualQuantity, setActualQuantity] = useState('');
+  const [plannedQuantity, setPlannedQuantity] = useState(0);
+  const [actualQuantity, setActualQuantity] = useState(0);
   const [addingMaterial, setAddingMaterial] = useState(false);
 
   // Add QC Test Dialog State
@@ -132,6 +143,13 @@ export default function WorkOrderDetailPage() {
   const [testMethod, setTestMethod] = useState('');
   const [testNotes, setTestNotes] = useState('');
   const [addingQCTest, setAddingQCTest] = useState(false);
+
+  const tabs: DxTabItem[] = [
+    { text: 'Overview', icon: 'info' },
+    { text: 'Materials', icon: 'box' },
+    { text: 'QC Tests', icon: 'check' },
+    { text: 'eBMR', icon: 'doc' },
+  ];
 
   useEffect(() => {
     fetchWorkOrderDetail();
@@ -200,8 +218,8 @@ export default function WorkOrderDetailPage() {
         body: JSON.stringify({
           itemId: selectedItem.id,
           lotId: selectedLot?.id || null,
-          plannedQuantity: parseFloat(plannedQuantity),
-          actualQuantity: actualQuantity ? parseFloat(actualQuantity) : null,
+          plannedQuantity: plannedQuantity,
+          actualQuantity: actualQuantity || null,
           unit: selectedItem.primaryUnit,
         }),
       });
@@ -211,10 +229,8 @@ export default function WorkOrderDetailPage() {
         resetMaterialForm();
         fetchWorkOrderDetail();
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to add material:', error);
-      // Network errors handled by global error handler
     } finally {
       setAddingMaterial(false);
     }
@@ -223,8 +239,8 @@ export default function WorkOrderDetailPage() {
   const resetMaterialForm = () => {
     setSelectedItem(null);
     setSelectedLot(null);
-    setPlannedQuantity('');
-    setActualQuantity('');
+    setPlannedQuantity(0);
+    setActualQuantity(0);
     setItemSearch('');
     setItems([]);
     setLots([]);
@@ -250,10 +266,8 @@ export default function WorkOrderDetailPage() {
         resetQCForm();
         fetchWorkOrderDetail();
       }
-      // API errors handled by global error handler
     } catch (error) {
       console.error('Failed to add QC test:', error);
-      // Network errors handled by global error handler
     } finally {
       setAddingQCTest(false);
     }
@@ -316,11 +330,99 @@ export default function WorkOrderDetailPage() {
     return flow[currentStatus] || null;
   };
 
+  // Grid columns for materials
+  const materialsColumns: DxDataGridColumn[] = [
+    {
+      dataField: 'itemCode',
+      caption: 'Item',
+      cellRender: (cellInfo) => (
+        <div>
+          <p className="font-medium">{cellInfo.data.itemCode}</p>
+          <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
+        </div>
+      ),
+    },
+    {
+      dataField: 'lotNumber',
+      caption: 'Lot',
+      cellRender: (cellInfo) => (
+        <div>
+          <p className="font-medium">{cellInfo.data.lotNumber || '-'}</p>
+          {cellInfo.data.lotExpiryDate && (
+            <p className="text-sm text-gray-500">Exp: {new Date(cellInfo.data.lotExpiryDate).toLocaleDateString('th-TH')}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      dataField: 'plannedQty',
+      caption: 'Planned Qty',
+      cellRender: (cellInfo) => <span>{cellInfo.data.plannedQty} {cellInfo.data.itemUnit}</span>,
+    },
+    {
+      dataField: 'actualQty',
+      caption: 'Actual Qty',
+      cellRender: (cellInfo) => <span>{cellInfo.data.actualQty || '-'} {cellInfo.data.actualQty ? cellInfo.data.itemUnit : ''}</span>,
+    },
+    {
+      dataField: 'variance',
+      caption: 'Variance',
+      cellRender: (cellInfo) => (
+        cellInfo.data.variance !== null ? (
+          <span className={cellInfo.data.variance > 0 ? 'text-red-600' : cellInfo.data.variance < 0 ? 'text-green-600' : ''}>
+            {cellInfo.data.variance > 0 ? '+' : ''}{cellInfo.data.variance} {cellInfo.data.itemUnit}
+          </span>
+        ) : <span>-</span>
+      ),
+    },
+    {
+      dataField: 'consumptionPercent',
+      caption: 'Consumption %',
+      cellRender: (cellInfo) => (
+        cellInfo.data.consumptionPercent !== null ? (
+          <Badge variant={cellInfo.data.consumptionPercent <= 100 ? 'primary' : 'danger'}>
+            {cellInfo.data.consumptionPercent}%
+          </Badge>
+        ) : <span>-</span>
+      ),
+    },
+  ];
+
+  // Grid columns for QC tests
+  const qcTestsColumns: DxDataGridColumn[] = [
+    {
+      dataField: 'testCode',
+      caption: 'Test Code',
+      cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.testCode}</span>,
+    },
+    {
+      dataField: 'testType',
+      caption: 'Test Type',
+    },
+    {
+      dataField: 'status',
+      caption: 'Status',
+      cellRender: (cellInfo) => <Badge variant={getStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>,
+    },
+    {
+      dataField: 'result',
+      caption: 'Result',
+      cellRender: (cellInfo) => (
+        cellInfo.data.result ? <Badge variant={getStatusVariant(cellInfo.data.result)}>{cellInfo.data.result}</Badge> : null
+      ),
+    },
+    {
+      dataField: 'testedAt',
+      caption: 'Tested At',
+      cellRender: (cellInfo) => <span>{cellInfo.data.testedAt ? new Date(cellInfo.data.testedAt).toLocaleString('th-TH') : '-'}</span>,
+    },
+  ];
+
   if (loading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <DxLoadIndicator />
         </div>
       </MainLayout>
     );
@@ -331,9 +433,13 @@ export default function WorkOrderDetailPage() {
       <MainLayout>
         <div className="text-center py-12">
           <p className="text-gray-500">Work Order not found</p>
-          <Button variant="secondary" className="mt-4" onClick={() => router.push('/production/work-orders')}>
-            Back to List
-          </Button>
+          <DxButton
+            text="Back to List"
+            type="normal"
+            stylingMode="outlined"
+            className="mt-4"
+            onClick={() => router.push('/production/work-orders')}
+          />
         </div>
       </MainLayout>
     );
@@ -349,9 +455,13 @@ export default function WorkOrderDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={() => router.push('/production/work-orders')}>
-                &larr; Back
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/production/work-orders')}
+              />
               <h1 className="text-2xl font-bold text-gray-900">Work Order: {workOrder.woNumber}</h1>
               <Badge variant={getStatusVariant(workOrder.status)}>
                 {getStatusLabel(workOrder.status)}
@@ -361,13 +471,19 @@ export default function WorkOrderDetailPage() {
           </div>
           <div className="flex gap-2">
             {nextStatus && (
-              <Button variant="primary" onClick={() => handleStatusChange(nextStatus)}>
-                Advance to {getStatusLabel(nextStatus)}
-              </Button>
+              <DxButton
+                text={`Advance to ${getStatusLabel(nextStatus)}`}
+                type="default"
+                onClick={() => handleStatusChange(nextStatus)}
+              />
             )}
-            <Button variant="secondary" onClick={() => window.print()}>
-              Print eBMR
-            </Button>
+            <DxButton
+              text="Print eBMR"
+              icon="print"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => window.print()}
+            />
           </div>
         </div>
 
@@ -425,31 +541,14 @@ export default function WorkOrderDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="flex gap-4">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'materials', label: 'Materials' },
-              { id: 'qc', label: 'QC Tests' },
-              { id: 'ebmr', label: 'eBMR' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <DxTabs
+          items={tabs}
+          selectedIndex={activeTabIndex}
+          onItemClick={(e) => setActiveTabIndex(e.itemIndex || 0)}
+        />
 
         {/* Tab Content */}
-        {activeTab === 'overview' && (
+        {activeTabIndex === 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Product Info */}
             <Card>
@@ -525,115 +624,61 @@ export default function WorkOrderDetailPage() {
           </div>
         )}
 
-        {activeTab === 'materials' && (
+        {activeTabIndex === 1 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Material Consumption</CardTitle>
-                <Button variant="secondary" size="sm" onClick={() => setMaterialDialogOpen(true)}>
-                  + Add Material
-                </Button>
+                <DxButton
+                  text="Add Material"
+                  icon="plus"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setMaterialDialogOpen(true)}
+                />
               </div>
             </CardHeader>
             <CardContent>
-              <Table
-                columns={[
-                  { key: 'item', title: 'Item' },
-                  { key: 'lot', title: 'Lot' },
-                  { key: 'planned', title: 'Planned Qty' },
-                  { key: 'actual', title: 'Actual Qty' },
-                  { key: 'variance', title: 'Variance' },
-                  { key: 'consumption', title: 'Consumption %' },
-                ]}
-                data={materials}
-                renderRow={(mat) => (
-                  <tr key={mat.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">{mat.itemCode}</p>
-                        <p className="text-sm text-gray-500">{mat.itemName}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">{mat.lotNumber || '-'}</p>
-                        {mat.lotExpiryDate && (
-                          <p className="text-sm text-gray-500">Exp: {new Date(mat.lotExpiryDate).toLocaleDateString('th-TH')}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">{mat.plannedQty} {mat.itemUnit}</td>
-                    <td className="px-4 py-3">{mat.actualQty || '-'} {mat.actualQty ? mat.itemUnit : ''}</td>
-                    <td className="px-4 py-3">
-                      {mat.variance !== null ? (
-                        <span className={mat.variance > 0 ? 'text-red-600' : mat.variance < 0 ? 'text-green-600' : ''}>
-                          {mat.variance > 0 ? '+' : ''}{mat.variance} {mat.itemUnit}
-                        </span>
-                      ) : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {mat.consumptionPercent !== null ? (
-                        <Badge variant={mat.consumptionPercent <= 100 ? 'primary' : 'danger'}>
-                          {mat.consumptionPercent}%
-                        </Badge>
-                      ) : '-'}
-                    </td>
-                  </tr>
-                )}
+              <DxDataGrid
+                dataSource={materials}
+                keyExpr="id"
+                columns={materialsColumns}
+                showBorders
+                rowAlternationEnabled
+                noDataText="No materials defined for this work order"
               />
-              {materials.length === 0 && (
-                <p className="text-center text-gray-500 py-8">No materials defined for this work order</p>
-              )}
             </CardContent>
           </Card>
         )}
 
-        {activeTab === 'qc' && (
+        {activeTabIndex === 2 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Quality Control Tests</CardTitle>
-                <Button variant="secondary" size="sm" onClick={() => setQcDialogOpen(true)}>
-                  + Add QC Test
-                </Button>
+                <DxButton
+                  text="Add QC Test"
+                  icon="plus"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setQcDialogOpen(true)}
+                />
               </div>
             </CardHeader>
             <CardContent>
-              <Table
-                columns={[
-                  { key: 'testCode', title: 'Test Code' },
-                  { key: 'testType', title: 'Test Type' },
-                  { key: 'status', title: 'Status' },
-                  { key: 'result', title: 'Result' },
-                  { key: 'testedAt', title: 'Tested At' },
-                ]}
-                data={qcTests}
-                renderRow={(test) => (
-                  <tr key={test.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{test.testCode}</td>
-                    <td className="px-4 py-3">{test.testType}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={getStatusVariant(test.status)}>{test.status}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      {test.result && (
-                        <Badge variant={getStatusVariant(test.result)}>{test.result}</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {test.testedAt ? new Date(test.testedAt).toLocaleString('th-TH') : '-'}
-                    </td>
-                  </tr>
-                )}
+              <DxDataGrid
+                dataSource={qcTests}
+                keyExpr="id"
+                columns={qcTestsColumns}
+                showBorders
+                rowAlternationEnabled
+                noDataText="No QC tests for this work order"
               />
-              {qcTests.length === 0 && (
-                <p className="text-center text-gray-500 py-8">No QC tests for this work order</p>
-              )}
             </CardContent>
           </Card>
         )}
 
-        {activeTab === 'ebmr' && (
+        {activeTabIndex === 3 && (
           <div className="space-y-6 print:space-y-4" id="ebmr-content">
             {/* eBMR Header */}
             <Card>
@@ -814,206 +859,207 @@ export default function WorkOrderDetailPage() {
       </div>
 
       {/* Add Material Dialog */}
-      <Dialog open={materialDialogOpen} onOpenChange={setMaterialDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Material</DialogTitle>
-            <DialogDescription>
-              Add a material to this work order. Search for an item and optionally select a lot.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* Item Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Item <span className="text-red-500">*</span>
-              </label>
-              {selectedItem ? (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                  <div>
-                    <p className="font-medium">{selectedItem.code}</p>
-                    <p className="text-sm text-gray-500">{selectedItem.nameTh}</p>
-                  </div>
-                  <Button variant="secondary" size="sm" onClick={() => setSelectedItem(null)}>
-                    Change
-                  </Button>
-                </div>
-              ) : (
+      <DxPopup
+        visible={materialDialogOpen}
+        onHiding={() => { setMaterialDialogOpen(false); resetMaterialForm(); }}
+        title="Add Material"
+        width={500}
+        height="auto"
+        showCloseButton
+      >
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-gray-500">
+            Add a material to this work order. Search for an item and optionally select a lot.
+          </p>
+          {/* Item Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Item <span className="text-red-500">*</span>
+            </label>
+            {selectedItem ? (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                 <div>
-                  <Input
-                    placeholder="Search item code or name..."
-                    value={itemSearch}
-                    onChange={(e) => setItemSearch(e.target.value)}
-                  />
-                  {items.length > 0 && (
-                    <div className="mt-2 max-h-40 overflow-auto border rounded-lg">
-                      {items.map((item) => (
-                        <button
-                          key={item.id}
-                          className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
-                          onClick={() => {
-                            setSelectedItem(item);
-                            setItems([]);
-                            setItemSearch('');
-                          }}
-                        >
-                          <p className="font-medium">{item.code}</p>
-                          <p className="text-sm text-gray-500">{item.nameTh}</p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <p className="font-medium">{selectedItem.code}</p>
+                  <p className="text-sm text-gray-500">{selectedItem.nameTh}</p>
                 </div>
-              )}
-            </div>
-
-            {/* Lot Selection */}
-            {selectedItem && (
+                <DxButton
+                  text="Change"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setSelectedItem(null)}
+                />
+              </div>
+            ) : (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Lot (Optional)
-                </label>
-                {lots.length > 0 ? (
-                  <Select
-                    value={selectedLot?.id?.toString() || ''}
-                    onChange={(e) => {
-                      const lot = lots.find((l) => l.id.toString() === e.target.value);
-                      setSelectedLot(lot || null);
-                    }}
-                  >
-                    <option value="">Select a lot (optional)</option>
-                    {lots.map((lot) => (
-                      <option key={lot.id} value={lot.id}>
-                        {lot.lotNumber} - Available: {Number(lot.quantity) - Number(lot.reservedQuantity || 0)} {lot.unit}
-                        {lot.expiryDate && ` (Exp: ${new Date(lot.expiryDate).toLocaleDateString()})`}
-                      </option>
+                <DxTextBox
+                  placeholder="Search item code or name..."
+                  value={itemSearch}
+                  onValueChange={setItemSearch}
+                />
+                {items.length > 0 && (
+                  <div className="mt-2 max-h-40 overflow-auto border rounded-lg">
+                    {items.map((item) => (
+                      <button
+                        key={item.id}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
+                        onClick={() => {
+                          setSelectedItem(item);
+                          setItems([]);
+                          setItemSearch('');
+                        }}
+                      >
+                        <p className="font-medium">{item.code}</p>
+                        <p className="text-sm text-gray-500">{item.nameTh}</p>
+                      </button>
                     ))}
-                  </Select>
-                ) : (
-                  <p className="text-sm text-gray-500 p-2 bg-gray-50 rounded">No released lots available for this item</p>
+                  </div>
                 )}
               </div>
             )}
+          </div>
 
-            {/* Quantities */}
-            {selectedItem && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Planned Quantity <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      step="0.001"
-                      value={plannedQuantity}
-                      onChange={(e) => setPlannedQuantity(e.target.value)}
-                      placeholder="0.00"
-                    />
-                    <span className="flex items-center text-sm text-gray-500">{selectedItem.primaryUnit}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Actual Quantity
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      step="0.001"
-                      value={actualQuantity}
-                      onChange={(e) => setActualQuantity(e.target.value)}
-                      placeholder="0.00"
-                    />
-                    <span className="flex items-center text-sm text-gray-500">{selectedItem.primaryUnit}</span>
-                  </div>
+          {/* Lot Selection */}
+          {selectedItem && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Lot (Optional)
+              </label>
+              {lots.length > 0 ? (
+                <DxSelectBox
+                  items={lots.map(lot => ({
+                    id: lot.id,
+                    label: `${lot.lotNumber} - Available: ${Number(lot.quantity) - Number(lot.reservedQuantity || 0)} ${lot.unit}${lot.expiryDate ? ` (Exp: ${new Date(lot.expiryDate).toLocaleDateString()})` : ''}`
+                  }))}
+                  value={selectedLot?.id || null}
+                  onValueChange={(value) => {
+                    const lot = lots.find((l) => l.id === value);
+                    setSelectedLot(lot || null);
+                  }}
+                  valueExpr="id"
+                  displayExpr="label"
+                  placeholder="Select a lot (optional)"
+                />
+              ) : (
+                <p className="text-sm text-gray-500 p-2 bg-gray-50 rounded">No released lots available for this item</p>
+              )}
+            </div>
+          )}
+
+          {/* Quantities */}
+          {selectedItem && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Planned Quantity <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2 items-center">
+                  <DxNumberBox
+                    value={plannedQuantity}
+                    onValueChange={(value) => setPlannedQuantity(value || 0)}
+                    format="#,##0.###"
+                  />
+                  <span className="text-sm text-gray-500">{selectedItem.primaryUnit}</span>
                 </div>
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setMaterialDialogOpen(false); resetMaterialForm(); }}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Actual Quantity
+                </label>
+                <div className="flex gap-2 items-center">
+                  <DxNumberBox
+                    value={actualQuantity}
+                    onValueChange={(value) => setActualQuantity(value || 0)}
+                    format="#,##0.###"
+                  />
+                  <span className="text-sm text-gray-500">{selectedItem.primaryUnit}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => { setMaterialDialogOpen(false); resetMaterialForm(); }}
+            />
+            <DxButton
+              text={addingMaterial ? 'Adding...' : 'Add Material'}
+              type="default"
               onClick={handleAddMaterial}
               disabled={!selectedItem || !plannedQuantity || addingMaterial}
-            >
-              {addingMaterial ? 'Adding...' : 'Add Material'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            />
+          </div>
+        </div>
+      </DxPopup>
 
       {/* Add QC Test Dialog */}
-      <Dialog open={qcDialogOpen} onOpenChange={setQcDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add QC Test</DialogTitle>
-            <DialogDescription>
-              Create a new quality control test for this work order.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Test Type <span className="text-red-500">*</span>
-              </label>
-              <Select value={testType} onChange={(e) => setTestType(e.target.value)}>
-                <option value="">Select test type</option>
-                <option value="identity">Identity Test</option>
-                <option value="purity">Purity Test</option>
-                <option value="potency">Potency Test</option>
-                <option value="microbial">Microbial Test</option>
-                <option value="heavy_metals">Heavy Metals Test</option>
-                <option value="pesticides">Pesticides Test</option>
-                <option value="moisture">Moisture Content</option>
-                <option value="dissolution">Dissolution Test</option>
-                <option value="disintegration">Disintegration Test</option>
-                <option value="appearance">Appearance</option>
-                <option value="other">Other</option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Test Method
-              </label>
-              <Input
-                value={testMethod}
-                onChange={(e) => setTestMethod(e.target.value)}
-                placeholder="e.g., HPLC, TLC, USP Method..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notes
-              </label>
-              <textarea
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                rows={3}
-                value={testNotes}
-                onChange={(e) => setTestNotes(e.target.value)}
-                placeholder="Additional notes..."
-              />
-            </div>
+      <DxPopup
+        visible={qcDialogOpen}
+        onHiding={() => { setQcDialogOpen(false); resetQCForm(); }}
+        title="Add QC Test"
+        width={450}
+        height="auto"
+        showCloseButton
+      >
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-gray-500">
+            Create a new quality control test for this work order.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Test Type <span className="text-red-500">*</span>
+            </label>
+            <DxSelectBox
+              items={testTypeOptions}
+              value={testType}
+              onValueChange={setTestType}
+              valueExpr="value"
+              displayExpr="label"
+              placeholder="Select test type"
+            />
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setQcDialogOpen(false); resetQCForm(); }}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Test Method
+            </label>
+            <DxTextBox
+              value={testMethod}
+              onValueChange={setTestMethod}
+              placeholder="e.g., HPLC, TLC, USP Method..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <DxTextArea
+              value={testNotes}
+              onValueChange={setTestNotes}
+              placeholder="Additional notes..."
+              height={80}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => { setQcDialogOpen(false); resetQCForm(); }}
+            />
+            <DxButton
+              text={addingQCTest ? 'Adding...' : 'Add QC Test'}
+              type="default"
               onClick={handleAddQCTest}
               disabled={!testType || addingQCTest}
-            >
-              {addingQCTest ? 'Adding...' : 'Add QC Test'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            />
+          </div>
+        </div>
+      </DxPopup>
     </MainLayout>
   );
 }

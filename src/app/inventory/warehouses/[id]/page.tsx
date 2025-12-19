@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
-import { Table } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 
 interface WarehouseDetail {
   warehouse: {
@@ -74,10 +76,10 @@ export default function WarehouseDetailPage() {
     name: '',
     type: '',
     location: '',
-    temperatureMin: '',
-    temperatureMax: '',
-    humidityMin: '',
-    humidityMax: '',
+    temperatureMin: 0,
+    temperatureMax: 0,
+    humidityMin: 0,
+    humidityMax: 0,
   });
 
   useEffect(() => {
@@ -95,10 +97,10 @@ export default function WarehouseDetailPage() {
           name: result.data.warehouse.name || '',
           type: result.data.warehouse.type || '',
           location: result.data.warehouse.location || '',
-          temperatureMin: result.data.warehouse.temperatureMin?.toString() || '',
-          temperatureMax: result.data.warehouse.temperatureMax?.toString() || '',
-          humidityMin: result.data.warehouse.humidityMin?.toString() || '',
-          humidityMax: result.data.warehouse.humidityMax?.toString() || '',
+          temperatureMin: result.data.warehouse.temperatureMin || 0,
+          temperatureMax: result.data.warehouse.temperatureMax || 0,
+          humidityMin: result.data.warehouse.humidityMin || 0,
+          humidityMax: result.data.warehouse.humidityMax || 0,
         });
       }
     } catch (error) {
@@ -115,10 +117,10 @@ export default function WarehouseDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...editForm,
-          temperatureMin: editForm.temperatureMin ? parseFloat(editForm.temperatureMin) : null,
-          temperatureMax: editForm.temperatureMax ? parseFloat(editForm.temperatureMax) : null,
-          humidityMin: editForm.humidityMin ? parseFloat(editForm.humidityMin) : null,
-          humidityMax: editForm.humidityMax ? parseFloat(editForm.humidityMax) : null,
+          temperatureMin: editForm.temperatureMin || null,
+          temperatureMax: editForm.temperatureMax || null,
+          humidityMin: editForm.humidityMin || null,
+          humidityMax: editForm.humidityMax || null,
         }),
       });
       const result = await response.json();
@@ -131,10 +133,10 @@ export default function WarehouseDetailPage() {
     }
   };
 
-  const getStatusVariant = (status: string): 'primary' | 'danger' | 'secondary' | 'default' => {
+  const getStatusVariant = (status: string): 'success' | 'danger' | 'warning' | 'default' => {
     switch (status) {
-      case 'released': return 'primary';
-      case 'quarantine': return 'secondary';
+      case 'released': return 'success';
+      case 'quarantine': return 'warning';
       case 'rejected': return 'danger';
       default: return 'default';
     }
@@ -142,12 +144,12 @@ export default function WarehouseDetailPage() {
 
   const getTypeLabel = (type: string): string => {
     const types: Record<string, string> = {
-      'raw material': 'วัตถุดิบ',
-      'finished goods': 'สินค้าสำเร็จรูป',
-      'quarantine': 'กักกัน',
-      'rejected': 'ปฏิเสธ',
-      'cold storage': 'ห้องเย็น',
-      'general': 'ทั่วไป',
+      'raw material': 'Raw Material',
+      'finished goods': 'Finished Goods',
+      'quarantine': 'Quarantine',
+      'rejected': 'Rejected',
+      'cold storage': 'Cold Storage',
+      'general': 'General',
     };
     return types[type] || type;
   };
@@ -160,11 +162,100 @@ export default function WarehouseDetailPage() {
     return matchesSearch && matchesStatus;
   }) || [];
 
+  // Grid columns for lots
+  const lotsColumns: DxDataGridColumn[] = [
+    {
+      dataField: 'lotNumber',
+      caption: 'Lot Number',
+      cellRender: (cellInfo) => (
+        <span className="font-medium text-blue-600">{cellInfo.data.lotNumber}</span>
+      )
+    },
+    {
+      dataField: 'itemCode',
+      caption: 'Item',
+      cellRender: (cellInfo) => (
+        <div>
+          <p className="font-medium">{cellInfo.data.itemCode}</p>
+          <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
+        </div>
+      )
+    },
+    {
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 120,
+      cellRender: (cellInfo) => `${cellInfo.data.quantity} ${cellInfo.data.unit}`
+    },
+    {
+      dataField: 'status',
+      caption: 'Status',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>
+      )
+    },
+    {
+      dataField: 'expiryDate',
+      caption: 'Expiry Date',
+      width: 130,
+      cellRender: (cellInfo) => cellInfo.data.expiryDate ? new Date(cellInfo.data.expiryDate).toLocaleDateString('th-TH') : '-'
+    },
+    {
+      dataField: 'actions',
+      caption: '',
+      width: 80,
+      cellRender: (cellInfo) => (
+        <DxButton
+          text="View"
+          type="normal"
+          stylingMode="text"
+          onClick={() => router.push(`/inventory/lots/${cellInfo.data.id}`)}
+        />
+      )
+    },
+  ];
+
+  // Grid columns for transactions
+  const transactionsColumns: DxDataGridColumn[] = [
+    {
+      dataField: 'createdAt',
+      caption: 'Date',
+      width: 160,
+      cellRender: (cellInfo) => cellInfo.data.createdAt ? new Date(cellInfo.data.createdAt).toLocaleString('th-TH') : '-'
+    },
+    {
+      dataField: 'type',
+      caption: 'Type',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={cellInfo.data.type === 'receive' ? 'success' : cellInfo.data.type === 'issue' ? 'danger' : 'default'}>
+          {cellInfo.data.type}
+        </Badge>
+      )
+    },
+    {
+      dataField: 'reference',
+      caption: 'Reference',
+      cellRender: (cellInfo) => cellInfo.data.reference || '-'
+    },
+    {
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <span className={cellInfo.data.type === 'receive' ? 'text-green-600' : 'text-red-600'}>
+          {cellInfo.data.type === 'receive' ? '+' : '-'}{cellInfo.data.quantity}
+        </span>
+      )
+    },
+  ];
+
   if (loading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <DxLoadIndicator />
         </div>
       </MainLayout>
     );
@@ -174,16 +265,20 @@ export default function WarehouseDetailPage() {
     return (
       <MainLayout>
         <div className="text-center py-12">
-          <p className="text-gray-500">ไม่พบข้อมูลคลังสินค้า</p>
-          <Button variant="secondary" className="mt-4" onClick={() => router.push('/inventory/warehouses')}>
-            กลับไปหน้ารายการ
-          </Button>
+          <p className="text-gray-500">Warehouse not found</p>
+          <div className="mt-4">
+            <DxButton
+              text="Back to List"
+              type="default"
+              onClick={() => router.push('/inventory/warehouses')}
+            />
+          </div>
         </div>
       </MainLayout>
     );
   }
 
-  const { warehouse, summary, lots, recentTransactions } = data;
+  const { warehouse, summary, recentTransactions } = data;
 
   return (
     <MainLayout>
@@ -192,11 +287,15 @@ export default function WarehouseDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={() => router.push('/inventory/warehouses')}>
-                ← Back
-              </Button>
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => router.push('/inventory/warehouses')}
+              />
               <h1 className="text-2xl font-bold text-gray-900">Warehouse: {warehouse.code}</h1>
-              <Badge variant={warehouse.isActive ? 'primary' : 'danger'}>
+              <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
                 {warehouse.isActive ? 'Active' : 'Inactive'}
               </Badge>
             </div>
@@ -204,11 +303,24 @@ export default function WarehouseDetailPage() {
           </div>
           <div className="flex gap-2">
             {!isEditing ? (
-              <Button variant="primary" onClick={() => setIsEditing(true)}>Edit</Button>
+              <DxButton
+                text="Edit"
+                type="default"
+                onClick={() => setIsEditing(true)}
+              />
             ) : (
               <>
-                <Button variant="secondary" onClick={() => setIsEditing(false)}>Cancel</Button>
-                <Button variant="primary" onClick={handleSave}>Save</Button>
+                <DxButton
+                  text="Cancel"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setIsEditing(false)}
+                />
+                <DxButton
+                  text="Save"
+                  type="success"
+                  onClick={handleSave}
+                />
               </>
             )}
           </div>
@@ -278,9 +390,9 @@ export default function WarehouseDetailPage() {
               <span className="text-sm text-gray-600">{summary.utilizationPercent}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
+              <div
                 className={`h-3 rounded-full ${
-                  summary.utilizationPercent > 90 ? 'bg-red-500' : 
+                  summary.utilizationPercent > 90 ? 'bg-red-500' :
                   summary.utilizationPercent > 70 ? 'bg-yellow-500' : 'bg-green-500'
                 }`}
                 style={{ width: `${summary.utilizationPercent}%` }}
@@ -296,14 +408,14 @@ export default function WarehouseDetailPage() {
         <div className="border-b border-gray-200">
           <nav className="flex gap-4">
             {[
-              { id: 'overview', label: '📊 Overview', icon: '📊' },
-              { id: 'inventory', label: '📦 Inventory', icon: '📦' },
-              { id: 'transactions', label: '📋 Transactions', icon: '📋' },
-              { id: 'settings', label: '⚙️ Settings', icon: '⚙️' },
+              { id: 'overview', label: 'Overview' },
+              { id: 'inventory', label: 'Inventory' },
+              { id: 'transactions', label: 'Transactions' },
+              { id: 'settings', label: 'Settings' },
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'border-green-500 text-green-600'
@@ -319,7 +431,6 @@ export default function WarehouseDetailPage() {
         {/* Tab Content */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Warehouse Info */}
             <Card>
               <CardHeader>
                 <CardTitle>Warehouse Information</CardTitle>
@@ -362,20 +473,19 @@ export default function WarehouseDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Inventory by Type */}
             <Card>
               <CardHeader>
                 <CardTitle>Inventory by Type</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {Object.entries(summary.inventoryByType).map(([type, data]) => (
+                  {Object.entries(summary.inventoryByType).map(([type, invData]) => (
                     <div key={type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium capitalize">{type.replace('_', ' ')}</p>
-                        <p className="text-sm text-gray-500">{data.count} lots</p>
+                        <p className="text-sm text-gray-500">{invData.count} lots</p>
                       </div>
-                      <p className="text-lg font-bold text-gray-900">{data.quantity.toLocaleString()}</p>
+                      <p className="text-lg font-bold text-gray-900">{invData.quantity.toLocaleString()}</p>
                     </div>
                   ))}
                   {Object.keys(summary.inventoryByType).length === 0 && (
@@ -393,62 +503,40 @@ export default function WarehouseDetailPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>Inventory Lots</CardTitle>
                 <div className="flex gap-2">
-                  <Input
+                  <DxTextBox
                     placeholder="Search lots..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-64"
+                    onValueChange={setSearchTerm}
+                    mode="search"
+                    showClearButton
+                    width={250}
                   />
-                  <Select
+                  <DxSelectBox
+                    items={[
+                      { value: 'all', text: 'All Status' },
+                      { value: 'released', text: 'Released' },
+                      { value: 'quarantine', text: 'Quarantine' },
+                      { value: 'rejected', text: 'Rejected' },
+                    ]}
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                    <option value="all">All Status</option>
-                    <option value="released">Released</option>
-                    <option value="quarantine">Quarantine</option>
-                    <option value="rejected">Rejected</option>
-                  </Select>
+                    onValueChange={setStatusFilter}
+                    valueExpr="value"
+                    displayExpr="text"
+                    width={150}
+                  />
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <Table
-                columns={[
-                  { key: 'lotNumber', title: 'Lot Number' },
-                  { key: 'item', title: 'Item' },
-                  { key: 'quantity', title: 'Quantity' },
-                  { key: 'status', title: 'Status' },
-                  { key: 'expiryDate', title: 'Expiry Date' },
-                  { key: 'actions', title: 'Actions' },
-                ]}
-                data={filteredLots}
-                renderRow={(lot) => (
-                  <tr key={lot.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/inventory/lots/${lot.id}`)}>
-                    <td className="px-4 py-3 font-medium text-blue-600">{lot.lotNumber}</td>
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">{lot.itemCode}</p>
-                        <p className="text-sm text-gray-500">{lot.itemName}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">{lot.quantity} {lot.unit}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={getStatusVariant(lot.status)}>{lot.status}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      {lot.expiryDate ? new Date(lot.expiryDate).toLocaleDateString('th-TH') : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); router.push(`/inventory/lots/${lot.id}`); }}>
-                        View
-                      </Button>
-                    </td>
-                  </tr>
-                )}
+              <DxDataGrid
+                dataSource={filteredLots}
+                keyExpr="id"
+                columns={lotsColumns}
+                showBorders
+                height={400}
+                noDataText="No lots found in this warehouse"
+                onRowClick={(e) => router.push(`/inventory/lots/${e.data.id}`)}
               />
-              {filteredLots.length === 0 && (
-                <p className="text-center text-gray-500 py-8">No lots found in this warehouse</p>
-              )}
             </CardContent>
           </Card>
         )}
@@ -459,34 +547,14 @@ export default function WarehouseDetailPage() {
               <CardTitle>Recent Transactions</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table
-                columns={[
-                  { key: 'date', title: 'Date' },
-                  { key: 'type', title: 'Type' },
-                  { key: 'reference', title: 'Reference' },
-                  { key: 'quantity', title: 'Quantity' },
-                ]}
-                data={recentTransactions}
-                renderRow={(tx) => (
-                  <tr key={tx.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">{tx.createdAt ? new Date(tx.createdAt).toLocaleString('th-TH') : '-'}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={tx.type === 'receive' ? 'primary' : tx.type === 'issue' ? 'danger' : 'secondary'}>
-                        {tx.type}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">{tx.reference || '-'}</td>
-                    <td className="px-4 py-3 font-medium">
-                      <span className={tx.type === 'receive' ? 'text-green-600' : 'text-red-600'}>
-                        {tx.type === 'receive' ? '+' : '-'}{tx.quantity}
-                      </span>
-                    </td>
-                  </tr>
-                )}
+              <DxDataGrid
+                dataSource={recentTransactions}
+                keyExpr="id"
+                columns={transactionsColumns}
+                showBorders
+                height={400}
+                noDataText="No transactions found"
               />
-              {recentTransactions.length === 0 && (
-                <p className="text-center text-gray-500 py-8">No transactions found</p>
-              )}
             </CardContent>
           </Card>
         )}
@@ -501,69 +569,68 @@ export default function WarehouseDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
-                    <Input
+                    <DxTextBox
                       value={editForm.code}
-                      onChange={(e) => setEditForm({ ...editForm, code: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, code: value })}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <Input
+                    <DxTextBox
                       value={editForm.name}
-                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, name: value })}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                    <Select
+                    <DxSelectBox
+                      items={[
+                        { value: 'raw material', text: 'Raw Material' },
+                        { value: 'finished goods', text: 'Finished Goods' },
+                        { value: 'quarantine', text: 'Quarantine' },
+                        { value: 'rejected', text: 'Rejected' },
+                        { value: 'cold storage', text: 'Cold Storage' },
+                        { value: 'general', text: 'General' },
+                      ]}
                       value={editForm.type}
-                      onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
-                    >
-                      <option value="raw material">Raw Material</option>
-                      <option value="finished goods">Finished Goods</option>
-                      <option value="quarantine">Quarantine</option>
-                      <option value="rejected">Rejected</option>
-                      <option value="cold storage">Cold Storage</option>
-                      <option value="general">General</option>
-                    </Select>
+                      onValueChange={(value) => setEditForm({ ...editForm, type: value })}
+                      valueExpr="value"
+                      displayExpr="text"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                    <Input
+                    <DxTextBox
                       value={editForm.location}
-                      onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, location: value })}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Min Temperature (°C)</label>
-                    <Input
-                      type="number"
+                    <DxNumberBox
                       value={editForm.temperatureMin}
-                      onChange={(e) => setEditForm({ ...editForm, temperatureMin: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, temperatureMin: value || 0 })}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Max Temperature (°C)</label>
-                    <Input
-                      type="number"
+                    <DxNumberBox
                       value={editForm.temperatureMax}
-                      onChange={(e) => setEditForm({ ...editForm, temperatureMax: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, temperatureMax: value || 0 })}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Min Humidity (%)</label>
-                    <Input
-                      type="number"
+                    <DxNumberBox
                       value={editForm.humidityMin}
-                      onChange={(e) => setEditForm({ ...editForm, humidityMin: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, humidityMin: value || 0 })}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Max Humidity (%)</label>
-                    <Input
-                      type="number"
+                    <DxNumberBox
                       value={editForm.humidityMax}
-                      onChange={(e) => setEditForm({ ...editForm, humidityMax: e.target.value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, humidityMax: value || 0 })}
                     />
                   </div>
                 </div>
