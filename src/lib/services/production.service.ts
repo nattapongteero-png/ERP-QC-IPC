@@ -793,3 +793,697 @@ export async function performLineClearance(
 
   return true;
 }
+
+// ============================================================================
+// BOM COSTING
+// ============================================================================
+
+export interface BOMCostBreakdown {
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  totalCost: number;
+  level: number;
+  costSource: 'average' | 'last_purchase' | 'no_cost';
+}
+
+export interface BOMCostResult {
+  bomId: number;
+  bomCode: string;
+  batchSize: number;
+  batchUnit: string;
+  totalMaterialCost: number;
+  costPerUnit: number;
+  breakdown: BOMCostBreakdown[];
+  currency: string;
+}
+
+/**
+ * Calculate BOM cost based on material costs
+ * Uses average cost (onHandCost/onHand) or last purchase price
+ */
+export async function calculateBOMCost(
+  bomId: number,
+  quantity?: number
+): Promise<BOMCostResult> {
+  const { bom, bomLines, items } = getTables();
+  const database = await getDb();
+
+  // Get BOM header
+  const [bomHeader] = await database
+    .select({
+      id: bom.id,
+      code: bom.code,
+      batchSize: bom.batchSize,
+      batchUnit: bom.batchUnit,
+      lossAllowance: bom.lossAllowance,
+    })
+    .from(bom)
+    .where(eq(bom.id, bomId));
+
+  if (!bomHeader) {
+    throw new Error(`BOM ${bomId} not found`);
+  }
+
+  const targetQuantity = quantity || Number(bomHeader.batchSize);
+  const breakdown: BOMCostBreakdown[] = [];
+  let totalMaterialCost = 0;
+
+  // Get BOM lines with item details
+  const lines = await database
+    .select({
+      id: bomLines.id,
+      itemId: bomLines.itemId,
+      quantity: bomLines.quantity,
+      unit: bomLines.unit,
+      itemCode: items.code,
+      itemName: items.nameEn,
+      onHand: items.onHand,
+      onHandCost: items.onHandCost,
+    })
+    .from(bomLines)
+    .innerJoin(items, eq(bomLines.itemId, items.id))
+    .where(eq(bomLines.bomId, bomId))
+    .orderBy(asc(bomLines.sequence));
+
+  for (const line of lines) {
+    // Calculate required quantity
+    let requiredQty = (Number(line.quantity) * targetQuantity) / Number(bomHeader.batchSize);
+
+    // Apply loss allowance if defined
+    if (bomHeader.lossAllowance) {
+      requiredQty = requiredQty / (1 - Number(bomHeader.lossAllowance) / 100);
+    }
+
+    // Calculate unit cost (average cost from inventory)
+    let unitCost = 0;
+    let costSource: 'average' | 'last_purchase' | 'no_cost' = 'no_cost';
+
+    const onHand = Number(line.onHand) || 0;
+    const onHandCost = Number(line.onHandCost) || 0;
+
+    if (onHand > 0 && onHandCost > 0) {
+      unitCost = onHandCost / onHand;
+      costSource = 'average';
+    }
+
+    const lineTotalCost = requiredQty * unitCost;
+    totalMaterialCost += lineTotalCost;
+
+    breakdown.push({
+      itemId: line.itemId,
+      itemCode: line.itemCode,
+      itemName: line.itemName || line.itemCode,
+      quantity: Math.round(requiredQty * 1000) / 1000,
+      unit: line.unit,
+      unitCost: Math.round(unitCost * 100) / 100,
+      totalCost: Math.round(lineTotalCost * 100) / 100,
+      level: 0,
+      costSource,
+    });
+  }
+
+  return {
+    bomId,
+    bomCode: bomHeader.code,
+    batchSize: Number(bomHeader.batchSize),
+    batchUnit: bomHeader.batchUnit,
+    totalMaterialCost: Math.round(totalMaterialCost * 100) / 100,
+    costPerUnit: Math.round((totalMaterialCost / targetQuantity) * 100) / 100,
+    breakdown,
+    currency: 'THB',
+  };
+}
+
+// ============================================================================
+// WHERE-USED QUERY
+// ============================================================================
+
+export interface WhereUsedResult {
+  bomId: number;
+  bomCode: string;
+  bomName: string;
+  bomStatus: string;
+  productId: number;
+  productCode: string;
+  productName: string;
+  quantityUsed: number;
+  unit: string;
+  isOptional: boolean;
+}
+
+/**
+ * Find all BOMs that use a specific item
+ */
+export async function getWhereUsed(itemId: number): Promise<WhereUsedResult[]> {
+  const { bom, bomLines, items } = getTables();
+  const database = await getDb();
+
+  const results = await database
+    .select({
+      bomId: bom.id,
+      bomCode: bom.code,
+      bomName: bom.name,
+      bomStatus: bom.status,
+      productId: bom.productId,
+      productCode: items.code,
+      productName: items.nameEn,
+      quantityUsed: bomLines.quantity,
+      unit: bomLines.unit,
+      isOptional: bomLines.isOptional,
+    })
+    .from(bomLines)
+    .innerJoin(bom, eq(bomLines.bomId, bom.id))
+    .innerJoin(items, eq(bom.productId, items.id))
+    .where(eq(bomLines.itemId, itemId))
+    .orderBy(asc(bom.code));
+
+  return results.map((r: typeof results[number]) => ({
+    ...r,
+    productName: r.productName || r.productCode,
+    isOptional: Boolean(r.isOptional),
+  }));
+}
+
+// ============================================================================
+// CIRCULAR REFERENCE DETECTION
+// ============================================================================
+
+/**
+ * Detect circular references in BOM structure
+ * Returns the circular path if found, null otherwise
+ */
+export async function detectCircularReference(
+  bomId: number,
+  visited: Set<number> = new Set(),
+  path: number[] = []
+): Promise<number[] | null> {
+  const { bom, bomLines } = getTables();
+  const database = await getDb();
+
+  // Check if we've already visited this BOM
+  if (visited.has(bomId)) {
+    return [...path, bomId];
+  }
+
+  visited.add(bomId);
+  path.push(bomId);
+
+  // Get BOM lines
+  const lines = await database
+    .select({
+      itemId: bomLines.itemId,
+    })
+    .from(bomLines)
+    .where(eq(bomLines.bomId, bomId));
+
+  // For each line item, check if it has a BOM (sub-assembly)
+  for (const line of lines) {
+    const [subBom] = await database
+      .select({ id: bom.id })
+      .from(bom)
+      .where(eq(bom.productId, line.itemId));
+
+    if (subBom) {
+      const circularPath = await detectCircularReference(
+        subBom.id,
+        new Set(visited),
+        [...path]
+      );
+      if (circularPath) {
+        return circularPath;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validate BOM for circular references before saving
+ */
+export async function validateBOMCircularReference(
+  productId: number,
+  lineItemIds: number[]
+): Promise<{ valid: boolean; message?: string; path?: string[] }> {
+  const { bom, items } = getTables();
+  const database = await getDb();
+
+  // Check if any line item eventually leads back to the product
+  for (const itemId of lineItemIds) {
+    // Find BOM for this item
+    const [itemBom] = await database
+      .select({ id: bom.id })
+      .from(bom)
+      .where(eq(bom.productId, itemId));
+
+    if (itemBom) {
+      // Check if this item's BOM uses the product we're creating
+      const whereUsed = await getWhereUsedRecursive(productId, new Set());
+
+      if (whereUsed.has(itemId)) {
+        // Get item names for error message
+        const [product] = await database
+          .select({ code: items.code })
+          .from(items)
+          .where(eq(items.id, productId));
+        const [item] = await database
+          .select({ code: items.code })
+          .from(items)
+          .where(eq(items.id, itemId));
+
+        return {
+          valid: false,
+          message: `Circular reference detected: ${item?.code} eventually uses ${product?.code}`,
+          path: [product?.code || '', item?.code || ''],
+        };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Get all items that eventually use a given item (recursive where-used)
+ */
+async function getWhereUsedRecursive(
+  itemId: number,
+  visited: Set<number>
+): Promise<Set<number>> {
+  if (visited.has(itemId)) {
+    return visited;
+  }
+  visited.add(itemId);
+
+  const whereUsed = await getWhereUsed(itemId);
+
+  for (const usage of whereUsed) {
+    await getWhereUsedRecursive(usage.productId, visited);
+  }
+
+  return visited;
+}
+
+// ============================================================================
+// BOM COPY / DUPLICATE
+// ============================================================================
+
+export interface CopyBOMOptions {
+  newCode: string;
+  newVersion?: string;
+  newName?: string;
+  copyAsStatus?: 'draft' | 'active';
+}
+
+/**
+ * Copy/duplicate a BOM with a new code
+ */
+export async function copyBOM(
+  sourceBomId: number,
+  options: CopyBOMOptions,
+  userId: number
+): Promise<number> {
+  const { bom, bomLines } = getTables();
+  const database = await getDb();
+
+  // Get source BOM
+  const [sourceBom] = await database
+    .select()
+    .from(bom)
+    .where(eq(bom.id, sourceBomId));
+
+  if (!sourceBom) {
+    throw new Error(`BOM ${sourceBomId} not found`);
+  }
+
+  // Check if new code already exists
+  const [existing] = await database
+    .select()
+    .from(bom)
+    .where(eq(bom.code, options.newCode));
+
+  if (existing) {
+    throw new Error(`BOM code ${options.newCode} already exists`);
+  }
+
+  // Get source BOM lines
+  const sourceLines = await database
+    .select()
+    .from(bomLines)
+    .where(eq(bomLines.bomId, sourceBomId))
+    .orderBy(asc(bomLines.sequence));
+
+  const now = new Date().toISOString();
+  const useSqlite = process.env.DB_TYPE === 'sqlite';
+
+  // Create new BOM
+  const newBomValues: Record<string, unknown> = {
+    code: options.newCode,
+    name: options.newName || `${sourceBom.name} (Copy)`,
+    productId: sourceBom.productId,
+    version: options.newVersion || '1.0',
+    status: options.copyAsStatus || 'draft',
+    batchSize: sourceBom.batchSize,
+    batchUnit: sourceBom.batchUnit,
+    yieldTarget: sourceBom.yieldTarget,
+    lossAllowance: sourceBom.lossAllowance,
+    effectiveDate: null,
+    expiryDate: null,
+    createdAt: useSqlite ? now : new Date(),
+    updatedAt: useSqlite ? now : new Date(),
+  };
+
+  const result = await (database as any).insert(bom).values(newBomValues);
+  const newBomId = useSqlite ? result.lastInsertRowid : result[0].insertId;
+
+  // Copy BOM lines
+  for (const line of sourceLines) {
+    await (database as any).insert(bomLines).values({
+      bomId: Number(newBomId),
+      itemId: line.itemId,
+      quantity: line.quantity,
+      unit: line.unit,
+      sequence: line.sequence,
+      isOptional: line.isOptional,
+      notes: line.notes,
+      createdAt: useSqlite ? now : new Date(),
+    });
+  }
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'CREATE',
+    tableName: 'bom',
+    recordId: Number(newBomId),
+    newValue: {
+      action: 'copy',
+      sourceId: sourceBomId,
+      sourceCode: sourceBom.code,
+      newCode: options.newCode,
+    },
+  });
+
+  return Number(newBomId);
+}
+
+// ============================================================================
+// BOM LINE MANAGEMENT
+// ============================================================================
+
+/**
+ * Add a single line to an existing BOM
+ */
+export async function addBOMLine(
+  bomId: number,
+  line: {
+    itemId: number;
+    quantity: number;
+    unit: string;
+    sequence?: number;
+    isOptional?: boolean;
+    notes?: string;
+  },
+  userId: number
+): Promise<number> {
+  const { bom, bomLines } = getTables();
+  const database = await getDb();
+
+  // Verify BOM exists
+  const [bomHeader] = await database
+    .select()
+    .from(bom)
+    .where(eq(bom.id, bomId));
+
+  if (!bomHeader) {
+    throw new Error(`BOM ${bomId} not found`);
+  }
+
+  // Check if item already exists in BOM
+  const [existingLine] = await database
+    .select()
+    .from(bomLines)
+    .where(and(eq(bomLines.bomId, bomId), eq(bomLines.itemId, line.itemId)));
+
+  if (existingLine) {
+    throw new Error('Item already exists in this BOM');
+  }
+
+  // Validate circular reference
+  const circularCheck = await validateBOMCircularReference(
+    bomHeader.productId,
+    [line.itemId]
+  );
+
+  if (!circularCheck.valid) {
+    throw new Error(circularCheck.message);
+  }
+
+  // Get max sequence if not provided
+  let sequence = line.sequence;
+  if (!sequence) {
+    const maxSeqResult = await database
+      .select({ maxSeq: sql<number>`MAX(${bomLines.sequence})` })
+      .from(bomLines)
+      .where(eq(bomLines.bomId, bomId));
+    sequence = (maxSeqResult[0]?.maxSeq || 0) + 1;
+  }
+
+  const useSqlite = process.env.DB_TYPE === 'sqlite';
+  const now = new Date().toISOString();
+
+  // Insert new line
+  const result = await (database as any).insert(bomLines).values({
+    bomId,
+    itemId: line.itemId,
+    quantity: line.quantity,
+    unit: line.unit,
+    sequence,
+    isOptional: line.isOptional || false,
+    notes: line.notes || null,
+    createdAt: useSqlite ? now : new Date(),
+  });
+
+  const newLineId = useSqlite ? result.lastInsertRowid : result[0].insertId;
+
+  // Update BOM timestamp
+  await database
+    .update(bom)
+    .set({ updatedAt: useSqlite ? now : new Date() })
+    .where(eq(bom.id, bomId));
+
+  // Audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'bom_lines',
+    recordId: Number(newLineId),
+    newValue: { bomId, itemId: line.itemId, quantity: line.quantity },
+  });
+
+  return Number(newLineId);
+}
+
+/**
+ * Update a single BOM line
+ */
+export async function updateBOMLine(
+  lineId: number,
+  updates: {
+    quantity?: number;
+    unit?: string;
+    sequence?: number;
+    isOptional?: boolean;
+    notes?: string;
+  },
+  userId: number
+): Promise<void> {
+  const { bom, bomLines } = getTables();
+  const database = await getDb();
+
+  // Get existing line
+  const [existingLine] = await database
+    .select()
+    .from(bomLines)
+    .where(eq(bomLines.id, lineId));
+
+  if (!existingLine) {
+    throw new Error(`BOM line ${lineId} not found`);
+  }
+
+  const useSqlite = process.env.DB_TYPE === 'sqlite';
+  const now = new Date().toISOString();
+
+  // Update line
+  await database
+    .update(bomLines)
+    .set({
+      quantity: updates.quantity ?? existingLine.quantity,
+      unit: updates.unit ?? existingLine.unit,
+      sequence: updates.sequence ?? existingLine.sequence,
+      isOptional: updates.isOptional ?? existingLine.isOptional,
+      notes: updates.notes !== undefined ? updates.notes : existingLine.notes,
+    })
+    .where(eq(bomLines.id, lineId));
+
+  // Update BOM timestamp
+  await database
+    .update(bom)
+    .set({ updatedAt: useSqlite ? now : new Date() })
+    .where(eq(bom.id, existingLine.bomId));
+
+  // Audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'bom_lines',
+    recordId: lineId,
+    oldValue: existingLine,
+    newValue: updates,
+  });
+}
+
+/**
+ * Remove a single line from a BOM
+ */
+export async function removeBOMLine(
+  lineId: number,
+  userId: number
+): Promise<void> {
+  const { bom, bomLines } = getTables();
+  const database = await getDb();
+
+  // Get existing line
+  const [existingLine] = await database
+    .select()
+    .from(bomLines)
+    .where(eq(bomLines.id, lineId));
+
+  if (!existingLine) {
+    throw new Error(`BOM line ${lineId} not found`);
+  }
+
+  // Delete line
+  await database.delete(bomLines).where(eq(bomLines.id, lineId));
+
+  // Update BOM timestamp
+  const useSqlite = process.env.DB_TYPE === 'sqlite';
+  const now = new Date().toISOString();
+  await database
+    .update(bom)
+    .set({ updatedAt: useSqlite ? now : new Date() })
+    .where(eq(bom.id, existingLine.bomId));
+
+  // Audit log
+  await createAuditLog({
+    userId,
+    action: 'DELETE',
+    tableName: 'bom_lines',
+    recordId: lineId,
+    oldValue: existingLine,
+  });
+}
+
+// ============================================================================
+// CONSOLIDATED BOM EXPLOSION
+// ============================================================================
+
+export interface ConsolidatedBOMResult {
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+  totalRequiredQuantity: number;
+  unit: string;
+  availableStock: number;
+  shortage: number;
+  usedInLevels: number[];
+  unitCost: number;
+  totalCost: number;
+}
+
+/**
+ * Explode BOM and consolidate duplicate items across all levels
+ */
+export async function explodeBOMConsolidated(
+  bomId: number,
+  quantity: number
+): Promise<{
+  items: ConsolidatedBOMResult[];
+  totalCost: number;
+  canProduce: boolean;
+  summary: {
+    totalItems: number;
+    itemsWithShortage: number;
+    totalRequiredValue: number;
+  };
+}> {
+  // First check for circular references
+  const circularPath = await detectCircularReference(bomId);
+  if (circularPath) {
+    throw new Error(`Circular reference detected in BOM: ${circularPath.join(' -> ')}`);
+  }
+
+  // Get standard explosion
+  const explosionResults = await explodeBOM(bomId, quantity);
+
+  // Consolidate by itemId
+  const consolidated = new Map<number, ConsolidatedBOMResult>();
+  const { items } = getTables();
+  const database = await getDb();
+
+  for (const result of explosionResults) {
+    const existing = consolidated.get(result.itemId);
+
+    // Get unit cost
+    const [itemData] = await database
+      .select({ onHand: items.onHand, onHandCost: items.onHandCost })
+      .from(items)
+      .where(eq(items.id, result.itemId));
+
+    const onHand = Number(itemData?.onHand) || 0;
+    const onHandCost = Number(itemData?.onHandCost) || 0;
+    const unitCost = onHand > 0 ? onHandCost / onHand : 0;
+
+    if (existing) {
+      existing.totalRequiredQuantity += result.requiredQuantity;
+      existing.shortage = Math.max(0, existing.totalRequiredQuantity - existing.availableStock);
+      existing.totalCost = existing.totalRequiredQuantity * unitCost;
+      if (!existing.usedInLevels.includes(result.level)) {
+        existing.usedInLevels.push(result.level);
+      }
+    } else {
+      consolidated.set(result.itemId, {
+        itemId: result.itemId,
+        itemCode: result.itemCode,
+        itemName: result.itemName,
+        totalRequiredQuantity: result.requiredQuantity,
+        unit: result.unit,
+        availableStock: result.availableStock,
+        shortage: result.shortage,
+        usedInLevels: [result.level],
+        unitCost: Math.round(unitCost * 100) / 100,
+        totalCost: Math.round(result.requiredQuantity * unitCost * 100) / 100,
+      });
+    }
+  }
+
+  const consolidatedItems = Array.from(consolidated.values());
+  const totalCost = consolidatedItems.reduce((sum, item) => sum + item.totalCost, 0);
+  const itemsWithShortage = consolidatedItems.filter((item) => item.shortage > 0).length;
+  const canProduce = itemsWithShortage === 0;
+
+  return {
+    items: consolidatedItems,
+    totalCost: Math.round(totalCost * 100) / 100,
+    canProduce,
+    summary: {
+      totalItems: consolidatedItems.length,
+      itemsWithShortage,
+      totalRequiredValue: Math.round(totalCost * 100) / 100,
+    },
+  };
+}

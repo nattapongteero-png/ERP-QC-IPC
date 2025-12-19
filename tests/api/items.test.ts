@@ -30,6 +30,8 @@ describe('Items API', () => {
         min_stock REAL DEFAULT 0,
         max_stock REAL,
         reorder_point REAL DEFAULT 0,
+        on_hand REAL NOT NULL DEFAULT 0,
+        on_hand_cost REAL NOT NULL DEFAULT 0,
         is_lot_controlled INTEGER DEFAULT 1,
         is_fefo INTEGER DEFAULT 1,
         is_active INTEGER DEFAULT 1,
