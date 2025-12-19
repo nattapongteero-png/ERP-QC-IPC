@@ -36,8 +36,13 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
         try {
           const data = await clonedResponse.json();
 
-          // Check if the API returned an error (skip auth endpoints - 401 is expected)
-          if (!data.success && data.error && !isAuthEndpoint) {
+          // Check if the API returned an error
+          // Skip auth endpoints (401 is expected) and auth-related errors (session expired/not logged in)
+          const isAuthError = data.error === 'Please login to continue' ||
+                              data.error === 'Session expired' ||
+                              data.error === 'Unauthorized';
+
+          if (!data.success && data.error && !isAuthEndpoint && !isAuthError) {
             console.group('🚨 API Error');
             console.error('URL:', url);
             console.error('Method:', method);
