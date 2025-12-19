@@ -4,10 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge, getStatusVariant } from '@/components/ui/badge';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
+import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
-import { Input } from '@/components/ui/input';
 import {
   ArrowLeft,
   Play,
@@ -86,6 +90,12 @@ interface BatchRecordDetail {
     status: string;
   }[];
 }
+
+const booleanOptions = [
+  { value: '', label: 'Select...' },
+  { value: 'true', label: 'Yes / Pass' },
+  { value: 'false', label: 'No / Fail' },
+];
 
 export default function BatchRecordDetailPage() {
   const params = useParams();
@@ -271,9 +281,8 @@ export default function BatchRecordDetailPage() {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="space-y-6">
-          <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
-          <div className="h-96 bg-gray-200 rounded animate-pulse" />
+        <div className="flex items-center justify-center h-64">
+          <DxLoadIndicator />
         </div>
       </MainLayout>
     );
@@ -285,13 +294,13 @@ export default function BatchRecordDetailPage() {
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold text-gray-900">Batch record not found</h2>
           <p className="text-gray-500 mt-2">The batch record you are looking for does not exist.</p>
-          <Button
-            variant="secondary"
+          <DxButton
+            text="Back to Batch Records"
+            type="normal"
+            stylingMode="outlined"
             className="mt-4"
             onClick={() => router.push('/production/batch-records')}
-          >
-            Back to Batch Records
-          </Button>
+          />
         </div>
       </MainLayout>
     );
@@ -307,10 +316,13 @@ export default function BatchRecordDetailPage() {
           title={`Step ${record.sequence}: ${record.stepName}`}
           description={`${record.woNumber} - ${record.batchNumber}`}
           backButton={
-            <Button variant="ghost" size="sm" onClick={() => router.push('/production/batch-records')}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
+            <DxButton
+              text="Back"
+              icon="back"
+              type="normal"
+              stylingMode="text"
+              onClick={() => router.push('/production/batch-records')}
+            />
           }
           actions={
             <div className="flex items-center gap-2">
@@ -323,15 +335,14 @@ export default function BatchRecordDetailPage() {
 
         {/* Step Navigation */}
         <div className="flex items-center justify-between">
-          <Button
-            variant="secondary"
-            size="sm"
+          <DxButton
+            text="Previous Step"
+            icon="chevronleft"
+            type="normal"
+            stylingMode="outlined"
             disabled={!prevStep}
             onClick={() => prevStep && navigateToStep(prevStep.id)}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous Step
-          </Button>
+          />
           <div className="flex items-center gap-2">
             {record.allRecords.map((step, index) => (
               <button
@@ -351,22 +362,22 @@ export default function BatchRecordDetailPage() {
               </button>
             ))}
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
+          <DxButton
+            text="Next Step"
+            icon="chevronright"
+            iconPosition="right"
+            type="normal"
+            stylingMode="outlined"
             disabled={!nextStep}
             onClick={() => nextStep && navigateToStep(nextStep.id)}
-          >
-            Next Step
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Instructions */}
-            <Card elevation="raised">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
@@ -392,7 +403,7 @@ export default function BatchRecordDetailPage() {
 
             {/* Parameters Entry */}
             {record.parameters && record.parameters.length > 0 && (
-              <Card elevation="raised">
+              <Card>
                 <CardHeader>
                   <CardTitle>Process Parameters</CardTitle>
                 </CardHeader>
@@ -409,48 +420,36 @@ export default function BatchRecordDetailPage() {
                         </label>
                         <div className="col-span-2">
                           {param.type === 'number' ? (
-                            <Input
-                              type="number"
-                              value={actualValues[param.name] || ''}
-                              onChange={(e) =>
-                                handleActualValueChange(param.name, parseFloat(e.target.value))
-                              }
+                            <DxNumberBox
+                              value={actualValues[param.name] || null}
+                              onValueChange={(value) => handleActualValueChange(param.name, value)}
                               min={param.min}
                               max={param.max}
                               disabled={record.status === 'completed' || record.status === 'pending'}
+                              format="#,##0.###"
                             />
                           ) : param.type === 'boolean' ? (
-                            <select
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                              value={actualValues[param.name] || ''}
-                              onChange={(e) =>
-                                handleActualValueChange(param.name, e.target.value === 'true')
-                              }
+                            <DxSelectBox
+                              items={booleanOptions}
+                              value={actualValues[param.name]?.toString() || ''}
+                              onValueChange={(value) => handleActualValueChange(param.name, value === 'true')}
+                              valueExpr="value"
+                              displayExpr="label"
                               disabled={record.status === 'completed' || record.status === 'pending'}
-                            >
-                              <option value="">Select...</option>
-                              <option value="true">Yes / Pass</option>
-                              <option value="false">No / Fail</option>
-                            </select>
+                            />
                           ) : param.type === 'select' ? (
-                            <select
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            <DxSelectBox
+                              items={[{ value: '', label: 'Select...' }, ...(param.options?.map(opt => ({ value: opt, label: opt })) || [])]}
                               value={actualValues[param.name] || ''}
-                              onChange={(e) => handleActualValueChange(param.name, e.target.value)}
+                              onValueChange={(value) => handleActualValueChange(param.name, value)}
+                              valueExpr="value"
+                              displayExpr="label"
                               disabled={record.status === 'completed' || record.status === 'pending'}
-                            >
-                              <option value="">Select...</option>
-                              {param.options?.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
-                              ))}
-                            </select>
+                            />
                           ) : (
-                            <Input
-                              type="text"
+                            <DxTextBox
                               value={actualValues[param.name] || ''}
-                              onChange={(e) => handleActualValueChange(param.name, e.target.value)}
+                              onValueChange={(value) => handleActualValueChange(param.name, value)}
                               disabled={record.status === 'completed' || record.status === 'pending'}
                             />
                           )}
@@ -468,17 +467,16 @@ export default function BatchRecordDetailPage() {
             )}
 
             {/* Notes */}
-            <Card elevation="raised">
+            <Card>
               <CardHeader>
                 <CardTitle>Notes & Observations</CardTitle>
               </CardHeader>
               <CardContent>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md resize-none"
-                  rows={4}
-                  placeholder="Enter any observations, deviations, or notes..."
+                <DxTextArea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onValueChange={setNotes}
+                  height={100}
+                  placeholder="Enter any observations, deviations, or notes..."
                   disabled={record.status === 'completed' || record.status === 'pending'}
                 />
               </CardContent>
@@ -487,28 +485,41 @@ export default function BatchRecordDetailPage() {
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
               {record.status === 'pending' && (
-                <Button onClick={handleStartStep} disabled={isSaving}>
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Step
-                </Button>
+                <DxButton
+                  text="Start Step"
+                  icon="play"
+                  type="default"
+                  onClick={handleStartStep}
+                  disabled={isSaving}
+                />
               )}
               {record.status === 'in_progress' && (
                 <>
-                  <Button variant="secondary" onClick={handleSaveProgress} disabled={isSaving}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Progress
-                  </Button>
-                  <Button onClick={handleCompleteStep} disabled={isSaving}>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Complete Step
-                  </Button>
+                  <DxButton
+                    text="Save Progress"
+                    icon="save"
+                    type="normal"
+                    stylingMode="outlined"
+                    onClick={handleSaveProgress}
+                    disabled={isSaving}
+                  />
+                  <DxButton
+                    text="Complete Step"
+                    icon="check"
+                    type="success"
+                    onClick={handleCompleteStep}
+                    disabled={isSaving}
+                  />
                 </>
               )}
               {record.status === 'completed' && !record.verifiedBy && (
-                <Button onClick={handleVerifyStep} disabled={isSaving}>
-                  <UserCheck className="h-4 w-4 mr-2" />
-                  Verify Completion
-                </Button>
+                <DxButton
+                  text="Verify Completion"
+                  icon="user"
+                  type="default"
+                  onClick={handleVerifyStep}
+                  disabled={isSaving}
+                />
               )}
             </div>
           </div>

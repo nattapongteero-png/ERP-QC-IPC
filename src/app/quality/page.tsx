@@ -4,14 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Plus, ClipboardCheck, AlertTriangle, Inbox } from 'lucide-react';
+import { ClipboardCheck, AlertTriangle, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface QualityTest {
@@ -83,44 +84,47 @@ export default function QualityPage() {
     fetchTests();
   };
 
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: string): 'primary' | 'danger' | 'secondary' | 'default' => {
     switch (status) {
       case 'passed':
-        return 'success';
+        return 'primary';
       case 'failed':
         return 'danger';
       case 'in_progress':
-        return 'warning';
+        return 'secondary';
       default:
-        return 'info';
+        return 'default';
     }
   };
 
-  const columns = [
-    { key: 'testNumber', header: 'Test Number' },
-    { key: 'lotNumber', header: 'Lot Number' },
-    { key: 'itemCode', header: 'Item Code' },
-    { key: 'itemName', header: 'Item Name' },
+  const columns: DxDataGridColumn[] = [
+    { dataField: 'testNumber', caption: 'Test Number', width: 150 },
+    { dataField: 'lotNumber', caption: 'Lot Number', width: 150 },
+    { dataField: 'itemCode', caption: 'Item Code', width: 120 },
+    { dataField: 'itemName', caption: 'Item Name' },
     {
-      key: 'testType',
-      header: 'Test Type',
-      render: (test: QualityTest) => (
-        <Badge variant="info">{test.testType.replace('_', ' ')}</Badge>
+      dataField: 'testType',
+      caption: 'Test Type',
+      width: 150,
+      cellRender: (cellInfo) => (
+        <Badge variant="default">{cellInfo.data.testType.replace('_', ' ')}</Badge>
       ),
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (test: QualityTest) => (
-        <Badge variant={getStatusVariant(test.status)} dot>
-          {test.status.replace('_', ' ')}
+      dataField: 'status',
+      caption: 'Status',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.status)}>
+          {cellInfo.data.status.replace('_', ' ')}
         </Badge>
       ),
     },
     {
-      key: 'result',
-      header: 'Result',
-      render: (test: QualityTest) => test.result || '-',
+      dataField: 'result',
+      caption: 'Result',
+      width: 100,
+      cellRender: (cellInfo) => <span>{cellInfo.data.result || '-'}</span>,
     },
   ];
 
@@ -144,9 +148,12 @@ export default function QualityPage() {
           title="Quality Control"
           description="จัดการการตรวจสอบคุณภาพ"
           actions={
-            <Button onClick={() => router.push('/quality/tests/new')} leftIcon={<Plus className="h-4 w-4" />}>
-              New Test
-            </Button>
+            <DxButton
+              text="New Test"
+              icon="plus"
+              type="default"
+              onClick={() => router.push('/quality/tests/new')}
+            />
           }
         />
 
@@ -179,45 +186,49 @@ export default function QualityPage() {
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="flex-1">
-                <Input
-                  variant="search"
+                <DxTextBox
+                  mode="search"
                   placeholder="Search by test number or lot..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onSearch={handleSearch}
+                  onValueChange={setSearch}
+                  showClearButton
+                  onEnterKey={handleSearch}
                 />
               </div>
               <div className="w-full md:w-40">
-                <Select
-                  options={testTypes}
+                <DxSelectBox
+                  items={testTypes}
                   value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
+                  onValueChange={setTypeFilter}
+                  valueExpr="value"
+                  displayExpr="label"
                 />
               </div>
               <div className="w-full md:w-40">
-                <Select
-                  options={testStatuses}
+                <DxSelectBox
+                  items={testStatuses}
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onValueChange={setStatusFilter}
+                  valueExpr="value"
+                  displayExpr="label"
                 />
               </div>
             </div>
 
             {/* Table */}
             {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
-                ))}
+              <div className="flex items-center justify-center h-64">
+                <DxLoadIndicator />
               </div>
             ) : tests.length > 0 ? (
-              <Table
+              <DxDataGrid
+                dataSource={tests}
+                keyExpr="id"
                 columns={columns}
-                data={tests}
-                keyField="id"
-                isLoading={isLoading}
-                emptyMessage="No quality tests found"
-                onRowClick={(test) => router.push(`/quality/tests/${test.id}`)}
+                showBorders
+                height={500}
+                noDataText="No quality tests found"
+                onRowClick={(e) => router.push(`/quality/tests/${e.data.id}`)}
               />
             ) : (
               <EmptyState

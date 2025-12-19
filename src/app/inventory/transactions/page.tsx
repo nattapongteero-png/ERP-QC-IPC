@@ -3,14 +3,19 @@
 import { useEffect, useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import {
-  Plus, Search, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight,
-  RefreshCw, Trash2, RotateCcw, Package, Filter
+  Plus, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight,
+  RefreshCw, Trash2, RotateCcw, Package
 } from 'lucide-react';
 
 interface Transaction {
@@ -95,14 +100,14 @@ const getTypeIcon = (type: string) => {
   }
 };
 
-const getTypeVariant = (type: string): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
+const getTypeVariant = (type: string): 'primary' | 'danger' | 'secondary' | 'default' => {
   switch (type) {
-    case 'RECEIVE': return 'success';
+    case 'RECEIVE': return 'primary';
     case 'ISSUE': return 'danger';
-    case 'TRANSFER': return 'info';
-    case 'ADJUST': return 'warning';
+    case 'TRANSFER': return 'secondary';
+    case 'ADJUST': return 'secondary';
     case 'SCRAP': return 'danger';
-    case 'RETURN': return 'info';
+    case 'RETURN': return 'secondary';
     default: return 'default';
   }
 };
@@ -112,7 +117,6 @@ export default function TransactionsPage() {
   const [lots, setLots] = useState<Lot[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -208,9 +212,8 @@ export default function TransactionsPage() {
         setShowModal(false);
         resetForm();
         fetchTransactions();
-        fetchLots(); // Refresh lots to get updated quantities
+        fetchLots();
       }
-      // API errors handled by global error handler
     } catch {
       // Network errors handled by global error handler
     }
@@ -233,8 +236,8 @@ export default function TransactionsPage() {
   const handleLotSelect = (lotId: number) => {
     const lot = lots.find(l => l.id === lotId);
     setSelectedLot(lot || null);
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       lotId,
       fromWarehouseId: lot?.warehouseId || null,
     }));
@@ -250,85 +253,91 @@ export default function TransactionsPage() {
     });
   };
 
-  const columns = [
+  const columns: DxDataGridColumn[] = [
     {
-      key: 'transactionNumber',
-      header: 'Transaction #',
-      render: (t: Transaction) => (
+      dataField: 'transactionNumber',
+      caption: 'Transaction #',
+      width: 150,
+      cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
-          {getTypeIcon(t.type)}
-          <span className="font-mono text-sm">{t.transactionNumber}</span>
+          {getTypeIcon(cellInfo.data.type)}
+          <span className="font-mono text-sm">{cellInfo.data.transactionNumber}</span>
         </div>
       ),
     },
     {
-      key: 'type',
-      header: 'Type',
-      render: (t: Transaction) => (
-        <Badge variant={getTypeVariant(t.type)}>
-          {t.type}
+      dataField: 'type',
+      caption: 'Type',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={getTypeVariant(cellInfo.data.type)}>
+          {cellInfo.data.type}
         </Badge>
       ),
     },
     {
-      key: 'lot',
-      header: 'Lot / Item',
-      render: (t: Transaction) => (
+      dataField: 'lotNumber',
+      caption: 'Lot / Item',
+      cellRender: (cellInfo) => (
         <div>
-          <p className="font-medium">{t.lotNumber}</p>
-          <p className="text-xs text-gray-500">{t.itemCode} - {t.itemName}</p>
+          <p className="font-medium">{cellInfo.data.lotNumber}</p>
+          <p className="text-xs text-gray-500">{cellInfo.data.itemCode} - {cellInfo.data.itemName}</p>
         </div>
       ),
     },
     {
-      key: 'quantity',
-      header: 'Quantity',
-      render: (t: Transaction) => (
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 120,
+      cellRender: (cellInfo) => (
         <span className={`font-medium ${
-          ['RECEIVE', 'RETURN'].includes(t.type) ? 'text-green-600' : 
-          ['ISSUE', 'SCRAP'].includes(t.type) ? 'text-red-600' : ''
+          ['RECEIVE', 'RETURN'].includes(cellInfo.data.type) ? 'text-green-600' :
+          ['ISSUE', 'SCRAP'].includes(cellInfo.data.type) ? 'text-red-600' : ''
         }`}>
-          {['RECEIVE', 'RETURN'].includes(t.type) ? '+' : 
-           ['ISSUE', 'SCRAP'].includes(t.type) ? '-' : ''}
-          {t.quantity.toLocaleString()} {t.unit}
+          {['RECEIVE', 'RETURN'].includes(cellInfo.data.type) ? '+' :
+           ['ISSUE', 'SCRAP'].includes(cellInfo.data.type) ? '-' : ''}
+          {cellInfo.data.quantity.toLocaleString()} {cellInfo.data.unit}
         </span>
       ),
     },
     {
-      key: 'warehouse',
-      header: 'Warehouse',
-      render: (t: Transaction) => (
+      dataField: 'warehouse',
+      caption: 'Warehouse',
+      width: 200,
+      cellRender: (cellInfo) => (
         <div className="text-sm">
-          {t.type === 'TRANSFER' ? (
+          {cellInfo.data.type === 'TRANSFER' ? (
             <span>
-              {t.fromWarehouseName || '-'} → {t.toWarehouseName || '-'}
+              {cellInfo.data.fromWarehouseName || '-'} → {cellInfo.data.toWarehouseName || '-'}
             </span>
-          ) : t.type === 'RECEIVE' || t.type === 'RETURN' ? (
-            <span>→ {t.toWarehouseName || '-'}</span>
+          ) : cellInfo.data.type === 'RECEIVE' || cellInfo.data.type === 'RETURN' ? (
+            <span>→ {cellInfo.data.toWarehouseName || '-'}</span>
           ) : (
-            <span>{t.fromWarehouseName || '-'} →</span>
+            <span>{cellInfo.data.fromWarehouseName || '-'} →</span>
           )}
         </div>
       ),
     },
     {
-      key: 'reference',
-      header: 'Reference',
-      render: (t: Transaction) => (
-        t.referenceType ? (
+      dataField: 'referenceType',
+      caption: 'Reference',
+      width: 120,
+      cellRender: (cellInfo) => (
+        cellInfo.data.referenceType ? (
           <span className="text-sm text-gray-600">
-            {t.referenceType}: {t.referenceId || '-'}
+            {cellInfo.data.referenceType}: {cellInfo.data.referenceId || '-'}
           </span>
-        ) : '-'
+        ) : <span>-</span>
       ),
     },
     {
-      key: 'createdAt',
-      header: 'Date',
-      render: (t: Transaction) => (
+      dataField: 'createdAt',
+      caption: 'Date',
+      width: 150,
+      cellRender: (cellInfo) => (
         <div className="text-sm">
-          <p>{formatDate(t.createdAt)}</p>
-          <p className="text-xs text-gray-500">by {t.createdByName}</p>
+          <p>{formatDate(cellInfo.data.createdAt)}</p>
+          <p className="text-xs text-gray-500">by {cellInfo.data.createdByName}</p>
         </div>
       ),
     },
@@ -340,6 +349,19 @@ export default function TransactionsPage() {
   const transferCount = transactions.filter(t => t.type === 'TRANSFER').length;
   const adjustCount = transactions.filter(t => t.type === 'ADJUST').length;
 
+  const lotOptions = [
+    { value: '', label: 'Select a lot...' },
+    ...lots.map(l => ({
+      value: l.id.toString(),
+      label: `${l.lotNumber} - ${l.itemCode} (${l.quantity} ${l.unit})`
+    }))
+  ];
+
+  const warehouseOptions = [
+    { value: '', label: 'Select warehouse...' },
+    ...warehouses.map(w => ({ value: w.id.toString(), label: `${w.code} - ${w.name}` }))
+  ];
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -348,10 +370,12 @@ export default function TransactionsPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Inventory Transactions</h1>
             <p className="text-sm sm:text-base text-gray-600">รายการเคลื่อนไหวสินค้าคงคลัง</p>
           </div>
-          <Button onClick={() => { resetForm(); setShowModal(true); }} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            New Transaction
-          </Button>
+          <DxButton
+            text="New Transaction"
+            icon="plus"
+            type="default"
+            onClick={() => { resetForm(); setShowModal(true); }}
+          />
         </div>
 
         {/* Summary Cards */}
@@ -409,10 +433,12 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Transaction Type
               </label>
-              <Select
-                options={transactionTypes}
+              <DxSelectBox
+                items={transactionTypes}
                 value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+                onValueChange={setTypeFilter}
+                valueExpr="value"
+                displayExpr="label"
               />
             </div>
 
@@ -421,214 +447,222 @@ export default function TransactionsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Date From
                 </label>
-                <Input
-                  type="date"
+                <DxDateBox
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
+                  onValueChange={(value) => setDateFrom(value || '')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Date To
                 </label>
-                <Input
-                  type="date"
+                <DxDateBox
                   value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
+                  onValueChange={(value) => setDateTo(value || '')}
                 />
               </div>
             </div>
 
-            <Button variant="secondary" onClick={handleSearch} className="w-full md:w-auto">
-              <Filter className="h-4 w-4 mr-1" />
-              Apply Filter
-            </Button>
+            <DxButton
+              text="Apply Filter"
+              icon="filter"
+              type="normal"
+              stylingMode="outlined"
+              onClick={handleSearch}
+            />
           </div>
         </Card>
 
         {/* Table Card */}
         <Card className="p-6">
-          {/* Table */}
-          <Table
-            columns={columns}
-            data={transactions}
-            keyField="id"
-            isLoading={isLoading}
-            emptyMessage="No transactions found"
-          />
-
-          {/* Pagination */}
-          {pagination.total > pagination.limit && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total} transactions
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page === 1}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagination.page * pagination.limit >= pagination.total}
-                  onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                >
-                  Next
-                </Button>
-              </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <DxLoadIndicator />
             </div>
+          ) : (
+            <>
+              <DxDataGrid
+                dataSource={transactions}
+                keyExpr="id"
+                columns={columns}
+                showBorders
+                height={500}
+                noDataText="No transactions found"
+              />
+
+              {/* Pagination */}
+              {pagination.total > pagination.limit && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <p className="text-sm text-gray-500">
+                    Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                    {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                    {pagination.total} transactions
+                  </p>
+                  <div className="flex gap-2">
+                    <DxButton
+                      text="Previous"
+                      type="normal"
+                      stylingMode="outlined"
+                      disabled={pagination.page === 1}
+                      onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
+                    />
+                    <DxButton
+                      text="Next"
+                      type="normal"
+                      stylingMode="outlined"
+                      disabled={pagination.page * pagination.limit >= pagination.total}
+                      onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </Card>
       </div>
 
       {/* Create Transaction Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-bold">New Transaction</h2>
+      <DxPopup
+        visible={showModal}
+        onHiding={() => { setShowModal(false); resetForm(); }}
+        title="New Transaction"
+        width={500}
+        height="auto"
+        showCloseButton
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Transaction Type <span className="text-red-500">*</span>
+            </label>
+            <DxSelectBox
+              items={transactionTypes.filter(t => t.value !== '')}
+              value={formData.type}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+              valueExpr="value"
+              displayExpr="label"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Lot <span className="text-red-500">*</span>
+            </label>
+            <DxSelectBox
+              items={lotOptions}
+              value={formData.lotId?.toString() || ''}
+              onValueChange={(value) => handleLotSelect(parseInt(value))}
+              valueExpr="value"
+              displayExpr="label"
+              searchEnabled
+            />
+            {selectedLot && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
+                <p><strong>Item:</strong> {selectedLot.itemName}</p>
+                <p><strong>Available:</strong> {selectedLot.quantity} {selectedLot.unit}</p>
+                <p><strong>Warehouse:</strong> {selectedLot.warehouseName}</p>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Quantity <span className="text-red-500">*</span>
+            </label>
+            <DxNumberBox
+              value={formData.quantity}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, quantity: value || 0 }))}
+              min={0}
+              step={0.01}
+            />
+            {selectedLot && ['ISSUE', 'TRANSFER', 'SCRAP'].includes(formData.type) && (
+              <p className="text-xs text-gray-500 mt-1">
+                Max available: {selectedLot.quantity} {selectedLot.unit}
+              </p>
+            )}
+          </div>
+
+          {formData.type === 'TRANSFER' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                To Warehouse <span className="text-red-500">*</span>
+              </label>
+              <DxSelectBox
+                items={warehouseOptions}
+                value={formData.toWarehouseId?.toString() || ''}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, toWarehouseId: parseInt(value) }))}
+                valueExpr="value"
+                displayExpr="label"
+              />
             </div>
+          )}
 
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Transaction Type <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  options={transactionTypes.filter(t => t.value !== '')}
-                  value={formData.type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Lot <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  options={[
-                    { value: '', label: 'Select a lot...' },
-                    ...lots.map(l => ({ 
-                      value: l.id.toString(), 
-                      label: `${l.lotNumber} - ${l.itemCode} (${l.quantity} ${l.unit})` 
-                    }))
-                  ]}
-                  value={formData.lotId?.toString() || ''}
-                  onChange={(e) => handleLotSelect(parseInt(e.target.value))}
-                />
-                {selectedLot && (
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
-                    <p><strong>Item:</strong> {selectedLot.itemName}</p>
-                    <p><strong>Available:</strong> {selectedLot.quantity} {selectedLot.unit}</p>
-                    <p><strong>Warehouse:</strong> {selectedLot.warehouseName}</p>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantity <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
-                />
-                {selectedLot && ['ISSUE', 'TRANSFER', 'SCRAP'].includes(formData.type) && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Max available: {selectedLot.quantity} {selectedLot.unit}
-                  </p>
-                )}
-              </div>
-
-              {formData.type === 'TRANSFER' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    To Warehouse <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    options={[
-                      { value: '', label: 'Select warehouse...' },
-                      ...warehouses.map(w => ({ value: w.id.toString(), label: `${w.code} - ${w.name}` }))
-                    ]}
-                    value={formData.toWarehouseId?.toString() || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, toWarehouseId: parseInt(e.target.value) }))}
-                  />
-                </div>
-              )}
-
-              {['RECEIVE', 'RETURN'].includes(formData.type) && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    To Warehouse
-                  </label>
-                  <Select
-                    options={[
-                      { value: '', label: 'Select warehouse...' },
-                      ...warehouses.map(w => ({ value: w.id.toString(), label: `${w.code} - ${w.name}` }))
-                    ]}
-                    value={formData.toWarehouseId?.toString() || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, toWarehouseId: parseInt(e.target.value) }))}
-                  />
-                </div>
-              )}
-
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Reference (Optional)</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Reference Type</label>
-                    <Select
-                      options={referenceTypes}
-                      value={formData.referenceType}
-                      onChange={(e) => setFormData(prev => ({ ...prev, referenceType: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Reference Number</label>
-                    <Input
-                      value={formData.referenceNumber}
-                      onChange={(e) => setFormData(prev => ({ ...prev, referenceNumber: e.target.value }))}
-                      placeholder="PO-2024-001"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  rows={3}
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Additional notes..."
-                />
-              </div>
+          {['RECEIVE', 'RETURN'].includes(formData.type) && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                To Warehouse
+              </label>
+              <DxSelectBox
+                items={warehouseOptions}
+                value={formData.toWarehouseId?.toString() || ''}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, toWarehouseId: parseInt(value) }))}
+                valueExpr="value"
+                displayExpr="label"
+              />
             </div>
+          )}
 
-            <div className="p-6 border-t flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => { setShowModal(false); resetForm(); }}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave}>
-                Create Transaction
-              </Button>
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Reference (Optional)</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Reference Type</label>
+                <DxSelectBox
+                  items={referenceTypes}
+                  value={formData.referenceType}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, referenceType: value }))}
+                  valueExpr="value"
+                  displayExpr="label"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Reference Number</label>
+                <DxTextBox
+                  value={formData.referenceNumber}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, referenceNumber: value }))}
+                  placeholder="PO-2024-001"
+                />
+              </div>
             </div>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <DxTextArea
+              value={formData.notes}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
+              placeholder="Additional notes..."
+              height={80}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => { setShowModal(false); resetForm(); }}
+            />
+            <DxButton
+              text="Create Transaction"
+              type="default"
+              onClick={handleSave}
+            />
+          </div>
         </div>
-      )}
+      </DxPopup>
     </MainLayout>
   );
 }

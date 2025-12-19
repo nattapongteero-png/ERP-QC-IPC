@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { ApiError } from '@/components/ui/api-error';
 import { AlertTriangle, Clock, XCircle } from 'lucide-react';
@@ -44,11 +45,18 @@ interface ApiErrorState {
   };
 }
 
+const daysOptions = [
+  { value: '30', label: 'Next 30 days' },
+  { value: '60', label: 'Next 60 days' },
+  { value: '90', label: 'Next 90 days' },
+  { value: '180', label: 'Next 180 days' },
+];
+
 export default function ExpiryAlertsPage() {
   const [report, setReport] = useState<ExpiryReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<ApiErrorState | null>(null);
-  const [daysThreshold, setDaysThreshold] = useState(90);
+  const [daysThreshold, setDaysThreshold] = useState('90');
 
   const fetchExpiryAlerts = async () => {
     setIsLoading(true);
@@ -59,7 +67,6 @@ export default function ExpiryAlertsPage() {
       if (data.success) {
         setReport(data.data?.data || null);
       } else {
-        // API returned an error
         setApiError({
           error: data.error || 'Unknown error',
           debug: data.debug,
@@ -85,33 +92,45 @@ export default function ExpiryAlertsPage() {
     fetchExpiryAlerts();
   }, [daysThreshold]);
 
-  const expiredColumns = [
-    { key: 'lotNumber', header: 'Lot Number' },
-    { key: 'itemCode', header: 'Item Code' },
-    { key: 'itemName', header: 'Item Name' },
-    { key: 'quantity', header: 'Quantity', render: (item: ExpiryItem) => item.quantity.toLocaleString() },
-    { key: 'expiryDate', header: 'Expiry Date' },
-    { 
-      key: 'daysExpired', 
-      header: 'Days Expired',
-      render: (item: ExpiryItem) => (
-        <Badge variant="danger">{item.daysExpired} days ago</Badge>
+  const expiredColumns: DxDataGridColumn[] = [
+    { dataField: 'lotNumber', caption: 'Lot Number', width: 150 },
+    { dataField: 'itemCode', caption: 'Item Code', width: 120 },
+    { dataField: 'itemName', caption: 'Item Name' },
+    {
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 120,
+      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString()
+    },
+    { dataField: 'expiryDate', caption: 'Expiry Date', width: 120 },
+    {
+      dataField: 'daysExpired',
+      caption: 'Days Expired',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant="danger">{cellInfo.data.daysExpired} days ago</Badge>
       )
     },
   ];
 
-  const nearExpiryColumns = [
-    { key: 'lotNumber', header: 'Lot Number' },
-    { key: 'itemCode', header: 'Item Code' },
-    { key: 'itemName', header: 'Item Name' },
-    { key: 'quantity', header: 'Quantity', render: (item: ExpiryItem) => item.quantity.toLocaleString() },
-    { key: 'expiryDate', header: 'Expiry Date' },
-    { 
-      key: 'daysToExpiry', 
-      header: 'Days to Expiry',
-      render: (item: ExpiryItem) => {
-        const days = item.daysToExpiry || 0;
-        const variant = days <= 30 ? 'danger' : days <= 60 ? 'warning' : 'info';
+  const nearExpiryColumns: DxDataGridColumn[] = [
+    { dataField: 'lotNumber', caption: 'Lot Number', width: 150 },
+    { dataField: 'itemCode', caption: 'Item Code', width: 120 },
+    { dataField: 'itemName', caption: 'Item Name' },
+    {
+      dataField: 'quantity',
+      caption: 'Quantity',
+      width: 120,
+      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString()
+    },
+    { dataField: 'expiryDate', caption: 'Expiry Date', width: 120 },
+    {
+      dataField: 'daysToExpiry',
+      caption: 'Days to Expiry',
+      width: 120,
+      cellRender: (cellInfo) => {
+        const days = cellInfo.data.daysToExpiry || 0;
+        const variant = days <= 30 ? 'danger' : days <= 60 ? 'secondary' : 'default';
         return <Badge variant={variant}>{days} days</Badge>;
       }
     },
@@ -126,20 +145,21 @@ export default function ExpiryAlertsPage() {
             <p className="text-gray-600">Monitor expired and near-expiry inventory</p>
           </div>
           <div className="flex items-center gap-3">
-            <Select
-              value={daysThreshold.toString()}
-              onChange={(e) => setDaysThreshold(parseInt(e.target.value))}
-              options={[
-                { value: '30', label: 'Next 30 days' },
-                { value: '60', label: 'Next 60 days' },
-                { value: '90', label: 'Next 90 days' },
-                { value: '180', label: 'Next 180 days' },
-              ]}
-              className="w-40"
+            <DxSelectBox
+              items={daysOptions}
+              value={daysThreshold}
+              onValueChange={setDaysThreshold}
+              valueExpr="value"
+              displayExpr="label"
+              width={150}
             />
-            <Button variant="secondary" onClick={fetchExpiryAlerts}>
-              Refresh
-            </Button>
+            <DxButton
+              text="Refresh"
+              icon="refresh"
+              type="normal"
+              stylingMode="outlined"
+              onClick={fetchExpiryAlerts}
+            />
           </div>
         </div>
 
@@ -152,60 +172,69 @@ export default function ExpiryAlertsPage() {
           />
         )}
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center h-64">
+            <DxLoadIndicator />
+          </div>
+        )}
+
         {/* Summary Cards */}
-        {!apiError && <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="!p-3 sm:!p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
-                <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
+        {!apiError && !isLoading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="!p-3 sm:!p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
+                  <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-500">Expired Lots</p>
+                  <p className="text-lg sm:text-xl font-bold text-red-600">{report?.summary.expiredCount || 0}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs sm:text-sm text-gray-500">Expired Lots</p>
-                <p className="text-lg sm:text-xl font-bold text-red-600">{report?.summary.expiredCount || 0}</p>
+            </Card>
+            <Card className="!p-3 sm:!p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-500">Expired Value</p>
+                  <p className="text-lg sm:text-xl font-bold text-red-600">
+                    ฿{(report?.summary.expiredValue || 0).toLocaleString()}
+                  </p>
+                </div>
               </div>
-            </div>
-          </Card>
-          <Card className="!p-3 sm:!p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
+            </Card>
+            <Card className="!p-3 sm:!p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-500">Near Expiry Lots</p>
+                  <p className="text-lg sm:text-xl font-bold text-yellow-600">{report?.summary.nearExpiryCount || 0}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs sm:text-sm text-gray-500">Expired Value</p>
-                <p className="text-lg sm:text-xl font-bold text-red-600">
-                  ฿{(report?.summary.expiredValue || 0).toLocaleString()}
-                </p>
+            </Card>
+            <Card className="!p-3 sm:!p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-500">Near Expiry Value</p>
+                  <p className="text-lg sm:text-xl font-bold text-yellow-600">
+                    ฿{(report?.summary.nearExpiryValue || 0).toLocaleString()}
+                  </p>
+                </div>
               </div>
-            </div>
-          </Card>
-          <Card className="!p-3 sm:!p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-gray-500">Near Expiry Lots</p>
-                <p className="text-lg sm:text-xl font-bold text-yellow-600">{report?.summary.nearExpiryCount || 0}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="!p-3 sm:!p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
-                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-gray-500">Near Expiry Value</p>
-                <p className="text-lg sm:text-xl font-bold text-yellow-600">
-                  ฿{(report?.summary.nearExpiryValue || 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>}
+            </Card>
+          </div>
+        )}
 
         {/* Expired Lots */}
-        {!apiError && (report?.expired?.length || 0) > 0 && (
+        {!apiError && !isLoading && (report?.expired?.length || 0) > 0 && (
           <Card className="overflow-hidden">
             <div className="p-4 sm:p-6 bg-red-50 border-b border-red-100">
               <h2 className="text-base sm:text-lg font-semibold text-red-800 flex items-center gap-2">
@@ -215,36 +244,40 @@ export default function ExpiryAlertsPage() {
               <p className="text-xs sm:text-sm text-red-600 mt-1">These lots have passed their expiry date and should be quarantined or disposed</p>
             </div>
             <div className="p-4 sm:p-6">
-              <Table
+              <DxDataGrid
+                dataSource={report?.expired || []}
+                keyExpr="lotNumber"
                 columns={expiredColumns}
-                data={report?.expired || []}
-                keyField="lotNumber"
-                isLoading={isLoading}
-                emptyMessage="No expired lots"
+                showBorders
+                height={300}
+                noDataText="No expired lots"
               />
             </div>
           </Card>
         )}
 
         {/* Near Expiry Lots */}
-        {!apiError && <Card className="overflow-hidden">
-          <div className="p-4 sm:p-6 bg-yellow-50 border-b border-yellow-100">
-            <h2 className="text-base sm:text-lg font-semibold text-yellow-800 flex items-center gap-2">
-              <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
-              Near Expiry Lots ({report?.nearExpiry?.length || 0})
-            </h2>
-            <p className="text-xs sm:text-sm text-yellow-600 mt-1">These lots will expire within {daysThreshold} days - prioritize for FEFO picking</p>
-          </div>
-          <div className="p-4 sm:p-6">
-            <Table
-              columns={nearExpiryColumns}
-              data={report?.nearExpiry || []}
-              keyField="lotNumber"
-              isLoading={isLoading}
-              emptyMessage="No near-expiry lots"
-            />
-          </div>
-        </Card>}
+        {!apiError && !isLoading && (
+          <Card className="overflow-hidden">
+            <div className="p-4 sm:p-6 bg-yellow-50 border-b border-yellow-100">
+              <h2 className="text-base sm:text-lg font-semibold text-yellow-800 flex items-center gap-2">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+                Near Expiry Lots ({report?.nearExpiry?.length || 0})
+              </h2>
+              <p className="text-xs sm:text-sm text-yellow-600 mt-1">These lots will expire within {daysThreshold} days - prioritize for FEFO picking</p>
+            </div>
+            <div className="p-4 sm:p-6">
+              <DxDataGrid
+                dataSource={report?.nearExpiry || []}
+                keyExpr="lotNumber"
+                columns={nearExpiryColumns}
+                showBorders
+                height={400}
+                noDataText="No near-expiry lots"
+              />
+            </div>
+          </Card>
+        )}
       </div>
     </MainLayout>
   );
