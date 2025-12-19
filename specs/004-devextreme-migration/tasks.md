@@ -31,6 +31,8 @@
 - [ ] T004 [P] Create Thai locale dictionary file in src/localization/th.json with DevExtreme UI translations
 - [ ] T005 Build emerald theme: run `npx devextreme build-theme` to generate public/css/dx.material.emerald.css
 - [ ] T006 Create DevExtreme provider component in src/components/providers/devextreme-provider.tsx with Thai locale setup
+- [ ] T006a Implement DevExtreme license validation in src/components/providers/devextreme-provider.tsx: validate license key on mount, display error boundary with clear message if validation fails (FR-010)
+- [ ] T006b [P] Create license validation unit test in tests/unit/providers/devextreme-provider.test.tsx for error boundary display on invalid license
 - [ ] T007 Create Zod-DevExtreme validation adapter in src/lib/validation/zod-devextreme-adapter.ts
 - [ ] T008 Update root layout to include DevExtremeProvider in src/app/layout.tsx
 - [ ] T009 Add DevExtreme CSS import to src/app/globals.css (after existing styles)
@@ -363,7 +365,7 @@ With 3 developers after Phase 2:
 
 | Phase | Task Range | Count | Parallel Tasks |
 |-------|-----------|-------|----------------|
-| 1. Setup | T001-T011 | 11 | 2 |
+| 1. Setup | T001-T011 | 13 | 3 |
 | 2. Foundational | T012-T022 | 11 | 8 |
 | 3. US1 Data Tables | T023-T035 | 13 | 3 (tests) + 4 (pages) |
 | 4. US2 Forms | T036-T048 | 13 | 3 (tests) |
@@ -373,7 +375,7 @@ With 3 developers after Phase 2:
 | 8. Supporting | T083-T091 | 9 | 6 |
 | 9. Cleanup | T092-T105 | 14 | 0 (sequential) |
 | 10. Polish | T106-T117 | 12 | 0 (sequential) |
-| **TOTAL** | T001-T117 | **117** | **31** |
+| **TOTAL** | T001-T117 | **119** | **32** |
 
 ---
 

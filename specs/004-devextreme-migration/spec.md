@@ -102,7 +102,7 @@ Users navigate the application using the sidebar and header. After migration, la
 - How does the system handle form validation with mixed required/optional fields? Validation rules from existing Zod schemas are preserved.
 - What happens when a network error occurs during data loading? Error states display using existing api-error component pattern.
 - How do search dialogs behave with special characters or very long search terms? Input should be sanitized and results should indicate no matches.
-- What happens when DevExtreme license validation fails? System should display a clear error message indicating license issue and prevent unlicensed component usage.
+- What happens when DevExtreme license validation fails? System MUST display a full-page error boundary with message "DevExtreme license configuration error. Please contact administrator." and block all DevExtreme component rendering. Console MUST log the specific license error for debugging. Application shell (header, navigation) MAY remain functional for logout/support access.
 
 ## Requirements *(mandatory)*
 
