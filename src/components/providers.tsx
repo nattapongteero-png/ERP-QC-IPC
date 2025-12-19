@@ -62,6 +62,12 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
 
         return response;
       } catch (error) {
+        // Ignore AbortError - these are expected when requests are cancelled
+        // (e.g., dialog closes, new search starts, component unmounts)
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw error;
+        }
+
         // Network error
         const errorMessage = error instanceof Error ? error.message : 'Network error';
         addError({
