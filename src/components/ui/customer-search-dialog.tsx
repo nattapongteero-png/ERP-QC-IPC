@@ -75,65 +75,82 @@ export function CustomerSearchDialog({
     onOpenChange(false);
   }, [onSelect, onOpenChange]);
 
-  const searchCustomers = useCallback(async (query: string) => {
-    setIsSearching(true);
-    setHasSearched(true);
-    try {
-      const params = new URLSearchParams({
-        limit: '20',
-        isActive: 'true',
-      });
-      if (query && query.trim()) {
-        params.set('search', query.trim());
-      }
+  // Track if we should skip fetching (used during reset)
+  const skipFetchRef = useRef(false);
 
-      const res = await fetch(`/api/customers?${params}`);
-      const data = await res.json();
-
-      if (data.success) {
-        let customers = data.data?.items || [];
-        if (excludeIds.length > 0) {
-          customers = customers.filter((c: Customer) => !excludeIds.includes(c.id));
-        }
-        setResults(customers);
-        setHighlightedIndex(0);
-      }
-    } catch (error) {
-      console.error('Failed to search customers:', error);
-      setResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [excludeIds]);
-
-  // Initial load when dialog opens
-  useEffect(() => {
-    if (open) {
-      searchCustomers('');
-    }
-  }, [open, searchCustomers]);
-
-  // Debounced search when typing
-  useEffect(() => {
-    if (!open) return;
-
-    const timer = setTimeout(() => {
-      searchCustomers(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, searchCustomers, open]);
-
-  // Reset when dialog closes
+  // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
+      skipFetchRef.current = true;
       setSearch('');
       setResults([]);
       setHighlightedIndex(0);
       setHasSearched(false);
+      setIsSearching(false);
     } else {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      skipFetchRef.current = false;
+      // Focus input when dialog opens
+      const timer = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => clearTimeout(timer);
     }
   }, [open]);
+
+  // Search effect with debounce and abort controller
+  useEffect(() => {
+    // Don't fetch if dialog is closed or we're in reset mode
+    if (!open || skipFetchRef.current) {
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    const fetchCustomers = async () => {
+      setIsSearching(true);
+      setHasSearched(true);
+      try {
+        const params = new URLSearchParams({
+          limit: '20',
+          isActive: 'true',
+        });
+        if (search && search.trim()) {
+          params.set('search', search.trim());
+        }
+
+        const res = await fetch(`/api/customers?${params}`, {
+          signal: abortController.signal,
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          let customers = data.data?.items || [];
+          if (excludeIds.length > 0) {
+            customers = customers.filter((c: Customer) => !excludeIds.includes(c.id));
+          }
+          setResults(customers);
+          setHighlightedIndex(0);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+        console.error('Failed to search customers:', error);
+        setResults([]);
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsSearching(false);
+        }
+      }
+    };
+
+    // Debounce: immediate for initial load, 300ms for subsequent searches
+    const debounceTime = search === '' ? 0 : 300;
+    const timer = setTimeout(fetchCustomers, debounceTime);
+
+    return () => {
+      clearTimeout(timer);
+      abortController.abort();
+    };
+  }, [open, search, excludeIds]);
 
   // Keyboard navigation
   useEffect(() => {
