@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Plus, Inbox } from 'lucide-react';
+import { Inbox } from 'lucide-react';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 interface WorkOrder {
   id: number;
@@ -32,13 +33,35 @@ interface WorkOrder {
 }
 
 const statusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'planned', label: 'Planned' },
-  { value: 'released', label: 'Released' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: '', label: 'ทุกสถานะ' },
+  { value: 'planned', label: 'วางแผน' },
+  { value: 'released', label: 'ปล่อยงาน' },
+  { value: 'in_progress', label: 'กำลังผลิต' },
+  { value: 'completed', label: 'เสร็จสิ้น' },
+  { value: 'cancelled', label: 'ยกเลิก' },
 ];
+
+const getStatusLabel = (status: string): string => {
+  const found = statusOptions.find(s => s.value === status);
+  return found ? found.label : status.replace('_', ' ');
+};
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('th-TH');
+};
+
+const getPriorityVariant = (priority: number): 'danger' | 'warning' | 'default' => {
+  if (priority <= 3) return 'danger';
+  if (priority <= 6) return 'warning';
+  return 'default';
+};
+
+const getPriorityLabel = (priority: number): string => {
+  if (priority <= 3) return 'สูง';
+  if (priority <= 6) return 'กลาง';
+  return 'ต่ำ';
+};
 
 export default function WorkOrdersPage() {
   const router = useRouter();
@@ -46,87 +69,121 @@ export default function WorkOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const fetchWorkOrders = async () => {
+  const fetchWorkOrders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.set('search', search);
+      const params = new URLSearchParams();
+      params.set('limit', '1000');
       if (statusFilter) params.set('status', statusFilter);
 
       const res = await fetch(`/api/production/work-orders?${params}`);
       const data = await res.json();
 
       if (data.success) {
-        setWorkOrders(data.data?.items || []);
-        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+        let fetchedOrders = data.data?.items || [];
+
+        // Client-side search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedOrders = fetchedOrders.filter((wo: WorkOrder) =>
+            wo.woNumber?.toLowerCase().includes(searchLower) ||
+            wo.batchNumber?.toLowerCase().includes(searchLower) ||
+            wo.productCode?.toLowerCase().includes(searchLower) ||
+            wo.productName?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setWorkOrders(fetchedOrders);
       } else {
         console.error('API error:', data.error);
         setWorkOrders([]);
       }
     } catch (error) {
       console.error('Failed to fetch work orders:', error);
+      setWorkOrders([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, search]);
 
   useEffect(() => {
     fetchWorkOrders();
-  }, [pagination.page, statusFilter]);
+  }, [fetchWorkOrders]);
 
-  const handleSearch = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchWorkOrders();
+  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
+    if (e.data?.id) {
+      router.push(`/production/work-orders/${e.data.id}`);
+    }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('th-TH');
-  };
-
-  const getPriorityBadge = (priority: number) => {
-    if (priority <= 3) return <Badge variant="danger" dot>High</Badge>;
-    if (priority <= 6) return <Badge variant="warning" dot>Medium</Badge>;
-    return <Badge variant="default" dot>Low</Badge>;
-  };
-
-  const columns = [
-    { key: 'woNumber', header: 'WO Number' },
-    { key: 'batchNumber', header: 'Batch Number' },
-    { key: 'productCode', header: 'Product Code' },
-    { key: 'productName', header: 'Product Name' },
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
     {
-      key: 'plannedQuantity',
-      header: 'Planned Qty',
-      render: (wo: WorkOrder) => `${wo.plannedQuantity.toLocaleString()} ${wo.unit}`,
+      dataField: 'woNumber',
+      caption: 'เลขที่ WO',
+      width: 130,
+      cellRender: (cellInfo) => (
+        <span className="font-mono font-medium">{cellInfo.data.woNumber}</span>
+      ),
     },
     {
-      key: 'actualQuantity',
-      header: 'Actual Qty',
-      render: (wo: WorkOrder) =>
-        wo.actualQuantity ? `${wo.actualQuantity.toLocaleString()} ${wo.unit}` : '-',
+      dataField: 'batchNumber',
+      caption: 'เลขที่ Batch',
+      width: 130,
+      cellRender: (cellInfo) => (
+        <span className="font-mono">{cellInfo.data.batchNumber}</span>
+      ),
     },
     {
-      key: 'plannedStartDate',
-      header: 'Planned Start',
-      render: (wo: WorkOrder) => formatDate(wo.plannedStartDate),
+      dataField: 'productCode',
+      caption: 'รหัสสินค้า',
+      width: 120,
     },
     {
-      key: 'priority',
-      header: 'Priority',
-      render: (wo: WorkOrder) => getPriorityBadge(wo.priority),
+      dataField: 'productName',
+      caption: 'ชื่อสินค้า',
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (wo: WorkOrder) => (
-        <Badge variant={getStatusVariant(wo.status)} dot>
-          {wo.status.replace('_', ' ')}
+      dataField: 'plannedQuantity',
+      caption: 'จำนวนแผน',
+      width: 120,
+      dataType: 'number',
+      cellRender: (cellInfo) => `${cellInfo.data.plannedQuantity.toLocaleString()} ${cellInfo.data.unit}`,
+    },
+    {
+      dataField: 'actualQuantity',
+      caption: 'จำนวนจริง',
+      width: 120,
+      dataType: 'number',
+      cellRender: (cellInfo) =>
+        cellInfo.data.actualQuantity ? `${cellInfo.data.actualQuantity.toLocaleString()} ${cellInfo.data.unit}` : '-',
+    },
+    {
+      dataField: 'plannedStartDate',
+      caption: 'วันเริ่ม',
+      width: 100,
+      dataType: 'date',
+      cellRender: (cellInfo) => formatDate(cellInfo.data.plannedStartDate),
+    },
+    {
+      dataField: 'priority',
+      caption: 'ความสำคัญ',
+      width: 100,
+      dataType: 'number',
+      cellRender: (cellInfo) => (
+        <Badge variant={getPriorityVariant(cellInfo.data.priority)} dot>
+          {getPriorityLabel(cellInfo.data.priority)}
+        </Badge>
+      ),
+    },
+    {
+      dataField: 'status',
+      caption: 'สถานะ',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.status)} dot>
+          {getStatusLabel(cellInfo.data.status)}
         </Badge>
       ),
     },
@@ -136,93 +193,73 @@ export default function WorkOrdersPage() {
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Work Orders"
+          title="ใบสั่งผลิต"
           description="จัดการใบสั่งผลิต"
           actions={
-            <Button onClick={() => router.push('/production/work-orders/new')} leftIcon={<Plus className="h-4 w-4" />}>
-              Create Work Order
-            </Button>
+            <DxButton
+              text="สร้างใบสั่งผลิต"
+              icon="plus"
+              type="success"
+              onClick={() => router.push('/production/work-orders/new')}
+            />
           }
         />
 
+        {/* Filters Card */}
         <Card elevation="raised">
           <CardContent>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
-                <Input
-                  variant="search"
-                  placeholder="Search by WO number or batch..."
+                <DxTextBox
+                  placeholder="ค้นหาด้วยเลขที่ WO, Batch หรือสินค้า..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onSearch={handleSearch}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchWorkOrders()}
                 />
               </div>
               <div className="w-full md:w-48">
-                <Select
-                  options={statusOptions}
+                <DxSelectBox
+                  items={statusOptions}
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onValueChange={setStatusFilter}
+                  placeholder="สถานะ"
+                  showClearButton
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Table */}
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : workOrders.length > 0 ? (
-              <>
-                <Table
-                  columns={columns}
-                  data={workOrders}
-                  keyField="id"
-                  isLoading={isLoading}
-                  emptyMessage="No work orders found"
-                  striped
-                  hoverable
-                  onRowClick={(wo) => router.push(`/production/work-orders/${wo.id}`)}
-                />
-
-                {/* Pagination */}
-                {pagination.total > pagination.limit && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-500">
-                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                      {pagination.total} work orders
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page === 1}
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page * pagination.limit >= pagination.total}
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+        {/* Table Card */}
+        <Card elevation="raised">
+          <CardContent>
+            {workOrders.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={workOrders}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="work-orders"
+                searchPanel
+                columnChooser
+                virtualScrolling={workOrders.length > 100}
+                height={600}
+                onRowClick={handleRowClick}
+                noDataText="ไม่พบใบสั่งผลิต"
+              />
             ) : (
               <EmptyState
                 icon={<Inbox className="h-8 w-8" />}
-                title="No work orders found"
-                description="Get started by creating your first work order"
+                title="ไม่พบใบสั่งผลิต"
+                description="เริ่มต้นด้วยการสร้างใบสั่งผลิตใหม่"
                 action={{
-                  label: 'Create Work Order',
+                  label: 'สร้างใบสั่งผลิต',
                   onClick: () => router.push('/production/work-orders/new'),
                 }}
               />

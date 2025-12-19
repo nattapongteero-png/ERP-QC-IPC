@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Plus, Inbox } from 'lucide-react';
+import { Inbox } from 'lucide-react';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 interface PurchaseOrder {
   id: number;
@@ -25,15 +26,48 @@ interface PurchaseOrder {
 }
 
 const poStatuses = [
-  { value: '', label: 'All Statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'pending_approval', label: 'Pending Approval' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'sent', label: 'Sent to Vendor' },
-  { value: 'partial', label: 'Partially Received' },
-  { value: 'received', label: 'Received' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: '', label: 'ทุกสถานะ' },
+  { value: 'draft', label: 'ร่าง' },
+  { value: 'pending_approval', label: 'รออนุมัติ' },
+  { value: 'approved', label: 'อนุมัติแล้ว' },
+  { value: 'sent', label: 'ส่งให้ผู้ขาย' },
+  { value: 'partial', label: 'รับบางส่วน' },
+  { value: 'received', label: 'รับครบแล้ว' },
+  { value: 'cancelled', label: 'ยกเลิก' },
 ];
+
+const getStatusVariant = (status: string): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
+  switch (status) {
+    case 'approved':
+    case 'received':
+      return 'success';
+    case 'cancelled':
+      return 'danger';
+    case 'pending_approval':
+      return 'warning';
+    case 'partial':
+      return 'info';
+    default:
+      return 'default';
+  }
+};
+
+const getStatusLabel = (status: string): string => {
+  const found = poStatuses.find(s => s.value === status);
+  return found ? found.label : status.replace('_', ' ');
+};
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('th-TH');
+};
+
+const formatCurrency = (amount: number, currency: string = 'THB') => {
+  return new Intl.NumberFormat('th-TH', {
+    style: 'currency',
+    currency,
+  }).format(amount || 0);
+};
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
@@ -41,24 +75,30 @@ export default function PurchaseOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.set('search', search);
+      const params = new URLSearchParams();
+      params.set('limit', '1000');
       if (statusFilter) params.set('status', statusFilter);
 
       const res = await fetch(`/api/purchasing/orders?${params}`);
       const data = await res.json();
 
       if (data.success) {
-        setOrders(data.data?.items || []);
-        setPagination((prev) => ({ ...prev, total: data.data?.total || 0 }));
+        let fetchedOrders = data.data?.items || [];
+
+        // Client-side search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          fetchedOrders = fetchedOrders.filter((order: PurchaseOrder) =>
+            order.poNumber?.toLowerCase().includes(searchLower) ||
+            order.vendorName?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        setOrders(fetchedOrders);
       } else {
         setOrders([]);
       }
@@ -68,70 +108,60 @@ export default function PurchaseOrdersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, search]);
 
   useEffect(() => {
     fetchOrders();
-  }, [pagination.page, statusFilter]);
+  }, [fetchOrders]);
 
-  const handleSearch = () => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchOrders();
-  };
-
-  const getStatusVariant = (status: string): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
-    switch (status) {
-      case 'approved':
-      case 'received':
-        return 'success';
-      case 'cancelled':
-        return 'danger';
-      case 'pending_approval':
-        return 'warning';
-      case 'partial':
-        return 'info';
-      default:
-        return 'default';
+  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
+    if (e.data?.id) {
+      router.push(`/purchasing/orders/${e.data.id}`);
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('th-TH');
-  };
-
-  const formatCurrency = (amount: number, currency: string = 'THB') => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
-  const columns = [
-    { key: 'poNumber', header: 'PO Number' },
-    { key: 'vendorName', header: 'Vendor' },
+  // Define columns for DevExtreme DataGrid
+  const columns: DxDataGridColumn[] = [
     {
-      key: 'orderDate',
-      header: 'Order Date',
-      render: (order: PurchaseOrder) => formatDate(order.orderDate),
+      dataField: 'poNumber',
+      caption: 'เลขที่ PO',
+      width: 140,
+      cellRender: (cellInfo) => (
+        <span className="font-mono font-medium">{cellInfo.data.poNumber}</span>
+      ),
     },
     {
-      key: 'expectedDate',
-      header: 'Expected Date',
-      render: (order: PurchaseOrder) => formatDate(order.expectedDate),
+      dataField: 'vendorName',
+      caption: 'ผู้ขาย',
     },
     {
-      key: 'totalAmount',
-      header: 'Total Amount',
-      render: (order: PurchaseOrder) =>
-        formatCurrency(order.totalAmount, order.currency),
+      dataField: 'orderDate',
+      caption: 'วันที่สั่ง',
+      width: 120,
+      dataType: 'date',
+      cellRender: (cellInfo) => formatDate(cellInfo.data.orderDate),
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (order: PurchaseOrder) => (
-        <Badge variant={getStatusVariant(order.status)} dot>
-          {order.status.replace('_', ' ')}
+      dataField: 'expectedDate',
+      caption: 'วันที่คาดรับ',
+      width: 120,
+      dataType: 'date',
+      cellRender: (cellInfo) => formatDate(cellInfo.data.expectedDate),
+    },
+    {
+      dataField: 'totalAmount',
+      caption: 'ยอดรวม',
+      width: 150,
+      dataType: 'number',
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.totalAmount, cellInfo.data.currency),
+    },
+    {
+      dataField: 'status',
+      caption: 'สถานะ',
+      width: 130,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.status)} dot>
+          {getStatusLabel(cellInfo.data.status)}
         </Badge>
       ),
     },
@@ -141,95 +171,73 @@ export default function PurchaseOrdersPage() {
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Purchase Orders"
+          title="ใบสั่งซื้อ"
           description="จัดการใบสั่งซื้อ"
           actions={
-            <Button onClick={() => router.push('/purchasing/orders/new')} leftIcon={<Plus className="h-4 w-4" />}>
-              New PO
-            </Button>
+            <DxButton
+              text="สร้างใบสั่งซื้อ"
+              icon="plus"
+              type="success"
+              onClick={() => router.push('/purchasing/orders/new')}
+            />
           }
         />
 
+        {/* Filters Card */}
         <Card elevation="raised">
           <CardContent>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
-                <Input
-                  variant="search"
-                  placeholder="Search by PO number or vendor..."
+                <DxTextBox
+                  placeholder="ค้นหาด้วยเลขที่ PO หรือชื่อผู้ขาย..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onSearch={handleSearch}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchOrders()}
                 />
               </div>
               <div className="w-full md:w-48">
-                <Select
-                  options={poStatuses}
+                <DxSelectBox
+                  items={poStatuses}
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onValueChange={setStatusFilter}
+                  placeholder="สถานะ"
+                  showClearButton
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Table */}
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : orders.length > 0 ? (
-              <>
-                <Table
-                  columns={columns}
-                  data={orders}
-                  keyField="id"
-                  isLoading={isLoading}
-                  emptyMessage="No purchase orders found"
-                  onRowClick={(order) => router.push(`/purchasing/orders/${order.id}`)}
-                />
-
-                {/* Pagination */}
-                {pagination.total > pagination.limit && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-500">
-                      Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                      {pagination.total} orders
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page === 1}
-                        onClick={() =>
-                          setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
-                        }
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pagination.page * pagination.limit >= pagination.total}
-                        onClick={() =>
-                          setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
-                        }
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+        {/* Table Card */}
+        <Card elevation="raised">
+          <CardContent>
+            {orders.length > 0 || isLoading ? (
+              <DxDataGrid
+                dataSource={orders}
+                keyExpr="id"
+                columns={columns}
+                loading={isLoading}
+                sorting
+                filterRow
+                headerFilter
+                export
+                exportFileName="purchase-orders"
+                searchPanel
+                columnChooser
+                virtualScrolling={orders.length > 100}
+                height={600}
+                onRowClick={handleRowClick}
+                noDataText="ไม่พบใบสั่งซื้อ"
+              />
             ) : (
               <EmptyState
                 icon={<Inbox className="h-8 w-8" />}
-                title="No purchase orders found"
-                description="Get started by creating your first purchase order"
+                title="ไม่พบใบสั่งซื้อ"
+                description="เริ่มต้นด้วยการสร้างใบสั่งซื้อใหม่"
                 action={{
-                  label: 'New PO',
+                  label: 'สร้างใบสั่งซื้อ',
                   onClick: () => router.push('/purchasing/orders/new'),
                 }}
               />
