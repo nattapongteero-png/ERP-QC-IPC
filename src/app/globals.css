@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* DevExtreme Material Theme (Teal base) */
+@import "devextreme/dist/css/dx.material.teal.light.css";
+/* DevExtreme Emerald Color Override */
+@import "../../public/css/dx.emerald-override.css";
+
 /* ===========================
    CSS VARIABLES (Non-Utility)
    =========================== */

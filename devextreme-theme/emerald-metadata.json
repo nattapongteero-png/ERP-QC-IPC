@@ -1,0 +1,18 @@
+{
+  "items": [
+    { "key": "$base-accent", "value": "#059669" },
+    { "key": "$base-text-color", "value": "rgba(23, 23, 23, 0.87)" },
+    { "key": "$base-bg", "value": "#ffffff" },
+    { "key": "$base-border-color", "value": "#e5e5e5" },
+    { "key": "$button-success-bg", "value": "#059669" },
+    { "key": "$link-color", "value": "#059669" },
+    { "key": "$base-success", "value": "#059669" },
+    { "key": "$base-warning", "value": "#d97706" },
+    { "key": "$base-danger", "value": "#dc2626" },
+    { "key": "$base-info", "value": "#0284c7" }
+  ],
+  "baseTheme": "material.blue.light",
+  "outputColorScheme": "emerald",
+  "version": "25.1.7",
+  "assetsBasePath": "../node_modules/devextreme/dist/css/"
+}

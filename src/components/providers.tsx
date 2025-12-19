@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { ApiErrorProvider, useApiErrors } from '@/contexts/api-error-context';
 import { GlobalApiErrors } from '@/components/ui/global-api-errors';
+import { DevExtremeProvider } from '@/components/providers/devextreme-provider';
 
 // Component that intercepts fetch calls
 function FetchInterceptor({ children }: { children: React.ReactNode }) {
@@ -101,9 +102,11 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ApiErrorProvider>
-      <FetchInterceptor>{children}</FetchInterceptor>
-      <GlobalApiErrors />
-    </ApiErrorProvider>
+    <DevExtremeProvider>
+      <ApiErrorProvider>
+        <FetchInterceptor>{children}</FetchInterceptor>
+        <GlobalApiErrors />
+      </ApiErrorProvider>
+    </DevExtremeProvider>
   );
 }

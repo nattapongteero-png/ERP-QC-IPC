@@ -1,0 +1,172 @@
+/* DevExtreme Emerald Theme Override
+ * Base: material.teal.light
+ * Custom accent color: #059669 (Emerald 600)
+ */
+
+/* Base accent color overrides */
+:root {
+  --dx-accent-color: #059669;
+  --dx-primary-color: #059669;
+}
+
+/* Buttons */
+.dx-button-mode-contained.dx-button-success,
+.dx-button-mode-contained.dx-button-default {
+  background-color: #059669 !important;
+}
+
+.dx-button-mode-contained.dx-button-success:hover,
+.dx-button-mode-contained.dx-button-default:hover {
+  background-color: #047857 !important;
+}
+
+.dx-button-mode-outlined.dx-button-success,
+.dx-button-mode-text.dx-button-success {
+  color: #059669 !important;
+  border-color: #059669 !important;
+}
+
+/* DataGrid selection and focus */
+.dx-datagrid-rowsview .dx-selection.dx-row:not(.dx-row-focused) > td,
+.dx-datagrid-rowsview .dx-selection.dx-row:not(.dx-row-focused):hover > td {
+  background-color: rgba(5, 150, 105, 0.1) !important;
+}
+
+.dx-datagrid-rowsview .dx-row-focused > td {
+  background-color: rgba(5, 150, 105, 0.2) !important;
+}
+
+/* Links */
+.dx-link,
+a {
+  color: #059669;
+}
+
+.dx-link:hover,
+a:hover {
+  color: #047857;
+}
+
+/* Checkbox and Switch */
+.dx-checkbox-checked .dx-checkbox-icon,
+.dx-switch-on-value .dx-switch-handle::before {
+  background-color: #059669 !important;
+}
+
+/* TextBox, SelectBox, DateBox focus state */
+.dx-texteditor.dx-state-focused::before,
+.dx-texteditor.dx-state-active::before {
+  border-bottom-color: #059669 !important;
+}
+
+.dx-texteditor.dx-state-focused .dx-texteditor-label span {
+  color: #059669 !important;
+}
+
+/* Tabs */
+.dx-tabs .dx-tab-selected {
+  border-bottom-color: #059669 !important;
+}
+
+.dx-tabs .dx-tab-selected .dx-tab-text {
+  color: #059669 !important;
+}
+
+/* Pager */
+.dx-pager .dx-page-index.dx-selection {
+  background-color: #059669 !important;
+}
+
+/* DatePicker selected date */
+.dx-calendar-cell.dx-calendar-selected-date,
+.dx-calendar-cell.dx-calendar-selected-date.dx-calendar-contoured-date {
+  background-color: #059669 !important;
+  color: white !important;
+}
+
+.dx-calendar-cell.dx-calendar-today {
+  color: #059669 !important;
+  border-color: #059669 !important;
+}
+
+/* LoadIndicator */
+.dx-loadindicator-segment {
+  background-color: #059669 !important;
+}
+
+/* Popup title */
+.dx-popup-title {
+  border-bottom-color: #059669 !important;
+}
+
+/* Progress Bar */
+.dx-progressbar-range {
+  background-color: #059669 !important;
+}
+
+/* Slider */
+.dx-slider-range.dx-slider-range-visible {
+  background-color: #059669 !important;
+}
+
+.dx-slider-handle {
+  background-color: #059669 !important;
+}
+
+/* Toolbar */
+.dx-toolbar .dx-button.dx-button-mode-contained {
+  background-color: #059669 !important;
+}
+
+/* Toast success */
+.dx-toast-success {
+  background-color: #059669 !important;
+}
+
+/* Badge/Tag styling */
+.dx-tag {
+  background-color: rgba(5, 150, 105, 0.1) !important;
+  color: #059669 !important;
+  border-color: #059669 !important;
+}
+
+/* Drawer navigation active item */
+.dx-drawer .dx-list-item.dx-list-item-selected {
+  background-color: rgba(5, 150, 105, 0.1) !important;
+}
+
+.dx-drawer .dx-list-item.dx-list-item-selected .dx-list-item-content {
+  color: #059669 !important;
+}
+
+/* General focus state for accessibility */
+.dx-state-focused {
+  outline: 2px solid rgba(5, 150, 105, 0.5) !important;
+  outline-offset: 2px !important;
+}
+
+/* Form validation success state */
+.dx-texteditor.dx-valid::after {
+  border-color: #059669 !important;
+}
+
+/* FilterBuilder */
+.dx-filterbuilder-action-icon {
+  color: #059669 !important;
+}
+
+/* Menu/ContextMenu */
+.dx-menu-item.dx-state-focused,
+.dx-context-menu .dx-menu-item.dx-state-focused {
+  background-color: rgba(5, 150, 105, 0.1) !important;
+}
+
+/* Scheduler */
+.dx-scheduler-appointment {
+  background-color: #059669 !important;
+}
+
+/* TreeView selection */
+.dx-treeview-item.dx-state-selected > .dx-treeview-item-content {
+  color: #059669 !important;
+}
