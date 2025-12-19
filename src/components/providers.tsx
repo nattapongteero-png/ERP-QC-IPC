@@ -23,6 +23,9 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
         return originalFetch.apply(this, args);
       }
 
+      // Skip error logging for auth endpoints (401 is expected when not logged in)
+      const isAuthEndpoint = url.startsWith('/api/auth/');
+
       try {
         const response = await originalFetch.apply(this, args);
 
@@ -32,8 +35,8 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
         try {
           const data = await clonedResponse.json();
 
-          // Check if the API returned an error
-          if (!data.success && data.error) {
+          // Check if the API returned an error (skip auth endpoints - 401 is expected)
+          if (!data.success && data.error && !isAuthEndpoint) {
             console.group('🚨 API Error');
             console.error('URL:', url);
             console.error('Method:', method);
