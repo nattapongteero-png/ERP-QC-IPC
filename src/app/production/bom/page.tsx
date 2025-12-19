@@ -119,16 +119,19 @@ export default function BOMListPage() {
       dataField: 'productCode',
       caption: 'รหัสสินค้า',
       width: 130,
+      hideOnMobile: true,
     },
     {
       dataField: 'productName',
       caption: 'ชื่อสินค้า',
+      hideOnMobile: true,
     },
     {
       dataField: 'standardBatchSize',
       caption: 'ขนาด Batch',
       width: 130,
       dataType: 'number',
+      hideOnMobile: true,
       cellRender: (cellInfo) =>
         `${cellInfo.data.standardBatchSize?.toLocaleString() || '-'} ${cellInfo.data.batchUnit || ''}`,
     },
@@ -136,6 +139,7 @@ export default function BOMListPage() {
       dataField: 'version',
       caption: 'เวอร์ชัน',
       width: 100,
+      hideOnMobile: true,
     },
     {
       dataField: 'status',
@@ -152,6 +156,7 @@ export default function BOMListPage() {
       caption: 'สร้างเมื่อ',
       width: 110,
       dataType: 'date',
+      hideOnMobile: true,
       cellRender: (cellInfo) => formatDate(cellInfo.data.createdAt),
     },
   ];
@@ -217,6 +222,8 @@ export default function BOMListPage() {
                 columnChooser
                 virtualScrolling={boms.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบสูตรการผลิต"
               />

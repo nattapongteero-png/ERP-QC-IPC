@@ -4,6 +4,13 @@ import { useEffect, useRef } from 'react';
 import { locale, loadMessages } from "devextreme/localization";
 import config from 'devextreme/core/config';
 
+// DevExtreme CSS - imported via JS to avoid @import order issues in bundled CSS
+import 'devextreme/dist/css/dx.material.teal.light.css';
+// Emerald theme color overrides
+import '@/styles/dx.emerald-override.css';
+// Mobile-specific overrides
+import '@/styles/dx.mobile-overrides.css';
+
 // Thai translations
 import thMessages from '@/localization/th.json';
 

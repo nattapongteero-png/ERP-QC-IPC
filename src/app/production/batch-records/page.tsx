@@ -152,6 +152,7 @@ export default function BatchRecordsPage() {
       dataField: 'stepName',
       caption: 'ขั้นตอน',
       width: 200,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium">#{cellInfo.data.sequence} - {cellInfo.data.stepName}</p>
@@ -164,6 +165,7 @@ export default function BatchRecordsPage() {
       caption: 'เวลา',
       width: 180,
       dataType: 'datetime',
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="text-sm">
           <p>เริ่ม: {formatDateTime(cellInfo.data.startTime)}</p>
@@ -175,12 +177,14 @@ export default function BatchRecordsPage() {
       dataField: 'performerName',
       caption: 'ผู้ปฏิบัติงาน',
       width: 130,
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.performerName || '-',
     },
     {
       dataField: 'verifierName',
       caption: 'ผู้ตรวจสอบ',
       width: 130,
+      hideOnMobile: true,
       cellRender: (cellInfo) => cellInfo.data.verifierName || '-',
     },
     {
@@ -204,7 +208,7 @@ export default function BatchRecordsPage() {
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card elevation="raised">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -304,6 +308,8 @@ export default function BatchRecordsPage() {
                 columnChooser
                 virtualScrolling={records.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบบันทึกการผลิต"
               />

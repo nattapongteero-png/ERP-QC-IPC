@@ -20,6 +20,8 @@ import type { DataGridTypes } from 'devextreme-react/data-grid';
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
+import { useMemo } from 'react';
+import { useMobile } from '@/hooks/use-mobile';
 
 export interface DxDataGridColumn {
   /** Field name in data source */
@@ -58,6 +60,10 @@ export interface DxDataGridColumn {
   sortOrder?: 'asc' | 'desc';
   /** Sort index */
   sortIndex?: number;
+  /** Hide this column on mobile devices (< 768px) */
+  hideOnMobile?: boolean;
+  /** Hide this column on tablets (768px - 1024px) */
+  hideOnTablet?: boolean;
 }
 
 export interface DxDataGridProps<T = Record<string, unknown>> {
@@ -130,6 +136,12 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   /** Reference to DataGrid component for accessing methods */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dataGridRef?: React.RefObject<any>;
+  /** Height on mobile devices (< 768px) */
+  mobileHeight?: number | string;
+  /** Height on tablets (768px - 1024px) */
+  tabletHeight?: number | string;
+  /** Enable responsive column hiding based on hideOnMobile/hideOnTablet column props */
+  responsiveColumns?: boolean;
 }
 
 /**
@@ -190,7 +202,33 @@ export function DxDataGrid<T = Record<string, unknown>>({
   loading = false,
   toolbarItems,
   dataGridRef,
+  mobileHeight,
+  tabletHeight,
+  responsiveColumns = true,
 }: DxDataGridProps<T>) {
+  // Detect device type for responsive behavior
+  const { isMobile, isTablet } = useMobile();
+
+  // Calculate responsive height
+  const responsiveHeight = useMemo(() => {
+    if (isMobile && mobileHeight) return mobileHeight;
+    if (isTablet && tabletHeight) return tabletHeight;
+    return height;
+  }, [isMobile, isTablet, mobileHeight, tabletHeight, height]);
+
+  // Filter columns based on device type when responsiveColumns is enabled
+  const responsiveFilteredColumns = useMemo(() => {
+    if (!responsiveColumns) return columns;
+
+    return columns.filter((col) => {
+      // Hide on mobile if specified
+      if (isMobile && col.hideOnMobile) return false;
+      // Hide on tablet if specified
+      if (isTablet && col.hideOnTablet) return false;
+      return true;
+    });
+  }, [columns, isMobile, isTablet, responsiveColumns]);
+
   const handleExporting = (e: DataGridTypes.ExportingEvent) => {
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet('Data');
@@ -219,7 +257,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
       allowColumnResizing={allowColumnResizing}
       columnAutoWidth={columnAutoWidth}
       wordWrapEnabled={wordWrapEnabled}
-      height={height}
+      height={responsiveHeight}
       width={width}
       noDataText={noDataText}
       onRowClick={onRowClick}
@@ -280,7 +318,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
         </Toolbar>
       )}
 
-      {columns.map((col) => (
+      {responsiveFilteredColumns.map((col) => (
         <Column
           key={col.dataField}
           dataField={col.dataField}

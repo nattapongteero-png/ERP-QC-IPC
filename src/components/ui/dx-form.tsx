@@ -3,6 +3,15 @@
 import Form, { SimpleItem, GroupItem, EmptyItem, ButtonItem, Label } from 'devextreme-react/form';
 import type { FormTypes } from 'devextreme-react/form';
 import validationEngine from 'devextreme/ui/validation_engine';
+import { useMemo } from 'react';
+
+// Default responsive column counts for different screen sizes
+const DEFAULT_RESPONSIVE_COLUMNS = {
+  xs: 1,  // Mobile (< 576px) - single column
+  sm: 1,  // Small tablet (576-768px) - single column
+  md: 2,  // Tablet (768-992px) - two columns
+  lg: 2,  // Desktop (> 992px) - two columns
+};
 
 export interface DxFormProps {
   /** Form data object */
@@ -50,6 +59,8 @@ export interface DxFormProps {
   /** Reference to Form component for accessing methods */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formRef?: React.RefObject<any>;
+  /** Enable responsive column layout (uses colCountByScreen defaults if not provided) */
+  responsive?: boolean;
 }
 
 /**
@@ -97,7 +108,15 @@ export function DxForm({
   className,
   children,
   formRef,
+  responsive = true,
 }: DxFormProps) {
+  // Apply responsive column defaults when responsive is enabled
+  const effectiveColCountByScreen = useMemo(() => {
+    if (colCountByScreen) return colCountByScreen;
+    if (responsive) return DEFAULT_RESPONSIVE_COLUMNS;
+    return undefined;
+  }, [colCountByScreen, responsive]);
+
   const handleFieldDataChanged = (e: FormTypes.FieldDataChangedEvent) => {
     if (onFormDataChange && e.dataField) {
       onFormDataChange({
@@ -116,7 +135,7 @@ export function DxForm({
       formData={formData}
       onFieldDataChanged={handleFieldDataChanged}
       colCount={colCount}
-      colCountByScreen={colCountByScreen}
+      colCountByScreen={effectiveColCountByScreen}
       labelLocation={labelLocation}
       alignItemLabels
       alignItemLabelsInAllGroups

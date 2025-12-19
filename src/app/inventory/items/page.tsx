@@ -149,6 +149,8 @@ export default function ItemsPage() {
   };
 
   // Define columns for DevExtreme DataGrid
+  // hideOnMobile: Hide on phones (<768px)
+  // hideOnTablet: Hide on tablets (768-1024px)
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'code',
@@ -175,6 +177,7 @@ export default function ItemsPage() {
       dataField: 'type',
       caption: 'ประเภท',
       width: 140,
+      hideOnMobile: true, // Hide on mobile - type is shown via icon in code column
       cellRender: (cellInfo) => (
         <Badge variant={getTypeVariant(cellInfo.data.type)} dot>
           {getTypeLabel(cellInfo.data.type)}
@@ -185,12 +188,15 @@ export default function ItemsPage() {
       dataField: 'category',
       caption: 'หมวดหมู่',
       width: 120,
+      hideOnMobile: true, // Less important on mobile
+      hideOnTablet: true, // Also hide on tablet
       cellRender: (cellInfo) => cellInfo.data.category || '-',
     },
     {
       dataField: 'primaryUnit',
       caption: 'หน่วย',
       width: 80,
+      hideOnMobile: true, // Unit shown in onHand column
     },
     {
       dataField: 'onHand',
@@ -219,12 +225,15 @@ export default function ItemsPage() {
       caption: 'อายุการเก็บ',
       width: 100,
       dataType: 'number',
+      hideOnMobile: true, // Less important on mobile
+      hideOnTablet: true, // Also hide on tablet
       cellRender: (cellInfo) => cellInfo.data.shelfLifeDays ? `${cellInfo.data.shelfLifeDays} วัน` : '-',
     },
     {
       dataField: 'isActive',
       caption: 'สถานะ',
       width: 100,
+      hideOnMobile: true, // Can see in detail page
       cellRender: (cellInfo) => (
         <Badge variant={cellInfo.data.isActive ? 'success' : 'danger'} dot>
           {cellInfo.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
@@ -293,7 +302,7 @@ export default function ItemsPage() {
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {summaryCards.map((card, index) => (
             <Card
               key={card.label}
@@ -362,6 +371,8 @@ export default function ItemsPage() {
                 columnChooser
                 virtualScrolling={items.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบรายการสินค้า"
               />

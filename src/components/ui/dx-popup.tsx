@@ -2,6 +2,8 @@
 
 import Popup from 'devextreme-react/popup';
 import type { PopupTypes } from 'devextreme-react/popup';
+import { useMemo } from 'react';
+import { useMobile } from '@/hooks/use-mobile';
 
 export interface DxPopupProps {
   /** Visibility state */
@@ -42,6 +44,10 @@ export interface DxPopupProps {
   resizeEnabled?: boolean;
   /** Full screen */
   fullScreen?: boolean;
+  /** Auto fullscreen on mobile devices (< 768px) */
+  fullScreenOnMobile?: boolean;
+  /** Auto fullscreen on tablet devices (768px - 1024px) */
+  fullScreenOnTablet?: boolean;
   /** Animation config */
   animation?: PopupTypes.Properties['animation'];
   /** Position config */
@@ -124,6 +130,8 @@ export function DxPopup({
   dragEnabled = true,
   resizeEnabled = false,
   fullScreen = false,
+  fullScreenOnMobile = true,
+  fullScreenOnTablet = false,
   animation,
   position = 'center' as PopupTypes.Properties['position'],
   shading = true,
@@ -134,6 +142,23 @@ export function DxPopup({
   children,
   toolbarItems,
 }: DxPopupProps) {
+  // Detect device type for responsive fullscreen
+  const { isMobile, isTablet } = useMobile();
+
+  // Calculate effective fullscreen mode
+  const effectiveFullScreen = useMemo(() => {
+    if (fullScreen) return true;
+    if (isMobile && fullScreenOnMobile) return true;
+    if (isTablet && fullScreenOnTablet) return true;
+    return false;
+  }, [fullScreen, isMobile, isTablet, fullScreenOnMobile, fullScreenOnTablet]);
+
+  // Disable dragging on mobile when fullscreen
+  const effectiveDragEnabled = useMemo(() => {
+    if (effectiveFullScreen) return false;
+    return dragEnabled;
+  }, [effectiveFullScreen, dragEnabled]);
+
   const handleHiding = () => {
     if (onHiding) {
       onHiding();
@@ -160,9 +185,9 @@ export function DxPopup({
       maxHeight={maxHeight}
       minWidth={minWidth}
       minHeight={minHeight}
-      dragEnabled={dragEnabled}
+      dragEnabled={effectiveDragEnabled}
       resizeEnabled={resizeEnabled}
-      fullScreen={fullScreen}
+      fullScreen={effectiveFullScreen}
       animation={animation}
       position={position}
       shading={shading}

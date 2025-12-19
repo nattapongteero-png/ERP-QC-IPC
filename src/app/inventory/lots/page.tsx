@@ -419,6 +419,7 @@ export default function LotsPage() {
       caption: 'มูลค่ารวม',
       width: 150,
       dataType: 'number',
+      hideOnMobile: true,
       cellRender: (cellInfo) => {
         const totalCost = (cellInfo.data.quantity || 0) * (cellInfo.data.cost || 0);
         return (
@@ -435,12 +436,14 @@ export default function LotsPage() {
       dataField: 'warehouseName',
       caption: 'คลัง',
       width: 120,
+      hideOnMobile: true,
     },
     {
       dataField: 'expiryDate',
       caption: 'วันหมดอายุ',
       width: 140,
       dataType: 'date',
+      hideOnMobile: true,
       cellRender: (cellInfo) => {
         const days = getDaysUntilExpiry(cellInfo.data.expiryDate);
         return (
@@ -525,7 +528,7 @@ export default function LotsPage() {
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card elevation="raised">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -625,6 +628,8 @@ export default function LotsPage() {
                 columnChooser
                 virtualScrolling={lots.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบ Lot"
               />
