@@ -5,9 +5,17 @@ import Validator, { RequiredRule } from 'devextreme-react/validator';
 import type { SelectBoxTypes } from 'devextreme-react/select-box';
 
 export interface DxSelectBoxOption<T = string> {
-  value: T;
-  label: string;
+  /** Value field (use 'value' by default, or any field with valueExpr) */
+  value?: T;
+  /** Optional id field (use with valueExpr="id") */
+  id?: T extends number ? number : T;
+  /** Display text (use 'label' or 'text' based on displayExpr) */
+  label?: string;
+  /** Display text (alternative to label, use with displayExpr="text") */
+  text?: string;
   disabled?: boolean;
+  /** Allow additional properties for custom displayExpr/valueExpr */
+  [key: string]: unknown;
 }
 
 export interface DxSelectBoxProps<T = string> {

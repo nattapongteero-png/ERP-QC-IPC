@@ -14,8 +14,8 @@ describe('Inventory Service', () => {
     
     // Create test data
     await db.insert(schema.sqliteItems).values([
-      { id: 100, code: 'TEST-RM-001', nameTh: 'วัตถุดิบทดสอบ 1', type: 'raw_material', primaryUnit: 'kg', isLotControlled: true, isFefo: true, shelfLifeDays: 365 },
-      { id: 101, code: 'TEST-RM-002', nameTh: 'วัตถุดิบทดสอบ 2', type: 'raw_material', primaryUnit: 'kg', isLotControlled: true, isFefo: true, shelfLifeDays: 180 },
+      { id: 100, code: 'TEST-RM-001', nameTh: 'วัตถุดิบทดสอบ 1', type: 'raw_material', primaryUnit: 'kg', isLotControlled: true, isFEFO: true, shelfLifeDays: 365 },
+      { id: 101, code: 'TEST-RM-002', nameTh: 'วัตถุดิบทดสอบ 2', type: 'raw_material', primaryUnit: 'kg', isLotControlled: true, isFEFO: true, shelfLifeDays: 180 },
     ]);
 
     await db.insert(schema.sqliteWarehouses).values([

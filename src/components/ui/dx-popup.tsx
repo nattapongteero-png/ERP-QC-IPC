@@ -8,6 +8,8 @@ export interface DxPopupProps {
   visible: boolean;
   /** Visibility change handler */
   onVisibleChange?: (visible: boolean) => void;
+  /** Hiding event handler (alias for onVisibleChange(false)) */
+  onHiding?: () => void;
   /** Hidden event handler */
   onHidden?: (e: PopupTypes.HiddenEvent) => void;
   /** Shown event handler */
@@ -41,12 +43,9 @@ export interface DxPopupProps {
   /** Full screen */
   fullScreen?: boolean;
   /** Animation config */
-  animation?: {
-    show?: { type?: string; duration?: number };
-    hide?: { type?: string; duration?: number };
-  };
+  animation?: PopupTypes.Properties['animation'];
   /** Position config */
-  position?: 'center' | 'top' | 'bottom' | { my?: string; at?: string; of?: string | Element };
+  position?: PopupTypes.Properties['position'];
   /** Shading (overlay) */
   shading?: boolean;
   /** Shading color */
@@ -108,6 +107,7 @@ export interface DxPopupProps {
 export function DxPopup({
   visible,
   onVisibleChange,
+  onHiding,
   onHidden,
   onShown,
   title,
@@ -124,11 +124,8 @@ export function DxPopup({
   dragEnabled = true,
   resizeEnabled = false,
   fullScreen = false,
-  animation = {
-    show: { type: 'pop', duration: 200 },
-    hide: { type: 'pop', duration: 200 },
-  },
-  position = 'center',
+  animation,
+  position = 'center' as PopupTypes.Properties['position'],
   shading = true,
   shadingColor = 'rgba(0, 0, 0, 0.5)',
   container,
@@ -138,6 +135,9 @@ export function DxPopup({
   toolbarItems,
 }: DxPopupProps) {
   const handleHiding = () => {
+    if (onHiding) {
+      onHiding();
+    }
     if (onVisibleChange) {
       onVisibleChange(false);
     }

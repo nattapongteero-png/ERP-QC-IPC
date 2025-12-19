@@ -2,6 +2,7 @@
 
 import LoadIndicator from 'devextreme-react/load-indicator';
 import LoadPanel from 'devextreme-react/load-panel';
+import type { LoadPanelTypes } from 'devextreme-react/load-panel';
 
 export interface DxLoadIndicatorProps {
   /** Show indicator */
@@ -60,7 +61,7 @@ export interface DxLoadPanelProps {
   /** Container element to cover */
   container?: string | Element;
   /** Position config */
-  position?: 'center' | { my?: string; at?: string; of?: string | Element };
+  position?: LoadPanelTypes.Properties['position'];
   /** Width */
   width?: number | string;
   /** Height */
@@ -99,7 +100,7 @@ export function DxLoadPanel({
   shading = true,
   shadingColor = 'rgba(0, 0, 0, 0.4)',
   container,
-  position = 'center',
+  position = 'center' as LoadPanelTypes.Properties['position'],
   width = 'auto',
   height = 'auto',
   className,

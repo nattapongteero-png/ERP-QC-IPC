@@ -321,7 +321,7 @@ export function CustomerSearchDialog({
                       <DxButton
                         text="Select"
                         type="default"
-                        onClick={(e) => { e?.stopPropagation(); handleSelect(customer); }}
+                        onClick={(e) => { e?.event?.stopPropagation(); handleSelect(customer); }}
                       />
                     </div>
                   </div>

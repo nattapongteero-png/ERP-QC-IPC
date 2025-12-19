@@ -47,8 +47,9 @@ export interface DxFormProps {
   className?: string;
   /** Form content */
   children: React.ReactNode;
-  /** Reference to Form instance */
-  formRef?: React.RefObject<Form>;
+  /** Reference to Form component for accessing methods */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  formRef?: React.RefObject<any>;
 }
 
 /**
@@ -145,7 +146,7 @@ export { SimpleItem as DxFormItem, GroupItem as DxFormGroup, EmptyItem as DxForm
 // Utility function to validate a form group
 export function validateFormGroup(groupName: string): boolean {
   const result = validationEngine.validateGroup(groupName);
-  return result.isValid;
+  return result.isValid ?? false;
 }
 
 // Utility function to reset validation for a group

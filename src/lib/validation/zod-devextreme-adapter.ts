@@ -5,15 +5,12 @@ import { z } from 'zod';
  * Used by CustomRule validationCallback
  */
 interface ValidationCallbackData {
-  value: unknown;
-  rule: {
-    message?: string;
-    type: string;
-    isValid?: boolean;
-  };
-  validator: unknown;
-  column?: unknown;
-  data?: unknown;
+  value: string | number;
+  rule: Record<string, unknown>;
+  validator: Record<string, unknown>;
+  column?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  formItem?: Record<string, unknown>;
 }
 
 /**
@@ -42,7 +39,7 @@ export function zodValidationCallback<T extends z.ZodTypeAny>(
 
     if (!result.success) {
       // Use Zod's error message or custom message (Zod v4 uses .issues instead of .errors)
-      e.rule.message = options?.customMessage || result.error.issues[0]?.message || 'ค่าไม่ถูกต้อง';
+      (e.rule as { message?: string }).message = options?.customMessage || result.error.issues[0]?.message || 'ค่าไม่ถูกต้อง';
       return false;
     }
 

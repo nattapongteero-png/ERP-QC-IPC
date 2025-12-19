@@ -356,7 +356,7 @@ export function ItemSearchDialog({
                       <DxButton
                         text="Select"
                         type="default"
-                        onClick={(e) => { e?.stopPropagation(); handleSelect(item); }}
+                        onClick={(e) => { e?.event?.stopPropagation(); handleSelect(item); }}
                       />
                     </div>
                   </div>

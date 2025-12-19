@@ -363,9 +363,7 @@ export default function BatchRecordDetailPage() {
             ))}
           </div>
           <DxButton
-            text="Next Step"
-            icon="chevronright"
-            iconPosition="right"
+            text="Next Step →"
             type="normal"
             stylingMode="outlined"
             disabled={!nextStep}

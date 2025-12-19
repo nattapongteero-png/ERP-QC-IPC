@@ -7,13 +7,13 @@ import type { DateBoxTypes } from 'devextreme-react/date-box';
 export type DxDateBoxType = 'date' | 'time' | 'datetime';
 
 export interface DxDateBoxProps {
-  /** Current value */
-  value?: Date | string | null;
+  /** Current value (string in ISO format YYYY-MM-DD) */
+  value?: string;
   /** Default value (uncontrolled) */
   defaultValue?: Date | string;
-  /** Change handler */
-  onValueChange?: (value: Date | null) => void;
-  /** Change handler with event */
+  /** Change handler - returns ISO date string (YYYY-MM-DD) or empty string */
+  onValueChange?: (value: string) => void;
+  /** Change handler with event (returns Date object) */
   onValueChanged?: (e: DateBoxTypes.ValueChangedEvent) => void;
   /** Type of picker */
   type?: DxDateBoxType;
@@ -130,7 +130,9 @@ export function DxDateBox({
 
   const handleValueChanged = (e: DateBoxTypes.ValueChangedEvent) => {
     if (onValueChange) {
-      onValueChange(e.value as Date | null);
+      const dateValue = e.value as Date | null;
+      // Always convert Date to ISO string (YYYY-MM-DD) for consistent string-based state
+      onValueChange(dateValue ? dateValue.toISOString().split('T')[0] : '');
     }
     if (onValueChanged) {
       onValueChanged(e);

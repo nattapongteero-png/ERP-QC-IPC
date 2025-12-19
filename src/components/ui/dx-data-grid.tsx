@@ -23,9 +23,9 @@ import { saveAs } from 'file-saver';
 
 export interface DxDataGridColumn {
   /** Field name in data source */
-  dataField: string;
+  dataField?: string;
   /** Column header caption */
-  caption: string;
+  caption?: string;
   /** Data type */
   dataType?: 'string' | 'number' | 'date' | 'boolean' | 'object' | 'datetime';
   /** Column width */
@@ -127,8 +127,9 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   loading?: boolean;
   /** Custom toolbar items */
   toolbarItems?: React.ReactNode;
-  /** Reference to DataGrid instance */
-  dataGridRef?: React.RefObject<DataGrid<T, string | number>>;
+  /** Reference to DataGrid component for accessing methods */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dataGridRef?: React.RefObject<any>;
 }
 
 /**

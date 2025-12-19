@@ -794,13 +794,12 @@ export default function LotsPage() {
                 วันผลิต
               </label>
               <DxDateBox
-                value={formData.manufacturingDate ? new Date(formData.manufacturingDate) : null}
+                value={formData.manufacturingDate || ''}
                 onValueChange={(v) => {
-                  const dateStr = v ? v.toISOString().split('T')[0] : '';
-                  setFormData(prev => ({ ...prev, manufacturingDate: dateStr }));
+                  setFormData(prev => ({ ...prev, manufacturingDate: v }));
                   if (formErrors.manufacturingDate) setFormErrors(prev => ({ ...prev, manufacturingDate: '' }));
                 }}
-                max={formData.expiryDate ? new Date(formData.expiryDate) : undefined}
+                max={formData.expiryDate || undefined}
               />
               {formErrors.manufacturingDate && (
                 <p className="text-sm text-red-500 mt-1">{formErrors.manufacturingDate}</p>
@@ -811,13 +810,12 @@ export default function LotsPage() {
                 วันหมดอายุ <span className="text-red-500">*</span>
               </label>
               <DxDateBox
-                value={formData.expiryDate ? new Date(formData.expiryDate) : null}
+                value={formData.expiryDate || ''}
                 onValueChange={(v) => {
-                  const dateStr = v ? v.toISOString().split('T')[0] : '';
-                  setFormData(prev => ({ ...prev, expiryDate: dateStr }));
+                  setFormData(prev => ({ ...prev, expiryDate: v }));
                   if (formErrors.expiryDate) setFormErrors(prev => ({ ...prev, expiryDate: '' }));
                 }}
-                min={formData.manufacturingDate ? new Date(formData.manufacturingDate) : undefined}
+                min={formData.manufacturingDate || undefined}
               />
               {formErrors.expiryDate && (
                 <p className="text-sm text-red-500 mt-1">{formErrors.expiryDate}</p>
@@ -828,10 +826,9 @@ export default function LotsPage() {
                 วันรับสินค้า
               </label>
               <DxDateBox
-                value={formData.receivedDate ? new Date(formData.receivedDate) : null}
+                value={formData.receivedDate || ''}
                 onValueChange={(v) => {
-                  const dateStr = v ? v.toISOString().split('T')[0] : '';
-                  setFormData(prev => ({ ...prev, receivedDate: dateStr }));
+                  setFormData(prev => ({ ...prev, receivedDate: v }));
                 }}
               />
             </div>
