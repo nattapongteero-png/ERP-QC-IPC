@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
-import { MoreVertical, Edit, Trash2, CheckCircle, XCircle, Archive, Copy, Plus, DollarSign } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, CheckCircle, XCircle, Archive, Copy, Plus, DollarSign, ChevronDown } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 
 interface BOMLine {
@@ -75,6 +75,23 @@ export default function BOMDetailPage() {
   const [bom, setBom] = useState<BOMDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(event.target as Node)) {
+        setShowStatusMenu(false);
+      }
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setShowActionsMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -577,9 +594,43 @@ export default function BOMDetailPage() {
                 onClick={() => router.push('/production/bom')}
               />
               <h1 className="text-2xl font-bold text-gray-900">{bom.code}</h1>
-              <Badge variant={getStatusVariant(bom.status)}>
-                {bom.status}
-              </Badge>
+              {/* Status with dropdown for changing */}
+              <div className="relative" ref={statusMenuRef}>
+                <button
+                  onClick={() => setShowStatusMenu(!showStatusMenu)}
+                  className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                  title="Click to change status"
+                >
+                  <Badge variant={getStatusVariant(bom.status)}>
+                    {bom.status}
+                  </Badge>
+                  {statusActions.length > 0 && (
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  )}
+                </button>
+                {showStatusMenu && statusActions.length > 0 && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+                    <div className="py-1">
+                      <p className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Change Status
+                      </p>
+                      {statusActions.map((action) => (
+                        <button
+                          key={action.status}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-700"
+                          onClick={() => {
+                            openStatusDialog(action.status);
+                            setShowStatusMenu(false);
+                          }}
+                        >
+                          <action.icon className="h-4 w-4" />
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <p className="text-gray-600 mt-1">{bom.name}</p>
           </div>
@@ -589,11 +640,12 @@ export default function BOMDetailPage() {
               type="default"
               onClick={() => router.push(`/production/work-orders/new?bomId=${bom.id}`)}
             />
-            <div className="relative">
+            <div className="relative" ref={actionsMenuRef}>
               <DxButton
                 icon="overflow"
                 type="normal"
                 stylingMode="outlined"
+                hint="More actions"
                 onClick={() => setShowActionsMenu(!showActionsMenu)}
               />
               {showActionsMenu && (
