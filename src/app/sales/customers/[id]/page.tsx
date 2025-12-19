@@ -4,19 +4,14 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxPopup } from '@/components/ui/dx-popup';
+import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
-import { Table } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import {
   Building2,
@@ -28,9 +23,6 @@ import {
   ShoppingBag,
   CheckCircle,
   AlertCircle,
-  Edit,
-  ArrowLeft,
-  Trash2,
   Calendar,
 } from 'lucide-react';
 
@@ -301,12 +293,12 @@ export default function CustomerDetailPage({
           <p className="text-gray-500 mt-2">
             The requested customer could not be found.
           </p>
-          <Button
-            className="mt-4"
+          <DxButton
+            text="Back to Customers"
+            type="default"
             onClick={() => router.push('/sales/customers')}
-          >
-            Back to Customers
-          </Button>
+            className="mt-4"
+          />
         </div>
       </MainLayout>
     );
@@ -314,33 +306,209 @@ export default function CustomerDetailPage({
 
   const { customer, recentSalesOrders, summary } = data;
 
-  const soColumns = [
-    { key: 'soNumber', header: 'SO Number' },
+  const soColumns: DxDataGridColumn[] = [
+    { dataField: 'soNumber', caption: 'SO Number', width: 150 },
     {
-      key: 'orderDate',
-      header: 'Order Date',
-      render: (so: SalesOrder) => formatDate(so.orderDate),
+      dataField: 'orderDate',
+      caption: 'Order Date',
+      width: 120,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.orderDate),
     },
     {
-      key: 'requiredDate',
-      header: 'Required Date',
-      render: (so: SalesOrder) => formatDate(so.requiredDate),
+      dataField: 'requiredDate',
+      caption: 'Required Date',
+      width: 120,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.requiredDate),
     },
     {
-      key: 'totalAmount',
-      header: 'Total Amount',
-      render: (so: SalesOrder) => formatCurrency(so.totalAmount, so.currency),
+      dataField: 'totalAmount',
+      caption: 'Total Amount',
+      width: 150,
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.totalAmount, cellInfo.data.currency),
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (so: SalesOrder) => (
-        <Badge variant={getStatusVariant(so.status)} dot>
-          {so.status.replace('_', ' ')}
+      dataField: 'status',
+      caption: 'Status',
+      width: 120,
+      cellRender: (cellInfo) => (
+        <Badge variant={getStatusVariant(cellInfo.data.status)} dot>
+          {cellInfo.data.status.replace('_', ' ')}
         </Badge>
       ),
     },
   ];
+
+  const renderEditDialogContent = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Customer Code <span className="text-red-500">*</span>
+          </label>
+          <DxTextBox
+            value={editForm.code}
+            onValueChange={(value) => setEditForm({ ...editForm, code: value })}
+            placeholder="Enter customer code"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Customer Name <span className="text-red-500">*</span>
+          </label>
+          <DxTextBox
+            value={editForm.name}
+            onValueChange={(value) => setEditForm({ ...editForm, name: value })}
+            placeholder="Enter customer name"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Contact Person
+          </label>
+          <DxTextBox
+            value={editForm.contactPerson}
+            onValueChange={(value) => setEditForm({ ...editForm, contactPerson: value })}
+            placeholder="Enter contact person"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Phone
+          </label>
+          <DxTextBox
+            value={editForm.phone}
+            onValueChange={(value) => setEditForm({ ...editForm, phone: value })}
+            placeholder="Enter phone number"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
+          <DxTextBox
+            value={editForm.email}
+            onValueChange={(value) => setEditForm({ ...editForm, email: value })}
+            placeholder="Enter email"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tax ID
+          </label>
+          <DxTextBox
+            value={editForm.taxId}
+            onValueChange={(value) => setEditForm({ ...editForm, taxId: value })}
+            placeholder="Enter tax ID"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Customer Type
+          </label>
+          <DxSelectBox
+            items={customerTypes}
+            value={editForm.customerType}
+            onValueChange={(value) => setEditForm({ ...editForm, customerType: value })}
+            placeholder="Select customer type"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Credit Limit
+          </label>
+          <DxTextBox
+            value={editForm.creditLimit}
+            onValueChange={(value) => setEditForm({ ...editForm, creditLimit: value })}
+            placeholder="Enter credit limit"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Credit Term (days)
+          </label>
+          <DxTextBox
+            value={editForm.creditTermDays}
+            onValueChange={(value) => setEditForm({ ...editForm, creditTermDays: value })}
+            placeholder="Enter credit term days"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Payment Terms
+          </label>
+          <DxTextBox
+            value={editForm.paymentTerms}
+            onValueChange={(value) => setEditForm({ ...editForm, paymentTerms: value })}
+            placeholder="Enter payment terms"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Address
+          </label>
+          <DxTextBox
+            value={editForm.address}
+            onValueChange={(value) => setEditForm({ ...editForm, address: value })}
+            placeholder="Enter address"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Notes
+          </label>
+          <DxTextBox
+            value={editForm.notes}
+            onValueChange={(value) => setEditForm({ ...editForm, notes: value })}
+            placeholder="Enter notes"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <DxCheckBox
+            value={editForm.isActive}
+            onValueChange={(value) => setEditForm({ ...editForm, isActive: value })}
+            text="Active"
+          />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <DxButton
+          text="Cancel"
+          type="normal"
+          stylingMode="outlined"
+          onClick={() => setIsEditDialogOpen(false)}
+        />
+        <DxButton
+          text={isSaving ? 'Saving...' : 'Save Changes'}
+          type="success"
+          onClick={handleSave}
+          disabled={isSaving}
+        />
+      </div>
+    </div>
+  );
+
+  const renderDeleteDialogContent = () => (
+    <div className="space-y-4">
+      <p className="text-gray-600">
+        Are you sure you want to delete this customer? If the customer has
+        related sales orders, it will be deactivated instead.
+      </p>
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <DxButton
+          text="Cancel"
+          type="normal"
+          stylingMode="outlined"
+          onClick={() => setIsDeleteDialogOpen(false)}
+        />
+        <DxButton
+          text={isSaving ? 'Deleting...' : 'Delete'}
+          type="danger"
+          onClick={handleDelete}
+          disabled={isSaving}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <MainLayout>
@@ -350,27 +518,25 @@ export default function CustomerDetailPage({
           description={`รหัส: ${customer.code}`}
           actions={
             <div className="flex gap-2">
-              <Button
-                variant="secondary"
+              <DxButton
+                text="Back"
+                icon="back"
+                type="normal"
+                stylingMode="outlined"
                 onClick={() => router.push('/sales/customers')}
-                leftIcon={<ArrowLeft className="h-4 w-4" />}
-              >
-                Back
-              </Button>
-              <Button
-                variant="secondary"
+              />
+              <DxButton
+                text="Edit"
+                icon="edit"
+                type="default"
                 onClick={() => setIsEditDialogOpen(true)}
-                leftIcon={<Edit className="h-4 w-4" />}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="danger"
+              />
+              <DxButton
+                text="Delete"
+                icon="trash"
+                type="danger"
                 onClick={() => setIsDeleteDialogOpen(true)}
-                leftIcon={<Trash2 className="h-4 w-4" />}
-              >
-                Delete
-              </Button>
+              />
             </div>
           }
         />
@@ -593,11 +759,17 @@ export default function CustomerDetailPage({
 
               <TabsContent value="orders" className="mt-0">
                 {recentSalesOrders.length > 0 ? (
-                  <Table
+                  <DxDataGrid
+                    dataSource={recentSalesOrders}
+                    keyExpr="id"
                     columns={soColumns}
-                    data={recentSalesOrders}
-                    keyField="id"
-                    onRowClick={(so) => router.push(`/sales/orders/${so.id}`)}
+                    showBorders
+                    height={400}
+                    onRowClick={(e) => {
+                      if (e.data) {
+                        router.push(`/sales/orders/${e.data.id}`);
+                      }
+                    }}
                   />
                 ) : (
                   <div className="text-center py-8 text-gray-500">
@@ -611,157 +783,28 @@ export default function CustomerDetailPage({
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Customer</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <Input
-              label="Customer Code"
-              value={editForm.code}
-              onChange={(e) =>
-                setEditForm({ ...editForm, code: e.target.value })
-              }
-              required
-            />
-            <Input
-              label="Customer Name"
-              value={editForm.name}
-              onChange={(e) =>
-                setEditForm({ ...editForm, name: e.target.value })
-              }
-              required
-            />
-            <Input
-              label="Contact Person"
-              value={editForm.contactPerson}
-              onChange={(e) =>
-                setEditForm({ ...editForm, contactPerson: e.target.value })
-              }
-            />
-            <Input
-              label="Phone"
-              value={editForm.phone}
-              onChange={(e) =>
-                setEditForm({ ...editForm, phone: e.target.value })
-              }
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={editForm.email}
-              onChange={(e) =>
-                setEditForm({ ...editForm, email: e.target.value })
-              }
-            />
-            <Input
-              label="Tax ID"
-              value={editForm.taxId}
-              onChange={(e) =>
-                setEditForm({ ...editForm, taxId: e.target.value })
-              }
-            />
-            <Select
-              label="Customer Type"
-              options={customerTypes}
-              value={editForm.customerType}
-              onChange={(e) =>
-                setEditForm({ ...editForm, customerType: e.target.value })
-              }
-            />
-            <Input
-              label="Credit Limit"
-              type="number"
-              value={editForm.creditLimit}
-              onChange={(e) =>
-                setEditForm({ ...editForm, creditLimit: e.target.value })
-              }
-            />
-            <Input
-              label="Credit Term (days)"
-              type="number"
-              value={editForm.creditTermDays}
-              onChange={(e) =>
-                setEditForm({ ...editForm, creditTermDays: e.target.value })
-              }
-            />
-            <Input
-              label="Payment Terms"
-              value={editForm.paymentTerms}
-              onChange={(e) =>
-                setEditForm({ ...editForm, paymentTerms: e.target.value })
-              }
-            />
-            <div className="md:col-span-2">
-              <Input
-                label="Address"
-                value={editForm.address}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, address: e.target.value })
-                }
-              />
-            </div>
-            <div className="md:col-span-2">
-              <Input
-                label="Notes"
-                value={editForm.notes}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, notes: e.target.value })
-                }
-              />
-            </div>
-            <div className="md:col-span-2 flex gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editForm.isActive}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, isActive: e.target.checked })
-                  }
-                  className="rounded border-gray-300"
-                />
-                <span className="text-sm text-gray-700">Active</span>
-              </label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="secondary"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DxPopup
+        visible={isEditDialogOpen}
+        onHiding={() => setIsEditDialogOpen(false)}
+        title="Edit Customer"
+        width={700}
+        height="auto"
+        showCloseButton
+      >
+        {renderEditDialogContent()}
+      </DxPopup>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Customer</DialogTitle>
-          </DialogHeader>
-          <p className="text-gray-600">
-            Are you sure you want to delete this customer? If the customer has
-            related sales orders, it will be deactivated instead.
-          </p>
-          <DialogFooter>
-            <Button
-              variant="secondary"
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDelete} disabled={isSaving}>
-              {isSaving ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DxPopup
+        visible={isDeleteDialogOpen}
+        onHiding={() => setIsDeleteDialogOpen(false)}
+        title="Delete Customer"
+        width={450}
+        height="auto"
+        showCloseButton
+      >
+        {renderDeleteDialogContent()}
+      </DxPopup>
     </MainLayout>
   );
 }
