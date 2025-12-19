@@ -211,24 +211,24 @@
 
 ### Accessibility Enhancements
 
-- [ ] T078 [P] [US3] Verify all Button components have proper focus-visible states in src/components/ui/button.tsx
-- [ ] T079 [P] [US3] Verify all form inputs have associated labels and aria-attributes in src/components/ui/input.tsx
-- [ ] T080 [P] [US3] Verify Select component keyboard navigation and screen reader support in src/components/ui/select.tsx
-- [ ] T081 [P] [US3] Verify Table component has proper scope attributes and aria-labels in src/components/ui/table.tsx
-- [ ] T082 [US3] Add skip-to-content link for keyboard navigation in src/components/layout/main-layout.tsx
-- [ ] T083 Run `pnpm tsc --noEmit && pnpm lint` to verify accessibility updates
-- [ ] T084 Commit: "feat(a11y): enhance component accessibility for WCAG 2.1 AA"
+- [x] T078 [P] [US3] Verify all Button components have proper focus-visible states in src/components/ui/button.tsx
+- [x] T079 [P] [US3] Verify all form inputs have associated labels and aria-attributes in src/components/ui/input.tsx
+- [x] T080 [P] [US3] Verify Select component keyboard navigation and screen reader support in src/components/ui/select.tsx
+- [x] T081 [P] [US3] Verify Table component has proper scope attributes and aria-labels in src/components/ui/table.tsx
+- [x] T082 [US3] Add skip-to-content link for keyboard navigation in src/components/layout/main-layout.tsx
+- [x] T083 Run `pnpm tsc --noEmit && pnpm lint` to verify accessibility updates
+- [x] T084 Commit: "feat(a11y): enhance component accessibility for WCAG 2.1 AA"
 
 ### Responsive Behavior
 
-- [ ] T085 [P] [US3] Install shadcn Sheet component for mobile sidebar: `npx shadcn@canary add sheet`
-- [ ] T086 [US3] Implement mobile sidebar drawer using Sheet in src/components/layout/sidebar.tsx
-- [ ] T087 [US3] Verify responsive breakpoints work correctly (320px, 768px, 1024px, 1920px) in src/components/layout/main-layout.tsx
-- [ ] T088 [US3] Verify Table components scroll horizontally on mobile viewports
-- [ ] T089 Run `pnpm tsc --noEmit && pnpm lint` to verify responsive updates
-- [ ] T090 Commit: "feat(ui): improve responsive behavior with mobile sidebar"
+- [x] T085 [P] [US3] Install shadcn Sheet component for mobile sidebar: `npx shadcn@canary add sheet`
+- [x] T086 [US3] Implement mobile sidebar drawer using Sheet in src/components/layout/sidebar.tsx
+- [x] T087 [US3] Verify responsive breakpoints work correctly (320px, 768px, 1024px, 1920px) in src/components/layout/main-layout.tsx
+- [x] T088 [US3] Verify Table components scroll horizontally on mobile viewports
+- [x] T089 Run `pnpm tsc --noEmit && pnpm lint` to verify responsive updates
+- [x] T090 Commit: "feat(ui): improve responsive behavior with mobile sidebar"
 
-**Checkpoint**: User Story 3 complete - application accessible and responsive
+**Checkpoint**: User Story 3 complete - application accessible and responsive ✅
 
 ---
 
