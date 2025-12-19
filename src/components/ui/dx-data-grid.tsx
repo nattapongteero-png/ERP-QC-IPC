@@ -310,13 +310,11 @@ export function DxDataGrid<T = Record<string, unknown>>({
         <ColumnChooser enabled mode="select" />
       )}
 
-      {searchPanel && (
-        <SearchPanel visible placeholder="ค้นหา..." />
-      )}
+      {/* Explicitly control SearchPanel visibility - always render but control visible prop */}
+      <SearchPanel visible={searchPanel} placeholder="ค้นหา..." />
 
-      {(toolbarItems || searchPanel || enableExport || columnChooser) && (
+      {(toolbarItems || enableExport || columnChooser) && (
         <Toolbar>
-          {searchPanel && <Item name="searchPanel" location="before" />}
           {toolbarItems}
           {enableExport && <Item name="exportButton" location="after" />}
           {columnChooser && <Item name="columnChooserButton" location="after" />}
