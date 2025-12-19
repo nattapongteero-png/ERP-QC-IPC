@@ -131,6 +131,7 @@ export default function WorkOrdersPage() {
       dataField: 'batchNumber',
       caption: 'เลขที่ Batch',
       width: 130,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <span className="font-mono">{cellInfo.data.batchNumber}</span>
       ),
@@ -139,6 +140,7 @@ export default function WorkOrdersPage() {
       dataField: 'productCode',
       caption: 'รหัสสินค้า',
       width: 120,
+      hideOnMobile: true,
     },
     {
       dataField: 'productName',
@@ -149,6 +151,7 @@ export default function WorkOrdersPage() {
       caption: 'จำนวนแผน',
       width: 120,
       dataType: 'number',
+      hideOnMobile: true,
       cellRender: (cellInfo) => `${cellInfo.data.plannedQuantity.toLocaleString()} ${cellInfo.data.unit}`,
     },
     {
@@ -156,6 +159,7 @@ export default function WorkOrdersPage() {
       caption: 'จำนวนจริง',
       width: 120,
       dataType: 'number',
+      hideOnMobile: true,
       cellRender: (cellInfo) =>
         cellInfo.data.actualQuantity ? `${cellInfo.data.actualQuantity.toLocaleString()} ${cellInfo.data.unit}` : '-',
     },
@@ -164,6 +168,7 @@ export default function WorkOrdersPage() {
       caption: 'วันเริ่ม',
       width: 100,
       dataType: 'date',
+      hideOnMobile: true,
       cellRender: (cellInfo) => formatDate(cellInfo.data.plannedStartDate),
     },
     {
@@ -171,6 +176,7 @@ export default function WorkOrdersPage() {
       caption: 'ความสำคัญ',
       width: 100,
       dataType: 'number',
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <Badge variant={getPriorityVariant(cellInfo.data.priority)} dot>
           {getPriorityLabel(cellInfo.data.priority)}
@@ -250,6 +256,8 @@ export default function WorkOrdersPage() {
                 columnChooser
                 virtualScrolling={workOrders.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบใบสั่งผลิต"
               />
