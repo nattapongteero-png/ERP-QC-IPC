@@ -139,6 +139,7 @@ export default function PurchaseOrdersPage() {
       caption: 'วันที่สั่ง',
       width: 120,
       dataType: 'date',
+      hideOnMobile: true,
       cellRender: (cellInfo) => formatDate(cellInfo.data.orderDate),
     },
     {
@@ -146,6 +147,7 @@ export default function PurchaseOrdersPage() {
       caption: 'วันที่คาดรับ',
       width: 120,
       dataType: 'date',
+      hideOnMobile: true,
       cellRender: (cellInfo) => formatDate(cellInfo.data.expectedDate),
     },
     {
@@ -228,6 +230,8 @@ export default function PurchaseOrdersPage() {
                 columnChooser
                 virtualScrolling={orders.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบใบสั่งซื้อ"
               />
