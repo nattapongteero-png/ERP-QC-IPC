@@ -244,7 +244,7 @@ export default function DeviationsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
           title="ความเบี่ยงเบน"
           description="ติดตามและจัดการความเบี่ยงเบนและ CAPA"
@@ -259,7 +259,7 @@ export default function DeviationsPage() {
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
           <Card elevation="raised">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -334,7 +334,7 @@ export default function DeviationsPage() {
         )}
 
         {/* Filters Card */}
-        <Card elevation="raised">
+        <Card elevation="raised" className="md:py-1">
           <CardContent>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -370,8 +370,8 @@ export default function DeviationsPage() {
         </Card>
 
         {/* Table Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col">
             {deviations.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={deviations}
@@ -386,9 +386,7 @@ export default function DeviationsPage() {
                 searchPanel
                 columnChooser
                 virtualScrolling={deviations.length > 100}
-                height={600}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบความเบี่ยงเบน"
               />

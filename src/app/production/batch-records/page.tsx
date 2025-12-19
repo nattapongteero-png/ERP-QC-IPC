@@ -201,14 +201,14 @@ export default function BatchRecordsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
           title="บันทึกการผลิต (eBMR)"
           description="Electronic Batch Manufacturing Records"
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
           <Card elevation="raised">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -264,7 +264,7 @@ export default function BatchRecordsPage() {
         </div>
 
         {/* Filters Card */}
-        <Card elevation="raised">
+        <Card elevation="raised" className="md:py-1">
           <CardContent>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -291,8 +291,8 @@ export default function BatchRecordsPage() {
         </Card>
 
         {/* Table Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col">
             {records.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={records}
@@ -307,9 +307,7 @@ export default function BatchRecordsPage() {
                 searchPanel
                 columnChooser
                 virtualScrolling={records.length > 100}
-                height={600}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบบันทึกการผลิต"
               />

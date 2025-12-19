@@ -163,7 +163,7 @@ export default function BOMListPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
           title="สูตรการผลิต (BOM)"
           description="จัดการสูตรการผลิตและส่วนประกอบ"
@@ -178,7 +178,7 @@ export default function BOMListPage() {
         />
 
         {/* Filters Card */}
-        <Card elevation="raised">
+        <Card elevation="raised" className="md:py-1">
           <CardContent>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -205,8 +205,8 @@ export default function BOMListPage() {
         </Card>
 
         {/* Table Card */}
-        <Card elevation="raised">
-          <CardContent>
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
+          <CardContent className="flex-1 min-h-0 flex flex-col">
             {boms.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={boms}
@@ -221,9 +221,7 @@ export default function BOMListPage() {
                 searchPanel
                 columnChooser
                 virtualScrolling={boms.length > 100}
-                height={600}
-                mobileHeight={400}
-                tabletHeight={500}
+                fillHeight
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบสูตรการผลิต"
               />
