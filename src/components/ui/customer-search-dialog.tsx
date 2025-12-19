@@ -70,6 +70,10 @@ export function CustomerSearchDialog({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Store excludeIds in a ref to avoid infinite loops (array reference changes on every render)
+  const excludeIdsRef = useRef(excludeIds);
+  excludeIdsRef.current = excludeIds;
+
   const handleSelect = useCallback((customer: Customer) => {
     onSelect(customer);
     onOpenChange(false);
@@ -123,8 +127,9 @@ export function CustomerSearchDialog({
 
         if (data.success) {
           let customers = data.data?.items || [];
-          if (excludeIds.length > 0) {
-            customers = customers.filter((c: Customer) => !excludeIds.includes(c.id));
+          const currentExcludeIds = excludeIdsRef.current;
+          if (currentExcludeIds.length > 0) {
+            customers = customers.filter((c: Customer) => !currentExcludeIds.includes(c.id));
           }
           setResults(customers);
           setHighlightedIndex(0);
@@ -150,7 +155,7 @@ export function CustomerSearchDialog({
       clearTimeout(timer);
       abortController.abort();
     };
-  }, [open, search, excludeIds]);
+  }, [open, search]); // Removed excludeIds - using ref instead
 
   // Keyboard navigation
   useEffect(() => {
