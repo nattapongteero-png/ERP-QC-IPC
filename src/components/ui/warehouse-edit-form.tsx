@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -340,10 +341,13 @@ export function WarehouseEditForm({
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-4">
               {onCancel && (
-                <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
+                <DxButton
+                  text="Back"
+                  icon="back"
+                  type="normal"
+                  stylingMode="text"
+                  onClick={onCancel}
+                />
               )}
               <div className={cn('p-3 rounded-2xl', typeConfig.bgColor, typeConfig.borderColor, 'border')}>
                 <TypeIcon className={cn('h-7 w-7', typeConfig.color)} />
@@ -371,10 +375,12 @@ export function WarehouseEditForm({
                 </Badge>
               )}
               {showDelete && onDelete && (
-                <Button type="button" variant="danger" size="sm" onClick={onDelete}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
+                <DxButton
+                  text="Delete"
+                  icon="trash"
+                  type="danger"
+                  onClick={onDelete}
+                />
               )}
             </div>
           </div>
@@ -419,15 +425,18 @@ export function WarehouseEditForm({
                       Warehouse Code <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
-                      <Input
+                      <DxTextBox
                         value={formData.code}
-                        onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, code: value }))}
                         placeholder="WH-RM-001"
                         className="flex-1"
                       />
-                      <Button type="button" variant="secondary" size="sm" onClick={generateCode}>
-                        Generate
-                      </Button>
+                      <DxButton
+                        text="Generate"
+                        type="normal"
+                        stylingMode="outlined"
+                        onClick={generateCode}
+                      />
                     </div>
                   </div>
 
@@ -435,9 +444,9 @@ export function WarehouseEditForm({
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Warehouse Name <span className="text-red-500">*</span>
                     </label>
-                    <Input
+                    <DxTextBox
                       value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, name: value }))}
                       placeholder="Main Warehouse"
                     />
                   </div>
@@ -446,34 +455,26 @@ export function WarehouseEditForm({
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Location
                     </label>
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 text-gray-400 absolute ml-3" />
-                      <Input
-                        value={formData.location}
-                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                        placeholder="Building A, Floor 1, Zone B"
-                        className="pl-10"
-                      />
-                    </div>
+                    <DxTextBox
+                      value={formData.location}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
+                      placeholder="Building A, Floor 1, Zone B"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Storage Capacity
                     </label>
-                    <div className="flex items-center">
-                      <Gauge className="h-4 w-4 text-gray-400 absolute ml-3" />
-                      <Input
-                        type="number"
-                        value={formData.capacity ?? ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          capacity: e.target.value ? parseInt(e.target.value) : null
-                        }))}
-                        placeholder="1000"
-                        className="pl-10"
-                      />
-                    </div>
+                    <DxNumberBox
+                      value={formData.capacity}
+                      onValueChange={(value) => setFormData(prev => ({
+                        ...prev,
+                        capacity: value
+                      }))}
+                      placeholder="1000"
+                      format="#,##0"
+                    />
                     <p className="text-xs text-gray-500 mt-1">Maximum storage units</p>
                   </div>
                 </div>
@@ -497,26 +498,26 @@ export function WarehouseEditForm({
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs text-cyan-700 mb-1">Minimum</label>
-                        <Input
-                          type="number"
-                          value={formData.temperatureMin ?? ''}
-                          onChange={(e) => setFormData(prev => ({
+                        <DxNumberBox
+                          value={formData.temperatureMin}
+                          onValueChange={(value) => setFormData(prev => ({
                             ...prev,
-                            temperatureMin: e.target.value ? parseFloat(e.target.value) : null
+                            temperatureMin: value
                           }))}
                           placeholder="15"
+                          format="#0.#"
                         />
                       </div>
                       <div>
                         <label className="block text-xs text-cyan-700 mb-1">Maximum</label>
-                        <Input
-                          type="number"
-                          value={formData.temperatureMax ?? ''}
-                          onChange={(e) => setFormData(prev => ({
+                        <DxNumberBox
+                          value={formData.temperatureMax}
+                          onValueChange={(value) => setFormData(prev => ({
                             ...prev,
-                            temperatureMax: e.target.value ? parseFloat(e.target.value) : null
+                            temperatureMax: value
                           }))}
                           placeholder="25"
+                          format="#0.#"
                         />
                       </div>
                     </div>
@@ -536,26 +537,26 @@ export function WarehouseEditForm({
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs text-blue-700 mb-1">Minimum</label>
-                        <Input
-                          type="number"
-                          value={formData.humidityMin ?? ''}
-                          onChange={(e) => setFormData(prev => ({
+                        <DxNumberBox
+                          value={formData.humidityMin}
+                          onValueChange={(value) => setFormData(prev => ({
                             ...prev,
-                            humidityMin: e.target.value ? parseFloat(e.target.value) : null
+                            humidityMin: value
                           }))}
                           placeholder="40"
+                          format="#0.#"
                         />
                       </div>
                       <div>
                         <label className="block text-xs text-blue-700 mb-1">Maximum</label>
-                        <Input
-                          type="number"
-                          value={formData.humidityMax ?? ''}
-                          onChange={(e) => setFormData(prev => ({
+                        <DxNumberBox
+                          value={formData.humidityMax}
+                          onValueChange={(value) => setFormData(prev => ({
                             ...prev,
-                            humidityMax: e.target.value ? parseFloat(e.target.value) : null
+                            humidityMax: value
                           }))}
                           placeholder="65"
+                          format="#0.#"
                         />
                       </div>
                     </div>
@@ -710,14 +711,20 @@ export function WarehouseEditForm({
           </span>
           <div className="flex items-center gap-3">
             {onCancel && (
-              <Button type="button" variant="secondary" onClick={onCancel}>
-                Cancel
-              </Button>
+              <DxButton
+                text="Cancel"
+                type="normal"
+                stylingMode="outlined"
+                onClick={onCancel}
+              />
             )}
-            <Button type="submit" disabled={!isValid || isSaving}>
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : isEditing ? 'Update Warehouse' : 'Create Warehouse'}
-            </Button>
+            <DxButton
+              text={isSaving ? 'Saving...' : isEditing ? 'Update Warehouse' : 'Create Warehouse'}
+              icon="save"
+              type="success"
+              useSubmitBehavior
+              disabled={!isValid || isSaving}
+            />
           </div>
         </div>
       </div>
