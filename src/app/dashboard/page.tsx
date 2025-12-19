@@ -114,7 +114,7 @@ export default function DashboardPage() {
         {isLoading ? (
           <div className="space-y-6">
             {/* Primary KPIs Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => (
                 <KPICardSkeleton key={i} showIcon showTrend />
               ))}
@@ -139,7 +139,7 @@ export default function DashboardPage() {
         ) : (
           <>
             {/* Primary KPIs - Most Important Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KPICard
                 label="Total Items"
                 value={data?.summary.totalItems || 0}
