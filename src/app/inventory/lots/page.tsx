@@ -338,8 +338,8 @@ export default function LotsPage() {
         </div>
       )
     },
-    { 
-      key: 'quantity', 
+    {
+      key: 'quantity',
       header: 'Quantity',
       render: (lot: Lot) => (
         <div>
@@ -349,6 +349,21 @@ export default function LotsPage() {
           )}
         </div>
       )
+    },
+    {
+      key: 'totalCost',
+      header: 'Total Cost',
+      render: (lot: Lot) => {
+        const totalCost = (lot.quantity || 0) * (lot.cost || 0);
+        return (
+          <div>
+            <p className="font-medium">฿{totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            {lot.cost && lot.cost > 0 && (
+              <p className="text-xs text-gray-500">@฿{lot.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/{lot.unit}</p>
+            )}
+          </div>
+        );
+      }
     },
     { key: 'warehouseName', header: 'Warehouse' },
     {

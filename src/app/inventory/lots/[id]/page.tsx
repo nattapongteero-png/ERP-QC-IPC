@@ -21,6 +21,7 @@ interface LotDetail {
   reservedQuantity: number;
   unit: string;
   status: string;
+  cost: number | null;
   manufacturingDate: string | null;
   expiryDate: string | null;
   receivedDate: string | null;
@@ -376,7 +377,7 @@ export default function LotDetailPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
@@ -420,6 +421,27 @@ export default function LotDetailPage() {
                 <div>
                   <p className="text-sm text-yellow-600">Reserved</p>
                   <p className="text-2xl font-bold text-yellow-800">{lot.reservedQuantity.toLocaleString()} {lot.unit}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-500 rounded-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-purple-600">Total Cost</p>
+                  <p className="text-2xl font-bold text-purple-800">
+                    ฿{((lot.quantity || 0) * (lot.cost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  {lot.cost && lot.cost > 0 && (
+                    <p className="text-xs text-purple-500">@฿{lot.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}/{lot.unit}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
