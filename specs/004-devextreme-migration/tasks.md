@@ -25,19 +25,19 @@
 
 **Purpose**: Install DevExtreme and configure essential infrastructure before any component migration
 
-- [ ] T001 Install DevExtreme dependencies: `npm install devextreme@25.1 devextreme-react@25.1 --save-exact` in package.json
-- [ ] T002 Install DevExtreme ThemeBuilder: `npm install devextreme-themebuilder@25.1 --save-dev --save-exact` in package.json
-- [ ] T003 [P] Create theme configuration file in devextreme-theme/emerald-metadata.json with emerald color scheme
-- [ ] T004 [P] Create Thai locale dictionary file in src/localization/th.json with DevExtreme UI translations
-- [ ] T005 Build emerald theme: run `npx devextreme build-theme` to generate public/css/dx.material.emerald.css
-- [ ] T006 Create DevExtreme provider component in src/components/providers/devextreme-provider.tsx with Thai locale setup
-- [ ] T006a Implement DevExtreme license validation in src/components/providers/devextreme-provider.tsx: validate license key on mount, display error boundary with clear message if validation fails (FR-010)
+- [X] T001 Install DevExtreme dependencies: `npm install devextreme@25.1 devextreme-react@25.1 --save-exact` in package.json
+- [X] T002 Install DevExtreme ThemeBuilder: `npm install devextreme-themebuilder@25.1 --save-dev --save-exact` in package.json
+- [X] T003 [P] Create theme configuration file in devextreme-theme/emerald-metadata.json with emerald color scheme
+- [X] T004 [P] Create Thai locale dictionary file in src/localization/th.json with DevExtreme UI translations
+- [X] T005 Build emerald theme: run `npx devextreme build-theme` to generate public/css/dx.material.emerald.css
+- [X] T006 Create DevExtreme provider component in src/components/providers/devextreme-provider.tsx with Thai locale setup
+- [X] T006a Implement DevExtreme license validation in src/components/providers/devextreme-provider.tsx: validate license key on mount, display error boundary with clear message if validation fails (FR-010)
 - [ ] T006b [P] Create license validation unit test in tests/unit/providers/devextreme-provider.test.tsx for error boundary display on invalid license
-- [ ] T007 Create Zod-DevExtreme validation adapter in src/lib/validation/zod-devextreme-adapter.ts
-- [ ] T008 Update root layout to include DevExtremeProvider in src/app/layout.tsx
-- [ ] T009 Add DevExtreme CSS import to src/app/globals.css (after existing styles)
-- [ ] T010 Add build:theme script to package.json for theme regeneration
-- [ ] T011 Run `pnpm tsc --noEmit && pnpm lint` to verify setup passes type check and lint
+- [X] T007 Create Zod-DevExtreme validation adapter in src/lib/validation/zod-devextreme-adapter.ts
+- [X] T008 Update root layout to include DevExtremeProvider in src/app/layout.tsx
+- [X] T009 Add DevExtreme CSS import to src/app/globals.css (after existing styles)
+- [X] T010 Add build:theme script to package.json for theme regeneration
+- [X] T011 Run `pnpm tsc --noEmit && pnpm lint` to verify setup passes type check and lint
 
 **Checkpoint**: DevExtreme is installed, themed, and provider is configured. Ready for component migration.
 
@@ -49,17 +49,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T012 [P] Create DxButton wrapper component in src/components/ui/dx-button.tsx with emerald styling
-- [ ] T013 [P] Create DxTextBox wrapper component in src/components/ui/dx-text-box.tsx with Zod validation support
-- [ ] T014 [P] Create DxSelectBox wrapper component in src/components/ui/dx-select-box.tsx with search filtering
-- [ ] T015 [P] Create DxDateBox wrapper component in src/components/ui/dx-date-box.tsx with Thai locale
-- [ ] T016 [P] Create DxDataGrid wrapper component in src/components/ui/dx-data-grid.tsx with sorting, filtering, export
-- [ ] T017 [P] Create DxPopup wrapper component in src/components/ui/dx-popup.tsx for dialogs
-- [ ] T018 [P] Create DxForm wrapper component in src/components/ui/dx-form.tsx with Zod validation integration
-- [ ] T019 [P] Create DxLoadIndicator wrapper component in src/components/ui/dx-load-indicator.tsx for loading states
-- [ ] T020 Create component index exports in src/components/ui/index.ts for all dx-* components
-- [ ] T021 Run `pnpm tsc --noEmit && pnpm lint` to verify foundational components pass type check
-- [ ] T022 Commit foundational components: `git add src/components/ui/dx-*.tsx && git commit`
+- [X] T012 [P] Create DxButton wrapper component in src/components/ui/dx-button.tsx with emerald styling
+- [X] T013 [P] Create DxTextBox wrapper component in src/components/ui/dx-text-box.tsx with Zod validation support
+- [X] T014 [P] Create DxSelectBox wrapper component in src/components/ui/dx-select-box.tsx with search filtering
+- [X] T015 [P] Create DxDateBox wrapper component in src/components/ui/dx-date-box.tsx with Thai locale
+- [X] T016 [P] Create DxDataGrid wrapper component in src/components/ui/dx-data-grid.tsx with sorting, filtering, export
+- [X] T017 [P] Create DxPopup wrapper component in src/components/ui/dx-popup.tsx for dialogs
+- [X] T018 [P] Create DxForm wrapper component in src/components/ui/dx-form.tsx with Zod validation integration
+- [X] T019 [P] Create DxLoadIndicator wrapper component in src/components/ui/dx-load-indicator.tsx for loading states
+- [X] T020 Create component index exports in src/components/ui/index.ts for all dx-* components
+- [X] T021 Run `pnpm tsc --noEmit && pnpm lint` to verify foundational components pass type check
+- [X] T022 Commit foundational components: `git add src/components/ui/dx-*.tsx && git commit`
 
 **Checkpoint**: Foundation ready - all DevExtreme wrappers created. User story implementation can now begin.
 
@@ -73,22 +73,22 @@
 
 ### Tests for User Story 1
 
-- [ ] T023 [P] [US1] Create DataGrid unit test in tests/unit/components/dx-data-grid.test.tsx for sorting behavior
-- [ ] T024 [P] [US1] Create DataGrid unit test in tests/unit/components/dx-data-grid.test.tsx for filtering behavior
-- [ ] T025 [P] [US1] Create DataGrid unit test in tests/unit/components/dx-data-grid.test.tsx for export functionality
+- [X] T023 [P] [US1] Create DataGrid unit test in tests/unit/components/dx-data-grid.test.tsx for sorting behavior
+- [X] T024 [P] [US1] Create DataGrid unit test in tests/unit/components/dx-data-grid.test.tsx for filtering behavior
+- [X] T025 [P] [US1] Create DataGrid unit test in tests/unit/components/dx-data-grid.test.tsx for export functionality
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Replace table component in src/components/ui/table.tsx with DxDataGrid import and deprecation notice
-- [ ] T027 [US1] Update items list page in src/app/(dashboard)/items/page.tsx to use DxDataGrid with columns config
-- [ ] T028 [US1] Update warehouses list page in src/app/(dashboard)/warehouses/page.tsx to use DxDataGrid
-- [ ] T029 [US1] Update customers list page in src/app/(dashboard)/customers/page.tsx to use DxDataGrid
-- [ ] T030 [US1] Update sales list page in src/app/(dashboard)/sales/page.tsx to use DxDataGrid
-- [ ] T031 [US1] Configure virtual scrolling for DataGrids with large datasets in all list pages
-- [ ] T032 [US1] Add Excel/CSV export buttons to all DataGrid toolbars
-- [ ] T033 [US1] Update empty state display to use DevExtreme noDataText in DxDataGrid wrapper
-- [ ] T034 [US1] Run `pnpm tsc --noEmit && pnpm lint` to verify US1 changes pass
-- [ ] T035 [US1] Commit US1 changes: `git add . && git commit -m "feat(US1): migrate tables to DevExtreme DataGrid"`
+- [X] T026 [US1] Replace table component in src/components/ui/table.tsx with DxDataGrid import and deprecation notice
+- [X] T027 [US1] Update items list page in src/app/inventory/items/page.tsx to use DxDataGrid with columns config
+- [X] T028 [US1] Update warehouses list page in src/app/inventory/warehouses/page.tsx to use DxDataGrid
+- [X] T029 [US1] Update customers list page in src/app/sales/customers/page.tsx to use DxDataGrid
+- [X] T030 [US1] Update sales list page in src/app/sales/orders/page.tsx to use DxDataGrid
+- [X] T031 [US1] Configure virtual scrolling for DataGrids with large datasets in all list pages
+- [X] T032 [US1] Add Excel/CSV export buttons to all DataGrid toolbars
+- [X] T033 [US1] Update empty state display to use DevExtreme noDataText in DxDataGrid wrapper
+- [X] T034 [US1] Run `pnpm tsc --noEmit && pnpm lint` to verify US1 changes pass
+- [X] T035 [US1] Commit US1 changes: `git add . && git commit -m "feat(US1): migrate tables to DevExtreme DataGrid"`
 
 **Checkpoint**: All data tables use DevExtreme DataGrid with sorting, filtering, export. MVP complete.
 
@@ -108,16 +108,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T039 [US2] Replace input component in src/components/ui/input.tsx with DxTextBox import and deprecation notice
-- [ ] T040 [US2] Replace select component in src/components/ui/select.tsx with DxSelectBox import and deprecation notice
-- [ ] T041 [US2] Replace date-picker component in src/components/ui/date-picker.tsx with DxDateBox import and deprecation notice
-- [ ] T042 [US2] Update ItemEditForm in src/components/ui/item-edit-form.tsx to use DxForm with DevExtreme inputs
-- [ ] T043 [US2] Update WarehouseEditForm in src/components/ui/warehouse-edit-form.tsx to use DxForm with DevExtreme inputs
-- [ ] T044 [US2] Update form-field wrapper in src/components/ui/form-field.tsx to use DevExtreme validation display
-- [ ] T045 [US2] Integrate existing Zod schemas with DevExtreme CustomRule validators in all forms
-- [ ] T046 [US2] Add keyboard navigation support (Tab, Enter, Escape) to all form components
-- [ ] T047 [US2] Run `pnpm tsc --noEmit && pnpm lint` to verify US2 changes pass
-- [ ] T048 [US2] Commit US2 changes: `git add . && git commit -m "feat(US2): migrate form inputs to DevExtreme"`
+- [X] T039 [US2] Replace input component in src/components/ui/input.tsx with DxTextBox import and deprecation notice
+- [X] T040 [US2] Replace select component in src/components/ui/select.tsx with DxSelectBox import and deprecation notice
+- [X] T041 [US2] Replace date-picker component in src/components/ui/date-picker.tsx with DxDateBox import and deprecation notice
+- [X] T042 [US2] Update ItemEditForm in src/components/ui/item-edit-form.tsx to use DxForm with DevExtreme inputs
+- [X] T043 [US2] Update WarehouseEditForm in src/components/ui/warehouse-edit-form.tsx to use DxForm with DevExtreme inputs
+- [X] T044 [US2] Update form-field wrapper in src/components/ui/form-field.tsx to use DevExtreme validation display
+- [X] T045 [US2] Integrate existing Zod schemas with DevExtreme CustomRule validators in all forms
+- [X] T046 [US2] Add keyboard navigation support (Tab, Enter, Escape) to all form components
+- [X] T047 [US2] Run `pnpm tsc --noEmit && pnpm lint` to verify US2 changes pass
+- [X] T048 [US2] Commit US2 changes: `git add . && git commit -m "feat(US2): migrate form inputs to DevExtreme"`
 
 **Checkpoint**: All form inputs use DevExtreme components with Zod validation. Forms are independently testable.
 
@@ -136,15 +136,15 @@
 
 ### Implementation for User Story 3
 
-- [ ] T051 [US3] Replace dialog component in src/components/ui/dialog.tsx with DxPopup import and deprecation notice
-- [ ] T052 [US3] Update ItemSearchDialog in src/components/ui/item-search-dialog.tsx to use DxPopup with DxDataGrid
-- [ ] T053 [US3] Update CustomerSearchDialog in src/components/ui/customer-search-dialog.tsx to use DxPopup with DxDataGrid
-- [ ] T054 [US3] Add instant search filtering with DevExtreme DataGrid filterValue in search dialogs
-- [ ] T055 [US3] Implement keyboard navigation (arrow keys, Enter to select) in search dialog DataGrids
-- [ ] T056 [US3] Add "no results" empty state message to search dialogs using DataGrid noDataText
-- [ ] T057 [US3] Configure search dialog focus management (auto-focus search, return focus on close)
-- [ ] T058 [US3] Run `pnpm tsc --noEmit && pnpm lint` to verify US3 changes pass
-- [ ] T059 [US3] Commit US3 changes: `git add . && git commit -m "feat(US3): migrate search dialogs to DevExtreme"`
+- [X] T051 [US3] Replace dialog component in src/components/ui/dialog.tsx with DxPopup import and deprecation notice
+- [X] T052 [US3] Update ItemSearchDialog in src/components/ui/item-search-dialog.tsx to use DxPopup with DxDataGrid
+- [X] T053 [US3] Update CustomerSearchDialog in src/components/ui/customer-search-dialog.tsx to use DxPopup with DxDataGrid
+- [X] T054 [US3] Add instant search filtering with DevExtreme DataGrid filterValue in search dialogs
+- [X] T055 [US3] Implement keyboard navigation (arrow keys, Enter to select) in search dialog DataGrids
+- [X] T056 [US3] Add "no results" empty state message to search dialogs using DataGrid noDataText
+- [X] T057 [US3] Configure search dialog focus management (auto-focus search, return focus on close)
+- [X] T058 [US3] Run `pnpm tsc --noEmit && pnpm lint` to verify US3 changes pass
+- [X] T059 [US3] Commit US3 changes: `git add . && git commit -m "feat(US3): migrate search dialogs to DevExtreme"`
 
 **Checkpoint**: All search dialogs use DevExtreme Popup with DataGrid filtering. Dialogs are independently testable.
 
