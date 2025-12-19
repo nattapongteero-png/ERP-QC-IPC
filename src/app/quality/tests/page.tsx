@@ -192,6 +192,7 @@ export default function QualityTestsPage() {
       dataField: 'testType',
       caption: 'ประเภท',
       width: 130,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <Badge variant={getTestTypeBadgeVariant(cellInfo.data.testType)}>
           {getTestTypeLabel(cellInfo.data.testType)}
@@ -202,6 +203,7 @@ export default function QualityTestsPage() {
       dataField: 'specification',
       caption: 'ข้อกำหนด',
       width: 150,
+      hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div className="text-sm">
           {cellInfo.data.specification ? (
@@ -239,6 +241,7 @@ export default function QualityTestsPage() {
       caption: 'วันที่ทดสอบ',
       width: 120,
       dataType: 'date',
+      hideOnMobile: true,
       cellRender: (cellInfo) => formatDate(cellInfo.data.testDate),
     },
     {
@@ -379,6 +382,8 @@ export default function QualityTestsPage() {
                 columnChooser
                 virtualScrolling={tests.length > 100}
                 height={600}
+                mobileHeight={400}
+                tabletHeight={500}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบการทดสอบคุณภาพ"
               />
