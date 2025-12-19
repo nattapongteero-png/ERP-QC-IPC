@@ -67,6 +67,10 @@ export function LotSearchDialog({
   const [hasSearched, setHasSearched] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Use ref to avoid infinite loop from excludeIds array reference changes
+  const excludeIdsRef = useRef(excludeIds);
+  excludeIdsRef.current = excludeIds;
+
   const handleSelect = useCallback((lot: Lot) => {
     onSelect(lot);
     onOpenChange(false);
@@ -95,8 +99,10 @@ export function LotSearchDialog({
       if (data.success) {
         // Use same fallback pattern as lots page
         let lots = data.data?.items || data.data || [];
-        if (excludeIds.length > 0) {
-          lots = lots.filter((lot: Lot) => !excludeIds.includes(lot.id));
+        // Use ref to get current excludeIds without adding to dependencies
+        const currentExcludeIds = excludeIdsRef.current;
+        if (currentExcludeIds.length > 0) {
+          lots = lots.filter((lot: Lot) => !currentExcludeIds.includes(lot.id));
         }
         setResults(lots);
         setHighlightedIndex(0);
@@ -110,14 +116,15 @@ export function LotSearchDialog({
     } finally {
       setIsSearching(false);
     }
-  }, [filterStatus, filterItemId, excludeIds]);
+  }, [filterStatus, filterItemId]);
 
   // Initial load when dialog opens
   useEffect(() => {
     if (open) {
       searchLots('');
     }
-  }, [open, searchLots]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Debounced search when typing
   useEffect(() => {
@@ -127,7 +134,8 @@ export function LotSearchDialog({
       searchLots(search);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, searchLots, open]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, open]);
 
   // Reset when dialog closes
   useEffect(() => {
