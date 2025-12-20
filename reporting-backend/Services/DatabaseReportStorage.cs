@@ -26,7 +26,11 @@ public class DatabaseReportStorage : ReportStorageWebExtension
     /// </summary>
     public override bool CanSetData(string url)
     {
-        // Allow setting data for existing templates
+        // Allow setting data for new reports or existing templates
+        if (string.IsNullOrEmpty(url) || url == "new")
+        {
+            return true;
+        }
         return _db.ReportTemplates.Any(r => r.Code == url);
     }
 
@@ -35,6 +39,11 @@ public class DatabaseReportStorage : ReportStorageWebExtension
     /// </summary>
     public override bool IsValidUrl(string url)
     {
+        // "new" is always valid for creating new reports
+        if (string.IsNullOrEmpty(url) || url == "new")
+        {
+            return true;
+        }
         return _db.ReportTemplates.Any(r => r.Code == url);
     }
 
@@ -43,6 +52,16 @@ public class DatabaseReportStorage : ReportStorageWebExtension
     /// </summary>
     public override byte[] GetData(string url)
     {
+        // Return empty report for new reports
+        if (string.IsNullOrEmpty(url) || url == "new")
+        {
+            _logger.LogInformation("Creating new blank report");
+            using var report = new DevExpress.XtraReports.UI.XtraReport();
+            using var stream = new MemoryStream();
+            report.SaveLayoutToXml(stream);
+            return stream.ToArray();
+        }
+
         var template = _db.ReportTemplates.FirstOrDefault(r => r.Code == url);
         if (template == null)
         {

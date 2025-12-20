@@ -16,8 +16,17 @@ RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# Install wget for health checks
-RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+# Install dependencies:
+# - wget: for health checks
+# - libfontconfig1: required for Skia font rendering
+# - libfreetype6: required for Skia font rendering
+# - libx11-6: required for Skia graphics
+RUN apt-get update && apt-get install -y \
+    wget \
+    libfontconfig1 \
+    libfreetype6 \
+    libx11-6 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy published application
 COPY --from=build /app/publish .
@@ -31,7 +40,8 @@ EXPOSE 5000
 
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:5000
-ENV ASPNETCORE_ENVIRONMENT=Production
+# Set to Development for debugging, change to Production for deployment
+ENV ASPNETCORE_ENVIRONMENT=Development
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \

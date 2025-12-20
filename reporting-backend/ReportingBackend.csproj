@@ -26,6 +26,9 @@
 
     <!-- DevExpress Reporting -->
     <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="25.1.*" />
+
+    <!-- DevExpress Drawing with Skia for Linux/Docker support -->
+    <PackageReference Include="DevExpress.Drawing.Skia" Version="25.1.*" />
   </ItemGroup>
 
 </Project>
