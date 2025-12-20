@@ -35,7 +35,7 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-    CMD wget -q --spider http://localhost:5000/health || exit 1
+    CMD wget -qO- http://localhost:5000/health | grep -q "healthy" || exit 1
 
 # Entry point
 ENTRYPOINT ["dotnet", "ReportingBackend.dll"]
