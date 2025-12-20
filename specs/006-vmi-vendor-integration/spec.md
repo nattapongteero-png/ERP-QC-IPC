@@ -176,11 +176,17 @@ As a system administrator, I want to monitor VMI integration health and transact
 
 - **FR-015**: System MUST include TPP codes and TTMT codes in item sync when available.
 
+- **FR-016**: System MUST store TTMT code (Thai Traditional Medicine Terminology) in the items table for finished products to comply with Thai pharmaceutical standards.
+
+- **FR-017**: System MUST store TPP code (Thai Pharmaceutical Product) in the items table for drug products to enable standard product identification.
+
 ### Key Entities
 
 - **VMI Vendor Configuration**: Vendor-specific settings including API Key, connection status, sync preferences, and last sync timestamps.
 
-- **Vendor Item Mapping**: Relationship between local item codes and vendor-specific localCode, including optional TPP and TTMT codes.
+- **Vendor Item Mapping**: Relationship between local item codes and vendor-specific localCode for VMI sync.
+
+- **Item (Extended)**: Existing item master extended with tpp_code (Thai Pharmaceutical Product code, 13 digits) and ttmt_code (Thai Traditional Medicine Terminology, format A01234567) fields for standard product identification.
 
 - **VMI Price Offer**: Price information to be synced including unit price, pack price, MOQ, lead time, effective/expiry dates.
 
@@ -217,7 +223,9 @@ As a system administrator, I want to monitor VMI integration health and transact
 - Network connectivity to VMI Portal endpoint (vmi-portal.bmscloud.in.th) is available from the application server.
 - Existing vendor and item master data is maintained in the local system.
 - This system operates as a "Vendor" in the VMI Portal ecosystem, supplying items to hospitals.
-- TPP codes (Thai Pharmaceutical Product) and TTMT codes are optional but improve item matching accuracy.
+- TPP codes (Thai Pharmaceutical Product) and TTMT codes are required for VMI sync and will be added to the items table schema.
+- TTMT code format: A followed by 8 digits (e.g., A01234567) - used for finished herbal/traditional medicine products.
+- TPP code format: 13-digit number (e.g., 1100010001000) - used for pharmaceutical drug products.
 - All monetary values are in Thai Baht (THB) by default.
 - Order statuses follow the VMI Portal workflow: draft → submitted → confirmed → shipped → received.
 - The existing Settings table can be extended to store encrypted API credentials.
