@@ -80,6 +80,9 @@ export const sqliteItems = sqliteTable('items', {
   isLotControlled: integer('is_lot_controlled', { mode: 'boolean' }).notNull().default(true),
   isFEFO: integer('is_fefo', { mode: 'boolean' }).notNull().default(true),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
+  tppCode: text('tpp_code'), // Thai Pharmaceutical Product code (13 digits)
+  ttmtCode: text('ttmt_code'), // Thai Traditional Medicine Terminology (A + 8 digits)
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -496,15 +499,101 @@ export const sqliteMaintenanceRecords = sqliteTable('maintenance_records', {
 export const sqliteVMITransactions = sqliteTable('vmi_transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   vendorId: integer('vendor_id').notNull().references(() => sqliteVendors.id),
-  transactionType: text('transaction_type').notNull(), // inventory_snapshot, consumption, replenishment, asn
+  transactionType: text('transaction_type').notNull(), // item_sync, price_sync, inventory_sync, order_poll, order_confirm, order_ship, receipt_check, connection_test
   itemId: integer('item_id').references(() => sqliteItems.id),
   quantity: real('quantity'),
   unit: text('unit'),
   data: text('data'), // JSON string for additional data
   status: text('status').notNull().default('pending'), // pending, sent, received, processed, error
+  requestPayload: text('request_payload'), // JSON request body
+  responsePayload: text('response_payload'), // JSON response body
+  httpStatus: integer('http_status'), // HTTP status code
+  durationMs: integer('duration_ms'), // Request duration in ms
+  endpoint: text('endpoint'), // API endpoint called
+  method: text('method'), // HTTP method
   sentAt: text('sent_at'),
   receivedAt: text('received_at'),
   errorMessage: text('error_message'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// VMI Vendor Configuration
+export const sqliteVMIVendorConfig = sqliteTable('vmi_vendor_config', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  vendorId: integer('vendor_id').notNull().references(() => sqliteVendors.id).unique(),
+  apiKeyEncrypted: text('api_key_encrypted').notNull(),
+  vmiVendorId: text('vmi_vendor_id'),
+  baseUrl: text('base_url'),
+  isConnected: integer('is_connected', { mode: 'boolean' }).notNull().default(false),
+  lastConnectionAt: text('last_connection_at'),
+  syncItemsEnabled: integer('sync_items_enabled', { mode: 'boolean' }).notNull().default(true),
+  syncPricesEnabled: integer('sync_prices_enabled', { mode: 'boolean' }).notNull().default(true),
+  syncInventoryEnabled: integer('sync_inventory_enabled', { mode: 'boolean' }).notNull().default(true),
+  orderPollIntervalMinutes: integer('order_poll_interval_minutes').notNull().default(15),
+  lastItemsSyncAt: text('last_items_sync_at'),
+  lastPricesSyncAt: text('last_prices_sync_at'),
+  lastInventorySyncAt: text('last_inventory_sync_at'),
+  lastOrdersPollAt: text('last_orders_poll_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// VMI Price Offers
+export const sqliteVMIPriceOffers = sqliteTable('vmi_price_offers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  vendorId: integer('vendor_id').notNull().references(() => sqliteVendors.id),
+  itemId: integer('item_id').notNull().references(() => sqliteItems.id),
+  unitPrice: real('unit_price').notNull(),
+  packPrice: real('pack_price'),
+  moq: integer('moq'),
+  leadTimeDays: integer('lead_time_days'),
+  effectiveDate: text('effective_date').notNull(),
+  expiryDate: text('expiry_date'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  lastSyncedAt: text('last_synced_at'),
+  syncStatus: text('sync_status').notNull().default('pending'), // pending, synced, error
+  syncError: text('sync_error'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// VMI Orders (from hospitals via VMI Portal)
+export const sqliteVMIOrders = sqliteTable('vmi_orders', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  vendorId: integer('vendor_id').notNull().references(() => sqliteVendors.id),
+  vmiOrderId: integer('vmi_order_id').notNull(),
+  hospitalCode: text('hospital_code').notNull(),
+  hospitalName: text('hospital_name').notNull(),
+  poNumber: text('po_number').notNull(),
+  warehouseName: text('warehouse_name'),
+  status: text('status').notNull().default('submitted'), // submitted, confirmed, shipped, received, cancelled
+  orderDate: text('order_date').notNull(),
+  expectedDeliveryDate: text('expected_delivery_date'),
+  totalValue: real('total_value').notNull(),
+  itemCount: integer('item_count').notNull(),
+  notes: text('notes'),
+  localPoId: integer('local_po_id').references(() => sqlitePurchaseOrders.id),
+  confirmedAt: text('confirmed_at'),
+  shippedAt: text('shipped_at'),
+  receivedAt: text('received_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// VMI Order Lines
+export const sqliteVMIOrderLines = sqliteTable('vmi_order_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  vmiOrderId: integer('vmi_order_id').notNull().references(() => sqliteVMIOrders.id),
+  itemId: integer('item_id').references(() => sqliteItems.id),
+  localCode: text('local_code').notNull(),
+  itemName: text('item_name').notNull(),
+  quantityOrdered: real('quantity_ordered').notNull(),
+  quantityReceived: real('quantity_received').notNull().default(0),
+  unitPrice: real('unit_price').notNull(),
+  lineTotal: real('line_total').notNull(),
+  unit: text('unit').notNull(),
+  tppCode: text('tpp_code'),
+  ttmtCode: text('ttmt_code'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -598,6 +687,9 @@ export const mysqlItems = mysqlTable('items', {
   isLotControlled: mysqlBoolean('is_lot_controlled').notNull().default(true),
   isFEFO: mysqlBoolean('is_fefo').notNull().default(true),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
+  tppCode: varchar('tpp_code', { length: 13 }), // Thai Pharmaceutical Product code (13 digits)
+  ttmtCode: varchar('ttmt_code', { length: 10 }), // Thai Traditional Medicine Terminology (A + 8 digits)
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1014,15 +1106,101 @@ export const mysqlMaintenanceRecords = mysqlTable('maintenance_records', {
 export const mysqlVMITransactions = mysqlTable('vmi_transactions', {
   id: int('id').primaryKey().autoincrement(),
   vendorId: int('vendor_id').notNull().references(() => mysqlVendors.id),
-  transactionType: varchar('transaction_type', { length: 50 }).notNull(),
+  transactionType: varchar('transaction_type', { length: 50 }).notNull(), // item_sync, price_sync, inventory_sync, order_poll, order_confirm, order_ship, receipt_check, connection_test
   itemId: int('item_id').references(() => mysqlItems.id),
   quantity: decimal('quantity', { precision: 15, scale: 4 }),
   unit: varchar('unit', { length: 50 }),
   data: mysqlText('data'),
-  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, sent, received, processed, error
+  requestPayload: mysqlText('request_payload'), // JSON request body
+  responsePayload: mysqlText('response_payload'), // JSON response body
+  httpStatus: int('http_status'), // HTTP status code
+  durationMs: int('duration_ms'), // Request duration in ms
+  endpoint: varchar('endpoint', { length: 255 }), // API endpoint called
+  method: varchar('method', { length: 10 }), // HTTP method
   sentAt: datetime('sent_at'),
   receivedAt: datetime('received_at'),
   errorMessage: mysqlText('error_message'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// VMI Vendor Configuration
+export const mysqlVMIVendorConfig = mysqlTable('vmi_vendor_config', {
+  id: int('id').primaryKey().autoincrement(),
+  vendorId: int('vendor_id').notNull().references(() => mysqlVendors.id).unique(),
+  apiKeyEncrypted: mysqlText('api_key_encrypted').notNull(),
+  vmiVendorId: varchar('vmi_vendor_id', { length: 50 }),
+  baseUrl: varchar('base_url', { length: 255 }),
+  isConnected: mysqlBoolean('is_connected').notNull().default(false),
+  lastConnectionAt: datetime('last_connection_at'),
+  syncItemsEnabled: mysqlBoolean('sync_items_enabled').notNull().default(true),
+  syncPricesEnabled: mysqlBoolean('sync_prices_enabled').notNull().default(true),
+  syncInventoryEnabled: mysqlBoolean('sync_inventory_enabled').notNull().default(true),
+  orderPollIntervalMinutes: int('order_poll_interval_minutes').notNull().default(15),
+  lastItemsSyncAt: datetime('last_items_sync_at'),
+  lastPricesSyncAt: datetime('last_prices_sync_at'),
+  lastInventorySyncAt: datetime('last_inventory_sync_at'),
+  lastOrdersPollAt: datetime('last_orders_poll_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// VMI Price Offers
+export const mysqlVMIPriceOffers = mysqlTable('vmi_price_offers', {
+  id: int('id').primaryKey().autoincrement(),
+  vendorId: int('vendor_id').notNull().references(() => mysqlVendors.id),
+  itemId: int('item_id').notNull().references(() => mysqlItems.id),
+  unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
+  packPrice: decimal('pack_price', { precision: 15, scale: 2 }),
+  moq: int('moq'),
+  leadTimeDays: int('lead_time_days'),
+  effectiveDate: datetime('effective_date').notNull(),
+  expiryDate: datetime('expiry_date'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  lastSyncedAt: datetime('last_synced_at'),
+  syncStatus: varchar('sync_status', { length: 20 }).notNull().default('pending'), // pending, synced, error
+  syncError: mysqlText('sync_error'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// VMI Orders (from hospitals via VMI Portal)
+export const mysqlVMIOrders = mysqlTable('vmi_orders', {
+  id: int('id').primaryKey().autoincrement(),
+  vendorId: int('vendor_id').notNull().references(() => mysqlVendors.id),
+  vmiOrderId: int('vmi_order_id').notNull(),
+  hospitalCode: varchar('hospital_code', { length: 20 }).notNull(),
+  hospitalName: varchar('hospital_name', { length: 255 }).notNull(),
+  poNumber: varchar('po_number', { length: 50 }).notNull(),
+  warehouseName: varchar('warehouse_name', { length: 255 }),
+  status: varchar('status', { length: 20 }).notNull().default('submitted'), // submitted, confirmed, shipped, received, cancelled
+  orderDate: datetime('order_date').notNull(),
+  expectedDeliveryDate: datetime('expected_delivery_date'),
+  totalValue: decimal('total_value', { precision: 15, scale: 2 }).notNull(),
+  itemCount: int('item_count').notNull(),
+  notes: mysqlText('notes'),
+  localPoId: int('local_po_id').references(() => mysqlPurchaseOrders.id),
+  confirmedAt: datetime('confirmed_at'),
+  shippedAt: datetime('shipped_at'),
+  receivedAt: datetime('received_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// VMI Order Lines
+export const mysqlVMIOrderLines = mysqlTable('vmi_order_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  vmiOrderId: int('vmi_order_id').notNull().references(() => mysqlVMIOrders.id),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  localCode: varchar('local_code', { length: 50 }).notNull(),
+  itemName: varchar('item_name', { length: 500 }).notNull(),
+  quantityOrdered: decimal('quantity_ordered', { precision: 15, scale: 4 }).notNull(),
+  quantityReceived: decimal('quantity_received', { precision: 15, scale: 4 }).notNull().default('0'),
+  unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
+  lineTotal: decimal('line_total', { precision: 15, scale: 2 }).notNull(),
+  unit: varchar('unit', { length: 50 }).notNull(),
+  tppCode: varchar('tpp_code', { length: 13 }),
+  ttmtCode: varchar('ttmt_code', { length: 10 }),
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -1199,3 +1377,13 @@ export type ReportPermission = typeof sqliteReportPermissions.$inferSelect;
 export type NewReportPermission = typeof sqliteReportPermissions.$inferInsert;
 export type ReportExecution = typeof sqliteReportExecutions.$inferSelect;
 export type NewReportExecution = typeof sqliteReportExecutions.$inferInsert;
+export type VMIVendorConfig = typeof sqliteVMIVendorConfig.$inferSelect;
+export type NewVMIVendorConfig = typeof sqliteVMIVendorConfig.$inferInsert;
+export type VMIPriceOffer = typeof sqliteVMIPriceOffers.$inferSelect;
+export type NewVMIPriceOffer = typeof sqliteVMIPriceOffers.$inferInsert;
+export type VMIOrder = typeof sqliteVMIOrders.$inferSelect;
+export type NewVMIOrder = typeof sqliteVMIOrders.$inferInsert;
+export type VMIOrderLine = typeof sqliteVMIOrderLines.$inferSelect;
+export type NewVMIOrderLine = typeof sqliteVMIOrderLines.$inferInsert;
+export type VMITransaction = typeof sqliteVMITransactions.$inferSelect;
+export type NewVMITransaction = typeof sqliteVMITransactions.$inferInsert;

@@ -1,0 +1,184 @@
+openapi: 3.0.3
+info:
+  title: VMI Configuration API
+  description: API for managing VMI Portal vendor configuration
+  version: 1.0.0
+
+paths:
+  /api/vendors/{vendorId}/vmi-config:
+    get:
+      summary: Get VMI configuration for vendor
+      description: Retrieve VMI Portal configuration for a specific vendor
+      tags:
+        - VMI Configuration
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: VMI configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VmiConfigResponse'
+        '404':
+          description: Vendor not found or not VMI enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update VMI configuration
+      description: Create or update VMI Portal configuration for a vendor
+      tags:
+        - VMI Configuration
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VmiConfigUpdateRequest'
+      responses:
+        '200':
+          description: VMI configuration updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VmiConfigResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/vendors/{vendorId}/vmi-config/test:
+    post:
+      summary: Test VMI Portal connection
+      description: Test the connection to VMI Portal using stored credentials
+      tags:
+        - VMI Configuration
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Connection test result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestResponse'
+
+components:
+  schemas:
+    VmiConfigResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            vendorId:
+              type: integer
+            vmiVendorId:
+              type: string
+              description: Vendor ID in VMI Portal
+            baseUrl:
+              type: string
+              description: VMI Portal base URL
+            hasApiKey:
+              type: boolean
+              description: Whether API key is configured (never expose actual key)
+            isConnected:
+              type: boolean
+            lastConnectionAt:
+              type: string
+              format: date-time
+            syncItemsEnabled:
+              type: boolean
+            syncPricesEnabled:
+              type: boolean
+            syncInventoryEnabled:
+              type: boolean
+            orderPollIntervalMinutes:
+              type: integer
+            lastItemsSyncAt:
+              type: string
+              format: date-time
+            lastPricesSyncAt:
+              type: string
+              format: date-time
+            lastInventorySyncAt:
+              type: string
+              format: date-time
+            lastOrdersPollAt:
+              type: string
+              format: date-time
+
+    VmiConfigUpdateRequest:
+      type: object
+      properties:
+        apiKey:
+          type: string
+          description: VMI Portal API key (only sent when updating)
+        vmiVendorId:
+          type: string
+        baseUrl:
+          type: string
+        syncItemsEnabled:
+          type: boolean
+        syncPricesEnabled:
+          type: boolean
+        syncInventoryEnabled:
+          type: boolean
+        orderPollIntervalMinutes:
+          type: integer
+          minimum: 5
+          maximum: 60
+
+    ConnectionTestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        connected:
+          type: boolean
+        message:
+          type: string
+        testedAt:
+          type: string
+          format: date-time
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string

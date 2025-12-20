@@ -1,0 +1,339 @@
+openapi: 3.0.3
+info:
+  title: VMI Sync API
+  description: API for syncing data to VMI Portal (items, prices, inventory)
+  version: 1.0.0
+
+paths:
+  /api/purchasing/vmi/sync/items:
+    post:
+      summary: Sync items to VMI Portal
+      description: Send item master data to VMI Portal for specified vendor
+      tags:
+        - VMI Sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemSyncRequest'
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResultResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get items pending sync
+      description: List items that need to be synced to VMI Portal
+      tags:
+        - VMI Sync
+      parameters:
+        - name: vendorId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Items pending sync
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingItemsResponse'
+
+  /api/purchasing/vmi/sync/prices:
+    post:
+      summary: Sync prices to VMI Portal
+      description: Send price offers to VMI Portal for specified vendor
+      tags:
+        - VMI Sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceSyncRequest'
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResultResponse'
+
+    get:
+      summary: Get price offers for vendor
+      description: List current price offers configured for VMI sync
+      tags:
+        - VMI Sync
+      parameters:
+        - name: vendorId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Price offers list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceOffersResponse'
+
+  /api/purchasing/vmi/sync/inventory:
+    post:
+      summary: Sync inventory to VMI Portal
+      description: Send current inventory quantities to VMI Portal
+      tags:
+        - VMI Sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventorySyncRequest'
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResultResponse'
+
+  /api/purchasing/vmi/sync/status:
+    get:
+      summary: Get sync status for vendor
+      description: Get overall sync status and last sync timestamps
+      tags:
+        - VMI Sync
+      parameters:
+        - name: vendorId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Sync status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncStatusResponse'
+
+components:
+  schemas:
+    ItemSyncRequest:
+      type: object
+      required:
+        - vendorId
+      properties:
+        vendorId:
+          type: integer
+        itemIds:
+          type: array
+          items:
+            type: integer
+          description: Specific items to sync (empty = all AVL items)
+
+    PriceSyncRequest:
+      type: object
+      required:
+        - vendorId
+      properties:
+        vendorId:
+          type: integer
+        priceOfferIds:
+          type: array
+          items:
+            type: integer
+          description: Specific price offers to sync (empty = all active)
+
+    InventorySyncRequest:
+      type: object
+      required:
+        - vendorId
+      properties:
+        vendorId:
+          type: integer
+        itemIds:
+          type: array
+          items:
+            type: integer
+          description: Specific items to sync (empty = all VMI items)
+
+    SyncResultResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        vendorId:
+          type: integer
+        summary:
+          type: object
+          properties:
+            total:
+              type: integer
+            inserted:
+              type: integer
+            updated:
+              type: integer
+            failed:
+              type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              localCode:
+                type: string
+              message:
+                type: string
+        syncedAt:
+          type: string
+          format: date-time
+
+    PendingItemsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              code:
+                type: string
+              nameTh:
+                type: string
+              nameEn:
+                type: string
+              tppCode:
+                type: string
+              ttmtCode:
+                type: string
+              primaryUnit:
+                type: string
+              packSize:
+                type: number
+              packUnit:
+                type: string
+              lastSyncedAt:
+                type: string
+                format: date-time
+              syncStatus:
+                type: string
+                enum: [pending, synced, error]
+
+    PriceOffersResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              itemId:
+                type: integer
+              itemCode:
+                type: string
+              itemName:
+                type: string
+              unitPrice:
+                type: number
+              packPrice:
+                type: number
+              moq:
+                type: integer
+              leadTimeDays:
+                type: integer
+              effectiveDate:
+                type: string
+                format: date
+              expiryDate:
+                type: string
+                format: date
+              isActive:
+                type: boolean
+              lastSyncedAt:
+                type: string
+                format: date-time
+              syncStatus:
+                type: string
+
+    SyncStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            vendorId:
+              type: integer
+            vendorName:
+              type: string
+            isConnected:
+              type: boolean
+            items:
+              type: object
+              properties:
+                total:
+                  type: integer
+                synced:
+                  type: integer
+                pending:
+                  type: integer
+                error:
+                  type: integer
+                lastSyncAt:
+                  type: string
+                  format: date-time
+            prices:
+              type: object
+              properties:
+                total:
+                  type: integer
+                synced:
+                  type: integer
+                pending:
+                  type: integer
+                error:
+                  type: integer
+                lastSyncAt:
+                  type: string
+                  format: date-time
+            inventory:
+              type: object
+              properties:
+                lastSyncAt:
+                  type: string
+                  format: date-time
+                itemsSynced:
+                  type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
