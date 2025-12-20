@@ -73,14 +73,14 @@ This feature uses a hybrid architecture:
 
 ### Implementation for User Story 1
 
-- [ ] T020 [US1] Create ReportViewer wrapper component with DevExpress Document Viewer in src/components/reports/ReportViewer.tsx
-- [ ] T021 [US1] Create report viewer page with dynamic route in src/app/reports/view/[code]/page.tsx
-- [ ] T022 [US1] Add loading state component for report viewer in src/components/reports/ReportViewerSkeleton.tsx
-- [ ] T023 [US1] Configure DevExpress Document Viewer options (paging, zoom, search) in ReportViewer component
-- [ ] T024 [US1] Add responsive CSS styles for mobile/tablet viewports in ReportViewer component
-- [ ] T025 [US1] Create error boundary for report viewer errors in src/components/reports/ReportErrorBoundary.tsx
-- [ ] T026 [US1] Create a sample "Inventory Valuation" report template in reporting-backend for testing
-- [ ] T027 [US1] Verify report viewer works end-to-end: load sample report, test paging, zoom, search, mobile view
+- [X] T020 [US1] Create ReportViewer wrapper component with DevExpress Document Viewer in src/components/reports/ReportViewer.tsx
+- [X] T021 [US1] Create report viewer page with dynamic route in src/app/reports/view/[code]/page.tsx
+- [X] T022 [US1] Add loading state component for report viewer in src/components/reports/ReportViewerSkeleton.tsx
+- [X] T023 [US1] Configure DevExpress Document Viewer options (paging, zoom, search) in ReportViewer component
+- [X] T024 [US1] Add responsive CSS styles for mobile/tablet viewports in ReportViewer component
+- [X] T025 [US1] Create error boundary for report viewer errors in src/components/reports/ReportErrorBoundary.tsx
+- [X] T026 [US1] Create a sample "Inventory Valuation" report template in reporting-backend for testing
+- [X] T027 [US1] Verify report viewer works end-to-end: load sample report, test paging, zoom, search, mobile view
 
 **Checkpoint**: User Story 1 complete - users can view reports in browser on any device with paging, zoom, and search
 
