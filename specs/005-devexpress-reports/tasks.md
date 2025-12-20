@@ -100,7 +100,7 @@ This feature uses a hybrid architecture:
 - [X] T031 [US2] Configure print functionality in ReportViewer component
 - [X] T032 [US2] Add export progress indicator for large reports in ReportViewer component
 - [X] T033 [US2] Create audit logging for export/print actions - call logReportExecution in src/lib/services/reports.service.ts
-- [ ] T034 [US2] Verify exports work end-to-end: export sample report to PDF/Excel/Word, verify file content and print dialog
+- [X] T034 [US2] Verify exports work end-to-end: export sample report to PDF/Excel/Word, verify file content and print dialog
 
 **Checkpoint**: User Story 2 complete - users can export reports to PDF/Excel/Word and print them
 
@@ -124,7 +124,7 @@ This feature uses a hybrid architecture:
 - [X] T042 [US3] Create "New Report" page with template creation form in src/app/reports/new/page.tsx
 - [X] T043 [US3] Create report templates API endpoint for POST (create) in src/app/api/reports/templates/route.ts
 - [X] T044 [US3] Add loading state for designer initialization in ReportDesigner component
-- [ ] T045 [US3] Verify designer works end-to-end: create new report, add components, bind data, save, view in viewer
+- [X] T045 [US3] Verify designer works end-to-end: create new report, add components, bind data, save, view in viewer
 
 **Checkpoint**: User Story 3 complete - designers can create reports visually and save templates
 
@@ -143,7 +143,7 @@ This feature uses a hybrid architecture:
 - [X] T048 [US4] Add cancel/revert functionality in ReportDesigner component
 - [X] T049 [US4] Create report templates API endpoint for PUT (update) in src/app/api/reports/templates/[code]/route.ts
 - [X] T050 [US4] Add unsaved changes warning when leaving designer with modifications
-- [ ] T051 [US4] Verify editing works end-to-end: open existing template, modify, save, reopen and verify changes persist
+- [X] T051 [US4] Verify editing works end-to-end: open existing template, modify, save, reopen and verify changes persist
 
 **Checkpoint**: User Story 4 complete - designers can edit existing templates with version tracking
 
@@ -170,7 +170,7 @@ This feature uses a hybrid architecture:
 - [X] T062 [US5] Create permission management UI component in src/components/reports/ReportPermissions.tsx
 - [X] T063 [US5] Implement role-based access filtering in template list API
 - [X] T064 [US5] Add search and filter functionality in ReportList component
-- [ ] T065 [US5] Verify management works end-to-end: create category, assign report, set permissions, test access control
+- [X] T065 [US5] Verify management works end-to-end: create category, assign report, set permissions, test access control
 
 **Checkpoint**: User Story 5 complete - admins can organize and control access to reports
 
