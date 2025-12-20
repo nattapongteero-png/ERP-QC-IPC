@@ -55,18 +55,18 @@
 
 ### Tests for User Story 1
 
-- [ ] T015 [P] [US1] Create unit test for VmiPortalService.testConnection in tests/unit/services/vmi-portal.service.test.ts
-- [ ] T016 [P] [US1] Create integration test for VMI config API in tests/integration/api/vmi/config.test.ts
+- [x] T015 [P] [US1] Create unit test for VmiPortalService.testConnection in tests/unit/services/vmi-portal.service.test.ts
+- [x] T016 [P] [US1] Create integration test for VMI config API in tests/integration/api/vmi/config.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Implement VmiPortalService.testConnection method in src/lib/services/vmi-portal.service.ts
-- [ ] T018 [P] [US1] Create GET /api/vendors/[id]/vmi-config/route.ts to retrieve vendor VMI configuration
-- [ ] T019 [P] [US1] Create PUT /api/vendors/[id]/vmi-config/route.ts to update vendor VMI configuration
-- [ ] T020 [US1] Create POST /api/vendors/[id]/vmi-config/test/route.ts to test VMI Portal connection
-- [ ] T021 [US1] Create VmiCredentialsForm component in src/components/vmi/VmiCredentialsForm.tsx
-- [ ] T022 [US1] Add VMI configuration section to vendor detail page in src/app/purchasing/vendors/[id]/page.tsx
-- [ ] T023 [US1] Implement transaction logging for config test operations
+- [x] T017 [US1] Implement VmiPortalService.testConnection method in src/lib/services/vmi-portal.service.ts
+- [x] T018 [P] [US1] Create GET /api/vendors/[id]/vmi-config/route.ts to retrieve vendor VMI configuration
+- [x] T019 [P] [US1] Create PUT /api/vendors/[id]/vmi-config/route.ts to update vendor VMI configuration
+- [x] T020 [US1] Create POST /api/vendors/[id]/vmi-config/test/route.ts to test VMI Portal connection
+- [x] T021 [US1] Create VmiCredentialsForm component in src/components/vmi/VmiCredentialsForm.tsx
+- [x] T022 [US1] Add VMI configuration section to vendor detail page in src/app/purchasing/vendors/[id]/page.tsx
+- [x] T023 [US1] Implement transaction logging for config test operations
 
 **Checkpoint**: User Story 1 complete - administrators can configure and test VMI credentials
 

@@ -24,7 +24,9 @@ import {
   Package,
   CheckCircle,
   AlertCircle,
+  Key,
 } from 'lucide-react';
+import { VmiCredentialsForm, VmiConfig, VmiCredentialsFormData } from '@/components/vmi/VmiCredentialsForm';
 
 interface Vendor {
   id: number;
@@ -88,6 +90,12 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // VMI Configuration State
+  const [vmiConfig, setVmiConfig] = useState<VmiConfig | null>(null);
+  const [isVmiConfigured, setIsVmiConfigured] = useState(false);
+  const [hasVmiApiKey, setHasVmiApiKey] = useState(false);
+  const [isVmiSaving, setIsVmiSaving] = useState(false);
+  const [isVmiTesting, setIsVmiTesting] = useState(false);
   const [editForm, setEditForm] = useState({
     code: '',
     name: '',
@@ -136,10 +144,87 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const fetchVmiConfig = async () => {
+    try {
+      const res = await fetch(`/api/vendors/${resolvedParams.id}/vmi-config`);
+      const result = await res.json();
+
+      if (result.success) {
+        setVmiConfig(result.data.config);
+        setIsVmiConfigured(result.data.isConfigured);
+        setHasVmiApiKey(result.data.hasApiKey ?? false);
+      }
+    } catch (error) {
+      console.error('Failed to fetch VMI config:', error);
+    }
+  };
+
+  const handleVmiSave = async (formData: VmiCredentialsFormData) => {
+    setIsVmiSaving(true);
+    try {
+      const res = await fetch(`/api/vendors/${resolvedParams.id}/vmi-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        await fetchVmiConfig();
+      } else {
+        alert(result.error || 'Failed to save VMI configuration');
+      }
+    } catch (error) {
+      console.error('Failed to save VMI config:', error);
+      alert('Failed to save VMI configuration');
+    } finally {
+      setIsVmiSaving(false);
+    }
+  };
+
+  const handleVmiTestConnection = async (): Promise<{ isConnected: boolean; error?: string }> => {
+    setIsVmiTesting(true);
+    try {
+      const res = await fetch(`/api/vendors/${resolvedParams.id}/vmi-config/test`, {
+        method: 'POST',
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        await fetchVmiConfig(); // Refresh config to update connection status
+        return {
+          isConnected: result.data.isConnected,
+          error: result.data.error,
+        };
+      } else {
+        return {
+          isConnected: false,
+          error: result.error || 'Connection test failed',
+        };
+      }
+    } catch (error) {
+      console.error('Failed to test VMI connection:', error);
+      return {
+        isConnected: false,
+        error: 'Network error during connection test',
+      };
+    } finally {
+      setIsVmiTesting(false);
+    }
+  };
+
   useEffect(() => {
     fetchVendorDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedParams.id]);
+
+  // Fetch VMI config when vendor data is loaded and vendor is VMI
+  useEffect(() => {
+    if (data?.vendor?.isVMI) {
+      fetchVmiConfig();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.vendor?.isVMI, resolvedParams.id]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -259,6 +344,7 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
     { id: 0, text: 'Overview' },
     { id: 1, text: `Purchase Orders (${recentPurchaseOrders.length})` },
     { id: 2, text: `Approved Items (${approvedItems.length})` },
+    ...(vendor.isVMI ? [{ id: 3, text: 'VMI Configuration', icon: 'key' }] : []),
   ];
 
   const poColumns: DxDataGridColumn[] = [
@@ -700,6 +786,20 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                   No approved items found for this vendor
                 </div>
               )
+            )}
+
+            {activeTabIndex === 3 && vendor.isVMI && (
+              <VmiCredentialsForm
+                vendorId={vendor.id}
+                vendorName={vendor.name}
+                config={vmiConfig}
+                isConfigured={isVmiConfigured}
+                hasApiKey={hasVmiApiKey}
+                onSave={handleVmiSave}
+                onTestConnection={handleVmiTestConnection}
+                isSaving={isVmiSaving}
+                isTesting={isVmiTesting}
+              />
             )}
           </CardContent>
         </Card>
