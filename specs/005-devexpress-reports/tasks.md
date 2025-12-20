@@ -114,16 +114,16 @@ This feature uses a hybrid architecture:
 
 ### Implementation for User Story 3
 
-- [ ] T035 [US3] Create ReportDesigner wrapper component with DevExpress Report Designer in src/components/reports/ReportDesigner.tsx
-- [ ] T036 [US3] Create report designer page with dynamic route in src/app/reports/design/[code]/page.tsx
-- [ ] T037 [US3] Configure designer toolbox with available components (text, table, chart, barcode, image) in ReportDesigner component
-- [ ] T038 [US3] Enable drag-and-drop component placement in ReportDesigner component
-- [ ] T039 [US3] Configure data source binding in designer - register JSON data sources for inventory/production/quality data
-- [ ] T040 [US3] Implement preview functionality in ReportDesigner component
-- [ ] T041 [US3] Implement save functionality - connect designer save to DatabaseReportStorage in .NET backend
-- [ ] T042 [US3] Create "New Report" page with template creation form in src/app/reports/new/page.tsx
-- [ ] T043 [US3] Create report templates API endpoint for POST (create) in src/app/api/reports/templates/route.ts
-- [ ] T044 [US3] Add loading state for designer initialization in ReportDesigner component
+- [X] T035 [US3] Create ReportDesigner wrapper component with DevExpress Report Designer in src/components/reports/ReportDesigner.tsx
+- [X] T036 [US3] Create report designer page with dynamic route in src/app/reports/design/[code]/page.tsx
+- [X] T037 [US3] Configure designer toolbox with available components (text, table, chart, barcode, image) in ReportDesigner component
+- [X] T038 [US3] Enable drag-and-drop component placement in ReportDesigner component
+- [X] T039 [US3] Configure data source binding in designer - register JSON data sources for inventory/production/quality data
+- [X] T040 [US3] Implement preview functionality in ReportDesigner component
+- [X] T041 [US3] Implement save functionality - connect designer save to DatabaseReportStorage in .NET backend
+- [X] T042 [US3] Create "New Report" page with template creation form in src/app/reports/new/page.tsx
+- [X] T043 [US3] Create report templates API endpoint for POST (create) in src/app/api/reports/templates/route.ts
+- [X] T044 [US3] Add loading state for designer initialization in ReportDesigner component
 - [ ] T045 [US3] Verify designer works end-to-end: create new report, add components, bind data, save, view in viewer
 
 **Checkpoint**: User Story 3 complete - designers can create reports visually and save templates
