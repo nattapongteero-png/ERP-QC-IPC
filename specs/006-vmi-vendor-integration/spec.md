@@ -174,11 +174,9 @@ As a system administrator, I want to monitor VMI integration health and transact
 
 - **FR-014**: System MUST support both manual trigger and scheduled background sync for items, prices, and inventory.
 
-- **FR-015**: System MUST include TPP codes and TTMT codes in item sync when available.
+- **FR-015**: System MUST include the applicable standard code (TTMT or TPP) in item sync.
 
-- **FR-016**: System MUST store TTMT code (Thai Traditional Medicine Terminology) in the items table for finished products to comply with Thai pharmaceutical standards.
-
-- **FR-017**: System MUST store TPP code (Thai Pharmaceutical Product) in the items table for drug products to enable standard product identification.
+- **FR-016**: System MUST store standard product codes in the items table - each item requires either TTMT code (for herbal/traditional medicine products) OR TPP code (for pharmaceutical drug products) as per Thai coding standards.
 
 ### Key Entities
 
@@ -186,7 +184,7 @@ As a system administrator, I want to monitor VMI integration health and transact
 
 - **Vendor Item Mapping**: Relationship between local item codes and vendor-specific localCode for VMI sync.
 
-- **Item (Extended)**: Existing item master extended with tpp_code (Thai Pharmaceutical Product code, 13 digits) and ttmt_code (Thai Traditional Medicine Terminology, format A01234567) fields for standard product identification.
+- **Item (Extended)**: Existing item master extended with tpp_code and ttmt_code fields. Each item requires one standard code: TTMT code (format: A + 8 digits, e.g., A01234567) for herbal/traditional medicine, OR TPP code (13 digits, e.g., 1100010001000) for pharmaceutical drugs.
 
 - **VMI Price Offer**: Price information to be synced including unit price, pack price, MOQ, lead time, effective/expiry dates.
 
@@ -223,9 +221,10 @@ As a system administrator, I want to monitor VMI integration health and transact
 - Network connectivity to VMI Portal endpoint (vmi-portal.bmscloud.in.th) is available from the application server.
 - Existing vendor and item master data is maintained in the local system.
 - This system operates as a "Vendor" in the VMI Portal ecosystem, supplying items to hospitals.
-- TPP codes (Thai Pharmaceutical Product) and TTMT codes are required for VMI sync and will be added to the items table schema.
-- TTMT code format: A followed by 8 digits (e.g., A01234567) - used for finished herbal/traditional medicine products.
-- TPP code format: 13-digit number (e.g., 1100010001000) - used for pharmaceutical drug products.
+- Each item requires one standard code for VMI sync: either TTMT code OR TPP code (not both).
+- TTMT code (Thai Traditional Medicine Terminology): A + 8 digits (e.g., A01234567) - for herbal/traditional medicine finished products.
+- TPP code (Thai Pharmaceutical Product): 13 digits (e.g., 1100010001000) - for pharmaceutical drug products.
+- Both tpp_code and ttmt_code fields will be added to the items table schema to support either coding standard.
 - All monetary values are in Thai Baht (THB) by default.
 - Order statuses follow the VMI Portal workflow: draft → submitted → confirmed → shipped → received.
 - The existing Settings table can be extended to store encrypted API credentials.
