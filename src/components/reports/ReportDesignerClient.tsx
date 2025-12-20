@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 // Import DevExpress Report Designer styles
 import 'devextreme/dist/css/dx.light.css';
@@ -17,6 +17,9 @@ import DxReportDesigner, {
   Callbacks,
 } from 'devexpress-reporting-react/dx-report-designer';
 
+// Import ActionId for toolbar customization
+import { ActionId } from 'devexpress-reporting/dx-reportdesigner';
+
 interface ReportDesignerClientProps {
   reportUrl: string;
   backendUrl: string;
@@ -27,6 +30,9 @@ interface ReportDesignerClientProps {
   onComponentAdded?: () => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DesignerRef = any;
+
 export default function ReportDesignerClient({
   reportUrl,
   backendUrl,
@@ -36,8 +42,15 @@ export default function ReportDesignerClient({
   onError,
   onComponentAdded,
 }: ReportDesignerClientProps) {
-  const handleBeforeRender = useCallback(() => {
+  // Store designer instance reference
+  const designerRef = useRef<DesignerRef>(null);
+
+  const handleBeforeRender = useCallback((args: { designerModel?: DesignerRef }) => {
     console.log('Report Designer: BeforeRender');
+    // Store designer reference for later use
+    if (args?.designerModel) {
+      designerRef.current = args.designerModel;
+    }
   }, []);
 
   const handleReportOpened = useCallback(() => {
@@ -70,6 +83,112 @@ export default function ReportDesignerClient({
     onError?.(errorMessage);
   }, [onError]);
 
+  // Customize menu actions to add useful toolbar buttons
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleCustomizeMenuActions = useCallback(({ sender, args }: { sender: any; args: any }) => {
+    console.log('Report Designer: Customizing Menu Actions', { sender, args });
+
+    // Safety check - ensure args has required methods
+    if (!args || typeof args.GetById !== 'function' || !Array.isArray(args.Actions)) {
+      console.warn('Report Designer: CustomizeMenuActions - invalid args structure');
+      return;
+    }
+
+    // Make common actions more visible in toolbar
+    try {
+      const newReportAction = args.GetById(ActionId.NewReport);
+      if (newReportAction) {
+        newReportAction.visible = true;
+      }
+
+      const openReportAction = args.GetById(ActionId.OpenReport);
+      if (openReportAction) {
+        openReportAction.visible = true;
+      }
+    } catch (e) {
+      console.warn('Report Designer: Could not modify built-in actions', e);
+    }
+
+    // Add custom toolbar actions
+    try {
+      // Add "Data Source" action - opens data source wizard
+      args.Actions.push({
+        id: 'customDataSource',
+        text: 'Data Source',
+        imageClassName: 'dxrd-image-add-datasource',
+        container: 'toolbar',
+        visible: true,
+        clickAction: () => {
+          const designer = designerRef.current;
+          if (designer?.OpenDataSourceWizard) {
+            designer.OpenDataSourceWizard();
+          } else {
+            console.log('Data Source: Use Field List panel → Right-click → Add Data Source');
+          }
+        },
+      });
+
+      // Add "Parameters" action - opens parameters panel
+      args.Actions.push({
+        id: 'customParameters',
+        text: 'Parameters',
+        imageClassName: 'dxrd-image-parameters',
+        container: 'toolbar',
+        visible: true,
+        clickAction: () => {
+          const designer = designerRef.current;
+          if (designer?.ShowParametersPanel) {
+            designer.ShowParametersPanel();
+          } else {
+            console.log('Parameters: Use Field List panel → Parameters node');
+          }
+        },
+      });
+
+      // Add "Script Editor" toggle action
+      args.Actions.push({
+        id: 'customScriptEditor',
+        text: 'Scripts',
+        imageClassName: 'dxrd-image-scripts',
+        container: 'toolbar',
+        visible: true,
+        clickAction: () => {
+          const designer = designerRef.current;
+          if (designer?.ToggleScriptEditor) {
+            designer.ToggleScriptEditor();
+          } else if (designer?.GetButtonStorage) {
+            try {
+              const buttonStorage = designer.GetButtonStorage();
+              const scriptAction = buttonStorage?.['ToggleScriptEditor'] ||
+                                   buttonStorage?.['ScriptEditor'];
+              if (scriptAction) {
+                scriptAction();
+              }
+            } catch {
+              console.log('Script Editor: Available in View menu');
+            }
+          }
+        },
+      });
+
+      // Add "Help" action
+      args.Actions.push({
+        id: 'customHelp',
+        text: 'Help',
+        imageClassName: 'dx-icon-help',
+        container: 'toolbar',
+        visible: true,
+        clickAction: () => {
+          window.open('https://docs.devexpress.com/XtraReports/2162/web-reporting', '_blank');
+        },
+      });
+
+      console.log('Report Designer: Menu actions customized', args.Actions.length, 'total actions');
+    } catch (e) {
+      console.warn('Report Designer: Could not add custom actions', e);
+    }
+  }, []);
+
   return (
     <DxReportDesigner
       reportUrl={reportUrl}
@@ -87,6 +206,7 @@ export default function ReportDesignerClient({
         ReportSaved={handleReportSaved}
         ComponentAdded={handleComponentAdded}
         CustomizeToolbox={handleCustomizeToolbox}
+        CustomizeMenuActions={handleCustomizeMenuActions}
         OnServerError={handleOnServerError}
       />
     </DxReportDesigner>
