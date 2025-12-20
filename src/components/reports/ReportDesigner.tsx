@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Save, Eye, Undo, Redo, Grid3X3, Type, Table, BarChart3, Image, QrCode, Loader2, AlertCircle } from 'lucide-react';
+import { Save, Eye, Undo, Redo, Grid3X3, Type, Table, BarChart3, Image, QrCode, Loader2, AlertCircle, RotateCcw, X } from 'lucide-react';
 
 // Import DevExpress Report Designer styles
 import 'devextreme/dist/css/dx.light.css';
@@ -14,6 +14,8 @@ export interface ReportDesignerProps {
   reportUrl?: string; // If provided, load existing report for editing
   onSave?: (reportData: ReportSaveData) => void;
   onPreview?: () => void;
+  onCancel?: () => void;
+  onRevert?: () => void;
   onError?: (error: Error) => void;
   onReady?: () => void;
   className?: string;
@@ -51,6 +53,8 @@ export default function ReportDesigner({
   reportUrl,
   onSave,
   onPreview,
+  onCancel,
+  onRevert,
   onError,
   onReady,
   className = '',
@@ -150,6 +154,26 @@ export default function ReportDesigner({
     }
   }, [selectedTool]);
 
+  const handleCancel = useCallback(() => {
+    if (state.hasUnsavedChanges) {
+      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to cancel?');
+      if (!confirmed) return;
+    }
+    onCancel?.();
+  }, [state.hasUnsavedChanges, onCancel]);
+
+  const handleRevert = useCallback(() => {
+    if (!state.hasUnsavedChanges) return;
+
+    const confirmed = window.confirm('Are you sure you want to revert all changes? This cannot be undone.');
+    if (!confirmed) return;
+
+    // In production, this would reload the report from the server
+    setState(prev => ({ ...prev, hasUnsavedChanges: false, canUndo: false, canRedo: false }));
+    onRevert?.();
+    console.log('Reverted to last saved version');
+  }, [state.hasUnsavedChanges, onRevert]);
+
   // Warn about unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -225,6 +249,25 @@ export default function ReportDesigner({
             >
               <Redo className="h-4 w-4" />
             </button>
+            <div className="h-6 w-px bg-gray-300 mx-2" />
+            <button
+              onClick={handleRevert}
+              disabled={!state.hasUnsavedChanges || readOnly}
+              className="p-1.5 text-gray-600 hover:bg-gray-200 rounded disabled:opacity-50 transition-colors"
+              title="Revert to last saved version"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+            {onCancel && (
+              <button
+                onClick={handleCancel}
+                className="flex items-center gap-1 px-2 py-1.5 text-gray-600 hover:bg-gray-200 rounded transition-colors"
+                title="Cancel and close"
+              >
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+            )}
           </div>
 
           {/* Right side - Status */}

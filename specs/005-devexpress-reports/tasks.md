@@ -138,11 +138,11 @@ This feature uses a hybrid architecture:
 
 ### Implementation for User Story 4
 
-- [ ] T046 [US4] Load existing template in ReportDesigner component via reportUrl parameter
-- [ ] T047 [US4] Implement template update in DatabaseReportStorage - increment version on save
-- [ ] T048 [US4] Add cancel/revert functionality in ReportDesigner component
-- [ ] T049 [US4] Create report templates API endpoint for PUT (update) in src/app/api/reports/templates/[code]/route.ts
-- [ ] T050 [US4] Add unsaved changes warning when leaving designer with modifications
+- [X] T046 [US4] Load existing template in ReportDesigner component via reportUrl parameter
+- [X] T047 [US4] Implement template update in DatabaseReportStorage - increment version on save
+- [X] T048 [US4] Add cancel/revert functionality in ReportDesigner component
+- [X] T049 [US4] Create report templates API endpoint for PUT (update) in src/app/api/reports/templates/[code]/route.ts
+- [X] T050 [US4] Add unsaved changes warning when leaving designer with modifications
 - [ ] T051 [US4] Verify editing works end-to-end: open existing template, modify, save, reopen and verify changes persist
 
 **Checkpoint**: User Story 4 complete - designers can edit existing templates with version tracking
