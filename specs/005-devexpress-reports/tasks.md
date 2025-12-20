@@ -94,12 +94,12 @@ This feature uses a hybrid architecture:
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Enable PDF export in ReportViewer component with DevExpress built-in export
-- [ ] T029 [US2] Enable Excel (XLSX) export in ReportViewer component
-- [ ] T030 [US2] Enable Word (DOCX) export in ReportViewer component
-- [ ] T031 [US2] Configure print functionality in ReportViewer component
-- [ ] T032 [US2] Add export progress indicator for large reports in ReportViewer component
-- [ ] T033 [US2] Create audit logging for export/print actions - call logReportExecution in src/lib/services/reports.service.ts
+- [X] T028 [US2] Enable PDF export in ReportViewer component with DevExpress built-in export
+- [X] T029 [US2] Enable Excel (XLSX) export in ReportViewer component
+- [X] T030 [US2] Enable Word (DOCX) export in ReportViewer component
+- [X] T031 [US2] Configure print functionality in ReportViewer component
+- [X] T032 [US2] Add export progress indicator for large reports in ReportViewer component
+- [X] T033 [US2] Create audit logging for export/print actions - call logReportExecution in src/lib/services/reports.service.ts
 - [ ] T034 [US2] Verify exports work end-to-end: export sample report to PDF/Excel/Word, verify file content and print dialog
 
 **Checkpoint**: User Story 2 complete - users can export reports to PDF/Excel/Word and print them

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import ReportViewer from '@/components/reports/ReportViewer';
+import ReportViewer, { type ExportFormat } from '@/components/reports/ReportViewer';
 import ReportViewerSkeleton from '@/components/reports/ReportViewerSkeleton';
 import ReportErrorBoundary from '@/components/reports/ReportErrorBoundary';
 import { PageHeader } from '@/components/ui/page-header';
@@ -26,6 +26,8 @@ export default function ReportViewPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reportReady, setReportReady] = useState(false);
+  const viewStartTime = useRef<number>(0);
+  const viewLogged = useRef<boolean>(false);
 
   const fetchTemplate = useCallback(async () => {
     try {
@@ -56,14 +58,88 @@ export default function ReportViewPage() {
     }
   }, [code, fetchTemplate]);
 
+  // Build report URL for the backend
+  const reportUrl = template ? `${code}` : '';
+
+  // Build parameters from query string if any (memoized to avoid dependency issues)
+  const reportParameters = useMemo(() => {
+    const params: Record<string, unknown> = {};
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.forEach((value, key) => {
+        // Try to parse as JSON for complex values
+        try {
+          params[key] = JSON.parse(value);
+        } catch {
+          params[key] = value;
+        }
+      });
+    }
+    return params;
+  }, []);
+
+  // Audit logging helper function
+  const logReportAction = useCallback(async (
+    action: 'view' | 'export' | 'print',
+    status: 'success' | 'error' | 'cancelled',
+    exportFormat?: string,
+    durationMs?: number,
+    errorMessage?: string
+  ) => {
+    if (!template?.id) return;
+
+    try {
+      await fetch('/api/reports/executions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: template.id,
+          action,
+          status,
+          exportFormat,
+          durationMs,
+          errorMessage,
+          parameters: Object.keys(reportParameters).length > 0 ? reportParameters : undefined,
+        }),
+      });
+    } catch (err) {
+      // Log error but don't interrupt user workflow
+      console.error('Failed to log report action:', err);
+    }
+  }, [template?.id, reportParameters]);
+
   const handleReportReady = useCallback(() => {
     setReportReady(true);
-  }, []);
+    viewStartTime.current = Date.now();
+
+    // Log view action (only once per page load)
+    if (!viewLogged.current && template?.id) {
+      viewLogged.current = true;
+      logReportAction('view', 'success');
+    }
+  }, [template?.id, logReportAction]);
 
   const handleReportError = useCallback((err: Error) => {
     setError(err.message);
     console.error('Report viewer error:', err);
-  }, []);
+
+    // Log error if we have a template
+    if (template?.id) {
+      logReportAction('view', 'error', undefined, undefined, err.message);
+    }
+  }, [template?.id, logReportAction]);
+
+  const handleExport = useCallback((format: ExportFormat) => {
+    const durationMs = viewStartTime.current ? Date.now() - viewStartTime.current : undefined;
+    logReportAction('export', 'success', format, durationMs);
+    console.log(`Report exported as ${format}`);
+  }, [logReportAction]);
+
+  const handlePrint = useCallback(() => {
+    const durationMs = viewStartTime.current ? Date.now() - viewStartTime.current : undefined;
+    logReportAction('print', 'success', undefined, durationMs);
+    console.log('Report printed');
+  }, [logReportAction]);
 
   const handleBack = () => {
     router.push('/reports');
@@ -74,23 +150,6 @@ export default function ReportViewPage() {
     setReportReady(false);
     fetchTemplate();
   };
-
-  // Build report URL for the backend
-  const reportUrl = template ? `${code}` : '';
-
-  // Build parameters from query string if any
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-  const reportParameters: Record<string, unknown> = {};
-  if (searchParams) {
-    searchParams.forEach((value, key) => {
-      // Try to parse as JSON for complex values
-      try {
-        reportParameters[key] = JSON.parse(value);
-      } catch {
-        reportParameters[key] = value;
-      }
-    });
-  }
 
   if (isLoading) {
     return (
@@ -237,6 +296,10 @@ export default function ReportViewPage() {
             parameters={Object.keys(reportParameters).length > 0 ? reportParameters : undefined}
             onReportReady={handleReportReady}
             onError={handleReportError}
+            onExport={handleExport}
+            onPrint={handlePrint}
+            enableExport={true}
+            enablePrint={true}
             className="min-h-[600px]"
           />
         </ReportErrorBoundary>
