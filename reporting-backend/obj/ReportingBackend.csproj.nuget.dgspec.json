@@ -21,7 +21,8 @@
           "net8.0"
         ],
         "sources": {
-          "https://api.nuget.org/v3/index.json": {}
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nuget.devexpress.com/TMUTbBr1UzmMI2MNSLwWdDfWkupvVbSE6XKTmWIsAC57SLwbPR/api/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
@@ -44,6 +45,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "DevExpress.AspNetCore.Reporting": {
+              "target": "Package",
+              "version": "[25.1.*, )"
+            },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
               "version": "[8.0.10, )"
