@@ -157,19 +157,19 @@ This feature uses a hybrid architecture:
 
 ### Implementation for User Story 5
 
-- [ ] T052 [US5] Create ReportList component with template listing in src/components/reports/ReportList.tsx
-- [ ] T053 [US5] Create ReportCategoryTree component for category navigation in src/components/reports/ReportCategoryTree.tsx
-- [ ] T054 [US5] Update reports dashboard page with category tree and template list in src/app/reports/page.tsx
-- [ ] T055 [US5] Create report templates API endpoint for GET (list with filtering) in src/app/api/reports/templates/route.ts
-- [ ] T056 [US5] Create report templates API endpoint for GET (single) in src/app/api/reports/templates/[code]/route.ts
-- [ ] T057 [US5] Create report templates API endpoint for DELETE in src/app/api/reports/templates/[code]/route.ts
-- [ ] T058 [US5] Create categories API endpoint (CRUD) in src/app/api/reports/categories/route.ts
-- [ ] T059 [US5] Create categories API endpoint for single category in src/app/api/reports/categories/[id]/route.ts
-- [ ] T060 [US5] Create publish/unpublish endpoints in src/app/api/reports/templates/[code]/publish/route.ts and unpublish/route.ts
-- [ ] T061 [US5] Create permissions API endpoint in src/app/api/reports/templates/[code]/permissions/route.ts
-- [ ] T062 [US5] Create permission management UI component in src/components/reports/ReportPermissions.tsx
-- [ ] T063 [US5] Implement role-based access filtering in template list API
-- [ ] T064 [US5] Add search and filter functionality in ReportList component
+- [X] T052 [US5] Create ReportList component with template listing in src/components/reports/ReportList.tsx
+- [X] T053 [US5] Create ReportCategoryTree component for category navigation in src/components/reports/ReportCategoryTree.tsx
+- [X] T054 [US5] Update reports dashboard page with category tree and template list in src/app/reports/page.tsx
+- [X] T055 [US5] Create report templates API endpoint for GET (list with filtering) in src/app/api/reports/templates/route.ts
+- [X] T056 [US5] Create report templates API endpoint for GET (single) in src/app/api/reports/templates/[code]/route.ts
+- [X] T057 [US5] Create report templates API endpoint for DELETE in src/app/api/reports/templates/[code]/route.ts
+- [X] T058 [US5] Create categories API endpoint (CRUD) in src/app/api/reports/categories/route.ts
+- [X] T059 [US5] Create categories API endpoint for single category in src/app/api/reports/categories/[id]/route.ts
+- [X] T060 [US5] Create publish/unpublish endpoints in src/app/api/reports/templates/[code]/publish/route.ts and unpublish/route.ts
+- [X] T061 [US5] Create permissions API endpoint in src/app/api/reports/templates/[code]/permissions/route.ts
+- [X] T062 [US5] Create permission management UI component in src/components/reports/ReportPermissions.tsx
+- [X] T063 [US5] Implement role-based access filtering in template list API
+- [X] T064 [US5] Add search and filter functionality in ReportList component
 - [ ] T065 [US5] Verify management works end-to-end: create category, assign report, set permissions, test access control
 
 **Checkpoint**: User Story 5 complete - admins can organize and control access to reports
