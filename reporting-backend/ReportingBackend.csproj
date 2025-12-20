@@ -24,6 +24,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.2" />
 
+    <!-- Newtonsoft.Json for DevExpress serialization -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.10" />
+
     <!-- DevExpress Reporting -->
     <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="25.1.*" />
 
