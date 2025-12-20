@@ -190,25 +190,27 @@ export default function ReportDesignerClient({
   }, []);
 
   return (
-    <DxReportDesigner
-      reportUrl={reportUrl}
-      height="100%"
-      width="100%"
-    >
-      <RequestOptions
-        host={backendUrl}
-        getDesignerModelAction="api/ReportDesignerSetup/GetReportDesignerModel"
-      />
-      <Callbacks
-        BeforeRender={handleBeforeRender}
-        ReportOpened={handleReportOpened}
-        ReportSaving={handleReportSaving}
-        ReportSaved={handleReportSaved}
-        ComponentAdded={handleComponentAdded}
-        CustomizeToolbox={handleCustomizeToolbox}
-        CustomizeMenuActions={handleCustomizeMenuActions}
-        OnServerError={handleOnServerError}
-      />
-    </DxReportDesigner>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <DxReportDesigner
+        reportUrl={reportUrl}
+        height="100%"
+        width="100%"
+      >
+        <RequestOptions
+          host={backendUrl}
+          getDesignerModelAction="api/ReportDesignerSetup/GetReportDesignerModel"
+        />
+        <Callbacks
+          BeforeRender={handleBeforeRender}
+          ReportOpened={handleReportOpened}
+          ReportSaving={handleReportSaving}
+          ReportSaved={handleReportSaved}
+          ComponentAdded={handleComponentAdded}
+          CustomizeToolbox={handleCustomizeToolbox}
+          CustomizeMenuActions={handleCustomizeMenuActions}
+          OnServerError={handleOnServerError}
+        />
+      </DxReportDesigner>
+    </div>
   );
 }

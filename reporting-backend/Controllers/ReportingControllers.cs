@@ -9,34 +9,34 @@ using Microsoft.AspNetCore.Mvc;
 namespace ReportingBackend.Controllers;
 
 /// <summary>
-/// Custom WebDocumentViewer controller for viewing reports
-/// Required by DevExpress Reporting
+/// WebDocumentViewer controller for viewing reports
+/// The base class defines [Route("DXXRDV")] attribute
 /// </summary>
 [ApiExplorerSettings(IgnoreApi = true)]
-public class CustomWebDocumentViewerController : WebDocumentViewerController
+public class CustomViewerController : WebDocumentViewerController
 {
-    public CustomWebDocumentViewerController(IWebDocumentViewerMvcControllerService controllerService)
+    public CustomViewerController(IWebDocumentViewerMvcControllerService controllerService)
         : base(controllerService)
     {
     }
 }
 
 /// <summary>
-/// Custom ReportDesigner controller for designing reports
-/// Required by DevExpress Reporting
+/// ReportDesigner controller for designing reports
+/// The base class defines [Route("DXXRD")] attribute
 /// </summary>
 [ApiExplorerSettings(IgnoreApi = true)]
-public class CustomReportDesignerController : ReportDesignerController
+public class CustomDesignerController : ReportDesignerController
 {
-    public CustomReportDesignerController(IReportDesignerMvcControllerService controllerService)
+    public CustomDesignerController(IReportDesignerMvcControllerService controllerService)
         : base(controllerService)
     {
     }
 }
 
 /// <summary>
-/// Custom QueryBuilder controller for building data queries
-/// Required by DevExpress Reporting
+/// QueryBuilder controller for building data queries
+/// The base class defines [Route("DXXQB")] attribute
 /// </summary>
 [ApiExplorerSettings(IgnoreApi = true)]
 public class CustomQueryBuilderController : QueryBuilderController
