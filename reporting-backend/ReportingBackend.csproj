@@ -24,9 +24,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.2" />
 
-    <!-- DevExpress Reporting - Uncomment when DevExpress NuGet feed is configured -->
-    <!-- See NuGet.config for feed setup instructions -->
-    <!-- <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="25.1.*" /> -->
+    <!-- DevExpress Reporting -->
+    <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="25.1.*" />
   </ItemGroup>
 
 </Project>

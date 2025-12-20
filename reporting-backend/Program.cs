@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using DevExpress.AspNetCore;
+using DevExpress.AspNetCore.Reporting;
+using DevExpress.XtraReports.Web.Extensions;
 using ReportingBackend.Data;
 using ReportingBackend.Services;
 
@@ -32,12 +35,24 @@ builder.Services.AddDbContext<ReportDbContext>(options =>
 });
 
 // Register custom services
-builder.Services.AddScoped<DatabaseReportStorage>();
 builder.Services.AddScoped<JwtAuthenticationService>();
 
-// Note: DevExpress Reporting services will be added when the package is properly configured
-// builder.Services.AddDevExpressControls();
-// builder.Services.AddScoped<ReportStorageWebExtension, DatabaseReportStorage>();
+// Configure DevExpress Reporting services
+builder.Services.AddDevExpressControls();
+builder.Services.AddScoped<ReportStorageWebExtension, DatabaseReportStorage>();
+
+// Configure DevExpress Reporting
+builder.Services.ConfigureReportingServices(configurator =>
+{
+    configurator.ConfigureWebDocumentViewer(viewerConfigurator =>
+    {
+        viewerConfigurator.UseCachedReportSourceBuilder();
+    });
+    configurator.ConfigureReportDesigner(designerConfigurator =>
+    {
+        designerConfigurator.RegisterDataSourceWizardConnectionStringsProvider<CustomConnectionStringProvider>();
+    });
+});
 
 var app = builder.Build();
 
@@ -50,6 +65,9 @@ if (app.Environment.IsDevelopment())
 
 // Apply CORS policy
 app.UseCors("AllowNextJS");
+
+// Configure DevExpress middleware
+app.UseDevExpressControls();
 
 // Map controllers
 app.MapControllers();

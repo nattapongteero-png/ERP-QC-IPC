@@ -1,4 +1,5 @@
 using System.Text;
+using DevExpress.XtraReports.Web.Extensions;
 using Microsoft.EntityFrameworkCore;
 using ReportingBackend.Data;
 using ReportingBackend.Data.Models;
@@ -7,10 +8,9 @@ namespace ReportingBackend.Services;
 
 /// <summary>
 /// Custom report storage that persists DevExpress report templates to MySQL database.
-/// This class extends ReportStorageWebExtension when DevExpress packages are available.
-/// For now, it provides the core storage functionality.
+/// Extends ReportStorageWebExtension to integrate with DevExpress Report Viewer and Designer.
 /// </summary>
-public class DatabaseReportStorage
+public class DatabaseReportStorage : ReportStorageWebExtension
 {
     private readonly ReportDbContext _db;
     private readonly ILogger<DatabaseReportStorage> _logger;
@@ -24,15 +24,16 @@ public class DatabaseReportStorage
     /// <summary>
     /// Check if data can be set for a report URL
     /// </summary>
-    public bool CanSetData(string url)
+    public override bool CanSetData(string url)
     {
-        return true;
+        // Allow setting data for existing templates
+        return _db.ReportTemplates.Any(r => r.Code == url);
     }
 
     /// <summary>
     /// Check if the URL is a valid report template code
     /// </summary>
-    public bool IsValidUrl(string url)
+    public override bool IsValidUrl(string url)
     {
         return _db.ReportTemplates.Any(r => r.Code == url);
     }
@@ -40,7 +41,7 @@ public class DatabaseReportStorage
     /// <summary>
     /// Get report template definition by code
     /// </summary>
-    public byte[] GetData(string url)
+    public override byte[] GetData(string url)
     {
         var template = _db.ReportTemplates.FirstOrDefault(r => r.Code == url);
         if (template == null)
@@ -54,7 +55,7 @@ public class DatabaseReportStorage
     /// <summary>
     /// Get all published report template URLs
     /// </summary>
-    public Dictionary<string, string> GetUrls()
+    public override Dictionary<string, string> GetUrls()
     {
         return _db.ReportTemplates
             .Where(r => r.IsPublished)
@@ -64,7 +65,7 @@ public class DatabaseReportStorage
     /// <summary>
     /// Save report template definition
     /// </summary>
-    public void SetData(string definition, string url)
+    public override void SetData(DevExpress.XtraReports.UI.XtraReport report, string url)
     {
         var template = _db.ReportTemplates.FirstOrDefault(r => r.Code == url);
         if (template == null)
@@ -72,7 +73,10 @@ public class DatabaseReportStorage
             throw new InvalidOperationException($"Report template '{url}' not found");
         }
 
-        template.Definition = definition;
+        // Serialize the report to XML
+        using var stream = new MemoryStream();
+        report.SaveLayoutToXml(stream);
+        template.Definition = Encoding.UTF8.GetString(stream.ToArray());
         template.Version += 1;
         template.UpdatedAt = DateTime.UtcNow;
         _db.SaveChanges();
@@ -83,9 +87,14 @@ public class DatabaseReportStorage
     /// <summary>
     /// Create new report template
     /// </summary>
-    public string SetNewData(string definition, string defaultUrl, int createdBy)
+    public override string SetNewData(DevExpress.XtraReports.UI.XtraReport report, string defaultUrl)
     {
         var code = GenerateUniqueCode(defaultUrl);
+
+        // Serialize the report to XML
+        using var stream = new MemoryStream();
+        report.SaveLayoutToXml(stream);
+        var definition = Encoding.UTF8.GetString(stream.ToArray());
 
         var template = new ReportTemplate
         {
@@ -94,7 +103,7 @@ public class DatabaseReportStorage
             Definition = definition,
             Version = 1,
             IsPublished = false,
-            CreatedBy = createdBy,
+            CreatedBy = 1, // Default to admin user
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -102,7 +111,7 @@ public class DatabaseReportStorage
         _db.ReportTemplates.Add(template);
         _db.SaveChanges();
 
-        _logger.LogInformation("Report template '{Code}' created by user {UserId}", code, createdBy);
+        _logger.LogInformation("Report template '{Code}' created", code);
         return code;
     }
 

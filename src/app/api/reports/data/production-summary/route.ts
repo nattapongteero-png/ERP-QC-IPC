@@ -48,14 +48,14 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const results = await (db as any)
       .select({
-        workOrderNumber: workOrdersTable.workOrderNumber,
+        woNumber: workOrdersTable.woNumber,
         productCode: itemsTable.code,
         productName: itemsTable.nameTh,
         productNameEn: itemsTable.nameEn,
         bomCode: bomTable.code,
-        bomName: bomTable.productName,
-        plannedQuantity: workOrdersTable.plannedQty,
-        completedQuantity: workOrdersTable.completedQty,
+        bomName: bomTable.name,
+        plannedQuantity: workOrdersTable.plannedQuantity,
+        actualQuantity: workOrdersTable.actualQuantity,
         status: workOrdersTable.status,
         priority: workOrdersTable.priority,
         plannedStartDate: workOrdersTable.plannedStartDate,
@@ -72,35 +72,35 @@ export async function GET(request: NextRequest) {
 
     // Calculate yield percentage and format data
     const productionData = results.map((row: {
-      workOrderNumber: string;
+      woNumber: string;
       productCode: string;
       productName: string;
       productNameEn: string | null;
       bomCode: string;
       bomName: string;
-      plannedQuantity: number;
-      completedQuantity: number | null;
+      plannedQuantity: number | string;
+      actualQuantity: number | string | null;
       status: string;
-      priority: string;
+      priority: number;
       plannedStartDate: string;
       plannedEndDate: string;
       actualStartDate: string | null;
       actualEndDate: string | null;
       batchNumber: string | null;
     }) => {
-      const plannedQty = row.plannedQuantity || 0;
-      const completedQty = row.completedQuantity || 0;
-      const yieldPercentage = plannedQty > 0 ? (completedQty / plannedQty) * 100 : 0;
+      const plannedQty = typeof row.plannedQuantity === 'string' ? parseFloat(row.plannedQuantity) : (row.plannedQuantity || 0);
+      const actualQty = row.actualQuantity ? (typeof row.actualQuantity === 'string' ? parseFloat(row.actualQuantity) : row.actualQuantity) : 0;
+      const yieldPercentage = plannedQty > 0 ? (actualQty / plannedQty) * 100 : 0;
 
       return {
-        workOrderNumber: row.workOrderNumber,
+        workOrderNumber: row.woNumber,
         productCode: row.productCode,
         productName: row.productName,
         productNameEn: row.productNameEn,
         bomCode: row.bomCode,
         bomName: row.bomName,
         plannedQuantity: plannedQty,
-        completedQuantity: completedQty,
+        completedQuantity: actualQty,
         yieldPercentage: Math.round(yieldPercentage * 100) / 100,
         status: row.status,
         priority: row.priority,

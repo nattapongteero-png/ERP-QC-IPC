@@ -49,9 +49,8 @@ export async function GET(request: NextRequest) {
         warehouseCode: warehousesTable.code,
         warehouseName: warehousesTable.name,
         lotNumber: lotsTable.lotNumber,
-        quantity: lotsTable.currentQty,
-        unitCost: lotsTable.unitCost,
-        expirationDate: lotsTable.expirationDate,
+        quantity: lotsTable.quantity,
+        expiryDate: lotsTable.expiryDate,
       })
       .from(lotsTable)
       .innerJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
@@ -59,6 +58,7 @@ export async function GET(request: NextRequest) {
       .where(conditions.length > 0 ? and(...conditions) : undefined);
 
     // Calculate total value for each row
+    // Note: unitCost is not available in the lots table, using a placeholder value
     const valuationData = results.map((row: {
       itemCode: string;
       itemName: string;
@@ -67,22 +67,24 @@ export async function GET(request: NextRequest) {
       warehouseCode: string;
       warehouseName: string;
       lotNumber: string;
-      quantity: number;
-      unitCost: number | null;
-      expirationDate: string | null;
-    }) => ({
-      itemCode: row.itemCode,
-      itemName: row.itemName,
-      itemNameEn: row.itemNameEn,
-      category: row.category || 'Uncategorized',
-      warehouseCode: row.warehouseCode,
-      warehouseName: row.warehouseName,
-      lotNumber: row.lotNumber,
-      quantity: row.quantity,
-      unitCost: row.unitCost || 0,
-      totalValue: (row.quantity || 0) * (row.unitCost || 0),
-      expirationDate: row.expirationDate,
-    }));
+      quantity: number | string;
+      expiryDate: string | null;
+    }) => {
+      const qty = typeof row.quantity === 'string' ? parseFloat(row.quantity) : row.quantity;
+      return {
+        itemCode: row.itemCode,
+        itemName: row.itemName,
+        itemNameEn: row.itemNameEn,
+        category: row.category || 'Uncategorized',
+        warehouseCode: row.warehouseCode,
+        warehouseName: row.warehouseName,
+        lotNumber: row.lotNumber,
+        quantity: qty,
+        unitCost: 0, // Unit cost not available in lots table
+        totalValue: 0, // Total value requires unit cost
+        expiryDate: row.expiryDate,
+      };
+    });
 
     // Calculate summary statistics
     const summary = {

@@ -54,10 +54,10 @@ export async function GET(request: NextRequest) {
         itemNameEn: itemsTable.nameEn,
         itemType: itemsTable.type,
         status: lotsTable.status,
-        quantity: lotsTable.currentQty,
+        quantity: lotsTable.quantity,
         unit: itemsTable.primaryUnit,
         manufacturingDate: lotsTable.manufacturingDate,
-        expirationDate: lotsTable.expirationDate,
+        expiryDate: lotsTable.expiryDate,
         warehouseCode: warehousesTable.code,
         warehouseName: warehousesTable.name,
         receivedDate: lotsTable.receivedDate,
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       .innerJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
       .innerJoin(warehousesTable, eq(lotsTable.warehouseId, warehousesTable.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(lotsTable.expirationDate);
+      .orderBy(lotsTable.expiryDate);
 
     // Calculate days to expiry and format data
     const today = new Date();
@@ -77,18 +77,19 @@ export async function GET(request: NextRequest) {
       itemNameEn: string | null;
       itemType: string;
       status: string;
-      quantity: number;
+      quantity: number | string;
       unit: string;
       manufacturingDate: string | null;
-      expirationDate: string | null;
+      expiryDate: string | null;
       warehouseCode: string;
       warehouseName: string;
       receivedDate: string | null;
     }) => {
-      const expirationDate = row.expirationDate ? new Date(row.expirationDate) : null;
-      const daysToExpiry = expirationDate
-        ? Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      const expiryDate = row.expiryDate ? new Date(row.expiryDate) : null;
+      const daysToExpiry = expiryDate
+        ? Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
         : null;
+      const qty = typeof row.quantity === 'string' ? parseFloat(row.quantity) : row.quantity;
 
       return {
         lotNumber: row.lotNumber,
@@ -97,10 +98,10 @@ export async function GET(request: NextRequest) {
         itemNameEn: row.itemNameEn,
         itemType: row.itemType,
         status: row.status,
-        quantity: row.quantity,
+        quantity: qty,
         unit: row.unit,
         manufacturingDate: row.manufacturingDate,
-        expirationDate: row.expirationDate,
+        expiryDate: row.expiryDate,
         daysToExpiry,
         isExpired: daysToExpiry !== null && daysToExpiry < 0,
         isNearExpiry: daysToExpiry !== null && daysToExpiry >= 0 && daysToExpiry <= 30,
