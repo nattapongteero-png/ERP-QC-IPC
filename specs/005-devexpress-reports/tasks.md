@@ -185,7 +185,7 @@ This feature uses a hybrid architecture:
 - [X] T066 [P] Create executions API endpoint for audit trail in src/app/api/reports/executions/route.ts
 - [X] T067 [P] Add audit logging to all report viewer and export actions
 - [X] T068 Implement permission check middleware for all report API endpoints
-- [ ] T069 Add JWT token forwarding from Next.js to .NET backend for authenticated data fetching
+- [X] T069 Add JWT token forwarding from Next.js to .NET backend for authenticated data fetching
 
 ### Error Handling and UX
 
@@ -195,12 +195,12 @@ This feature uses a hybrid architecture:
 
 ### Performance
 
-- [ ] T073 Add report thumbnail generation for template listing
-- [ ] T074 Implement caching for frequently accessed reports
+- [X] T073 Add report thumbnail generation for template listing
+- [X] T074 Implement caching for frequently accessed reports
 
 ### Documentation and Validation
 
-- [ ] T075 [P] Run quickstart.md validation - verify all setup steps work
+- [X] T075 [P] Run quickstart.md validation - verify all setup steps work
 - [X] T076 [P] Run type check and lint: pnpm tsc --noEmit && pnpm lint
 - [X] T077 [P] Run .NET build: dotnet build reporting-backend/
 
