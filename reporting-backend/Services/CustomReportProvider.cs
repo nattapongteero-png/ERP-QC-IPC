@@ -40,8 +40,30 @@ public class CustomReportProvider : IReportProvider
 
             // Load report from storage
             var reportLayoutBytes = _reportStorage.GetData(id);
+
+            if (reportLayoutBytes == null || reportLayoutBytes.Length == 0)
+            {
+                _logger.LogWarning("Report data is empty for: {ReportId}, creating new blank report", id);
+                var blankReport = new XtraReport();
+                var blankContainer = (IServiceContainer)blankReport;
+                blankContainer.AddService(typeof(IReportProvider), this);
+                return blankReport;
+            }
+
+            _logger.LogInformation("Loading report XML ({ByteCount} bytes): {ReportId}", reportLayoutBytes.Length, id);
+
             using var ms = new MemoryStream(reportLayoutBytes);
             var report = XtraReport.FromXmlStream(ms);
+
+            // Handle case where XML parsing returns null (malformed XML)
+            if (report == null)
+            {
+                _logger.LogWarning("Failed to parse report XML for: {ReportId}, creating new blank report", id);
+                var fallbackReport = new XtraReport();
+                var fallbackContainer = (IServiceContainer)fallbackReport;
+                fallbackContainer.AddService(typeof(IReportProvider), this);
+                return fallbackReport;
+            }
 
             // Register this provider as a service on the report
             // This allows sub-reports to be loaded using the same provider
