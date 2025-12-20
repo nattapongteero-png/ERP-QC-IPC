@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using DevExpress.AspNetCore;
 using DevExpress.AspNetCore.Reporting;
 using DevExpress.XtraReports.Web.Extensions;
@@ -78,7 +79,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = Dat
     .WithOpenApi();
 
 // Report templates list endpoint (for DevExpress designer)
-app.MapGet("/api/reports/templates", (DatabaseReportStorage storage) =>
+app.MapGet("/api/reports/templates", ([FromServices] ReportStorageWebExtension storage) =>
 {
     var templates = storage.GetUrls();
     return Results.Ok(templates);
