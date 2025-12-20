@@ -15,6 +15,8 @@ import {
   sqlitePurchaseOrders,
   sqliteSalesOrders,
   sqliteVendors,
+  sqliteReportExecutions,
+  sqliteReportTemplates,
   mysqlItems,
   mysqlInventoryLots,
   mysqlInventoryTransactions,
@@ -24,6 +26,8 @@ import {
   mysqlPurchaseOrders,
   mysqlSalesOrders,
   mysqlVendors,
+  mysqlReportExecutions,
+  mysqlReportTemplates,
 } from '../db/schema';
 import { traceForward, traceBackward } from './inventory.service';
 import { calculateYield } from './production.service';
@@ -43,6 +47,8 @@ function getTables() {
       salesOrders: sqliteSalesOrders,
       vendors: sqliteVendors,
       customers: sqliteVendors,
+      reportExecutions: sqliteReportExecutions,
+      reportTemplates: sqliteReportTemplates,
     };
   }
   return {
@@ -56,6 +62,8 @@ function getTables() {
     salesOrders: mysqlSalesOrders,
     vendors: mysqlVendors,
     customers: mysqlVendors,
+    reportExecutions: mysqlReportExecutions,
+    reportTemplates: mysqlReportTemplates,
   };
 }
 
@@ -613,4 +621,377 @@ export async function getVendorPerformanceReport(): Promise<{
   }
 
   return { vendors: result };
+}
+
+// ============================================
+// Report Execution Audit Logging
+// ============================================
+
+/**
+ * Report action types
+ */
+export type ReportAction = 'view' | 'export' | 'print';
+
+/**
+ * Report execution status
+ */
+export type ReportExecutionStatus = 'success' | 'error' | 'cancelled';
+
+/**
+ * Export format types
+ */
+export type ExportFormat = 'pdf' | 'xlsx' | 'docx' | 'csv' | 'rtf' | 'html';
+
+/**
+ * Log a report execution for audit trail
+ */
+export async function logReportExecution(params: {
+  templateId: number;
+  userId: number;
+  action: ReportAction;
+  parameters?: Record<string, unknown>;
+  exportFormat?: ExportFormat;
+  durationMs?: number;
+  status: ReportExecutionStatus;
+  errorMessage?: string;
+  ipAddress?: string;
+}): Promise<number> {
+  const database = await getDb();
+  const { reportExecutions } = getTables();
+
+  const result = await database.insert(reportExecutions).values({
+    templateId: params.templateId,
+    userId: params.userId,
+    action: params.action,
+    parameters: params.parameters ? JSON.stringify(params.parameters) : null,
+    exportFormat: params.exportFormat || null,
+    durationMs: params.durationMs || null,
+    status: params.status,
+    errorMessage: params.errorMessage || null,
+    ipAddress: params.ipAddress || null,
+  });
+
+  // Return the inserted ID
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (result as any).insertId || (result as any).lastInsertRowid || 0;
+}
+
+/**
+ * Log a report view action
+ */
+export async function logReportView(params: {
+  templateId: number;
+  userId: number;
+  parameters?: Record<string, unknown>;
+  durationMs?: number;
+  status?: ReportExecutionStatus;
+  errorMessage?: string;
+  ipAddress?: string;
+}): Promise<number> {
+  return logReportExecution({
+    ...params,
+    action: 'view',
+    status: params.status || 'success',
+  });
+}
+
+/**
+ * Log a report export action
+ */
+export async function logReportExport(params: {
+  templateId: number;
+  userId: number;
+  exportFormat: ExportFormat;
+  parameters?: Record<string, unknown>;
+  durationMs?: number;
+  status?: ReportExecutionStatus;
+  errorMessage?: string;
+  ipAddress?: string;
+}): Promise<number> {
+  return logReportExecution({
+    ...params,
+    action: 'export',
+    status: params.status || 'success',
+  });
+}
+
+/**
+ * Log a report print action
+ */
+export async function logReportPrint(params: {
+  templateId: number;
+  userId: number;
+  parameters?: Record<string, unknown>;
+  durationMs?: number;
+  status?: ReportExecutionStatus;
+  errorMessage?: string;
+  ipAddress?: string;
+}): Promise<number> {
+  return logReportExecution({
+    ...params,
+    action: 'print',
+    status: params.status || 'success',
+  });
+}
+
+/**
+ * Get report executions for a specific template
+ */
+export async function getReportExecutions(params: {
+  templateId?: number;
+  userId?: number;
+  action?: ReportAction;
+  status?: ReportExecutionStatus;
+  fromDate?: Date;
+  toDate?: Date;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  executions: Array<{
+    id: number;
+    templateId: number;
+    templateName?: string;
+    userId: number;
+    action: string;
+    parameters: string | null;
+    exportFormat: string | null;
+    executedAt: string | Date;
+    durationMs: number | null;
+    status: string;
+    errorMessage: string | null;
+    ipAddress: string | null;
+  }>;
+  total: number;
+}> {
+  const database = await getDb();
+  const { reportExecutions, reportTemplates } = getTables();
+  const limit = params.limit || 50;
+  const offset = params.offset || 0;
+
+  // Build conditions
+  const conditions: ReturnType<typeof eq>[] = [];
+  if (params.templateId) {
+    conditions.push(eq(reportExecutions.templateId, params.templateId));
+  }
+  if (params.userId) {
+    conditions.push(eq(reportExecutions.userId, params.userId));
+  }
+  if (params.action) {
+    conditions.push(eq(reportExecutions.action, params.action));
+  }
+  if (params.status) {
+    conditions.push(eq(reportExecutions.status, params.status));
+  }
+
+  // Get count
+  const countResult = await database
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(reportExecutions)
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+  const total = Number(countResult[0]?.count) || 0;
+
+  // Get executions with template info
+  const executions = await database
+    .select({
+      id: reportExecutions.id,
+      templateId: reportExecutions.templateId,
+      templateName: reportTemplates.name,
+      userId: reportExecutions.userId,
+      action: reportExecutions.action,
+      parameters: reportExecutions.parameters,
+      exportFormat: reportExecutions.exportFormat,
+      executedAt: reportExecutions.executedAt,
+      durationMs: reportExecutions.durationMs,
+      status: reportExecutions.status,
+      errorMessage: reportExecutions.errorMessage,
+      ipAddress: reportExecutions.ipAddress,
+    })
+    .from(reportExecutions)
+    .leftJoin(reportTemplates, eq(reportExecutions.templateId, reportTemplates.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(reportExecutions.id))
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    executions: executions.map((e: typeof executions[0]) => ({
+      ...e,
+      templateName: e.templateName || undefined,
+    })),
+    total,
+  };
+}
+
+/**
+ * Get report execution statistics for a template
+ */
+export async function getReportExecutionStats(templateId: number): Promise<{
+  totalExecutions: number;
+  viewCount: number;
+  exportCount: number;
+  printCount: number;
+  successRate: number;
+  averageDurationMs: number;
+  lastExecuted: string | null;
+  exportFormats: Record<string, number>;
+}> {
+  const database = await getDb();
+  const { reportExecutions } = getTables();
+
+  // Get action counts
+  const actionCounts = await database
+    .select({
+      action: reportExecutions.action,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(reportExecutions)
+    .where(eq(reportExecutions.templateId, templateId))
+    .groupBy(reportExecutions.action);
+
+  let viewCount = 0;
+  let exportCount = 0;
+  let printCount = 0;
+  for (const row of actionCounts) {
+    if (row.action === 'view') viewCount = Number(row.count) || 0;
+    if (row.action === 'export') exportCount = Number(row.count) || 0;
+    if (row.action === 'print') printCount = Number(row.count) || 0;
+  }
+  const totalExecutions = viewCount + exportCount + printCount;
+
+  // Get success rate
+  const statusCounts = await database
+    .select({
+      status: reportExecutions.status,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(reportExecutions)
+    .where(eq(reportExecutions.templateId, templateId))
+    .groupBy(reportExecutions.status);
+
+  let successCount = 0;
+  let totalCount = 0;
+  for (const row of statusCounts) {
+    totalCount += Number(row.count) || 0;
+    if (row.status === 'success') successCount = Number(row.count) || 0;
+  }
+  const successRate = totalCount > 0 ? (successCount / totalCount) * 100 : 100;
+
+  // Get average duration
+  const durationResult = await database
+    .select({
+      avgDuration: sql<number>`AVG(${reportExecutions.durationMs})`,
+    })
+    .from(reportExecutions)
+    .where(and(
+      eq(reportExecutions.templateId, templateId),
+      sql`${reportExecutions.durationMs} IS NOT NULL`
+    ));
+
+  const averageDurationMs = Number(durationResult[0]?.avgDuration) || 0;
+
+  // Get last execution
+  const lastExecution = await database
+    .select({
+      executedAt: reportExecutions.executedAt,
+    })
+    .from(reportExecutions)
+    .where(eq(reportExecutions.templateId, templateId))
+    .orderBy(desc(reportExecutions.id))
+    .limit(1);
+
+  const lastExecuted = lastExecution[0]?.executedAt
+    ? String(lastExecution[0].executedAt)
+    : null;
+
+  // Get export format distribution
+  const formatCounts = await database
+    .select({
+      format: reportExecutions.exportFormat,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(reportExecutions)
+    .where(and(
+      eq(reportExecutions.templateId, templateId),
+      eq(reportExecutions.action, 'export'),
+      sql`${reportExecutions.exportFormat} IS NOT NULL`
+    ))
+    .groupBy(reportExecutions.exportFormat);
+
+  const exportFormats: Record<string, number> = {};
+  for (const row of formatCounts) {
+    if (row.format) {
+      exportFormats[row.format] = Number(row.count) || 0;
+    }
+  }
+
+  return {
+    totalExecutions,
+    viewCount,
+    exportCount,
+    printCount,
+    successRate: Math.round(successRate * 10) / 10,
+    averageDurationMs: Math.round(averageDurationMs),
+    lastExecuted,
+    exportFormats,
+  };
+}
+
+/**
+ * Get user's report history
+ */
+export async function getUserReportHistory(params: {
+  userId: number;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  history: Array<{
+    id: number;
+    templateId: number;
+    templateName?: string;
+    action: string;
+    exportFormat: string | null;
+    executedAt: string | Date;
+    status: string;
+  }>;
+  total: number;
+}> {
+  const database = await getDb();
+  const { reportExecutions, reportTemplates } = getTables();
+  const limit = params.limit || 50;
+  const offset = params.offset || 0;
+
+  // Get count
+  const countResult = await database
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(reportExecutions)
+    .where(eq(reportExecutions.userId, params.userId));
+
+  const total = Number(countResult[0]?.count) || 0;
+
+  // Get history with template info
+  const history = await database
+    .select({
+      id: reportExecutions.id,
+      templateId: reportExecutions.templateId,
+      templateName: reportTemplates.name,
+      action: reportExecutions.action,
+      exportFormat: reportExecutions.exportFormat,
+      executedAt: reportExecutions.executedAt,
+      status: reportExecutions.status,
+    })
+    .from(reportExecutions)
+    .leftJoin(reportTemplates, eq(reportExecutions.templateId, reportTemplates.id))
+    .where(eq(reportExecutions.userId, params.userId))
+    .orderBy(desc(reportExecutions.id))
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    history: history.map((h: typeof history[0]) => ({
+      ...h,
+      templateName: h.templateName || undefined,
+    })),
+    total,
+  };
 }

@@ -1,6 +1,33 @@
 version: '3.8'
 
 services:
+  # DevExpress Reporting Backend Service (.NET)
+  reporting-backend:
+    build:
+      context: ./reporting-backend
+      dockerfile: Dockerfile
+    container_name: herbal-erp-reporting
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
+      - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health | grep -q healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+
   # MySQL database service
   mysql:
     image: mysql:8.0
@@ -40,8 +67,12 @@ services:
       - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp
       - NEXT_PUBLIC_APP_URL=https://herbal-erp.bmscloud.in.th
       - NEXTAUTH_URL=https://herbal-erp.bmscloud.in.th
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend:5000
     depends_on:
       mysql:
+        condition: service_healthy
+      reporting-backend:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
@@ -70,6 +101,8 @@ services:
       - NEXTAUTH_URL=https://herbal-erp-dev.bmscloud.in.th
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend:5000
     # Increase file descriptor limits for Turbopack file watching
     ulimits:
       nofile:
@@ -86,6 +119,8 @@ services:
       - ./components.json:/app/components.json
     depends_on:
       mysql:
+        condition: service_healthy
+      reporting-backend:
         condition: service_healthy
     networks:
       - herbal-erp-network

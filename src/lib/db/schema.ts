@@ -1038,6 +1038,138 @@ export const mysqlSettings = mysqlTable('settings', {
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
 
+// ============================================
+// Report Categories (MySQL)
+// ============================================
+export const mysqlReportCategories = mysqlTable('report_categories', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: varchar('description', { length: 500 }),
+  parentId: int('parent_id'),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// ============================================
+// Report Templates (MySQL)
+// ============================================
+export const mysqlReportTemplates = mysqlTable('report_templates', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 200 }).notNull(),
+  description: varchar('description', { length: 1000 }),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  categoryId: int('category_id').references(() => mysqlReportCategories.id),
+  definition: mysqlText('definition').notNull(),
+  dataSourceConfig: mysqlText('data_source_config'), // JSON stored as text
+  parametersSchema: mysqlText('parameters_schema'), // JSON stored as text
+  version: int('version').notNull().default(1),
+  isPublished: mysqlBoolean('is_published').notNull().default(false),
+  isSystem: mysqlBoolean('is_system').notNull().default(false),
+  thumbnail: mysqlText('thumbnail'), // Base64 encoded
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedBy: int('updated_by').references(() => mysqlUsers.id),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// ============================================
+// Report Permissions (MySQL)
+// ============================================
+export const mysqlReportPermissions = mysqlTable('report_permissions', {
+  id: int('id').primaryKey().autoincrement(),
+  templateId: int('template_id').notNull().references(() => mysqlReportTemplates.id),
+  role: varchar('role', { length: 50 }).notNull(),
+  canView: mysqlBoolean('can_view').notNull().default(true),
+  canDesign: mysqlBoolean('can_design').notNull().default(false),
+  canExport: mysqlBoolean('can_export').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// Report Executions - Audit Trail (MySQL)
+// ============================================
+export const mysqlReportExecutions = mysqlTable('report_executions', {
+  id: int('id').primaryKey().autoincrement(),
+  templateId: int('template_id').notNull().references(() => mysqlReportTemplates.id),
+  userId: int('user_id').notNull().references(() => mysqlUsers.id),
+  action: varchar('action', { length: 20 }).notNull(), // 'view', 'export', 'print'
+  parameters: mysqlText('parameters'), // JSON stored as text
+  exportFormat: varchar('export_format', { length: 20 }),
+  executedAt: datetime('executed_at').notNull().default(new Date()),
+  durationMs: int('duration_ms'),
+  status: varchar('status', { length: 20 }).notNull(), // 'success', 'error', 'cancelled'
+  errorMessage: varchar('error_message', { length: 1000 }),
+  ipAddress: varchar('ip_address', { length: 45 }),
+});
+
+// ============================================
+// Report Categories (SQLite - for testing)
+// ============================================
+export const sqliteReportCategories = sqliteTable('report_categories', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  description: text('description'),
+  parentId: integer('parent_id'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// Report Templates (SQLite - for testing)
+// ============================================
+export const sqliteReportTemplates = sqliteTable('report_templates', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  description: text('description'),
+  code: text('code').notNull().unique(),
+  categoryId: integer('category_id').references(() => sqliteReportCategories.id),
+  definition: text('definition').notNull(),
+  dataSourceConfig: text('data_source_config'), // JSON stored as text
+  parametersSchema: text('parameters_schema'), // JSON stored as text
+  version: integer('version').notNull().default(1),
+  isPublished: integer('is_published', { mode: 'boolean' }).notNull().default(false),
+  isSystem: integer('is_system', { mode: 'boolean' }).notNull().default(false),
+  thumbnail: text('thumbnail'), // Base64 encoded
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedBy: integer('updated_by').references(() => sqliteUsers.id),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// Report Permissions (SQLite - for testing)
+// ============================================
+export const sqliteReportPermissions = sqliteTable('report_permissions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  templateId: integer('template_id').notNull().references(() => sqliteReportTemplates.id),
+  role: text('role').notNull(),
+  canView: integer('can_view', { mode: 'boolean' }).notNull().default(true),
+  canDesign: integer('can_design', { mode: 'boolean' }).notNull().default(false),
+  canExport: integer('can_export', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// Report Executions - Audit Trail (SQLite - for testing)
+// ============================================
+export const sqliteReportExecutions = sqliteTable('report_executions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  templateId: integer('template_id').notNull().references(() => sqliteReportTemplates.id),
+  userId: integer('user_id').notNull().references(() => sqliteUsers.id),
+  action: text('action').notNull(), // 'view', 'export', 'print'
+  parameters: text('parameters'), // JSON stored as text
+  exportFormat: text('export_format'),
+  executedAt: text('executed_at').notNull().default('CURRENT_TIMESTAMP'),
+  durationMs: integer('duration_ms'),
+  status: text('status').notNull(), // 'success', 'error', 'cancelled'
+  errorMessage: text('error_message'),
+  ipAddress: text('ip_address'),
+});
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -1059,3 +1191,11 @@ export type SalesOrder = typeof sqliteSalesOrders.$inferSelect;
 export type NewSalesOrder = typeof sqliteSalesOrders.$inferInsert;
 export type Customer = typeof sqliteCustomers.$inferSelect;
 export type NewCustomer = typeof sqliteCustomers.$inferInsert;
+export type ReportCategory = typeof sqliteReportCategories.$inferSelect;
+export type NewReportCategory = typeof sqliteReportCategories.$inferInsert;
+export type ReportTemplate = typeof sqliteReportTemplates.$inferSelect;
+export type NewReportTemplate = typeof sqliteReportTemplates.$inferInsert;
+export type ReportPermission = typeof sqliteReportPermissions.$inferSelect;
+export type NewReportPermission = typeof sqliteReportPermissions.$inferInsert;
+export type ReportExecution = typeof sqliteReportExecutions.$inferSelect;
+export type NewReportExecution = typeof sqliteReportExecutions.$inferInsert;

@@ -1,0 +1,963 @@
+openapi: 3.1.0
+info:
+  title: DevExpress Reports API
+  description: |
+    API contracts for the DevExpress Reports integration in Herbal Medicine ERP.
+
+    This specification covers two API surfaces:
+    1. **Next.js API** - Report management, permissions, and data endpoints
+    2. **ASP.NET Core API** - DevExpress reporting engine endpoints
+
+    Authentication uses JWT tokens passed in the Authorization header.
+  version: 1.0.0
+  contact:
+    name: Herbal Medicine ERP
+
+servers:
+  - url: http://localhost:3000/api
+    description: Next.js API (Development)
+  - url: http://localhost:5000
+    description: ASP.NET Core Reporting Backend (Development)
+
+tags:
+  - name: Report Templates
+    description: CRUD operations for report templates (Next.js)
+  - name: Report Categories
+    description: Category management (Next.js)
+  - name: Report Permissions
+    description: Access control (Next.js)
+  - name: Report Data
+    description: Data endpoints for report binding (Next.js)
+  - name: DevExpress Designer
+    description: Report Designer endpoints (ASP.NET Core)
+  - name: DevExpress Viewer
+    description: Document Viewer endpoints (ASP.NET Core)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from ERP authentication
+
+  schemas:
+    # --- Report Category ---
+    ReportCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier
+        name:
+          type: string
+          maxLength: 100
+          description: Category display name
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Optional description
+        parentId:
+          type: integer
+          nullable: true
+          description: Parent category ID for hierarchy
+        sortOrder:
+          type: integer
+          default: 0
+          description: Display order within parent
+        isActive:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - name
+
+    ReportCategoryCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        parentId:
+          type: integer
+          nullable: true
+        sortOrder:
+          type: integer
+          default: 0
+      required:
+        - name
+
+    # --- Report Template ---
+    ReportTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        code:
+          type: string
+          maxLength: 50
+          pattern: '^[a-z0-9-]+$'
+          description: URL-safe identifier
+        categoryId:
+          type: integer
+          nullable: true
+        category:
+          $ref: '#/components/schemas/ReportCategory'
+        version:
+          type: integer
+        isPublished:
+          type: boolean
+        isSystem:
+          type: boolean
+        thumbnailUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to thumbnail image
+        createdBy:
+          type: integer
+        createdByName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: integer
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - name
+        - code
+
+    ReportTemplateDetail:
+      allOf:
+        - $ref: '#/components/schemas/ReportTemplate'
+        - type: object
+          properties:
+            definition:
+              type: string
+              description: DevExpress report XML definition
+            dataSourceConfig:
+              type: object
+              description: Data source connection settings
+            parametersSchema:
+              type: object
+              description: Report parameter definitions
+            permissions:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReportPermission'
+
+    ReportTemplateCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        code:
+          type: string
+          maxLength: 50
+          pattern: '^[a-z0-9-]+$'
+        categoryId:
+          type: integer
+          nullable: true
+        definition:
+          type: string
+          description: Initial DevExpress report XML (optional, empty report created if not provided)
+      required:
+        - name
+        - code
+
+    ReportTemplateUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        categoryId:
+          type: integer
+          nullable: true
+        isPublished:
+          type: boolean
+
+    # --- Report Permission ---
+    ReportPermission:
+      type: object
+      properties:
+        id:
+          type: integer
+        templateId:
+          type: integer
+        role:
+          type: string
+          enum: [admin, manager, production, qc, warehouse, purchasing, sales, user]
+        canView:
+          type: boolean
+          default: true
+        canDesign:
+          type: boolean
+          default: false
+        canExport:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - templateId
+        - role
+
+    ReportPermissionUpdate:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum: [admin, manager, production, qc, warehouse, purchasing, sales, user]
+              canView:
+                type: boolean
+              canDesign:
+                type: boolean
+              canExport:
+                type: boolean
+            required:
+              - role
+      required:
+        - permissions
+
+    # --- Report Execution (Audit) ---
+    ReportExecution:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        templateId:
+          type: integer
+        templateName:
+          type: string
+        userId:
+          type: integer
+        userName:
+          type: string
+        action:
+          type: string
+          enum: [view, export, print]
+        parameters:
+          type: object
+          nullable: true
+        exportFormat:
+          type: string
+          nullable: true
+        executedAt:
+          type: string
+          format: date-time
+        durationMs:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [success, error, cancelled]
+        errorMessage:
+          type: string
+          nullable: true
+
+    # --- Common ---
+    PaginatedResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: {}
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        error:
+          type: string
+        message:
+          type: string
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        data:
+          type: object
+        message:
+          type: string
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ===========================================
+  # NEXT.JS API - REPORT CATEGORIES
+  # ===========================================
+  /reports/categories:
+    get:
+      tags:
+        - Report Categories
+      summary: List all report categories
+      description: Returns hierarchical list of categories with nested children
+      parameters:
+        - name: includeInactive
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ReportCategory'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Report Categories
+      summary: Create a new category
+      description: Requires admin or manager role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCategoryCreate'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReportCategory'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - insufficient permissions
+
+  /reports/categories/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags:
+        - Report Categories
+      summary: Get category by ID
+      responses:
+        '200':
+          description: Category details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReportCategory'
+        '404':
+          description: Category not found
+
+    put:
+      tags:
+        - Report Categories
+      summary: Update category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCategoryCreate'
+      responses:
+        '200':
+          description: Category updated
+        '400':
+          description: Validation error
+        '404':
+          description: Category not found
+
+    delete:
+      tags:
+        - Report Categories
+      summary: Delete category (soft delete)
+      description: Sets isActive to false. Cannot delete if category has templates.
+      responses:
+        '200':
+          description: Category deleted
+        '400':
+          description: Cannot delete - category has templates
+        '404':
+          description: Category not found
+
+  # ===========================================
+  # NEXT.JS API - REPORT TEMPLATES
+  # ===========================================
+  /reports/templates:
+    get:
+      tags:
+        - Report Templates
+      summary: List report templates
+      description: Returns templates the user has permission to view
+      parameters:
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: isPublished
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in name and description
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of templates
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PaginatedResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/ReportTemplate'
+
+    post:
+      tags:
+        - Report Templates
+      summary: Create a new report template
+      description: Requires design permission. Creates draft template.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportTemplateCreate'
+      responses:
+        '201':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReportTemplate'
+        '400':
+          description: Validation error (e.g., duplicate code)
+        '403':
+          description: Forbidden - no design permission
+
+  /reports/templates/{code}:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Report template code (URL-safe identifier)
+
+    get:
+      tags:
+        - Report Templates
+      summary: Get template by code
+      description: Returns template details including definition if user has design permission
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReportTemplateDetail'
+        '403':
+          description: No permission to view
+        '404':
+          description: Template not found
+
+    put:
+      tags:
+        - Report Templates
+      summary: Update template metadata
+      description: Does not update definition - use Designer for that
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportTemplateUpdate'
+      responses:
+        '200':
+          description: Template updated
+        '403':
+          description: No design permission
+        '404':
+          description: Template not found
+
+    delete:
+      tags:
+        - Report Templates
+      summary: Delete template
+      description: Cannot delete system templates
+      responses:
+        '200':
+          description: Template deleted
+        '400':
+          description: Cannot delete system template
+        '403':
+          description: No design permission
+        '404':
+          description: Template not found
+
+  /reports/templates/{code}/publish:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+
+    post:
+      tags:
+        - Report Templates
+      summary: Publish a template
+      description: Makes template available to users with view permission
+      responses:
+        '200':
+          description: Template published
+        '403':
+          description: No design permission
+        '404':
+          description: Template not found
+
+  /reports/templates/{code}/unpublish:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+
+    post:
+      tags:
+        - Report Templates
+      summary: Unpublish a template
+      description: Returns template to draft state
+      responses:
+        '200':
+          description: Template unpublished
+        '403':
+          description: No design permission
+        '404':
+          description: Template not found
+
+  /reports/templates/{code}/permissions:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+
+    get:
+      tags:
+        - Report Permissions
+      summary: Get template permissions
+      responses:
+        '200':
+          description: Permission list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ReportPermission'
+        '403':
+          description: No admin permission
+        '404':
+          description: Template not found
+
+    put:
+      tags:
+        - Report Permissions
+      summary: Update template permissions
+      description: Replaces all permissions for the template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportPermissionUpdate'
+      responses:
+        '200':
+          description: Permissions updated
+        '403':
+          description: No admin permission
+        '404':
+          description: Template not found
+
+  # ===========================================
+  # NEXT.JS API - REPORT DATA ENDPOINTS
+  # ===========================================
+  /reports/data/inventory-valuation:
+    get:
+      tags:
+        - Report Data
+      summary: Inventory valuation data
+      description: Data source for inventory valuation reports
+      parameters:
+        - name: warehouseId
+          in: query
+          schema:
+            type: integer
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: asOfDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Inventory data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    itemCode:
+                      type: string
+                    itemName:
+                      type: string
+                    category:
+                      type: string
+                    warehouse:
+                      type: string
+                    quantity:
+                      type: number
+                    unitCost:
+                      type: number
+                    totalValue:
+                      type: number
+                    lotCount:
+                      type: integer
+
+  /reports/data/lot-status:
+    get:
+      tags:
+        - Report Data
+      summary: Lot status data
+      description: Data source for lot tracking reports
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [quarantine, released, rejected, blocked]
+        - name: expiringWithinDays
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lot data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /reports/data/production-summary:
+    get:
+      tags:
+        - Report Data
+      summary: Production summary data
+      description: Data source for production reports
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Production data
+
+  # ===========================================
+  # NEXT.JS API - AUDIT
+  # ===========================================
+  /reports/executions:
+    get:
+      tags:
+        - Report Templates
+      summary: Get report execution history
+      description: Audit trail of report access. Requires admin role.
+      parameters:
+        - name: templateId
+          in: query
+          schema:
+            type: integer
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Execution history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PaginatedResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/ReportExecution'
+        '403':
+          description: Requires admin role
+
+  # ===========================================
+  # ASP.NET CORE - DEVEXPRESS DESIGNER
+  # ===========================================
+  /DXXRD/GetDesignerModel:
+    get:
+      tags:
+        - DevExpress Designer
+      summary: Get Report Designer model
+      description: |
+        Initializes the Report Designer with the specified report.
+        This is called by the devexpress-reporting-react ReportDesigner component.
+      servers:
+        - url: http://localhost:5000
+      parameters:
+        - name: reportUrl
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Report template code
+      responses:
+        '200':
+          description: Designer model JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                description: DevExpress designer model (internal format)
+
+  /DXXRD/GetReport:
+    post:
+      tags:
+        - DevExpress Designer
+      summary: Get report template
+      description: Loads report definition for the designer
+      servers:
+        - url: http://localhost:5000
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reportUrl:
+                  type: string
+      responses:
+        '200':
+          description: Report XML
+          content:
+            application/xml:
+              schema:
+                type: string
+
+  /DXXRD/SaveReport:
+    post:
+      tags:
+        - DevExpress Designer
+      summary: Save report template
+      description: Saves the report definition from the designer
+      servers:
+        - url: http://localhost:5000
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reportUrl:
+                  type: string
+                reportLayout:
+                  type: string
+                  description: Base64 encoded report XML
+      responses:
+        '200':
+          description: Save successful
+
+  # ===========================================
+  # ASP.NET CORE - DEVEXPRESS VIEWER
+  # ===========================================
+  /DXXRDV:
+    post:
+      tags:
+        - DevExpress Viewer
+      summary: Document Viewer invoke action
+      description: |
+        Multi-purpose endpoint for the Document Viewer.
+        Handles document creation, page requests, export, print, etc.
+        This is called by the devexpress-reporting-react ReportViewer component.
+      servers:
+        - url: http://localhost:5000
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Action result
+          content:
+            application/json:
+              schema:
+                type: object

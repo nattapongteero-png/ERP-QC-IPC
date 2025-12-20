@@ -1,0 +1,192 @@
+using System.Text;
+using DevExpress.XtraReports.Web.Extensions;
+using Microsoft.EntityFrameworkCore;
+using ReportingBackend.Data;
+using ReportingBackend.Data.Models;
+
+namespace ReportingBackend.Services;
+
+/// <summary>
+/// Custom report storage that persists DevExpress report templates to MySQL database.
+/// Extends ReportStorageWebExtension to integrate with DevExpress Report Viewer and Designer.
+/// </summary>
+public class DatabaseReportStorage : ReportStorageWebExtension
+{
+    private readonly ReportDbContext _db;
+    private readonly ILogger<DatabaseReportStorage> _logger;
+
+    public DatabaseReportStorage(ReportDbContext db, ILogger<DatabaseReportStorage> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Check if data can be set for a report URL
+    /// </summary>
+    public override bool CanSetData(string url)
+    {
+        // Allow setting data for new reports or existing templates
+        if (string.IsNullOrEmpty(url) || url == "new")
+        {
+            return true;
+        }
+        return _db.ReportTemplates.Any(r => r.Code == url);
+    }
+
+    /// <summary>
+    /// Check if the URL is a valid report template code
+    /// </summary>
+    public override bool IsValidUrl(string url)
+    {
+        // "new" is always valid for creating new reports
+        if (string.IsNullOrEmpty(url) || url == "new")
+        {
+            return true;
+        }
+        return _db.ReportTemplates.Any(r => r.Code == url);
+    }
+
+    /// <summary>
+    /// Get report template definition by code
+    /// </summary>
+    public override byte[] GetData(string url)
+    {
+        // Return empty report for new reports
+        if (string.IsNullOrEmpty(url) || url == "new")
+        {
+            _logger.LogInformation("Creating new blank report");
+            using var report = new DevExpress.XtraReports.UI.XtraReport();
+            using var stream = new MemoryStream();
+            report.SaveLayoutToXml(stream);
+            return stream.ToArray();
+        }
+
+        var template = _db.ReportTemplates.FirstOrDefault(r => r.Code == url);
+        if (template == null)
+        {
+            _logger.LogWarning("Report template not found: {Url}", url);
+            throw new InvalidOperationException($"Report template '{url}' not found");
+        }
+        return Encoding.UTF8.GetBytes(template.Definition);
+    }
+
+    /// <summary>
+    /// Get all published report template URLs
+    /// </summary>
+    public override Dictionary<string, string> GetUrls()
+    {
+        return _db.ReportTemplates
+            .Where(r => r.IsPublished)
+            .ToDictionary(r => r.Code, r => r.Name);
+    }
+
+    /// <summary>
+    /// Save report template definition
+    /// </summary>
+    public override void SetData(DevExpress.XtraReports.UI.XtraReport report, string url)
+    {
+        var template = _db.ReportTemplates.FirstOrDefault(r => r.Code == url);
+        if (template == null)
+        {
+            throw new InvalidOperationException($"Report template '{url}' not found");
+        }
+
+        // Serialize the report to XML
+        using var stream = new MemoryStream();
+        report.SaveLayoutToXml(stream);
+        template.Definition = Encoding.UTF8.GetString(stream.ToArray());
+        template.Version += 1;
+        template.UpdatedAt = DateTime.UtcNow;
+        _db.SaveChanges();
+
+        _logger.LogInformation("Report template '{Url}' saved, version {Version}", url, template.Version);
+    }
+
+    /// <summary>
+    /// Create new report template
+    /// </summary>
+    public override string SetNewData(DevExpress.XtraReports.UI.XtraReport report, string defaultUrl)
+    {
+        var code = GenerateUniqueCode(defaultUrl);
+
+        // Serialize the report to XML
+        using var stream = new MemoryStream();
+        report.SaveLayoutToXml(stream);
+        var definition = Encoding.UTF8.GetString(stream.ToArray());
+
+        var template = new ReportTemplate
+        {
+            Name = defaultUrl,
+            Code = code,
+            Definition = definition,
+            Version = 1,
+            IsPublished = false,
+            CreatedBy = 1, // Default to admin user
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _db.ReportTemplates.Add(template);
+        _db.SaveChanges();
+
+        _logger.LogInformation("Report template '{Code}' created", code);
+        return code;
+    }
+
+    /// <summary>
+    /// Get report template by code
+    /// </summary>
+    public ReportTemplate? GetTemplate(string code)
+    {
+        return _db.ReportTemplates
+            .Include(t => t.Category)
+            .Include(t => t.Permissions)
+            .FirstOrDefault(r => r.Code == code);
+    }
+
+    /// <summary>
+    /// Get all published templates
+    /// </summary>
+    public List<ReportTemplate> GetPublishedTemplates()
+    {
+        return _db.ReportTemplates
+            .Where(r => r.IsPublished)
+            .Include(t => t.Category)
+            .OrderBy(r => r.Category!.SortOrder)
+            .ThenBy(r => r.Name)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get templates by category
+    /// </summary>
+    public List<ReportTemplate> GetTemplatesByCategory(int categoryId)
+    {
+        return _db.ReportTemplates
+            .Where(r => r.CategoryId == categoryId && r.IsPublished)
+            .OrderBy(r => r.Name)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Generate a unique code from a base name
+    /// </summary>
+    private string GenerateUniqueCode(string baseName)
+    {
+        var code = baseName.ToLowerInvariant()
+            .Replace(" ", "-")
+            .Replace("_", "-");
+
+        // Remove any non-alphanumeric characters except hyphens
+        code = System.Text.RegularExpressions.Regex.Replace(code, @"[^a-z0-9\-]", "");
+
+        var counter = 1;
+        var originalCode = code;
+        while (_db.ReportTemplates.Any(r => r.Code == code))
+        {
+            code = $"{originalCode}-{counter++}";
+        }
+        return code;
+    }
+}

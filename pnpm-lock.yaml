@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@devexpress/analytics-core':
+        specifier: ^25.1.7
+        version: 25.2.3(devextreme@25.1.7)
       '@radix-ui/react-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -26,6 +29,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.90.12
         version: 5.90.12(react@19.2.1)
+      ace-builds:
+        specifier: ^1.43.5
+        version: 1.43.5
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -38,6 +44,12 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      devexpress-reporting:
+        specifier: ^25.1.7
+        version: 25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.1.7))
+      devexpress-reporting-react:
+        specifier: ^25.1.7
+        version: 25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.1.7))(@types/prop-types@15.7.13)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(devexpress-reporting@25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.1.7)))(devextreme-react@25.1.7(devextreme@25.1.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       devextreme:
         specifier: 25.1.7
         version: 25.1.7
@@ -281,6 +293,11 @@ packages:
   '@csstools/css-tokenizer@3.0.4':
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
     engines: {node: '>=18'}
+
+  '@devexpress/analytics-core@25.2.3':
+    resolution: {integrity: sha512-XR5Xvt+qYyWV5BLdLQHiFVgIP/hrg41nD4rE/wl1RhuXrbhz/RR/JxXR4rDOtLAszgp2ZPmpDAXR28ooR9S+Hw==}
+    peerDependencies:
+      devextreme: 25.2.3
 
   '@devexpress/utils@1.4.8':
     resolution: {integrity: sha512-XVqyeYjqWjbcAUOxaUc6f93MATuVyFE2eec10Qm7X3/QLkKPBh2cJt5OOw4bkW4fC8SG8NZwjVITt08Tr+CXpQ==}
@@ -1674,6 +1691,9 @@ packages:
   '@types/file-saver@2.0.7':
     resolution: {integrity: sha512-dNKVfHd/jk0SkR/exKGj2ggkB45MAkzvWCaqLUUgkyjITkGNzH8H+yUwr+BLJUBjZOe9w8X3wgmXhZDRg1ED6A==}
 
+  '@types/jquery@3.5.33':
+    resolution: {integrity: sha512-SeyVJXlCZpEki5F0ghuYe+L+PprQta6nRZqhONt9F13dWBtR/ftoaIbdRQ7cis7womE+X2LKhsDdDtkkDhJS6g==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -1692,6 +1712,9 @@ packages:
   '@types/node@20.19.27':
     resolution: {integrity: sha512-N2clP5pJhB2YnZJ3PIHFk5RkygRX5WO/5f0WC08tp0wd+sv0rsJk3MqWn3CbNmT2J505a5336jaQj4ph1AdMug==}
 
+  '@types/prop-types@15.7.13':
+    resolution: {integrity: sha512-hCZTSvwbzWGvhqxp/RqVqwU999pBf2vp7hzIjiYOsl8wqOmUxkQ6ddw1cV3l8811+kdUFus/q4d1Y3E3SyEifA==}
+
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
@@ -1699,6 +1722,9 @@ packages:
 
   '@types/react@19.2.7':
     resolution: {integrity: sha512-MWtvHrGZLFttgeEj28VXHxpmwYbor/ATPYbBfSFZEIRK0ecCFLl2Qo55z52Hss+UV9CRN7trSeq1zbgx7YDWWg==}
+
+  '@types/sizzle@2.3.10':
+    resolution: {integrity: sha512-TC0dmN0K8YcWEAEfiPi5gJP14eJe30TTGjkvek3iM/1NdHHsdCA/Td6GvNndMOo/iSnIsZ4HuuhrYPDAmbxzww==}
 
   '@typescript-eslint/eslint-plugin@8.50.0':
     resolution: {integrity: sha512-O7QnmOXYKVtPrfYzMolrCTfkezCJS9+ljLdKW/+DCvRsc3UAz+sbH6Xcsv7p30+0OwUbeWfUDAQE0vpabZ3QLg==}
@@ -1888,6 +1914,9 @@ packages:
 
   '@vitest/utils@4.0.16':
     resolution: {integrity: sha512-h8z9yYhV3e1LEfaQ3zdypIrnAg/9hguReGZoS7Gl0aBG5xgA410zBqECqmaF/+RkTggRsfnzc1XaAHA6bmUufA==}
+
+  ace-builds@1.43.5:
+    resolution: {integrity: sha512-iH5FLBKdB7SVn9GR37UgA/tpQS8OTWIxWAuq3Ofaw+Qbc69FfPXsXd9jeW7KRG2xKpKMqBDnu0tHBrCWY5QI7A==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -2271,6 +2300,23 @@ packages:
 
   devexpress-gantt@4.1.64:
     resolution: {integrity: sha512-q9+diTugmzf3YNzQ4Xutr7ndgCAdpH7IyjTzGy2SiY5I+ePf2BaAZ0R3LGADBC5TuFS2OamIhF0HOj4ALgkf+A==}
+
+  devexpress-reporting-react@25.2.3:
+    resolution: {integrity: sha512-3O7ulViowtZxLdpbtz95qbHF8NWPntjMeV4laBjvxJd5fj+cZZVw03kJmCo4fYxu/5R6USHWM/S9PvQf1I/p+Q==}
+    peerDependencies:
+      '@devexpress/analytics-core': 25.2.3
+      '@types/prop-types': 15.7.13
+      '@types/react': ^18.0.0 || ^19.0.0
+      '@types/react-dom': ^18.0.0 || ^19.0.0
+      devexpress-reporting: 25.2.3
+      devextreme-react: 25.2.3
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+
+  devexpress-reporting@25.2.3:
+    resolution: {integrity: sha512-DICg0JdkU7oXgKOyzM9RSW+4bcHezwBlzuGq4FArWLKcsu4ENkL5qdDdTwetOJIDTqireQ8mx99oIkly7gBjrw==}
+    peerDependencies:
+      '@devexpress/analytics-core': 25.2.3
 
   devextreme-quill@1.7.6:
     resolution: {integrity: sha512-tIAnvHcQYarpPQwhjO9HaKmB4oDRdz/DPZ8Edo5EFeiYWcejgCl6kSeLgGoFWprPWlWkQUIZI3kBJXDRbXIOBg==}
@@ -3012,6 +3058,9 @@ packages:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
 
+  jquery@3.7.1:
+    resolution: {integrity: sha512-m4avr8yL8kmFN8psrbFFFmB/If14iN5o9nw/NgnnM+kybDJpRsAynV2BsfpTYrTRysYUdADVD7CkUUizgkpLfg==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -3070,6 +3119,9 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
+  knockout@3.5.1:
+    resolution: {integrity: sha512-wRJ9I4az0QcsH7A4v4l0enUpkS++MBx0BnL/68KaLzJg7x1qmbjSlwEoCNol7KTYZ+pmtI7Eh2J0Nu6/2Z5J/Q==}
 
   language-subtag-registry@0.3.23:
     resolution: {integrity: sha512-0K65Lea881pHotoGEa5gDlMxt3pctLi2RplBb7Ezh4rRdLEOtgi7n4EwK9lamnUCkKBqaeKRVebTq6BAxSkpXQ==}
@@ -4378,6 +4430,14 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.4': {}
 
+  '@devexpress/analytics-core@25.2.3(devextreme@25.1.7)':
+    dependencies:
+      '@types/jquery': 3.5.33
+      ace-builds: 1.43.5
+      devextreme: 25.1.7
+      jquery: 3.7.1
+      knockout: 3.5.1
+
   '@devexpress/utils@1.4.8':
     dependencies:
       tslib: 2.3.1
@@ -5441,6 +5501,10 @@ snapshots:
 
   '@types/file-saver@2.0.7': {}
 
+  '@types/jquery@3.5.33':
+    dependencies:
+      '@types/sizzle': 2.3.10
+
   '@types/json-schema@7.0.15': {}
 
   '@types/json5@0.0.29': {}
@@ -5458,6 +5522,8 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/prop-types@15.7.13': {}
+
   '@types/react-dom@19.2.3(@types/react@19.2.7)':
     dependencies:
       '@types/react': 19.2.7
@@ -5465,6 +5531,8 @@ snapshots:
   '@types/react@19.2.7':
     dependencies:
       csstype: 3.2.3
+
+  '@types/sizzle@2.3.10': {}
 
   '@typescript-eslint/eslint-plugin@8.50.0(@typescript-eslint/parser@8.50.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
@@ -5666,6 +5734,8 @@ snapshots:
     dependencies:
       '@vitest/pretty-format': 4.0.16
       tinyrainbow: 3.0.3
+
+  ace-builds@1.43.5: {}
 
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:
@@ -6079,6 +6149,25 @@ snapshots:
     dependencies:
       '@devexpress/utils': 1.4.8
       tslib: 2.3.1
+
+  devexpress-reporting-react@25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.1.7))(@types/prop-types@15.7.13)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(devexpress-reporting@25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.1.7)))(devextreme-react@25.1.7(devextreme@25.1.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+    dependencies:
+      '@devexpress/analytics-core': 25.2.3(devextreme@25.1.7)
+      '@types/prop-types': 15.7.13
+      '@types/react': 19.2.7
+      '@types/react-dom': 19.2.3(@types/react@19.2.7)
+      devexpress-reporting: 25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.1.7))
+      devextreme-react: 25.1.7(devextreme@25.1.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      prop-types: 15.8.1
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+
+  devexpress-reporting@25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.1.7)):
+    dependencies:
+      '@devexpress/analytics-core': 25.2.3(devextreme@25.1.7)
+      ace-builds: 1.43.5
+      jquery: 3.7.1
+      knockout: 3.5.1
 
   devextreme-quill@1.7.6:
     dependencies:
@@ -6986,6 +7075,8 @@ snapshots:
 
   jiti@2.6.1: {}
 
+  jquery@3.7.1: {}
+
   js-tokens@4.0.0: {}
 
   js-yaml@4.1.1:
@@ -7074,6 +7165,8 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  knockout@3.5.1: {}
 
   language-subtag-registry@0.3.23: {}
 

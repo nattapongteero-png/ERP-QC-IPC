@@ -1,225 +1,247 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card, CardContent } from '@/components/ui/card';
-import { DxButton } from '@/components/ui/dx-button';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { DxDateBox } from '@/components/ui/dx-date-box';
 import { PageHeader } from '@/components/ui/page-header';
-import {
-  FileText,
-  Download,
-  Package,
-  Factory,
-  ShoppingCart,
-  Truck,
-  ClipboardCheck,
-  TrendingUp,
-} from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { DxButton } from '@/components/ui/dx-button';
+import { ReportList, type ReportTemplate } from '@/components/reports/ReportList';
+import { ReportCategoryTree, type ReportCategory } from '@/components/reports/ReportCategoryTree';
+import { Plus, FileText, AlertCircle, Settings } from 'lucide-react';
 
-interface ReportType {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  category: string;
+interface TemplatesResponse {
+  success: boolean;
+  data?: ReportTemplate[];
+  error?: string;
 }
 
-const reportTypes: ReportType[] = [
-  {
-    id: 'inventory_summary',
-    name: 'Inventory Summary',
-    description: 'สรุปสินค้าคงคลังทั้งหมด แยกตามประเภทและสถานะ',
-    icon: <Package className="h-6 w-6" />,
-    category: 'inventory',
-  },
-  {
-    id: 'lot_traceability',
-    name: 'Lot Traceability',
-    description: 'รายงานการตรวจสอบย้อนกลับ Lot',
-    icon: <FileText className="h-6 w-6" />,
-    category: 'inventory',
-  },
-  {
-    id: 'expiry_report',
-    name: 'Expiry Report',
-    description: 'รายงานสินค้าใกล้หมดอายุ',
-    icon: <TrendingUp className="h-6 w-6" />,
-    category: 'inventory',
-  },
-  {
-    id: 'production_summary',
-    name: 'Production Summary',
-    description: 'สรุปการผลิตตามช่วงเวลา',
-    icon: <Factory className="h-6 w-6" />,
-    category: 'production',
-  },
-  {
-    id: 'batch_record',
-    name: 'Batch Production Record',
-    description: 'บันทึกการผลิตแต่ละ Batch (BPR)',
-    icon: <FileText className="h-6 w-6" />,
-    category: 'production',
-  },
-  {
-    id: 'quality_summary',
-    name: 'Quality Summary',
-    description: 'สรุปผลการตรวจสอบคุณภาพ',
-    icon: <ClipboardCheck className="h-6 w-6" />,
-    category: 'quality',
-  },
-  {
-    id: 'coa_report',
-    name: 'Certificate of Analysis',
-    description: 'ใบรับรองผลการวิเคราะห์ (COA)',
-    icon: <FileText className="h-6 w-6" />,
-    category: 'quality',
-  },
-  {
-    id: 'purchase_summary',
-    name: 'Purchase Summary',
-    description: 'สรุปการจัดซื้อตามช่วงเวลา',
-    icon: <Truck className="h-6 w-6" />,
-    category: 'purchasing',
-  },
-  {
-    id: 'sales_summary',
-    name: 'Sales Summary',
-    description: 'สรุปการขายตามช่วงเวลา',
-    icon: <ShoppingCart className="h-6 w-6" />,
-    category: 'sales',
-  },
-];
-
-const categories = [
-  { value: '', label: 'All Categories' },
-  { value: 'inventory', label: 'Inventory' },
-  { value: 'production', label: 'Production' },
-  { value: 'quality', label: 'Quality' },
-  { value: 'purchasing', label: 'Purchasing' },
-  { value: 'sales', label: 'Sales' },
-];
+interface CategoriesResponse {
+  success: boolean;
+  data?: ReportCategory[];
+  error?: string;
+}
 
 export default function ReportsPage() {
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [generating, setGenerating] = useState<string | null>(null);
+  const router = useRouter();
+  const [templates, setTemplates] = useState<ReportTemplate[]>([]);
+  const [categories, setCategories] = useState<ReportCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredReports = categoryFilter
-    ? reportTypes.filter((r) => r.category === categoryFilter)
-    : reportTypes;
-
-  const handleGenerateReport = async (reportId: string) => {
-    setGenerating(reportId);
+  // Fetch templates
+  const fetchTemplates = useCallback(async () => {
     try {
-      // Simulate report generation
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      // TODO: Implement actual report generation API call
-      console.log(`Report ${reportId} generated successfully!`);
-    } catch {
-      // API errors handled by global error handler
-      console.error('Failed to generate report');
+      setIsLoadingTemplates(true);
+      setError(null);
+
+      const params = new URLSearchParams();
+      if (selectedCategoryId) {
+        params.set('categoryId', selectedCategoryId.toString());
+      }
+      if (searchQuery) {
+        params.set('search', searchQuery);
+      }
+
+      const url = `/api/reports/templates${params.toString() ? `?${params}` : ''}`;
+      const response = await fetch(url);
+      const data: TemplatesResponse = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to fetch templates');
+      }
+
+      setTemplates(data.data || []);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch templates';
+      setError(errorMessage);
+      console.error('Templates fetch error:', err);
     } finally {
-      setGenerating(null);
+      setIsLoadingTemplates(false);
     }
+  }, [selectedCategoryId, searchQuery]);
+
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
+    try {
+      setIsLoadingCategories(true);
+
+      const response = await fetch('/api/reports/categories');
+      const data: CategoriesResponse = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to fetch categories');
+      }
+
+      setCategories(data.data || []);
+    } catch (err) {
+      console.error('Categories fetch error:', err);
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  const handlePublishToggle = useCallback(async (code: string, publish: boolean) => {
+    const response = await fetch(`/api/reports/templates/${code}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPublished: publish }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Failed to update publish status');
+    }
+  }, []);
+
+  const handleDelete = useCallback(async (code: string) => {
+    const response = await fetch(`/api/reports/templates/${code}`, {
+      method: 'DELETE',
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Failed to delete template');
+    }
+  }, []);
+
+  const handleCategorySelect = useCallback((categoryId: number | null) => {
+    setSelectedCategoryId(categoryId);
+  }, []);
+
+  const handleCreateReport = () => {
+    router.push('/reports/new');
   };
+
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
 
   return (
     <MainLayout>
       <div className="space-y-6">
-        <PageHeader
-          title="Reports"
-          description="รายงานและการส่งออกข้อมูล"
-        />
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <PageHeader
+            title="Reports"
+            description="View, create, and manage report templates"
+          />
+          <div className="flex items-center gap-3">
+            <DxButton
+              text="New Report"
+              icon="add"
+              type="default"
+              onClick={handleCreateReport}
+            />
+          </div>
+        </div>
 
-        {/* Filters */}
-        <Card elevation="raised">
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
-                <DxSelectBox
-                  items={categories}
-                  value={categoryFilter}
-                  onValueChange={setCategoryFilter}
-                  valueExpr="value"
-                  displayExpr="label"
-                  placeholder="Select Category"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date From
-                </label>
-                <DxDateBox
-                  value={dateFrom}
-                  onValueChange={(value) => setDateFrom(value || '')}
-                  placeholder="Select start date"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date To
-                </label>
-                <DxDateBox
-                  value={dateTo}
-                  onValueChange={(value) => setDateTo(value || '')}
-                  placeholder="Select end date"
-                />
+        {/* Error Alert */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+            <span className="text-red-700">{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-500 hover:text-red-700"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="flex gap-6">
+          {/* Category Sidebar */}
+          <div className="w-64 flex-shrink-0 hidden lg:block">
+            <ReportCategoryTree
+              categories={categories}
+              selectedCategoryId={selectedCategoryId}
+              onSelectCategory={handleCategorySelect}
+              onCreateCategory={() => {
+                // TODO: Open category creation modal
+                console.log('Create category');
+              }}
+              isLoading={isLoadingCategories}
+              showActions={true}
+            />
+
+            {/* Quick Stats */}
+            <div className="mt-4 bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Overview</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Total Templates</span>
+                  <span className="font-medium text-gray-900">{templates.length}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Published</span>
+                  <span className="font-medium text-green-600">
+                    {templates.filter(t => t.isPublished).length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Drafts</span>
+                  <span className="font-medium text-yellow-600">
+                    {templates.filter(t => !t.isPublished).length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Categories</span>
+                  <span className="font-medium text-gray-900">{categories.length}</span>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Report Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredReports.map((report, index) => (
-            <Card
-              key={report.id}
-              elevation="raised"
-              interactive
-              className={cn(
-                'motion-safe:animate-fade-in motion-reduce:animate-none'
+          {/* Report List */}
+          <div className="flex-1 min-w-0">
+            <ReportList
+              templates={templates}
+              isLoading={isLoadingTemplates}
+              selectedCategoryId={selectedCategoryId}
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              onPublishToggle={handlePublishToggle}
+              onDelete={handleDelete}
+              onRefresh={fetchTemplates}
+              showActions={true}
+            />
+          </div>
+        </div>
+
+        {/* Mobile Category Filter */}
+        <div className="lg:hidden">
+          <details className="bg-white border border-gray-200 rounded-lg">
+            <summary className="px-4 py-3 cursor-pointer flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Settings className="h-4 w-4" />
+              Filter by Category
+              {selectedCategoryId && (
+                <span className="ml-auto text-blue-600">
+                  {categories.find(c => c.id === selectedCategoryId)?.name || 'Selected'}
+                </span>
               )}
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <CardContent>
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
-                    {report.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{report.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {report.description}
-                    </p>
-                    <div className="mt-4 flex gap-2">
-                      <DxButton
-                        text={generating === report.id ? 'Generating...' : 'Generate'}
-                        icon={generating !== report.id ? 'doc' : undefined}
-                        type="default"
-                        onClick={() => handleGenerateReport(report.id)}
-                        disabled={generating === report.id}
-                      />
-                      <DxButton
-                        text="Export"
-                        icon="download"
-                        type="normal"
-                        stylingMode="outlined"
-                        onClick={() => handleGenerateReport(report.id)}
-                        disabled={generating === report.id}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+            </summary>
+            <div className="px-4 pb-4">
+              <ReportCategoryTree
+                categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                onSelectCategory={handleCategorySelect}
+                isLoading={isLoadingCategories}
+                showActions={false}
+              />
+            </div>
+          </details>
         </div>
       </div>
     </MainLayout>
