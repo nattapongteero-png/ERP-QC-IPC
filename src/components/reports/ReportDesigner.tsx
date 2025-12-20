@@ -72,14 +72,15 @@ export default function ReportDesigner({
   });
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_REPORTING_BACKEND_URL || 'http://localhost:5000';
+  // Use the Next.js API proxy for all client-side requests (no CORS issues)
+  const BACKEND_URL = '/api/reporting';
 
   useEffect(() => {
     const initializeDesigner = async () => {
       try {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-        // Check if backend is available
+        // Check if backend is available via proxy
         const response = await fetch(`${BACKEND_URL}/health`);
         if (!response.ok) {
           throw new Error('Reporting backend is not available');

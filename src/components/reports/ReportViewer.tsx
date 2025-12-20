@@ -59,7 +59,8 @@ export default function ReportViewer({
     error: null,
   });
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_REPORTING_BACKEND_URL || 'http://localhost:5000';
+  // Use the Next.js API proxy for all client-side requests (no CORS issues)
+  const BACKEND_URL = '/api/reporting';
 
   useEffect(() => {
     const initializeViewer = async () => {
@@ -67,7 +68,7 @@ export default function ReportViewer({
         setIsLoading(true);
         setError(null);
 
-        // Check if backend is available
+        // Check if backend is available via proxy
         const response = await fetch(`${BACKEND_URL}/health`);
         if (!response.ok) {
           throw new Error('Reporting backend is not available');
@@ -87,7 +88,7 @@ export default function ReportViewer({
     };
 
     initializeViewer();
-  }, [reportUrl, BACKEND_URL, onReportReady, onError]);
+  }, [reportUrl, onReportReady, onError]);
 
   const handleExport = useCallback(async (format: ExportFormat) => {
     setShowExportMenu(false);
@@ -146,7 +147,7 @@ export default function ReportViewer({
       });
       onError?.(new Error(errorMessage));
     }
-  }, [reportUrl, parameters, BACKEND_URL, onExport, onError]);
+  }, [reportUrl, parameters, onExport, onError]);
 
   const handlePrint = useCallback(async () => {
     try {

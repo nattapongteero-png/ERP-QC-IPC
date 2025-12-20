@@ -67,8 +67,12 @@ services:
       - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp
       - NEXT_PUBLIC_APP_URL=https://herbal-erp.bmscloud.in.th
       - NEXTAUTH_URL=https://herbal-erp.bmscloud.in.th
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend:5000
     depends_on:
       mysql:
+        condition: service_healthy
+      reporting-backend:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
@@ -97,6 +101,8 @@ services:
       - NEXTAUTH_URL=https://herbal-erp-dev.bmscloud.in.th
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend:5000
     # Increase file descriptor limits for Turbopack file watching
     ulimits:
       nofile:
@@ -113,6 +119,8 @@ services:
       - ./components.json:/app/components.json
     depends_on:
       mysql:
+        condition: service_healthy
+      reporting-backend:
         condition: service_healthy
     networks:
       - herbal-erp-network

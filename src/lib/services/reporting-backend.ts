@@ -2,11 +2,19 @@
  * Reporting Backend Service
  * Handles communication with the ASP.NET Core reporting backend
  * with JWT token forwarding for authenticated requests
+ *
+ * Architecture:
+ * - Server-side: Uses REPORTING_BACKEND_URL (internal Docker network)
+ * - Client-side: Uses /api/reporting proxy (same origin, no CORS)
  */
 
 import { cookies } from 'next/headers';
 
-const REPORTING_BACKEND_URL = process.env.NEXT_PUBLIC_REPORTING_BACKEND_URL || 'http://localhost:5000';
+// Server-side: Direct connection to reporting backend (internal Docker network)
+const REPORTING_BACKEND_URL = process.env.REPORTING_BACKEND_URL || 'http://localhost:5000';
+
+// Client-side: Use the Next.js API proxy to avoid CORS issues
+const REPORTING_PROXY_URL = '/api/reporting';
 
 export interface ReportingBackendOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -40,6 +48,22 @@ async function getAuthToken(): Promise<string | null> {
 }
 
 /**
+ * Determine if we're running on the server or client
+ */
+function isServer(): boolean {
+  return typeof window === 'undefined';
+}
+
+/**
+ * Get the base URL for the reporting backend
+ * Server-side: Use direct URL (internal Docker network)
+ * Client-side: Use the proxy URL (same origin)
+ */
+function getBaseUrl(): string {
+  return isServer() ? REPORTING_BACKEND_URL : REPORTING_PROXY_URL;
+}
+
+/**
  * Make an authenticated request to the reporting backend
  */
 export async function fetchReportingBackend<T = unknown>(
@@ -49,8 +73,8 @@ export async function fetchReportingBackend<T = unknown>(
   const { method = 'GET', body, headers = {}, timeout = 30000 } = options;
 
   try {
-    // Get JWT token
-    const token = await getAuthToken();
+    // Get JWT token (only needed for server-side, proxy handles client-side)
+    const token = isServer() ? await getAuthToken() : null;
 
     // Build headers
     const requestHeaders: Record<string, string> = {
@@ -58,15 +82,16 @@ export async function fetchReportingBackend<T = unknown>(
       ...headers,
     };
 
-    // Add Authorization header if token exists
+    // Add Authorization header if token exists (server-side only)
     if (token) {
       requestHeaders['Authorization'] = `Bearer ${token}`;
     }
 
-    // Build URL
+    // Build URL - use proxy for client-side, direct URL for server-side
+    const baseUrl = getBaseUrl();
     const url = endpoint.startsWith('http')
       ? endpoint
-      : `${REPORTING_BACKEND_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+      : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
     // Create abort controller for timeout
     const controller = new AbortController();
@@ -150,9 +175,11 @@ export async function saveReportDefinition(
 
 /**
  * Get report preview URL with authentication
+ * Uses proxy URL for client-side, direct URL for server-side
  */
 export function getReportPreviewUrl(reportCode: string, parameters?: Record<string, unknown>): string {
-  let url = `${REPORTING_BACKEND_URL}/api/reports/${reportCode}/preview`;
+  const baseUrl = getBaseUrl();
+  let url = `${baseUrl}/api/reports/${reportCode}/preview`;
 
   if (parameters && Object.keys(parameters).length > 0) {
     const searchParams = new URLSearchParams();
@@ -167,13 +194,15 @@ export function getReportPreviewUrl(reportCode: string, parameters?: Record<stri
 
 /**
  * Get report export URL with authentication
+ * Uses proxy URL for client-side, direct URL for server-side
  */
 export function getReportExportUrl(
   reportCode: string,
   format: 'pdf' | 'xlsx' | 'docx' | 'csv' | 'rtf' | 'html',
   parameters?: Record<string, unknown>
 ): string {
-  let url = `${REPORTING_BACKEND_URL}/api/reports/${reportCode}/export/${format}`;
+  const baseUrl = getBaseUrl();
+  let url = `${baseUrl}/api/reports/${reportCode}/export/${format}`;
 
   if (parameters && Object.keys(parameters).length > 0) {
     const searchParams = new URLSearchParams();
@@ -188,6 +217,8 @@ export function getReportExportUrl(
 
 /**
  * Export report with authentication (returns blob)
+ * Client-side: Uses proxy which handles authentication via cookies
+ * Server-side: Uses direct URL with JWT token
  */
 export async function exportReport(
   reportCode: string,
@@ -195,15 +226,21 @@ export async function exportReport(
   parameters?: Record<string, unknown>
 ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
   try {
-    const token = await getAuthToken();
     const url = getReportExportUrl(reportCode, format, parameters);
-
     const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+
+    // Only add Authorization header on server-side (proxy handles client-side auth)
+    if (isServer()) {
+      const token = await getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, {
+      headers,
+      credentials: 'include', // Include cookies for client-side proxy requests
+    });
 
     if (!response.ok) {
       return {
