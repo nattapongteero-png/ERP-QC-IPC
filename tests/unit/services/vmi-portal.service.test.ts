@@ -450,3 +450,293 @@ describe('VmiPortalService Order Methods', () => {
     });
   });
 });
+
+describe('VmiPortalService Sync Methods', () => {
+  const originalEnv = {
+    VMI_ENCRYPTION_KEY: process.env.VMI_ENCRYPTION_KEY,
+  };
+
+  const testApiKey = 'test-api-key-sync';
+  let encryptedApiKey: string;
+  let service: VmiPortalService;
+
+  beforeAll(() => {
+    process.env.VMI_ENCRYPTION_KEY = 'a'.repeat(64);
+    encryptedApiKey = encrypt(testApiKey);
+  });
+
+  afterAll(() => {
+    if (originalEnv.VMI_ENCRYPTION_KEY) {
+      process.env.VMI_ENCRYPTION_KEY = originalEnv.VMI_ENCRYPTION_KEY;
+    } else {
+      delete process.env.VMI_ENCRYPTION_KEY;
+    }
+  });
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    service = new VmiPortalService({
+      vendorId: 1,
+      apiKeyEncrypted: encryptedApiKey,
+      baseUrl: 'https://test-vmi-portal.example.com/api',
+    });
+  });
+
+  describe('syncItems', () => {
+    it('should sync items to VMI Portal successfully', async () => {
+      const mockResult = {
+        success: true,
+        synced: 3,
+        failed: 0,
+        errors: [],
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const items = [
+        { tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test Item 1', unit: 'box' },
+        { tppCode: '9876543210987', ttmtCode: 'A98765432', name: 'Test Item 2', unit: 'bottle' },
+        { tppCode: '5555555555555', ttmtCode: 'A55555555', name: 'Test Item 3', unit: 'kg' },
+      ];
+
+      const result = await service.syncItems(items);
+
+      expect(result).toEqual(mockResult);
+      expect(result.synced).toBe(3);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/items'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ items }),
+        })
+      );
+    });
+
+    it('should handle partial sync with some failures', async () => {
+      const mockResult = {
+        success: true,
+        synced: 2,
+        failed: 1,
+        errors: [
+          { tppCode: '0000000000000', error: 'Invalid TPP code format' },
+        ],
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const items = [
+        { tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test Item 1', unit: 'box' },
+        { tppCode: '0000000000000', ttmtCode: 'AINVALID', name: 'Invalid Item', unit: 'unit' },
+        { tppCode: '9876543210987', ttmtCode: 'A98765432', name: 'Test Item 2', unit: 'bottle' },
+      ];
+
+      const result = await service.syncItems(items);
+
+      expect(result.synced).toBe(2);
+      expect(result.failed).toBe(1);
+      expect(result.errors).toHaveLength(1);
+    });
+
+    it('should throw VALIDATION_ERROR for invalid items', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve({
+          error: { code: 'VALIDATION_ERROR', message: 'Items array is required' },
+        }),
+      });
+
+      await expect(service.syncItems([])).rejects.toThrow(VmiPortalError);
+    });
+
+    it('should throw UNAUTHORIZED for invalid API key', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve({
+          error: { code: 'UNAUTHORIZED', message: 'Invalid API Key' },
+        }),
+      });
+
+      const items = [{ tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test', unit: 'box' }];
+      await expect(service.syncItems(items)).rejects.toThrow(VmiPortalError);
+    });
+  });
+
+  describe('syncPrices', () => {
+    it('should sync price offers to VMI Portal successfully', async () => {
+      const mockResult = {
+        success: true,
+        synced: 2,
+        failed: 0,
+        errors: [],
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const offers = [
+        { tppCode: '1234567890123', unitPrice: 100.50, validFrom: '2024-01-01', validTo: '2024-12-31' },
+        { tppCode: '9876543210987', unitPrice: 250.00, validFrom: '2024-01-01', validTo: '2024-06-30' },
+      ];
+
+      const result = await service.syncPrices(offers);
+
+      expect(result).toEqual(mockResult);
+      expect(result.synced).toBe(2);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/prices'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ offers }),
+        })
+      );
+    });
+
+    it('should handle price sync with validation errors', async () => {
+      const mockResult = {
+        success: true,
+        synced: 1,
+        failed: 1,
+        errors: [
+          { tppCode: '0000000000000', error: 'Item not found in VMI Portal' },
+        ],
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const offers = [
+        { tppCode: '1234567890123', unitPrice: 100.50, validFrom: '2024-01-01', validTo: '2024-12-31' },
+        { tppCode: '0000000000000', unitPrice: 50.00, validFrom: '2024-01-01', validTo: '2024-12-31' },
+      ];
+
+      const result = await service.syncPrices(offers);
+
+      expect(result.failed).toBe(1);
+      expect(result.errors?.[0]).toHaveProperty('error');
+    });
+
+    it('should throw error for negative prices', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve({
+          error: { code: 'VALIDATION_ERROR', message: 'Price must be positive' },
+        }),
+      });
+
+      const offers = [{ tppCode: '1234567890123', unitPrice: -10.00, validFrom: '2024-01-01', validTo: '2024-12-31' }];
+      await expect(service.syncPrices(offers)).rejects.toThrow(VmiPortalError);
+    });
+  });
+
+  describe('syncInventory', () => {
+    it('should sync inventory to VMI Portal successfully', async () => {
+      const mockResult = {
+        success: true,
+        synced: 3,
+        failed: 0,
+        errors: [],
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const inventory = [
+        { tppCode: '1234567890123', availableQuantity: 500, unit: 'box' },
+        { tppCode: '9876543210987', availableQuantity: 1000, unit: 'bottle' },
+        { tppCode: '5555555555555', availableQuantity: 250, unit: 'kg' },
+      ];
+
+      const result = await service.syncInventory(inventory);
+
+      expect(result).toEqual(mockResult);
+      expect(result.synced).toBe(3);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/inventory'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ inventory }),
+        })
+      );
+    });
+
+    it('should handle inventory sync with partial failures', async () => {
+      const mockResult = {
+        success: true,
+        synced: 2,
+        failed: 1,
+        errors: [
+          { tppCode: '0000000000000', error: 'Item not registered in VMI Portal' },
+        ],
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const inventory = [
+        { tppCode: '1234567890123', availableQuantity: 500, unit: 'box' },
+        { tppCode: '0000000000000', availableQuantity: 100, unit: 'unit' },
+        { tppCode: '9876543210987', availableQuantity: 1000, unit: 'bottle' },
+      ];
+
+      const result = await service.syncInventory(inventory);
+
+      expect(result.synced).toBe(2);
+      expect(result.failed).toBe(1);
+    });
+
+    it('should handle network timeout during inventory sync', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Request timeout'));
+
+      const inventory = [{ tppCode: '1234567890123', availableQuantity: 500, unit: 'box' }];
+
+      await expect(service.syncInventory(inventory)).rejects.toThrow(VmiPortalError);
+    });
+
+    it('should handle zero inventory quantities', async () => {
+      const mockResult = {
+        success: true,
+        synced: 1,
+        failed: 0,
+        errors: [],
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const inventory = [{ tppCode: '1234567890123', availableQuantity: 0, unit: 'box' }];
+
+      const result = await service.syncInventory(inventory);
+
+      expect(result.synced).toBe(1);
+    });
+  });
+});
