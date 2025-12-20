@@ -33,6 +33,13 @@ COPY --from=build /app/publish .
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+
+# Install DevExpress license
+# License file should be in $HOME/.config/DevExpress/ on Linux
+RUN mkdir -p /home/appuser/.config/DevExpress && chown -R appuser /home/appuser/.config
+COPY DevExpress_License.txt /home/appuser/.config/DevExpress/DevExpress_License.txt
+RUN chown appuser /home/appuser/.config/DevExpress/DevExpress_License.txt
+
 USER appuser
 
 # Expose port
