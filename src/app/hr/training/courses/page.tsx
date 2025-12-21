@@ -35,8 +35,8 @@ interface CourseFormData {
   nameEn: string;
   category: string;
   description: string;
-  validityDays: number | null;
-  durationHours: number | null;
+  validityDays: number | undefined;
+  durationHours: number | undefined;
   isMandatory: boolean;
 }
 
@@ -46,8 +46,8 @@ const emptyFormData: CourseFormData = {
   nameEn: '',
   category: '',
   description: '',
-  validityDays: null,
-  durationHours: null,
+  validityDays: undefined,
+  durationHours: undefined,
   isMandatory: false,
 };
 
@@ -185,8 +185,8 @@ export default function TrainingCoursesPage() {
       nameEn: course.nameEn || '',
       category: course.category || '',
       description: course.description || '',
-      validityDays: course.validityDays || null,
-      durationHours: course.durationHours || null,
+      validityDays: course.validityDays || undefined,
+      durationHours: course.durationHours || undefined,
       isMandatory: course.isMandatory || false,
     });
     setShowEditPopup(true);
