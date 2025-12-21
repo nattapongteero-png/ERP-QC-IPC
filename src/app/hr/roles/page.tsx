@@ -16,7 +16,6 @@ import DataGrid, {
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TagBox from 'devextreme-react/tag-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import Button from 'devextreme-react/button';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
@@ -230,30 +229,30 @@ export default function RolesPage() {
 
     return (
       <div className="flex gap-1">
-        <Button
-          icon="key"
-          hint="จัดการสิทธิ์"
-          type="default"
-          stylingMode="text"
+        <button
+          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
           onClick={() => handleOpenPermissionsPopup(role)}
           disabled={role.isSystemRole}
-        />
-        <Button
-          icon="edit"
-          hint="แก้ไข"
-          type="default"
-          stylingMode="text"
+          title="จัดการสิทธิ์"
+        >
+          🔑
+        </button>
+        <button
+          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
           onClick={() => handleOpenEditDialog(role)}
           disabled={role.isSystemRole}
-        />
+          title="แก้ไข"
+        >
+          ✏️
+        </button>
         {role.isActive && !role.isSystemRole && (
-          <Button
-            icon="close"
-            hint="ปิดใช้งาน"
-            type="danger"
-            stylingMode="text"
+          <button
+            className="p-1 text-red-600 hover:bg-red-50 rounded"
             onClick={() => handleDeactivateRole(role.id)}
-          />
+            title="ปิดใช้งาน"
+          >
+            ❌
+          </button>
         )}
       </div>
     );
