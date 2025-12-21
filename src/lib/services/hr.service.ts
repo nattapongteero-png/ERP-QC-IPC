@@ -79,6 +79,11 @@ import type {
   Delegation,
   DelegationCreate,
   DelegationWithDetails,
+  HealthRecord,
+  HealthRecordCreate,
+  HealthRecordPublic,
+  ExaminationType,
+  FitnessStatus,
 } from '@/types/hr';
 
 // ============================================
@@ -2746,4 +2751,430 @@ export async function getDelegatedToEmployee(
   employeeId: number
 ): Promise<DelegationWithDetails[]> {
   return getDelegations({ delegateId: employeeId, isActive: true });
+}
+
+// ============================================
+// Health Record Service (T080-T082)
+// ============================================
+
+export interface HealthRecordWithDetails extends HealthRecord {
+  employeeName?: string;
+  recordedByName?: string;
+}
+
+interface HealthRecordFilters {
+  employeeId?: number;
+  examinationType?: ExaminationType;
+  fitnessStatus?: FitnessStatus;
+  fromDate?: string;
+  toDate?: string;
+}
+
+/**
+ * Convert full health record to public version (strips sensitive fields)
+ */
+function toPublicHealthRecord(record: HealthRecord): HealthRecordPublic {
+  return {
+    id: record.id,
+    employeeId: record.employeeId,
+    examinationType: record.examinationType,
+    examinationDate: record.examinationDate,
+    nextExamDue: record.nextExamDue,
+    fitnessStatus: record.fitnessStatus,
+    restrictions: record.restrictions,
+  };
+}
+
+/**
+ * Get health records with privacy filtering
+ * @param filters - Filter options
+ * @param includePrivate - If true, includes medical details (requires health_staff role)
+ */
+export async function getHealthRecords(
+  filters?: HealthRecordFilters,
+  includePrivate: boolean = false
+): Promise<HealthRecordWithDetails[] | HealthRecordPublic[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+
+  if (filters?.employeeId) {
+    conditions.push(eq(tables.healthRecords.employeeId, filters.employeeId));
+  }
+
+  if (filters?.examinationType) {
+    conditions.push(eq(tables.healthRecords.examinationType, filters.examinationType));
+  }
+
+  if (filters?.fitnessStatus) {
+    conditions.push(eq(tables.healthRecords.fitnessStatus, filters.fitnessStatus));
+  }
+
+  if (filters?.fromDate) {
+    conditions.push(sql`${tables.healthRecords.examinationDate} >= ${filters.fromDate}`);
+  }
+
+  if (filters?.toDate) {
+    conditions.push(sql`${tables.healthRecords.examinationDate} <= ${filters.toDate}`);
+  }
+
+  const query = conditions.length > 0
+    ? db.select().from(tables.healthRecords).where(and(...conditions))
+    : db.select().from(tables.healthRecords);
+
+  const records = await query.orderBy(desc(tables.healthRecords.examinationDate));
+
+  if (!includePrivate) {
+    // Return only public fields
+    return records.map((r) => toPublicHealthRecord(r as HealthRecord));
+  }
+
+  // Enrich with employee and recorder names
+  const enriched: HealthRecordWithDetails[] = [];
+  for (const record of records) {
+    const employee = await getEmployeeById(record.employeeId);
+    let recordedByName: string | undefined;
+    if (record.recordedBy) {
+      const recorder = await getEmployeeById(record.recordedBy);
+      recordedByName = recorder ? `${recorder.firstName} ${recorder.lastName}` : undefined;
+    }
+
+    enriched.push({
+      ...(record as HealthRecord),
+      examinationType: record.examinationType as ExaminationType,
+      fitnessStatus: record.fitnessStatus as FitnessStatus,
+      employeeName: employee ? `${employee.firstName} ${employee.lastName}` : undefined,
+      recordedByName,
+    });
+  }
+
+  return enriched;
+}
+
+/**
+ * Get health record by ID with privacy filtering
+ */
+export async function getHealthRecordById(
+  id: number,
+  includePrivate: boolean = false
+): Promise<HealthRecordWithDetails | HealthRecordPublic | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [record] = await db
+    .select()
+    .from(tables.healthRecords)
+    .where(eq(tables.healthRecords.id, id))
+    .limit(1);
+
+  if (!record) return null;
+
+  if (!includePrivate) {
+    return toPublicHealthRecord(record as HealthRecord);
+  }
+
+  const employee = await getEmployeeById(record.employeeId);
+  let recordedByName: string | undefined;
+  if (record.recordedBy) {
+    const recorder = await getEmployeeById(record.recordedBy);
+    recordedByName = recorder ? `${recorder.firstName} ${recorder.lastName}` : undefined;
+  }
+
+  return {
+    ...(record as HealthRecord),
+    examinationType: record.examinationType as ExaminationType,
+    fitnessStatus: record.fitnessStatus as FitnessStatus,
+    employeeName: employee ? `${employee.firstName} ${employee.lastName}` : undefined,
+    recordedByName,
+  };
+}
+
+/**
+ * Create a new health record
+ */
+export async function createHealthRecord(
+  data: HealthRecordCreate,
+  recordedBy: number
+): Promise<HealthRecord> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Verify employee exists
+  const employee = await getEmployeeById(data.employeeId);
+  if (!employee) {
+    throw new Error('Employee not found');
+  }
+
+  const now = new Date().toISOString();
+
+  const insertData = {
+    employeeId: data.employeeId,
+    examinationType: data.examinationType,
+    examinationDate: data.examinationDate,
+    nextExamDue: data.nextExamDue || null,
+    fitnessStatus: data.fitnessStatus,
+    restrictions: data.restrictions || null,
+    affectedAreas: data.affectedAreas ? JSON.stringify(data.affectedAreas) : null,
+    medicalDetails: data.medicalDetails || null,
+    examinerName: data.examinerName || null,
+    examinerNotes: data.examinerNotes || null,
+    recordedBy,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const [result] = await db.insert(tables.healthRecords).values(insertData).returning();
+
+  // Audit log (without sensitive medical details)
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_health_records',
+    recordId: result.id,
+    newValue: {
+      employeeId: data.employeeId,
+      examinationType: data.examinationType,
+      examinationDate: data.examinationDate,
+      fitnessStatus: data.fitnessStatus,
+      recordedBy,
+    },
+  });
+
+  return {
+    ...result,
+    examinationType: result.examinationType as ExaminationType,
+    fitnessStatus: result.fitnessStatus as FitnessStatus,
+  };
+}
+
+/**
+ * Update a health record
+ */
+export async function updateHealthRecord(
+  id: number,
+  data: Partial<HealthRecordCreate>
+): Promise<HealthRecord> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getHealthRecordById(id, true);
+  if (!existing) {
+    throw new Error('Health record not found');
+  }
+
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (data.examinationType !== undefined) updateData.examinationType = data.examinationType;
+  if (data.examinationDate !== undefined) updateData.examinationDate = data.examinationDate;
+  if (data.nextExamDue !== undefined) updateData.nextExamDue = data.nextExamDue || null;
+  if (data.fitnessStatus !== undefined) updateData.fitnessStatus = data.fitnessStatus;
+  if (data.restrictions !== undefined) updateData.restrictions = data.restrictions || null;
+  if (data.affectedAreas !== undefined) {
+    updateData.affectedAreas = data.affectedAreas ? JSON.stringify(data.affectedAreas) : null;
+  }
+  if (data.medicalDetails !== undefined) updateData.medicalDetails = data.medicalDetails || null;
+  if (data.examinerName !== undefined) updateData.examinerName = data.examinerName || null;
+  if (data.examinerNotes !== undefined) updateData.examinerNotes = data.examinerNotes || null;
+
+  const [result] = await db
+    .update(tables.healthRecords)
+    .set(updateData)
+    .where(eq(tables.healthRecords.id, id))
+    .returning();
+
+  // Audit log (without sensitive details)
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_health_records',
+    recordId: id,
+    oldValue: {
+      examinationType: (existing as HealthRecord).examinationType,
+      fitnessStatus: (existing as HealthRecord).fitnessStatus,
+    },
+    newValue: {
+      examinationType: result.examinationType,
+      fitnessStatus: result.fitnessStatus,
+    },
+  });
+
+  return {
+    ...result,
+    examinationType: result.examinationType as ExaminationType,
+    fitnessStatus: result.fitnessStatus as FitnessStatus,
+  };
+}
+
+/**
+ * Get current health status for an employee (latest record)
+ */
+export async function getEmployeeHealthStatus(
+  employeeId: number
+): Promise<{ fitnessStatus: FitnessStatus; restrictions: string | null; lastExamDate: string } | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [record] = await db
+    .select({
+      fitnessStatus: tables.healthRecords.fitnessStatus,
+      restrictions: tables.healthRecords.restrictions,
+      examinationDate: tables.healthRecords.examinationDate,
+    })
+    .from(tables.healthRecords)
+    .where(eq(tables.healthRecords.employeeId, employeeId))
+    .orderBy(desc(tables.healthRecords.examinationDate))
+    .limit(1);
+
+  if (!record) return null;
+
+  return {
+    fitnessStatus: record.fitnessStatus as FitnessStatus,
+    restrictions: record.restrictions,
+    lastExamDate: record.examinationDate,
+  };
+}
+
+/**
+ * Get health checks due within specified days
+ */
+export interface UpcomingHealthCheck {
+  employeeId: number;
+  employeeName: string;
+  employeeEmail?: string | null;
+  lastExamDate: string;
+  nextExamDue: string;
+  daysUntilDue: number;
+  lastFitnessStatus: FitnessStatus;
+}
+
+export async function getHealthChecksDue(
+  withinDays: number = 30
+): Promise<UpcomingHealthCheck[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const now = new Date();
+  const futureDate = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
+  const nowStr = now.toISOString().split('T')[0];
+  const futureStr = futureDate.toISOString().split('T')[0];
+
+  const records = await db
+    .select()
+    .from(tables.healthRecords)
+    .where(
+      and(
+        sql`${tables.healthRecords.nextExamDue} IS NOT NULL`,
+        sql`${tables.healthRecords.nextExamDue} >= ${nowStr}`,
+        sql`${tables.healthRecords.nextExamDue} <= ${futureStr}`
+      )
+    )
+    .orderBy(tables.healthRecords.nextExamDue);
+
+  const upcoming: UpcomingHealthCheck[] = [];
+  const seenEmployees = new Set<number>();
+
+  for (const record of records) {
+    // Only include most recent record per employee
+    if (seenEmployees.has(record.employeeId)) continue;
+    seenEmployees.add(record.employeeId);
+
+    const employee = await getEmployeeById(record.employeeId);
+    if (!employee || employee.status !== 'active') continue;
+
+    const dueDate = new Date(record.nextExamDue!);
+    const daysUntilDue = Math.ceil(
+      (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    upcoming.push({
+      employeeId: employee.id,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      employeeEmail: employee.email,
+      lastExamDate: record.examinationDate,
+      nextExamDue: record.nextExamDue!,
+      daysUntilDue,
+      lastFitnessStatus: record.fitnessStatus as FitnessStatus,
+    });
+  }
+
+  return upcoming.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+}
+
+/**
+ * Get overdue health checks
+ */
+export async function getOverdueHealthChecks(): Promise<UpcomingHealthCheck[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const nowStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
+
+  const records = await db
+    .select()
+    .from(tables.healthRecords)
+    .where(
+      and(
+        sql`${tables.healthRecords.nextExamDue} IS NOT NULL`,
+        sql`${tables.healthRecords.nextExamDue} < ${nowStr}`
+      )
+    )
+    .orderBy(tables.healthRecords.nextExamDue);
+
+  const overdue: UpcomingHealthCheck[] = [];
+  const seenEmployees = new Set<number>();
+
+  for (const record of records) {
+    if (seenEmployees.has(record.employeeId)) continue;
+    seenEmployees.add(record.employeeId);
+
+    const employee = await getEmployeeById(record.employeeId);
+    if (!employee || employee.status !== 'active') continue;
+
+    const dueDate = new Date(record.nextExamDue!);
+    const daysUntilDue = Math.ceil(
+      (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    overdue.push({
+      employeeId: employee.id,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      employeeEmail: employee.email,
+      lastExamDate: record.examinationDate,
+      nextExamDue: record.nextExamDue!,
+      daysUntilDue, // Will be negative
+      lastFitnessStatus: record.fitnessStatus as FitnessStatus,
+    });
+  }
+
+  return overdue.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+}
+
+/**
+ * Get employees by fitness status
+ */
+export async function getEmployeesByFitnessStatus(
+  status: FitnessStatus
+): Promise<{ employeeId: number; employeeName: string; restrictions?: string | null }[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Get all active employees
+  const activeEmployees = await getEmployees({ status: 'active' });
+
+  const result: { employeeId: number; employeeName: string; restrictions?: string | null }[] = [];
+
+  for (const employee of activeEmployees) {
+    const healthStatus = await getEmployeeHealthStatus(employee.id);
+    if (healthStatus && healthStatus.fitnessStatus === status) {
+      result.push({
+        employeeId: employee.id,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        restrictions: healthStatus.restrictions,
+      });
+    }
+  }
+
+  return result;
 }

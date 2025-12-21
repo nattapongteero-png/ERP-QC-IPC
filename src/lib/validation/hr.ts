@@ -397,6 +397,33 @@ export const healthRecordCreateSchema = z.object({
   examinerNotes: z.string().optional(), // SENSITIVE
 });
 
+export const healthRecordQuerySchema = z.object({
+  employeeId: z.coerce.number().int().positive().optional(),
+  examinationType: examinationTypeSchema.optional(),
+  fitnessStatus: fitnessStatusSchema.optional(),
+  fromDate: z.string().optional(),
+  toDate: z.string().optional(),
+});
+
+export const healthRecordUpdateSchema = z.object({
+  examinationType: examinationTypeSchema.optional(),
+  examinationDate: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)))
+    .optional(),
+  nextExamDue: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)))
+    .optional()
+    .nullable(),
+  fitnessStatus: fitnessStatusSchema.optional(),
+  restrictions: z.string().optional().nullable(),
+  affectedAreas: z.array(z.string()).optional().nullable(),
+  medicalDetails: z.string().optional().nullable(),
+  examinerName: z.string().max(100).optional().nullable(),
+  examinerNotes: z.string().optional().nullable(),
+});
+
 // ============================================
 // Role Schemas
 // ============================================
