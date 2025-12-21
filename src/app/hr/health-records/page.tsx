@@ -15,12 +15,12 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import SelectBox from 'devextreme-react/select-box';
-import DateBox from 'devextreme-react/date-box';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
 import TagBox from 'devextreme-react/tag-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import {
@@ -585,38 +585,29 @@ export default function HealthRecordsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                วันที่ตรวจ <span className="text-red-500">*</span>
-              </label>
-              <DateBox
-                value={newRecord.examinationDate}
-                onValueChanged={(e) =>
-                  setNewRecord((prev) => ({
-                    ...prev,
-                    examinationDate: e.value?.toISOString().split('T')[0] || '',
-                  }))
-                }
-                type="date"
-                displayFormat="dd/MM/yyyy"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ครบกำหนดตรวจครั้งถัดไป
-              </label>
-              <DateBox
-                value={newRecord.nextExamDue || null}
-                onValueChanged={(e) =>
-                  setNewRecord((prev) => ({
-                    ...prev,
-                    nextExamDue: e.value?.toISOString().split('T')[0] || '',
-                  }))
-                }
-                type="date"
-                displayFormat="dd/MM/yyyy"
-              />
-            </div>
+            <DxDateBox
+              label="วันที่ตรวจ"
+              value={newRecord.examinationDate}
+              onValueChange={(value) =>
+                setNewRecord((prev) => ({
+                  ...prev,
+                  examinationDate: value,
+                }))
+              }
+              required
+              requiredMessage="กรุณาระบุวันที่ตรวจ"
+            />
+            <DxDateBox
+              label="ครบกำหนดตรวจครั้งถัดไป"
+              value={newRecord.nextExamDue || ''}
+              onValueChange={(value) =>
+                setNewRecord((prev) => ({
+                  ...prev,
+                  nextExamDue: value || undefined,
+                }))
+              }
+              showClearButton
+            />
           </div>
 
           <div>

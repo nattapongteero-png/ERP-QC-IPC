@@ -16,12 +16,12 @@ import DataGrid, {
   Item,
 } from 'devextreme-react/data-grid';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
-import DateBox from 'devextreme-react/date-box';
 import TextBox from 'devextreme-react/text-box';
 import SelectBox from 'devextreme-react/select-box';
 import NumberBox from 'devextreme-react/number-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { CalendarDays, Users, PlayCircle, CheckCircle, XCircle } from 'lucide-react';
@@ -348,15 +348,13 @@ export default function TrainingSessionsPage() {
             placeholder="เลือกหลักสูตร..."
           />
           <div className="grid grid-cols-3 gap-4">
-            <DateBox
+            <DxDateBox
               value={newSession.sessionDate}
-              onValueChanged={(e) => setNewSession((prev) => ({
+              onValueChange={(value) => setNewSession((prev) => ({
                 ...prev,
-                sessionDate: e.value ? new Date(e.value).toISOString().split('T')[0] : prev.sessionDate
+                sessionDate: value || prev.sessionDate
               }))}
-              type="date"
               label="วันที่"
-              labelMode="floating"
             />
             <TextBox
               value={newSession.startTime}

@@ -17,11 +17,11 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import SelectBox from 'devextreme-react/select-box';
-import DateBox from 'devextreme-react/date-box';
 import TextBox from 'devextreme-react/text-box';
 import TagBox from 'devextreme-react/tag-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import {
@@ -483,29 +483,26 @@ export default function AuthorizationsPage() {
             showSelectionControls
           />
           <div className="grid grid-cols-2 gap-4">
-            <DateBox
+            <DxDateBox
               value={newAuth.effectiveFrom}
-              onValueChanged={(e) =>
+              onValueChange={(value) =>
                 setNewAuth((prev) => ({
                   ...prev,
-                  effectiveFrom: e.value ? new Date(e.value).toISOString().split('T')[0] : prev.effectiveFrom,
+                  effectiveFrom: value || prev.effectiveFrom,
                 }))
               }
-              type="date"
               label="วันที่เริ่มต้น"
-              labelMode="floating"
             />
-            <DateBox
-              value={newAuth.effectiveTo || null}
-              onValueChanged={(e) =>
+            <DxDateBox
+              value={newAuth.effectiveTo || ''}
+              onValueChange={(value) =>
                 setNewAuth((prev) => ({
                   ...prev,
-                  effectiveTo: e.value ? new Date(e.value).toISOString().split('T')[0] : '',
+                  effectiveTo: value || '',
                 }))
               }
-              type="date"
               label="วันที่สิ้นสุด (ถ้ามี)"
-              labelMode="floating"
+              showClearButton
             />
           </div>
         </div>
@@ -572,29 +569,26 @@ export default function AuthorizationsPage() {
             labelMode="floating"
           />
           <div className="grid grid-cols-2 gap-4">
-            <DateBox
+            <DxDateBox
               value={newDelegation.effectiveFrom}
-              onValueChanged={(e) =>
+              onValueChange={(value) =>
                 setNewDelegation((prev) => ({
                   ...prev,
-                  effectiveFrom: e.value ? new Date(e.value).toISOString().split('T')[0] : prev.effectiveFrom,
+                  effectiveFrom: value || prev.effectiveFrom,
                 }))
               }
-              type="date"
               label="วันที่เริ่มต้น"
-              labelMode="floating"
             />
-            <DateBox
-              value={newDelegation.effectiveTo || null}
-              onValueChanged={(e) =>
+            <DxDateBox
+              value={newDelegation.effectiveTo || ''}
+              onValueChange={(value) =>
                 setNewDelegation((prev) => ({
                   ...prev,
-                  effectiveTo: e.value ? new Date(e.value).toISOString().split('T')[0] : '',
+                  effectiveTo: value || '',
                 }))
               }
-              type="date"
               label="วันที่สิ้นสุด"
-              labelMode="floating"
+              showClearButton
             />
           </div>
         </div>

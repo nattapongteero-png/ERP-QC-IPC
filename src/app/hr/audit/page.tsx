@@ -14,9 +14,9 @@ import DataGrid, {
   Scrolling,
 } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
-import DateBox from 'devextreme-react/date-box';
 import { useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import {
   FileText,
@@ -251,34 +251,20 @@ export default function AuditLogPage() {
       {/* Date Filters */}
       {(activeTab === 'logs' || activeTab === 'summary') && (
         <div className="bg-white rounded-lg shadow p-4 flex items-end gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              จากวันที่
-            </label>
-            <DateBox
-              value={fromDate || null}
-              onValueChanged={(e) =>
-                setFromDate(e.value?.toISOString().split('T')[0] || '')
-              }
-              type="date"
-              displayFormat="dd/MM/yyyy"
-              width={180}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              ถึงวันที่
-            </label>
-            <DateBox
-              value={toDate || null}
-              onValueChanged={(e) =>
-                setToDate(e.value?.toISOString().split('T')[0] || '')
-              }
-              type="date"
-              displayFormat="dd/MM/yyyy"
-              width={180}
-            />
-          </div>
+          <DxDateBox
+            label="จากวันที่"
+            value={fromDate || ''}
+            onValueChange={setFromDate}
+            width={180}
+            showClearButton
+          />
+          <DxDateBox
+            label="ถึงวันที่"
+            value={toDate || ''}
+            onValueChange={setToDate}
+            width={180}
+            showClearButton
+          />
           {(fromDate || toDate) && (
             <DxButton
               text="ล้างตัวกรอง"
