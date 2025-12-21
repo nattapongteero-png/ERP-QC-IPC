@@ -21,11 +21,8 @@ import {
   PackageCheck,
   XCircle,
   Clock,
-  Calendar,
   DollarSign,
   FileText,
-  RefreshCw,
-  ArrowLeft,
   ExternalLink,
 } from 'lucide-react';
 import type { VmiOrderStatus } from '@/types/vmi';
