@@ -4,9 +4,17 @@
 import { NextRequest } from 'next/server';
 import {
   successResponse,
+  errorResponse,
+  notFoundResponse,
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import {
+  getOrgUnitById,
+  updateOrgUnit,
+  deactivateOrgUnit,
+} from '@/lib/services/hr.service';
+import { orgUnitUpdateSchema } from '@/lib/validation/hr';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -19,8 +27,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     async () => {
       try {
         const { id } = await params;
-        // TODO: Implement get org unit by ID
-        return successResponse({ id: Number(id), message: 'Not implemented yet' });
+        const orgUnit = await getOrgUnitById(Number(id));
+
+        if (!orgUnit) {
+          return notFoundResponse('Organization unit not found');
+        }
+
+        return successResponse(orgUnit);
       } catch (error) {
         return serverErrorResponse(error);
       }
@@ -37,12 +50,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       try {
         const { id } = await params;
         const body = await request.json();
-        // TODO: Implement org unit update
-        return successResponse(
-          { id: Number(id), ...body },
-          'Organization unit updated successfully'
-        );
+
+        // Validate input
+        const parseResult = orgUnitUpdateSchema.safeParse(body);
+        if (!parseResult.success) {
+          const errors = parseResult.error.issues.map((issue) => ({
+            field: issue.path.join('.'),
+            message: issue.message,
+          }));
+          return errorResponse('Validation failed', 400, { errors });
+        }
+
+        const orgUnit = await updateOrgUnit(Number(id), parseResult.data);
+        return successResponse(orgUnit, 'Organization unit updated successfully');
       } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === 'Organization unit not found') {
+            return notFoundResponse(error.message);
+          }
+          if (error.message.includes('Separation of duties')) {
+            return errorResponse(error.message, 400);
+          }
+        }
         return serverErrorResponse(error);
       }
     },
@@ -57,12 +86,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     async () => {
       try {
         const { id } = await params;
-        // TODO: Implement org unit soft delete
+        await deactivateOrgUnit(Number(id));
         return successResponse(
           { id: Number(id) },
           'Organization unit deactivated successfully'
         );
       } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('Cannot deactivate')) {
+            return errorResponse(error.message, 400);
+          }
+        }
         return serverErrorResponse(error);
       }
     },

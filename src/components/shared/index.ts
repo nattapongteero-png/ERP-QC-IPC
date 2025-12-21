@@ -8,3 +8,6 @@
 
 export { ConfirmationDialog } from './ConfirmationDialog';
 export type { ConfirmationDialogProps } from './ConfirmationDialog';
+
+export { OrgUnitPicker } from './OrgUnitPicker';
+export type { OrgUnitPickerProps } from './OrgUnitPicker';

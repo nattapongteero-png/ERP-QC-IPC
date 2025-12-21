@@ -7,6 +7,7 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import { getOrgUnitTree } from '@/lib/services/hr.service';
 
 // GET /api/hr/org-units/tree - Get organization unit tree structure
 export async function GET(request: NextRequest) {
@@ -14,8 +15,8 @@ export async function GET(request: NextRequest) {
     request,
     async () => {
       try {
-        // TODO: Implement org unit tree
-        return successResponse({ data: [], message: 'Not implemented yet' });
+        const tree = await getOrgUnitTree();
+        return successResponse({ data: tree });
       } catch (error) {
         return serverErrorResponse(error);
       }
