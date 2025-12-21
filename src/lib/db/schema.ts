@@ -610,6 +610,267 @@ export const sqliteSettings = sqliteTable('settings', {
 });
 
 // ============================================
+// HR/Personnel Management Tables (SQLite)
+// Feature: 007-hr-personnel-management
+// ============================================
+
+// HR Organization Units (โครงสร้างองค์กร)
+export const sqliteHROrgUnits = sqliteTable('hr_org_units', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  nameEn: text('name_en'),
+  type: text('type').notNull(), // company, site, division, department, section, unit
+  parentId: integer('parent_id'), // Self-referencing, validated at application level
+  siteId: integer('site_id'),
+  isGmpCritical: integer('is_gmp_critical', { mode: 'boolean' }).notNull().default(false),
+  effectiveFrom: text('effective_from').notNull(),
+  effectiveTo: text('effective_to'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Positions (ตำแหน่งงาน)
+export const sqliteHRPositions = sqliteTable('hr_positions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  title: text('title').notNull(),
+  titleEn: text('title_en'),
+  orgUnitId: integer('org_unit_id').notNull().references(() => sqliteHROrgUnits.id),
+  jobGrade: text('job_grade'),
+  isGmpCritical: integer('is_gmp_critical', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Job Descriptions (รายละเอียดตำแหน่งงาน)
+export const sqliteHRJobDescriptions = sqliteTable('hr_job_descriptions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  positionId: integer('position_id').notNull().references(() => sqliteHRPositions.id),
+  version: text('version').notNull(),
+  responsibilities: text('responsibilities'),
+  authorities: text('authorities'),
+  qualifications: text('qualifications'),
+  documentPath: text('document_path'),
+  status: text('status').notNull().default('draft'), // draft, pending_approval, approved, obsolete
+  effectiveFrom: text('effective_from'),
+  effectiveTo: text('effective_to'),
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Employees (พนักงาน)
+export const sqliteHREmployees = sqliteTable('hr_employees', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => sqliteUsers.id),
+  employeeCode: text('employee_code').notNull().unique(),
+  firstName: text('first_name').notNull(),
+  lastName: text('last_name').notNull(),
+  firstNameEn: text('first_name_en'),
+  lastNameEn: text('last_name_en'),
+  email: text('email'),
+  phone: text('phone'),
+  positionId: integer('position_id').references(() => sqliteHRPositions.id),
+  orgUnitId: integer('org_unit_id').references(() => sqliteHROrgUnits.id),
+  siteId: integer('site_id'),
+  hireDate: text('hire_date').notNull(),
+  terminationDate: text('termination_date'),
+  status: text('status').notNull().default('active'), // active, inactive, terminated
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Employee Assignments (การมอบหมายงาน/โอนย้าย)
+export const sqliteHREmployeeAssignments = sqliteTable('hr_employee_assignments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  employeeId: integer('employee_id').notNull().references(() => sqliteHREmployees.id),
+  positionId: integer('position_id').references(() => sqliteHRPositions.id),
+  orgUnitId: integer('org_unit_id').references(() => sqliteHROrgUnits.id),
+  isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
+  effectiveFrom: text('effective_from').notNull(),
+  effectiveTo: text('effective_to'),
+  reason: text('reason'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Training Courses (หลักสูตรอบรม)
+export const sqliteHRTrainingCourses = sqliteTable('hr_training_courses', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  nameEn: text('name_en'),
+  description: text('description'),
+  category: text('category'),
+  validityDays: integer('validity_days'),
+  isMandatory: integer('is_mandatory', { mode: 'boolean' }).notNull().default(false),
+  targetPositions: text('target_positions'), // JSON array of position IDs
+  targetRoles: text('target_roles'), // JSON array of role codes
+  durationHours: real('duration_hours'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Training Sessions (การจัดอบรม)
+export const sqliteHRTrainingSessions = sqliteTable('hr_training_sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courseId: integer('course_id').notNull().references(() => sqliteHRTrainingCourses.id),
+  sessionDate: text('session_date').notNull(),
+  startTime: text('start_time'),
+  endTime: text('end_time'),
+  location: text('location'),
+  instructorId: integer('instructor_id').references(() => sqliteHREmployees.id),
+  instructorExternal: text('instructor_external'),
+  maxParticipants: integer('max_participants'),
+  status: text('status').notNull().default('scheduled'), // scheduled, in_progress, completed, cancelled
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Training Records (ประวัติการอบรม)
+export const sqliteHRTrainingRecords = sqliteTable('hr_training_records', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  employeeId: integer('employee_id').notNull().references(() => sqliteHREmployees.id),
+  sessionId: integer('session_id').references(() => sqliteHRTrainingSessions.id),
+  courseId: integer('course_id').notNull().references(() => sqliteHRTrainingCourses.id),
+  completionDate: text('completion_date').notNull(),
+  expiryDate: text('expiry_date'),
+  result: text('result').notNull(), // pass, fail, incomplete
+  score: real('score'),
+  assessedBy: integer('assessed_by').references(() => sqliteHREmployees.id),
+  certificateNumber: text('certificate_number'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Authorizations (สิทธิ์อนุมัติ)
+export const sqliteHRAuthorizations = sqliteTable('hr_authorizations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  employeeId: integer('employee_id').notNull().references(() => sqliteHREmployees.id),
+  authType: text('auth_type').notNull(), // batch_release, sop_approval, deviation_approval, change_control_approval, capa_approval
+  scopeSiteId: integer('scope_site_id'),
+  scopeOrgUnitId: integer('scope_org_unit_id').references(() => sqliteHROrgUnits.id),
+  scopeProductLines: text('scope_product_lines'), // JSON array
+  effectiveFrom: text('effective_from').notNull(),
+  effectiveTo: text('effective_to'),
+  grantedBy: integer('granted_by').notNull().references(() => sqliteUsers.id),
+  grantedAt: text('granted_at').notNull().default('CURRENT_TIMESTAMP'),
+  revokedBy: integer('revoked_by').references(() => sqliteUsers.id),
+  revokedAt: text('revoked_at'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Delegations (การมอบอำนาจ)
+export const sqliteHRDelegations = sqliteTable('hr_delegations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  authorizationId: integer('authorization_id').notNull().references(() => sqliteHRAuthorizations.id),
+  delegatorId: integer('delegator_id').notNull().references(() => sqliteHREmployees.id),
+  delegateId: integer('delegate_id').notNull().references(() => sqliteHREmployees.id),
+  reason: text('reason'),
+  effectiveFrom: text('effective_from').notNull(),
+  effectiveTo: text('effective_to').notNull(),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Health Records (บันทึกสุขภาพ)
+export const sqliteHRHealthRecords = sqliteTable('hr_health_records', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  employeeId: integer('employee_id').notNull().references(() => sqliteHREmployees.id),
+  examinationType: text('examination_type').notNull(), // pre_employment, periodic, special
+  examinationDate: text('examination_date').notNull(),
+  nextExamDue: text('next_exam_due'),
+  fitnessStatus: text('fitness_status').notNull(), // fit, unfit, restricted
+  restrictions: text('restrictions'),
+  affectedAreas: text('affected_areas'), // JSON array - production_floor, raw_material, etc.
+  medicalDetails: text('medical_details'), // SENSITIVE - filtered by role
+  examinerName: text('examiner_name'),
+  examinerNotes: text('examiner_notes'), // SENSITIVE - filtered by role
+  recordedBy: integer('recorded_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Application Roles (บทบาทในระบบ)
+export const sqliteHRAppRoles = sqliteTable('hr_app_roles', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  description: text('description'),
+  isSystemRole: integer('is_system_role', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Application Permissions (สิทธิ์ในระบบ)
+export const sqliteHRAppPermissions = sqliteTable('hr_app_permissions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  module: text('module').notNull(),
+  description: text('description'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Role Permissions (สิทธิ์ของบทบาท)
+export const sqliteHRRolePermissions = sqliteTable('hr_role_permissions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  roleId: integer('role_id').notNull().references(() => sqliteHRAppRoles.id),
+  permissionId: integer('permission_id').notNull().references(() => sqliteHRAppPermissions.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Employee Roles (บทบาทของพนักงาน)
+export const sqliteHREmployeeRoles = sqliteTable('hr_employee_roles', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  employeeId: integer('employee_id').notNull().references(() => sqliteHREmployees.id),
+  roleId: integer('role_id').notNull().references(() => sqliteHRAppRoles.id),
+  scopeSiteId: integer('scope_site_id'),
+  scopeOrgUnitId: integer('scope_org_unit_id').references(() => sqliteHROrgUnits.id),
+  effectiveFrom: text('effective_from').notNull(),
+  effectiveTo: text('effective_to'),
+  assignedBy: integer('assigned_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Notifications (การแจ้งเตือน)
+export const sqliteHRNotifications = sqliteTable('hr_notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  employeeId: integer('employee_id').notNull().references(() => sqliteHREmployees.id),
+  type: text('type').notNull(), // training_expiring, training_expired, health_check_due, authorization_expiring
+  title: text('title').notNull(),
+  message: text('message'),
+  referenceType: text('reference_type'),
+  referenceId: integer('reference_id'),
+  isRead: integer('is_read', { mode: 'boolean' }).notNull().default(false),
+  readAt: text('read_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// HR Audit Log (ประวัติการเปลี่ยนแปลง HR)
+export const sqliteHRAuditLog = sqliteTable('hr_audit_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => sqliteUsers.id),
+  action: text('action').notNull(), // HR_ORG_CREATE, HR_EMP_UPDATE, etc.
+  tableName: text('table_name').notNull(),
+  recordId: integer('record_id').notNull(),
+  oldValue: text('old_value'),
+  newValue: text('new_value'),
+  ipAddress: text('ip_address'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
 // MySQL Schema (for production)
 // ============================================
 
@@ -1283,6 +1544,267 @@ export const mysqlReportExecutions = mysqlTable('report_executions', {
 });
 
 // ============================================
+// HR/Personnel Management Tables (MySQL)
+// Feature: 007-hr-personnel-management
+// ============================================
+
+// HR Organization Units (โครงสร้างองค์กร)
+export const mysqlHROrgUnits = mysqlTable('hr_org_units', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 20 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
+  nameEn: varchar('name_en', { length: 100 }),
+  type: varchar('type', { length: 20 }).notNull(), // company, site, division, department, section, unit
+  parentId: int('parent_id'),
+  siteId: int('site_id'),
+  isGmpCritical: mysqlBoolean('is_gmp_critical').notNull().default(false),
+  effectiveFrom: datetime('effective_from').notNull(),
+  effectiveTo: datetime('effective_to'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Positions (ตำแหน่งงาน)
+export const mysqlHRPositions = mysqlTable('hr_positions', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 20 }).notNull().unique(),
+  title: varchar('title', { length: 100 }).notNull(),
+  titleEn: varchar('title_en', { length: 100 }),
+  orgUnitId: int('org_unit_id').notNull().references(() => mysqlHROrgUnits.id),
+  jobGrade: varchar('job_grade', { length: 10 }),
+  isGmpCritical: mysqlBoolean('is_gmp_critical').notNull().default(false),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Job Descriptions (รายละเอียดตำแหน่งงาน)
+export const mysqlHRJobDescriptions = mysqlTable('hr_job_descriptions', {
+  id: int('id').primaryKey().autoincrement(),
+  positionId: int('position_id').notNull().references(() => mysqlHRPositions.id),
+  version: varchar('version', { length: 10 }).notNull(),
+  responsibilities: mysqlText('responsibilities'),
+  authorities: mysqlText('authorities'),
+  qualifications: mysqlText('qualifications'),
+  documentPath: varchar('document_path', { length: 255 }),
+  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  effectiveFrom: datetime('effective_from'),
+  effectiveTo: datetime('effective_to'),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Employees (พนักงาน)
+export const mysqlHREmployees = mysqlTable('hr_employees', {
+  id: int('id').primaryKey().autoincrement(),
+  userId: int('user_id').references(() => mysqlUsers.id),
+  employeeCode: varchar('employee_code', { length: 20 }).notNull().unique(),
+  firstName: varchar('first_name', { length: 50 }).notNull(),
+  lastName: varchar('last_name', { length: 50 }).notNull(),
+  firstNameEn: varchar('first_name_en', { length: 50 }),
+  lastNameEn: varchar('last_name_en', { length: 50 }),
+  email: varchar('email', { length: 100 }),
+  phone: varchar('phone', { length: 20 }),
+  positionId: int('position_id').references(() => mysqlHRPositions.id),
+  orgUnitId: int('org_unit_id').references(() => mysqlHROrgUnits.id),
+  siteId: int('site_id'),
+  hireDate: datetime('hire_date').notNull(),
+  terminationDate: datetime('termination_date'),
+  status: varchar('status', { length: 20 }).notNull().default('active'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Employee Assignments (การมอบหมายงาน/โอนย้าย)
+export const mysqlHREmployeeAssignments = mysqlTable('hr_employee_assignments', {
+  id: int('id').primaryKey().autoincrement(),
+  employeeId: int('employee_id').notNull().references(() => mysqlHREmployees.id),
+  positionId: int('position_id').references(() => mysqlHRPositions.id),
+  orgUnitId: int('org_unit_id').references(() => mysqlHROrgUnits.id),
+  isPrimary: mysqlBoolean('is_primary').notNull().default(false),
+  effectiveFrom: datetime('effective_from').notNull(),
+  effectiveTo: datetime('effective_to'),
+  reason: varchar('reason', { length: 255 }),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// HR Training Courses (หลักสูตรอบรม)
+export const mysqlHRTrainingCourses = mysqlTable('hr_training_courses', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 20 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
+  nameEn: varchar('name_en', { length: 100 }),
+  description: mysqlText('description'),
+  category: varchar('category', { length: 50 }),
+  validityDays: int('validity_days'),
+  isMandatory: mysqlBoolean('is_mandatory').notNull().default(false),
+  targetPositions: mysqlText('target_positions'), // JSON array of position IDs
+  targetRoles: mysqlText('target_roles'), // JSON array of role codes
+  durationHours: decimal('duration_hours', { precision: 5, scale: 2 }),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Training Sessions (การจัดอบรม)
+export const mysqlHRTrainingSessions = mysqlTable('hr_training_sessions', {
+  id: int('id').primaryKey().autoincrement(),
+  courseId: int('course_id').notNull().references(() => mysqlHRTrainingCourses.id),
+  sessionDate: datetime('session_date').notNull(),
+  startTime: varchar('start_time', { length: 5 }),
+  endTime: varchar('end_time', { length: 5 }),
+  location: varchar('location', { length: 100 }),
+  instructorId: int('instructor_id').references(() => mysqlHREmployees.id),
+  instructorExternal: varchar('instructor_external', { length: 100 }),
+  maxParticipants: int('max_participants'),
+  status: varchar('status', { length: 20 }).notNull().default('scheduled'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Training Records (ประวัติการอบรม)
+export const mysqlHRTrainingRecords = mysqlTable('hr_training_records', {
+  id: int('id').primaryKey().autoincrement(),
+  employeeId: int('employee_id').notNull().references(() => mysqlHREmployees.id),
+  sessionId: int('session_id').references(() => mysqlHRTrainingSessions.id),
+  courseId: int('course_id').notNull().references(() => mysqlHRTrainingCourses.id),
+  completionDate: datetime('completion_date').notNull(),
+  expiryDate: datetime('expiry_date'),
+  result: varchar('result', { length: 20 }).notNull(),
+  score: decimal('score', { precision: 5, scale: 2 }),
+  assessedBy: int('assessed_by').references(() => mysqlHREmployees.id),
+  certificateNumber: varchar('certificate_number', { length: 50 }),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Authorizations (สิทธิ์อนุมัติ)
+export const mysqlHRAuthorizations = mysqlTable('hr_authorizations', {
+  id: int('id').primaryKey().autoincrement(),
+  employeeId: int('employee_id').notNull().references(() => mysqlHREmployees.id),
+  authType: varchar('auth_type', { length: 30 }).notNull(),
+  scopeSiteId: int('scope_site_id'),
+  scopeOrgUnitId: int('scope_org_unit_id').references(() => mysqlHROrgUnits.id),
+  scopeProductLines: mysqlText('scope_product_lines'), // JSON array
+  effectiveFrom: datetime('effective_from').notNull(),
+  effectiveTo: datetime('effective_to'),
+  grantedBy: int('granted_by').notNull().references(() => mysqlUsers.id),
+  grantedAt: datetime('granted_at').notNull().default(new Date()),
+  revokedBy: int('revoked_by').references(() => mysqlUsers.id),
+  revokedAt: datetime('revoked_at'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Delegations (การมอบอำนาจ)
+export const mysqlHRDelegations = mysqlTable('hr_delegations', {
+  id: int('id').primaryKey().autoincrement(),
+  authorizationId: int('authorization_id').notNull().references(() => mysqlHRAuthorizations.id),
+  delegatorId: int('delegator_id').notNull().references(() => mysqlHREmployees.id),
+  delegateId: int('delegate_id').notNull().references(() => mysqlHREmployees.id),
+  reason: varchar('reason', { length: 255 }),
+  effectiveFrom: datetime('effective_from').notNull(),
+  effectiveTo: datetime('effective_to').notNull(),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Health Records (บันทึกสุขภาพ)
+export const mysqlHRHealthRecords = mysqlTable('hr_health_records', {
+  id: int('id').primaryKey().autoincrement(),
+  employeeId: int('employee_id').notNull().references(() => mysqlHREmployees.id),
+  examinationType: varchar('examination_type', { length: 20 }).notNull(),
+  examinationDate: datetime('examination_date').notNull(),
+  nextExamDue: datetime('next_exam_due'),
+  fitnessStatus: varchar('fitness_status', { length: 20 }).notNull(),
+  restrictions: mysqlText('restrictions'),
+  affectedAreas: mysqlText('affected_areas'), // JSON array
+  medicalDetails: mysqlText('medical_details'), // SENSITIVE - filtered by role
+  examinerName: varchar('examiner_name', { length: 100 }),
+  examinerNotes: mysqlText('examiner_notes'), // SENSITIVE - filtered by role
+  recordedBy: int('recorded_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Application Roles (บทบาทในระบบ)
+export const mysqlHRAppRoles = mysqlTable('hr_app_roles', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: varchar('description', { length: 255 }),
+  isSystemRole: mysqlBoolean('is_system_role').notNull().default(false),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Application Permissions (สิทธิ์ในระบบ)
+export const mysqlHRAppPermissions = mysqlTable('hr_app_permissions', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
+  module: varchar('module', { length: 50 }).notNull(),
+  description: varchar('description', { length: 255 }),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// HR Role Permissions (สิทธิ์ของบทบาท)
+export const mysqlHRRolePermissions = mysqlTable('hr_role_permissions', {
+  id: int('id').primaryKey().autoincrement(),
+  roleId: int('role_id').notNull().references(() => mysqlHRAppRoles.id),
+  permissionId: int('permission_id').notNull().references(() => mysqlHRAppPermissions.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// HR Employee Roles (บทบาทของพนักงาน)
+export const mysqlHREmployeeRoles = mysqlTable('hr_employee_roles', {
+  id: int('id').primaryKey().autoincrement(),
+  employeeId: int('employee_id').notNull().references(() => mysqlHREmployees.id),
+  roleId: int('role_id').notNull().references(() => mysqlHRAppRoles.id),
+  scopeSiteId: int('scope_site_id'),
+  scopeOrgUnitId: int('scope_org_unit_id').references(() => mysqlHROrgUnits.id),
+  effectiveFrom: datetime('effective_from').notNull(),
+  effectiveTo: datetime('effective_to'),
+  assignedBy: int('assigned_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// HR Notifications (การแจ้งเตือน)
+export const mysqlHRNotifications = mysqlTable('hr_notifications', {
+  id: int('id').primaryKey().autoincrement(),
+  employeeId: int('employee_id').notNull().references(() => mysqlHREmployees.id),
+  type: varchar('type', { length: 30 }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  message: mysqlText('message'),
+  referenceType: varchar('reference_type', { length: 50 }),
+  referenceId: int('reference_id'),
+  isRead: mysqlBoolean('is_read').notNull().default(false),
+  readAt: datetime('read_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// HR Audit Log (ประวัติการเปลี่ยนแปลง HR)
+export const mysqlHRAuditLog = mysqlTable('hr_audit_log', {
+  id: int('id').primaryKey().autoincrement(),
+  userId: int('user_id').references(() => mysqlUsers.id),
+  action: varchar('action', { length: 30 }).notNull(),
+  tableName: varchar('table_name', { length: 50 }).notNull(),
+  recordId: int('record_id').notNull(),
+  oldValue: mysqlText('old_value'),
+  newValue: mysqlText('new_value'),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
 // Report Categories (SQLite - for testing)
 // ============================================
 export const sqliteReportCategories = sqliteTable('report_categories', {
@@ -1387,3 +1909,39 @@ export type VMIOrderLine = typeof sqliteVMIOrderLines.$inferSelect;
 export type NewVMIOrderLine = typeof sqliteVMIOrderLines.$inferInsert;
 export type VMITransaction = typeof sqliteVMITransactions.$inferSelect;
 export type NewVMITransaction = typeof sqliteVMITransactions.$inferInsert;
+
+// HR/Personnel Management Types
+export type HROrgUnit = typeof sqliteHROrgUnits.$inferSelect;
+export type NewHROrgUnit = typeof sqliteHROrgUnits.$inferInsert;
+export type HRPosition = typeof sqliteHRPositions.$inferSelect;
+export type NewHRPosition = typeof sqliteHRPositions.$inferInsert;
+export type HRJobDescription = typeof sqliteHRJobDescriptions.$inferSelect;
+export type NewHRJobDescription = typeof sqliteHRJobDescriptions.$inferInsert;
+export type HREmployee = typeof sqliteHREmployees.$inferSelect;
+export type NewHREmployee = typeof sqliteHREmployees.$inferInsert;
+export type HREmployeeAssignment = typeof sqliteHREmployeeAssignments.$inferSelect;
+export type NewHREmployeeAssignment = typeof sqliteHREmployeeAssignments.$inferInsert;
+export type HRTrainingCourse = typeof sqliteHRTrainingCourses.$inferSelect;
+export type NewHRTrainingCourse = typeof sqliteHRTrainingCourses.$inferInsert;
+export type HRTrainingSession = typeof sqliteHRTrainingSessions.$inferSelect;
+export type NewHRTrainingSession = typeof sqliteHRTrainingSessions.$inferInsert;
+export type HRTrainingRecord = typeof sqliteHRTrainingRecords.$inferSelect;
+export type NewHRTrainingRecord = typeof sqliteHRTrainingRecords.$inferInsert;
+export type HRAuthorization = typeof sqliteHRAuthorizations.$inferSelect;
+export type NewHRAuthorization = typeof sqliteHRAuthorizations.$inferInsert;
+export type HRDelegation = typeof sqliteHRDelegations.$inferSelect;
+export type NewHRDelegation = typeof sqliteHRDelegations.$inferInsert;
+export type HRHealthRecord = typeof sqliteHRHealthRecords.$inferSelect;
+export type NewHRHealthRecord = typeof sqliteHRHealthRecords.$inferInsert;
+export type HRAppRole = typeof sqliteHRAppRoles.$inferSelect;
+export type NewHRAppRole = typeof sqliteHRAppRoles.$inferInsert;
+export type HRAppPermission = typeof sqliteHRAppPermissions.$inferSelect;
+export type NewHRAppPermission = typeof sqliteHRAppPermissions.$inferInsert;
+export type HRRolePermission = typeof sqliteHRRolePermissions.$inferSelect;
+export type NewHRRolePermission = typeof sqliteHRRolePermissions.$inferInsert;
+export type HREmployeeRole = typeof sqliteHREmployeeRoles.$inferSelect;
+export type NewHREmployeeRole = typeof sqliteHREmployeeRoles.$inferInsert;
+export type HRNotification = typeof sqliteHRNotifications.$inferSelect;
+export type NewHRNotification = typeof sqliteHRNotifications.$inferInsert;
+export type HRAuditLogEntry = typeof sqliteHRAuditLog.$inferSelect;
+export type NewHRAuditLogEntry = typeof sqliteHRAuditLog.$inferInsert;
