@@ -92,6 +92,10 @@ export async function POST(request: NextRequest) {
         reorderPoint,
         isLotControlled,
         isFEFO,
+        tppCode,
+        tppName,
+        ttmtCode,
+        ttmtName,
       } = body;
       
       if (!code || !nameTh || !type || !primaryUnit) {
@@ -130,6 +134,10 @@ export async function POST(request: NextRequest) {
         reorderPoint,
         isLotControlled: isLotControlled !== false,
         isFEFO: isFEFO !== false,
+        tppCode: tppCode || null,
+        tppName: tppName || null,
+        ttmtCode: ttmtCode || null,
+        ttmtName: ttmtName || null,
       });
       
       const itemId = useSqlite ? result.lastInsertRowid : result[0].insertId;
