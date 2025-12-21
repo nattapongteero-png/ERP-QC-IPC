@@ -142,15 +142,19 @@ export default function AuthorizationsPage() {
     effectiveTo: '',
   });
 
-  const { data: authorizations = [], isLoading } = useQuery({
+  const { data: authorizationsData = [], isLoading } = useQuery({
     queryKey: ['hr', 'authorizations'],
     queryFn: fetchAuthorizations,
   });
 
-  const { data: employees = [] } = useQuery({
+  const { data: employeesData = [] } = useQuery({
     queryKey: ['hr', 'employees', 'active'],
     queryFn: fetchEmployees,
   });
+
+  // Ensure data is always an array
+  const authorizations = Array.isArray(authorizationsData) ? authorizationsData : [];
+  const employees = Array.isArray(employeesData) ? employeesData : [];
 
   const grantMutation = useMutation({
     mutationFn: createAuthorization,
