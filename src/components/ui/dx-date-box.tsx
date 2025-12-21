@@ -1,40 +1,12 @@
 "use client";
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import DateBox from 'devextreme-react/date-box';
 import Validator, { RequiredRule, RangeRule } from 'devextreme-react/validator';
 import type { DateBoxTypes } from 'devextreme-react/date-box';
+import type { Format } from 'devextreme/common';
 
 export type DxDateBoxType = 'date' | 'time' | 'datetime';
-
-/**
- * Format date to Buddhist Era (พ.ศ.) string
- * Buddhist Era = Gregorian year + 543
- */
-function formatToBuddhistEra(date: Date | string | null | undefined, type: DxDateBoxType): string {
-  if (!date) return '';
-
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '';
-
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const buddhistYear = dateObj.getFullYear() + 543;
-
-  if (type === 'time') {
-    const hours = String(dateObj.getHours()).padStart(2, '0');
-    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  }
-
-  if (type === 'datetime') {
-    const hours = String(dateObj.getHours()).padStart(2, '0');
-    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-    return `${day}/${month}/${buddhistYear} ${hours}:${minutes}`;
-  }
-
-  return `${day}/${month}/${buddhistYear}`;
-}
 
 export interface DxDateBoxProps {
   /** Current value (string in ISO format YYYY-MM-DD) */
@@ -65,7 +37,7 @@ export interface DxDateBoxProps {
   min?: Date | string;
   /** Maximum date */
   max?: Date | string;
-  /** Date format display */
+  /** Date format display - if provided, overrides Buddhist Era format */
   displayFormat?: string;
   /** Width */
   width?: number | string;
@@ -87,6 +59,61 @@ export interface DxDateBoxProps {
   openOnFieldClick?: boolean;
   /** Accept custom value (typed) */
   acceptCustomValue?: boolean;
+}
+
+/**
+ * Buddhist Era date formatter (DD/MM/YYYY+543)
+ */
+const buddhistDateFormat: Format = {
+  formatter: (date: Date): string => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const buddhistYear = date.getFullYear() + 543;
+    return `${day}/${month}/${buddhistYear}`;
+  },
+  parser: (text: string): Date | null => {
+    if (!text) return null;
+    const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return null;
+    const [, day, month, year] = match;
+    const gregorianYear = parseInt(year, 10) - 543;
+    return new Date(gregorianYear, parseInt(month, 10) - 1, parseInt(day, 10));
+  },
+};
+
+/**
+ * Buddhist Era datetime formatter (DD/MM/YYYY+543 HH:mm)
+ */
+const buddhistDateTimeFormat: Format = {
+  formatter: (date: Date): string => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const buddhistYear = date.getFullYear() + 543;
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${buddhistYear} ${hours}:${minutes}`;
+  },
+  parser: (text: string): Date | null => {
+    if (!text) return null;
+    const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})$/);
+    if (!match) return null;
+    const [, day, month, year, hours, minutes] = match;
+    const gregorianYear = parseInt(year, 10) - 543;
+    return new Date(gregorianYear, parseInt(month, 10) - 1, parseInt(day, 10), parseInt(hours, 10), parseInt(minutes, 10));
+  },
+};
+
+/**
+ * Convert string value (YYYY-MM-DD) to Date object
+ */
+function parseStringToDate(value: string | undefined): Date | null {
+  if (!value) return null;
+  // Handle ISO date string (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return null;
+  return date;
 }
 
 /**
@@ -151,40 +178,33 @@ export function DxDateBox({
 }: DxDateBoxProps) {
   const hasValidation = required || min || max;
 
-  // Track Buddhist Era display text
-  const [buddhistText, setBuddhistText] = useState<string>(() =>
-    formatToBuddhistEra(value, type)
-  );
-
-  // Update Buddhist text when value changes externally
-  useEffect(() => {
-    setBuddhistText(formatToBuddhistEra(value, type));
-  }, [value, type]);
+  // Convert string value to Date object for DevExtreme
+  const dateValue = useMemo(() => parseStringToDate(value), [value]);
 
   const handleValueChanged = (e: DateBoxTypes.ValueChangedEvent) => {
-    const dateValue = e.value as Date | null;
-
-    // Update Buddhist Era display text
-    setBuddhistText(formatToBuddhistEra(dateValue, type));
+    const newDateValue = e.value as Date | null;
 
     if (onValueChange) {
       // Always convert Date to ISO string (YYYY-MM-DD) for consistent string-based state
-      onValueChange(dateValue ? dateValue.toISOString().split('T')[0] : '');
+      onValueChange(newDateValue ? newDateValue.toISOString().split('T')[0] : '');
     }
     if (onValueChanged) {
       onValueChanged(e);
     }
   };
 
-  // Default format based on type (for internal DateBox use)
-  const defaultDisplayFormat = useMemo(() => {
-    if (displayFormat) return displayFormat;
-    return type === 'datetime' ? 'dd/MM/yyyy HH:mm' : type === 'time' ? 'HH:mm' : 'dd/MM/yyyy';
+  // Use Buddhist Era formatter based on type
+  // DevExtreme accepts { formatter, parser } object for custom date formatting
+  const buddhistFormat: Format | string = useMemo(() => {
+    if (displayFormat) return displayFormat; // Allow override with explicit format string
+    if (type === 'time') return 'HH:mm';
+    if (type === 'datetime') return buddhistDateTimeFormat;
+    return buddhistDateFormat;
   }, [type, displayFormat]);
 
   return (
     <DateBox
-      value={value}
+      value={dateValue}
       defaultValue={defaultValue}
       onValueChanged={handleValueChanged}
       type={type}
@@ -195,8 +215,7 @@ export function DxDateBox({
       readOnly={readOnly}
       min={min}
       max={max}
-      displayFormat={defaultDisplayFormat}
-      text={buddhistText}
+      displayFormat={buddhistFormat}
       width={width}
       height={height}
       showClearButton={showClearButton}
