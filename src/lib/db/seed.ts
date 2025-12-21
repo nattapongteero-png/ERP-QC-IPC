@@ -66,6 +66,7 @@ export async function seedDatabase() {
     { email: 'warehouse@herbal-erp.com', name: 'Warehouse Manager', role: 'warehouse', department: 'Warehouse' },
     { email: 'purchasing@herbal-erp.com', name: 'Purchasing Manager', role: 'purchasing', department: 'Purchasing' },
     { email: 'sales@herbal-erp.com', name: 'Sales Manager', role: 'sales', department: 'Sales' },
+    { email: 'hr@herbal-erp.com', name: 'HR Manager', role: 'hr', department: 'Human Resources' },
   ];
 
   // Helper function to insert and ignore duplicates

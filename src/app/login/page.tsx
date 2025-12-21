@@ -206,6 +206,14 @@ export default function LoginPage() {
                   <span className="font-medium">QC</span>
                   <span className="text-gray-400 text-xs md:text-sm truncate ml-2">qc@herbal-erp.com</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('hr@herbal-erp.com'); setPassword('user123'); }}
+                  className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
+                >
+                  <span className="font-medium">HR</span>
+                  <span className="text-gray-400 text-xs md:text-sm truncate ml-2">hr@herbal-erp.com</span>
+                </button>
               </div>
             </div>
           </div>
