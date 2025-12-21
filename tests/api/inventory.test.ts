@@ -35,6 +35,8 @@ describe('Inventory API', () => {
         is_lot_controlled INTEGER DEFAULT 1,
         is_fefo INTEGER DEFAULT 1,
         is_active INTEGER DEFAULT 1,
+        tpp_code TEXT,
+        ttmt_code TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
