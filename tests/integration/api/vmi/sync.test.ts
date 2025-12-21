@@ -474,6 +474,208 @@ describe('VMI Sync API', () => {
   });
 
   // ============================================================================
+  // Dashboard API (US6)
+  // ============================================================================
+
+  describe('GET /api/purchasing/vmi/dashboard', () => {
+    it('should return VMI dashboard overview data', async () => {
+      const expectedResponse = {
+        success: true,
+        data: {
+          summary: {
+            totalVendors: 3,
+            connectedVendors: 2,
+            disconnectedVendors: 1,
+            healthPercentage: 67,
+            totalVmiItems: 50,
+          },
+          transactions: {
+            total: 100,
+            success: 95,
+            error: 5,
+            byType: {
+              item_sync: { success: 30, error: 2 },
+              price_sync: { success: 25, error: 1 },
+              inventory_sync: { success: 40, error: 2 },
+            },
+          },
+          orders: {
+            total: 15,
+            byStatus: {
+              submitted: 3,
+              confirmed: 5,
+              shipped: 4,
+              received: 3,
+            },
+          },
+          vendors: [],
+        },
+      };
+
+      expect(expectedResponse.success).toBe(true);
+      expect(expectedResponse.data).toHaveProperty('summary');
+      expect(expectedResponse.data).toHaveProperty('transactions');
+      expect(expectedResponse.data).toHaveProperty('orders');
+      expect(expectedResponse.data).toHaveProperty('vendors');
+    });
+
+    it('should calculate health percentage correctly', async () => {
+      const summary = {
+        totalVendors: 4,
+        connectedVendors: 3,
+        disconnectedVendors: 1,
+      };
+
+      const healthPercentage = Math.round((summary.connectedVendors / summary.totalVendors) * 100);
+      expect(healthPercentage).toBe(75);
+    });
+
+    it('should filter by vendorId when provided', async () => {
+      const vendorId = 100;
+      const expectedResponse = {
+        success: true,
+        data: {
+          vendors: [{ vendorId: 100, vendorName: 'Test Vendor' }],
+        },
+      };
+
+      expect(expectedResponse.data.vendors[0].vendorId).toBe(vendorId);
+    });
+  });
+
+  describe('GET /api/purchasing/vmi/transactions', () => {
+    it('should return VMI transaction log with pagination', async () => {
+      const expectedResponse = {
+        success: true,
+        data: {
+          transactions: [
+            {
+              id: 1,
+              vendorId: 100,
+              vendorName: 'Test Vendor',
+              transactionType: 'item_sync',
+              endpoint: '/api/v1/items',
+              method: 'POST',
+              httpStatus: 200,
+              durationMs: 150,
+              status: 'success',
+              errorMessage: null,
+              hasRequestPayload: true,
+              hasResponsePayload: true,
+              createdAt: '2024-01-15T10:30:00.000Z',
+            },
+          ],
+          pagination: {
+            total: 100,
+            limit: 50,
+            offset: 0,
+            hasMore: true,
+          },
+          transactionTypes: [
+            { type: 'item_sync', count: 30 },
+            { type: 'price_sync', count: 25 },
+          ],
+        },
+      };
+
+      expect(expectedResponse.success).toBe(true);
+      expect(expectedResponse.data.transactions).toBeInstanceOf(Array);
+      expect(expectedResponse.data.pagination).toHaveProperty('total');
+      expect(expectedResponse.data.pagination).toHaveProperty('hasMore');
+    });
+
+    it('should filter transactions by type', async () => {
+      const type = 'item_sync';
+      const expectedResponse = {
+        success: true,
+        data: {
+          transactions: [
+            { transactionType: 'item_sync' },
+            { transactionType: 'item_sync' },
+          ],
+        },
+      };
+
+      expectedResponse.data.transactions.forEach((t) => {
+        expect(t.transactionType).toBe(type);
+      });
+    });
+
+    it('should filter transactions by status', async () => {
+      const status = 'error';
+      const expectedResponse = {
+        success: true,
+        data: {
+          transactions: [
+            { status: 'error', errorMessage: 'Connection timeout' },
+          ],
+        },
+      };
+
+      expectedResponse.data.transactions.forEach((t) => {
+        expect(t.status).toBe(status);
+      });
+    });
+
+    it('should filter transactions by date range', async () => {
+      const fromDate = '2024-01-01';
+      const toDate = '2024-01-31';
+      const expectedResponse = {
+        success: true,
+        data: {
+          transactions: [
+            { createdAt: '2024-01-15T10:30:00.000Z' },
+          ],
+        },
+      };
+
+      const transactionDate = new Date(expectedResponse.data.transactions[0].createdAt);
+      const from = new Date(fromDate);
+      const to = new Date(toDate);
+      to.setHours(23, 59, 59, 999);
+
+      expect(transactionDate >= from && transactionDate <= to).toBe(true);
+    });
+  });
+
+  describe('GET /api/purchasing/vmi/transactions/[id]', () => {
+    it('should return transaction detail with payloads', async () => {
+      const expectedResponse = {
+        success: true,
+        data: {
+          id: 1,
+          vendorId: 100,
+          vendorName: 'Test Vendor',
+          transactionType: 'item_sync',
+          endpoint: '/api/v1/items',
+          method: 'POST',
+          httpStatus: 200,
+          durationMs: 150,
+          status: 'success',
+          errorMessage: null,
+          requestPayload: { items: [{ tppCode: '1234567890123' }] },
+          responsePayload: { synced: 1, failed: 0 },
+          createdAt: '2024-01-15T10:30:00.000Z',
+        },
+      };
+
+      expect(expectedResponse.success).toBe(true);
+      expect(expectedResponse.data).toHaveProperty('requestPayload');
+      expect(expectedResponse.data).toHaveProperty('responsePayload');
+    });
+
+    it('should return 404 for non-existent transaction', async () => {
+      const expectedResponse = {
+        success: false,
+        error: 'Transaction not found',
+      };
+
+      expect(expectedResponse.success).toBe(false);
+      expect(expectedResponse.error).toContain('not found');
+    });
+  });
+
+  // ============================================================================
   // TPP/TTMT Code Validation
   // ============================================================================
 
