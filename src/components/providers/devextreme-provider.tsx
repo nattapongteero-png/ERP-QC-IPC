@@ -6,6 +6,8 @@ import config from 'devextreme/core/config';
 
 // DevExtreme CSS - imported via JS to avoid @import order issues in bundled CSS
 import 'devextreme/dist/css/dx.material.teal.light.css';
+// DevExtreme Diagram CSS - required for proper diagram rendering
+import 'devexpress-diagram/dist/dx-diagram.min.css';
 // Emerald theme color overrides
 import '@/styles/dx.emerald-override.css';
 // Mobile-specific overrides

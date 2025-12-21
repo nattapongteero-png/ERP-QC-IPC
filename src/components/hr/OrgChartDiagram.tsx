@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import Diagram, {
   Nodes,
   AutoLayout,
@@ -73,13 +73,13 @@ export function OrgChartDiagram({
     }));
   }, [orgUnits]);
 
-  const handleSelectionChanged = (e: { items: { dataItem?: DiagramNode }[] }) => {
+  const handleSelectionChanged = useCallback((e: { items: { dataItem?: DiagramNode }[] }) => {
     const selected = e.items[0]?.dataItem || null;
     if (selected && onNodeClick) {
       const orgUnit = orgUnits.find(u => u.id === selected.id);
       onNodeClick(orgUnit || null);
     }
-  };
+  }, [orgUnits, onNodeClick]);
 
   if (isLoading) {
     return (
@@ -90,7 +90,7 @@ export function OrgChartDiagram({
   }
 
   return (
-    <div className="bg-white" style={{ height }}>
+    <div style={{ height }}>
       <Diagram
         height="100%"
         className={className}
