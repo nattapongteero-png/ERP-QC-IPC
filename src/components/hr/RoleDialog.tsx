@@ -3,7 +3,7 @@
 // Reusable Role Dialog Component
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
@@ -125,6 +125,24 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isValid = isEditMode ? !!name : !!code && !!name;
 
+  // Memoize toolbar button options to prevent re-renders
+  const cancelButtonOptions = useMemo(() => ({
+    text: 'ยกเลิก',
+    onClick: handleClose,
+  }), [handleClose]);
+
+  const submitButtonOptions = useMemo(() => ({
+    text: isEditMode ? 'บันทึก' : 'สร้าง',
+    type: 'default' as const,
+    disabled: !isValid || isPending,
+    onClick: handleSubmit,
+  }), [isEditMode, isValid, isPending, handleSubmit]);
+
+  // Memoize event handlers for TextBox/TextArea
+  const handleCodeChange = useCallback((e: { value?: string }) => setCode(e.value || ''), []);
+  const handleNameChange = useCallback((e: { value?: string }) => setName(e.value || ''), []);
+  const handleDescriptionChange = useCallback((e: { value?: string }) => setDescription(e.value || ''), []);
+
   return (
     <Popup
       visible={visible}
@@ -142,7 +160,7 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
             </label>
             <TextBox
               value={code}
-              onValueChanged={(e) => setCode(e.value || '')}
+              onValueChanged={handleCodeChange}
               placeholder="เช่น quality_manager"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -157,7 +175,7 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
           </label>
           <TextBox
             value={name}
-            onValueChanged={(e) => setName(e.value || '')}
+            onValueChanged={handleNameChange}
             placeholder="เช่น ผู้จัดการคุณภาพ"
           />
         </div>
@@ -168,7 +186,7 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
           </label>
           <TextArea
             value={description}
-            onValueChanged={(e) => setDescription(e.value || '')}
+            onValueChanged={handleDescriptionChange}
             placeholder="ระบุคำอธิบายบทบาท..."
             height={80}
           />
@@ -178,20 +196,12 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
       <ToolbarItem
         widget="dxButton"
         location="after"
-        options={{
-          text: 'ยกเลิก',
-          onClick: handleClose,
-        }}
+        options={cancelButtonOptions}
       />
       <ToolbarItem
         widget="dxButton"
         location="after"
-        options={{
-          text: isEditMode ? 'บันทึก' : 'สร้าง',
-          type: 'default',
-          disabled: !isValid || isPending,
-          onClick: handleSubmit,
-        }}
+        options={submitButtonOptions}
       />
     </Popup>
   );

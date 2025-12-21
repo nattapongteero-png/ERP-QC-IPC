@@ -150,7 +150,8 @@ export default function RolesPage() {
 
   const handleCloseRoleDialog = useCallback(() => {
     setShowRoleDialog(false);
-    setEditingRole(null);
+    // Delay clearing editingRole to prevent key change during popup close animation
+    setTimeout(() => setEditingRole(null), 300);
   }, []);
 
   const handleOpenPermissionsPopup = useCallback(async (role: AppRoleWithPermissions) => {
