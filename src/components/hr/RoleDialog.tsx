@@ -3,7 +3,7 @@
 // Reusable Role Dialog Component
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
@@ -59,23 +59,19 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
   const toast = useToast();
   const isEditMode = !!role;
 
+  // Guard against multiple onHiding calls
+  const isClosingRef = useRef(false);
+
   // Initialize form state from role prop (only runs once per mount)
   const [code, setCode] = useState('');
   const [name, setName] = useState(role?.name || '');
   const [description, setDescription] = useState(role?.description || '');
-
-  const resetForm = useCallback(() => {
-    setCode('');
-    setName('');
-    setDescription('');
-  }, []);
 
   const createMutation = useMutation({
     mutationFn: createRole,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
       toast.success('สร้างบทบาทสำเร็จ');
-      resetForm();
       onSuccess?.(data);
       onHide();
     },
@@ -117,10 +113,12 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
     }
   }, [isEditMode, role, name, description, code, createMutation, updateMutation]);
 
+  // Guard against multiple onHiding triggers - only call onHide once
   const handleClose = useCallback(() => {
-    resetForm();
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
     onHide();
-  }, [onHide, resetForm]);
+  }, [onHide]);
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isValid = isEditMode ? !!name : !!code && !!name;
