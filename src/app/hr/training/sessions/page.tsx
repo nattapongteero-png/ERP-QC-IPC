@@ -45,14 +45,18 @@ async function fetchSessions(): Promise<SessionWithDetails[]> {
   const response = await fetch('/api/hr/training/sessions');
   if (!response.ok) throw new Error('Failed to fetch sessions');
   const result = await response.json();
-  return result.data || [];
+  // Handle nested response structure: { success, data: { data: sessions } }
+  const data = result.data?.data || result.data || [];
+  return Array.isArray(data) ? data : [];
 }
 
 async function fetchCourses(): Promise<TrainingCourse[]> {
   const response = await fetch('/api/hr/training/courses?isActive=true');
   if (!response.ok) throw new Error('Failed to fetch courses');
   const result = await response.json();
-  return result.data || [];
+  // Handle nested response structure: { success, data: { data: courses } }
+  const data = result.data?.data || result.data || [];
+  return Array.isArray(data) ? data : [];
 }
 
 async function createSession(data: Partial<TrainingSession>): Promise<TrainingSession> {
