@@ -32,6 +32,7 @@ export type NotificationType =
   | 'training_expiring'
   | 'training_expired'
   | 'health_check_due'
+  | 'health_check_overdue'
   | 'authorization_expiring';
 
 // ============================================

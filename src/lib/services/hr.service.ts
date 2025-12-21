@@ -92,6 +92,9 @@ import type {
   EmployeeRoleCreate,
   HRAuditLog,
   HRAuditAction,
+  HRNotification,
+  HRNotificationCreate,
+  NotificationType,
 } from '@/types/hr';
 
 // ============================================
@@ -4023,4 +4026,588 @@ export async function getRecentAuditActivities(
 ): Promise<HRAuditLogWithDetails[]> {
   const { data } = await getHRAuditLogs({ take: limit });
   return data;
+}
+
+// ============================================
+// Notification Service
+// ============================================
+
+export interface HRNotificationWithEmployee extends HRNotification {
+  employeeName: string;
+  employeeCode: string;
+}
+
+/**
+ * Create a notification
+ */
+export async function createNotification(
+  data: HRNotificationCreate
+): Promise<HRNotification> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  const result = await db.insert(tables.notifications).values({
+    employeeId: data.employeeId,
+    type: data.type,
+    title: data.title,
+    message: data.message || null,
+    referenceType: data.referenceType || null,
+    referenceId: data.referenceId || null,
+    isRead: false,
+    readAt: null,
+    createdAt: new Date().toISOString(),
+  });
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const insertedId = useSqlite()
+    ? Number(result.lastInsertRowid)
+    : Number((result as unknown as { insertId: number }).insertId);
+
+  const notification = await getNotificationById(insertedId);
+  if (!notification) {
+    throw new Error('Failed to create notification');
+  }
+  return notification;
+}
+
+/**
+ * Get notification by ID
+ */
+export async function getNotificationById(
+  id: number
+): Promise<HRNotification | null> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  const result = await db
+    .select()
+    .from(tables.notifications)
+    .where(eq(tables.notifications.id, id))
+    .limit(1);
+
+  if (result.length === 0) return null;
+
+  return {
+    id: result[0].id,
+    employeeId: result[0].employeeId,
+    type: result[0].type as NotificationType,
+    title: result[0].title,
+    message: result[0].message || null,
+    referenceType: result[0].referenceType || null,
+    referenceId: result[0].referenceId || null,
+    isRead: Boolean(result[0].isRead),
+    readAt: result[0].readAt || null,
+    createdAt: String(result[0].createdAt),
+  };
+}
+
+/**
+ * Get notifications for an employee
+ */
+export async function getEmployeeNotifications(
+  employeeId: number,
+  options?: { unreadOnly?: boolean; limit?: number }
+): Promise<HRNotification[]> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  const conditions: SQL[] = [eq(tables.notifications.employeeId, employeeId)];
+
+  if (options?.unreadOnly) {
+    conditions.push(eq(tables.notifications.isRead, false));
+  }
+
+  let query = db
+    .select()
+    .from(tables.notifications)
+    .where(and(...conditions))
+    .orderBy(desc(tables.notifications.createdAt));
+
+  if (options?.limit) {
+    query = query.limit(options.limit) as typeof query;
+  }
+
+  const results = await query;
+
+  return results.map((r) => ({
+    id: r.id,
+    employeeId: r.employeeId,
+    type: r.type as NotificationType,
+    title: r.title,
+    message: r.message || null,
+    referenceType: r.referenceType || null,
+    referenceId: r.referenceId || null,
+    isRead: Boolean(r.isRead),
+    readAt: r.readAt || null,
+    createdAt: String(r.createdAt),
+  }));
+}
+
+/**
+ * Get unread notification count for an employee
+ */
+export async function getUnreadNotificationCount(
+  employeeId: number
+): Promise<number> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  const result = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(tables.notifications)
+    .where(
+      and(
+        eq(tables.notifications.employeeId, employeeId),
+        eq(tables.notifications.isRead, false)
+      )
+    );
+
+  return Number(result[0].count);
+}
+
+/**
+ * Mark a notification as read
+ */
+export async function markNotificationRead(id: number): Promise<void> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  await db
+    .update(tables.notifications)
+    .set({
+      isRead: true,
+      readAt: new Date().toISOString(),
+    })
+    .where(eq(tables.notifications.id, id));
+}
+
+/**
+ * Mark all notifications as read for an employee
+ */
+export async function markAllNotificationsRead(employeeId: number): Promise<void> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  await db
+    .update(tables.notifications)
+    .set({
+      isRead: true,
+      readAt: new Date().toISOString(),
+    })
+    .where(
+      and(
+        eq(tables.notifications.employeeId, employeeId),
+        eq(tables.notifications.isRead, false)
+      )
+    );
+}
+
+/**
+ * Delete a notification
+ */
+export async function deleteNotification(id: number): Promise<void> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  await db
+    .delete(tables.notifications)
+    .where(eq(tables.notifications.id, id));
+}
+
+/**
+ * Check for expiring training records and create notifications
+ * Called by cron job
+ */
+export async function checkTrainingExpirations(
+  withinDays: number = 30
+): Promise<{ created: number; notifications: HRNotification[] }> {
+  const tables = getHRTables();
+  const db = getDb();
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const isSqlite = useSqlite();
+
+  const today = new Date();
+  const futureDate = new Date(today.getTime() + withinDays * 24 * 60 * 60 * 1000);
+  const todayStr = today.toISOString().split('T')[0];
+  const futureDateStr = futureDate.toISOString().split('T')[0];
+
+  // Find training records expiring within the specified days
+  // and that don't already have a notification
+  let expiringRecords;
+  if (isSqlite) {
+    expiringRecords = await db
+      .select({
+        id: tables.trainingRecords.id,
+        employeeId: tables.trainingRecords.employeeId,
+        expiryDate: tables.trainingRecords.expiryDate,
+        courseName: tables.trainingCourses.name,
+      })
+      .from(tables.trainingRecords)
+      .innerJoin(
+        tables.trainingSessions,
+        eq(tables.trainingRecords.sessionId, tables.trainingSessions.id)
+      )
+      .innerJoin(
+        tables.trainingCourses,
+        eq(tables.trainingSessions.courseId, tables.trainingCourses.id)
+      )
+      .where(
+        and(
+          sql`${tables.trainingRecords.expiryDate} >= ${todayStr}`,
+          sql`${tables.trainingRecords.expiryDate} <= ${futureDateStr}`,
+          eq(tables.trainingRecords.result, 'passed')
+        )
+      );
+  } else {
+    expiringRecords = await db
+      .select({
+        id: tables.trainingRecords.id,
+        employeeId: tables.trainingRecords.employeeId,
+        expiryDate: tables.trainingRecords.expiryDate,
+        courseName: tables.trainingCourses.name,
+      })
+      .from(tables.trainingRecords)
+      .innerJoin(
+        tables.trainingSessions,
+        eq(tables.trainingRecords.sessionId, tables.trainingSessions.id)
+      )
+      .innerJoin(
+        tables.trainingCourses,
+        eq(tables.trainingSessions.courseId, tables.trainingCourses.id)
+      )
+      .where(
+        and(
+          sql`${tables.trainingRecords.expiryDate} >= ${todayStr}`,
+          sql`${tables.trainingRecords.expiryDate} <= ${futureDateStr}`,
+          eq(tables.trainingRecords.result, 'passed')
+        )
+      );
+  }
+
+  const notifications: HRNotification[] = [];
+
+  for (const record of expiringRecords) {
+    // Check if notification already exists
+    const existing = await db
+      .select({ id: tables.notifications.id })
+      .from(tables.notifications)
+      .where(
+        and(
+          eq(tables.notifications.employeeId, record.employeeId),
+          eq(tables.notifications.type, 'training_expiring'),
+          eq(tables.notifications.referenceType, 'training_record'),
+          eq(tables.notifications.referenceId, record.id)
+        )
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      const expiryDate = record.expiryDate
+        ? new Date(String(record.expiryDate)).toLocaleDateString('th-TH')
+        : 'N/A';
+      const notification = await createNotification({
+        employeeId: record.employeeId,
+        type: 'training_expiring',
+        title: `การอบรม "${record.courseName}" ใกล้หมดอายุ`,
+        message: `การอบรมจะหมดอายุในวันที่ ${expiryDate} กรุณาต่ออายุการอบรม`,
+        referenceType: 'training_record',
+        referenceId: record.id,
+      });
+      notifications.push(notification);
+    }
+  }
+
+  return { created: notifications.length, notifications };
+}
+
+/**
+ * Check for expired training records and create notifications
+ * Called by cron job
+ */
+export async function checkTrainingExpired(): Promise<{
+  created: number;
+  notifications: HRNotification[];
+}> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  // Find expired training records
+  const expiredRecords = await db
+    .select({
+      id: tables.trainingRecords.id,
+      employeeId: tables.trainingRecords.employeeId,
+      expiryDate: tables.trainingRecords.expiryDate,
+      courseName: tables.trainingCourses.name,
+    })
+    .from(tables.trainingRecords)
+    .innerJoin(
+      tables.trainingSessions,
+      eq(tables.trainingRecords.sessionId, tables.trainingSessions.id)
+    )
+    .innerJoin(
+      tables.trainingCourses,
+      eq(tables.trainingSessions.courseId, tables.trainingCourses.id)
+    )
+    .where(
+      and(
+        sql`${tables.trainingRecords.expiryDate} < ${todayStr}`,
+        eq(tables.trainingRecords.result, 'passed')
+      )
+    );
+
+  const notifications: HRNotification[] = [];
+
+  for (const record of expiredRecords) {
+    // Check if notification already exists
+    const existing = await db
+      .select({ id: tables.notifications.id })
+      .from(tables.notifications)
+      .where(
+        and(
+          eq(tables.notifications.employeeId, record.employeeId),
+          eq(tables.notifications.type, 'training_expired'),
+          eq(tables.notifications.referenceType, 'training_record'),
+          eq(tables.notifications.referenceId, record.id)
+        )
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      const expiryDate = record.expiryDate
+        ? new Date(String(record.expiryDate)).toLocaleDateString('th-TH')
+        : 'N/A';
+      const notification = await createNotification({
+        employeeId: record.employeeId,
+        type: 'training_expired',
+        title: `การอบรม "${record.courseName}" หมดอายุแล้ว`,
+        message: `การอบรมหมดอายุตั้งแต่วันที่ ${expiryDate} กรุณาลงทะเบียนอบรมใหม่`,
+        referenceType: 'training_record',
+        referenceId: record.id,
+      });
+      notifications.push(notification);
+    }
+  }
+
+  return { created: notifications.length, notifications };
+}
+
+/**
+ * Check for due health checks and create notifications
+ * Called by cron job
+ */
+export async function checkHealthChecksDue(
+  withinDays: number = 30
+): Promise<{ created: number; notifications: HRNotification[] }> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  const today = new Date();
+  const futureDate = new Date(today.getTime() + withinDays * 24 * 60 * 60 * 1000);
+  const todayStr = today.toISOString().split('T')[0];
+  const futureDateStr = futureDate.toISOString().split('T')[0];
+
+  // Find health records with nextCheckDate due within the specified days
+  const dueRecords = await db
+    .select({
+      id: tables.healthRecords.id,
+      employeeId: tables.healthRecords.employeeId,
+      nextCheckDate: tables.healthRecords.nextCheckDate,
+      examinationType: tables.healthRecords.examinationType,
+      employeeCode: tables.employees.employeeCode,
+      firstName: tables.employees.firstName,
+      lastName: tables.employees.lastName,
+    })
+    .from(tables.healthRecords)
+    .innerJoin(
+      tables.employees,
+      eq(tables.healthRecords.employeeId, tables.employees.id)
+    )
+    .where(
+      and(
+        sql`${tables.healthRecords.nextCheckDate} >= ${todayStr}`,
+        sql`${tables.healthRecords.nextCheckDate} <= ${futureDateStr}`
+      )
+    );
+
+  const notifications: HRNotification[] = [];
+  const examTypeLabels: Record<string, string> = {
+    annual: 'ตรวจสุขภาพประจำปี',
+    pre_employment: 'ตรวจก่อนเข้าทำงาน',
+    job_specific: 'ตรวจเฉพาะตำแหน่ง',
+    return_to_work: 'ตรวจกลับมาทำงาน',
+    periodic: 'ตรวจตามระยะ',
+  };
+
+  for (const record of dueRecords) {
+    // Check if notification already exists
+    const existing = await db
+      .select({ id: tables.notifications.id })
+      .from(tables.notifications)
+      .where(
+        and(
+          eq(tables.notifications.employeeId, record.employeeId),
+          eq(tables.notifications.type, 'health_check_due'),
+          eq(tables.notifications.referenceType, 'health_record'),
+          eq(tables.notifications.referenceId, record.id)
+        )
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      const nextCheckDate = record.nextCheckDate
+        ? new Date(String(record.nextCheckDate)).toLocaleDateString('th-TH')
+        : 'N/A';
+      const examType =
+        examTypeLabels[record.examinationType] || record.examinationType;
+      const notification = await createNotification({
+        employeeId: record.employeeId,
+        type: 'health_check_due',
+        title: `ถึงกำหนด${examType}`,
+        message: `กรุณานัดตรวจสุขภาพภายในวันที่ ${nextCheckDate}`,
+        referenceType: 'health_record',
+        referenceId: record.id,
+      });
+      notifications.push(notification);
+    }
+  }
+
+  return { created: notifications.length, notifications };
+}
+
+/**
+ * Check for overdue health checks and create notifications
+ * Called by cron job
+ */
+export async function checkHealthChecksOverdue(): Promise<{
+  created: number;
+  notifications: HRNotification[];
+}> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  // Find overdue health records
+  const overdueRecords = await db
+    .select({
+      id: tables.healthRecords.id,
+      employeeId: tables.healthRecords.employeeId,
+      nextCheckDate: tables.healthRecords.nextCheckDate,
+      examinationType: tables.healthRecords.examinationType,
+    })
+    .from(tables.healthRecords)
+    .where(sql`${tables.healthRecords.nextCheckDate} < ${todayStr}`);
+
+  const notifications: HRNotification[] = [];
+  const examTypeLabels: Record<string, string> = {
+    annual: 'ตรวจสุขภาพประจำปี',
+    pre_employment: 'ตรวจก่อนเข้าทำงาน',
+    job_specific: 'ตรวจเฉพาะตำแหน่ง',
+    return_to_work: 'ตรวจกลับมาทำงาน',
+    periodic: 'ตรวจตามระยะ',
+  };
+
+  for (const record of overdueRecords) {
+    // Check if notification already exists (within the past 7 days to avoid duplicates)
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString();
+
+    const existing = await db
+      .select({ id: tables.notifications.id })
+      .from(tables.notifications)
+      .where(
+        and(
+          eq(tables.notifications.employeeId, record.employeeId),
+          eq(tables.notifications.type, 'health_check_overdue'),
+          eq(tables.notifications.referenceType, 'health_record'),
+          eq(tables.notifications.referenceId, record.id),
+          sql`${tables.notifications.createdAt} >= ${sevenDaysAgoStr}`
+        )
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      const nextCheckDate = record.nextCheckDate
+        ? new Date(String(record.nextCheckDate)).toLocaleDateString('th-TH')
+        : 'N/A';
+      const examType =
+        examTypeLabels[record.examinationType] || record.examinationType;
+      const notification = await createNotification({
+        employeeId: record.employeeId,
+        type: 'health_check_overdue' as NotificationType,
+        title: `${examType} เลยกำหนดแล้ว`,
+        message: `การตรวจสุขภาพเลยกำหนดตั้งแต่วันที่ ${nextCheckDate} กรุณาติดต่อ HR`,
+        referenceType: 'health_record',
+        referenceId: record.id,
+      });
+      notifications.push(notification);
+    }
+  }
+
+  return { created: notifications.length, notifications };
+}
+
+/**
+ * Get all pending notifications for dashboard/reports
+ */
+export async function getAllPendingNotifications(
+  options?: { limit?: number; type?: NotificationType }
+): Promise<HRNotificationWithEmployee[]> {
+  const tables = getHRTables();
+  const db = getDb();
+
+  const conditions: SQL[] = [eq(tables.notifications.isRead, false)];
+
+  if (options?.type) {
+    conditions.push(eq(tables.notifications.type, options.type));
+  }
+
+  let query = db
+    .select({
+      id: tables.notifications.id,
+      employeeId: tables.notifications.employeeId,
+      type: tables.notifications.type,
+      title: tables.notifications.title,
+      message: tables.notifications.message,
+      referenceType: tables.notifications.referenceType,
+      referenceId: tables.notifications.referenceId,
+      isRead: tables.notifications.isRead,
+      readAt: tables.notifications.readAt,
+      createdAt: tables.notifications.createdAt,
+      employeeCode: tables.employees.employeeCode,
+      firstName: tables.employees.firstName,
+      lastName: tables.employees.lastName,
+    })
+    .from(tables.notifications)
+    .innerJoin(
+      tables.employees,
+      eq(tables.notifications.employeeId, tables.employees.id)
+    )
+    .where(and(...conditions))
+    .orderBy(desc(tables.notifications.createdAt));
+
+  if (options?.limit) {
+    query = query.limit(options.limit) as typeof query;
+  }
+
+  const results = await query;
+
+  return results.map((r) => ({
+    id: r.id,
+    employeeId: r.employeeId,
+    type: r.type as NotificationType,
+    title: r.title,
+    message: r.message || null,
+    referenceType: r.referenceType || null,
+    referenceId: r.referenceId || null,
+    isRead: Boolean(r.isRead),
+    readAt: r.readAt || null,
+    createdAt: String(r.createdAt),
+    employeeName: `${r.firstName} ${r.lastName}`,
+    employeeCode: r.employeeCode,
+  }));
 }
