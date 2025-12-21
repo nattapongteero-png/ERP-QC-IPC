@@ -3,7 +3,7 @@
 // Reusable Role Dialog Component
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
@@ -58,17 +58,10 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
   const toast = useToast();
   const isEditMode = !!role;
 
-  // Form state
+  // Form state - initialize from role when in edit mode
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-
-  // Reset form when dialog opens (called by DevExtreme onShowing)
-  const handleShowing = useCallback(() => {
-    setCode('');
-    setName(role?.name || '');
-    setDescription(role?.description || '');
-  }, [role?.name, role?.description]);
 
   const createMutation = useMutation({
     mutationFn: createRole,
@@ -97,13 +90,13 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
     },
   });
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = () => {
     if (isEditMode && role) {
       updateMutation.mutate({
         id: role.id,
         data: {
-          name,
-          description: description || undefined,
+          name: name || role.name,
+          description: (description || role.description) || undefined,
         },
       });
     } else {
@@ -114,34 +107,23 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
         description: description || undefined,
       });
     }
-  }, [isEditMode, role, name, description, code, createMutation, updateMutation]);
+  };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
-  const isValid = isEditMode ? !!name : !!code && !!name;
+  const isValid = isEditMode ? true : !!code && !!name;
 
-  // Memoize toolbar button options
-  const cancelButtonOptions = useMemo(() => ({
-    text: 'ยกเลิก',
-    onClick: onHide,
-  }), [onHide]);
-
-  const submitButtonOptions = useMemo(() => ({
-    text: isEditMode ? 'บันทึก' : 'สร้าง',
-    type: 'default' as const,
-    disabled: !isValid || isPending,
-    onClick: handleSubmit,
-  }), [isEditMode, isValid, isPending, handleSubmit]);
-
-  // Memoize event handlers
-  const handleCodeChange = useCallback((e: { value?: string }) => setCode(e.value || ''), []);
-  const handleNameChange = useCallback((e: { value?: string }) => setName(e.value || ''), []);
-  const handleDescriptionChange = useCallback((e: { value?: string }) => setDescription(e.value || ''), []);
+  // Don't render popup at all when not visible to avoid any event issues
+  if (!visible) return null;
 
   return (
     <Popup
       visible={visible}
-      onShowing={handleShowing}
-      onHiding={onHide}
+      onHiding={() => {
+        setCode('');
+        setName('');
+        setDescription('');
+        onHide();
+      }}
       title={isEditMode ? `แก้ไขบทบาท: ${role?.code || ''}` : 'สร้างบทบาทใหม่'}
       width={500}
       height="auto"
@@ -155,7 +137,7 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
             </label>
             <TextBox
               value={code}
-              onValueChanged={handleCodeChange}
+              onValueChanged={(e) => setCode(e.value || '')}
               placeholder="เช่น quality_manager"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -169,8 +151,8 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
             ชื่อบทบาท <span className="text-red-500">*</span>
           </label>
           <TextBox
-            value={name}
-            onValueChanged={handleNameChange}
+            value={isEditMode ? (name || role?.name || '') : name}
+            onValueChanged={(e) => setName(e.value || '')}
             placeholder="เช่น ผู้จัดการคุณภาพ"
           />
         </div>
@@ -180,8 +162,8 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
             คำอธิบาย
           </label>
           <TextArea
-            value={description}
-            onValueChanged={handleDescriptionChange}
+            value={isEditMode ? (description || role?.description || '') : description}
+            onValueChanged={(e) => setDescription(e.value || '')}
             placeholder="ระบุคำอธิบายบทบาท..."
             height={80}
           />
@@ -191,12 +173,25 @@ export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps
       <ToolbarItem
         widget="dxButton"
         location="after"
-        options={cancelButtonOptions}
+        options={{
+          text: 'ยกเลิก',
+          onClick: () => {
+            setCode('');
+            setName('');
+            setDescription('');
+            onHide();
+          },
+        }}
       />
       <ToolbarItem
         widget="dxButton"
         location="after"
-        options={submitButtonOptions}
+        options={{
+          text: isEditMode ? 'บันทึก' : 'สร้าง',
+          type: 'default',
+          disabled: !isValid || isPending,
+          onClick: handleSubmit,
+        }}
       />
     </Popup>
   );
