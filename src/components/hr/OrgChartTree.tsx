@@ -3,6 +3,7 @@
 import { useCallback, useState, useMemo, useRef } from 'react';
 import TreeList, { Column, Editing, Selection, SearchPanel, HeaderFilter, Scrolling, Sorting, ColumnChooser, Lookup } from 'devextreme-react/tree-list';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { buddhistDateFormat } from '@/components/ui/dx-date-box';
 import { useToast } from '@/components/ui/toast';
 import type { OrgUnit, OrgUnitCreate, OrgUnitUpdate } from '@/types/hr';
 import type { RowInsertingEvent, RowUpdatingEvent, RowRemovingEvent, InitNewRowEvent, EditorPreparingEvent } from 'devextreme/ui/tree_list';
@@ -381,17 +382,27 @@ export function OrgChartTree({
         caption="วันที่เริ่มต้น"
         width={120}
         dataType="date"
-        format="dd/MM/yyyy"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        format={buddhistDateFormat as any}
         allowEditing
+        editorOptions={{
+          displayFormat: buddhistDateFormat,
+          type: 'date',
+        }}
       />
       <Column
         dataField="effectiveTo"
         caption="วันที่สิ้นสุด"
         width={120}
         dataType="date"
-        format="dd/MM/yyyy"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        format={buddhistDateFormat as any}
         visible={false}
         allowEditing
+        editorOptions={{
+          displayFormat: buddhistDateFormat,
+          type: 'date',
+        }}
       />
       <Column
         dataField="isActive"
