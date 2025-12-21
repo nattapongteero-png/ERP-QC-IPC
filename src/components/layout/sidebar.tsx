@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -44,15 +44,20 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
+  roles?: string[]; // Roles that can see this menu item (empty = all roles)
   children?: { name: string; href: string; icon?: React.ComponentType<{ className?: string }>; badge?: number }[];
 }
 
+// Define which roles can access which modules
+// Empty array or undefined = accessible to all authenticated users
+// 'admin' role can access everything
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // All users
   {
     name: 'Inventory',
     href: '/inventory',
     icon: Warehouse,
+    roles: ['admin', 'manager', 'warehouse', 'production', 'qc', 'purchasing'],
     children: [
       { name: 'Items', href: '/inventory/items', icon: Boxes },
       { name: 'Lots', href: '/inventory/lots', icon: Package },
@@ -65,6 +70,7 @@ const navigation: NavItem[] = [
     name: 'Production',
     href: '/production',
     icon: Factory,
+    roles: ['admin', 'manager', 'production', 'qc'],
     children: [
       { name: 'BOM/Recipes', href: '/production/bom', icon: FileText },
       { name: 'Work Orders', href: '/production/work-orders', icon: ClipboardList },
@@ -75,6 +81,7 @@ const navigation: NavItem[] = [
     name: 'Quality',
     href: '/quality',
     icon: ClipboardCheck,
+    roles: ['admin', 'manager', 'production', 'qc'],
     children: [
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },
@@ -85,6 +92,7 @@ const navigation: NavItem[] = [
     name: 'Purchasing',
     href: '/purchasing',
     icon: ShoppingCart,
+    roles: ['admin', 'manager', 'purchasing', 'warehouse'],
     children: [
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
@@ -96,6 +104,7 @@ const navigation: NavItem[] = [
     name: 'Sales',
     href: '/sales',
     icon: Truck,
+    roles: ['admin', 'manager', 'sales', 'warehouse'],
     children: [
       { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingBag },
       { name: 'Customers', href: '/sales/customers', icon: UserCheck },
@@ -105,6 +114,7 @@ const navigation: NavItem[] = [
     name: 'HR',
     href: '/hr',
     icon: UserCog,
+    roles: ['admin', 'manager', 'hr', 'hr_admin', 'hr_staff'],
     children: [
       { name: 'Organization', href: '/hr/org', icon: Network },
       { name: 'Employees', href: '/hr/employees', icon: Users },
@@ -117,9 +127,9 @@ const navigation: NavItem[] = [
       { name: 'Audit Trail', href: '/hr/audit', icon: History },
     ],
   },
-  { name: 'Reports', href: '/reports', icon: FileText },
-  { name: 'Users', href: '/users', icon: Users },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
+  { name: 'Users', href: '/users', icon: Users, roles: ['admin', 'manager'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin', 'manager'] },
 ];
 
 interface SidebarProps {
@@ -132,19 +142,63 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
+// Helper function to filter navigation based on role
+function getFilteredNavigation(role: string | undefined): NavItem[] {
+  return navigation.filter((item) => {
+    // If no roles specified, item is visible to all authenticated users
+    if (!item.roles || item.roles.length === 0) {
+      return true;
+    }
+    // Check if user's role is in the allowed roles
+    if (role) {
+      return item.roles.includes(role.toLowerCase());
+    }
+    return false;
+  });
+}
+
+// Helper to find parent item for current pathname
+function findParentForPath(pathname: string, navItems: NavItem[]): string | null {
+  const parentItem = navItems.find(
+    (item) => item.children && pathname.startsWith(item.href)
+  );
+  return parentItem?.name ?? null;
+}
+
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const prevPathnameRef = useRef<string | null>(null);
+
+  // Filter navigation items based on user role
+  const filteredNavigation = getFilteredNavigation(user?.role);
+
+  // Initialize expanded items with parent of current route
+  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    const parentName = findParentForPath(pathname, filteredNavigation);
+    return parentName ? [parentName] : [];
+  });
 
   // Auto-expand parent items when navigating to child routes
+  // This effect synchronizes the expanded state with the current route
   useEffect(() => {
-    const parentItem = navigation.find(
-      (item) => item.children && pathname.startsWith(item.href)
-    );
-    if (parentItem && !expandedItems.includes(parentItem.name)) {
-      setExpandedItems((prev) => [...prev, parentItem.name]);
+    // Skip on initial mount (handled by useState initializer)
+    if (prevPathnameRef.current === null) {
+      prevPathnameRef.current = pathname;
+      return;
     }
-  }, [pathname]);
+
+    // Only run when pathname actually changes
+    if (prevPathnameRef.current === pathname) {
+      return;
+    }
+    prevPathnameRef.current = pathname;
+
+    const parentItem = findParentForPath(pathname, filteredNavigation);
+    if (parentItem && !expandedItems.includes(parentItem)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate use: synchronizing expanded state with route navigation
+      setExpandedItems((prev) => [...prev, parentItem]);
+    }
+  }, [pathname, filteredNavigation, expandedItems]);
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/');
@@ -209,7 +263,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 md:py-6 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         <div className="space-y-1">
-          {navigation.map((item) => (
+          {filteredNavigation.map((item) => (
             <div key={item.name}>
               {item.children ? (
                 // Parent with children
