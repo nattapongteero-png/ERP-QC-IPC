@@ -36,7 +36,9 @@ describe('Inventory API', () => {
         is_fefo INTEGER DEFAULT 1,
         is_active INTEGER DEFAULT 1,
         tpp_code TEXT,
+        tpp_name TEXT,
         ttmt_code TEXT,
+        ttmt_name TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
