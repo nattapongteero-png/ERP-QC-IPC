@@ -2838,7 +2838,7 @@ export async function getHealthRecords(
 
   if (!includePrivate) {
     // Return only public fields
-    return records.map((r) => toPublicHealthRecord(r as HealthRecord));
+    return records.map((r: typeof records[number]) => toPublicHealthRecord(r as HealthRecord));
   }
 
   // Enrich with employee and recorder names
@@ -3283,7 +3283,7 @@ export async function getAppRoleById(id: number): Promise<AppRoleWithPermissions
 
   let permissions: AppPermission[] = [];
   if (rolePermissionIds.length > 0) {
-    const permIds = rolePermissionIds.map((rp) => rp.permissionId);
+    const permIds = rolePermissionIds.map((rp: typeof rolePermissionIds[number]) => rp.permissionId);
     permissions = await db
       .select()
       .from(tables.appPermissions)
@@ -3422,7 +3422,7 @@ export async function getRolePermissions(roleId: number): Promise<AppPermission[
 
   if (rolePermissionIds.length === 0) return [];
 
-  const permIds = rolePermissionIds.map((rp) => rp.permissionId);
+  const permIds = rolePermissionIds.map((rp: typeof rolePermissionIds[number]) => rp.permissionId);
   const permissions = await db
     .select()
     .from(tables.appPermissions)
@@ -3663,7 +3663,7 @@ export async function getEmployeePermissions(
   if (activeRoles.length === 0) return [];
 
   // Get all permission IDs for these roles
-  const roleIds = activeRoles.map((r) => r.roleId);
+  const roleIds = activeRoles.map((r: typeof activeRoles[number]) => r.roleId);
   const rolePermissions = await db
     .select({ permissionId: tables.rolePermissions.permissionId })
     .from(tables.rolePermissions)
@@ -3672,7 +3672,7 @@ export async function getEmployeePermissions(
   if (rolePermissions.length === 0) return [];
 
   // Get unique permissions
-  const permissionIds = [...new Set(rolePermissions.map((rp) => rp.permissionId))];
+  const permissionIds = [...new Set(rolePermissions.map((rp: typeof rolePermissions[number]) => rp.permissionId))];
   const permissions = await db
     .select()
     .from(tables.appPermissions)
@@ -3753,11 +3753,12 @@ const ACTION_LABELS: Record<HRAuditAction, string> = {
   HR_ORG_DELETE: 'ลบหน่วยงาน',
   HR_EMP_CREATE: 'สร้างข้อมูลพนักงาน',
   HR_EMP_UPDATE: 'แก้ไขข้อมูลพนักงาน',
-  HR_EMP_TERMINATE: 'ปลดพนักงาน',
-  HR_POSITION_CREATE: 'สร้างตำแหน่ง',
-  HR_POSITION_UPDATE: 'แก้ไขตำแหน่ง',
-  HR_TRAINING_CREATE: 'สร้างหลักสูตรอบรม',
-  HR_TRAINING_RECORD: 'บันทึกผลอบรม',
+  HR_EMP_DEACTIVATE: 'ปลดพนักงาน',
+  HR_POS_CREATE: 'สร้างตำแหน่ง',
+  HR_POS_UPDATE: 'แก้ไขตำแหน่ง',
+  HR_JD_CREATE: 'สร้างรายละเอียดงาน',
+  HR_JD_APPROVE: 'อนุมัติรายละเอียดงาน',
+  HR_TRAINING_COMPLETE: 'บันทึกผลอบรม',
   HR_AUTH_GRANT: 'มอบสิทธิ์',
   HR_AUTH_REVOKE: 'ยกเลิกสิทธิ์',
   HR_DELEGATE_CREATE: 'สร้างมอบอำนาจ',
@@ -3943,7 +3944,7 @@ export async function getAccessReviewReport(): Promise<AccessReviewEntry[]> {
     report.push({
       employeeId: employee.id,
       employeeName: `${employee.firstName} ${employee.lastName}`,
-      roles: employeeRoles.map((r) => ({
+      roles: employeeRoles.map((r: typeof employeeRoles[number]) => ({
         roleId: r.roleId,
         roleName: r.roleName || '',
         effectiveFrom: r.effectiveFrom,
@@ -4011,7 +4012,7 @@ export async function getAuditSummary(
 
   const results = await query;
 
-  return results.map((r) => ({
+  return results.map((r: typeof results[number]) => ({
     action: r.action as HRAuditAction,
     actionLabel: ACTION_LABELS[r.action as HRAuditAction] || r.action,
     count: Number(r.count),
@@ -4044,7 +4045,7 @@ export async function createNotification(
   data: HRNotificationCreate
 ): Promise<HRNotification> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   const result = await db.insert(tables.notifications).values({
     employeeId: data.employeeId,
@@ -4077,7 +4078,7 @@ export async function getNotificationById(
   id: number
 ): Promise<HRNotification | null> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   const result = await db
     .select()
@@ -4109,7 +4110,7 @@ export async function getEmployeeNotifications(
   options?: { unreadOnly?: boolean; limit?: number }
 ): Promise<HRNotification[]> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   const conditions: SQL[] = [eq(tables.notifications.employeeId, employeeId)];
 
@@ -4129,7 +4130,7 @@ export async function getEmployeeNotifications(
 
   const results = await query;
 
-  return results.map((r) => ({
+  return results.map((r: typeof results[number]) => ({
     id: r.id,
     employeeId: r.employeeId,
     type: r.type as NotificationType,
@@ -4150,7 +4151,7 @@ export async function getUnreadNotificationCount(
   employeeId: number
 ): Promise<number> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   const result = await db
     .select({ count: sql<number>`COUNT(*)` })
@@ -4170,7 +4171,7 @@ export async function getUnreadNotificationCount(
  */
 export async function markNotificationRead(id: number): Promise<void> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   await db
     .update(tables.notifications)
@@ -4186,7 +4187,7 @@ export async function markNotificationRead(id: number): Promise<void> {
  */
 export async function markAllNotificationsRead(employeeId: number): Promise<void> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   await db
     .update(tables.notifications)
@@ -4207,7 +4208,7 @@ export async function markAllNotificationsRead(employeeId: number): Promise<void
  */
 export async function deleteNotification(id: number): Promise<void> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   await db
     .delete(tables.notifications)
@@ -4222,7 +4223,7 @@ export async function checkTrainingExpirations(
   withinDays: number = 30
 ): Promise<{ created: number; notifications: HRNotification[] }> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const isSqlite = useSqlite();
 
@@ -4329,7 +4330,7 @@ export async function checkTrainingExpired(): Promise<{
   notifications: HRNotification[];
 }> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -4402,19 +4403,19 @@ export async function checkHealthChecksDue(
   withinDays: number = 30
 ): Promise<{ created: number; notifications: HRNotification[] }> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   const today = new Date();
   const futureDate = new Date(today.getTime() + withinDays * 24 * 60 * 60 * 1000);
   const todayStr = today.toISOString().split('T')[0];
   const futureDateStr = futureDate.toISOString().split('T')[0];
 
-  // Find health records with nextCheckDate due within the specified days
+  // Find health records with nextExamDue due within the specified days
   const dueRecords = await db
     .select({
       id: tables.healthRecords.id,
       employeeId: tables.healthRecords.employeeId,
-      nextCheckDate: tables.healthRecords.nextCheckDate,
+      nextExamDue: tables.healthRecords.nextExamDue,
       examinationType: tables.healthRecords.examinationType,
       employeeCode: tables.employees.employeeCode,
       firstName: tables.employees.firstName,
@@ -4427,8 +4428,8 @@ export async function checkHealthChecksDue(
     )
     .where(
       and(
-        sql`${tables.healthRecords.nextCheckDate} >= ${todayStr}`,
-        sql`${tables.healthRecords.nextCheckDate} <= ${futureDateStr}`
+        sql`${tables.healthRecords.nextExamDue} >= ${todayStr}`,
+        sql`${tables.healthRecords.nextExamDue} <= ${futureDateStr}`
       )
     );
 
@@ -4457,8 +4458,8 @@ export async function checkHealthChecksDue(
       .limit(1);
 
     if (existing.length === 0) {
-      const nextCheckDate = record.nextCheckDate
-        ? new Date(String(record.nextCheckDate)).toLocaleDateString('th-TH')
+      const nextExamDue = record.nextExamDue
+        ? new Date(String(record.nextExamDue)).toLocaleDateString('th-TH')
         : 'N/A';
       const examType =
         examTypeLabels[record.examinationType] || record.examinationType;
@@ -4466,7 +4467,7 @@ export async function checkHealthChecksDue(
         employeeId: record.employeeId,
         type: 'health_check_due',
         title: `ถึงกำหนด${examType}`,
-        message: `กรุณานัดตรวจสุขภาพภายในวันที่ ${nextCheckDate}`,
+        message: `กรุณานัดตรวจสุขภาพภายในวันที่ ${nextExamDue}`,
         referenceType: 'health_record',
         referenceId: record.id,
       });
@@ -4486,7 +4487,7 @@ export async function checkHealthChecksOverdue(): Promise<{
   notifications: HRNotification[];
 }> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -4496,11 +4497,11 @@ export async function checkHealthChecksOverdue(): Promise<{
     .select({
       id: tables.healthRecords.id,
       employeeId: tables.healthRecords.employeeId,
-      nextCheckDate: tables.healthRecords.nextCheckDate,
+      nextExamDue: tables.healthRecords.nextExamDue,
       examinationType: tables.healthRecords.examinationType,
     })
     .from(tables.healthRecords)
-    .where(sql`${tables.healthRecords.nextCheckDate} < ${todayStr}`);
+    .where(sql`${tables.healthRecords.nextExamDue} < ${todayStr}`);
 
   const notifications: HRNotification[] = [];
   const examTypeLabels: Record<string, string> = {
@@ -4531,8 +4532,8 @@ export async function checkHealthChecksOverdue(): Promise<{
       .limit(1);
 
     if (existing.length === 0) {
-      const nextCheckDate = record.nextCheckDate
-        ? new Date(String(record.nextCheckDate)).toLocaleDateString('th-TH')
+      const nextExamDue = record.nextExamDue
+        ? new Date(String(record.nextExamDue)).toLocaleDateString('th-TH')
         : 'N/A';
       const examType =
         examTypeLabels[record.examinationType] || record.examinationType;
@@ -4540,7 +4541,7 @@ export async function checkHealthChecksOverdue(): Promise<{
         employeeId: record.employeeId,
         type: 'health_check_overdue' as NotificationType,
         title: `${examType} เลยกำหนดแล้ว`,
-        message: `การตรวจสุขภาพเลยกำหนดตั้งแต่วันที่ ${nextCheckDate} กรุณาติดต่อ HR`,
+        message: `การตรวจสุขภาพเลยกำหนดตั้งแต่วันที่ ${nextExamDue} กรุณาติดต่อ HR`,
         referenceType: 'health_record',
         referenceId: record.id,
       });
@@ -4558,7 +4559,7 @@ export async function getAllPendingNotifications(
   options?: { limit?: number; type?: NotificationType }
 ): Promise<HRNotificationWithEmployee[]> {
   const tables = getHRTables();
-  const db = getDb();
+  const db = await getDb();
 
   const conditions: SQL[] = [eq(tables.notifications.isRead, false)];
 
@@ -4596,7 +4597,7 @@ export async function getAllPendingNotifications(
 
   const results = await query;
 
-  return results.map((r) => ({
+  return results.map((r: typeof results[number]) => ({
     id: r.id,
     employeeId: r.employeeId,
     type: r.type as NotificationType,

@@ -4,7 +4,11 @@ import { useMemo } from 'react';
 import DateBox from 'devextreme-react/date-box';
 import Validator, { RequiredRule, RangeRule } from 'devextreme-react/validator';
 import type { DateBoxTypes } from 'devextreme-react/date-box';
-import type { Format } from 'devextreme/common';
+// Custom format type for DevExtreme DateBox displayFormat
+interface CustomDateFormat {
+  formatter: (value: number | Date) => string;
+  parser: (text: string) => Date | null;
+}
 
 export type DxDateBoxType = 'date' | 'time' | 'datetime';
 
@@ -65,9 +69,11 @@ export interface DxDateBoxProps {
  * Buddhist Era date formatter (DD/MM/YYYY+543)
  * Exported for testing purposes
  */
-export const buddhistDateFormat: Format = {
-  formatter: (date: Date): string => {
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '';
+export const buddhistDateFormat: CustomDateFormat = {
+  formatter: (value: number | Date): string => {
+    if (value === null || value === undefined) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (!date || isNaN(date.getTime())) return '';
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const buddhistYear = date.getFullYear() + 543;
@@ -87,9 +93,11 @@ export const buddhistDateFormat: Format = {
  * Buddhist Era datetime formatter (DD/MM/YYYY+543 HH:mm)
  * Exported for testing purposes
  */
-export const buddhistDateTimeFormat: Format = {
-  formatter: (date: Date): string => {
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '';
+export const buddhistDateTimeFormat: CustomDateFormat = {
+  formatter: (value: number | Date): string => {
+    if (value === null || value === undefined) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (!date || isNaN(date.getTime())) return '';
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const buddhistYear = date.getFullYear() + 543;
@@ -198,7 +206,8 @@ export function DxDateBox({
 
   // Use Buddhist Era formatter based on type
   // DevExtreme accepts { formatter, parser } object for custom date formatting
-  const buddhistFormat: Format | string = useMemo(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buddhistFormat: any = useMemo(() => {
     if (displayFormat) return displayFormat; // Allow override with explicit format string
     if (type === 'time') return 'HH:mm';
     if (type === 'datetime') return buddhistDateTimeFormat;

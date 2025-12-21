@@ -16,6 +16,7 @@ import {
   healthRecordCreateSchema,
   healthRecordQuerySchema,
 } from '@/lib/validation/hr';
+import { hasPermission, type Role } from '@/lib/auth';
 import type { ExaminationType, FitnessStatus } from '@/types/hr';
 
 // GET /api/hr/health-records - List health records (filtered by role)
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Check if user has health_staff permission for full details
-        const hasHealthStaffPermission = session.permissions?.includes('hr:health_staff');
+        const hasHealthStaffPermission = hasPermission(session.role as Role, 'hr:health_staff');
 
         const records = await getHealthRecords(filters, hasHealthStaffPermission);
         return successResponse(records);

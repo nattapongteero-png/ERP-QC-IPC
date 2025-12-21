@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Exclude reference folder (external example code)
+    "reference/**",
   ]),
 ]);
 

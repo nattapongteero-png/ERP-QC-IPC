@@ -14,6 +14,7 @@ import {
   updateHealthRecord,
 } from '@/lib/services/hr.service';
 import { healthRecordUpdateSchema } from '@/lib/validation/hr';
+import { hasPermission, type Role } from '@/lib/auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         const { id } = await params;
 
         // Check if user has health_staff permission for full details
-        const hasHealthStaffPermission = session.permissions?.includes('hr:health_staff');
+        const hasHealthStaffPermission = hasPermission(session.role as Role, 'hr:health_staff');
 
         const record = await getHealthRecordById(Number(id), hasHealthStaffPermission);
 
@@ -64,7 +65,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           return errorResponse('Validation failed', 400, { errors });
         }
 
-        const record = await updateHealthRecord(Number(id), parseResult.data);
+        // Transform null values to undefined for service compatibility
+        const updateData = Object.fromEntries(
+          Object.entries(parseResult.data).map(([key, value]) => [key, value === null ? undefined : value])
+        );
+        const record = await updateHealthRecord(Number(id), updateData);
         return successResponse(record, 'Health record updated successfully');
       } catch (error) {
         if (error instanceof Error) {

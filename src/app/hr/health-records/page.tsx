@@ -122,7 +122,7 @@ export default function HealthRecordsPage() {
     employeeId: undefined as number | undefined,
     examinationType: undefined as ExaminationType | undefined,
     examinationDate: new Date().toISOString().split('T')[0],
-    nextExamDue: '',
+    nextExamDue: '' as string | undefined,
     fitnessStatus: undefined as FitnessStatus | undefined,
     restrictions: '',
     affectedAreas: [] as string[],

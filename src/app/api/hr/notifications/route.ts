@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         return serverErrorResponse(error);
       }
     },
-    ['hr:admin', 'hr:viewer']
+    ['hr:read']
   );
 }
 

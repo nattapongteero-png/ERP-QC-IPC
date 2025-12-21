@@ -69,7 +69,7 @@ async function fetchAccessReview(): Promise<AccessReviewEntry[]> {
 const ACTION_COLORS: Partial<Record<HRAuditAction, string>> = {
   HR_EMP_CREATE: 'bg-green-100 text-green-800',
   HR_EMP_UPDATE: 'bg-blue-100 text-blue-800',
-  HR_EMP_TERMINATE: 'bg-red-100 text-red-800',
+  HR_EMP_DEACTIVATE: 'bg-red-100 text-red-800',
   HR_AUTH_GRANT: 'bg-purple-100 text-purple-800',
   HR_AUTH_REVOKE: 'bg-orange-100 text-orange-800',
   HR_ROLE_ASSIGN: 'bg-indigo-100 text-indigo-800',

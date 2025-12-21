@@ -39,7 +39,7 @@ export async function GET(
         return serverErrorResponse(error);
       }
     },
-    ['hr:admin', 'hr:viewer']
+    ['hr:read']
   );
 }
 
@@ -73,7 +73,7 @@ export async function PUT(
         return serverErrorResponse(error);
       }
     },
-    ['hr:admin']
+    ['hr:write']
   );
 }
 
@@ -107,6 +107,6 @@ export async function DELETE(
         return serverErrorResponse(error);
       }
     },
-    ['hr:admin']
+    ['hr:write']
   );
 }
