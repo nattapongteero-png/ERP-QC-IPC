@@ -3,7 +3,7 @@
 // HR Roles Management Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -153,9 +153,9 @@ export default function RolesPage() {
     queryFn: fetchPermissions,
   });
 
-  // Ensure data is always an array
-  const roles = Array.isArray(rolesData) ? rolesData : [];
-  const permissions = Array.isArray(permissionsData) ? permissionsData : [];
+  // Ensure data is always an array - memoized for stable references
+  const roles = useMemo(() => Array.isArray(rolesData) ? rolesData : [], [rolesData]);
+  const permissions = useMemo(() => Array.isArray(permissionsData) ? permissionsData : [], [permissionsData]);
 
   const createMutation = useMutation({
     mutationFn: createRole,
@@ -265,17 +265,19 @@ export default function RolesPage() {
     setShowPermissionsPopup(true);
   };
 
-  // Group permissions by module
-  const permissionsByModule = permissions.reduce(
-    (acc, perm) => {
-      if (!acc[perm.module]) {
-        acc[perm.module] = [];
-      }
-      acc[perm.module].push(perm);
-      return acc;
-    },
-    {} as Record<string, AppPermission[]>
-  );
+  // Group permissions by module - memoized to prevent re-renders
+  const permissionsByModule = useMemo(() => {
+    return permissions.reduce(
+      (acc, perm) => {
+        if (!acc[perm.module]) {
+          acc[perm.module] = [];
+        }
+        acc[perm.module].push(perm);
+        return acc;
+      },
+      {} as Record<string, AppPermission[]>
+    );
+  }, [permissions]);
 
   const renderStatusCell = (cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
