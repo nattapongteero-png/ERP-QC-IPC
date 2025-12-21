@@ -455,5 +455,14 @@ export async function initializeDatabaseWithSync(): Promise<void> {
     // Don't throw - allow server to start even if seeding fails
   }
 
+  // Seed HR lookup tables if they are empty
+  try {
+    const { seedHRTables } = await import('./seed-hr');
+    await seedHRTables();
+  } catch (error) {
+    console.error('[Database] Failed to seed HR tables:', error);
+    // Don't throw - allow server to start even if seeding fails
+  }
+
   console.log('[Database] Database initialization complete.');
 }
