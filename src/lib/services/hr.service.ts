@@ -54,6 +54,9 @@ import type {
   EmployeeUpdate,
   EmployeeSummary,
   EmployeeProfile,
+  JobDescription,
+  JobDescriptionCreate,
+  JobDescriptionStatus,
 } from '@/types/hr';
 
 // ============================================
@@ -492,7 +495,17 @@ export async function createPosition(data: PositionCreate): Promise<Position> {
     ? (result as unknown as { lastInsertRowid: number }).lastInsertRowid
     : (result as unknown as [{ insertId: number }])[0].insertId;
 
-  return (await getPositionById(Number(insertedId)))!;
+  const position = (await getPositionById(Number(insertedId)))!;
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_positions',
+    recordId: Number(insertedId),
+    newValue: insertData as unknown as Record<string, unknown>,
+  });
+
+  return position;
 }
 
 export async function updatePosition(
@@ -529,6 +542,15 @@ export async function updatePosition(
       .update(tables.positions)
       .set(updateData)
       .where(eq(tables.positions.id, id));
+
+    // Audit log
+    await createAuditLog({
+      action: 'UPDATE',
+      tableName: 'hr_positions',
+      recordId: id,
+      oldValue: existing as unknown as Record<string, unknown>,
+      newValue: updateData,
+    });
   }
 
   return (await getPositionById(id))!;
@@ -893,4 +915,299 @@ export async function createEmployeeAssignment(data: {
   // Get the created assignment
   const assignments = await getEmployeeAssignments(data.employeeId);
   return assignments.find((a) => a.id === Number(insertedId))!;
+}
+
+// ============================================
+// Job Description Service
+// ============================================
+
+export async function getJobDescriptions(filters?: {
+  positionId?: number;
+  status?: JobDescriptionStatus;
+}): Promise<JobDescription[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions = [];
+
+  if (filters?.positionId) {
+    conditions.push(eq(tables.jobDescriptions.positionId, filters.positionId));
+  }
+  if (filters?.status) {
+    conditions.push(eq(tables.jobDescriptions.status, filters.status));
+  }
+
+  let query = db.select().from(tables.jobDescriptions);
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  const results = await query.orderBy(desc(tables.jobDescriptions.createdAt));
+  return results as unknown as JobDescription[];
+}
+
+export async function getJobDescriptionById(id: number): Promise<JobDescription | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const results = await db
+    .select()
+    .from(tables.jobDescriptions)
+    .where(eq(tables.jobDescriptions.id, id))
+    .limit(1);
+
+  return results.length > 0 ? (results[0] as unknown as JobDescription) : null;
+}
+
+export async function getCurrentJobDescription(positionId: number): Promise<JobDescription | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Get the most recent approved JD for this position
+  const results = await db
+    .select()
+    .from(tables.jobDescriptions)
+    .where(
+      and(
+        eq(tables.jobDescriptions.positionId, positionId),
+        eq(tables.jobDescriptions.status, 'approved')
+      )
+    )
+    .orderBy(desc(tables.jobDescriptions.effectiveFrom))
+    .limit(1);
+
+  return results.length > 0 ? (results[0] as unknown as JobDescription) : null;
+}
+
+export async function getNextJDVersion(positionId: number): Promise<string> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Get all JDs for this position to determine next version
+  const existing = await db
+    .select({ version: tables.jobDescriptions.version })
+    .from(tables.jobDescriptions)
+    .where(eq(tables.jobDescriptions.positionId, positionId))
+    .orderBy(desc(tables.jobDescriptions.version));
+
+  if (existing.length === 0) {
+    return '1.0';
+  }
+
+  // Parse current highest version and increment
+  const currentVersion = existing[0].version;
+  const parts = currentVersion.split('.');
+  const major = parseInt(parts[0], 10) || 1;
+  const minor = parseInt(parts[1], 10) || 0;
+
+  return `${major}.${minor + 1}`;
+}
+
+export async function createJobDescription(data: JobDescriptionCreate): Promise<JobDescription> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Validate position exists
+  const position = await getPositionById(data.positionId);
+  if (!position) {
+    throw new Error('Position not found');
+  }
+
+  // Auto-generate version if not provided
+  const version = data.version || await getNextJDVersion(data.positionId);
+
+  const insertData = {
+    positionId: data.positionId,
+    version,
+    responsibilities: data.responsibilities || null,
+    authorities: data.authorities || null,
+    qualifications: data.qualifications || null,
+    documentPath: data.documentPath || null,
+    status: 'draft' as const,
+    effectiveFrom: null,
+    effectiveTo: null,
+    approvedBy: null,
+    approvedAt: null,
+  };
+
+  const result = await db.insert(tables.jobDescriptions).values(insertData);
+
+  const insertedId = tables.isSqlite
+    ? (result as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (result as unknown as [{ insertId: number }])[0].insertId;
+
+  const jd = (await getJobDescriptionById(Number(insertedId)))!;
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_job_descriptions',
+    recordId: Number(insertedId),
+    newValue: insertData as unknown as Record<string, unknown>,
+  });
+
+  return jd;
+}
+
+export async function updateJobDescription(
+  id: number,
+  data: Partial<JobDescriptionCreate>
+): Promise<JobDescription> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getJobDescriptionById(id);
+  if (!existing) {
+    throw new Error('Job description not found');
+  }
+
+  // Only allow updates to draft JDs
+  if (existing.status !== 'draft') {
+    throw new Error('Can only update draft job descriptions');
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (data.responsibilities !== undefined) updateData.responsibilities = data.responsibilities;
+  if (data.authorities !== undefined) updateData.authorities = data.authorities;
+  if (data.qualifications !== undefined) updateData.qualifications = data.qualifications;
+  if (data.documentPath !== undefined) updateData.documentPath = data.documentPath;
+
+  if (Object.keys(updateData).length > 0) {
+    await db
+      .update(tables.jobDescriptions)
+      .set(updateData)
+      .where(eq(tables.jobDescriptions.id, id));
+
+    // Audit log
+    await createAuditLog({
+      action: 'UPDATE',
+      tableName: 'hr_job_descriptions',
+      recordId: id,
+      oldValue: existing as unknown as Record<string, unknown>,
+      newValue: updateData,
+    });
+  }
+
+  return (await getJobDescriptionById(id))!;
+}
+
+export async function submitJobDescriptionForApproval(id: number): Promise<JobDescription> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getJobDescriptionById(id);
+  if (!existing) {
+    throw new Error('Job description not found');
+  }
+
+  if (existing.status !== 'draft') {
+    throw new Error('Only draft job descriptions can be submitted for approval');
+  }
+
+  await db
+    .update(tables.jobDescriptions)
+    .set({ status: 'pending_approval' })
+    .where(eq(tables.jobDescriptions.id, id));
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_job_descriptions',
+    recordId: id,
+    oldValue: { status: existing.status },
+    newValue: { status: 'pending_approval' },
+  });
+
+  return (await getJobDescriptionById(id))!;
+}
+
+export async function approveJobDescription(
+  id: number,
+  approverId: number,
+  effectiveFrom: string
+): Promise<JobDescription> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getJobDescriptionById(id);
+  if (!existing) {
+    throw new Error('Job description not found');
+  }
+
+  if (existing.status !== 'pending_approval') {
+    throw new Error('Only pending job descriptions can be approved');
+  }
+
+  // Mark previous approved JDs as obsolete
+  await db
+    .update(tables.jobDescriptions)
+    .set({
+      status: 'obsolete',
+      effectiveTo: effectiveFrom,
+    })
+    .where(
+      and(
+        eq(tables.jobDescriptions.positionId, existing.positionId),
+        eq(tables.jobDescriptions.status, 'approved')
+      )
+    );
+
+  // Approve current JD
+  const now = new Date().toISOString();
+  await db
+    .update(tables.jobDescriptions)
+    .set({
+      status: 'approved',
+      effectiveFrom,
+      approvedBy: approverId,
+      approvedAt: now,
+    })
+    .where(eq(tables.jobDescriptions.id, id));
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_job_descriptions',
+    recordId: id,
+    oldValue: { status: existing.status },
+    newValue: {
+      status: 'approved',
+      effectiveFrom,
+      approvedBy: approverId,
+      approvedAt: now,
+    },
+  });
+
+  return (await getJobDescriptionById(id))!;
+}
+
+export async function rejectJobDescription(id: number): Promise<JobDescription> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getJobDescriptionById(id);
+  if (!existing) {
+    throw new Error('Job description not found');
+  }
+
+  if (existing.status !== 'pending_approval') {
+    throw new Error('Only pending job descriptions can be rejected');
+  }
+
+  // Reset back to draft
+  await db
+    .update(tables.jobDescriptions)
+    .set({ status: 'draft' })
+    .where(eq(tables.jobDescriptions.id, id));
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_job_descriptions',
+    recordId: id,
+    oldValue: { status: existing.status },
+    newValue: { status: 'draft' },
+  });
+
+  return (await getJobDescriptionById(id))!;
 }

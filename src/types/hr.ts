@@ -144,7 +144,7 @@ export interface JobDescription {
 
 export interface JobDescriptionCreate {
   positionId: number;
-  version: string;
+  version?: string; // Auto-generated if not provided
   responsibilities?: string;
   authorities?: string;
   qualifications?: string;

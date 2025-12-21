@@ -14,3 +14,6 @@ export type { OrgUnitPickerProps } from './OrgUnitPicker';
 
 export { EmployeeLookup } from './EmployeeLookup';
 export type { EmployeeLookupProps } from './EmployeeLookup';
+
+export { PositionSelect } from './PositionSelect';
+export type { PositionSelectProps } from './PositionSelect';

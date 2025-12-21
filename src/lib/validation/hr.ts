@@ -143,8 +143,15 @@ export const jobDescriptionCreateSchema = z.object({
   positionId: z.number().int().positive('กรุณาเลือกตำแหน่ง'),
   version: z
     .string()
-    .min(1, 'เวอร์ชันจำเป็น')
-    .max(10, 'เวอร์ชันต้องไม่เกิน 10 ตัวอักษร'),
+    .max(10, 'เวอร์ชันต้องไม่เกิน 10 ตัวอักษร')
+    .optional(), // Auto-generated if not provided
+  responsibilities: z.string().optional(),
+  authorities: z.string().optional(),
+  qualifications: z.string().optional(),
+  documentPath: z.string().max(255).optional(),
+});
+
+export const jobDescriptionUpdateSchema = z.object({
   responsibilities: z.string().optional(),
   authorities: z.string().optional(),
   qualifications: z.string().optional(),
@@ -479,6 +486,7 @@ export type OrgUnitUpdateInput = z.infer<typeof orgUnitUpdateSchema>;
 export type PositionCreateInput = z.infer<typeof positionCreateSchema>;
 export type PositionUpdateInput = z.infer<typeof positionUpdateSchema>;
 export type JobDescriptionCreateInput = z.infer<typeof jobDescriptionCreateSchema>;
+export type JobDescriptionUpdateInput = z.infer<typeof jobDescriptionUpdateSchema>;
 export type EmployeeCreateInput = z.infer<typeof employeeCreateSchema>;
 export type EmployeeUpdateInput = z.infer<typeof employeeUpdateSchema>;
 export type EmployeeAssignmentCreateInput = z.infer<typeof employeeAssignmentCreateSchema>;
