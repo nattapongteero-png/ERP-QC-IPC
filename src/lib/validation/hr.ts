@@ -244,10 +244,10 @@ export const trainingCourseCreateSchema = z.object({
   nameEn: z.string().max(100).optional(),
   description: z.string().optional(),
   category: z.string().max(50).optional(),
-  validityDays: z.number().int().positive().nullable().optional(),
-  isMandatory: z.boolean().default(false),
+  validityDays: z.number().int().positive().optional(),
+  isMandatory: z.boolean().optional().default(false),
   targetPositions: z.array(z.number().int().positive()).optional(),
-  durationHours: z.number().positive().nullable().optional(),
+  durationHours: z.number().positive().optional(),
 });
 
 export const trainingCourseUpdateSchema = z.object({
@@ -255,10 +255,10 @@ export const trainingCourseUpdateSchema = z.object({
   nameEn: z.string().max(100).optional(),
   description: z.string().optional(),
   category: z.string().max(50).optional(),
-  validityDays: z.number().int().positive().nullable().optional(),
+  validityDays: z.number().int().positive().optional(),
   isMandatory: z.boolean().optional(),
   targetPositions: z.array(z.number().int().positive()).optional(),
-  durationHours: z.number().positive().nullable().optional(),
+  durationHours: z.number().positive().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -282,7 +282,7 @@ export const trainingSessionCreateSchema = z.object({
   location: z.string().max(100).optional(),
   instructorId: z.number().int().positive().optional(),
   instructorExternal: z.string().max(100).optional(),
-  maxParticipants: z.number().int().positive().nullable().optional(),
+  maxParticipants: z.number().int().positive().optional(),
 });
 
 export const trainingSessionUpdateSchema = z.object({
@@ -299,10 +299,11 @@ export const trainingSessionUpdateSchema = z.object({
     .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
     .optional(),
   location: z.string().max(100).optional(),
-  instructorId: z.number().int().positive().nullable().optional(),
+  instructorId: z.number().int().positive().optional(),
   instructorExternal: z.string().max(100).optional(),
-  maxParticipants: z.number().int().positive().nullable().optional(),
+  maxParticipants: z.number().int().positive().optional(),
   status: trainingSessionStatusSchema.optional(),
+  notes: z.string().optional(),
 });
 
 // ============================================
@@ -317,7 +318,7 @@ export const trainingRecordCreateSchema = z.object({
     message: 'วันที่เสร็จสิ้นต้องเป็นวันที่ที่ถูกต้อง',
   }),
   result: trainingResultSchema,
-  score: z.number().min(0).max(100).nullable().optional(),
+  score: z.number().min(0).max(100).optional(),
   assessedBy: z.number().int().positive().optional(),
   certificateNumber: z.string().max(50).optional(),
   notes: z.string().optional(),

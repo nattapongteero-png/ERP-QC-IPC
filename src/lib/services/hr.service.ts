@@ -1,7 +1,7 @@
 // HR/Personnel Management Service
 // Feature: 007-hr-personnel-management
 
-import { eq, and, like, or, sql, isNull, desc } from 'drizzle-orm';
+import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
 import { getDb, useSqlite } from '../db';
 import { createAuditLog } from '../audit';
 import {
@@ -57,6 +57,18 @@ import type {
   JobDescription,
   JobDescriptionCreate,
   JobDescriptionStatus,
+  TrainingCourse,
+  TrainingCourseCreate,
+  TrainingSession,
+  TrainingSessionCreate,
+  TrainingSessionStatus,
+  TrainingRecord,
+  TrainingRecordCreate,
+  TrainingRecordWithStatus,
+  TrainingRecordStatus,
+  TrainingResult,
+  CompetencyMatrix,
+  CompetencyMatrixEntry,
 } from '@/types/hr';
 
 // ============================================
@@ -1210,4 +1222,825 @@ export async function rejectJobDescription(id: number): Promise<JobDescription> 
   });
 
   return (await getJobDescriptionById(id))!;
+}
+
+// ============================================
+// Training Course Functions (T056)
+// ============================================
+
+export interface TrainingCourseFilters {
+  category?: string;
+  isMandatory?: boolean;
+  isActive?: boolean;
+  search?: string;
+}
+
+export async function getTrainingCourses(
+  filters?: TrainingCourseFilters
+): Promise<TrainingCourse[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+
+  if (filters?.category) {
+    conditions.push(eq(tables.trainingCourses.category, filters.category));
+  }
+  if (filters?.isMandatory !== undefined) {
+    conditions.push(eq(tables.trainingCourses.isMandatory, filters.isMandatory));
+  }
+  if (filters?.isActive !== undefined) {
+    conditions.push(eq(tables.trainingCourses.isActive, filters.isActive));
+  }
+  if (filters?.search) {
+    conditions.push(
+      or(
+        sql`${tables.trainingCourses.code} LIKE ${'%' + filters.search + '%'}`,
+        sql`${tables.trainingCourses.name} LIKE ${'%' + filters.search + '%'}`,
+        sql`${tables.trainingCourses.nameEn} LIKE ${'%' + filters.search + '%'}`
+      )!
+    );
+  }
+
+  const courses = await db
+    .select()
+    .from(tables.trainingCourses)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(tables.trainingCourses.name);
+
+  return courses as TrainingCourse[];
+}
+
+export async function getTrainingCourseById(
+  id: number
+): Promise<TrainingCourse | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [course] = await db
+    .select()
+    .from(tables.trainingCourses)
+    .where(eq(tables.trainingCourses.id, id));
+
+  return course as TrainingCourse | null;
+}
+
+export async function createTrainingCourse(
+  data: TrainingCourseCreate
+): Promise<TrainingCourse> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const insertData = {
+    code: data.code,
+    name: data.name,
+    nameEn: data.nameEn || null,
+    description: data.description || null,
+    category: data.category || null,
+    validityDays: data.validityDays || null,
+    isMandatory: data.isMandatory ?? false,
+    targetPositions: data.targetPositions ? JSON.stringify(data.targetPositions) : null,
+    durationHours: data.durationHours || null,
+    isActive: true,
+  };
+
+  const result = await db.insert(tables.trainingCourses).values(insertData);
+  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_training_courses',
+    recordId: id,
+    newValue: insertData,
+  });
+
+  return (await getTrainingCourseById(id))!;
+}
+
+export async function updateTrainingCourse(
+  id: number,
+  data: Partial<TrainingCourseCreate>
+): Promise<TrainingCourse> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getTrainingCourseById(id);
+  if (!existing) {
+    throw new Error('Training course not found');
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.nameEn !== undefined) updateData.nameEn = data.nameEn || null;
+  if (data.description !== undefined) updateData.description = data.description || null;
+  if (data.category !== undefined) updateData.category = data.category || null;
+  if (data.validityDays !== undefined) updateData.validityDays = data.validityDays || null;
+  if (data.isMandatory !== undefined) updateData.isMandatory = data.isMandatory;
+  if (data.targetPositions !== undefined) {
+    updateData.targetPositions = data.targetPositions ? JSON.stringify(data.targetPositions) : null;
+  }
+  if (data.durationHours !== undefined) updateData.durationHours = data.durationHours || null;
+
+  if (Object.keys(updateData).length > 0) {
+    await db
+      .update(tables.trainingCourses)
+      .set(updateData)
+      .where(eq(tables.trainingCourses.id, id));
+
+    // Audit log
+    await createAuditLog({
+      action: 'UPDATE',
+      tableName: 'hr_training_courses',
+      recordId: id,
+      oldValue: existing,
+      newValue: updateData,
+    });
+  }
+
+  return (await getTrainingCourseById(id))!;
+}
+
+export async function deactivateTrainingCourse(id: number): Promise<TrainingCourse> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getTrainingCourseById(id);
+  if (!existing) {
+    throw new Error('Training course not found');
+  }
+
+  await db
+    .update(tables.trainingCourses)
+    .set({ isActive: false })
+    .where(eq(tables.trainingCourses.id, id));
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_training_courses',
+    recordId: id,
+    oldValue: { isActive: true },
+    newValue: { isActive: false },
+  });
+
+  return (await getTrainingCourseById(id))!;
+}
+
+// ============================================
+// Training Session Functions (T057)
+// ============================================
+
+export interface TrainingSessionWithDetails extends TrainingSession {
+  courseName?: string;
+  courseCode?: string;
+  instructorName?: string;
+  participantCount?: number;
+}
+
+export interface TrainingSessionFilters {
+  courseId?: number;
+  status?: TrainingSessionStatus;
+  instructorId?: number;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export async function getTrainingSessions(
+  filters?: TrainingSessionFilters
+): Promise<TrainingSessionWithDetails[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+
+  if (filters?.courseId) {
+    conditions.push(eq(tables.trainingSessions.courseId, filters.courseId));
+  }
+  if (filters?.status) {
+    conditions.push(eq(tables.trainingSessions.status, filters.status));
+  }
+  if (filters?.instructorId) {
+    conditions.push(eq(tables.trainingSessions.instructorId, filters.instructorId));
+  }
+  if (filters?.fromDate) {
+    conditions.push(sql`${tables.trainingSessions.sessionDate} >= ${filters.fromDate}`);
+  }
+  if (filters?.toDate) {
+    conditions.push(sql`${tables.trainingSessions.sessionDate} <= ${filters.toDate}`);
+  }
+
+  const sessions = await db
+    .select()
+    .from(tables.trainingSessions)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(tables.trainingSessions.sessionDate));
+
+  // Enrich with course and instructor details
+  const enriched: TrainingSessionWithDetails[] = [];
+  for (const session of sessions) {
+    const course = await getTrainingCourseById(session.courseId);
+    let instructorName: string | undefined;
+    if (session.instructorId) {
+      const instructor = await getEmployeeById(session.instructorId);
+      instructorName = instructor ? `${instructor.firstName} ${instructor.lastName}` : undefined;
+    } else if (session.instructorExternal) {
+      instructorName = session.instructorExternal;
+    }
+
+    // Count participants
+    const [countResult] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.trainingRecords)
+      .where(eq(tables.trainingRecords.sessionId, session.id));
+
+    enriched.push({
+      ...session,
+      courseName: course?.name,
+      courseCode: course?.code,
+      instructorName,
+      participantCount: Number(countResult?.count || 0),
+    } as TrainingSessionWithDetails);
+  }
+
+  return enriched;
+}
+
+export async function getTrainingSessionById(
+  id: number
+): Promise<TrainingSessionWithDetails | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [session] = await db
+    .select()
+    .from(tables.trainingSessions)
+    .where(eq(tables.trainingSessions.id, id));
+
+  if (!session) return null;
+
+  const course = await getTrainingCourseById(session.courseId);
+  let instructorName: string | undefined;
+  if (session.instructorId) {
+    const instructor = await getEmployeeById(session.instructorId);
+    instructorName = instructor ? `${instructor.firstName} ${instructor.lastName}` : undefined;
+  } else if (session.instructorExternal) {
+    instructorName = session.instructorExternal;
+  }
+
+  const [countResult] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(tables.trainingRecords)
+    .where(eq(tables.trainingRecords.sessionId, session.id));
+
+  return {
+    ...session,
+    courseName: course?.name,
+    courseCode: course?.code,
+    instructorName,
+    participantCount: Number(countResult?.count || 0),
+  } as TrainingSessionWithDetails;
+}
+
+export async function createTrainingSession(
+  data: TrainingSessionCreate
+): Promise<TrainingSession> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Verify course exists
+  const course = await getTrainingCourseById(data.courseId);
+  if (!course) {
+    throw new Error('Training course not found');
+  }
+
+  const insertData = {
+    courseId: data.courseId,
+    sessionDate: data.sessionDate,
+    startTime: data.startTime || null,
+    endTime: data.endTime || null,
+    location: data.location || null,
+    instructorId: data.instructorId || null,
+    instructorExternal: data.instructorExternal || null,
+    maxParticipants: data.maxParticipants || null,
+    status: 'scheduled' as const,
+    notes: null,
+  };
+
+  const result = await db.insert(tables.trainingSessions).values(insertData);
+  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_training_sessions',
+    recordId: id,
+    newValue: insertData,
+  });
+
+  return (await getTrainingSessionById(id)) as TrainingSession;
+}
+
+export async function updateTrainingSession(
+  id: number,
+  data: Partial<TrainingSessionCreate & { status?: TrainingSessionStatus; notes?: string }>
+): Promise<TrainingSession> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getTrainingSessionById(id);
+  if (!existing) {
+    throw new Error('Training session not found');
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (data.sessionDate !== undefined) updateData.sessionDate = data.sessionDate;
+  if (data.startTime !== undefined) updateData.startTime = data.startTime || null;
+  if (data.endTime !== undefined) updateData.endTime = data.endTime || null;
+  if (data.location !== undefined) updateData.location = data.location || null;
+  if (data.instructorId !== undefined) updateData.instructorId = data.instructorId || null;
+  if (data.instructorExternal !== undefined) updateData.instructorExternal = data.instructorExternal || null;
+  if (data.maxParticipants !== undefined) updateData.maxParticipants = data.maxParticipants || null;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.notes !== undefined) updateData.notes = data.notes || null;
+
+  if (Object.keys(updateData).length > 0) {
+    await db
+      .update(tables.trainingSessions)
+      .set(updateData)
+      .where(eq(tables.trainingSessions.id, id));
+
+    // Audit log
+    await createAuditLog({
+      action: 'UPDATE',
+      tableName: 'hr_training_sessions',
+      recordId: id,
+      oldValue: existing,
+      newValue: updateData,
+    });
+  }
+
+  return (await getTrainingSessionById(id)) as TrainingSession;
+}
+
+export async function cancelTrainingSession(id: number): Promise<TrainingSession> {
+  return updateTrainingSession(id, { status: 'cancelled' });
+}
+
+export async function completeTrainingSession(id: number): Promise<TrainingSession> {
+  return updateTrainingSession(id, { status: 'completed' });
+}
+
+// ============================================
+// Training Record Functions (T058)
+// ============================================
+
+export interface TrainingRecordFilters {
+  employeeId?: number;
+  courseId?: number;
+  sessionId?: number;
+  result?: TrainingResult;
+  status?: TrainingRecordStatus;
+}
+
+/**
+ * Calculate training record status based on expiry date
+ */
+export function calculateTrainingStatus(expiryDate: string | null): TrainingRecordStatus {
+  if (!expiryDate) {
+    return 'valid'; // No expiry means always valid
+  }
+
+  const now = new Date();
+  const expiry = new Date(expiryDate);
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+  if (expiry < now) {
+    return 'expired';
+  } else if (expiry <= thirtyDaysFromNow) {
+    return 'expiring_soon';
+  }
+  return 'valid';
+}
+
+/**
+ * Calculate expiry date based on course validity and completion date
+ */
+export function calculateExpiryDate(
+  completionDate: string,
+  validityDays: number | null
+): string | null {
+  if (!validityDays) return null;
+
+  const expiry = new Date(completionDate);
+  expiry.setDate(expiry.getDate() + validityDays);
+  return expiry.toISOString().split('T')[0];
+}
+
+export async function getTrainingRecords(
+  filters?: TrainingRecordFilters
+): Promise<TrainingRecordWithStatus[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+
+  if (filters?.employeeId) {
+    conditions.push(eq(tables.trainingRecords.employeeId, filters.employeeId));
+  }
+  if (filters?.courseId) {
+    conditions.push(eq(tables.trainingRecords.courseId, filters.courseId));
+  }
+  if (filters?.sessionId) {
+    conditions.push(eq(tables.trainingRecords.sessionId, filters.sessionId));
+  }
+  if (filters?.result) {
+    conditions.push(eq(tables.trainingRecords.result, filters.result));
+  }
+
+  const records = await db
+    .select()
+    .from(tables.trainingRecords)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(tables.trainingRecords.completionDate));
+
+  // Enrich with course and employee details
+  const enriched: TrainingRecordWithStatus[] = [];
+  for (const record of records) {
+    const course = await getTrainingCourseById(record.courseId);
+    const employee = await getEmployeeById(record.employeeId);
+    const status = calculateTrainingStatus(record.expiryDate);
+
+    // Filter by status if provided
+    if (filters?.status && status !== filters.status) {
+      continue;
+    }
+
+    enriched.push({
+      ...record,
+      status,
+      courseName: course?.name,
+      employeeName: employee ? `${employee.firstName} ${employee.lastName}` : undefined,
+    } as TrainingRecordWithStatus);
+  }
+
+  return enriched;
+}
+
+export async function getTrainingRecordById(
+  id: number
+): Promise<TrainingRecordWithStatus | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [record] = await db
+    .select()
+    .from(tables.trainingRecords)
+    .where(eq(tables.trainingRecords.id, id));
+
+  if (!record) return null;
+
+  const course = await getTrainingCourseById(record.courseId);
+  const employee = await getEmployeeById(record.employeeId);
+  const status = calculateTrainingStatus(record.expiryDate);
+
+  return {
+    ...record,
+    status,
+    courseName: course?.name,
+    employeeName: employee ? `${employee.firstName} ${employee.lastName}` : undefined,
+  } as TrainingRecordWithStatus;
+}
+
+export async function createTrainingRecord(
+  data: TrainingRecordCreate
+): Promise<TrainingRecord> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Verify employee exists
+  const employee = await getEmployeeById(data.employeeId);
+  if (!employee) {
+    throw new Error('Employee not found');
+  }
+
+  // Verify course exists and get validity days
+  const course = await getTrainingCourseById(data.courseId);
+  if (!course) {
+    throw new Error('Training course not found');
+  }
+
+  // Calculate expiry date if course has validity
+  const expiryDate = calculateExpiryDate(data.completionDate, course.validityDays);
+
+  const insertData = {
+    employeeId: data.employeeId,
+    sessionId: data.sessionId || null,
+    courseId: data.courseId,
+    completionDate: data.completionDate,
+    expiryDate,
+    result: data.result,
+    score: data.score || null,
+    assessedBy: data.assessedBy || null,
+    certificateNumber: data.certificateNumber || null,
+    notes: data.notes || null,
+  };
+
+  const result = await db.insert(tables.trainingRecords).values(insertData);
+  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_training_records',
+    recordId: id,
+    newValue: {
+      ...insertData,
+      courseName: course.name,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+    },
+  });
+
+  return (await getTrainingRecordById(id)) as TrainingRecord;
+}
+
+export async function updateTrainingRecord(
+  id: number,
+  data: Partial<TrainingRecordCreate>
+): Promise<TrainingRecord> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getTrainingRecordById(id);
+  if (!existing) {
+    throw new Error('Training record not found');
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (data.completionDate !== undefined) {
+    updateData.completionDate = data.completionDate;
+    // Recalculate expiry if completion date changes
+    const course = await getTrainingCourseById(existing.courseId);
+    if (course) {
+      updateData.expiryDate = calculateExpiryDate(data.completionDate, course.validityDays);
+    }
+  }
+  if (data.result !== undefined) updateData.result = data.result;
+  if (data.score !== undefined) updateData.score = data.score || null;
+  if (data.assessedBy !== undefined) updateData.assessedBy = data.assessedBy || null;
+  if (data.certificateNumber !== undefined) updateData.certificateNumber = data.certificateNumber || null;
+  if (data.notes !== undefined) updateData.notes = data.notes || null;
+
+  if (Object.keys(updateData).length > 0) {
+    await db
+      .update(tables.trainingRecords)
+      .set(updateData)
+      .where(eq(tables.trainingRecords.id, id));
+
+    // Audit log
+    await createAuditLog({
+      action: 'UPDATE',
+      tableName: 'hr_training_records',
+      recordId: id,
+      oldValue: existing,
+      newValue: updateData,
+    });
+  }
+
+  return (await getTrainingRecordById(id)) as TrainingRecord;
+}
+
+// ============================================
+// Competency Matrix Functions (T059)
+// ============================================
+
+/**
+ * Get competency matrix for an employee showing all required training and status
+ */
+export async function getEmployeeCompetencyMatrix(
+  employeeId: number
+): Promise<CompetencyMatrix | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const employee = await getEmployeeById(employeeId);
+  if (!employee) return null;
+
+  // Get all active courses
+  const courses = await getTrainingCourses({ isActive: true });
+
+  // Get all training records for this employee
+  const records = await getTrainingRecords({ employeeId });
+
+  // Build competency entries
+  const courseEntries: CompetencyMatrixEntry[] = [];
+
+  for (const course of courses) {
+    // Check if course is required for this employee's position
+    let isRequired = course.isMandatory;
+    if (!isRequired && course.targetPositions && employee.positionId) {
+      try {
+        const targetPositions = JSON.parse(course.targetPositions) as number[];
+        isRequired = targetPositions.includes(employee.positionId);
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+
+    // Find the most recent record for this course
+    const courseRecords = records.filter((r) => r.courseId === course.id && r.result === 'pass');
+    const latestRecord = courseRecords[0]; // Already sorted by date desc
+
+    let status: TrainingRecordStatus;
+    if (!latestRecord) {
+      status = 'not_taken';
+    } else {
+      status = latestRecord.status;
+    }
+
+    courseEntries.push({
+      courseId: course.id,
+      courseName: course.name,
+      isRequired,
+      status,
+      expiryDate: latestRecord?.expiryDate || null,
+      lastCompletionDate: latestRecord?.completionDate || null,
+    });
+  }
+
+  return {
+    employeeId,
+    employeeName: `${employee.firstName} ${employee.lastName}`,
+    courses: courseEntries,
+  };
+}
+
+/**
+ * Get competency matrix for multiple employees (for grid display)
+ */
+export async function getCompetencyMatrixGrid(
+  employeeIds?: number[],
+  courseIds?: number[]
+): Promise<CompetencyMatrix[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Get employees
+  let employees: Employee[];
+  if (employeeIds && employeeIds.length > 0) {
+    employees = [];
+    for (const id of employeeIds) {
+      const emp = await getEmployeeById(id);
+      if (emp) employees.push(emp);
+    }
+  } else {
+    employees = await getEmployees({ status: 'active' });
+  }
+
+  // Build matrix for each employee
+  const matrices: CompetencyMatrix[] = [];
+  for (const employee of employees) {
+    const matrix = await getEmployeeCompetencyMatrix(employee.id);
+    if (matrix) {
+      // Filter courses if specific IDs requested
+      if (courseIds && courseIds.length > 0) {
+        matrix.courses = matrix.courses.filter((c) => courseIds.includes(c.courseId));
+      }
+      matrices.push(matrix);
+    }
+  }
+
+  return matrices;
+}
+
+// ============================================
+// Training Expiration Check (T060)
+// ============================================
+
+export interface ExpiringTrainingRecord {
+  recordId: number;
+  employeeId: number;
+  employeeName: string;
+  employeeEmail?: string | null;
+  courseId: number;
+  courseName: string;
+  expiryDate: string;
+  daysUntilExpiry: number;
+}
+
+/**
+ * Get training records that are expiring within specified days
+ */
+export async function getExpiringTrainingRecords(
+  withinDays: number = 30
+): Promise<ExpiringTrainingRecord[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const now = new Date();
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + withinDays);
+
+  // Get all records with expiry dates
+  const records = await db
+    .select()
+    .from(tables.trainingRecords)
+    .where(
+      and(
+        sql`${tables.trainingRecords.expiryDate} IS NOT NULL`,
+        sql`${tables.trainingRecords.expiryDate} >= ${now.toISOString().split('T')[0]}`,
+        sql`${tables.trainingRecords.expiryDate} <= ${futureDate.toISOString().split('T')[0]}`,
+        eq(tables.trainingRecords.result, 'pass')
+      )
+    );
+
+  const expiring: ExpiringTrainingRecord[] = [];
+
+  for (const record of records) {
+    const employee = await getEmployeeById(record.employeeId);
+    const course = await getTrainingCourseById(record.courseId);
+
+    if (employee && course && record.expiryDate) {
+      const expiryDate = new Date(record.expiryDate);
+      const daysUntilExpiry = Math.ceil(
+        (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      expiring.push({
+        recordId: record.id,
+        employeeId: employee.id,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        employeeEmail: employee.email,
+        courseId: course.id,
+        courseName: course.name,
+        expiryDate: record.expiryDate,
+        daysUntilExpiry,
+      });
+    }
+  }
+
+  // Sort by expiry date ascending
+  return expiring.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+}
+
+/**
+ * Get expired training records
+ */
+export async function getExpiredTrainingRecords(): Promise<ExpiringTrainingRecord[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const now = new Date().toISOString().split('T')[0];
+
+  // Get all expired records
+  const records = await db
+    .select()
+    .from(tables.trainingRecords)
+    .where(
+      and(
+        sql`${tables.trainingRecords.expiryDate} IS NOT NULL`,
+        sql`${tables.trainingRecords.expiryDate} < ${now}`,
+        eq(tables.trainingRecords.result, 'pass')
+      )
+    );
+
+  const expired: ExpiringTrainingRecord[] = [];
+  const today = new Date();
+
+  for (const record of records) {
+    const employee = await getEmployeeById(record.employeeId);
+    const course = await getTrainingCourseById(record.courseId);
+
+    if (employee && course && record.expiryDate) {
+      const expiryDate = new Date(record.expiryDate);
+      const daysUntilExpiry = Math.ceil(
+        (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      expired.push({
+        recordId: record.id,
+        employeeId: employee.id,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        employeeEmail: employee.email,
+        courseId: course.id,
+        courseName: course.name,
+        expiryDate: record.expiryDate,
+        daysUntilExpiry, // Will be negative
+      });
+    }
+  }
+
+  return expired.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+}
+
+/**
+ * Check if employee has valid training for a specific course
+ */
+export async function hasValidTraining(
+  employeeId: number,
+  courseId: number
+): Promise<boolean> {
+  const records = await getTrainingRecords({ employeeId, courseId, result: 'pass' });
+  return records.some((r) => r.status === 'valid' || r.status === 'expiring_soon');
 }
