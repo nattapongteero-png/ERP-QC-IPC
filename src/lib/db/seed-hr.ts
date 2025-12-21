@@ -10,7 +10,16 @@ import { sql } from 'drizzle-orm';
 import { useSqlite, getSqliteDb, getMysqlDb } from './index';
 import * as schema from './schema';
 
-// Default Organization Units (โครงสร้างองค์กร - โรงงานผลิตยาสมุนไพร ของรัฐ)
+/**
+ * Organization Units aligned with Thai GMP (หลักเกณฑ์วิธีการที่ดีในการผลิตยา)
+ *
+ * Key requirements per Thai FDA GMP:
+ * - Production Unit must be independent
+ * - Quality Control Unit must be independent from Production
+ * - Quality Assurance Unit provides oversight
+ * - Engineering/Maintenance for equipment qualification
+ * - Clear organizational structure with defined responsibilities
+ */
 const defaultOrgUnits = [
   // Organization level (หน่วยงาน)
   {
@@ -22,18 +31,62 @@ const defaultOrgUnits = [
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
-  // Division level (ฝ่าย)
+
+  // ===== GMP Core Divisions (ฝ่ายหลักตาม GMP) =====
+  // ฝ่ายผลิต - Production Division (ต้องเป็นอิสระจาก QC)
   {
-    code: 'DIV-001',
-    name: 'ฝ่ายบริหารงานทั่วไป',
-    nameEn: 'General Administration Division',
+    code: 'DIV-PROD',
+    name: 'ฝ่ายผลิต',
+    nameEn: 'Production Division',
     type: 'division',
     parentCode: 'ORG-001',
-    isGmpCritical: false,
+    isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
+  // ฝ่ายควบคุมคุณภาพ - QC Division (ต้องเป็นอิสระจากฝ่ายผลิต ตาม GMP)
   {
-    code: 'DIV-002',
+    code: 'DIV-QC',
+    name: 'ฝ่ายควบคุมคุณภาพ',
+    nameEn: 'Quality Control Division',
+    type: 'division',
+    parentCode: 'ORG-001',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  // ฝ่ายประกันคุณภาพ - QA Division (กำกับดูแลระบบคุณภาพ)
+  {
+    code: 'DIV-QA',
+    name: 'ฝ่ายประกันคุณภาพ',
+    nameEn: 'Quality Assurance Division',
+    type: 'division',
+    parentCode: 'ORG-001',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  // ฝ่ายวิศวกรรมและซ่อมบำรุง - Engineering (Qualification/Validation support)
+  {
+    code: 'DIV-ENG',
+    name: 'ฝ่ายวิศวกรรมและซ่อมบำรุง',
+    nameEn: 'Engineering & Maintenance Division',
+    type: 'division',
+    parentCode: 'ORG-001',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  // ฝ่ายคลังสินค้า - Warehouse Division
+  {
+    code: 'DIV-WH',
+    name: 'ฝ่ายคลังสินค้า',
+    nameEn: 'Warehouse Division',
+    type: 'division',
+    parentCode: 'ORG-001',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+
+  // ===== Support Divisions (ฝ่ายสนับสนุน) =====
+  {
+    code: 'DIV-RD',
     name: 'ฝ่ายวิจัยและพัฒนา',
     nameEn: 'Research & Development Division',
     type: 'division',
@@ -42,274 +95,443 @@ const defaultOrgUnits = [
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DIV-003',
-    name: 'ฝ่ายผลิต',
-    nameEn: 'Production Division',
+    code: 'DIV-REG',
+    name: 'ฝ่ายทะเบียนและวิชาการ',
+    nameEn: 'Regulatory Affairs Division',
     type: 'division',
     parentCode: 'ORG-001',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DIV-004',
-    name: 'ฝ่ายควบคุมคุณภาพ',
-    nameEn: 'Quality Control Division',
+    code: 'DIV-ADMIN',
+    name: 'ฝ่ายบริหารงานทั่วไป',
+    nameEn: 'General Administration Division',
     type: 'division',
     parentCode: 'ORG-001',
-    isGmpCritical: true,
-    effectiveFrom: '2020-01-01',
-  },
-  {
-    code: 'DIV-005',
-    name: 'ฝ่ายประกันคุณภาพ',
-    nameEn: 'Quality Assurance Division',
-    type: 'division',
-    parentCode: 'ORG-001',
-    isGmpCritical: true,
-    effectiveFrom: '2020-01-01',
-  },
-  {
-    code: 'DIV-006',
-    name: 'ฝ่ายคลังพัสดุและจัดซื้อ',
-    nameEn: 'Warehouse & Procurement Division',
-    type: 'division',
-    parentCode: 'ORG-001',
-    isGmpCritical: true,
-    effectiveFrom: '2020-01-01',
-  },
-  {
-    code: 'DIV-007',
-    name: 'ฝ่ายวิชาการและทะเบียน',
-    nameEn: 'Technical & Registration Division',
-    type: 'division',
-    parentCode: 'ORG-001',
-    isGmpCritical: true,
-    effectiveFrom: '2020-01-01',
-  },
-  // Department level (กลุ่มงาน/แผนก)
-  {
-    code: 'DEPT-001',
-    name: 'กลุ่มงานบุคคลและธุรการ',
-    nameEn: 'HR & Administrative Section',
-    type: 'department',
-    parentCode: 'DIV-001',
     isGmpCritical: false,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-002',
-    name: 'กลุ่มงานการเงินและบัญชี',
-    nameEn: 'Finance & Accounting Section',
-    type: 'department',
-    parentCode: 'DIV-001',
+    code: 'DIV-PROC',
+    name: 'ฝ่ายจัดซื้อ',
+    nameEn: 'Procurement Division',
+    type: 'division',
+    parentCode: 'ORG-001',
     isGmpCritical: false,
     effectiveFrom: '2020-01-01',
   },
+
+  // ===== Production Sections (กลุ่มงานผลิต) =====
   {
-    code: 'DEPT-003',
-    name: 'กลุ่มงานวิจัยสมุนไพร',
-    nameEn: 'Herbal Research Section',
+    code: 'SEC-PROD-MFG',
+    name: 'กลุ่มงานผลิตยา',
+    nameEn: 'Drug Manufacturing Section',
     type: 'department',
-    parentCode: 'DIV-002',
+    parentCode: 'DIV-PROD',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-004',
-    name: 'กลุ่มงานพัฒนาตำรับยา',
-    nameEn: 'Drug Formulation Development Section',
+    code: 'SEC-PROD-PKG',
+    name: 'กลุ่มงานบรรจุ',
+    nameEn: 'Packaging Section',
     type: 'department',
-    parentCode: 'DIV-002',
+    parentCode: 'DIV-PROD',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-005',
-    name: 'กลุ่มงานผลิตยาสมุนไพร',
-    nameEn: 'Herbal Drug Manufacturing Section',
+    code: 'SEC-PROD-IPC',
+    name: 'กลุ่มงานควบคุมระหว่างกระบวนการผลิต',
+    nameEn: 'In-Process Control Section',
     type: 'department',
-    parentCode: 'DIV-003',
+    parentCode: 'DIV-PROD',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
+
+  // ===== QC Sections (กลุ่มงานควบคุมคุณภาพ) =====
   {
-    code: 'DEPT-006',
-    name: 'กลุ่มงานบรรจุและแปรรูป',
-    nameEn: 'Packaging & Processing Section',
-    type: 'department',
-    parentCode: 'DIV-003',
-    isGmpCritical: true,
-    effectiveFrom: '2020-01-01',
-  },
-  {
-    code: 'DEPT-007',
+    code: 'SEC-QC-CHEM',
     name: 'กลุ่มงานวิเคราะห์เคมี',
     nameEn: 'Chemical Analysis Section',
     type: 'department',
-    parentCode: 'DIV-004',
+    parentCode: 'DIV-QC',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-008',
+    code: 'SEC-QC-MICRO',
     name: 'กลุ่มงานจุลชีววิทยา',
     nameEn: 'Microbiology Section',
     type: 'department',
-    parentCode: 'DIV-004',
+    parentCode: 'DIV-QC',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-009',
-    name: 'กลุ่มงานพฤกษศาสตร์',
-    nameEn: 'Botanical Section',
+    code: 'SEC-QC-HERB',
+    name: 'กลุ่มงานพิสูจน์เอกลักษณ์สมุนไพร',
+    nameEn: 'Herbal Identification Section',
     type: 'department',
-    parentCode: 'DIV-004',
+    parentCode: 'DIV-QC',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-010',
+    code: 'SEC-QC-STAB',
+    name: 'กลุ่มงานศึกษาความคงสภาพ',
+    nameEn: 'Stability Study Section',
+    type: 'department',
+    parentCode: 'DIV-QC',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+
+  // ===== QA Sections (กลุ่มงานประกันคุณภาพ) =====
+  {
+    code: 'SEC-QA-SYS',
     name: 'กลุ่มงานระบบคุณภาพ',
     nameEn: 'Quality System Section',
     type: 'department',
-    parentCode: 'DIV-005',
+    parentCode: 'DIV-QA',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-011',
+    code: 'SEC-QA-VAL',
+    name: 'กลุ่มงานตรวจสอบความถูกต้อง',
+    nameEn: 'Validation Section',
+    type: 'department',
+    parentCode: 'DIV-QA',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  {
+    code: 'SEC-QA-DOC',
+    name: 'กลุ่มงานควบคุมเอกสาร',
+    nameEn: 'Document Control Section',
+    type: 'department',
+    parentCode: 'DIV-QA',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  {
+    code: 'SEC-QA-AUDIT',
     name: 'กลุ่มงานตรวจสอบภายใน',
     nameEn: 'Internal Audit Section',
     type: 'department',
-    parentCode: 'DIV-005',
+    parentCode: 'DIV-QA',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
+
+  // ===== Engineering Sections =====
   {
-    code: 'DEPT-012',
-    name: 'กลุ่มงานคลังวัตถุดิบสมุนไพร',
-    nameEn: 'Herbal Raw Material Warehouse Section',
+    code: 'SEC-ENG-MAINT',
+    name: 'กลุ่มงานซ่อมบำรุง',
+    nameEn: 'Maintenance Section',
     type: 'department',
-    parentCode: 'DIV-006',
+    parentCode: 'DIV-ENG',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-013',
+    code: 'SEC-ENG-CAL',
+    name: 'กลุ่มงานสอบเทียบ',
+    nameEn: 'Calibration Section',
+    type: 'department',
+    parentCode: 'DIV-ENG',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  {
+    code: 'SEC-ENG-UTIL',
+    name: 'กลุ่มงานระบบสาธารณูปโภค',
+    nameEn: 'Utilities Section',
+    type: 'department',
+    parentCode: 'DIV-ENG',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+
+  // ===== Warehouse Sections =====
+  {
+    code: 'SEC-WH-RM',
+    name: 'กลุ่มงานคลังวัตถุดิบ',
+    nameEn: 'Raw Material Warehouse Section',
+    type: 'department',
+    parentCode: 'DIV-WH',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  {
+    code: 'SEC-WH-PM',
+    name: 'กลุ่มงานคลังวัสดุบรรจุ',
+    nameEn: 'Packaging Material Warehouse Section',
+    type: 'department',
+    parentCode: 'DIV-WH',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  {
+    code: 'SEC-WH-FG',
     name: 'กลุ่มงานคลังผลิตภัณฑ์สำเร็จรูป',
-    nameEn: 'Finished Product Warehouse Section',
+    nameEn: 'Finished Goods Warehouse Section',
     type: 'department',
-    parentCode: 'DIV-006',
+    parentCode: 'DIV-WH',
     isGmpCritical: true,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-014',
-    name: 'กลุ่มงานจัดซื้อจัดจ้าง',
-    nameEn: 'Procurement Section',
+    code: 'SEC-WH-QUAR',
+    name: 'กลุ่มงานพื้นที่กักกัน',
+    nameEn: 'Quarantine Area Section',
     type: 'department',
-    parentCode: 'DIV-006',
+    parentCode: 'DIV-WH',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+
+  // ===== R&D Sections =====
+  {
+    code: 'SEC-RD-FORM',
+    name: 'กลุ่มงานพัฒนาตำรับยา',
+    nameEn: 'Formulation Development Section',
+    type: 'department',
+    parentCode: 'DIV-RD',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  {
+    code: 'SEC-RD-HERB',
+    name: 'กลุ่มงานวิจัยสมุนไพร',
+    nameEn: 'Herbal Research Section',
+    type: 'department',
+    parentCode: 'DIV-RD',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+
+  // ===== Regulatory Sections =====
+  {
+    code: 'SEC-REG-REG',
+    name: 'กลุ่มงานทะเบียนยา',
+    nameEn: 'Drug Registration Section',
+    type: 'department',
+    parentCode: 'DIV-REG',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+  {
+    code: 'SEC-REG-DI',
+    name: 'กลุ่มงานเภสัชสนเทศ',
+    nameEn: 'Drug Information Section',
+    type: 'department',
+    parentCode: 'DIV-REG',
+    isGmpCritical: true,
+    effectiveFrom: '2020-01-01',
+  },
+
+  // ===== Admin Sections =====
+  {
+    code: 'SEC-ADMIN-HR',
+    name: 'กลุ่มงานบุคคลและฝึกอบรม',
+    nameEn: 'HR & Training Section',
+    type: 'department',
+    parentCode: 'DIV-ADMIN',
     isGmpCritical: false,
     effectiveFrom: '2020-01-01',
   },
   {
-    code: 'DEPT-015',
-    name: 'กลุ่มงานทะเบียนและกฎหมาย',
-    nameEn: 'Registration & Legal Section',
+    code: 'SEC-ADMIN-FIN',
+    name: 'กลุ่มงานการเงินและบัญชี',
+    nameEn: 'Finance & Accounting Section',
     type: 'department',
-    parentCode: 'DIV-007',
-    isGmpCritical: true,
-    effectiveFrom: '2020-01-01',
-  },
-  {
-    code: 'DEPT-016',
-    name: 'กลุ่มงานเภสัชสนเทศ',
-    nameEn: 'Drug Information Section',
-    type: 'department',
-    parentCode: 'DIV-007',
-    isGmpCritical: true,
+    parentCode: 'DIV-ADMIN',
+    isGmpCritical: false,
     effectiveFrom: '2020-01-01',
   },
 ];
 
-// Default Positions (ตำแหน่งงาน - โครงสร้างราชการ/รัฐวิสาหกิจ)
+/**
+ * Positions aligned with Thai GMP Key Personnel Requirements
+ *
+ * Per Thai FDA GMP (หลักเกณฑ์วิธีการที่ดีในการผลิตยา):
+ * - ผู้มีหน้าที่ปฏิบัติการ (Authorized Person/QP) - Must be pharmacist, responsible for batch release
+ * - หัวหน้าฝ่ายผลิต (Head of Production) - Must be qualified, independent from QC
+ * - หัวหน้าฝ่ายควบคุมคุณภาพ (Head of QC) - Must be qualified, independent from Production
+ * - หัวหน้าฝ่ายประกันคุณภาพ (Head of QA) - Oversight of quality system
+ *
+ * Key Personnel cannot hold dual positions that create conflicts of interest
+ */
 const defaultPositions = [
-  // ผู้บริหาร (Executive)
-  { code: 'POS-001', title: 'ผู้อำนวยการโรงงาน', titleEn: 'Factory Director', orgUnitCode: 'ORG-001', jobGrade: 'E1', isGmpCritical: true },
-  { code: 'POS-002', title: 'รองผู้อำนวยการโรงงาน', titleEn: 'Deputy Factory Director', orgUnitCode: 'ORG-001', jobGrade: 'E2', isGmpCritical: true },
+  // ===== GMP Key Personnel (บุคลากรหลักตาม GMP) =====
+  // ผู้อำนวยการโรงงาน (Site Director)
+  { code: 'POS-EXEC-001', title: 'ผู้อำนวยการโรงงาน', titleEn: 'Site Director', orgUnitCode: 'ORG-001', jobGrade: 'E1', isGmpCritical: true },
+  { code: 'POS-EXEC-002', title: 'รองผู้อำนวยการโรงงาน', titleEn: 'Deputy Site Director', orgUnitCode: 'ORG-001', jobGrade: 'E2', isGmpCritical: true },
 
-  // ฝ่ายบริหารงานทั่วไป (General Administration)
-  { code: 'POS-010', title: 'หัวหน้าฝ่ายบริหารงานทั่วไป', titleEn: 'Head of General Administration', orgUnitCode: 'DIV-001', jobGrade: 'M1', isGmpCritical: false },
-  { code: 'POS-011', title: 'หัวหน้ากลุ่มงานบุคคลและธุรการ', titleEn: 'Head of HR & Admin Section', orgUnitCode: 'DEPT-001', jobGrade: 'S1', isGmpCritical: false },
-  { code: 'POS-012', title: 'นักทรัพยากรบุคคล', titleEn: 'HR Specialist', orgUnitCode: 'DEPT-001', jobGrade: 'P1', isGmpCritical: false },
-  { code: 'POS-013', title: 'เจ้าพนักงานธุรการ', titleEn: 'Administrative Officer', orgUnitCode: 'DEPT-001', jobGrade: 'T1', isGmpCritical: false },
-  { code: 'POS-014', title: 'หัวหน้ากลุ่มงานการเงินและบัญชี', titleEn: 'Head of Finance & Accounting Section', orgUnitCode: 'DEPT-002', jobGrade: 'S1', isGmpCritical: false },
-  { code: 'POS-015', title: 'นักวิชาการเงินและบัญชี', titleEn: 'Finance & Accounting Specialist', orgUnitCode: 'DEPT-002', jobGrade: 'P1', isGmpCritical: false },
+  // ผู้มีหน้าที่ปฏิบัติการ (Authorized Person/Qualified Person) - GMP Critical
+  // Must be pharmacist, responsible for batch release per Thai FDA regulation
+  { code: 'POS-AP-001', title: 'ผู้มีหน้าที่ปฏิบัติการ (QP)', titleEn: 'Authorized Person (Qualified Person)', orgUnitCode: 'ORG-001', jobGrade: 'E2', isGmpCritical: true },
 
-  // ฝ่ายวิจัยและพัฒนา (R&D)
-  { code: 'POS-020', title: 'หัวหน้าฝ่ายวิจัยและพัฒนา', titleEn: 'Head of R&D Division', orgUnitCode: 'DIV-002', jobGrade: 'M1', isGmpCritical: true },
-  { code: 'POS-021', title: 'หัวหน้ากลุ่มงานวิจัยสมุนไพร', titleEn: 'Head of Herbal Research Section', orgUnitCode: 'DEPT-003', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-022', title: 'นักวิจัยสมุนไพร', titleEn: 'Herbal Researcher', orgUnitCode: 'DEPT-003', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-023', title: 'แพทย์แผนไทย', titleEn: 'Thai Traditional Medicine Doctor', orgUnitCode: 'DEPT-003', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-024', title: 'หัวหน้ากลุ่มงานพัฒนาตำรับยา', titleEn: 'Head of Formulation Development Section', orgUnitCode: 'DEPT-004', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-025', title: 'เภสัชกรพัฒนาตำรับ', titleEn: 'Formulation Pharmacist', orgUnitCode: 'DEPT-004', jobGrade: 'P1', isGmpCritical: true },
+  // ===== Production Division (ฝ่ายผลิต) - Independent from QC =====
+  // หัวหน้าฝ่ายผลิต - GMP Key Personnel
+  { code: 'POS-PROD-001', title: 'หัวหน้าฝ่ายผลิต', titleEn: 'Head of Production', orgUnitCode: 'DIV-PROD', jobGrade: 'M1', isGmpCritical: true },
+  { code: 'POS-PROD-002', title: 'เภสัชกรควบคุมการผลิต', titleEn: 'Production Pharmacist', orgUnitCode: 'DIV-PROD', jobGrade: 'P1', isGmpCritical: true },
 
-  // ฝ่ายผลิต (Production)
-  { code: 'POS-030', title: 'หัวหน้าฝ่ายผลิต', titleEn: 'Head of Production Division', orgUnitCode: 'DIV-003', jobGrade: 'M1', isGmpCritical: true },
-  { code: 'POS-031', title: 'เภสัชกรควบคุมการผลิต', titleEn: 'Production Pharmacist', orgUnitCode: 'DIV-003', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-032', title: 'หัวหน้ากลุ่มงานผลิตยาสมุนไพร', titleEn: 'Head of Herbal Manufacturing Section', orgUnitCode: 'DEPT-005', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-033', title: 'นักวิทยาศาสตร์การผลิต', titleEn: 'Production Scientist', orgUnitCode: 'DEPT-005', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-034', title: 'เจ้าพนักงานผลิต', titleEn: 'Production Technician', orgUnitCode: 'DEPT-005', jobGrade: 'T1', isGmpCritical: true },
-  { code: 'POS-035', title: 'หัวหน้ากลุ่มงานบรรจุและแปรรูป', titleEn: 'Head of Packaging Section', orgUnitCode: 'DEPT-006', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-036', title: 'เจ้าพนักงานบรรจุ', titleEn: 'Packaging Technician', orgUnitCode: 'DEPT-006', jobGrade: 'T1', isGmpCritical: true },
+  // กลุ่มงานผลิตยา (Drug Manufacturing Section)
+  { code: 'POS-PROD-010', title: 'หัวหน้ากลุ่มงานผลิตยา', titleEn: 'Head of Manufacturing Section', orgUnitCode: 'SEC-PROD-MFG', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-PROD-011', title: 'นักวิทยาศาสตร์การผลิต', titleEn: 'Production Scientist', orgUnitCode: 'SEC-PROD-MFG', jobGrade: 'P1', isGmpCritical: true },
+  { code: 'POS-PROD-012', title: 'เจ้าพนักงานผลิต', titleEn: 'Production Technician', orgUnitCode: 'SEC-PROD-MFG', jobGrade: 'T1', isGmpCritical: true },
 
-  // ฝ่ายควบคุมคุณภาพ (Quality Control)
-  { code: 'POS-040', title: 'หัวหน้าฝ่ายควบคุมคุณภาพ', titleEn: 'Head of Quality Control Division', orgUnitCode: 'DIV-004', jobGrade: 'M1', isGmpCritical: true },
-  { code: 'POS-041', title: 'เภสัชกรควบคุมคุณภาพ', titleEn: 'QC Pharmacist', orgUnitCode: 'DIV-004', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-042', title: 'หัวหน้ากลุ่มงานวิเคราะห์เคมี', titleEn: 'Head of Chemical Analysis Section', orgUnitCode: 'DEPT-007', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-043', title: 'นักวิทยาศาสตร์การแพทย์ (เคมี)', titleEn: 'Medical Scientist (Chemistry)', orgUnitCode: 'DEPT-007', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-044', title: 'เจ้าพนักงานวิทยาศาสตร์การแพทย์', titleEn: 'Medical Science Technician', orgUnitCode: 'DEPT-007', jobGrade: 'T1', isGmpCritical: true },
-  { code: 'POS-045', title: 'หัวหน้ากลุ่มงานจุลชีววิทยา', titleEn: 'Head of Microbiology Section', orgUnitCode: 'DEPT-008', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-046', title: 'นักวิทยาศาสตร์การแพทย์ (จุลชีววิทยา)', titleEn: 'Medical Scientist (Microbiology)', orgUnitCode: 'DEPT-008', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-047', title: 'หัวหน้ากลุ่มงานพฤกษศาสตร์', titleEn: 'Head of Botanical Section', orgUnitCode: 'DEPT-009', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-048', title: 'นักวิทยาศาสตร์ (พฤกษศาสตร์)', titleEn: 'Botanist', orgUnitCode: 'DEPT-009', jobGrade: 'P1', isGmpCritical: true },
+  // กลุ่มงานบรรจุ (Packaging Section)
+  { code: 'POS-PROD-020', title: 'หัวหน้ากลุ่มงานบรรจุ', titleEn: 'Head of Packaging Section', orgUnitCode: 'SEC-PROD-PKG', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-PROD-021', title: 'เจ้าพนักงานบรรจุ', titleEn: 'Packaging Technician', orgUnitCode: 'SEC-PROD-PKG', jobGrade: 'T1', isGmpCritical: true },
 
-  // ฝ่ายประกันคุณภาพ (Quality Assurance)
-  { code: 'POS-050', title: 'หัวหน้าฝ่ายประกันคุณภาพ', titleEn: 'Head of Quality Assurance Division', orgUnitCode: 'DIV-005', jobGrade: 'M1', isGmpCritical: true },
-  { code: 'POS-051', title: 'เภสัชกรประกันคุณภาพ', titleEn: 'QA Pharmacist', orgUnitCode: 'DIV-005', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-052', title: 'หัวหน้ากลุ่มงานระบบคุณภาพ', titleEn: 'Head of Quality System Section', orgUnitCode: 'DEPT-010', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-053', title: 'เจ้าหน้าที่ระบบคุณภาพ', titleEn: 'Quality System Officer', orgUnitCode: 'DEPT-010', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-054', title: 'เจ้าหน้าที่ควบคุมเอกสาร', titleEn: 'Document Controller', orgUnitCode: 'DEPT-010', jobGrade: 'T1', isGmpCritical: true },
-  { code: 'POS-055', title: 'หัวหน้ากลุ่มงานตรวจสอบภายใน', titleEn: 'Head of Internal Audit Section', orgUnitCode: 'DEPT-011', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-056', title: 'ผู้ตรวจสอบภายใน', titleEn: 'Internal Auditor', orgUnitCode: 'DEPT-011', jobGrade: 'P1', isGmpCritical: true },
+  // กลุ่มงานควบคุมระหว่างกระบวนการผลิต (In-Process Control)
+  { code: 'POS-PROD-030', title: 'หัวหน้ากลุ่มงาน IPC', titleEn: 'Head of IPC Section', orgUnitCode: 'SEC-PROD-IPC', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-PROD-031', title: 'เจ้าหน้าที่ IPC', titleEn: 'IPC Officer', orgUnitCode: 'SEC-PROD-IPC', jobGrade: 'P1', isGmpCritical: true },
 
-  // ฝ่ายคลังพัสดุและจัดซื้อ (Warehouse & Procurement)
-  { code: 'POS-060', title: 'หัวหน้าฝ่ายคลังพัสดุและจัดซื้อ', titleEn: 'Head of Warehouse & Procurement Division', orgUnitCode: 'DIV-006', jobGrade: 'M1', isGmpCritical: true },
-  { code: 'POS-061', title: 'หัวหน้ากลุ่มงานคลังวัตถุดิบสมุนไพร', titleEn: 'Head of Herbal Material Warehouse Section', orgUnitCode: 'DEPT-012', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-062', title: 'เจ้าพนักงานพัสดุ (วัตถุดิบ)', titleEn: 'Material Technician (Raw Material)', orgUnitCode: 'DEPT-012', jobGrade: 'T1', isGmpCritical: true },
-  { code: 'POS-063', title: 'หัวหน้ากลุ่มงานคลังผลิตภัณฑ์สำเร็จรูป', titleEn: 'Head of Finished Product Warehouse Section', orgUnitCode: 'DEPT-013', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-064', title: 'เจ้าพนักงานพัสดุ (ผลิตภัณฑ์)', titleEn: 'Material Technician (Finished Product)', orgUnitCode: 'DEPT-013', jobGrade: 'T1', isGmpCritical: true },
-  { code: 'POS-065', title: 'หัวหน้ากลุ่มงานจัดซื้อจัดจ้าง', titleEn: 'Head of Procurement Section', orgUnitCode: 'DEPT-014', jobGrade: 'S1', isGmpCritical: false },
-  { code: 'POS-066', title: 'นักวิชาการพัสดุ', titleEn: 'Procurement Specialist', orgUnitCode: 'DEPT-014', jobGrade: 'P1', isGmpCritical: false },
+  // ===== Quality Control Division (ฝ่ายควบคุมคุณภาพ) - Independent from Production =====
+  // หัวหน้าฝ่ายควบคุมคุณภาพ - GMP Key Personnel (Must be independent from Production Head)
+  { code: 'POS-QC-001', title: 'หัวหน้าฝ่ายควบคุมคุณภาพ', titleEn: 'Head of Quality Control', orgUnitCode: 'DIV-QC', jobGrade: 'M1', isGmpCritical: true },
+  { code: 'POS-QC-002', title: 'เภสัชกรควบคุมคุณภาพ', titleEn: 'QC Pharmacist', orgUnitCode: 'DIV-QC', jobGrade: 'P1', isGmpCritical: true },
 
-  // ฝ่ายวิชาการและทะเบียน (Technical & Registration)
-  { code: 'POS-070', title: 'หัวหน้าฝ่ายวิชาการและทะเบียน', titleEn: 'Head of Technical & Registration Division', orgUnitCode: 'DIV-007', jobGrade: 'M1', isGmpCritical: true },
-  { code: 'POS-071', title: 'หัวหน้ากลุ่มงานทะเบียนและกฎหมาย', titleEn: 'Head of Registration & Legal Section', orgUnitCode: 'DEPT-015', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-072', title: 'เภสัชกรทะเบียนยา', titleEn: 'Drug Registration Pharmacist', orgUnitCode: 'DEPT-015', jobGrade: 'P1', isGmpCritical: true },
-  { code: 'POS-073', title: 'นิติกร', titleEn: 'Legal Officer', orgUnitCode: 'DEPT-015', jobGrade: 'P1', isGmpCritical: false },
-  { code: 'POS-074', title: 'หัวหน้ากลุ่มงานเภสัชสนเทศ', titleEn: 'Head of Drug Information Section', orgUnitCode: 'DEPT-016', jobGrade: 'S1', isGmpCritical: true },
-  { code: 'POS-075', title: 'เภสัชกรเภสัชสนเทศ', titleEn: 'Drug Information Pharmacist', orgUnitCode: 'DEPT-016', jobGrade: 'P1', isGmpCritical: true },
+  // กลุ่มงานวิเคราะห์เคมี (Chemical Analysis Section)
+  { code: 'POS-QC-010', title: 'หัวหน้ากลุ่มงานวิเคราะห์เคมี', titleEn: 'Head of Chemical Analysis', orgUnitCode: 'SEC-QC-CHEM', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-QC-011', title: 'นักวิทยาศาสตร์ (เคมี)', titleEn: 'Chemist', orgUnitCode: 'SEC-QC-CHEM', jobGrade: 'P1', isGmpCritical: true },
+  { code: 'POS-QC-012', title: 'เจ้าพนักงานวิทยาศาสตร์ (เคมี)', titleEn: 'Chemistry Technician', orgUnitCode: 'SEC-QC-CHEM', jobGrade: 'T1', isGmpCritical: true },
+
+  // กลุ่มงานจุลชีววิทยา (Microbiology Section)
+  { code: 'POS-QC-020', title: 'หัวหน้ากลุ่มงานจุลชีววิทยา', titleEn: 'Head of Microbiology', orgUnitCode: 'SEC-QC-MICRO', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-QC-021', title: 'นักวิทยาศาสตร์ (จุลชีววิทยา)', titleEn: 'Microbiologist', orgUnitCode: 'SEC-QC-MICRO', jobGrade: 'P1', isGmpCritical: true },
+  { code: 'POS-QC-022', title: 'เจ้าพนักงานวิทยาศาสตร์ (จุลชีววิทยา)', titleEn: 'Microbiology Technician', orgUnitCode: 'SEC-QC-MICRO', jobGrade: 'T1', isGmpCritical: true },
+
+  // กลุ่มงานพิสูจน์เอกลักษณ์สมุนไพร (Herbal Identification Section)
+  { code: 'POS-QC-030', title: 'หัวหน้ากลุ่มงานพิสูจน์เอกลักษณ์สมุนไพร', titleEn: 'Head of Herbal Identification', orgUnitCode: 'SEC-QC-HERB', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-QC-031', title: 'นักวิทยาศาสตร์ (พฤกษศาสตร์)', titleEn: 'Botanist', orgUnitCode: 'SEC-QC-HERB', jobGrade: 'P1', isGmpCritical: true },
+
+  // กลุ่มงานศึกษาความคงสภาพ (Stability Study Section)
+  { code: 'POS-QC-040', title: 'หัวหน้ากลุ่มงานศึกษาความคงสภาพ', titleEn: 'Head of Stability Study', orgUnitCode: 'SEC-QC-STAB', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-QC-041', title: 'นักวิทยาศาสตร์ความคงสภาพ', titleEn: 'Stability Scientist', orgUnitCode: 'SEC-QC-STAB', jobGrade: 'P1', isGmpCritical: true },
+
+  // ===== Quality Assurance Division (ฝ่ายประกันคุณภาพ) - Oversight =====
+  // หัวหน้าฝ่ายประกันคุณภาพ - GMP Key Personnel
+  { code: 'POS-QA-001', title: 'หัวหน้าฝ่ายประกันคุณภาพ', titleEn: 'Head of Quality Assurance', orgUnitCode: 'DIV-QA', jobGrade: 'M1', isGmpCritical: true },
+  { code: 'POS-QA-002', title: 'เภสัชกรประกันคุณภาพ', titleEn: 'QA Pharmacist', orgUnitCode: 'DIV-QA', jobGrade: 'P1', isGmpCritical: true },
+
+  // กลุ่มงานระบบคุณภาพ (Quality System Section)
+  { code: 'POS-QA-010', title: 'หัวหน้ากลุ่มงานระบบคุณภาพ', titleEn: 'Head of Quality System', orgUnitCode: 'SEC-QA-SYS', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-QA-011', title: 'เจ้าหน้าที่ระบบคุณภาพ', titleEn: 'Quality System Officer', orgUnitCode: 'SEC-QA-SYS', jobGrade: 'P1', isGmpCritical: true },
+
+  // กลุ่มงานตรวจสอบความถูกต้อง (Validation Section)
+  { code: 'POS-QA-020', title: 'หัวหน้ากลุ่มงาน Validation', titleEn: 'Head of Validation', orgUnitCode: 'SEC-QA-VAL', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-QA-021', title: 'วิศวกร Validation', titleEn: 'Validation Engineer', orgUnitCode: 'SEC-QA-VAL', jobGrade: 'P1', isGmpCritical: true },
+  { code: 'POS-QA-022', title: 'เจ้าหน้าที่ Validation', titleEn: 'Validation Officer', orgUnitCode: 'SEC-QA-VAL', jobGrade: 'P2', isGmpCritical: true },
+
+  // กลุ่มงานควบคุมเอกสาร (Document Control Section)
+  { code: 'POS-QA-030', title: 'หัวหน้ากลุ่มงานควบคุมเอกสาร', titleEn: 'Head of Document Control', orgUnitCode: 'SEC-QA-DOC', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-QA-031', title: 'เจ้าหน้าที่ควบคุมเอกสาร', titleEn: 'Document Controller', orgUnitCode: 'SEC-QA-DOC', jobGrade: 'T1', isGmpCritical: true },
+
+  // กลุ่มงานตรวจสอบภายใน (Internal Audit Section)
+  { code: 'POS-QA-040', title: 'หัวหน้ากลุ่มงานตรวจสอบภายใน', titleEn: 'Head of Internal Audit', orgUnitCode: 'SEC-QA-AUDIT', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-QA-041', title: 'ผู้ตรวจสอบภายใน', titleEn: 'Internal Auditor', orgUnitCode: 'SEC-QA-AUDIT', jobGrade: 'P1', isGmpCritical: true },
+
+  // ===== Engineering & Maintenance Division (ฝ่ายวิศวกรรม) =====
+  { code: 'POS-ENG-001', title: 'หัวหน้าฝ่ายวิศวกรรมและซ่อมบำรุง', titleEn: 'Head of Engineering & Maintenance', orgUnitCode: 'DIV-ENG', jobGrade: 'M1', isGmpCritical: true },
+
+  // กลุ่มงานซ่อมบำรุง (Maintenance Section)
+  { code: 'POS-ENG-010', title: 'หัวหน้ากลุ่มงานซ่อมบำรุง', titleEn: 'Head of Maintenance', orgUnitCode: 'SEC-ENG-MAINT', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-ENG-011', title: 'วิศวกรซ่อมบำรุง', titleEn: 'Maintenance Engineer', orgUnitCode: 'SEC-ENG-MAINT', jobGrade: 'P1', isGmpCritical: true },
+  { code: 'POS-ENG-012', title: 'ช่างเทคนิค', titleEn: 'Maintenance Technician', orgUnitCode: 'SEC-ENG-MAINT', jobGrade: 'T1', isGmpCritical: true },
+
+  // กลุ่มงานสอบเทียบ (Calibration Section)
+  { code: 'POS-ENG-020', title: 'หัวหน้ากลุ่มงานสอบเทียบ', titleEn: 'Head of Calibration', orgUnitCode: 'SEC-ENG-CAL', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-ENG-021', title: 'เจ้าหน้าที่สอบเทียบ', titleEn: 'Calibration Officer', orgUnitCode: 'SEC-ENG-CAL', jobGrade: 'P1', isGmpCritical: true },
+
+  // กลุ่มงานระบบสาธารณูปโภค (Utilities Section)
+  { code: 'POS-ENG-030', title: 'หัวหน้ากลุ่มงานระบบสาธารณูปโภค', titleEn: 'Head of Utilities', orgUnitCode: 'SEC-ENG-UTIL', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-ENG-031', title: 'วิศวกรระบบสาธารณูปโภค', titleEn: 'Utilities Engineer', orgUnitCode: 'SEC-ENG-UTIL', jobGrade: 'P1', isGmpCritical: true },
+
+  // ===== Warehouse Division (ฝ่ายคลังสินค้า) =====
+  { code: 'POS-WH-001', title: 'หัวหน้าฝ่ายคลังสินค้า', titleEn: 'Head of Warehouse', orgUnitCode: 'DIV-WH', jobGrade: 'M1', isGmpCritical: true },
+
+  // กลุ่มงานคลังวัตถุดิบ (Raw Material Warehouse)
+  { code: 'POS-WH-010', title: 'หัวหน้ากลุ่มงานคลังวัตถุดิบ', titleEn: 'Head of Raw Material Warehouse', orgUnitCode: 'SEC-WH-RM', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-WH-011', title: 'เจ้าพนักงานพัสดุ (วัตถุดิบ)', titleEn: 'Material Clerk (Raw Material)', orgUnitCode: 'SEC-WH-RM', jobGrade: 'T1', isGmpCritical: true },
+
+  // กลุ่มงานคลังวัสดุบรรจุ (Packaging Material Warehouse)
+  { code: 'POS-WH-020', title: 'หัวหน้ากลุ่มงานคลังวัสดุบรรจุ', titleEn: 'Head of Packaging Material Warehouse', orgUnitCode: 'SEC-WH-PM', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-WH-021', title: 'เจ้าพนักงานพัสดุ (วัสดุบรรจุ)', titleEn: 'Material Clerk (Packaging)', orgUnitCode: 'SEC-WH-PM', jobGrade: 'T1', isGmpCritical: true },
+
+  // กลุ่มงานคลังผลิตภัณฑ์สำเร็จรูป (Finished Goods Warehouse)
+  { code: 'POS-WH-030', title: 'หัวหน้ากลุ่มงานคลังผลิตภัณฑ์สำเร็จรูป', titleEn: 'Head of Finished Goods Warehouse', orgUnitCode: 'SEC-WH-FG', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-WH-031', title: 'เจ้าพนักงานพัสดุ (ผลิตภัณฑ์)', titleEn: 'Material Clerk (Finished Goods)', orgUnitCode: 'SEC-WH-FG', jobGrade: 'T1', isGmpCritical: true },
+
+  // กลุ่มงานพื้นที่กักกัน (Quarantine Area)
+  { code: 'POS-WH-040', title: 'หัวหน้ากลุ่มงานพื้นที่กักกัน', titleEn: 'Head of Quarantine Area', orgUnitCode: 'SEC-WH-QUAR', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-WH-041', title: 'เจ้าพนักงานพื้นที่กักกัน', titleEn: 'Quarantine Clerk', orgUnitCode: 'SEC-WH-QUAR', jobGrade: 'T1', isGmpCritical: true },
+
+  // ===== R&D Division (ฝ่ายวิจัยและพัฒนา) =====
+  { code: 'POS-RD-001', title: 'หัวหน้าฝ่ายวิจัยและพัฒนา', titleEn: 'Head of R&D', orgUnitCode: 'DIV-RD', jobGrade: 'M1', isGmpCritical: true },
+
+  // กลุ่มงานพัฒนาตำรับยา (Formulation Development)
+  { code: 'POS-RD-010', title: 'หัวหน้ากลุ่มงานพัฒนาตำรับยา', titleEn: 'Head of Formulation Development', orgUnitCode: 'SEC-RD-FORM', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-RD-011', title: 'เภสัชกรพัฒนาตำรับ', titleEn: 'Formulation Pharmacist', orgUnitCode: 'SEC-RD-FORM', jobGrade: 'P1', isGmpCritical: true },
+
+  // กลุ่มงานวิจัยสมุนไพร (Herbal Research)
+  { code: 'POS-RD-020', title: 'หัวหน้ากลุ่มงานวิจัยสมุนไพร', titleEn: 'Head of Herbal Research', orgUnitCode: 'SEC-RD-HERB', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-RD-021', title: 'นักวิจัยสมุนไพร', titleEn: 'Herbal Researcher', orgUnitCode: 'SEC-RD-HERB', jobGrade: 'P1', isGmpCritical: true },
+  { code: 'POS-RD-022', title: 'แพทย์แผนไทย', titleEn: 'Thai Traditional Medicine Doctor', orgUnitCode: 'SEC-RD-HERB', jobGrade: 'P1', isGmpCritical: true },
+
+  // ===== Regulatory Affairs Division (ฝ่ายทะเบียนและวิชาการ) =====
+  { code: 'POS-REG-001', title: 'หัวหน้าฝ่ายทะเบียนและวิชาการ', titleEn: 'Head of Regulatory Affairs', orgUnitCode: 'DIV-REG', jobGrade: 'M1', isGmpCritical: true },
+
+  // กลุ่มงานทะเบียนยา (Drug Registration)
+  { code: 'POS-REG-010', title: 'หัวหน้ากลุ่มงานทะเบียนยา', titleEn: 'Head of Drug Registration', orgUnitCode: 'SEC-REG-REG', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-REG-011', title: 'เภสัชกรทะเบียนยา', titleEn: 'Drug Registration Pharmacist', orgUnitCode: 'SEC-REG-REG', jobGrade: 'P1', isGmpCritical: true },
+
+  // กลุ่มงานเภสัชสนเทศ (Drug Information)
+  { code: 'POS-REG-020', title: 'หัวหน้ากลุ่มงานเภสัชสนเทศ', titleEn: 'Head of Drug Information', orgUnitCode: 'SEC-REG-DI', jobGrade: 'S1', isGmpCritical: true },
+  { code: 'POS-REG-021', title: 'เภสัชกรเภสัชสนเทศ', titleEn: 'Drug Information Pharmacist', orgUnitCode: 'SEC-REG-DI', jobGrade: 'P1', isGmpCritical: true },
+
+  // ===== General Administration Division (ฝ่ายบริหารงานทั่วไป) =====
+  { code: 'POS-ADMIN-001', title: 'หัวหน้าฝ่ายบริหารงานทั่วไป', titleEn: 'Head of General Administration', orgUnitCode: 'DIV-ADMIN', jobGrade: 'M1', isGmpCritical: false },
+
+  // กลุ่มงานบุคคลและฝึกอบรม (HR & Training)
+  { code: 'POS-ADMIN-010', title: 'หัวหน้ากลุ่มงานบุคคลและฝึกอบรม', titleEn: 'Head of HR & Training', orgUnitCode: 'SEC-ADMIN-HR', jobGrade: 'S1', isGmpCritical: false },
+  { code: 'POS-ADMIN-011', title: 'นักทรัพยากรบุคคล', titleEn: 'HR Specialist', orgUnitCode: 'SEC-ADMIN-HR', jobGrade: 'P1', isGmpCritical: false },
+  { code: 'POS-ADMIN-012', title: 'เจ้าหน้าที่ฝึกอบรม', titleEn: 'Training Officer', orgUnitCode: 'SEC-ADMIN-HR', jobGrade: 'P1', isGmpCritical: false },
+  { code: 'POS-ADMIN-013', title: 'เจ้าพนักงานธุรการ', titleEn: 'Administrative Officer', orgUnitCode: 'SEC-ADMIN-HR', jobGrade: 'T1', isGmpCritical: false },
+
+  // กลุ่มงานการเงินและบัญชี (Finance & Accounting)
+  { code: 'POS-ADMIN-020', title: 'หัวหน้ากลุ่มงานการเงินและบัญชี', titleEn: 'Head of Finance & Accounting', orgUnitCode: 'SEC-ADMIN-FIN', jobGrade: 'S1', isGmpCritical: false },
+  { code: 'POS-ADMIN-021', title: 'นักวิชาการเงินและบัญชี', titleEn: 'Finance & Accounting Specialist', orgUnitCode: 'SEC-ADMIN-FIN', jobGrade: 'P1', isGmpCritical: false },
+
+  // ===== Procurement Division (ฝ่ายจัดซื้อ) =====
+  { code: 'POS-PROC-001', title: 'หัวหน้าฝ่ายจัดซื้อ', titleEn: 'Head of Procurement', orgUnitCode: 'DIV-PROC', jobGrade: 'M1', isGmpCritical: false },
+  { code: 'POS-PROC-010', title: 'นักวิชาการพัสดุ', titleEn: 'Procurement Specialist', orgUnitCode: 'DIV-PROC', jobGrade: 'P1', isGmpCritical: false },
+  { code: 'POS-PROC-011', title: 'เจ้าพนักงานพัสดุ', titleEn: 'Procurement Officer', orgUnitCode: 'DIV-PROC', jobGrade: 'T1', isGmpCritical: false },
 ];
 
-// Default Training Courses (หลักสูตรอบรม - โรงงานผลิตยาสมุนไพร)
+/**
+ * Training Courses aligned with Thai GMP Requirements
+ *
+ * Per Thai FDA GMP (หลักเกณฑ์วิธีการที่ดีในการผลิตยา):
+ * - All personnel must receive GMP training appropriate to their role
+ * - Training records must be maintained
+ * - Annual refresher training required
+ * - Specific training for key GMP systems (Validation, CAPA, Change Control, etc.)
+ */
 const defaultTrainingCourses = [
-  // GMP สมุนไพร (Herbal GMP)
+  // ===== GMP Core Training (หลักสูตร GMP หลัก) =====
   {
     code: 'TRN-GMP-001',
     name: 'หลักเกณฑ์และวิธีการที่ดีในการผลิตยาจากสมุนไพร (GMP)',
     nameEn: 'Good Manufacturing Practice for Herbal Medicines',
-    description: 'อบรมพื้นฐาน GMP สำหรับการผลิตยาสมุนไพรตามมาตรฐาน WHO และ อย.',
+    description: 'อบรมพื้นฐาน GMP สำหรับการผลิตยาสมุนไพรตามมาตรฐาน Thai FDA และ WHO',
     category: 'GMP',
     validityDays: 365,
     isMandatory: true,
@@ -319,7 +541,7 @@ const defaultTrainingCourses = [
     code: 'TRN-GMP-002',
     name: 'การทบทวน GMP ประจำปี',
     nameEn: 'Annual GMP Refresher',
-    description: 'อบรมทบทวน GMP สำหรับยาสมุนไพรประจำปี',
+    description: 'อบรมทบทวน GMP สำหรับยาสมุนไพรประจำปี (บังคับตามข้อกำหนด อย.)',
     category: 'GMP',
     validityDays: 365,
     isMandatory: true,
@@ -327,9 +549,9 @@ const defaultTrainingCourses = [
   },
   {
     code: 'TRN-GMP-003',
-    name: 'สุขอนามัยส่วนบุคคลและการป้องกันการปนเปื้อน',
-    nameEn: 'Personal Hygiene & Contamination Prevention',
-    description: 'อบรมเรื่องสุขอนามัยและการป้องกันการปนเปื้อนข้ามในการผลิตยาสมุนไพร',
+    name: 'สุขลักษณะส่วนบุคคลและการป้องกันการปนเปื้อนข้าม',
+    nameEn: 'Personal Hygiene & Cross-Contamination Prevention',
+    description: 'สุขลักษณะส่วนบุคคลและการป้องกันการปนเปื้อนข้ามตามข้อกำหนด GMP',
     category: 'GMP',
     validityDays: 365,
     isMandatory: true,
@@ -338,20 +560,196 @@ const defaultTrainingCourses = [
   {
     code: 'TRN-GMP-004',
     name: 'การแต่งกายและขั้นตอนการเข้าพื้นที่ผลิต',
-    nameEn: 'Gowning Procedure',
-    description: 'ขั้นตอนการแต่งกายและการเข้าพื้นที่ผลิตยาสมุนไพร',
+    nameEn: 'Gowning Procedure & Clean Room Entry',
+    description: 'ขั้นตอนการแต่งกายและการเข้าพื้นที่สะอาดตามข้อกำหนด GMP',
     category: 'GMP',
     validityDays: 365,
     isMandatory: true,
     durationHours: 2,
   },
+  {
+    code: 'TRN-GMP-005',
+    name: 'บทบาทและความรับผิดชอบของบุคลากรหลัก GMP',
+    nameEn: 'GMP Key Personnel Roles & Responsibilities',
+    description: 'บทบาทและความรับผิดชอบของ QP, หัวหน้าผลิต, หัวหน้า QC ตาม GMP',
+    category: 'GMP',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 4,
+  },
 
-  // GACP (Good Agricultural and Collection Practice)
+  // ===== Quality Assurance Systems (ระบบประกันคุณภาพ) =====
+  {
+    code: 'TRN-QA-001',
+    name: 'ระบบคุณภาพเภสัชภัณฑ์ (PQS)',
+    nameEn: 'Pharmaceutical Quality System (PQS)',
+    description: 'ระบบคุณภาพเภสัชภัณฑ์ตาม ICH Q10 และข้อกำหนด GMP',
+    category: 'Quality Assurance',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 8,
+  },
+  {
+    code: 'TRN-QA-002',
+    name: 'CAPA - การแก้ไขและการป้องกัน',
+    nameEn: 'Corrective and Preventive Action (CAPA)',
+    description: 'ระบบ CAPA การวิเคราะห์สาเหตุราก และการดำเนินการแก้ไข/ป้องกัน',
+    category: 'Quality Assurance',
+    validityDays: 365,
+    isMandatory: true,
+    durationHours: 4,
+  },
+  {
+    code: 'TRN-QA-003',
+    name: 'การควบคุมการเปลี่ยนแปลง (Change Control)',
+    nameEn: 'Change Control Management',
+    description: 'ระบบควบคุมการเปลี่ยนแปลงตามข้อกำหนด GMP',
+    category: 'Quality Assurance',
+    validityDays: 365,
+    isMandatory: true,
+    durationHours: 4,
+  },
+  {
+    code: 'TRN-QA-004',
+    name: 'การจัดการความเบี่ยงเบน (Deviation Handling)',
+    nameEn: 'Deviation Management',
+    description: 'การจัดการความเบี่ยงเบนและ OOS/OOT ตามข้อกำหนด GMP',
+    category: 'Quality Assurance',
+    validityDays: 365,
+    isMandatory: true,
+    durationHours: 4,
+  },
+  {
+    code: 'TRN-QA-005',
+    name: 'การจัดการข้อร้องเรียนและการเรียกคืนผลิตภัณฑ์',
+    nameEn: 'Complaint Handling & Product Recall',
+    description: 'ระบบจัดการข้อร้องเรียนและการเรียกคืนผลิตภัณฑ์ตาม GMP',
+    category: 'Quality Assurance',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 4,
+  },
+  {
+    code: 'TRN-QA-006',
+    name: 'การตรวจสอบภายใน (Self-Inspection)',
+    nameEn: 'GMP Self-Inspection / Internal Audit',
+    description: 'การตรวจสอบภายในและการเตรียมรับการตรวจ GMP จาก อย.',
+    category: 'Quality Assurance',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 8,
+  },
+  {
+    code: 'TRN-QA-007',
+    name: 'การทบทวนคุณภาพผลิตภัณฑ์ (PQR)',
+    nameEn: 'Product Quality Review (PQR) / Annual Product Review (APR)',
+    description: 'การจัดทำและทบทวนรายงานคุณภาพผลิตภัณฑ์ประจำปี',
+    category: 'Quality Assurance',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 4,
+  },
+
+  // ===== Validation (การตรวจสอบความถูกต้อง) =====
+  {
+    code: 'TRN-VAL-001',
+    name: 'หลักการตรวจสอบความถูกต้อง (Validation Principles)',
+    nameEn: 'Validation Principles & Concepts',
+    description: 'หลักการตรวจสอบความถูกต้องตามข้อกำหนด GMP และ EU Annex 15',
+    category: 'Validation',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 8,
+  },
+  {
+    code: 'TRN-VAL-002',
+    name: 'การตรวจสอบความถูกต้องกระบวนการผลิต (Process Validation)',
+    nameEn: 'Process Validation',
+    description: 'การตรวจสอบความถูกต้องกระบวนการผลิตยาสมุนไพร',
+    category: 'Validation',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 8,
+  },
+  {
+    code: 'TRN-VAL-003',
+    name: 'การตรวจสอบความถูกต้องการทำความสะอาด (Cleaning Validation)',
+    nameEn: 'Cleaning Validation',
+    description: 'การตรวจสอบความถูกต้องการทำความสะอาดเครื่องมือและอุปกรณ์',
+    category: 'Validation',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 8,
+  },
+  {
+    code: 'TRN-VAL-004',
+    name: 'การตรวจสอบความถูกต้องวิธีวิเคราะห์ (Method Validation)',
+    nameEn: 'Analytical Method Validation',
+    description: 'การตรวจสอบความถูกต้องวิธีวิเคราะห์ตาม ICH Q2',
+    category: 'Validation',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 8,
+  },
+  {
+    code: 'TRN-VAL-005',
+    name: 'การรับรองเครื่องมือ (Equipment Qualification)',
+    nameEn: 'Equipment Qualification (IQ/OQ/PQ)',
+    description: 'การรับรองเครื่องมือ IQ/OQ/PQ ตามข้อกำหนด GMP',
+    category: 'Validation',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 8,
+  },
+  {
+    code: 'TRN-VAL-006',
+    name: 'การตรวจสอบความถูกต้องระบบคอมพิวเตอร์ (CSV)',
+    nameEn: 'Computer System Validation (CSV)',
+    description: 'การตรวจสอบความถูกต้องระบบคอมพิวเตอร์ตาม GAMP 5',
+    category: 'Validation',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 8,
+  },
+
+  // ===== Documentation (การจัดทำเอกสาร) =====
+  {
+    code: 'TRN-DOC-001',
+    name: 'การจัดทำเอกสาร GMP (Good Documentation Practice)',
+    nameEn: 'Good Documentation Practice (GDP)',
+    description: 'หลักการจัดทำและควบคุมเอกสารตามข้อกำหนด GMP',
+    category: 'Documentation',
+    validityDays: 365,
+    isMandatory: true,
+    durationHours: 4,
+  },
+  {
+    code: 'TRN-DOC-002',
+    name: 'Batch Record และการปล่อยผลิตภัณฑ์',
+    nameEn: 'Batch Record Review & Batch Release',
+    description: 'การกรอกและทบทวน Batch Record และการปล่อยผลิตภัณฑ์โดย QP',
+    category: 'Documentation',
+    validityDays: 365,
+    isMandatory: false,
+    durationHours: 4,
+  },
+  {
+    code: 'TRN-DOC-003',
+    name: 'Data Integrity (ALCOA+)',
+    nameEn: 'Data Integrity (ALCOA+)',
+    description: 'ความสมบูรณ์ของข้อมูลตามหลัก ALCOA+ และข้อกำหนด FDA/EMA',
+    category: 'Documentation',
+    validityDays: 365,
+    isMandatory: true,
+    durationHours: 4,
+  },
+
+  // ===== GACP (Good Agricultural and Collection Practice) =====
   {
     code: 'TRN-GACP-001',
     name: 'หลักเกณฑ์และวิธีการที่ดีในการเพาะปลูกและเก็บเกี่ยวสมุนไพร (GACP)',
-    nameEn: 'Good Agricultural and Collection Practice',
-    description: 'มาตรฐานการเพาะปลูกและเก็บเกี่ยวสมุนไพรตามหลัก GACP',
+    nameEn: 'Good Agricultural and Collection Practice (GACP)',
+    description: 'มาตรฐานการเพาะปลูกและเก็บเกี่ยวสมุนไพรตามหลัก GACP ของ WHO',
     category: 'GACP',
     validityDays: 365,
     isMandatory: false,
@@ -363,28 +761,6 @@ const defaultTrainingCourses = [
     nameEn: 'Herbal Raw Material Quality Control',
     description: 'การตรวจสอบและควบคุมคุณภาพวัตถุดิบสมุนไพรตั้งแต่แหล่งที่มา',
     category: 'GACP',
-    validityDays: 365,
-    isMandatory: false,
-    durationHours: 4,
-  },
-
-  // การจัดทำเอกสาร (Documentation)
-  {
-    code: 'TRN-DOC-001',
-    name: 'การจัดทำเอกสาร GDP',
-    nameEn: 'Good Documentation Practice',
-    description: 'หลักการจัดทำและควบคุมเอกสารตามมาตรฐาน GMP สมุนไพร',
-    category: 'Documentation',
-    validityDays: 365,
-    isMandatory: true,
-    durationHours: 4,
-  },
-  {
-    code: 'TRN-DOC-002',
-    name: 'Batch Record และการจัดการความเบี่ยงเบน',
-    nameEn: 'Batch Record & Deviation Handling',
-    description: 'การกรอกบันทึกการผลิตยาสมุนไพรและการจัดการความเบี่ยงเบน',
-    category: 'Documentation',
     validityDays: 365,
     isMandatory: false,
     durationHours: 4,
