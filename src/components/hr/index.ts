@@ -13,3 +13,5 @@ export type { OrgChartDiagramProps } from './OrgChartDiagram';
 
 export { EmployeeCard } from './EmployeeCard';
 export type { EmployeeCardProps } from './EmployeeCard';
+
+export { RoleDialog } from './RoleDialog';

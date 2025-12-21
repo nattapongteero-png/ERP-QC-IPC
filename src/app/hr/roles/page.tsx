@@ -14,13 +14,12 @@ import DataGrid, {
   Scrolling,
 } from 'devextreme-react/data-grid';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
-import TextBox from 'devextreme-react/text-box';
-import TextArea from 'devextreme-react/text-area';
 import TagBox from 'devextreme-react/tag-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { RoleDialog } from '@/components/hr';
 import { useToast } from '@/components/ui/toast';
 import {
   Shield,
@@ -42,41 +41,6 @@ async function fetchPermissions(): Promise<AppPermission[]> {
   if (!response.ok) throw new Error('Failed to fetch permissions');
   const result = await response.json();
   return result.data || [];
-}
-
-async function createRole(data: {
-  code: string;
-  name: string;
-  description?: string;
-}): Promise<AppRoleWithPermissions> {
-  const response = await fetch('/api/hr/roles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const result = await response.json();
-    throw new Error(result.error || 'Failed to create role');
-  }
-  const result = await response.json();
-  return result.data;
-}
-
-async function updateRole(
-  id: number,
-  data: { name?: string; description?: string; isActive?: boolean }
-): Promise<AppRoleWithPermissions> {
-  const response = await fetch('/api/hr/roles/' + id, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const result = await response.json();
-    throw new Error(result.error || 'Failed to update role');
-  }
-  const result = await response.json();
-  return result.data;
 }
 
 async function updateRolePermissions(
@@ -109,10 +73,14 @@ async function deactivateRole(id: number): Promise<void> {
 export default function RolesPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [showCreatePopup, setShowCreatePopup] = useState(false);
-  const [showEditPopup, setShowEditPopup] = useState(false);
+
+  // Dialog states
+  const [showRoleDialog, setShowRoleDialog] = useState(false);
+  const [editingRole, setEditingRole] = useState<AppRoleWithPermissions | null>(null);
   const [showPermissionsPopup, setShowPermissionsPopup] = useState(false);
   const [selectedRole, setSelectedRole] = useState<AppRoleWithPermissions | null>(null);
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
+
   const [gridHeight, setGridHeight] = useState(500);
 
   // Responsive height calculation
@@ -130,19 +98,6 @@ export default function RolesPage() {
     return () => window.removeEventListener('resize', calculateHeight);
   }, []);
 
-  const [newRole, setNewRole] = useState({
-    code: '',
-    name: '',
-    description: '',
-  });
-
-  const [editRole, setEditRole] = useState({
-    name: '',
-    description: '',
-  });
-
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
-
   const { data: rolesData = [] } = useQuery({
     queryKey: ['hr', 'roles'],
     queryFn: fetchRoles,
@@ -156,33 +111,6 @@ export default function RolesPage() {
   // Ensure data is always an array - memoized for stable references
   const roles = useMemo(() => Array.isArray(rolesData) ? rolesData : [], [rolesData]);
   const permissions = useMemo(() => Array.isArray(permissionsData) ? permissionsData : [], [permissionsData]);
-
-  const createMutation = useMutation({
-    mutationFn: createRole,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      setShowCreatePopup(false);
-      resetNewRole();
-      toast.success('สร้างบทบาทสำเร็จ');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถสร้างบทบาทได้');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name?: string; description?: string } }) =>
-      updateRole(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      setShowEditPopup(false);
-      setSelectedRole(null);
-      toast.success('แก้ไขบทบาทสำเร็จ');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถแก้ไขบทบาทได้');
-    },
-  });
 
   const permissionsMutation = useMutation({
     mutationFn: ({ roleId, permissionIds }: { roleId: number; permissionIds: number[] }) =>
@@ -209,33 +137,38 @@ export default function RolesPage() {
     },
   });
 
-  const resetNewRole = useCallback(() => {
-    setNewRole({
-      code: '',
-      name: '',
-      description: '',
-    });
+  // Dialog handlers
+  const handleOpenCreateDialog = useCallback(() => {
+    setEditingRole(null);
+    setShowRoleDialog(true);
   }, []);
 
-  const handleCreateRole = useCallback(() => {
-    if (!newRole.code || !newRole.name) return;
-    createMutation.mutate({
-      code: newRole.code,
-      name: newRole.name,
-      description: newRole.description || undefined,
-    });
-  }, [newRole, createMutation]);
+  const handleOpenEditDialog = useCallback((role: AppRoleWithPermissions) => {
+    setEditingRole(role);
+    setShowRoleDialog(true);
+  }, []);
 
-  const handleUpdateRole = useCallback(() => {
-    if (!selectedRole || !editRole.name) return;
-    updateMutation.mutate({
-      id: selectedRole.id,
-      data: {
-        name: editRole.name,
-        description: editRole.description || undefined,
-      },
-    });
-  }, [selectedRole, editRole, updateMutation]);
+  const handleCloseRoleDialog = useCallback(() => {
+    setShowRoleDialog(false);
+    setEditingRole(null);
+  }, []);
+
+  const handleOpenPermissionsPopup = useCallback(async (role: AppRoleWithPermissions) => {
+    setSelectedRole(role);
+    // Fetch current permissions for this role
+    const response = await fetch('/api/hr/roles/' + role.id + '/permissions');
+    if (response.ok) {
+      const result = await response.json();
+      setSelectedPermissionIds((result.data || []).map((p: AppPermission) => p.id));
+    }
+    setShowPermissionsPopup(true);
+  }, []);
+
+  const handleClosePermissionsPopup = useCallback(() => {
+    setShowPermissionsPopup(false);
+    setSelectedRole(null);
+    setSelectedPermissionIds([]);
+  }, []);
 
   const handleUpdatePermissions = useCallback(() => {
     if (!selectedRole) return;
@@ -245,45 +178,11 @@ export default function RolesPage() {
     });
   }, [selectedRole, selectedPermissionIds, permissionsMutation]);
 
-  const handleOpenCreatePopup = useCallback(() => {
-    setShowCreatePopup(true);
-  }, []);
-
-  const handleCloseCreatePopup = useCallback(() => {
-    setShowCreatePopup(false);
-    resetNewRole();
-  }, [resetNewRole]);
-
-  const handleCloseEditPopup = useCallback(() => {
-    setShowEditPopup(false);
-    setSelectedRole(null);
-  }, []);
-
-  const handleClosePermissionsPopup = useCallback(() => {
-    setShowPermissionsPopup(false);
-    setSelectedRole(null);
-    setSelectedPermissionIds([]);
-  }, []);
-
-  const openEditPopup = (role: AppRoleWithPermissions) => {
-    setSelectedRole(role);
-    setEditRole({
-      name: role.name,
-      description: role.description || '',
-    });
-    setShowEditPopup(true);
-  };
-
-  const openPermissionsPopup = async (role: AppRoleWithPermissions) => {
-    setSelectedRole(role);
-    // Fetch current permissions for this role
-    const response = await fetch('/api/hr/roles/' + role.id + '/permissions');
-    if (response.ok) {
-      const result = await response.json();
-      setSelectedPermissionIds((result.data || []).map((p: AppPermission) => p.id));
+  const handleDeactivateRole = useCallback((roleId: number) => {
+    if (confirm('ต้องการปิดใช้งานบทบาทนี้หรือไม่?')) {
+      deactivateMutation.mutate(roleId);
     }
-    setShowPermissionsPopup(true);
-  };
+  }, [deactivateMutation]);
 
   // Group permissions by module - memoized to prevent re-renders
   const permissionsByModule = useMemo(() => {
@@ -299,6 +198,7 @@ export default function RolesPage() {
     );
   }, [permissions]);
 
+  // Render functions
   const renderStatusCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
     if (role.isSystemRole) {
@@ -324,20 +224,6 @@ export default function RolesPage() {
     );
   }, []);
 
-  const handleOpenPermissionsPopup = useCallback((role: AppRoleWithPermissions) => {
-    openPermissionsPopup(role);
-  }, []);
-
-  const handleOpenEditPopup = useCallback((role: AppRoleWithPermissions) => {
-    openEditPopup(role);
-  }, []);
-
-  const handleDeactivateRole = useCallback((roleId: number) => {
-    if (confirm('ต้องการปิดใช้งานบทบาทนี้หรือไม่?')) {
-      deactivateMutation.mutate(roleId);
-    }
-  }, [deactivateMutation]);
-
   const renderActionsCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
 
@@ -356,7 +242,7 @@ export default function RolesPage() {
           hint="แก้ไข"
           type="default"
           stylingMode="text"
-          onClick={() => handleOpenEditPopup(role)}
+          onClick={() => handleOpenEditDialog(role)}
           disabled={role.isSystemRole}
         />
         {role.isActive && !role.isSystemRole && (
@@ -370,7 +256,7 @@ export default function RolesPage() {
         )}
       </div>
     );
-  }, [handleOpenPermissionsPopup, handleOpenEditPopup, handleDeactivateRole]);
+  }, [handleOpenPermissionsPopup, handleOpenEditDialog, handleDeactivateRole]);
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
@@ -390,7 +276,7 @@ export default function RolesPage() {
             text="สร้างบทบาท"
             icon="plus"
             type="default"
-            onClick={handleOpenCreatePopup}
+            onClick={handleOpenCreateDialog}
           />
         }
       />
@@ -479,135 +365,12 @@ export default function RolesPage() {
         </DataGrid>
       </div>
 
-      {/* Create Role Popup */}
-      <Popup
-        visible={showCreatePopup}
-        onHiding={handleCloseCreatePopup}
-        title="สร้างบทบาทใหม่"
-        width={500}
-        height="auto"
-        showCloseButton
-      >
-        <div className="space-y-4 p-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              รหัสบทบาท <span className="text-red-500">*</span>
-            </label>
-            <TextBox
-              value={newRole.code}
-              onValueChanged={(e) =>
-                setNewRole((prev) => ({ ...prev, code: e.value || '' }))
-              }
-              placeholder="เช่น quality_manager"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              ตัวพิมพ์เล็กและขีดล่างเท่านั้น
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              ชื่อบทบาท <span className="text-red-500">*</span>
-            </label>
-            <TextBox
-              value={newRole.name}
-              onValueChanged={(e) =>
-                setNewRole((prev) => ({ ...prev, name: e.value || '' }))
-              }
-              placeholder="เช่น ผู้จัดการคุณภาพ"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              คำอธิบาย
-            </label>
-            <TextArea
-              value={newRole.description}
-              onValueChanged={(e) =>
-                setNewRole((prev) => ({ ...prev, description: e.value || '' }))
-              }
-              placeholder="ระบุคำอธิบายบทบาท..."
-              height={80}
-            />
-          </div>
-        </div>
-
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            onClick: handleCloseCreatePopup,
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'สร้าง',
-            type: 'default',
-            disabled: !newRole.code || !newRole.name || createMutation.isPending,
-            onClick: handleCreateRole,
-          }}
-        />
-      </Popup>
-
-      {/* Edit Role Popup */}
-      <Popup
-        visible={showEditPopup}
-        onHiding={handleCloseEditPopup}
-        title={`แก้ไขบทบาท: ${selectedRole?.code || ''}`}
-        width={500}
-        height="auto"
-        showCloseButton
-      >
-        <div className="space-y-4 p-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              ชื่อบทบาท <span className="text-red-500">*</span>
-            </label>
-            <TextBox
-              value={editRole.name}
-              onValueChanged={(e) =>
-                setEditRole((prev) => ({ ...prev, name: e.value || '' }))
-              }
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              คำอธิบาย
-            </label>
-            <TextArea
-              value={editRole.description}
-              onValueChanged={(e) =>
-                setEditRole((prev) => ({ ...prev, description: e.value || '' }))
-              }
-              height={80}
-            />
-          </div>
-        </div>
-
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            onClick: handleCloseEditPopup,
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'บันทึก',
-            type: 'default',
-            disabled: !editRole.name || updateMutation.isPending,
-            onClick: handleUpdateRole,
-          }}
-        />
-      </Popup>
+      {/* Reusable Role Dialog */}
+      <RoleDialog
+        visible={showRoleDialog}
+        onHide={handleCloseRoleDialog}
+        role={editingRole}
+      />
 
       {/* Permissions Popup */}
       <Popup
