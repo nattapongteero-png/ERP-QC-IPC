@@ -3,12 +3,13 @@
 // HR Organization Chart Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DxButton } from '@/components/ui/dx-button';
 import { OrgChartTree, OrgChartDiagram } from '@/components/hr';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader } from '@/components/shared';
 import { OrgUnit } from '@/types/hr';
-import { Building2, Users, Network, List, GitBranch } from 'lucide-react';
+import { Building2, Users, Network, List, GitBranch, X } from 'lucide-react';
 
 type ViewMode = 'tree' | 'diagram';
 
@@ -24,86 +25,120 @@ const TYPE_LABELS: Record<string, string> = {
 export default function OrgChartPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
   const [selectedOrgUnit, setSelectedOrgUnit] = useState<OrgUnit | null>(null);
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
+  const [chartHeight, setChartHeight] = useState(600);
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 200;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setChartHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const handleSelectionChange = useCallback((orgUnit: OrgUnit | null) => {
     setSelectedOrgUnit(orgUnit);
+    setShowDetailPanel(true);
   }, []);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <Building2 className="h-8 w-8 text-blue-600" />
-            โครงสร้างองค์กร
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Organization Structure
-          </p>
-        </div>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="โครงสร้างองค์กร"
+        subtitle="Organization Structure"
+        icon={Building2}
+        iconBgColor="bg-blue-100"
+        iconColor="text-blue-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'โครงสร้างองค์กร' },
+        ]}
+        actions={
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('tree')}
+                className={`
+                  flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium transition-all min-h-[40px]
+                  ${viewMode === 'tree'
+                    ? 'bg-white shadow text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                  }
+                `}
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline">Tree View</span>
+              </button>
+              <button
+                onClick={() => setViewMode('diagram')}
+                className={`
+                  flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium transition-all min-h-[40px]
+                  ${viewMode === 'diagram'
+                    ? 'bg-white shadow text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                  }
+                `}
+              >
+                <GitBranch className="h-4 w-4" />
+                <span className="hidden sm:inline">Diagram</span>
+              </button>
+            </div>
 
-        <div className="flex items-center gap-3">
-          {/* View Mode Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('tree')}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all
-                ${viewMode === 'tree'
-                  ? 'bg-white shadow text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-                }
-              `}
-            >
-              <List className="h-4 w-4" />
-              <span>Tree View</span>
-            </button>
-            <button
-              onClick={() => setViewMode('diagram')}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all
-                ${viewMode === 'diagram'
-                  ? 'bg-white shadow text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-                }
-              `}
-            >
-              <GitBranch className="h-4 w-4" />
-              <span>Diagram</span>
-            </button>
+            <DxButton
+              icon="refresh"
+              type="default"
+              stylingMode="outlined"
+              onClick={() => window.location.reload()}
+            />
           </div>
-
-          <DxButton
-            icon="refresh"
-            text="Refresh"
-            type="default"
-            stylingMode="outlined"
-            onClick={() => window.location.reload()}
-          />
-        </div>
-      </div>
+        }
+      />
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Org Chart View */}
         <div className="lg:col-span-3 bg-white rounded-xl border border-gray-200 overflow-hidden">
           {viewMode === 'tree' ? (
             <OrgChartTree
-              height={600}
+              height={chartHeight}
               onSelectionChange={handleSelectionChange}
               editable
             />
           ) : (
             <OrgChartDiagram
-              height={600}
+              height={chartHeight}
               onNodeClick={handleSelectionChange}
             />
           )}
         </div>
 
-        {/* Detail Panel */}
-        <div className="lg:col-span-1 space-y-4">
+        {/* Detail Panel - Slide-up on mobile when selected */}
+        <div className={`
+          lg:col-span-1 space-y-4
+          ${showDetailPanel && selectedOrgUnit
+            ? 'fixed inset-x-0 bottom-0 z-50 bg-gray-50 p-4 shadow-2xl rounded-t-2xl max-h-[70vh] overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:p-0 lg:shadow-none lg:rounded-none lg:max-h-none'
+            : 'hidden lg:block'
+          }
+        `}>
+          {/* Mobile Close Button */}
+          {showDetailPanel && selectedOrgUnit && (
+            <button
+              onClick={() => setShowDetailPanel(false)}
+              className="lg:hidden absolute top-4 right-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+            >
+              <X className="h-5 w-5 text-gray-600" />
+            </button>
+          )}
+
           {/* Selected Unit Info */}
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">

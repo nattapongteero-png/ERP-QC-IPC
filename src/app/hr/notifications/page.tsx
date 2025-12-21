@@ -3,7 +3,7 @@
 // HR Notifications Page
 // Feature: 007-hr-personnel-management
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { buddhistDateTimeFormat } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import {
   Bell,
   Clock,
@@ -111,6 +112,22 @@ export default function NotificationsPage() {
   const [selectedNotification, setSelectedNotification] =
     useState<HRNotificationWithEmployee | null>(null);
   const [showDetailPopup, setShowDetailPopup] = useState(false);
+  const [gridHeight, setGridHeight] = useState(600);
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 380;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   // Fetch notifications
   const {
@@ -229,164 +246,161 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bell className="h-6 w-6" />
-            การแจ้งเตือน HR
-          </h1>
-          <p className="text-gray-500 mt-1">
-            จัดการการแจ้งเตือนการอบรมและการตรวจสุขภาพ
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <DxButton
-            text="ตรวจสอบการอบรม"
-            icon="event"
-            type="default"
-            stylingMode="outlined"
-            onClick={() => runTrainingCheckMutation.mutate()}
-            disabled={runTrainingCheckMutation.isPending}
-          />
-          <DxButton
-            text="ตรวจสอบสุขภาพ"
-            icon="mediumiconslayout"
-            type="default"
-            stylingMode="outlined"
-            onClick={() => runHealthCheckMutation.mutate()}
-            disabled={runHealthCheckMutation.isPending}
-          />
-          <DxButton
-            icon="refresh"
-            hint="รีเฟรช"
-            stylingMode="text"
-            onClick={() => refetch()}
-          />
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">รายการทั้งหมด</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
-            </div>
-            <Bell className="h-8 w-8 text-blue-500" />
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="การแจ้งเตือน HR"
+        subtitle="จัดการการแจ้งเตือนการอบรมและการตรวจสุขภาพ"
+        icon={Bell}
+        iconBgColor="bg-blue-100"
+        iconColor="text-blue-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'การแจ้งเตือน' },
+        ]}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <DxButton
+              text="ตรวจสอบอบรม"
+              icon="event"
+              type="default"
+              stylingMode="outlined"
+              onClick={() => runTrainingCheckMutation.mutate()}
+              disabled={runTrainingCheckMutation.isPending}
+            />
+            <DxButton
+              text="ตรวจสอบสุขภาพ"
+              icon="mediumiconslayout"
+              type="default"
+              stylingMode="outlined"
+              onClick={() => runHealthCheckMutation.mutate()}
+              disabled={runHealthCheckMutation.isPending}
+            />
+            <DxButton
+              icon="refresh"
+              hint="รีเฟรช"
+              stylingMode="text"
+              onClick={() => refetch()}
+            />
           </div>
-        </div>
+        }
+      />
 
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">อบรมใกล้หมดอายุ</p>
-              <p className="text-2xl font-bold">{stats.trainingExpiring}</p>
-            </div>
-            <Clock className="h-8 w-8 text-yellow-500" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">อบรมหมดอายุ</p>
-              <p className="text-2xl font-bold">{stats.trainingExpired}</p>
-            </div>
-            <AlertTriangle className="h-8 w-8 text-red-500" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-400">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">ตรวจสุขภาพใกล้ถึง</p>
-              <p className="text-2xl font-bold">{stats.healthDue}</p>
-            </div>
-            <HeartPulse className="h-8 w-8 text-blue-400" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-400">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">เลยกำหนดตรวจ</p>
-              <p className="text-2xl font-bold">{stats.healthOverdue}</p>
-            </div>
-            <AlertTriangle className="h-8 w-8 text-red-400" />
-          </div>
-        </div>
+      {/* Stats using StatCard - 2x2 on mobile, 5 cols on desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+        <StatCard
+          label="รายการทั้งหมด"
+          value={stats.total}
+          icon={Bell}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+        />
+        <StatCard
+          label="อบรมใกล้หมดอายุ"
+          value={stats.trainingExpiring}
+          icon={Clock}
+          iconColor="text-yellow-500"
+          accentColor="border-yellow-500"
+        />
+        <StatCard
+          label="อบรมหมดอายุ"
+          value={stats.trainingExpired}
+          icon={AlertTriangle}
+          iconColor="text-red-500"
+          accentColor="border-red-500"
+        />
+        <StatCard
+          label="ตรวจสุขภาพใกล้ถึง"
+          value={stats.healthDue}
+          icon={HeartPulse}
+          iconColor="text-blue-400"
+          accentColor="border-blue-400"
+        />
+        <StatCard
+          label="เลยกำหนดตรวจ"
+          value={stats.healthOverdue}
+          icon={AlertTriangle}
+          iconColor="text-red-400"
+          accentColor="border-red-400"
+        />
       </div>
 
       {/* Filter */}
-      <div className="bg-white rounded-lg shadow p-4 mb-4">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium">ประเภท:</span>
+      <div className="bg-white rounded-lg border border-gray-200 p-3 md:p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
+          <span className="text-sm font-medium whitespace-nowrap">ประเภท:</span>
           <SelectBox
             items={NOTIFICATION_TYPES}
             valueExpr="value"
             displayExpr="label"
             value={typeFilter}
             onValueChanged={(e) => setTypeFilter(e.value)}
-            width={200}
+            width="100%"
           />
         </div>
       </div>
 
-      {/* Notifications Grid */}
-      <div className="bg-white rounded-lg shadow">
+      {/* Notifications Grid with columnHidingEnabled */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
           dataSource={notifications}
           keyExpr="id"
-          showBorders={true}
-          columnAutoWidth={true}
-          rowAlternationEnabled={true}
-          wordWrapEnabled={true}
-          height={600}
+          showBorders={false}
+          showRowLines
+          columnAutoWidth
+          columnHidingEnabled
+          rowAlternationEnabled
+          wordWrapEnabled
+          height={gridHeight}
+          hoverStateEnabled
         >
-          <SearchPanel visible={true} placeholder="ค้นหา..." />
-          <HeaderFilter visible={true} />
-          <FilterRow visible={true} />
+          <SearchPanel visible placeholder="ค้นหา..." width={200} />
+          <HeaderFilter visible />
+          <FilterRow visible />
           <Selection mode="multiple" />
           <Paging defaultPageSize={20} />
           <Pager
-            showPageSizeSelector={true}
+            showPageSizeSelector
             allowedPageSizes={[10, 20, 50]}
-            showInfo={true}
+            showInfo
           />
 
           <Column
             dataField="type"
             caption="ประเภท"
-            width={180}
+            width={160}
             cellRender={renderTypeCell}
+            hidingPriority={2}
           />
           <Column
             dataField="employeeCode"
             caption="รหัสพนักงาน"
-            width={120}
+            width={100}
+            hidingPriority={4}
           />
           <Column
             dataField="employeeName"
             caption="ชื่อพนักงาน"
-            width={180}
+            minWidth={150}
+            hidingPriority={0}
           />
-          <Column dataField="title" caption="หัวข้อ" minWidth={250} />
+          <Column dataField="title" caption="หัวข้อ" minWidth={200} hidingPriority={1} />
           <Column
             dataField="createdAt"
             caption="วันที่สร้าง"
             dataType="datetime"
-            width={160}
+            width={140}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             format={buddhistDateTimeFormat as any}
+            hidingPriority={5}
           />
           <Column
             caption="จัดการ"
-            width={120}
+            width={100}
             cellRender={renderActionsCell}
             allowFiltering={false}
             allowSorting={false}
+            hidingPriority={3}
           />
         </DataGrid>
       </div>

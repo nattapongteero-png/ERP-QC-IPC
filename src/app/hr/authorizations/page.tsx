@@ -3,7 +3,7 @@
 // HR Authorizations Management Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import {
   ShieldCheck,
@@ -109,6 +110,22 @@ export default function AuthorizationsPage() {
   const [showGrantPopup, setShowGrantPopup] = useState(false);
   const [showDelegatePopup, setShowDelegatePopup] = useState(false);
   const [selectedAuth, setSelectedAuth] = useState<AuthorizationWithDetails | null>(null);
+  const [gridHeight, setGridHeight] = useState(600);
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 320;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const [newAuth, setNewAuth] = useState({
     employeeId: undefined as number | undefined,
@@ -307,76 +324,66 @@ export default function AuthorizationsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <ShieldCheck className="h-8 w-8 text-indigo-600" />
-            สิทธิ์อนุมัติ
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Authorization Management • {stats.total} สิทธิ์ที่มีผลบังคับใช้
-          </p>
-        </div>
-        <DxButton
-          text="มอบสิทธิ์ใหม่"
-          icon="add"
-          type="default"
-          stylingMode="contained"
-          onClick={() => setShowGrantPopup(true)}
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="สิทธิ์อนุมัติ"
+        subtitle={`Authorization Management • ${stats.total} สิทธิ์ที่มีผลบังคับใช้`}
+        icon={ShieldCheck}
+        iconBgColor="bg-indigo-100"
+        iconColor="text-indigo-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'สิทธิ์อนุมัติ' },
+        ]}
+        actions={
+          <DxButton
+            text="มอบสิทธิ์ใหม่"
+            icon="add"
+            type="default"
+            stylingMode="contained"
+            onClick={() => setShowGrantPopup(true)}
+          />
+        }
+      />
+
+      {/* Stats using StatCard */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label="สิทธิ์ทั้งหมด"
+          value={stats.total}
+          icon={ShieldCheck}
+          iconColor="text-indigo-500"
+          accentColor="border-indigo-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="ปล่อยผ่านชุด"
+          value={stats.batchRelease}
+          icon={Building2}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="อนุมัติ SOP"
+          value={stats.sopApproval}
+          icon={Calendar}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="การมอบอำนาจ"
+          value={stats.delegations}
+          icon={Users}
+          iconColor="text-purple-500"
+          accentColor="border-purple-500"
+          isLoading={isLoading}
         />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <ShieldCheck className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              <p className="text-sm text-gray-500">สิทธิ์ทั้งหมด</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Building2 className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.batchRelease}</p>
-              <p className="text-sm text-gray-500">ปล่อยผ่านชุด</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.sopApproval}</p>
-              <p className="text-sm text-gray-500">อนุมัติ SOP</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Users className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.delegations}</p>
-              <p className="text-sm text-gray-500">การมอบอำนาจ</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* DataGrid */}
+      {/* DataGrid with columnHidingEnabled */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
           dataSource={authorizations}
@@ -385,11 +392,12 @@ export default function AuthorizationsPage() {
           showRowLines
           rowAlternationEnabled
           columnAutoWidth
-          height={600}
+          columnHidingEnabled
+          height={gridHeight}
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
         >
-          <SearchPanel visible placeholder="ค้นหา..." width={250} />
+          <SearchPanel visible placeholder="ค้นหา..." width={200} />
           <HeaderFilter visible />
           <FilterRow visible />
           <Scrolling mode="virtual" />
@@ -400,42 +408,48 @@ export default function AuthorizationsPage() {
             <Item name="searchPanel" />
           </Toolbar>
 
-          <Column dataField="employeeName" caption="พนักงาน" minWidth={180} />
+          <Column dataField="employeeName" caption="พนักงาน" minWidth={150} hidingPriority={0} />
           <Column
             dataField="authType"
             caption="ประเภทสิทธิ์"
-            width={180}
+            width={160}
             cellRender={renderAuthTypeCell}
+            hidingPriority={1}
           />
           <Column
             dataField="effectiveFrom"
             caption="วันที่เริ่ม"
-            width={120}
+            width={110}
             calculateCellValue={(rowData) => formatDate(rowData.effectiveFrom)}
+            hidingPriority={4}
           />
           <Column
             dataField="effectiveTo"
             caption="วันที่สิ้นสุด"
-            width={120}
+            width={110}
             calculateCellValue={(rowData) => formatDate(rowData.effectiveTo)}
+            hidingPriority={5}
           />
           <Column
             caption="สถานะ"
             width={100}
             cellRender={renderStatusCell}
             alignment="center"
+            hidingPriority={2}
           />
           <Column
             caption="มอบอำนาจ"
-            width={110}
+            width={100}
             cellRender={renderDelegationsCell}
             alignment="center"
+            hidingPriority={6}
           />
           <Column
             caption="การดำเนินการ"
-            width={100}
+            width={90}
             cellRender={renderActionsCell}
             alignment="center"
+            hidingPriority={3}
           />
         </DataGrid>
       </div>

@@ -3,7 +3,7 @@
 // HR Roles Management Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -20,6 +20,7 @@ import TagBox from 'devextreme-react/tag-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import {
   Shield,
@@ -112,6 +113,22 @@ export default function RolesPage() {
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showPermissionsPopup, setShowPermissionsPopup] = useState(false);
   const [selectedRole, setSelectedRole] = useState<AppRoleWithPermissions | null>(null);
+  const [gridHeight, setGridHeight] = useState(500);
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 320;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const [newRole, setNewRole] = useState({
     code: '',
@@ -320,92 +337,74 @@ export default function RolesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-blue-600" />
-            จัดการบทบาทและสิทธิ์
-          </h1>
-          <p className="text-gray-600 mt-1">
-            กำหนดบทบาทและสิทธิ์การเข้าถึงในระบบ
-          </p>
-        </div>
-        <DxButton
-          text="สร้างบทบาท"
-          icon="plus"
-          type="default"
-          onClick={() => setShowCreatePopup(true)}
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="จัดการบทบาทและสิทธิ์"
+        subtitle="กำหนดบทบาทและสิทธิ์การเข้าถึงในระบบ"
+        icon={Shield}
+        iconBgColor="bg-blue-100"
+        iconColor="text-blue-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'บทบาทและสิทธิ์' },
+        ]}
+        actions={
+          <DxButton
+            text="สร้างบทบาท"
+            icon="plus"
+            type="default"
+            onClick={() => setShowCreatePopup(true)}
+          />
+        }
+      />
+
+      {/* Stats using StatCard */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label="บทบาททั้งหมด"
+          value={roles.length}
+          icon={Shield}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+        />
+        <StatCard
+          label="ใช้งาน"
+          value={roles.filter((r) => r.isActive).length}
+          icon={Users}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
+        />
+        <StatCard
+          label="บทบาทระบบ"
+          value={roles.filter((r) => r.isSystemRole).length}
+          icon={Lock}
+          iconColor="text-purple-500"
+          accentColor="border-purple-500"
+        />
+        <StatCard
+          label="สิทธิ์ทั้งหมด"
+          value={permissions.length}
+          icon={Settings}
+          iconColor="text-orange-500"
+          accentColor="border-orange-500"
         />
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-full">
-              <Shield className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{roles.length}</div>
-              <div className="text-gray-600 text-sm">บทบาททั้งหมด</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-2 rounded-full">
-              <Users className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">
-                {roles.filter((r) => r.isActive).length}
-              </div>
-              <div className="text-gray-600 text-sm">ใช้งาน</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-2 rounded-full">
-              <Lock className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">
-                {roles.filter((r) => r.isSystemRole).length}
-              </div>
-              <div className="text-gray-600 text-sm">บทบาทระบบ</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-orange-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-100 p-2 rounded-full">
-              <Settings className="h-5 w-5 text-orange-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{permissions.length}</div>
-              <div className="text-gray-600 text-sm">สิทธิ์ทั้งหมด</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Roles DataGrid */}
-      <div className="bg-white rounded-lg shadow">
+      {/* Roles DataGrid with columnHidingEnabled */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
           dataSource={roles}
-          showBorders
+          showBorders={false}
+          showRowLines
           rowAlternationEnabled
           columnAutoWidth
+          columnHidingEnabled
           wordWrapEnabled
-          height={500}
+          height={gridHeight}
+          hoverStateEnabled
         >
-          <SearchPanel visible placeholder="ค้นหา..." />
+          <SearchPanel visible placeholder="ค้นหา..." width={200} />
           <HeaderFilter visible />
           <FilterRow visible />
           <Scrolling mode="virtual" />
@@ -416,27 +415,30 @@ export default function RolesPage() {
             showInfo
           />
 
-          <Column dataField="code" caption="รหัส" width={150} />
-          <Column dataField="name" caption="ชื่อบทบาท" width={200} />
-          <Column dataField="description" caption="คำอธิบาย" />
+          <Column dataField="code" caption="รหัส" width={130} hidingPriority={2} />
+          <Column dataField="name" caption="ชื่อบทบาท" minWidth={150} hidingPriority={0} />
+          <Column dataField="description" caption="คำอธิบาย" minWidth={180} hidingPriority={4} />
           <Column
             dataField="permissionCount"
             caption="จำนวนสิทธิ์"
-            width={120}
+            width={100}
             alignment="center"
             cellRender={renderPermissionCountCell}
+            hidingPriority={3}
           />
           <Column
             caption="สถานะ"
-            width={120}
+            width={100}
             alignment="center"
             cellRender={renderStatusCell}
+            hidingPriority={1}
           />
           <Column
             caption="จัดการ"
-            width={140}
+            width={120}
             alignment="center"
             cellRender={renderActionsCell}
+            hidingPriority={5}
           />
         </DataGrid>
       </div>

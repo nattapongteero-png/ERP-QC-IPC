@@ -3,7 +3,7 @@
 // HR Health Records Management Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -22,6 +22,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDateBox, buddhistDateFormat } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import {
   Heart,
@@ -117,6 +118,22 @@ export default function HealthRecordsPage() {
   const toast = useToast();
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [activeTab, setActiveTab] = useState<'records' | 'due' | 'overdue'>('records');
+  const [gridHeight, setGridHeight] = useState(600);
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 380;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const [newRecord, setNewRecord] = useState({
     employeeId: undefined as number | undefined,
@@ -245,83 +262,64 @@ export default function HealthRecordsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Heart className="h-6 w-6 text-red-600" />
-            บันทึกสุขภาพพนักงาน
-          </h1>
-          <p className="text-gray-600 mt-1">
-            จัดการข้อมูลการตรวจสุขภาพและสถานะความพร้อมปฏิบัติงาน
-          </p>
-        </div>
-        <DxButton
-          text="บันทึกผลตรวจ"
-          icon="plus"
-          type="default"
-          onClick={() => setShowCreatePopup(true)}
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="บันทึกสุขภาพพนักงาน"
+        subtitle="จัดการข้อมูลการตรวจสุขภาพและสถานะความพร้อมปฏิบัติงาน"
+        icon={Heart}
+        iconBgColor="bg-red-100"
+        iconColor="text-red-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'บันทึกสุขภาพ' },
+        ]}
+        actions={
+          <DxButton
+            text="บันทึกผลตรวจ"
+            icon="plus"
+            type="default"
+            onClick={() => setShowCreatePopup(true)}
+          />
+        }
+      />
+
+      {/* Stats using StatCard */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label="รายการทั้งหมด"
+          value={healthRecords.length}
+          icon={Heart}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
+        />
+        <StatCard
+          label="ครบกำหนดใน 30 วัน"
+          value={healthChecksDue.length}
+          icon={Calendar}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+        />
+        <StatCard
+          label="เกินกำหนด"
+          value={overdueChecks.length}
+          icon={AlertTriangle}
+          iconColor="text-red-500"
+          accentColor="border-red-500"
+        />
+        <StatCard
+          label="มีข้อจำกัด"
+          value={healthRecords.filter((r) => 'fitnessStatus' in r && r.fitnessStatus === 'restricted').length}
+          icon={Clock}
+          iconColor="text-orange-500"
+          accentColor="border-orange-500"
         />
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-2 rounded-full">
-              <Heart className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{healthRecords.length}</div>
-              <div className="text-gray-600 text-sm">รายการทั้งหมด</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-full">
-              <Calendar className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{healthChecksDue.length}</div>
-              <div className="text-gray-600 text-sm">ครบกำหนดใน 30 วัน</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-red-100 p-2 rounded-full">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{overdueChecks.length}</div>
-              <div className="text-gray-600 text-sm">เกินกำหนด</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-orange-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-100 p-2 rounded-full">
-              <Clock className="h-5 w-5 text-orange-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">
-                {healthRecords.filter((r) => 'fitnessStatus' in r && r.fitnessStatus === 'restricted').length}
-              </div>
-              <div className="text-gray-600 text-sm">มีข้อจำกัด</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex gap-2 border-b">
+      {/* Tab Navigation - Responsive */}
+      <div className="flex overflow-x-auto gap-1 md:gap-2 border-b -mx-4 px-4 md:mx-0 md:px-0">
         <button
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-3 md:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm md:text-base min-h-[44px] ${
             activeTab === 'records'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-gray-500 hover:text-gray-700'
@@ -331,7 +329,7 @@ export default function HealthRecordsPage() {
           ประวัติตรวจสุขภาพ
         </button>
         <button
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-3 md:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm md:text-base min-h-[44px] ${
             activeTab === 'due'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-gray-500 hover:text-gray-700'
@@ -341,7 +339,7 @@ export default function HealthRecordsPage() {
           ใกล้ครบกำหนด ({healthChecksDue.length})
         </button>
         <button
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-3 md:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm md:text-base min-h-[44px] ${
             activeTab === 'overdue'
               ? 'text-red-600 border-b-2 border-red-600'
               : 'text-gray-500 hover:text-gray-700'
@@ -354,16 +352,19 @@ export default function HealthRecordsPage() {
 
       {/* Health Records Grid */}
       {activeTab === 'records' && (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <DataGrid
             dataSource={healthRecords}
-            showBorders
+            showBorders={false}
+            showRowLines
             rowAlternationEnabled
             columnAutoWidth
+            columnHidingEnabled
             wordWrapEnabled
-            height={600}
+            height={gridHeight}
+            hoverStateEnabled
           >
-            <SearchPanel visible placeholder="ค้นหา..." />
+            <SearchPanel visible placeholder="ค้นหา..." width={200} />
             <HeaderFilter visible />
             <FilterRow visible />
             <Scrolling mode="virtual" />
@@ -377,13 +378,15 @@ export default function HealthRecordsPage() {
             <Column
               dataField="employeeName"
               caption="พนักงาน"
-              width={180}
+              minWidth={150}
+              hidingPriority={0}
             />
             <Column
               dataField="examinationType"
               caption="ประเภทการตรวจ"
-              width={140}
+              width={130}
               cellRender={renderExamTypeCell}
+              hidingPriority={3}
             />
             <Column
               dataField="examinationDate"
@@ -391,31 +394,36 @@ export default function HealthRecordsPage() {
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
-              width={120}
+              width={110}
+              hidingPriority={4}
             />
             <Column
               dataField="fitnessStatus"
               caption="สถานะ"
-              width={150}
+              width={140}
               cellRender={renderFitnessStatusCell}
+              hidingPriority={1}
             />
             <Column
               dataField="restrictions"
               caption="ข้อจำกัด"
-              width={200}
+              width={180}
+              hidingPriority={5}
             />
             <Column
               dataField="nextExamDue"
-              caption="ครบกำหนดตรวจครั้งถัดไป"
+              caption="ครบกำหนดถัดไป"
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
-              width={160}
+              width={130}
+              hidingPriority={2}
             />
             <Column
               dataField="examinerName"
               caption="ผู้ตรวจ"
-              width={150}
+              width={130}
+              hidingPriority={6}
             />
           </DataGrid>
         </div>
@@ -423,16 +431,19 @@ export default function HealthRecordsPage() {
 
       {/* Upcoming Health Checks Grid */}
       {activeTab === 'due' && (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <DataGrid
             dataSource={healthChecksDue}
-            showBorders
+            showBorders={false}
+            showRowLines
             rowAlternationEnabled
             columnAutoWidth
+            columnHidingEnabled
             wordWrapEnabled
-            height={600}
+            height={gridHeight}
+            hoverStateEnabled
           >
-            <SearchPanel visible placeholder="ค้นหา..." />
+            <SearchPanel visible placeholder="ค้นหา..." width={200} />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector
@@ -443,20 +454,23 @@ export default function HealthRecordsPage() {
             <Column
               dataField="employeeName"
               caption="พนักงาน"
-              width={200}
+              minWidth={150}
+              hidingPriority={0}
             />
             <Column
               dataField="employeeEmail"
               caption="อีเมล"
-              width={200}
+              width={180}
+              hidingPriority={4}
             />
             <Column
               dataField="lastExamDate"
-              caption="วันที่ตรวจครั้งล่าสุด"
+              caption="ตรวจครั้งล่าสุด"
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
-              width={160}
+              width={130}
+              hidingPriority={3}
             />
             <Column
               dataField="nextExamDue"
@@ -464,19 +478,22 @@ export default function HealthRecordsPage() {
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
-              width={120}
+              width={110}
+              hidingPriority={2}
             />
             <Column
               dataField="daysUntilDue"
               caption="เหลือเวลา"
-              width={120}
+              width={100}
               cellRender={renderDaysUntilDue}
+              hidingPriority={1}
             />
             <Column
               dataField="lastFitnessStatus"
               caption="สถานะล่าสุด"
-              width={150}
+              width={130}
               cellRender={renderFitnessStatusCell}
+              hidingPriority={5}
             />
           </DataGrid>
         </div>
@@ -484,16 +501,19 @@ export default function HealthRecordsPage() {
 
       {/* Overdue Health Checks Grid */}
       {activeTab === 'overdue' && (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <DataGrid
             dataSource={overdueChecks}
-            showBorders
+            showBorders={false}
+            showRowLines
             rowAlternationEnabled
             columnAutoWidth
+            columnHidingEnabled
             wordWrapEnabled
-            height={600}
+            height={gridHeight}
+            hoverStateEnabled
           >
-            <SearchPanel visible placeholder="ค้นหา..." />
+            <SearchPanel visible placeholder="ค้นหา..." width={200} />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector
@@ -504,20 +524,23 @@ export default function HealthRecordsPage() {
             <Column
               dataField="employeeName"
               caption="พนักงาน"
-              width={200}
+              minWidth={150}
+              hidingPriority={0}
             />
             <Column
               dataField="employeeEmail"
               caption="อีเมล"
-              width={200}
+              width={180}
+              hidingPriority={4}
             />
             <Column
               dataField="lastExamDate"
-              caption="วันที่ตรวจครั้งล่าสุด"
+              caption="ตรวจครั้งล่าสุด"
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
-              width={160}
+              width={130}
+              hidingPriority={3}
             />
             <Column
               dataField="nextExamDue"
@@ -525,19 +548,22 @@ export default function HealthRecordsPage() {
               dataType="date"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               format={buddhistDateFormat as any}
-              width={120}
+              width={110}
+              hidingPriority={2}
             />
             <Column
               dataField="daysUntilDue"
               caption="เกินกำหนด"
-              width={120}
+              width={100}
               cellRender={renderDaysUntilDue}
+              hidingPriority={1}
             />
             <Column
               dataField="lastFitnessStatus"
               caption="สถานะล่าสุด"
-              width={150}
+              width={130}
               cellRender={renderFitnessStatusCell}
+              hidingPriority={5}
             />
           </DataGrid>
         </div>

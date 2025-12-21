@@ -3,7 +3,7 @@
 // HR Competency Matrix Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import DataGrid, {
   Column,
   HeaderFilter,
@@ -15,6 +15,7 @@ import DataGrid, {
 import SelectBox from 'devextreme-react/select-box';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { Grid3X3, CheckCircle, AlertTriangle, XCircle, Clock } from 'lucide-react';
 import type { CompetencyMatrix, TrainingCourse, TrainingRecordStatus, OrgUnit } from '@/types/hr';
 
@@ -55,6 +56,22 @@ interface MatrixRow {
 export default function CompetencyMatrixPage() {
   const [selectedOrgUnit, setSelectedOrgUnit] = useState<number | null>(null);
   const [showMandatoryOnly, setShowMandatoryOnly] = useState(false);
+  const [gridHeight, setGridHeight] = useState(600);
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 350;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const { data: matrices = [], isLoading } = useQuery({
     queryKey: ['hr', 'training', 'competency-matrix'],
@@ -130,6 +147,7 @@ export default function CompetencyMatrixPage() {
   }, [matrices]);
 
   const renderStatusCell = (courseId: number) => {
+    // eslint-disable-next-line react/display-name
     return (cellData: { data: MatrixRow }) => {
       const status = cellData.data['course_' + courseId] as TrainingRecordStatus | undefined;
       const isRequired = cellData.data['course_' + courseId + '_required'] as boolean | undefined;
@@ -151,95 +169,84 @@ export default function CompetencyMatrixPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-full mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <Grid3X3 className="h-8 w-8 text-purple-600" />
-            Competency Matrix
-          </h1>
-          <p className="text-gray-500 mt-1">
-            ตารางทักษะและการรับรองของพนักงาน • {matrices.length} คน × {displayCourses.length} หลักสูตร
-          </p>
-        </div>
-      </div>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-full mx-auto">
+      {/* ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="Competency Matrix"
+        subtitle={`ตารางทักษะ • ${matrices.length} คน × ${displayCourses.length} หลักสูตร`}
+        icon={Grid3X3}
+        iconBgColor="bg-purple-100"
+        iconColor="text-purple-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'การอบรม', href: '/hr/training' },
+          { label: 'Competency Matrix' },
+        ]}
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.valid}</p>
-              <p className="text-sm text-gray-500">ผ่านการอบรม</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.expiringSoon}</p>
-              <p className="text-sm text-gray-500">ใกล้หมดอายุ</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <XCircle className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.expired}</p>
-              <p className="text-sm text-gray-500">หมดอายุ</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <Clock className="h-5 w-5 text-gray-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.notTaken}</p>
-              <p className="text-sm text-gray-500">ยังไม่อบรม</p>
-            </div>
-          </div>
-        </div>
+      {/* Stats using StatCard */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label="ผ่านการอบรม"
+          value={stats.valid}
+          icon={CheckCircle}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="ใกล้หมดอายุ"
+          value={stats.expiringSoon}
+          icon={AlertTriangle}
+          iconColor="text-yellow-500"
+          accentColor="border-yellow-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="หมดอายุ"
+          value={stats.expired}
+          icon={XCircle}
+          iconColor="text-red-500"
+          accentColor="border-red-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="ยังไม่อบรม"
+          value={stats.notTaken}
+          icon={Clock}
+          iconColor="text-gray-500"
+          accentColor="border-gray-500"
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">หน่วยงาน:</span>
+      <div className="bg-white rounded-lg border border-gray-200 p-3 md:p-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-sm text-gray-600 whitespace-nowrap">หน่วยงาน:</span>
             <SelectBox
               dataSource={[{ id: null, name: 'ทั้งหมด' }, ...orgUnits]}
               valueExpr="id"
               displayExpr="name"
               value={selectedOrgUnit}
               onValueChanged={(e) => setSelectedOrgUnit(e.value)}
-              width={200}
+              width="100%"
               placeholder="เลือกหน่วยงาน..."
             />
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 cursor-pointer min-h-[40px]">
             <input
               type="checkbox"
               checked={showMandatoryOnly}
               onChange={(e) => setShowMandatoryOnly(e.target.checked)}
-              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-5 h-5"
             />
             <span className="text-sm text-gray-600">แสดงเฉพาะหลักสูตรบังคับ</span>
           </label>
 
-          {/* Legend */}
-          <div className="flex items-center gap-4 ml-auto">
+          {/* Legend - Hide on mobile */}
+          <div className="hidden md:flex items-center gap-4 ml-auto">
             <span className="text-sm text-gray-500">สถานะ:</span>
             {Object.entries(STATUS_CONFIG).map(([key, config]) => {
               const Icon = config.icon;
@@ -255,6 +262,22 @@ export default function CompetencyMatrixPage() {
             <span className="text-xs text-red-500">* = บังคับ</span>
           </div>
         </div>
+
+        {/* Legend - Mobile only */}
+        <div className="flex md:hidden flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+          {Object.entries(STATUS_CONFIG).map(([key, config]) => {
+            const Icon = config.icon;
+            return (
+              <div key={key} className="flex items-center gap-1">
+                <div className={'p-1 rounded ' + config.bgColor}>
+                  <Icon className={'h-3 w-3 ' + config.color} />
+                </div>
+                <span className="text-xs text-gray-600">{config.label}</span>
+              </div>
+            );
+          })}
+          <span className="text-xs text-red-500">* = บังคับ</span>
+        </div>
       </div>
 
       {/* Matrix Grid */}
@@ -266,7 +289,7 @@ export default function CompetencyMatrixPage() {
           showRowLines
           showColumnLines
           rowAlternationEnabled
-          height={600}
+          height={gridHeight}
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
           columnAutoWidth={false}
