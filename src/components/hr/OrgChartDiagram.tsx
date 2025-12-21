@@ -46,7 +46,9 @@ async function fetchOrgUnits(): Promise<OrgUnit[]> {
     throw new Error('Failed to fetch organization units');
   }
   const result = await response.json();
-  return result.data || [];
+  // API returns { success: true, data: { data: orgUnits } }
+  const data = result.data?.data || result.data;
+  return Array.isArray(data) ? data : [];
 }
 
 export function OrgChartDiagram({
