@@ -90,6 +90,8 @@ import type {
   AppPermission,
   EmployeeRole,
   EmployeeRoleCreate,
+  HRAuditLog,
+  HRAuditAction,
 } from '@/types/hr';
 
 // ============================================
@@ -3720,4 +3722,305 @@ export async function getEmployeesByRole(
   }
 
   return result;
+}
+
+// ============================================
+// Audit Trail Service (T100-T102)
+// ============================================
+
+export interface HRAuditLogWithDetails extends HRAuditLog {
+  userName?: string;
+  actionLabel?: string;
+}
+
+interface AuditLogFilters {
+  userId?: number;
+  action?: HRAuditAction;
+  tableName?: string;
+  recordId?: number;
+  fromDate?: string;
+  toDate?: string;
+  skip?: number;
+  take?: number;
+}
+
+const ACTION_LABELS: Record<HRAuditAction, string> = {
+  HR_ORG_CREATE: 'สร้างหน่วยงาน',
+  HR_ORG_UPDATE: 'แก้ไขหน่วยงาน',
+  HR_ORG_DELETE: 'ลบหน่วยงาน',
+  HR_EMP_CREATE: 'สร้างข้อมูลพนักงาน',
+  HR_EMP_UPDATE: 'แก้ไขข้อมูลพนักงาน',
+  HR_EMP_TERMINATE: 'ปลดพนักงาน',
+  HR_POSITION_CREATE: 'สร้างตำแหน่ง',
+  HR_POSITION_UPDATE: 'แก้ไขตำแหน่ง',
+  HR_TRAINING_CREATE: 'สร้างหลักสูตรอบรม',
+  HR_TRAINING_RECORD: 'บันทึกผลอบรม',
+  HR_AUTH_GRANT: 'มอบสิทธิ์',
+  HR_AUTH_REVOKE: 'ยกเลิกสิทธิ์',
+  HR_DELEGATE_CREATE: 'สร้างมอบอำนาจ',
+  HR_DELEGATE_CANCEL: 'ยกเลิกมอบอำนาจ',
+  HR_HEALTH_RECORD: 'บันทึกสุขภาพ',
+  HR_ROLE_ASSIGN: 'มอบบทบาท',
+  HR_ROLE_REVOKE: 'ยกเลิกบทบาท',
+};
+
+/**
+ * Get HR audit logs with pagination
+ */
+export async function getHRAuditLogs(
+  filters?: AuditLogFilters
+): Promise<{ data: HRAuditLogWithDetails[]; total: number }> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+
+  if (filters?.userId) {
+    conditions.push(eq(tables.auditLog.userId, filters.userId));
+  }
+
+  if (filters?.action) {
+    conditions.push(eq(tables.auditLog.action, filters.action));
+  }
+
+  if (filters?.tableName) {
+    conditions.push(eq(tables.auditLog.tableName, filters.tableName));
+  }
+
+  if (filters?.recordId) {
+    conditions.push(eq(tables.auditLog.recordId, filters.recordId));
+  }
+
+  if (filters?.fromDate) {
+    conditions.push(sql`${tables.auditLog.createdAt} >= ${filters.fromDate}`);
+  }
+
+  if (filters?.toDate) {
+    conditions.push(sql`${tables.auditLog.createdAt} <= ${filters.toDate}`);
+  }
+
+  // Get total count
+  const [countResult] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(tables.auditLog)
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+  const total = Number(countResult?.count || 0);
+
+  // Get paginated data
+  const skip = filters?.skip || 0;
+  const take = filters?.take || 50;
+
+  let query = db
+    .select()
+    .from(tables.auditLog)
+    .orderBy(desc(tables.auditLog.createdAt))
+    .limit(take)
+    .offset(skip);
+
+  if (conditions.length > 0) {
+    query = db
+      .select()
+      .from(tables.auditLog)
+      .where(and(...conditions))
+      .orderBy(desc(tables.auditLog.createdAt))
+      .limit(take)
+      .offset(skip);
+  }
+
+  const logs = await query;
+
+  // Enrich with user names
+  const enriched: HRAuditLogWithDetails[] = [];
+  for (const log of logs) {
+    let userName: string | undefined;
+    if (log.userId) {
+      const user = await getEmployeeById(log.userId);
+      userName = user ? `${user.firstName} ${user.lastName}` : undefined;
+    }
+
+    enriched.push({
+      ...log,
+      action: log.action as HRAuditAction,
+      userName,
+      actionLabel: ACTION_LABELS[log.action as HRAuditAction] || log.action,
+    });
+  }
+
+  return { data: enriched, total };
+}
+
+/**
+ * Get audit logs for a specific employee
+ */
+export async function getEmployeeAuditLogs(
+  employeeId: number
+): Promise<HRAuditLogWithDetails[]> {
+  const { data } = await getHRAuditLogs({
+    recordId: employeeId,
+    tableName: 'hr_employees',
+    take: 100,
+  });
+
+  // Also get logs for related tables (assignments, training, health, etc.)
+  const relatedTables = [
+    'hr_employee_assignments',
+    'hr_training_records',
+    'hr_health_records',
+    'hr_authorizations',
+    'hr_employee_roles',
+  ];
+
+  for (const table of relatedTables) {
+    const { data: relatedLogs } = await getHRAuditLogs({
+      tableName: table,
+      take: 50,
+    });
+
+    // Filter related logs by checking newValue/oldValue for employeeId
+    for (const log of relatedLogs) {
+      try {
+        const newValue = log.newValue ? JSON.parse(log.newValue) : null;
+        const oldValue = log.oldValue ? JSON.parse(log.oldValue) : null;
+        if (
+          (newValue && newValue.employeeId === employeeId) ||
+          (oldValue && oldValue.employeeId === employeeId)
+        ) {
+          data.push(log);
+        }
+      } catch {
+        // Skip if JSON parsing fails
+      }
+    }
+  }
+
+  // Sort by date descending
+  data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return data;
+}
+
+/**
+ * Get access review report (all role changes and authorizations)
+ */
+export interface AccessReviewEntry {
+  employeeId: number;
+  employeeName: string;
+  roles: {
+    roleId: number;
+    roleName: string;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+    isActive: boolean;
+    assignedBy?: string;
+  }[];
+  authorizations: {
+    authType: string;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+    isActive: boolean;
+    grantedBy?: string;
+  }[];
+  lastReviewDate?: string;
+}
+
+export async function getAccessReviewReport(): Promise<AccessReviewEntry[]> {
+  const employees = await getEmployees({ status: 'active' });
+  const today = new Date().toISOString().split('T')[0];
+
+  const report: AccessReviewEntry[] = [];
+
+  for (const employee of employees) {
+    const employeeRoles = await getEmployeeRoles(employee.id);
+    const authorizations = await getAuthorizations({ employeeId: employee.id });
+
+    // Only include employees with roles or authorizations
+    if (employeeRoles.length === 0 && authorizations.length === 0) continue;
+
+    report.push({
+      employeeId: employee.id,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      roles: employeeRoles.map((r) => ({
+        roleId: r.roleId,
+        roleName: r.roleName || '',
+        effectiveFrom: r.effectiveFrom,
+        effectiveTo: r.effectiveTo,
+        isActive: r.isActive || false,
+        assignedBy: r.assignedByName,
+      })),
+      authorizations: authorizations.map((a) => ({
+        authType: a.authType,
+        effectiveFrom: a.effectiveFrom,
+        effectiveTo: a.effectiveTo,
+        isActive: a.isActive && (!a.effectiveTo || a.effectiveTo >= today),
+        grantedBy: a.grantedByName,
+      })),
+    });
+  }
+
+  return report;
+}
+
+/**
+ * Get summary of audit activities by date range
+ */
+export interface AuditSummary {
+  action: HRAuditAction;
+  actionLabel: string;
+  count: number;
+}
+
+export async function getAuditSummary(
+  fromDate?: string,
+  toDate?: string
+): Promise<AuditSummary[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+
+  if (fromDate) {
+    conditions.push(sql`${tables.auditLog.createdAt} >= ${fromDate}`);
+  }
+
+  if (toDate) {
+    conditions.push(sql`${tables.auditLog.createdAt} <= ${toDate}`);
+  }
+
+  let query = db
+    .select({
+      action: tables.auditLog.action,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(tables.auditLog)
+    .groupBy(tables.auditLog.action);
+
+  if (conditions.length > 0) {
+    query = db
+      .select({
+        action: tables.auditLog.action,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(tables.auditLog)
+      .where(and(...conditions))
+      .groupBy(tables.auditLog.action);
+  }
+
+  const results = await query;
+
+  return results.map((r) => ({
+    action: r.action as HRAuditAction,
+    actionLabel: ACTION_LABELS[r.action as HRAuditAction] || r.action,
+    count: Number(r.count),
+  }));
+}
+
+/**
+ * Get recent audit activities
+ */
+export async function getRecentAuditActivities(
+  limit: number = 10
+): Promise<HRAuditLogWithDetails[]> {
+  const { data } = await getHRAuditLogs({ take: limit });
+  return data;
 }
