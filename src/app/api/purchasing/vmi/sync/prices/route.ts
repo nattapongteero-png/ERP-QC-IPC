@@ -243,12 +243,10 @@ export async function POST(request: NextRequest) {
 
       // Prepare offers for VMI Portal
       const vmiOffers: VmiPriceOfferPayload[] = offersToSync.map((offer) => ({
-        tppCode: offer.tppCode || undefined,
-        ttmtCode: offer.ttmtCode || undefined,
+        localCode: offer.itemCode || '',  // Required by VMI Portal API
         unitPrice: Number(offer.unitPrice),
-        currency: offer.currency || 'THB',
-        validFrom: offer.validFrom?.toString().split('T')[0] || today,
-        validTo: offer.validTo?.toString().split('T')[0] || '',
+        effectiveDate: offer.validFrom?.toString().split('T')[0] || today,  // Required by VMI Portal API
+        expiryDate: offer.validTo?.toString().split('T')[0] || undefined,
       }));
 
       try {

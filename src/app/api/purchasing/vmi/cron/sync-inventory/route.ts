@@ -156,9 +156,8 @@ export async function POST(request: NextRequest) {
             const availableQuantity = Math.max(0, totalQuantity - reservedQuantity);
 
             return {
-              tppCode: item.tppCode || undefined,
-              ttmtCode: item.ttmtCode || undefined,
-              availableQuantity,
+              localCode: item.code,  // Required by VMI Portal API
+              quantityAvailable: availableQuantity,  // Required by VMI Portal API
               unit: item.primaryUnit || 'unit',
             };
           })

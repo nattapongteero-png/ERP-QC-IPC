@@ -253,11 +253,12 @@ export async function POST(request: NextRequest) {
 
       // Prepare items for VMI Portal
       const vmiItems: VmiItem[] = itemsToSync.map((item) => ({
-        tppCode: item.tppCode || undefined,
-        ttmtCode: item.ttmtCode || undefined,
+        localCode: item.code,  // Required by VMI Portal API
         name: item.name,
         unit: item.primaryUnit || 'unit',
-        vendorItemCode: item.code,
+        packUnit: item.primaryUnit || 'unit',  // Required by VMI Portal API
+        tppCode: item.tppCode || undefined,
+        ttmtCode: item.ttmtCode || undefined,
       }));
 
       try {
