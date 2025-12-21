@@ -245,6 +245,10 @@ export default function RolesPage() {
     });
   }, [selectedRole, selectedPermissionIds, permissionsMutation]);
 
+  const handleOpenCreatePopup = useCallback(() => {
+    setShowCreatePopup(true);
+  }, []);
+
   const openEditPopup = (role: AppRoleWithPermissions) => {
     setSelectedRole(role);
     setEditRole({
@@ -360,7 +364,7 @@ export default function RolesPage() {
             text="สร้างบทบาท"
             icon="plus"
             type="default"
-            onClick={() => setShowCreatePopup(true)}
+            onClick={handleOpenCreatePopup}
           />
         }
       />
