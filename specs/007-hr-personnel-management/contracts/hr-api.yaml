@@ -1,0 +1,1635 @@
+openapi: 3.0.3
+info:
+  title: HR/Personnel Management API
+  description: API for managing organization structure, employees, training, authorizations, and health records
+  version: 1.0.0
+  contact:
+    name: Herbal Medicine ERP
+
+servers:
+  - url: /api/hr
+    description: HR API base path
+
+tags:
+  - name: Organization Units
+    description: Organization hierarchy management
+  - name: Positions
+    description: Job position management
+  - name: Employees
+    description: Employee profile management
+  - name: Training
+    description: Training catalog, sessions, and records
+  - name: Authorizations
+    description: Approval authority management
+  - name: Health Records
+    description: Personnel health records (restricted access)
+  - name: Roles
+    description: Application role and permission management
+
+paths:
+  # ============================================
+  # ORGANIZATION UNITS
+  # ============================================
+  /org-units:
+    get:
+      tags: [Organization Units]
+      summary: List organization units
+      parameters:
+        - name: parentId
+          in: query
+          schema:
+            type: integer
+          description: Filter by parent org unit
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [company, site, division, department, section, unit]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by code or name
+      responses:
+        '200':
+          description: List of organization units
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrgUnit'
+                  total:
+                    type: integer
+    post:
+      tags: [Organization Units]
+      summary: Create organization unit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgUnitCreate'
+      responses:
+        '201':
+          description: Created organization unit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgUnit'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /org-units/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Organization Units]
+      summary: Get organization unit by ID
+      responses:
+        '200':
+          description: Organization unit details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgUnitDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Organization Units]
+      summary: Update organization unit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgUnitUpdate'
+      responses:
+        '200':
+          description: Updated organization unit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgUnit'
+    delete:
+      tags: [Organization Units]
+      summary: Deactivate organization unit
+      responses:
+        '200':
+          description: Deactivated
+        '400':
+          description: Cannot deactivate (has active children or employees)
+
+  /org-units/{id}/children:
+    get:
+      tags: [Organization Units]
+      summary: Get child organization units
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: recursive
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of child org units
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrgUnit'
+
+  /org-units/tree:
+    get:
+      tags: [Organization Units]
+      summary: Get full organization tree
+      parameters:
+        - name: rootId
+          in: query
+          schema:
+            type: integer
+          description: Start from specific node (default = all roots)
+      responses:
+        '200':
+          description: Hierarchical org tree
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrgUnitTreeNode'
+
+  # ============================================
+  # POSITIONS
+  # ============================================
+  /positions:
+    get:
+      tags: [Positions]
+      summary: List positions
+      parameters:
+        - name: orgUnitId
+          in: query
+          schema:
+            type: integer
+        - name: isGmpCritical
+          in: query
+          schema:
+            type: boolean
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: List of positions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Position'
+    post:
+      tags: [Positions]
+      summary: Create position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PositionCreate'
+      responses:
+        '201':
+          description: Created position
+
+  /positions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Positions]
+      summary: Get position details with job descriptions
+      responses:
+        '200':
+          description: Position with job description history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionDetail'
+    patch:
+      tags: [Positions]
+      summary: Update position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PositionUpdate'
+      responses:
+        '200':
+          description: Updated position
+
+  # ============================================
+  # EMPLOYEES
+  # ============================================
+  /employees:
+    get:
+      tags: [Employees]
+      summary: List employees (directory)
+      parameters:
+        - name: orgUnitId
+          in: query
+          schema:
+            type: integer
+        - name: positionId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, terminated]
+            default: active
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: take
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated employee list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EmployeeSummary'
+                  total:
+                    type: integer
+                  skip:
+                    type: integer
+                  take:
+                    type: integer
+    post:
+      tags: [Employees]
+      summary: Create employee profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreate'
+      responses:
+        '201':
+          description: Created employee
+
+  /employees/search:
+    get:
+      tags: [Employees]
+      summary: Search employees by name or code
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeSummary'
+
+  /employees/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Employees]
+      summary: Get employee profile
+      responses:
+        '200':
+          description: Full employee profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeProfile'
+    patch:
+      tags: [Employees]
+      summary: Update employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeUpdate'
+      responses:
+        '200':
+          description: Updated employee
+
+  /employees/{id}/assignments:
+    get:
+      tags: [Employees]
+      summary: Get employee assignment history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Assignment history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeAssignment'
+
+  /employees/{id}/competency-matrix:
+    get:
+      tags: [Employees]
+      summary: Get employee's competency/training matrix
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Training records with status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompetencyMatrix'
+
+  # ============================================
+  # TRAINING
+  # ============================================
+  /training/courses:
+    get:
+      tags: [Training]
+      summary: List training courses (catalog)
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: isMandatory
+          in: query
+          schema:
+            type: boolean
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Training catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainingCourse'
+    post:
+      tags: [Training]
+      summary: Create training course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingCourseCreate'
+      responses:
+        '201':
+          description: Created course
+
+  /training/sessions:
+    get:
+      tags: [Training]
+      summary: List training sessions
+      parameters:
+        - name: courseId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, in_progress, completed, cancelled]
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Training sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainingSession'
+    post:
+      tags: [Training]
+      summary: Schedule training session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingSessionCreate'
+      responses:
+        '201':
+          description: Created session
+
+  /training/records:
+    get:
+      tags: [Training]
+      summary: List training records
+      parameters:
+        - name: employeeId
+          in: query
+          schema:
+            type: integer
+        - name: courseId
+          in: query
+          schema:
+            type: integer
+        - name: expiringWithinDays
+          in: query
+          schema:
+            type: integer
+          description: Filter records expiring within N days
+      responses:
+        '200':
+          description: Training records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainingRecord'
+    post:
+      tags: [Training]
+      summary: Record training completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingRecordCreate'
+      responses:
+        '201':
+          description: Recorded completion
+
+  /training/competency-matrix:
+    get:
+      tags: [Training]
+      summary: Get competency matrix for multiple employees
+      parameters:
+        - name: orgUnitId
+          in: query
+          schema:
+            type: integer
+          description: Filter by department
+        - name: courseIds
+          in: query
+          schema:
+            type: string
+          description: Comma-separated course IDs
+      responses:
+        '200':
+          description: Matrix of employees vs courses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompetencyMatrixGrid'
+
+  # ============================================
+  # AUTHORIZATIONS
+  # ============================================
+  /authorizations:
+    get:
+      tags: [Authorizations]
+      summary: List authorizations
+      parameters:
+        - name: employeeId
+          in: query
+          schema:
+            type: integer
+        - name: authType
+          in: query
+          schema:
+            type: string
+            enum: [batch_release, sop_approval, deviation_approval, change_control_approval, capa_approval]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Authorizations list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Authorization'
+    post:
+      tags: [Authorizations]
+      summary: Grant authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizationCreate'
+      responses:
+        '201':
+          description: Granted authorization
+
+  /authorizations/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Authorizations]
+      summary: Get authorization details
+      responses:
+        '200':
+          description: Authorization with delegations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizationDetail'
+    patch:
+      tags: [Authorizations]
+      summary: Update authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizationUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Authorizations]
+      summary: Revoke authorization
+      responses:
+        '200':
+          description: Revoked
+
+  /authorizations/delegations:
+    get:
+      tags: [Authorizations]
+      summary: List active delegations
+      parameters:
+        - name: delegatorId
+          in: query
+          schema:
+            type: integer
+        - name: delegateId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Delegations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Delegation'
+    post:
+      tags: [Authorizations]
+      summary: Create delegation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DelegationCreate'
+      responses:
+        '201':
+          description: Created delegation
+
+  /authorizations/check:
+    get:
+      tags: [Authorizations]
+      summary: Check if employee has authorization
+      description: Used by other modules to validate approvers
+      parameters:
+        - name: employeeId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: authType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [batch_release, sop_approval, deviation_approval, change_control_approval, capa_approval]
+        - name: siteId
+          in: query
+          schema:
+            type: integer
+        - name: productLine
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Authorization check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authorized:
+                    type: boolean
+                  source:
+                    type: string
+                    enum: [direct, delegation]
+                  authorizationId:
+                    type: integer
+                  expiresAt:
+                    type: string
+                    format: date
+
+  # ============================================
+  # HEALTH RECORDS
+  # ============================================
+  /health-records:
+    get:
+      tags: [Health Records]
+      summary: List health records (restricted)
+      description: Full details only visible to health_staff role
+      parameters:
+        - name: employeeId
+          in: query
+          schema:
+            type: integer
+        - name: fitnessStatus
+          in: query
+          schema:
+            type: string
+            enum: [fit, unfit, restricted]
+        - name: examDueBefore
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Health records (filtered by role)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthRecord'
+    post:
+      tags: [Health Records]
+      summary: Create health record
+      description: Requires health_staff role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HealthRecordCreate'
+      responses:
+        '201':
+          description: Created
+        '403':
+          description: Requires health_staff role
+
+  # ============================================
+  # ROLES & PERMISSIONS
+  # ============================================
+  /roles:
+    get:
+      tags: [Roles]
+      summary: List application roles
+      responses:
+        '200':
+          description: Roles with permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppRole'
+    post:
+      tags: [Roles]
+      summary: Create role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppRoleCreate'
+      responses:
+        '201':
+          description: Created role
+
+  /roles/{id}/permissions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Roles]
+      summary: Get role permissions
+      responses:
+        '200':
+          description: Permissions assigned to role
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppPermission'
+    put:
+      tags: [Roles]
+      summary: Set role permissions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissionIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Updated
+
+  /permissions:
+    get:
+      tags: [Roles]
+      summary: List all permissions
+      parameters:
+        - name: module
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: All permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppPermission'
+
+# ============================================
+# COMPONENTS
+# ============================================
+components:
+  schemas:
+    # Organization Unit
+    OrgUnit:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [company, site, division, department, section, unit]
+        parentId:
+          type: integer
+          nullable: true
+        isGmpCritical:
+          type: boolean
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+          nullable: true
+        isActive:
+          type: boolean
+
+    OrgUnitDetail:
+      allOf:
+        - $ref: '#/components/schemas/OrgUnit'
+        - type: object
+          properties:
+            parent:
+              $ref: '#/components/schemas/OrgUnit'
+            childCount:
+              type: integer
+            employeeCount:
+              type: integer
+
+    OrgUnitTreeNode:
+      allOf:
+        - $ref: '#/components/schemas/OrgUnit'
+        - type: object
+          properties:
+            children:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrgUnitTreeNode'
+
+    OrgUnitCreate:
+      type: object
+      required: [code, name, type, effectiveFrom]
+      properties:
+        code:
+          type: string
+          maxLength: 50
+        name:
+          type: string
+          maxLength: 255
+        nameEn:
+          type: string
+        type:
+          type: string
+          enum: [company, site, division, department, section, unit]
+        parentId:
+          type: integer
+        siteId:
+          type: integer
+        isGmpCritical:
+          type: boolean
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+
+    OrgUnitUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        nameEn:
+          type: string
+        parentId:
+          type: integer
+        isGmpCritical:
+          type: boolean
+        effectiveTo:
+          type: string
+          format: date
+        isActive:
+          type: boolean
+
+    # Position
+    Position:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        title:
+          type: string
+        orgUnitId:
+          type: integer
+        orgUnitName:
+          type: string
+        jobGrade:
+          type: string
+        isGmpCritical:
+          type: boolean
+        isActive:
+          type: boolean
+
+    PositionDetail:
+      allOf:
+        - $ref: '#/components/schemas/Position'
+        - type: object
+          properties:
+            orgUnit:
+              $ref: '#/components/schemas/OrgUnit'
+            currentJobDescription:
+              $ref: '#/components/schemas/JobDescription'
+            employeeCount:
+              type: integer
+
+    PositionCreate:
+      type: object
+      required: [code, title, orgUnitId]
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        titleEn:
+          type: string
+        orgUnitId:
+          type: integer
+        jobGrade:
+          type: string
+        isGmpCritical:
+          type: boolean
+
+    PositionUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        titleEn:
+          type: string
+        orgUnitId:
+          type: integer
+        jobGrade:
+          type: string
+        isGmpCritical:
+          type: boolean
+        isActive:
+          type: boolean
+
+    JobDescription:
+      type: object
+      properties:
+        id:
+          type: integer
+        positionId:
+          type: integer
+        version:
+          type: string
+        responsibilities:
+          type: string
+        authorities:
+          type: string
+        qualifications:
+          type: string
+        status:
+          type: string
+          enum: [draft, pending_approval, approved, obsolete]
+        effectiveFrom:
+          type: string
+          format: date
+
+    # Employee
+    EmployeeSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeCode:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        fullName:
+          type: string
+        positionTitle:
+          type: string
+        orgUnitName:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, terminated]
+
+    EmployeeProfile:
+      allOf:
+        - $ref: '#/components/schemas/EmployeeSummary'
+        - type: object
+          properties:
+            firstNameEn:
+              type: string
+            lastNameEn:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+            positionId:
+              type: integer
+            orgUnitId:
+              type: integer
+            siteId:
+              type: integer
+            hireDate:
+              type: string
+              format: date
+            terminationDate:
+              type: string
+              format: date
+            position:
+              $ref: '#/components/schemas/Position'
+            orgUnit:
+              $ref: '#/components/schemas/OrgUnit'
+            currentHealthStatus:
+              type: string
+              enum: [fit, unfit, restricted]
+            authorizations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Authorization'
+            roles:
+              type: array
+              items:
+                $ref: '#/components/schemas/AppRole'
+
+    EmployeeCreate:
+      type: object
+      required: [employeeCode, firstName, lastName, hireDate]
+      properties:
+        userId:
+          type: integer
+        employeeCode:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        firstNameEn:
+          type: string
+        lastNameEn:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        positionId:
+          type: integer
+        orgUnitId:
+          type: integer
+        siteId:
+          type: integer
+        hireDate:
+          type: string
+          format: date
+
+    EmployeeUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        positionId:
+          type: integer
+        orgUnitId:
+          type: integer
+        siteId:
+          type: integer
+        status:
+          type: string
+          enum: [active, inactive, terminated]
+        terminationDate:
+          type: string
+          format: date
+
+    EmployeeAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+        positionTitle:
+          type: string
+        orgUnitName:
+          type: string
+        isPrimary:
+          type: boolean
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+        reason:
+          type: string
+
+    # Training
+    TrainingCourse:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        validityDays:
+          type: integer
+        isMandatory:
+          type: boolean
+        durationHours:
+          type: number
+        isActive:
+          type: boolean
+
+    TrainingCourseCreate:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        nameEn:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        validityDays:
+          type: integer
+        isMandatory:
+          type: boolean
+        targetPositions:
+          type: array
+          items:
+            type: integer
+        durationHours:
+          type: number
+
+    TrainingSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        courseId:
+          type: integer
+        courseName:
+          type: string
+        sessionDate:
+          type: string
+          format: date
+        startTime:
+          type: string
+        endTime:
+          type: string
+        location:
+          type: string
+        instructorName:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+        participantCount:
+          type: integer
+        maxParticipants:
+          type: integer
+
+    TrainingSessionCreate:
+      type: object
+      required: [courseId, sessionDate]
+      properties:
+        courseId:
+          type: integer
+        sessionDate:
+          type: string
+          format: date
+        startTime:
+          type: string
+        endTime:
+          type: string
+        location:
+          type: string
+        instructorId:
+          type: integer
+        instructorExternal:
+          type: string
+        maxParticipants:
+          type: integer
+
+    TrainingRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+        courseId:
+          type: integer
+        courseName:
+          type: string
+        completionDate:
+          type: string
+          format: date
+        expiryDate:
+          type: string
+          format: date
+        result:
+          type: string
+          enum: [pass, fail, incomplete]
+        score:
+          type: number
+        status:
+          type: string
+          enum: [valid, expiring_soon, expired]
+
+    TrainingRecordCreate:
+      type: object
+      required: [employeeId, courseId, completionDate, result]
+      properties:
+        employeeId:
+          type: integer
+        sessionId:
+          type: integer
+        courseId:
+          type: integer
+        completionDate:
+          type: string
+          format: date
+        result:
+          type: string
+          enum: [pass, fail, incomplete]
+        score:
+          type: number
+        assessedBy:
+          type: integer
+        certificateNumber:
+          type: string
+        notes:
+          type: string
+
+    CompetencyMatrix:
+      type: object
+      properties:
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+        courses:
+          type: array
+          items:
+            type: object
+            properties:
+              courseId:
+                type: integer
+              courseName:
+                type: string
+              isRequired:
+                type: boolean
+              status:
+                type: string
+                enum: [valid, expiring_soon, expired, not_taken]
+              expiryDate:
+                type: string
+                format: date
+              lastCompletionDate:
+                type: string
+                format: date
+
+    CompetencyMatrixGrid:
+      type: object
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrainingCourse'
+        employees:
+          type: array
+          items:
+            type: object
+            properties:
+              employee:
+                $ref: '#/components/schemas/EmployeeSummary'
+              competencies:
+                type: object
+                additionalProperties:
+                  type: string
+                  enum: [valid, expiring_soon, expired, not_taken]
+
+    # Authorization
+    Authorization:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+        authType:
+          type: string
+          enum: [batch_release, sop_approval, deviation_approval, change_control_approval, capa_approval]
+        scopeSiteId:
+          type: integer
+        scopeSiteName:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+        isActive:
+          type: boolean
+        grantedBy:
+          type: string
+        grantedAt:
+          type: string
+          format: date-time
+
+    AuthorizationDetail:
+      allOf:
+        - $ref: '#/components/schemas/Authorization'
+        - type: object
+          properties:
+            delegations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Delegation'
+
+    AuthorizationCreate:
+      type: object
+      required: [employeeId, authType, effectiveFrom]
+      properties:
+        employeeId:
+          type: integer
+        authType:
+          type: string
+          enum: [batch_release, sop_approval, deviation_approval, change_control_approval, capa_approval]
+        scopeSiteId:
+          type: integer
+        scopeOrgUnitId:
+          type: integer
+        scopeProductLines:
+          type: array
+          items:
+            type: string
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+
+    AuthorizationUpdate:
+      type: object
+      properties:
+        effectiveTo:
+          type: string
+          format: date
+        isActive:
+          type: boolean
+
+    Delegation:
+      type: object
+      properties:
+        id:
+          type: integer
+        authorizationId:
+          type: integer
+        authType:
+          type: string
+        delegatorId:
+          type: integer
+        delegatorName:
+          type: string
+        delegateId:
+          type: integer
+        delegateName:
+          type: string
+        reason:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+        isActive:
+          type: boolean
+
+    DelegationCreate:
+      type: object
+      required: [authorizationId, delegateId, effectiveFrom, effectiveTo]
+      properties:
+        authorizationId:
+          type: integer
+        delegateId:
+          type: integer
+        reason:
+          type: string
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+
+    # Health Record
+    HealthRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+        examinationType:
+          type: string
+          enum: [pre_employment, periodic, special]
+        examinationDate:
+          type: string
+          format: date
+        nextExamDue:
+          type: string
+          format: date
+        fitnessStatus:
+          type: string
+          enum: [fit, unfit, restricted]
+        restrictions:
+          type: string
+        # Sensitive fields - only visible to health_staff
+        medicalDetails:
+          type: string
+        examinerNotes:
+          type: string
+
+    HealthRecordCreate:
+      type: object
+      required: [employeeId, examinationType, examinationDate, fitnessStatus]
+      properties:
+        employeeId:
+          type: integer
+        examinationType:
+          type: string
+          enum: [pre_employment, periodic, special]
+        examinationDate:
+          type: string
+          format: date
+        nextExamDue:
+          type: string
+          format: date
+        fitnessStatus:
+          type: string
+          enum: [fit, unfit, restricted]
+        restrictions:
+          type: string
+        affectedAreas:
+          type: array
+          items:
+            type: string
+        medicalDetails:
+          type: string
+        examinerName:
+          type: string
+        examinerNotes:
+          type: string
+
+    # Roles
+    AppRole:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        isSystemRole:
+          type: boolean
+        isActive:
+          type: boolean
+        permissionCount:
+          type: integer
+
+    AppRoleCreate:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+
+    AppPermission:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        module:
+          type: string
+        description:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    message:
+                      type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Resource not found"
