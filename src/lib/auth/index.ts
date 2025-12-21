@@ -71,6 +71,10 @@ export const ROLES = {
   PURCHASING: 'purchasing',
   SALES: 'sales',
   USER: 'user',
+  // HR roles
+  HR_ADMIN: 'hr_admin',
+  HR_STAFF: 'hr_staff',
+  HEALTH_STAFF: 'health_staff',
 } as const;
 
 export type Role = typeof ROLES[keyof typeof ROLES];
@@ -118,6 +122,12 @@ export const PERMISSIONS = {
   // Settings
   'settings:read': [ROLES.ADMIN, ROLES.MANAGER],
   'settings:write': [ROLES.ADMIN],
+
+  // HR/Personnel Management
+  'hr:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR_ADMIN, ROLES.HR_STAFF],
+  'hr:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR_ADMIN, ROLES.HR_STAFF],
+  'hr:admin': [ROLES.ADMIN, ROLES.HR_ADMIN],
+  'hr:health_staff': [ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HEALTH_STAFF],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
