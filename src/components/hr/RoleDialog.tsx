@@ -3,7 +3,7 @@
 // Reusable Role Dialog Component
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
@@ -49,23 +49,26 @@ async function updateRole(
 interface RoleDialogProps {
   visible: boolean;
   onHide: () => void;
-  role?: AppRoleWithPermissions | null; // If provided, dialog is in edit mode
+  role?: AppRoleWithPermissions | null;
   onSuccess?: (role: AppRoleWithPermissions) => void;
 }
 
-// Inner component that gets remounted when role changes
-function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) {
+export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const isEditMode = !!role;
 
-  // Guard against multiple onHiding calls
-  const isClosingRef = useRef(false);
-
-  // Initialize form state from role prop (only runs once per mount)
+  // Form state
   const [code, setCode] = useState('');
-  const [name, setName] = useState(role?.name || '');
-  const [description, setDescription] = useState(role?.description || '');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+
+  // Reset form when dialog opens (called by DevExtreme onShowing)
+  const handleShowing = useCallback(() => {
+    setCode('');
+    setName(role?.name || '');
+    setDescription(role?.description || '');
+  }, [role?.name, role?.description]);
 
   const createMutation = useMutation({
     mutationFn: createRole,
@@ -113,21 +116,14 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
     }
   }, [isEditMode, role, name, description, code, createMutation, updateMutation]);
 
-  // Guard against multiple onHiding triggers - only call onHide once
-  const handleClose = useCallback(() => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    onHide();
-  }, [onHide]);
-
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isValid = isEditMode ? !!name : !!code && !!name;
 
-  // Memoize toolbar button options to prevent re-renders
+  // Memoize toolbar button options
   const cancelButtonOptions = useMemo(() => ({
     text: 'ยกเลิก',
-    onClick: handleClose,
-  }), [handleClose]);
+    onClick: onHide,
+  }), [onHide]);
 
   const submitButtonOptions = useMemo(() => ({
     text: isEditMode ? 'บันทึก' : 'สร้าง',
@@ -136,7 +132,7 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
     onClick: handleSubmit,
   }), [isEditMode, isValid, isPending, handleSubmit]);
 
-  // Memoize event handlers for TextBox/TextArea
+  // Memoize event handlers
   const handleCodeChange = useCallback((e: { value?: string }) => setCode(e.value || ''), []);
   const handleNameChange = useCallback((e: { value?: string }) => setName(e.value || ''), []);
   const handleDescriptionChange = useCallback((e: { value?: string }) => setDescription(e.value || ''), []);
@@ -144,7 +140,8 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
   return (
     <Popup
       visible={visible}
-      onHiding={handleClose}
+      onShowing={handleShowing}
+      onHiding={onHide}
       title={isEditMode ? `แก้ไขบทบาท: ${role?.code || ''}` : 'สร้างบทบาทใหม่'}
       width={500}
       height="auto"
@@ -202,22 +199,6 @@ function RoleDialogInner({ visible, onHide, role, onSuccess }: RoleDialogProps) 
         options={submitButtonOptions}
       />
     </Popup>
-  );
-}
-
-// Wrapper component that uses key to remount inner component when role changes
-export function RoleDialog({ visible, onHide, role, onSuccess }: RoleDialogProps) {
-  // Use role id as key to force remount when switching between roles
-  const key = role?.id ?? 'create';
-
-  return (
-    <RoleDialogInner
-      key={key}
-      visible={visible}
-      onHide={onHide}
-      role={role}
-      onSuccess={onSuccess}
-    />
   );
 }
 
