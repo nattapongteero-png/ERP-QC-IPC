@@ -143,15 +143,19 @@ export default function RolesPage() {
 
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
 
-  const { data: roles = [] } = useQuery({
+  const { data: rolesData = [] } = useQuery({
     queryKey: ['hr', 'roles'],
     queryFn: fetchRoles,
   });
 
-  const { data: permissions = [] } = useQuery({
+  const { data: permissionsData = [] } = useQuery({
     queryKey: ['hr', 'permissions'],
     queryFn: fetchPermissions,
   });
+
+  // Ensure data is always an array
+  const roles = Array.isArray(rolesData) ? rolesData : [];
+  const permissions = Array.isArray(permissionsData) ? permissionsData : [];
 
   const createMutation = useMutation({
     mutationFn: createRole,
