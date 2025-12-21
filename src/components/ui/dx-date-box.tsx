@@ -63,8 +63,9 @@ export interface DxDateBoxProps {
 
 /**
  * Buddhist Era date formatter (DD/MM/YYYY+543)
+ * Exported for testing purposes
  */
-const buddhistDateFormat: Format = {
+export const buddhistDateFormat: Format = {
   formatter: (date: Date): string => {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '';
     const day = String(date.getDate()).padStart(2, '0');
@@ -84,8 +85,9 @@ const buddhistDateFormat: Format = {
 
 /**
  * Buddhist Era datetime formatter (DD/MM/YYYY+543 HH:mm)
+ * Exported for testing purposes
  */
-const buddhistDateTimeFormat: Format = {
+export const buddhistDateTimeFormat: Format = {
   formatter: (date: Date): string => {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '';
     const day = String(date.getDate()).padStart(2, '0');
@@ -107,8 +109,9 @@ const buddhistDateTimeFormat: Format = {
 
 /**
  * Convert string value (YYYY-MM-DD) to Date object
+ * Exported for testing purposes
  */
-function parseStringToDate(value: string | undefined): Date | null {
+export function parseStringToDate(value: string | undefined): Date | null {
   if (!value) return null;
   // Handle ISO date string (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
   const date = new Date(value);
