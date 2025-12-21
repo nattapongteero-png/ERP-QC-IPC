@@ -297,7 +297,7 @@ export default function ItemsPage() {
   const rawMaterialCount = items.filter(i => i.type === 'raw_material').length;
   const finishedGoodsCount = items.filter(i => i.type === 'finished_goods').length;
   const packagingCount = items.filter(i => i.type === 'packaging').length;
-  const vmiReadyCount = items.filter(i => (i as any).tppCode || (i as any).ttmtCode).length;
+  const vmiReadyCount = items.filter(i => (i as Item & { tppCode?: string; ttmtCode?: string }).tppCode || (i as Item & { tppCode?: string; ttmtCode?: string }).ttmtCode).length;
 
   const summaryCards = [
     { label: 'วัตถุดิบ', count: rawMaterialCount, icon: Leaf, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
