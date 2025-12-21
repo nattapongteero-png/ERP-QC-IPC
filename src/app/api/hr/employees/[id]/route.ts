@@ -4,9 +4,16 @@
 import { NextRequest } from 'next/server';
 import {
   successResponse,
+  errorResponse,
+  notFoundResponse,
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import {
+  getEmployeeProfile,
+  updateEmployee,
+} from '@/lib/services/hr.service';
+import { employeeUpdateSchema } from '@/lib/validation/hr';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -19,8 +26,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     async () => {
       try {
         const { id } = await params;
-        // TODO: Implement get employee by ID with full profile
-        return successResponse({ id: Number(id), message: 'Not implemented yet' });
+        const profile = await getEmployeeProfile(Number(id));
+
+        if (!profile) {
+          return notFoundResponse('Employee not found');
+        }
+
+        return successResponse(profile);
       } catch (error) {
         return serverErrorResponse(error);
       }
@@ -37,12 +49,38 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       try {
         const { id } = await params;
         const body = await request.json();
-        // TODO: Implement employee update
-        return successResponse(
-          { id: Number(id), ...body },
-          'Employee updated successfully'
-        );
+
+        // Validate input
+        const parseResult = employeeUpdateSchema.safeParse(body);
+        if (!parseResult.success) {
+          const errors = parseResult.error.issues.map((issue) => ({
+            field: issue.path.join('.'),
+            message: issue.message,
+          }));
+          return errorResponse('Validation failed', 400, { errors });
+        }
+
+        const updateData = {
+          firstName: parseResult.data.firstName,
+          lastName: parseResult.data.lastName,
+          firstNameEn: parseResult.data.firstNameEn,
+          lastNameEn: parseResult.data.lastNameEn,
+          email: parseResult.data.email,
+          phone: parseResult.data.phone || undefined,
+          positionId: parseResult.data.positionId ?? undefined,
+          orgUnitId: parseResult.data.orgUnitId ?? undefined,
+          siteId: parseResult.data.siteId ?? undefined,
+          status: parseResult.data.status,
+          terminationDate: parseResult.data.terminationDate,
+        };
+        const employee = await updateEmployee(Number(id), updateData);
+        return successResponse(employee, 'Employee updated successfully');
       } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === 'Employee not found') {
+            return notFoundResponse(error.message);
+          }
+        }
         return serverErrorResponse(error);
       }
     },
