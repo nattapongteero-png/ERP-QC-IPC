@@ -1,0 +1,619 @@
+openapi: 3.0.3
+info:
+  title: VMI Sales Orders API
+  description: API for managing orders received from VMI Portals
+  version: 1.0.0
+servers:
+  - url: /api/sales/vmi-orders
+    description: Internal API
+
+paths:
+  /:
+    get:
+      summary: List VMI sales orders
+      operationId: listVmiOrders
+      tags: [VMI Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: portalId
+          in: query
+          schema:
+            type: integer
+          description: Filter by portal
+        - name: vmiStatus
+          in: query
+          schema:
+            type: string
+            enum: [submitted, confirmed, shipped, received, cancelled]
+          description: Filter by VMI status
+        - name: localStatus
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+          description: Filter by local processing status
+        - name: customerId
+          in: query
+          schema:
+            type: integer
+          description: Filter by customer
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter orders from date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter orders to date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            default: polledAt
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of VMI orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VmiOrderSummary'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Poll for new orders from VMI Portal(s)
+      operationId: pollVmiOrders
+      tags: [VMI Orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                portalId:
+                  type: integer
+                  description: Specific portal (omit for all enabled portals)
+      responses:
+        '200':
+          description: Poll completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      portalsPolled:
+                        type: integer
+                      ordersReceived:
+                        type: integer
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VmiOrderSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /{orderId}:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: VMI sales order ID
+
+    get:
+      summary: Get VMI order details
+      operationId: getVmiOrder
+      tags: [VMI Orders]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: VMI order details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VmiOrderDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update VMI order (local status, customer mapping)
+      operationId: updateVmiOrder
+      tags: [VMI Orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVmiOrderRequest'
+      responses:
+        '200':
+          description: Order updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VmiOrderDetail'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /{orderId}/confirm:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Confirm VMI order (creates sales order, updates VMI Portal)
+      operationId: confirmVmiOrder
+      tags: [VMI Orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expectedShipDate:
+                  type: string
+                  format: date
+                  description: Expected shipment date
+                notes:
+                  type: string
+                  description: Internal notes
+      responses:
+        '200':
+          description: Order confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      vmiOrder:
+                        $ref: '#/components/schemas/VmiOrderDetail'
+                      salesOrder:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          soNumber:
+                            type: string
+                          status:
+                            type: string
+                  message:
+                    type: string
+                    example: Order confirmed and synced to VMI Portal
+        '400':
+          description: Cannot confirm (e.g., unmatched items)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                  unmatchedItems:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        lineId:
+                          type: integer
+                        tppCode:
+                          type: string
+                        ttmtCode:
+                          type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /{orderId}/ship:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Mark VMI order as shipped (updates VMI Portal)
+      operationId: shipVmiOrder
+      tags: [VMI Orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shipmentDate:
+                  type: string
+                  format: date
+                expectedDeliveryDate:
+                  type: string
+                  format: date
+                trackingNumber:
+                  type: string
+                carrier:
+                  type: string
+                notes:
+                  type: string
+              required:
+                - shipmentDate
+                - expectedDeliveryDate
+      responses:
+        '200':
+          description: Order marked as shipped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VmiOrderDetail'
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /{orderId}/lines/{lineId}/match:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: lineId
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Manually match order line to local item
+      operationId: matchOrderLine
+      tags: [VMI Orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itemId:
+                  type: integer
+                  description: Local item ID to match
+              required:
+                - itemId
+      responses:
+        '200':
+          description: Line matched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VmiOrderLine'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /poll:
+    post:
+      summary: Scheduled polling endpoint (called by cron)
+      operationId: scheduledOrderPoll
+      tags: [VMI Orders - Scheduled]
+      security:
+        - cronAuth: []
+      responses:
+        '200':
+          description: Poll completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      portalsPolled:
+                        type: integer
+                      ordersReceived:
+                        type: integer
+                      errors:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            portalId:
+                              type: integer
+                            error:
+                              type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cronAuth:
+      type: apiKey
+      in: header
+      name: X-Cron-Secret
+
+  schemas:
+    VmiOrderSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        portalId:
+          type: integer
+        portalName:
+          type: string
+        vmiOrderId:
+          type: string
+        vmiStatus:
+          type: string
+          enum: [submitted, confirmed, shipped, received, cancelled]
+        localStatus:
+          type: string
+          enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+        customerId:
+          type: integer
+          nullable: true
+        vmiCustomerId:
+          type: string
+        vmiCustomerName:
+          type: string
+        orderDate:
+          type: string
+          format: date
+        requiredDate:
+          type: string
+          format: date
+          nullable: true
+        totalAmount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+        lineCount:
+          type: integer
+        unmatchedLineCount:
+          type: integer
+        salesOrderId:
+          type: integer
+          nullable: true
+        salesOrderNumber:
+          type: string
+          nullable: true
+        polledAt:
+          type: string
+          format: date-time
+
+    VmiOrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/VmiOrderSummary'
+        - type: object
+          properties:
+            confirmedAt:
+              type: string
+              format: date-time
+              nullable: true
+            shippedAt:
+              type: string
+              format: date-time
+              nullable: true
+            deliveredAt:
+              type: string
+              format: date-time
+              nullable: true
+            customer:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: integer
+                code:
+                  type: string
+                name:
+                  type: string
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/VmiOrderLine'
+            orderDataJson:
+              type: object
+              description: Raw order data from VMI Portal
+
+    VmiOrderLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        vmiLineId:
+          type: string
+        itemId:
+          type: integer
+          nullable: true
+        tppCode:
+          type: string
+          nullable: true
+        ttmtCode:
+          type: string
+          nullable: true
+        localCode:
+          type: string
+          nullable: true
+        itemName:
+          type: string
+        quantity:
+          type: number
+          format: decimal
+        unit:
+          type: string
+        unitPrice:
+          type: number
+          format: decimal
+        lineTotal:
+          type: number
+          format: decimal
+        matchStatus:
+          type: string
+          enum: [unmatched, matched, multiple_matches, manual_mapped]
+        matchedItem:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            code:
+              type: string
+            nameTh:
+              type: string
+            nameEn:
+              type: string
+
+    UpdateVmiOrderRequest:
+      type: object
+      properties:
+        customerId:
+          type: integer
+          description: Link to existing customer
+        localStatus:
+          type: string
+          enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+        notes:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
