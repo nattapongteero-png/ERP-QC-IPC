@@ -95,6 +95,9 @@ export default function TrainingCoursesPage() {
     queryFn: fetchCourses,
   });
 
+  // Ensure courses is always an array
+  const courseList = Array.isArray(courses) ? courses : [];
+
   const createMutation = useMutation({
     mutationFn: createCourse,
     onSuccess: () => {
@@ -210,7 +213,7 @@ export default function TrainingCoursesPage() {
       {/* T034: ResponsivePageHeader */}
       <ResponsivePageHeader
         title="หลักสูตรอบรม"
-        subtitle={`Training Courses Catalog • ${courses.length} หลักสูตร`}
+        subtitle={`Training Courses Catalog • ${courseList.length} หลักสูตร`}
         icon={BookOpen}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
@@ -225,7 +228,7 @@ export default function TrainingCoursesPage() {
       <div className="grid grid-cols-3 gap-3 md:gap-4">
         <StatCard
           label="หลักสูตรทั้งหมด"
-          value={courses.length}
+          value={courseList.length}
           icon={BookOpen}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
@@ -233,7 +236,7 @@ export default function TrainingCoursesPage() {
         />
         <StatCard
           label="หลักสูตรบังคับ"
-          value={courses.filter((c) => c.isMandatory).length}
+          value={courseList.filter((c) => c.isMandatory).length}
           icon={Target}
           iconColor="text-red-500"
           accentColor="border-red-500"
@@ -241,7 +244,7 @@ export default function TrainingCoursesPage() {
         />
         <StatCard
           label="มีวันหมดอายุ"
-          value={courses.filter((c) => c.validityDays).length}
+          value={courseList.filter((c) => c.validityDays).length}
           icon={Clock}
           iconColor="text-green-500"
           accentColor="border-green-500"
@@ -252,7 +255,7 @@ export default function TrainingCoursesPage() {
       {/* T035: DataGrid with columnHidingEnabled */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
-          dataSource={courses}
+          dataSource={courseList}
           keyExpr="id"
           showBorders={false}
           showRowLines
