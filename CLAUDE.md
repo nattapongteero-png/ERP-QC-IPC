@@ -11,6 +11,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 - N/A (no database changes - UI-only migration) (004-devextreme-migration)
 - TypeScript 5.x (Next.js 15 frontend) + C# / .NET 8.0 (ASP.NET Core backend) (005-devexpress-reports)
 - MySQL (existing ERP database) - new tables for report templates, categories, permissions (005-devexpress-reports)
+- TypeScript 5.x with Next.js 15 (App Router) + React 19, Drizzle ORM, DevExtreme React 25.1.x, Zod 4.2.x, TanStack Query 5.x (006-vmi-vendor-integration)
+- MySQL (production), SQLite (testing) via Drizzle ORM (006-vmi-vendor-integration)
 
 - TypeScript 5.x (Next.js 15 project) + Next.js 15, React 19, Drizzle ORM, Tailwind CSS (001-reorganize-src-structure)
 
@@ -30,9 +32,9 @@ npm test && npm run lint
 TypeScript 5.x (Next.js 15 project): Follow standard conventions
 
 ## Recent Changes
+- 006-vmi-vendor-integration: Added TypeScript 5.x with Next.js 15 (App Router) + React 19, Drizzle ORM, DevExtreme React 25.1.x, Zod 4.2.x, TanStack Query 5.x
 - 005-devexpress-reports: Added TypeScript 5.x (Next.js 15 frontend) + C# / .NET 8.0 (ASP.NET Core backend)
 - 004-devextreme-migration: Added TypeScript 5.x with React 19, Next.js 15 (App Router) + DevExtreme React 25.1.x, devextreme-themebuilder 25.1.x, Zod 4.2.x (existing)
-- 003-shadcn-migration: Added TypeScript 5.x with React 19, Next.js 15 (App Router) + shadcn/ui, Radix UI primitives, Tailwind CSS v4, Lucide React (icons), React Query v5
 
 
 <!-- MANUAL ADDITIONS START -->

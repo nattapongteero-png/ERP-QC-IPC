@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1766279187220,
+      "tag": "0000_eminent_robin_chapel",
+      "breakpoints": true
+    }
+  ]
+}

@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
 import { DxConfirmDialog } from '@/components/ui/dx-popup';
-import { Leaf, FlaskConical, Box, Pill, Package, Inbox } from 'lucide-react';
+import { Leaf, FlaskConical, Box, Pill, Package, Inbox, Barcode, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 
@@ -241,6 +241,27 @@ export default function ItemsPage() {
       ),
     },
     {
+      dataField: 'tppCode',
+      caption: 'VMI',
+      width: 90,
+      hideOnMobile: true,
+      hideOnTablet: true,
+      cellRender: (cellInfo) => {
+        const hasVmiCode = cellInfo.data.tppCode || cellInfo.data.ttmtCode;
+        return hasVmiCode ? (
+          <div className="flex items-center gap-1.5 text-emerald-600" title={`TPP: ${cellInfo.data.tppCode || '-'}, TTMT: ${cellInfo.data.ttmtCode || '-'}`}>
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-xs font-medium">Ready</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-gray-400" title="No VMI codes">
+            <XCircle className="h-4 w-4" />
+            <span className="text-xs">-</span>
+          </div>
+        );
+      },
+    },
+    {
       dataField: 'actions',
       caption: 'จัดการ',
       width: 120,
@@ -276,13 +297,13 @@ export default function ItemsPage() {
   const rawMaterialCount = items.filter(i => i.type === 'raw_material').length;
   const finishedGoodsCount = items.filter(i => i.type === 'finished_goods').length;
   const packagingCount = items.filter(i => i.type === 'packaging').length;
-  const activeCount = items.filter(i => i.isActive).length;
+  const vmiReadyCount = items.filter(i => (i as Item & { tppCode?: string; ttmtCode?: string }).tppCode || (i as Item & { tppCode?: string; ttmtCode?: string }).ttmtCode).length;
 
   const summaryCards = [
     { label: 'วัตถุดิบ', count: rawMaterialCount, icon: Leaf, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
     { label: 'สินค้าสำเร็จรูป', count: finishedGoodsCount, icon: Pill, bgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
     { label: 'บรรจุภัณฑ์', count: packagingCount, icon: Box, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
-    { label: 'รายการที่ใช้งาน', count: activeCount, icon: Package, bgColor: 'bg-gray-100', iconColor: 'text-gray-600' },
+    { label: 'VMI Ready', count: vmiReadyCount, icon: Barcode, bgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
   ];
 
   return (

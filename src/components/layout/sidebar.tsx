@@ -27,6 +27,8 @@ import {
   ChevronDown,
   Leaf,
   Sparkles,
+  Activity,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -78,7 +80,9 @@ const navigation: NavItem[] = [
     icon: ShoppingCart,
     children: [
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
-      { name: 'Vendors', href: '/purchasing/vendors', icon: Truck },
+      { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
+      { name: 'VMI Dashboard', href: '/purchasing/vmi/dashboard', icon: Activity },
+      { name: 'VMI Orders', href: '/purchasing/vmi/orders', icon: ShoppingCart },
     ],
   },
   {

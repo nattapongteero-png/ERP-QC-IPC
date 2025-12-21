@@ -58,6 +58,7 @@ services:
       dockerfile: docker/Dockerfile
     container_name: herbal-erp-app
     restart: unless-stopped
+    profiles: ["donotstart"]
     ports:
       - "33020:3000"
     environment:

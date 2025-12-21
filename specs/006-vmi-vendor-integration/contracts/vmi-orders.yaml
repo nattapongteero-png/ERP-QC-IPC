@@ -1,0 +1,589 @@
+openapi: 3.0.3
+info:
+  title: VMI Orders API
+  description: API for managing orders received from VMI Portal
+  version: 1.0.0
+
+paths:
+  /api/purchasing/vmi/orders:
+    get:
+      summary: List VMI orders
+      description: Get list of orders received from VMI Portal
+      tags:
+        - VMI Orders
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [submitted, confirmed, shipped, received, cancelled]
+        - name: orderDateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: orderDateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: VMI orders list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VmiOrdersListResponse'
+
+    post:
+      summary: Poll for new orders
+      description: Trigger polling of VMI Portal for new orders
+      tags:
+        - VMI Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vendorId
+              properties:
+                vendorId:
+                  type: integer
+      responses:
+        '200':
+          description: Polling completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollResultResponse'
+
+  /api/purchasing/vmi/orders/{id}:
+    get:
+      summary: Get VMI order details
+      description: Get detailed information about a VMI order
+      tags:
+        - VMI Orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: VMI order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VmiOrderDetailResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update VMI order status
+      description: Confirm or ship a VMI order
+      tags:
+        - VMI Orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderActionRequest'
+      responses:
+        '200':
+          description: Order updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderActionResponse'
+        '400':
+          description: Invalid action or status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Cannot perform action - invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/purchasing/vmi/orders/{id}/receipt-status:
+    get:
+      summary: Get order receipt status
+      description: Check hospital receipt status for shipped order
+      tags:
+        - VMI Orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Receipt status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptStatusResponse'
+
+  /api/purchasing/vmi/dashboard:
+    get:
+      summary: Get VMI dashboard data
+      description: Get summary statistics for VMI integration
+      tags:
+        - VMI Dashboard
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+
+  /api/purchasing/vmi/transactions:
+    get:
+      summary: Get VMI transaction log
+      description: Get audit log of VMI API transactions
+      tags:
+        - VMI Dashboard
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+        - name: transactionType
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, sent, received, processed, error]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Transaction log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionLogResponse'
+
+components:
+  schemas:
+    VmiOrdersListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/VmiOrderSummary'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            pageSize:
+              type: integer
+            totalItems:
+              type: integer
+            totalPages:
+              type: integer
+
+    VmiOrderSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        vendorId:
+          type: integer
+        vendorName:
+          type: string
+        vmiOrderId:
+          type: integer
+        hospitalCode:
+          type: string
+        hospitalName:
+          type: string
+        poNumber:
+          type: string
+        status:
+          type: string
+        orderDate:
+          type: string
+          format: date
+        expectedDeliveryDate:
+          type: string
+          format: date
+        totalValue:
+          type: number
+        itemCount:
+          type: integer
+        localPoId:
+          type: integer
+        localPoNumber:
+          type: string
+
+    VmiOrderDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            vendorId:
+              type: integer
+            vendorName:
+              type: string
+            vmiOrderId:
+              type: integer
+            hospitalCode:
+              type: string
+            hospitalName:
+              type: string
+            poNumber:
+              type: string
+            warehouseName:
+              type: string
+            status:
+              type: string
+            orderDate:
+              type: string
+              format: date
+            expectedDeliveryDate:
+              type: string
+              format: date
+            totalValue:
+              type: number
+            itemCount:
+              type: integer
+            notes:
+              type: string
+            localPoId:
+              type: integer
+            localPoNumber:
+              type: string
+            confirmedAt:
+              type: string
+              format: date-time
+            shippedAt:
+              type: string
+              format: date-time
+            receivedAt:
+              type: string
+              format: date-time
+            createdAt:
+              type: string
+              format: date-time
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  itemId:
+                    type: integer
+                  localCode:
+                    type: string
+                  itemName:
+                    type: string
+                  quantityOrdered:
+                    type: number
+                  quantityReceived:
+                    type: number
+                  unitPrice:
+                    type: number
+                  lineTotal:
+                    type: number
+                  unit:
+                    type: string
+                  tppCode:
+                    type: string
+                  ttmtCode:
+                    type: string
+
+    OrderActionRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum: [confirm, ship]
+        expectedDeliveryDate:
+          type: string
+          format: date
+          description: Required for ship action
+
+    OrderActionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        orderId:
+          type: integer
+        previousStatus:
+          type: string
+        newStatus:
+          type: string
+        message:
+          type: string
+        localPoId:
+          type: integer
+          description: Created PO ID (for confirm action)
+        localPoNumber:
+          type: string
+
+    PollResultResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        vendorId:
+          type: integer
+        polledAt:
+          type: string
+          format: date-time
+        newOrders:
+          type: integer
+        updatedOrders:
+          type: integer
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/VmiOrderSummary'
+
+    ReceiptStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            orderId:
+              type: integer
+            vmiOrderId:
+              type: integer
+            orderStatus:
+              type: string
+            receiptStatus:
+              type: string
+              enum: [none, partial, complete]
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  itemId:
+                    type: integer
+                  localCode:
+                    type: string
+                  itemName:
+                    type: string
+                  quantityOrdered:
+                    type: number
+                  quantityReceived:
+                    type: number
+                  pendingQuantity:
+                    type: number
+            receipts:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  receiptNumber:
+                    type: string
+                  receiptDate:
+                    type: string
+                    format: date
+                  receivedBy:
+                    type: string
+
+    DashboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            vendors:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  isConnected:
+                    type: boolean
+                  lastConnectionAt:
+                    type: string
+                    format: date-time
+            orders:
+              type: object
+              properties:
+                submitted:
+                  type: integer
+                confirmed:
+                  type: integer
+                shipped:
+                  type: integer
+                totalValue:
+                  type: number
+            sync:
+              type: object
+              properties:
+                lastItemsSync:
+                  type: string
+                  format: date-time
+                lastPricesSync:
+                  type: string
+                  format: date-time
+                lastInventorySync:
+                  type: string
+                  format: date-time
+                lastOrdersPoll:
+                  type: string
+                  format: date-time
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  vendorName:
+                    type: string
+                  transactionType:
+                    type: string
+                  errorMessage:
+                    type: string
+
+    TransactionLogResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              vendorId:
+                type: integer
+              vendorName:
+                type: string
+              transactionType:
+                type: string
+              endpoint:
+                type: string
+              method:
+                type: string
+              httpStatus:
+                type: integer
+              status:
+                type: string
+              durationMs:
+                type: integer
+              errorMessage:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            pageSize:
+              type: integer
+            totalItems:
+              type: integer
+            totalPages:
+              type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+          enum:
+            - UNAUTHORIZED
+            - VALIDATION_ERROR
+            - ORDER_NOT_FOUND
+            - INVALID_STATUS_TRANSITION
+            - VMI_CONNECTION_ERROR

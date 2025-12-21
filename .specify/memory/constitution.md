@@ -1,10 +1,9 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0
+Version change: 1.2.0 → 1.3.0
 Modified principles:
-  - I. Code Quality Standards: Added "Error Verification" and "Frequent Commits" requirements
-  - Development Workflow: Enhanced steps 2-4 with mandatory error checking and commit requirements
+  - I. Code Quality Standards: Added "Reusable Components" requirement
 Added sections: None
 Removed sections: None
 Templates requiring updates:
@@ -12,6 +11,13 @@ Templates requiring updates:
   - .specify/templates/spec-template.md: ✅ Compatible (uses testable requirements format)
   - .specify/templates/tasks-template.md: ✅ Compatible (supports test-first workflow)
 Follow-up TODOs: None
+
+Previous changes (1.1.0 → 1.2.0):
+  - III. User Experience Consistency: Added "DevExpress/DevExtreme Components" requirement
+
+Previous changes (1.0.0 → 1.1.0):
+  - I. Code Quality Standards: Added "Error Verification" and "Frequent Commits" requirements
+  - Development Workflow: Enhanced steps 2-4 with mandatory error checking and commit requirements
 -->
 
 # Herbal Medicine ERP Constitution
@@ -30,8 +36,15 @@ All code in this project MUST adhere to the following non-negotiable quality sta
 - **Error Handling**: All async operations MUST have explicit error handling. API endpoints MUST return appropriate HTTP status codes and structured error responses.
 - **Error Verification**: After completing any code modification, developers MUST check for coding errors by running type checking (`pnpm tsc --noEmit`) and linting (`pnpm lint`). Code with errors MUST NOT be left in the codebase.
 - **Frequent Commits**: Code MUST be committed frequently after each completed task or logical unit of work to prevent loss of progress and enable easy rollback. Uncommitted code is at risk of being lost and makes debugging harder.
+- **Reusable Components**: Common UI patterns MUST be extracted into reusable components rather than inlined in pages. This includes:
+  - **Search dialogs**: Item lookup, vendor search, customer search MUST use shared search dialog components.
+  - **Data entry dialogs**: CRUD operations (create, edit, delete confirmations) MUST use shared dialog components.
+  - **Form patterns**: Common form layouts, validation patterns, and submit handlers MUST be abstracted into reusable form components or hooks.
+  - **Data grids**: Grid configurations for similar data types SHOULD share column definitions and behaviors.
+  - **Location**: Reusable components MUST be placed in `src/components/shared/` or domain-specific folders (e.g., `src/components/purchasing/`). Page-specific components that are NOT reused SHOULD be co-located with their page.
+  - **DRY Principle**: If the same UI pattern appears in 2+ places, it MUST be refactored into a shared component. Copy-pasting UI code across pages is PROHIBITED.
 
-**Rationale**: Consistent code quality reduces bugs, improves maintainability, and enables faster onboarding of new team members. Frequent commits and immediate error verification prevent accumulated technical debt and reduce the risk of losing work.
+**Rationale**: Consistent code quality reduces bugs, improves maintainability, and enables faster onboarding of new team members. Frequent commits and immediate error verification prevent accumulated technical debt and reduce the risk of losing work. Reusable components ensure UI consistency, reduce code duplication, and make updates easier—fixing a bug or adding a feature in one shared component benefits all consumers.
 
 ### II. Testing Standards
 
@@ -54,10 +67,11 @@ The user interface MUST provide a consistent, accessible, and responsive experie
 - **Loading States**: All async operations MUST display appropriate loading indicators. Users MUST NOT see blank screens or unresponsive UI during data fetching.
 - **Error Feedback**: All user-facing errors MUST display clear, actionable messages in the user's language (Thai or English based on context). Technical error details SHOULD be logged but NOT displayed to users.
 - **Form Validation**: All forms MUST validate inputs on blur and before submission. Validation errors MUST be displayed inline next to the relevant field.
-- **Consistent Styling**: Use Tailwind CSS utility classes consistently. Custom CSS SHOULD be avoided unless Tailwind utilities are insufficient. Component styling MUST follow existing patterns in the codebase.
-- **Accessibility**: Interactive elements MUST be keyboard accessible. Form inputs MUST have associated labels. Color MUST NOT be the only means of conveying information.
+- **DevExpress/DevExtreme Components**: All UI components MUST use DevExpress/DevExtreme React components as the primary component library. The project has a purchased enterprise license for all DevExpress products. Native HTML elements or other component libraries (e.g., shadcn/ui, Material UI, Ant Design) MUST NOT be used when a DevExtreme equivalent exists. This ensures consistent look-and-feel, professional-grade functionality, and full utilization of the licensed software.
+- **Consistent Styling**: Use Tailwind CSS utility classes for layout and spacing. DevExtreme theming MUST be used for component styling. Custom CSS SHOULD be avoided unless DevExtreme theming and Tailwind utilities are insufficient. Component styling MUST follow existing patterns in the codebase.
+- **Accessibility**: Interactive elements MUST be keyboard accessible. Form inputs MUST have associated labels. Color MUST NOT be the only means of conveying information. DevExtreme components provide built-in accessibility features that SHOULD be utilized.
 
-**Rationale**: Consistent UX builds user trust, reduces training time, and ensures the system is usable across devices common in warehouse and production environments.
+**Rationale**: Consistent UX builds user trust, reduces training time, and ensures the system is usable across devices common in warehouse and production environments. Using DevExpress/DevExtreme components exclusively maximizes the value of the enterprise license investment while providing enterprise-grade features like data grids, charts, forms, and reporting out of the box.
 
 ### IV. Performance Requirements
 
@@ -143,4 +157,4 @@ For day-to-day development guidance, refer to:
 - `.specify/` directory for feature specification workflows
 - Code comments and existing patterns for implementation guidance
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-17
+**Version**: 1.3.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-21
