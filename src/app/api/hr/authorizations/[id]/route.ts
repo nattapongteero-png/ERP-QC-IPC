@@ -4,9 +4,17 @@
 import { NextRequest } from 'next/server';
 import {
   successResponse,
+  errorResponse,
+  notFoundResponse,
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import {
+  getAuthorizationById,
+  updateAuthorization,
+  revokeAuthorization,
+} from '@/lib/services/hr.service';
+import { authorizationUpdateSchema } from '@/lib/validation/hr';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -19,8 +27,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     async () => {
       try {
         const { id } = await params;
-        // TODO: Implement get authorization by ID
-        return successResponse({ id: Number(id), message: 'Not implemented yet' });
+        const authorization = await getAuthorizationById(Number(id));
+
+        if (!authorization) {
+          return notFoundResponse('Authorization not found');
+        }
+
+        return successResponse(authorization);
       } catch (error) {
         return serverErrorResponse(error);
       }
@@ -37,12 +50,25 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       try {
         const { id } = await params;
         const body = await request.json();
-        // TODO: Implement authorization update
-        return successResponse(
-          { id: Number(id), ...body },
-          'Authorization updated successfully'
-        );
+
+        // Validate input
+        const parseResult = authorizationUpdateSchema.safeParse(body);
+        if (!parseResult.success) {
+          const errors = parseResult.error.issues.map((issue) => ({
+            field: issue.path.join('.'),
+            message: issue.message,
+          }));
+          return errorResponse('Validation failed', 400, { errors });
+        }
+
+        const authorization = await updateAuthorization(Number(id), parseResult.data);
+        return successResponse(authorization, 'Authorization updated successfully');
       } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === 'Authorization not found') {
+            return notFoundResponse(error.message);
+          }
+        }
         return serverErrorResponse(error);
       }
     },
@@ -54,15 +80,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   return withAuth(
     request,
-    async () => {
+    async (session) => {
       try {
         const { id } = await params;
-        // TODO: Implement authorization revoke
-        return successResponse(
-          { id: Number(id) },
-          'Authorization revoked successfully'
-        );
+        const authorization = await revokeAuthorization(Number(id), session.userId);
+        return successResponse(authorization, 'Authorization revoked successfully');
       } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === 'Authorization not found') {
+            return notFoundResponse(error.message);
+          }
+        }
         return serverErrorResponse(error);
       }
     },

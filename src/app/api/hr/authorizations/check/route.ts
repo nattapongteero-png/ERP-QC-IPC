@@ -8,6 +8,9 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import { checkAuthorization } from '@/lib/services/hr.service';
+import { authorizationCheckSchema } from '@/lib/validation/hr';
+import type { AuthorizationType, AuthorizationScope } from '@/types/hr';
 
 // GET /api/hr/authorizations/check - Check if employee is authorized
 export async function GET(request: NextRequest) {
@@ -16,21 +19,44 @@ export async function GET(request: NextRequest) {
     async () => {
       try {
         const { searchParams } = new URL(request.url);
-        const employeeId = searchParams.get('employeeId');
-        const authType = searchParams.get('authType');
+        const employeeIdParam = searchParams.get('employeeId');
+        const authTypeParam = searchParams.get('authType');
+        const siteIdParam = searchParams.get('siteId');
+        const orgUnitIdParam = searchParams.get('orgUnitId');
+        const productLineParam = searchParams.get('productLine');
 
-        if (!employeeId || !authType) {
-          return errorResponse('employeeId and authType are required');
+        // Validate required parameters
+        const parseResult = authorizationCheckSchema.safeParse({
+          employeeId: employeeIdParam ? Number(employeeIdParam) : undefined,
+          authType: authTypeParam,
+          siteId: siteIdParam ? Number(siteIdParam) : undefined,
+          orgUnitId: orgUnitIdParam ? Number(orgUnitIdParam) : undefined,
+          productLine: productLineParam,
+        });
+
+        if (!parseResult.success) {
+          const errors = parseResult.error.issues.map((issue) => ({
+            field: issue.path.join('.'),
+            message: issue.message,
+          }));
+          return errorResponse('employeeId and authType are required', 400, { errors });
         }
 
-        // TODO: Implement authorization check with caching
-        return successResponse({
-          authorized: false,
-          source: null,
-          authorizationId: null,
-          expiresAt: null,
-          message: 'Not implemented yet',
-        });
+        const { employeeId, authType, siteId, orgUnitId, productLine } = parseResult.data;
+
+        // Build scope if any scope params provided
+        let scope: AuthorizationScope | undefined;
+        if (siteId || orgUnitId || productLine) {
+          scope = { siteId, orgUnitId, productLine };
+        }
+
+        const result = await checkAuthorization(
+          employeeId,
+          authType as AuthorizationType,
+          scope
+        );
+
+        return successResponse(result);
       } catch (error) {
         return serverErrorResponse(error);
       }

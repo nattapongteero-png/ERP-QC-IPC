@@ -4,9 +4,13 @@
 import { NextRequest } from 'next/server';
 import {
   successResponse,
+  errorResponse,
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import { getAuthorizations, createAuthorization } from '@/lib/services/hr.service';
+import { authorizationCreateSchema, authorizationQuerySchema } from '@/lib/validation/hr';
+import type { AuthorizationType } from '@/types/hr';
 
 // GET /api/hr/authorizations - List authorizations
 export async function GET(request: NextRequest) {
@@ -14,8 +18,35 @@ export async function GET(request: NextRequest) {
     request,
     async () => {
       try {
-        // TODO: Implement authorization listing
-        return successResponse({ data: [], total: 0, skip: 0, take: 20 });
+        const { searchParams } = new URL(request.url);
+        const queryResult = authorizationQuerySchema.safeParse(
+          Object.fromEntries(searchParams.entries())
+        );
+
+        const filters: {
+          employeeId?: number;
+          authType?: AuthorizationType;
+          scopeSiteId?: number;
+          isActive?: boolean;
+        } = {};
+
+        if (queryResult.success) {
+          if (queryResult.data.employeeId) {
+            filters.employeeId = queryResult.data.employeeId;
+          }
+          if (queryResult.data.authType) {
+            filters.authType = queryResult.data.authType;
+          }
+          if (queryResult.data.siteId) {
+            filters.scopeSiteId = queryResult.data.siteId;
+          }
+          if (queryResult.data.isActive !== undefined) {
+            filters.isActive = queryResult.data.isActive === 'true';
+          }
+        }
+
+        const authorizations = await getAuthorizations(filters);
+        return successResponse(authorizations);
       } catch (error) {
         return serverErrorResponse(error);
       }
@@ -28,14 +59,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return withAuth(
     request,
-    async () => {
+    async (session) => {
       try {
         const body = await request.json();
-        // TODO: Implement authorization grant
-        return successResponse(
-          { id: 0, ...body },
-          'Authorization granted successfully'
-        );
+
+        // Validate input
+        const parseResult = authorizationCreateSchema.safeParse(body);
+        if (!parseResult.success) {
+          const errors = parseResult.error.issues.map((issue) => ({
+            field: issue.path.join('.'),
+            message: issue.message,
+          }));
+          return errorResponse('Validation failed', 400, { errors });
+        }
+
+        const authorization = await createAuthorization(parseResult.data, session.userId);
+        return successResponse(authorization, 'Authorization granted successfully');
       } catch (error) {
         return serverErrorResponse(error);
       }

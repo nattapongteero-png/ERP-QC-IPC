@@ -69,6 +69,16 @@ import type {
   TrainingResult,
   CompetencyMatrix,
   CompetencyMatrixEntry,
+  Authorization,
+  AuthorizationCreate,
+  AuthorizationUpdate,
+  AuthorizationWithDetails,
+  AuthorizationType,
+  AuthorizationCheckResult,
+  AuthorizationScope,
+  Delegation,
+  DelegationCreate,
+  DelegationWithDetails,
 } from '@/types/hr';
 
 // ============================================
@@ -2043,4 +2053,697 @@ export async function hasValidTraining(
 ): Promise<boolean> {
   const records = await getTrainingRecords({ employeeId, courseId, result: 'pass' });
   return records.some((r) => r.status === 'valid' || r.status === 'expiring_soon');
+}
+
+// ============================================
+// Authorization Service (T070-T072)
+// ============================================
+
+interface AuthorizationFilters {
+  employeeId?: number;
+  authType?: AuthorizationType;
+  scopeSiteId?: number;
+  scopeOrgUnitId?: number;
+  isActive?: boolean;
+  includeExpired?: boolean;
+}
+
+// In-memory cache for authorization checks (<200ms requirement)
+const authorizationCache = new Map<string, { result: AuthorizationCheckResult; expires: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(employeeId: number, authType: AuthorizationType, scope?: AuthorizationScope): string {
+  return `${employeeId}:${authType}:${scope?.siteId || ''}:${scope?.orgUnitId || ''}:${scope?.productLine || ''}`;
+}
+
+function clearAuthorizationCache(employeeId?: number): void {
+  if (employeeId) {
+    // Clear only entries for specific employee
+    for (const key of authorizationCache.keys()) {
+      if (key.startsWith(`${employeeId}:`)) {
+        authorizationCache.delete(key);
+      }
+    }
+  } else {
+    authorizationCache.clear();
+  }
+}
+
+/**
+ * Get authorizations with filters
+ */
+export async function getAuthorizations(
+  filters?: AuthorizationFilters
+): Promise<AuthorizationWithDetails[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+  const now = new Date().toISOString().split('T')[0];
+
+  if (filters?.employeeId) {
+    conditions.push(eq(tables.authorizations.employeeId, filters.employeeId));
+  }
+
+  if (filters?.authType) {
+    conditions.push(eq(tables.authorizations.authType, filters.authType));
+  }
+
+  if (filters?.scopeSiteId) {
+    conditions.push(eq(tables.authorizations.scopeSiteId, filters.scopeSiteId));
+  }
+
+  if (filters?.scopeOrgUnitId) {
+    conditions.push(eq(tables.authorizations.scopeOrgUnitId, filters.scopeOrgUnitId));
+  }
+
+  if (filters?.isActive !== undefined) {
+    conditions.push(eq(tables.authorizations.isActive, filters.isActive));
+  }
+
+  if (!filters?.includeExpired) {
+    // Only get non-expired authorizations
+    conditions.push(
+      or(
+        isNull(tables.authorizations.effectiveTo),
+        sql`${tables.authorizations.effectiveTo} >= ${now}`
+      )!
+    );
+  }
+
+  const query = conditions.length > 0
+    ? db.select().from(tables.authorizations).where(and(...conditions))
+    : db.select().from(tables.authorizations);
+
+  const authorizations = await query.orderBy(desc(tables.authorizations.createdAt));
+
+  // Enrich with details
+  const enriched: AuthorizationWithDetails[] = [];
+  for (const auth of authorizations) {
+    const employee = await getEmployeeById(auth.employeeId);
+    const delegations = await getDelegations({ authorizationId: auth.id });
+
+    enriched.push({
+      ...auth,
+      authType: auth.authType as AuthorizationType,
+      employeeName: employee ? `${employee.firstName} ${employee.lastName}` : undefined,
+      delegations,
+    });
+  }
+
+  return enriched;
+}
+
+/**
+ * Get authorization by ID
+ */
+export async function getAuthorizationById(id: number): Promise<AuthorizationWithDetails | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [authorization] = await db
+    .select()
+    .from(tables.authorizations)
+    .where(eq(tables.authorizations.id, id))
+    .limit(1);
+
+  if (!authorization) return null;
+
+  const employee = await getEmployeeById(authorization.employeeId);
+  const delegations = await getDelegations({ authorizationId: id });
+
+  return {
+    ...authorization,
+    authType: authorization.authType as AuthorizationType,
+    employeeName: employee ? `${employee.firstName} ${employee.lastName}` : undefined,
+    delegations,
+  };
+}
+
+/**
+ * Create a new authorization
+ */
+export async function createAuthorization(
+  data: AuthorizationCreate,
+  grantedBy: number
+): Promise<Authorization> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const now = new Date().toISOString();
+
+  const insertData = {
+    employeeId: data.employeeId,
+    authType: data.authType,
+    scopeSiteId: data.scopeSiteId || null,
+    scopeOrgUnitId: data.scopeOrgUnitId || null,
+    scopeProductLines: data.scopeProductLines ? JSON.stringify(data.scopeProductLines) : null,
+    effectiveFrom: data.effectiveFrom,
+    effectiveTo: data.effectiveTo || null,
+    grantedBy,
+    grantedAt: now,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const [result] = await db.insert(tables.authorizations).values(insertData).returning();
+
+  // Clear cache for this employee
+  clearAuthorizationCache(data.employeeId);
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_authorizations',
+    recordId: result.id,
+    newValue: insertData,
+  });
+
+  return {
+    ...result,
+    authType: result.authType as AuthorizationType,
+  };
+}
+
+/**
+ * Update authorization
+ */
+export async function updateAuthorization(
+  id: number,
+  data: AuthorizationUpdate
+): Promise<Authorization> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getAuthorizationById(id);
+  if (!existing) {
+    throw new Error('Authorization not found');
+  }
+
+  const updateData = {
+    ...data,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const [result] = await db
+    .update(tables.authorizations)
+    .set(updateData)
+    .where(eq(tables.authorizations.id, id))
+    .returning();
+
+  // Clear cache for this employee
+  clearAuthorizationCache(existing.employeeId);
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_authorizations',
+    recordId: id,
+    oldValue: { isActive: existing.isActive, effectiveTo: existing.effectiveTo },
+    newValue: { isActive: result.isActive, effectiveTo: result.effectiveTo },
+  });
+
+  return {
+    ...result,
+    authType: result.authType as AuthorizationType,
+  };
+}
+
+/**
+ * Revoke authorization
+ */
+export async function revokeAuthorization(
+  id: number,
+  revokedBy: number
+): Promise<Authorization> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getAuthorizationById(id);
+  if (!existing) {
+    throw new Error('Authorization not found');
+  }
+
+  const now = new Date().toISOString();
+
+  const [result] = await db
+    .update(tables.authorizations)
+    .set({
+      isActive: false,
+      revokedBy,
+      revokedAt: now,
+      updatedAt: now,
+    })
+    .where(eq(tables.authorizations.id, id))
+    .returning();
+
+  // Clear cache for this employee
+  clearAuthorizationCache(existing.employeeId);
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_authorizations',
+    recordId: id,
+    oldValue: { isActive: true },
+    newValue: { isActive: false, revokedBy, revokedAt: now },
+  });
+
+  return {
+    ...result,
+    authType: result.authType as AuthorizationType,
+  };
+}
+
+/**
+ * Check if employee has authorization (with caching for <200ms requirement)
+ */
+export async function checkAuthorization(
+  employeeId: number,
+  authType: AuthorizationType,
+  scope?: AuthorizationScope
+): Promise<AuthorizationCheckResult> {
+  const cacheKey = getCacheKey(employeeId, authType, scope);
+  const cached = authorizationCache.get(cacheKey);
+
+  // Return cached result if still valid
+  if (cached && cached.expires > Date.now()) {
+    return cached.result;
+  }
+
+  const tables = getHRTables();
+  const db = await getDb();
+  const now = new Date().toISOString().split('T')[0];
+
+  // Check direct authorization
+  const directConditions: SQL[] = [
+    eq(tables.authorizations.employeeId, employeeId),
+    eq(tables.authorizations.authType, authType),
+    eq(tables.authorizations.isActive, true),
+    sql`${tables.authorizations.effectiveFrom} <= ${now}`,
+    or(
+      isNull(tables.authorizations.effectiveTo),
+      sql`${tables.authorizations.effectiveTo} >= ${now}`
+    )!,
+  ];
+
+  // Add scope conditions if specified
+  if (scope?.siteId) {
+    directConditions.push(
+      or(
+        isNull(tables.authorizations.scopeSiteId),
+        eq(tables.authorizations.scopeSiteId, scope.siteId)
+      )!
+    );
+  }
+
+  if (scope?.orgUnitId) {
+    directConditions.push(
+      or(
+        isNull(tables.authorizations.scopeOrgUnitId),
+        eq(tables.authorizations.scopeOrgUnitId, scope.orgUnitId)
+      )!
+    );
+  }
+
+  const [directAuth] = await db
+    .select()
+    .from(tables.authorizations)
+    .where(and(...directConditions))
+    .limit(1);
+
+  if (directAuth) {
+    // Check product line scope if specified
+    if (scope?.productLine && directAuth.scopeProductLines) {
+      const allowedProductLines = JSON.parse(directAuth.scopeProductLines) as string[];
+      if (!allowedProductLines.includes(scope.productLine)) {
+        const result: AuthorizationCheckResult = {
+          authorized: false,
+          source: null,
+          authorizationId: null,
+          expiresAt: null,
+        };
+        authorizationCache.set(cacheKey, { result, expires: Date.now() + CACHE_TTL_MS });
+        return result;
+      }
+    }
+
+    const result: AuthorizationCheckResult = {
+      authorized: true,
+      source: 'direct',
+      authorizationId: directAuth.id,
+      expiresAt: directAuth.effectiveTo,
+    };
+    authorizationCache.set(cacheKey, { result, expires: Date.now() + CACHE_TTL_MS });
+    return result;
+  }
+
+  // Check delegation
+  const delegationResult = await db
+    .select({
+      delegationId: tables.delegations.id,
+      authorizationId: tables.delegations.authorizationId,
+      effectiveTo: tables.delegations.effectiveTo,
+    })
+    .from(tables.delegations)
+    .innerJoin(
+      tables.authorizations,
+      eq(tables.delegations.authorizationId, tables.authorizations.id)
+    )
+    .where(
+      and(
+        eq(tables.delegations.delegateId, employeeId),
+        eq(tables.authorizations.authType, authType),
+        eq(tables.authorizations.isActive, true),
+        sql`${tables.delegations.effectiveFrom} <= ${now}`,
+        sql`${tables.delegations.effectiveTo} >= ${now}`
+      )
+    )
+    .limit(1);
+
+  if (delegationResult.length > 0) {
+    const delegation = delegationResult[0];
+    const result: AuthorizationCheckResult = {
+      authorized: true,
+      source: 'delegation',
+      authorizationId: delegation.authorizationId,
+      expiresAt: delegation.effectiveTo,
+    };
+    authorizationCache.set(cacheKey, { result, expires: Date.now() + CACHE_TTL_MS });
+    return result;
+  }
+
+  // Not authorized
+  const result: AuthorizationCheckResult = {
+    authorized: false,
+    source: null,
+    authorizationId: null,
+    expiresAt: null,
+  };
+  authorizationCache.set(cacheKey, { result, expires: Date.now() + CACHE_TTL_MS });
+  return result;
+}
+
+/**
+ * Get all active authorizations for an employee
+ */
+export async function getEmployeeAuthorizations(
+  employeeId: number
+): Promise<AuthorizationWithDetails[]> {
+  return getAuthorizations({ employeeId, isActive: true });
+}
+
+/**
+ * Check if employee has any active authorization of a specific type
+ */
+export async function hasActiveAuthorization(
+  employeeId: number,
+  authType: AuthorizationType
+): Promise<boolean> {
+  const result = await checkAuthorization(employeeId, authType);
+  return result.authorized;
+}
+
+/**
+ * Get authorizations expiring within specified days
+ */
+export async function getExpiringAuthorizations(
+  withinDays: number = 30
+): Promise<AuthorizationWithDetails[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const now = new Date();
+  const futureDate = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
+  const nowStr = now.toISOString().split('T')[0];
+  const futureStr = futureDate.toISOString().split('T')[0];
+
+  const authorizations = await db
+    .select()
+    .from(tables.authorizations)
+    .where(
+      and(
+        eq(tables.authorizations.isActive, true),
+        sql`${tables.authorizations.effectiveTo} IS NOT NULL`,
+        sql`${tables.authorizations.effectiveTo} >= ${nowStr}`,
+        sql`${tables.authorizations.effectiveTo} <= ${futureStr}`
+      )
+    )
+    .orderBy(tables.authorizations.effectiveTo);
+
+  const enriched: AuthorizationWithDetails[] = [];
+  for (const auth of authorizations) {
+    const employee = await getEmployeeById(auth.employeeId);
+    enriched.push({
+      ...auth,
+      authType: auth.authType as AuthorizationType,
+      employeeName: employee ? `${employee.firstName} ${employee.lastName}` : undefined,
+    });
+  }
+
+  return enriched;
+}
+
+// ============================================
+// Delegation Service (T071)
+// ============================================
+
+interface DelegationFilters {
+  authorizationId?: number;
+  delegatorId?: number;
+  delegateId?: number;
+  isActive?: boolean;
+}
+
+/**
+ * Validate delegation date range
+ */
+function validateDelegationDates(effectiveFrom: string, effectiveTo: string): void {
+  const fromDate = new Date(effectiveFrom);
+  const toDate = new Date(effectiveTo);
+  const now = new Date();
+
+  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    throw new Error('Invalid date format');
+  }
+
+  if (fromDate >= toDate) {
+    throw new Error('effectiveFrom must be before effectiveTo');
+  }
+
+  if (toDate <= now) {
+    throw new Error('effectiveTo must be in the future');
+  }
+}
+
+/**
+ * Get delegations with filters
+ */
+export async function getDelegations(
+  filters?: DelegationFilters
+): Promise<DelegationWithDetails[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+  const now = new Date().toISOString().split('T')[0];
+
+  if (filters?.authorizationId) {
+    conditions.push(eq(tables.delegations.authorizationId, filters.authorizationId));
+  }
+
+  if (filters?.delegatorId) {
+    conditions.push(eq(tables.delegations.delegatorId, filters.delegatorId));
+  }
+
+  if (filters?.delegateId) {
+    conditions.push(eq(tables.delegations.delegateId, filters.delegateId));
+  }
+
+  if (filters?.isActive !== undefined) {
+    if (filters.isActive) {
+      conditions.push(sql`${tables.delegations.effectiveTo} >= ${now}`);
+    } else {
+      conditions.push(sql`${tables.delegations.effectiveTo} < ${now}`);
+    }
+  }
+
+  const query = conditions.length > 0
+    ? db.select().from(tables.delegations).where(and(...conditions))
+    : db.select().from(tables.delegations);
+
+  const delegations = await query.orderBy(desc(tables.delegations.createdAt));
+
+  // Enrich with details
+  const enriched: DelegationWithDetails[] = [];
+  for (const del of delegations) {
+    const authorization = await getAuthorizationById(del.authorizationId);
+    const delegator = await getEmployeeById(del.delegatorId);
+    const delegate = await getEmployeeById(del.delegateId);
+    const today = new Date().toISOString().split('T')[0];
+
+    enriched.push({
+      ...del,
+      authType: authorization?.authType,
+      delegatorName: delegator ? `${delegator.firstName} ${delegator.lastName}` : undefined,
+      delegateName: delegate ? `${delegate.firstName} ${delegate.lastName}` : undefined,
+      isActive: del.effectiveTo >= today,
+    });
+  }
+
+  return enriched;
+}
+
+/**
+ * Get delegation by ID
+ */
+export async function getDelegationById(id: number): Promise<DelegationWithDetails | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [delegation] = await db
+    .select()
+    .from(tables.delegations)
+    .where(eq(tables.delegations.id, id))
+    .limit(1);
+
+  if (!delegation) return null;
+
+  const authorization = await getAuthorizationById(delegation.authorizationId);
+  const delegator = await getEmployeeById(delegation.delegatorId);
+  const delegate = await getEmployeeById(delegation.delegateId);
+  const today = new Date().toISOString().split('T')[0];
+
+  return {
+    ...delegation,
+    authType: authorization?.authType,
+    delegatorName: delegator ? `${delegator.firstName} ${delegator.lastName}` : undefined,
+    delegateName: delegate ? `${delegate.firstName} ${delegate.lastName}` : undefined,
+    isActive: delegation.effectiveTo >= today,
+  };
+}
+
+/**
+ * Create a new delegation
+ */
+export async function createDelegation(
+  data: DelegationCreate,
+  delegatorId: number
+): Promise<Delegation> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Validate dates
+  validateDelegationDates(data.effectiveFrom, data.effectiveTo);
+
+  // Check that authorization exists and belongs to delegator
+  const authorization = await getAuthorizationById(data.authorizationId);
+  if (!authorization) {
+    throw new Error('Authorization not found');
+  }
+
+  if (authorization.employeeId !== delegatorId) {
+    throw new Error('Cannot delegate authorization that does not belong to you');
+  }
+
+  if (!authorization.isActive) {
+    throw new Error('Cannot delegate inactive authorization');
+  }
+
+  // Check that delegate exists
+  const delegate = await getEmployeeById(data.delegateId);
+  if (!delegate) {
+    throw new Error('Delegate employee not found');
+  }
+
+  // Cannot delegate to self
+  if (data.delegateId === delegatorId) {
+    throw new Error('Cannot delegate to yourself');
+  }
+
+  const now = new Date().toISOString();
+
+  const insertData = {
+    authorizationId: data.authorizationId,
+    delegatorId,
+    delegateId: data.delegateId,
+    reason: data.reason || null,
+    effectiveFrom: data.effectiveFrom,
+    effectiveTo: data.effectiveTo,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const [result] = await db.insert(tables.delegations).values(insertData).returning();
+
+  // Clear cache for delegate
+  clearAuthorizationCache(data.delegateId);
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_delegations',
+    recordId: result.id,
+    newValue: insertData,
+  });
+
+  return result;
+}
+
+/**
+ * Cancel/revoke a delegation
+ */
+export async function cancelDelegation(id: number): Promise<Delegation> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getDelegationById(id);
+  if (!existing) {
+    throw new Error('Delegation not found');
+  }
+
+  // Set effectiveTo to now to cancel
+  const now = new Date().toISOString().split('T')[0];
+
+  const [result] = await db
+    .update(tables.delegations)
+    .set({
+      effectiveTo: now,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(tables.delegations.id, id))
+    .returning();
+
+  // Clear cache for delegate
+  clearAuthorizationCache(existing.delegateId);
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_delegations',
+    recordId: id,
+    oldValue: { effectiveTo: existing.effectiveTo },
+    newValue: { effectiveTo: now },
+  });
+
+  return result;
+}
+
+/**
+ * Get delegations created by an employee
+ */
+export async function getEmployeeDelegations(
+  employeeId: number
+): Promise<DelegationWithDetails[]> {
+  return getDelegations({ delegatorId: employeeId });
+}
+
+/**
+ * Get delegations assigned to an employee (as delegate)
+ */
+export async function getDelegatedToEmployee(
+  employeeId: number
+): Promise<DelegationWithDetails[]> {
+  return getDelegations({ delegateId: employeeId, isActive: true });
 }
