@@ -3,7 +3,7 @@
 // HR Positions Management Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -23,11 +23,11 @@ import TextArea from 'devextreme-react/text-area';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
-import { OrgUnitPicker } from '@/components/shared';
+import { ResponsivePageHeader } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
-import { Briefcase, FileText, Plus, Check, X, Clock } from 'lucide-react';
-import type { Position, PositionWithDetails, OrgUnit, JobDescription } from '@/types/hr';
-import type { RowInsertingEvent, RowUpdatingEvent, RowRemovingEvent } from 'devextreme/ui/data_grid';
+import { Briefcase, FileText, Check, X, Clock } from 'lucide-react';
+import type { Position, OrgUnit, JobDescription } from '@/types/hr';
+import type { RowInsertingEvent, RowUpdatingEvent } from 'devextreme/ui/data_grid';
 
 const JD_STATUS_CONFIG = {
   draft: { label: 'ร่าง', variant: 'secondary' as const, icon: FileText },
@@ -96,11 +96,28 @@ export default function PositionsPage() {
 
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [showJDPopup, setShowJDPopup] = useState(false);
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
+  const [gridHeight, setGridHeight] = useState(600);
   const [newJD, setNewJD] = useState({
     responsibilities: '',
     authorities: '',
     qualifications: '',
   });
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 180;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const { data: positions = [], isLoading } = useQuery({
     queryKey: ['hr', 'positions'],
@@ -185,6 +202,7 @@ export default function PositionsPage() {
 
   const handleRowClick = useCallback((e: { data: Position }) => {
     setSelectedPosition(e.data);
+    setShowDetailPanel(true);
   }, []);
 
   const handleCreateJD = useCallback(() => {
@@ -219,22 +237,22 @@ export default function PositionsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <Briefcase className="h-8 w-8 text-blue-600" />
-            ตำแหน่งงาน
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Position Management • {positions.length} รายการ
-          </p>
-        </div>
-      </div>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* T026: ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="ตำแหน่งงาน"
+        subtitle={`Position Management • ${positions.length} รายการ`}
+        icon={Briefcase}
+        iconBgColor="bg-blue-100"
+        iconColor="text-blue-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'ตำแหน่งงาน' },
+        ]}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Positions DataGrid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* T027: Positions DataGrid with columnHidingEnabled */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
           <DataGrid
             dataSource={positions}
@@ -245,7 +263,8 @@ export default function PositionsPage() {
             columnAutoWidth
             allowColumnReordering
             allowColumnResizing
-            height={600}
+            columnHidingEnabled
+            height={gridHeight}
             onRowClick={handleRowClick}
             onRowInserting={handleRowInserting}
             onRowUpdating={handleRowUpdating}
@@ -253,7 +272,7 @@ export default function PositionsPage() {
             loadPanel={{ enabled: isLoading }}
             selectedRowKeys={selectedPosition ? [selectedPosition.id] : []}
           >
-            <SearchPanel visible placeholder="ค้นหา..." width={250} />
+            <SearchPanel visible placeholder="ค้นหา..." width={200} />
             <HeaderFilter visible />
             <FilterRow visible />
             <Scrolling mode="virtual" />
@@ -276,13 +295,14 @@ export default function PositionsPage() {
               <Item name="searchPanel" />
             </Toolbar>
 
-            <Column dataField="code" caption="รหัส" width={100} />
-            <Column dataField="title" caption="ชื่อตำแหน่ง" minWidth={150} />
-            <Column dataField="titleEn" caption="ชื่อภาษาอังกฤษ" width={150} />
+            <Column dataField="code" caption="รหัส" width={100} hidingPriority={1} />
+            <Column dataField="title" caption="ชื่อตำแหน่ง" minWidth={150} hidingPriority={0} />
+            <Column dataField="titleEn" caption="ชื่อภาษาอังกฤษ" width={150} hidingPriority={4} />
             <Column
               dataField="orgUnitId"
               caption="หน่วยงาน"
               width={150}
+              hidingPriority={3}
             >
               <Lookup
                 dataSource={orgUnits}
@@ -290,13 +310,14 @@ export default function PositionsPage() {
                 displayExpr="name"
               />
             </Column>
-            <Column dataField="jobGrade" caption="ระดับ" width={80} />
+            <Column dataField="jobGrade" caption="ระดับ" width={80} hidingPriority={5} />
             <Column
               dataField="isGmpCritical"
               caption="GMP"
               width={70}
               cellRender={renderGmpCriticalCell}
               alignment="center"
+              hidingPriority={2}
             />
             <Column
               dataField="isActive"
@@ -304,18 +325,30 @@ export default function PositionsPage() {
               width={90}
               cellRender={renderActiveCell}
               alignment="center"
+              hidingPriority={6}
             />
           </DataGrid>
         </div>
 
-        {/* Position Details & Job Descriptions */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* T028: Position Details Panel - collapsible on mobile */}
+        <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${!showDetailPanel && selectedPosition ? 'hidden lg:block' : ''}`}>
           {selectedPosition ? (
             <div className="h-full flex flex-col">
               {/* Position Header */}
               <div className="p-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="font-semibold text-gray-900">{selectedPosition.title}</h3>
-                <p className="text-sm text-gray-500">{selectedPosition.code}</p>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{selectedPosition.title}</h3>
+                    <p className="text-sm text-gray-500">{selectedPosition.code}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowDetailPanel(false)}
+                    className="lg:hidden p-1 text-gray-400 hover:text-gray-600"
+                    aria-label="Close panel"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
                 <div className="flex items-center gap-2 mt-2">
                   {selectedPosition.isGmpCritical && (
                     <Badge variant="danger" className="text-xs">GMP Critical</Badge>

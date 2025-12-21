@@ -3,7 +3,7 @@
 // HR Training Sessions Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import { CalendarDays, Users, PlayCircle, CheckCircle, XCircle } from 'lucide-react';
 import type { TrainingSession, TrainingCourse, TrainingSessionStatus } from '@/types/hr';
@@ -85,6 +86,7 @@ export default function TrainingSessionsPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [showCreatePopup, setShowCreatePopup] = useState(false);
+  const [gridHeight, setGridHeight] = useState(600);
   const [newSession, setNewSession] = useState({
     courseId: undefined as number | undefined,
     sessionDate: new Date().toISOString().split('T')[0],
@@ -94,6 +96,21 @@ export default function TrainingSessionsPage() {
     maxParticipants: undefined as number | undefined,
     instructorExternal: '',
   });
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 280;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ['hr', 'training', 'sessions'],
@@ -192,84 +209,67 @@ export default function TrainingSessionsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <CalendarDays className="h-8 w-8 text-green-600" />
-            การจัดอบรม
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Training Sessions • {sessions.length} รายการ
-          </p>
-        </div>
-        <DxButton
-          text="จัดอบรมใหม่"
-          icon="add"
-          type="default"
-          stylingMode="contained"
-          onClick={() => setShowCreatePopup(true)}
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* T037: ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="การจัดอบรม"
+        subtitle={`Training Sessions • ${sessions.length} รายการ`}
+        icon={CalendarDays}
+        iconBgColor="bg-green-100"
+        iconColor="text-green-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'การอบรม', href: '/hr/training' },
+          { label: 'รอบอบรม' },
+        ]}
+        actions={
+          <DxButton
+            text="จัดอบรมใหม่"
+            icon="add"
+            type="default"
+            stylingMode="contained"
+            onClick={() => setShowCreatePopup(true)}
+          />
+        }
+      />
+
+      {/* Stats using StatCard */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label="กำหนดการ"
+          value={sessions.filter((s) => s.status === 'scheduled').length}
+          icon={CalendarDays}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="กำลังดำเนินการ"
+          value={sessions.filter((s) => s.status === 'in_progress').length}
+          icon={PlayCircle}
+          iconColor="text-yellow-500"
+          accentColor="border-yellow-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="เสร็จสิ้น"
+          value={sessions.filter((s) => s.status === 'completed').length}
+          icon={CheckCircle}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="ผู้เข้าร่วมทั้งหมด"
+          value={sessions.reduce((acc, s) => acc + (s.participantCount || 0), 0)}
+          icon={Users}
+          iconColor="text-gray-500"
+          accentColor="border-gray-500"
+          isLoading={isLoading}
         />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <CalendarDays className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {sessions.filter((s) => s.status === 'scheduled').length}
-              </p>
-              <p className="text-sm text-gray-500">กำหนดการ</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <PlayCircle className="h-5 w-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {sessions.filter((s) => s.status === 'in_progress').length}
-              </p>
-              <p className="text-sm text-gray-500">กำลังดำเนินการ</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {sessions.filter((s) => s.status === 'completed').length}
-              </p>
-              <p className="text-sm text-gray-500">เสร็จสิ้น</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <Users className="h-5 w-5 text-gray-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {sessions.reduce((acc, s) => acc + (s.participantCount || 0), 0)}
-              </p>
-              <p className="text-sm text-gray-500">ผู้เข้าร่วมทั้งหมด</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* DataGrid */}
+      {/* T038: DataGrid with columnHidingEnabled */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
           dataSource={sessions}
@@ -278,11 +278,12 @@ export default function TrainingSessionsPage() {
           showRowLines
           rowAlternationEnabled
           columnAutoWidth
-          height={600}
+          columnHidingEnabled
+          height={gridHeight}
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
         >
-          <SearchPanel visible placeholder="ค้นหา..." width={250} />
+          <SearchPanel visible placeholder="ค้นหา..." width={200} />
           <HeaderFilter visible />
           <FilterRow visible />
           <Scrolling mode="virtual" />
@@ -298,21 +299,24 @@ export default function TrainingSessionsPage() {
             caption="วันที่"
             width={120}
             calculateCellValue={(rowData) => formatDate(rowData.sessionDate)}
+            hidingPriority={0}
           />
-          <Column dataField="courseName" caption="หลักสูตร" minWidth={200} />
-          <Column dataField="courseCode" caption="รหัส" width={100} />
+          <Column dataField="courseName" caption="หลักสูตร" minWidth={180} hidingPriority={1} />
+          <Column dataField="courseCode" caption="รหัส" width={100} hidingPriority={5} />
           <Column
             caption="เวลา"
             width={120}
             calculateCellValue={formatTimeRange}
+            hidingPriority={4}
           />
-          <Column dataField="location" caption="สถานที่" width={150} />
-          <Column dataField="instructorName" caption="วิทยากร" width={150} />
+          <Column dataField="location" caption="สถานที่" width={150} hidingPriority={3} />
+          <Column dataField="instructorName" caption="วิทยากร" width={150} hidingPriority={6} />
           <Column
             dataField="participantCount"
             caption="ผู้เข้าร่วม"
             width={100}
             alignment="center"
+            hidingPriority={7}
           />
           <Column
             dataField="status"
@@ -320,12 +324,14 @@ export default function TrainingSessionsPage() {
             width={130}
             cellRender={renderStatusCell}
             alignment="center"
+            hidingPriority={2}
           />
           <Column
             caption="การดำเนินการ"
             width={100}
             cellRender={renderActionsCell}
             alignment="center"
+            hidingPriority={8}
           />
         </DataGrid>
       </div>

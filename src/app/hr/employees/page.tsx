@@ -3,7 +3,7 @@
 // HR Employee Directory Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -22,8 +22,8 @@ import { useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
 import { buddhistDateFormat } from '@/components/ui/dx-date-box';
-import { OrgUnitPicker } from '@/components/shared';
-import { Users, UserPlus, Filter, RefreshCw } from 'lucide-react';
+import { OrgUnitPicker, ResponsivePageHeader, StatCard } from '@/components/shared';
+import { Users, UserPlus, UserCheck, Clock } from 'lucide-react';
 import type { Employee } from '@/types/hr';
 
 const STATUS_OPTIONS = [
@@ -59,6 +59,22 @@ export default function EmployeesPage() {
     searchParams.get('status') || null
   );
   const [showFilters, setShowFilters] = useState(false);
+  const [gridHeight, setGridHeight] = useState(600);
+
+  // T015: Responsive height calculation for DataGrid
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 200; // Approximate header + stats + filters height
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const { data: employees = [], isLoading, refetch } = useQuery({
     queryKey: ['hr', 'employees', { orgUnitId: orgUnitFilter, status: statusFilter }],
@@ -116,50 +132,98 @@ export default function EmployeesPage() {
     );
   };
 
-  return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <Users className="h-8 w-8 text-blue-600" />
-            ทะเบียนพนักงาน
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Employee Directory • {employees.length} รายการ
-          </p>
-        </div>
+  // T014: Compute employee stats for StatCards
+  const activeCount = employees.filter((e) => e.status === 'active').length;
+  const inactiveCount = employees.filter((e) => e.status === 'inactive').length;
+  const thisMonth = new Date();
+  const newThisMonth = employees.filter((e) => {
+    if (!e.hireDate) return false;
+    const hireDate = new Date(e.hireDate);
+    return hireDate.getMonth() === thisMonth.getMonth() &&
+           hireDate.getFullYear() === thisMonth.getFullYear();
+  }).length;
 
-        <div className="flex items-center gap-3">
-          <DxButton
-            icon="filter"
-            text={showFilters ? 'ซ่อนตัวกรอง' : 'ตัวกรอง'}
-            type="default"
-            stylingMode="outlined"
-            onClick={() => setShowFilters(!showFilters)}
-          />
-          <DxButton
-            icon="refresh"
-            type="default"
-            stylingMode="outlined"
-            onClick={() => refetch()}
-            disabled={isLoading}
-          />
-          <DxButton
-            icon="add"
-            text="เพิ่มพนักงาน"
-            type="default"
-            stylingMode="contained"
-            onClick={handleAddEmployee}
-          />
-        </div>
+  return (
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* T012: ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="ทะเบียนพนักงาน"
+        subtitle={`Employee Directory • ${employees.length} รายการ`}
+        icon={Users}
+        iconBgColor="bg-blue-100"
+        iconColor="text-blue-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'พนักงาน' },
+        ]}
+        actions={
+          <>
+            <DxButton
+              icon="filter"
+              text={showFilters ? 'ซ่อนตัวกรอง' : 'ตัวกรอง'}
+              type="default"
+              stylingMode="outlined"
+              onClick={() => setShowFilters(!showFilters)}
+            />
+            <DxButton
+              icon="refresh"
+              type="default"
+              stylingMode="outlined"
+              onClick={() => refetch()}
+              disabled={isLoading}
+            />
+            <DxButton
+              icon="add"
+              text="เพิ่มพนักงาน"
+              type="default"
+              stylingMode="contained"
+              onClick={handleAddEmployee}
+            />
+          </>
+        }
+      />
+
+      {/* T014: Stat cards for employee counts */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label="พนักงานทั้งหมด"
+          value={employees.length}
+          icon={Users}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="ใช้งาน"
+          value={activeCount}
+          icon={UserCheck}
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="พักงาน"
+          value={inactiveCount}
+          icon={Clock}
+          iconColor="text-yellow-500"
+          accentColor="border-yellow-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="เข้าใหม่เดือนนี้"
+          value={newThisMonth}
+          icon={UserPlus}
+          iconColor="text-violet-500"
+          accentColor="border-violet-500"
+          isLoading={isLoading}
+        />
       </div>
 
-      {/* Filters */}
+      {/* T016: Mobile-optimized filters */}
       {showFilters && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="w-64">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 md:gap-4">
+            <div className="w-full sm:w-64">
               <OrgUnitPicker
                 value={orgUnitFilter}
                 onValueChange={setOrgUnitFilter}
@@ -168,14 +232,14 @@ export default function EmployeesPage() {
                 showClearButton
               />
             </div>
-            <div className="w-48">
+            <div className="w-full sm:w-48">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 สถานะ
               </label>
               <select
                 value={statusFilter || ''}
                 onChange={(e) => setStatusFilter(e.target.value || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">ทั้งหมด</option>
                 {STATUS_OPTIONS.map((opt) => (
@@ -195,7 +259,7 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* DataGrid */}
+      {/* T013: DataGrid with columnHidingEnabled and hidingPriority */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
           dataSource={employees}
@@ -206,12 +270,13 @@ export default function EmployeesPage() {
           columnAutoWidth
           allowColumnReordering
           allowColumnResizing
-          height={600}
+          columnHidingEnabled
+          height={gridHeight}
           onRowClick={handleRowClick}
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
         >
-          <SearchPanel visible placeholder="ค้นหา..." width={300} />
+          <SearchPanel visible placeholder="ค้นหา..." width={240} />
           <HeaderFilter visible />
           <FilterRow visible />
           <Scrolling mode="virtual" />
@@ -230,21 +295,25 @@ export default function EmployeesPage() {
             <Item name="exportButton" />
           </Toolbar>
 
+          {/* T013: Columns with hidingPriority for mobile responsiveness */}
           <Column
             caption="พนักงาน"
             cellRender={renderEmployeeCell}
-            minWidth={200}
+            minWidth={180}
             calculateSortValue={(data: Employee) => `${data.firstName} ${data.lastName}`}
+            hidingPriority={0}
           />
           <Column
             dataField="email"
             caption="อีเมล"
             width={200}
+            hidingPriority={2}
           />
           <Column
             dataField="phone"
             caption="เบอร์โทร"
             width={120}
+            hidingPriority={3}
           />
           <Column
             dataField="status"
@@ -252,6 +321,7 @@ export default function EmployeesPage() {
             width={100}
             cellRender={renderStatusCell}
             alignment="center"
+            hidingPriority={1}
           >
             <HeaderFilter
               dataSource={STATUS_OPTIONS.map((o) => ({
@@ -267,6 +337,7 @@ export default function EmployeesPage() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             format={buddhistDateFormat as any}
             width={120}
+            hidingPriority={4}
           />
         </DataGrid>
       </div>

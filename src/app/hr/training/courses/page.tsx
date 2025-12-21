@@ -3,7 +3,7 @@
 // HR Training Courses Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -24,6 +24,7 @@ import NumberBox from 'devextreme-react/number-box';
 import CheckBox from 'devextreme-react/check-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import { BookOpen, Clock, Target, CheckCircle } from 'lucide-react';
 import type { TrainingCourse } from '@/types/hr';
@@ -62,6 +63,7 @@ export default function TrainingCoursesPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [showCreatePopup, setShowCreatePopup] = useState(false);
+  const [gridHeight, setGridHeight] = useState(600);
   const [newCourse, setNewCourse] = useState({
     code: '',
     name: '',
@@ -72,6 +74,21 @@ export default function TrainingCoursesPage() {
     durationHours: undefined as number | undefined,
     isMandatory: false,
   });
+
+  // Responsive height calculation
+  useEffect(() => {
+    const calculateHeight = () => {
+      const headerHeight = 280;
+      const padding = 100;
+      const minHeight = 400;
+      const availableHeight = window.innerHeight - headerHeight - padding;
+      setGridHeight(Math.max(minHeight, availableHeight));
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ['hr', 'training', 'courses'],
@@ -189,62 +206,50 @@ export default function TrainingCoursesPage() {
   );
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <BookOpen className="h-8 w-8 text-blue-600" />
-            หลักสูตรอบรม
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Training Courses Catalog • {courses.length} หลักสูตร
-          </p>
-        </div>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+      {/* T034: ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="หลักสูตรอบรม"
+        subtitle={`Training Courses Catalog • ${courses.length} หลักสูตร`}
+        icon={BookOpen}
+        iconBgColor="bg-blue-100"
+        iconColor="text-blue-600"
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'การอบรม', href: '/hr/training' },
+          { label: 'หลักสูตร' },
+        ]}
+      />
+
+      {/* Stats using StatCard */}
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
+        <StatCard
+          label="หลักสูตรทั้งหมด"
+          value={courses.length}
+          icon={BookOpen}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="หลักสูตรบังคับ"
+          value={courses.filter((c) => c.isMandatory).length}
+          icon={Target}
+          iconColor="text-red-500"
+          accentColor="border-red-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="มีวันหมดอายุ"
+          value={courses.filter((c) => c.validityDays).length}
+          icon={Clock}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
+          isLoading={isLoading}
+        />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <BookOpen className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{courses.length}</p>
-              <p className="text-sm text-gray-500">หลักสูตรทั้งหมด</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <Target className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {courses.filter((c) => c.isMandatory).length}
-              </p>
-              <p className="text-sm text-gray-500">หลักสูตรบังคับ</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Clock className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {courses.filter((c) => c.validityDays).length}
-              </p>
-              <p className="text-sm text-gray-500">มีวันหมดอายุ</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* DataGrid */}
+      {/* T035: DataGrid with columnHidingEnabled */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
           dataSource={courses}
@@ -255,13 +260,14 @@ export default function TrainingCoursesPage() {
           columnAutoWidth
           allowColumnReordering
           allowColumnResizing
-          height={600}
+          columnHidingEnabled
+          height={gridHeight}
           onRowInserting={handleRowInserting}
           onRowUpdating={handleRowUpdating}
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
         >
-          <SearchPanel visible placeholder="ค้นหา..." width={250} />
+          <SearchPanel visible placeholder="ค้นหา..." width={200} />
           <HeaderFilter visible />
           <FilterRow visible />
           <Scrolling mode="virtual" />
@@ -275,22 +281,24 @@ export default function TrainingCoursesPage() {
             <Item name="searchPanel" />
           </Toolbar>
 
-          <Column dataField="code" caption="รหัส" width={100} />
-          <Column dataField="name" caption="ชื่อหลักสูตร" minWidth={200} />
-          <Column dataField="nameEn" caption="ชื่อภาษาอังกฤษ" width={180} />
-          <Column dataField="category" caption="หมวดหมู่" width={120} />
+          <Column dataField="code" caption="รหัส" width={100} hidingPriority={1} />
+          <Column dataField="name" caption="ชื่อหลักสูตร" minWidth={180} hidingPriority={0} />
+          <Column dataField="nameEn" caption="ชื่อภาษาอังกฤษ" width={180} hidingPriority={5} />
+          <Column dataField="category" caption="หมวดหมู่" width={120} hidingPriority={3} />
           <Column
             dataField="isMandatory"
             caption="ประเภท"
             width={100}
             cellRender={renderMandatoryCell}
             alignment="center"
+            hidingPriority={2}
           />
           <Column
             dataField="validityDays"
             caption="อายุการรับรอง"
             width={140}
             cellRender={renderValidityCell}
+            hidingPriority={4}
           />
           <Column
             dataField="durationHours"
@@ -298,6 +306,7 @@ export default function TrainingCoursesPage() {
             width={90}
             cellRender={renderDurationCell}
             alignment="center"
+            hidingPriority={6}
           />
           <Column
             dataField="isActive"
@@ -305,6 +314,7 @@ export default function TrainingCoursesPage() {
             width={90}
             cellRender={renderActiveCell}
             alignment="center"
+            hidingPriority={7}
           />
         </DataGrid>
       </div>

@@ -292,6 +292,103 @@ async function queryAuthorization(
 
 ---
 
+## 9. Responsive UI Design Patterns
+
+### Decision
+Use **DevExtreme built-in responsive features** combined with **Tailwind CSS responsive utilities** for mobile-first layout.
+
+### Research Summary
+
+| Topic | Decision | Rationale |
+|-------|----------|-----------|
+| Responsive grids | DevExtreme `columnHidingEnabled` + `hidingPriority` | Built-in, well-tested |
+| Layout breakpoints | Tailwind responsive utilities (sm/md/lg/xl) | Already in project, mobile-first |
+| Reusable components | Create shared components in `src/components/shared/` | Constitution requirement |
+| Mobile data view | Conditional card view for narrow screens | Better UX on small screens |
+| Form layout | Stack fields on mobile using Tailwind grid | Better usability |
+| Professional look | Add stat cards, summary panels | Informative, actionable UI |
+
+### DevExtreme Responsive Features
+
+1. **DataGrid Column Hiding**
+   ```tsx
+   <Column dataField="email" hidingPriority={1} />  // Hidden first on narrow screens
+   <Column dataField="phone" hidingPriority={2} />  // Hidden second
+   <DataGrid columnHidingEnabled={true} />
+   ```
+
+2. **Responsive Popup Width**
+   ```tsx
+   <Popup width={{ xs: '95%', sm: 500, md: 600 }} />
+   ```
+
+3. **Grid Height**
+   ```tsx
+   height="calc(100vh - 250px)"  // Responsive to viewport
+   ```
+
+### Tailwind Responsive Patterns
+
+1. **Page Header**: `flex flex-col lg:flex-row lg:items-center justify-between gap-4`
+2. **Stats Grid**: `grid grid-cols-2 md:grid-cols-4 gap-4`
+3. **Card Grid**: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
+4. **Form Fields**: `grid grid-cols-1 md:grid-cols-2 gap-4`
+
+### Shared Components to Create
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `ResponsivePageHeader` | `src/components/shared/responsive-page-header.tsx` | Consistent header with icon, title, actions |
+| `StatCard` | `src/components/shared/stat-card.tsx` | Summary stat card with icon and value |
+
+### Mobile CSS Overrides
+
+Add to `src/styles/dx.mobile-overrides.css`:
+```css
+@media (max-width: 768px) {
+  .dx-datagrid-rowsview .dx-row { min-height: 48px; }
+  .dx-datagrid { -webkit-overflow-scrolling: touch; }
+  .dx-toolbar .dx-button-text { display: none; }
+}
+```
+
+---
+
+## 10. Page-Specific Enhancement Notes
+
+### High Priority Pages (P1)
+
+| Page | Current Issues | Enhancement |
+|------|---------------|-------------|
+| `/hr` | Basic layout | Add stats row, improve quick actions |
+| `/hr/employees` | Fixed grid height | Responsive columns, mobile card view |
+| `/hr/employees/new` | Desktop-only form | Stack fields on mobile |
+| `/hr/training` | Simple cards | Responsive grid, summary stats |
+
+### Medium Priority Pages (P2)
+
+| Page | Current Issues | Enhancement |
+|------|---------------|-------------|
+| `/hr/positions` | Side panel not mobile-friendly | Collapsible details, responsive grid |
+| `/hr/org` | TreeList + panel | Full width tree on mobile |
+| `/hr/training/courses` | Fixed grid | Responsive columns |
+| `/hr/training/sessions` | Fixed grid | Responsive columns |
+
+### Lower Priority Pages (P3)
+
+| Page | Current Issues | Enhancement |
+|------|---------------|-------------|
+| `/hr/org-chart` | Diagram needs zoom | Pinch-zoom, horizontal scroll |
+| `/hr/training/matrix` | Complex grid | Horizontal scroll, column hiding |
+| `/hr/authorizations` | Standard grid | Responsive columns |
+| `/hr/health-records` | Standard grid | Responsive columns |
+| `/hr/roles` | Standard grid | Responsive columns |
+| `/hr/notifications` | Standard grid | Responsive columns |
+| `/hr/audit` | Standard grid | Responsive columns |
+| `/hr/employees/[id]` | Form tabs | Responsive tabs, stacked fields |
+
+---
+
 ## Research Complete
 
 All NEEDS CLARIFICATION items resolved. Ready for Phase 1: Design & Contracts.

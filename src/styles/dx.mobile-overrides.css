@@ -210,3 +210,59 @@
     animation: none !important;
   }
 }
+
+/* ================================
+   HR Module Responsive Enhancements
+   Feature: 007-hr-personnel-management
+   ================================ */
+
+/* Mobile: Hide toolbar button text, show icons only */
+@media (max-width: 767px) {
+  .dx-toolbar .dx-button-text {
+    display: none;
+  }
+
+  .dx-toolbar .dx-button.dx-button-has-icon.dx-button-has-text .dx-button-content {
+    padding: 8px;
+  }
+
+  /* TreeList optimizations */
+  .dx-treelist-rowsview .dx-treelist-cell-expandable {
+    padding-left: 8px;
+  }
+
+  /* Diagram zoom/pan touch support */
+  .dx-diagram {
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Adaptive column details panel */
+  .dx-adaptive-detail-row .dx-field-item-content {
+    font-size: 13px;
+  }
+
+  .dx-adaptive-detail-row .dx-field-item-label {
+    font-size: 11px;
+    color: #6b7280;
+  }
+}
+
+/* Tablet: Better column visibility */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Show slightly more in adaptive panel */
+  .dx-adaptive-detail-row {
+    padding: 12px 16px;
+  }
+}
+
+/* Smooth scroll for horizontal DataGrid overflow */
+.dx-datagrid-rowsview {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Better adaptive row toggle button */
+.dx-datagrid-adaptive-more {
+  min-width: 32px;
+  min-height: 32px;
+}

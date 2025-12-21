@@ -1,263 +1,223 @@
-# Tasks: HR/Personnel Management Module
+# Tasks: HR Pages Responsive & Professional UI Redesign
 
 **Input**: Design documents from `/specs/007-hr-personnel-management/`
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/hr-api.yaml
+**Prerequisites**: plan.md (responsive UI redesign), research.md (responsive patterns), data-model.md (UI components), contracts/
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+**Organization**: Tasks are grouped by UI user story to enable independent implementation and testing. This is a UI-only enhancement - no backend changes required.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- **[Story]**: Which UI story this task belongs to (e.g., UI1, UI2, UI3)
 - Include exact file paths in descriptions
 
 ---
 
-## Phase 1: Setup (Shared Infrastructure)
+## Phase 1: Setup (Shared Components Infrastructure)
 
-**Purpose**: Project initialization and HR module structure
+**Purpose**: Create reusable responsive components before modifying any pages
 
-- [ ] T001 Create HR TypeScript types in src/types/hr.ts
-- [ ] T002 [P] Create HR Zod validation schemas in src/lib/validations/hr.ts
-- [ ] T003 [P] Create HR API route structure directories under src/app/api/hr/
-- [ ] T004 [P] Create HR page structure directories under src/app/(app)/hr/
-
----
-
-## Phase 2: Foundational (Blocking Prerequisites)
-
-**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
-
-**⚠️ CRITICAL**: No user story work can begin until this phase is complete
-
-- [ ] T005 Add hr_org_units table schema (SQLite) in src/lib/db/schema.ts
-- [ ] T006 Add hr_org_units table schema (MySQL) in src/lib/db/schema.ts
-- [ ] T007 [P] Add hr_positions table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T008 [P] Add hr_employees table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T009 [P] Add hr_employee_assignments table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T010 [P] Add hr_job_descriptions table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T011 [P] Add hr_training_courses table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T012 [P] Add hr_training_sessions table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T013 [P] Add hr_training_records table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T014 [P] Add hr_authorizations table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T015 [P] Add hr_delegations table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T016 [P] Add hr_health_records table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T017 [P] Add hr_app_roles table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T018 [P] Add hr_app_permissions table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T019 [P] Add hr_role_permissions table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T020 [P] Add hr_employee_roles table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T021 [P] Add hr_notifications table schema (SQLite + MySQL) in src/lib/db/schema.ts
-- [ ] T022 Create HR audit service with immutable logging in src/lib/services/hr-audit.service.ts
-- [ ] T023 Run database schema sync and verify all 16 HR tables created
-
-**Checkpoint**: Foundation ready - user story implementation can now begin
+- [ ] T001 [P] Create StatCard component in src/components/shared/stat-card.tsx
+- [ ] T002 [P] Create ResponsivePageHeader component in src/components/shared/responsive-page-header.tsx
+- [ ] T003 [P] Create ResponsiveFormLayout components in src/components/shared/responsive-form-layout.tsx
+- [ ] T004 [P] Create MobileListView component in src/components/shared/mobile-list-view.tsx
+- [ ] T005 Update shared components index in src/components/shared/index.ts
+- [ ] T006 [P] Add mobile CSS overrides in src/styles/dx.mobile-overrides.css
 
 ---
 
-## Phase 3: User Story 1 - Organization Structure (Priority: P1) 🎯 MVP
+## Phase 2: UI Story 1 - HR Dashboard (Priority: P1) 🎯 MVP
 
-**Goal**: HR administrators can view, create, and maintain organizational hierarchy with GMP separation enforcement
+**Goal**: Main HR dashboard is responsive with improved stat cards and mobile layout
 
-**Independent Test**: Create org chart with company > site > division > department levels, verify hierarchy displays correctly and Production/QC separation is enforced
+**Independent Test**: View /hr on desktop (1920px), tablet (768px), and mobile (375px) - layout adapts correctly, stat cards are readable
 
-### Implementation for User Story 1
+### Implementation for UI Story 1
 
-- [ ] T024 [US1] Implement OrgUnit CRUD service in src/lib/services/hr.service.ts
-- [ ] T025 [US1] Add separation of duties validation (QC cannot be under Production) in src/lib/services/hr.service.ts
-- [ ] T026 [US1] Add effective date range validation for org units in src/lib/services/hr.service.ts
-- [ ] T027 [P] [US1] Create GET/POST /api/hr/org-units route in src/app/api/hr/org-units/route.ts
-- [ ] T028 [P] [US1] Create GET/PATCH/DELETE /api/hr/org-units/[id] route in src/app/api/hr/org-units/[id]/route.ts
-- [ ] T029 [P] [US1] Create GET /api/hr/org-units/[id]/children route in src/app/api/hr/org-units/[id]/children/route.ts
-- [ ] T030 [US1] Create GET /api/hr/org-units/tree route for full hierarchy in src/app/api/hr/org-units/tree/route.ts
-- [ ] T031 [P] [US1] Create OrgUnitPicker shared component in src/components/shared/OrgUnitPicker.tsx
-- [ ] T032 [US1] Create OrgChartTree component with DevExtreme TreeList in src/components/hr/OrgChartTree.tsx
-- [ ] T033 [US1] Create OrgChartDiagram component with DevExtreme Diagram in src/components/hr/OrgChartDiagram.tsx
-- [ ] T034 [US1] Create org-chart page with tree editing and visual display in src/app/(app)/hr/org-chart/page.tsx
-- [ ] T035 [US1] Add audit logging for org unit create/update/delete operations
+- [ ] T007 [UI1] Add ResponsivePageHeader to HR dashboard in src/app/hr/page.tsx
+- [ ] T008 [UI1] Replace inline stat cards with StatCard component in src/app/hr/page.tsx
+- [ ] T009 [UI1] Add responsive grid for module cards (1-col mobile, 2-col tablet, 3-col desktop) in src/app/hr/page.tsx
+- [ ] T010 [UI1] Improve quick actions layout for mobile in src/app/hr/page.tsx
+- [ ] T011 [UI1] Test dashboard on all breakpoints and fix any issues
 
-**Checkpoint**: User Story 1 complete - org structure can be managed and visualized
+**Checkpoint**: HR dashboard fully responsive
 
 ---
 
-## Phase 4: User Story 2 - Employee Profiles and Assignments (Priority: P1)
+## Phase 3: UI Story 2 - Employee Directory (Priority: P1)
 
-**Goal**: HR administrators can create employee profiles, assign to positions/departments, and track assignment history
+**Goal**: Employee list page with responsive DataGrid and mobile card view
 
-**Independent Test**: Create employee record, assign to position, change department, verify assignment history is preserved
+**Independent Test**: View /hr/employees on mobile - columns hide appropriately, data is readable
 
-### Implementation for User Story 2
+### Implementation for UI Story 2
 
-- [ ] T036 [US2] Implement Employee CRUD service in src/lib/services/hr.service.ts
-- [ ] T037 [US2] Implement EmployeeAssignment tracking service in src/lib/services/hr.service.ts
-- [ ] T038 [US2] Add automatic user deactivation when employee status changes to inactive in src/lib/services/hr.service.ts
-- [ ] T039 [P] [US2] Create GET/POST /api/hr/employees route in src/app/api/hr/employees/route.ts
-- [ ] T040 [P] [US2] Create GET/PATCH /api/hr/employees/[id] route in src/app/api/hr/employees/[id]/route.ts
-- [ ] T041 [P] [US2] Create GET /api/hr/employees/[id]/assignments route in src/app/api/hr/employees/[id]/assignments/route.ts
-- [ ] T042 [P] [US2] Create GET /api/hr/employees/search route in src/app/api/hr/employees/search/route.ts
-- [ ] T043 [P] [US2] Create EmployeeLookup shared component in src/components/shared/EmployeeLookup.tsx
-- [ ] T044 [P] [US2] Create EmployeeCard component in src/components/hr/EmployeeCard.tsx
-- [ ] T045 [US2] Create employee directory page with search and filters in src/app/(app)/hr/employees/page.tsx
-- [ ] T046 [US2] Create employee profile page with assignment history in src/app/(app)/hr/employees/[id]/page.tsx
-- [ ] T047 [US2] Add audit logging for employee create/update/status change operations
+- [ ] T012 [UI2] Add ResponsivePageHeader to employees page in src/app/hr/employees/page.tsx
+- [ ] T013 [UI2] Add columnHidingEnabled and hidingPriority to DataGrid columns in src/app/hr/employees/page.tsx
+- [ ] T014 [UI2] Add stat cards for employee counts (total, active, new this month) in src/app/hr/employees/page.tsx
+- [ ] T015 [UI2] Add responsive height calculation for DataGrid in src/app/hr/employees/page.tsx
+- [ ] T016 [UI2] Add mobile-optimized search and filters in src/app/hr/employees/page.tsx
+- [ ] T017 [UI2] Test employee list on all breakpoints
 
-**Checkpoint**: User Story 2 complete - employees can be managed with full assignment history
+**Checkpoint**: Employee directory fully responsive
 
 ---
 
-## Phase 5: User Story 3 - Position and Job Description Management (Priority: P2)
+## Phase 4: UI Story 3 - New Employee Form (Priority: P1)
 
-**Goal**: HR administrators can define positions with version-controlled job descriptions and GMP-critical designations
+**Goal**: New employee form with responsive field layout
 
-**Independent Test**: Create position with job description, update JD to new version, verify previous version is archived
+**Independent Test**: View /hr/employees/new on mobile - fields stack vertically, form is usable
 
-### Implementation for User Story 3
+### Implementation for UI Story 3
 
-- [ ] T048 [US3] Implement Position CRUD service in src/lib/services/hr.service.ts
-- [ ] T049 [US3] Implement JobDescription version control service in src/lib/services/hr.service.ts
-- [ ] T050 [US3] Add JD approval workflow (draft → pending → approved → obsolete) in src/lib/services/hr.service.ts
-- [ ] T051 [P] [US3] Create GET/POST /api/hr/positions route in src/app/api/hr/positions/route.ts
-- [ ] T052 [P] [US3] Create GET/PATCH /api/hr/positions/[id] route in src/app/api/hr/positions/[id]/route.ts
-- [ ] T053 [P] [US3] Create PositionSelect shared component in src/components/shared/PositionSelect.tsx
-- [ ] T054 [US3] Create positions management page with JD versioning in src/app/(app)/hr/positions/page.tsx
-- [ ] T055 [US3] Add audit logging for position and JD operations
+- [ ] T018 [UI3] Update header with ResponsivePageHeader in src/app/hr/employees/new/page.tsx
+- [ ] T019 [UI3] Apply responsive grid layout to form fields (1-col mobile, 2-col desktop) in src/app/hr/employees/new/page.tsx
+- [ ] T020 [UI3] Ensure form buttons stack on mobile in src/app/hr/employees/new/page.tsx
+- [ ] T021 [UI3] Test new employee form on all breakpoints
 
-**Checkpoint**: User Story 3 complete - positions with versioned JDs can be managed
+**Checkpoint**: New employee form fully responsive
 
 ---
 
-## Phase 6: User Story 4 - Training Catalog and Record Management (Priority: P2)
+## Phase 5: UI Story 4 - Training Landing Page (Priority: P1)
 
-**Goal**: Training coordinators can manage courses, schedule sessions, record completions, and track certification validity
+**Goal**: Training module landing with responsive stats and navigation
 
-**Independent Test**: Create course, schedule session, enroll employee, record pass result, verify competency matrix shows valid certification
+**Independent Test**: View /hr/training on mobile - stats readable, navigation cards stack properly
 
-### Implementation for User Story 4
+### Implementation for UI Story 4
 
-- [ ] T056 [US4] Implement TrainingCourse CRUD service in src/lib/services/training.service.ts
-- [ ] T057 [US4] Implement TrainingSession scheduling service in src/lib/services/training.service.ts
-- [ ] T058 [US4] Implement TrainingRecord completion service with expiry calculation in src/lib/services/training.service.ts
-- [ ] T059 [US4] Implement competency matrix generation service in src/lib/services/training.service.ts
-- [ ] T060 [US4] Add training expiration check logic (valid/expiring_soon/expired) in src/lib/services/training.service.ts
-- [ ] T061 [P] [US4] Create GET/POST /api/hr/training/courses route in src/app/api/hr/training/courses/route.ts
-- [ ] T062 [P] [US4] Create GET/POST /api/hr/training/sessions route in src/app/api/hr/training/sessions/route.ts
-- [ ] T063 [P] [US4] Create GET/POST /api/hr/training/records route in src/app/api/hr/training/records/route.ts
-- [ ] T064 [US4] Create GET /api/hr/training/competency-matrix route in src/app/api/hr/training/competency-matrix/route.ts
-- [ ] T065 [P] [US4] Create TrainingMatrix component with DevExtreme DataGrid in src/components/hr/TrainingMatrix.tsx
-- [ ] T066 [US4] Create training courses catalog page in src/app/(app)/hr/training/courses/page.tsx
-- [ ] T067 [US4] Create training sessions management page in src/app/(app)/hr/training/sessions/page.tsx
-- [ ] T068 [US4] Create competency matrix page with employee/course grid in src/app/(app)/hr/training/matrix/page.tsx
-- [ ] T069 [US4] Add audit logging for training operations
+- [ ] T022 [UI4] Add ResponsivePageHeader to training page in src/app/hr/training/page.tsx
+- [ ] T023 [UI4] Add StatCard components for training stats in src/app/hr/training/page.tsx
+- [ ] T024 [UI4] Apply responsive grid to training module cards in src/app/hr/training/page.tsx
+- [ ] T025 [UI4] Test training landing on all breakpoints
 
-**Checkpoint**: User Story 4 complete - full training lifecycle can be managed
+**Checkpoint**: Training landing fully responsive
 
 ---
 
-## Phase 7: User Story 5 - Authorization and Delegation Management (Priority: P2)
+## Phase 6: UI Story 5 - Position Management (Priority: P2)
 
-**Goal**: Administrators can designate authorized persons for approval actions with scope limits and delegation support
+**Goal**: Positions page with responsive grid and side panel
 
-**Independent Test**: Grant batch release auth to employee, create delegation, verify authorization check returns correct source (direct/delegation)
+**Independent Test**: View /hr/positions on tablet - side panel collapses, grid adapts
 
-### Implementation for User Story 5
+### Implementation for UI Story 5
 
-- [ ] T070 [US5] Implement Authorization CRUD service in src/lib/services/authorization.service.ts
-- [ ] T071 [US5] Implement Delegation service with date-range validation in src/lib/services/authorization.service.ts
-- [ ] T072 [US5] Implement authorization check with caching (<200ms requirement) in src/lib/services/authorization.service.ts
-- [ ] T073 [US5] Add cache invalidation on authorization/delegation changes in src/lib/services/authorization.service.ts
-- [ ] T074 [P] [US5] Create GET/POST /api/hr/authorizations route in src/app/api/hr/authorizations/route.ts
-- [ ] T075 [P] [US5] Create GET/PATCH/DELETE /api/hr/authorizations/[id] route in src/app/api/hr/authorizations/[id]/route.ts
-- [ ] T076 [P] [US5] Create GET/POST /api/hr/authorizations/delegations route in src/app/api/hr/authorizations/delegations/route.ts
-- [ ] T077 [US5] Create GET /api/hr/authorizations/check route for external module validation in src/app/api/hr/authorizations/check/route.ts
-- [ ] T078 [P] [US5] Create AuthorizationBadge component in src/components/hr/AuthorizationBadge.tsx
-- [ ] T079 [US5] Create authorizations management page with delegation support in src/app/(app)/hr/authorizations/page.tsx
-- [ ] T080 [US5] Add audit logging for authorization grant/revoke and delegation operations
+- [ ] T026 [UI5] Add ResponsivePageHeader to positions page in src/app/hr/positions/page.tsx
+- [ ] T027 [UI5] Add columnHidingEnabled to positions DataGrid in src/app/hr/positions/page.tsx
+- [ ] T028 [UI5] Make position detail side panel collapsible on mobile in src/app/hr/positions/page.tsx
+- [ ] T029 [UI5] Test positions page on all breakpoints
 
-**Checkpoint**: User Story 5 complete - authorization system with delegation fully functional
+**Checkpoint**: Positions page fully responsive
 
 ---
 
-## Phase 8: User Story 6 - Personnel Health Records Management (Priority: P3)
+## Phase 7: UI Story 6 - Organization Structure (Priority: P2)
 
-**Goal**: Health staff can record health examinations with privacy protection for sensitive data
+**Goal**: Org structure page with responsive TreeList
 
-**Independent Test**: Record health exam as health_staff, set restricted status, verify non-health users only see fitness status
+**Independent Test**: View /hr/org on mobile - TreeList scrolls horizontally, controls accessible
 
-### Implementation for User Story 6
+### Implementation for UI Story 6
 
-- [ ] T081 [US6] Implement HealthRecord service with privacy filtering in src/lib/services/hr.service.ts
-- [ ] T082 [US6] Add role-based field filtering for medicalDetails and examinerNotes in src/lib/services/hr.service.ts
-- [ ] T083 [P] [US6] Create GET/POST /api/hr/health-records route with role check in src/app/api/hr/health-records/route.ts
-- [ ] T084 [P] [US6] Create HealthStatusIndicator component (Fit/Unfit/Restricted) in src/components/hr/HealthStatusIndicator.tsx
-- [ ] T085 [US6] Add health status display to employee profile page in src/app/(app)/hr/employees/[id]/page.tsx
-- [ ] T086 [US6] Add audit logging for health record operations
+- [ ] T030 [UI6] Add ResponsivePageHeader to org page in src/app/hr/org/page.tsx
+- [ ] T031 [UI6] Add responsive width handling to TreeList in src/app/hr/org/page.tsx
+- [ ] T032 [UI6] Make org unit detail panel collapsible on mobile in src/app/hr/org/page.tsx
+- [ ] T033 [UI6] Test org structure on all breakpoints
 
-**Checkpoint**: User Story 6 complete - health records managed with privacy protection
+**Checkpoint**: Org structure page fully responsive
 
 ---
 
-## Phase 9: User Story 7 - Role and Permission Mapping (Priority: P3)
+## Phase 8: UI Story 7 - Training Courses (Priority: P2)
 
-**Goal**: System administrators can map roles to permissions with separation of duties enforcement
+**Goal**: Training courses grid with responsive columns
 
-**Independent Test**: Create role with permissions, assign to employee, verify access control works and Production/QC conflict is blocked
+**Independent Test**: View /hr/training/courses on mobile - essential columns visible
 
-### Implementation for User Story 7
+### Implementation for UI Story 7
 
-- [ ] T087 [US7] Implement AppRole and AppPermission CRUD service in src/lib/services/hr.service.ts
-- [ ] T088 [US7] Implement RolePermission mapping service in src/lib/services/hr.service.ts
-- [ ] T089 [US7] Implement EmployeeRole assignment service with scope in src/lib/services/hr.service.ts
-- [ ] T090 [US7] Add separation of duties validation (Production vs QC conflicts) in src/lib/services/hr.service.ts
-- [ ] T091 [P] [US7] Create GET/POST /api/hr/roles route in src/app/api/hr/roles/route.ts
-- [ ] T092 [P] [US7] Create GET/PUT /api/hr/roles/[id]/permissions route in src/app/api/hr/roles/[id]/permissions/route.ts
-- [ ] T093 [P] [US7] Create GET /api/hr/permissions route in src/app/api/hr/permissions/route.ts
-- [ ] T094 [US7] Create roles and permissions management page in src/app/(app)/hr/roles/page.tsx
-- [ ] T095 [US7] Add audit logging for role and permission operations
+- [ ] T034 [UI7] Add ResponsivePageHeader to courses page in src/app/hr/training/courses/page.tsx
+- [ ] T035 [UI7] Add columnHidingEnabled to courses DataGrid in src/app/hr/training/courses/page.tsx
+- [ ] T036 [UI7] Test courses page on all breakpoints
 
-**Checkpoint**: User Story 7 complete - RBAC fully configured with separation of duties
+**Checkpoint**: Training courses fully responsive
 
 ---
 
-## Phase 10: User Story 8 - Audit Trail and Access Review (Priority: P3)
+## Phase 9: UI Story 8 - Training Sessions (Priority: P2)
 
-**Goal**: Auditors can review all HR data changes with immutable, searchable audit log
+**Goal**: Training sessions grid with responsive columns
 
-**Independent Test**: Perform HR operations, search audit log by date/actor/entity, verify entries are immutable
+**Independent Test**: View /hr/training/sessions on mobile - date/location visible
 
-### Implementation for User Story 8
+### Implementation for UI Story 8
 
-- [ ] T096 [US8] Implement audit log search and filtering service in src/lib/services/hr-audit.service.ts
-- [ ] T097 [US8] Add immutability protection (prevent update/delete) for audit entries in src/lib/services/hr-audit.service.ts
-- [ ] T098 [US8] Create GET /api/hr/audit route with filters in src/app/api/hr/audit/route.ts
-- [ ] T099 [US8] Create HR audit log viewer page with search/filter in src/app/(app)/hr/audit/page.tsx
-- [ ] T100 [US8] Verify all previous user stories have audit logging enabled
+- [ ] T037 [UI8] Add ResponsivePageHeader to sessions page in src/app/hr/training/sessions/page.tsx
+- [ ] T038 [UI8] Add columnHidingEnabled to sessions DataGrid in src/app/hr/training/sessions/page.tsx
+- [ ] T039 [UI8] Test sessions page on all breakpoints
 
-**Checkpoint**: User Story 8 complete - full audit trail with search capability
+**Checkpoint**: Training sessions fully responsive
 
 ---
 
-## Phase 11: Notifications & Cron Jobs
+## Phase 10: UI Story 9 - Specialized Pages (Priority: P3)
 
-**Purpose**: Training expiration and health check notifications
+**Goal**: Remaining pages with basic responsive improvements
 
-- [ ] T101 Implement notification creation service in src/lib/services/training.service.ts
-- [ ] T102 Create GET /api/hr/training/notifications/check cron endpoint in src/app/api/hr/training/notifications/check/route.ts
-- [ ] T103 Create GET /api/hr/health-records/notifications/check cron endpoint in src/app/api/hr/health-records/notifications/check/route.ts
-- [ ] T104 Add notification display to employee profile and dashboard
+**Independent Test**: Each page usable on mobile without horizontal scrolling
+
+### Org Chart Visualization
+
+- [ ] T040 [P] [UI9] Add zoom/pan controls for mobile in src/app/hr/org-chart/page.tsx
+- [ ] T041 [P] [UI9] Add horizontal scroll wrapper for diagram in src/app/hr/org-chart/page.tsx
+
+### Competency Matrix
+
+- [ ] T042 [P] [UI9] Add columnHidingEnabled to matrix DataGrid in src/app/hr/training/matrix/page.tsx
+- [ ] T043 [P] [UI9] Add horizontal scroll for wide matrix in src/app/hr/training/matrix/page.tsx
+
+### Authorizations Page
+
+- [ ] T044 [P] [UI9] Add ResponsivePageHeader and columnHidingEnabled in src/app/hr/authorizations/page.tsx
+
+### Health Records Page
+
+- [ ] T045 [P] [UI9] Add ResponsivePageHeader and columnHidingEnabled in src/app/hr/health-records/page.tsx
+
+### Roles Page
+
+- [ ] T046 [P] [UI9] Add ResponsivePageHeader and columnHidingEnabled in src/app/hr/roles/page.tsx
+
+### Notifications Page
+
+- [ ] T047 [P] [UI9] Add ResponsivePageHeader and responsive list in src/app/hr/notifications/page.tsx
+
+### Audit Log Page
+
+- [ ] T048 [P] [UI9] Add ResponsivePageHeader and columnHidingEnabled in src/app/hr/audit/page.tsx
+
+### Employee Detail Page
+
+- [ ] T049 [P] [UI9] Add responsive tabs and form layout in src/app/hr/employees/[id]/page.tsx
+
+**Checkpoint**: All 16 HR pages responsive
 
 ---
 
-## Phase 12: Polish & Cross-Cutting Concerns
+## Phase 11: Polish & Cross-Cutting Concerns
 
-**Purpose**: Final improvements affecting multiple user stories
+**Purpose**: Final improvements and testing
 
-- [ ] T105 [P] Add HR module navigation to main app sidebar
-- [ ] T106 [P] Create HR module landing page with quick actions
-- [ ] T107 Add pagination to all list endpoints and pages
-- [ ] T108 Add loading states and error boundaries to all HR pages
-- [ ] T109 Optimize authorization cache performance (verify <200ms p95)
-- [ ] T110 [P] Add form validation error messages to all HR forms
-- [ ] T111 Run quickstart.md validation to verify all endpoints work
-- [ ] T112 Verify all 16 tables have correct indexes per data-model.md
+- [ ] T050 Run lint and fix any TypeScript errors: npm run lint
+- [ ] T051 Test all 16 pages on desktop (1920px)
+- [ ] T052 Test all 16 pages on tablet (768px)
+- [ ] T053 Test all 16 pages on mobile (375px)
+- [ ] T054 Fix any responsive issues found during testing
+- [ ] T055 Verify DevExtreme adaptive columns work correctly
+- [ ] T056 Commit all changes with descriptive message
 
 ---
 
@@ -266,123 +226,92 @@
 ### Phase Dependencies
 
 - **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup - BLOCKS all user stories
-- **US1 Org Structure (Phase 3)**: Depends on Foundational (P1 MVP)
-- **US2 Employee Profiles (Phase 4)**: Depends on Foundational, can run parallel to US1
-- **US3 Positions/JD (Phase 5)**: Depends on Foundational, can run parallel
-- **US4 Training (Phase 6)**: Depends on Foundational + Employee service from US2
-- **US5 Authorization (Phase 7)**: Depends on Foundational + Employee service from US2
-- **US6 Health Records (Phase 8)**: Depends on Foundational + Employee service from US2
-- **US7 Roles/Permissions (Phase 9)**: Depends on Foundational
-- **US8 Audit Trail (Phase 10)**: Depends on HR audit service from Phase 2
-- **Notifications (Phase 11)**: Depends on US4 Training + US6 Health Records
-- **Polish (Phase 12)**: Depends on all user stories complete
+- **UI Stories 1-4 (Phases 2-5)**: Depend on Setup - HIGH PRIORITY
+- **UI Stories 5-8 (Phases 6-9)**: Depend on Setup - MEDIUM PRIORITY
+- **UI Story 9 (Phase 10)**: Depends on Setup - LOW PRIORITY, all tasks parallel
+- **Polish (Phase 11)**: Depends on all UI stories complete
 
-### User Story Priority Order
+### Parallel Opportunities
 
-| Priority | Story | Phase | Can Start After |
-|----------|-------|-------|-----------------|
-| P1 | US1 - Org Structure | 3 | Foundation (Phase 2) |
-| P1 | US2 - Employee Profiles | 4 | Foundation (Phase 2) |
-| P2 | US3 - Positions/JD | 5 | Foundation (Phase 2) |
-| P2 | US4 - Training | 6 | US2 complete (employee lookup) |
-| P2 | US5 - Authorization | 7 | US2 complete (employee lookup) |
-| P3 | US6 - Health Records | 8 | US2 complete (employee lookup) |
-| P3 | US7 - Roles/Permissions | 9 | Foundation (Phase 2) |
-| P3 | US8 - Audit Trail | 10 | Foundation (Phase 2) |
+**Phase 1 (Setup)**: All component tasks T001-T004 can run in parallel
 
-### Parallel Opportunities Within Phases
+**Phase 10 (Specialized)**: All tasks T040-T049 can run in parallel (different pages)
 
-**Phase 2 (Foundational)**: All schema tasks T005-T021 can run in parallel
-
-**Phase 3 (US1)**: T027-T029, T031 can run in parallel (different files)
-
-**Phase 4 (US2)**: T039-T044 can run in parallel (different files)
-
-**Phase 5-10**: Each story has [P] marked tasks that can run in parallel
+**Across Phases**: After Setup, all UI story phases can run in parallel if team capacity allows
 
 ---
 
-## Parallel Example: Phase 2 Foundational
+## Parallel Example: Phase 1 Setup
 
 ```bash
-# Launch all schema tasks in parallel:
-Task: "Add hr_positions table schema (SQLite + MySQL) in src/lib/db/schema.ts"
-Task: "Add hr_employees table schema (SQLite + MySQL) in src/lib/db/schema.ts"
-Task: "Add hr_training_courses table schema (SQLite + MySQL) in src/lib/db/schema.ts"
-# ... (all T007-T021 in parallel)
+# Launch all shared component tasks in parallel:
+Task: "Create StatCard component in src/components/shared/stat-card.tsx"
+Task: "Create ResponsivePageHeader component in src/components/shared/responsive-page-header.tsx"
+Task: "Create ResponsiveFormLayout components in src/components/shared/responsive-form-layout.tsx"
+Task: "Create MobileListView component in src/components/shared/mobile-list-view.tsx"
 ```
 
 ---
 
-## Parallel Example: Phase 3 User Story 1
+## Parallel Example: Phase 10 Specialized Pages
 
 ```bash
-# After service implementation, launch route tasks in parallel:
-Task: "[US1] Create GET/POST /api/hr/org-units route"
-Task: "[US1] Create GET/PATCH/DELETE /api/hr/org-units/[id] route"
-Task: "[US1] Create GET /api/hr/org-units/[id]/children route"
-Task: "[US1] Create OrgUnitPicker shared component"
+# Launch all P3 page tasks in parallel (different files):
+Task: "[UI9] Add zoom/pan controls for mobile in src/app/hr/org-chart/page.tsx"
+Task: "[UI9] Add columnHidingEnabled to matrix DataGrid in src/app/hr/training/matrix/page.tsx"
+Task: "[UI9] Add ResponsivePageHeader and columnHidingEnabled in src/app/hr/authorizations/page.tsx"
+# ... (all T040-T049 in parallel)
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Story 1 + 2 Only)
+### MVP First (UI Stories 1-4 Only)
 
-1. Complete Phase 1: Setup
-2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
-3. Complete Phase 3: User Story 1 (Org Structure)
-4. Complete Phase 4: User Story 2 (Employee Profiles)
-5. **STOP and VALIDATE**: Test org chart and employee management independently
-6. Deploy/demo if ready - basic HR data entry functional
+1. Complete Phase 1: Setup (shared components)
+2. Complete Phase 2: UI Story 1 (HR Dashboard)
+3. Complete Phase 3: UI Story 2 (Employee Directory)
+4. Complete Phase 4: UI Story 3 (New Employee Form)
+5. Complete Phase 5: UI Story 4 (Training Landing)
+6. **STOP and VALIDATE**: Test 4 high-traffic pages on all devices
+7. Deploy/demo if ready - core responsive experience complete
 
 ### Incremental Delivery
 
-1. Setup + Foundational → Foundation ready
-2. US1 (Org) + US2 (Employees) → MVP: Core HR data management
-3. US3 (Positions/JD) → Add: Position definitions with JD versioning
-4. US4 (Training) → Add: Full training lifecycle
-5. US5 (Authorization) → Add: Approval control for other modules
-6. US6-US8 → Complete: Health, RBAC, Audit
-
-### Parallel Team Strategy
-
-With 2-3 developers after Foundation complete:
-
-- **Developer A**: US1 (Org) → US3 (Positions) → US7 (Roles)
-- **Developer B**: US2 (Employees) → US4 (Training) → US8 (Audit)
-- **Developer C**: US5 (Authorization) → US6 (Health) → Polish
+1. Setup → Shared components ready
+2. UI1-4 (P1 pages) → MVP: High-traffic pages responsive
+3. UI5-8 (P2 pages) → Core management pages responsive
+4. UI9 (P3 pages) → All 16 pages responsive
+5. Polish → Final testing and fixes
 
 ---
 
 ## Summary
 
-| Phase | User Story | Priority | Task Count |
-|-------|------------|----------|------------|
-| 1 | Setup | - | 4 |
-| 2 | Foundational | - | 19 |
-| 3 | US1 - Org Structure | P1 | 12 |
-| 4 | US2 - Employee Profiles | P1 | 12 |
-| 5 | US3 - Positions/JD | P2 | 8 |
-| 6 | US4 - Training | P2 | 14 |
-| 7 | US5 - Authorization | P2 | 11 |
-| 8 | US6 - Health Records | P3 | 6 |
-| 9 | US7 - Roles/Permissions | P3 | 9 |
-| 10 | US8 - Audit Trail | P3 | 5 |
-| 11 | Notifications | - | 4 |
-| 12 | Polish | - | 8 |
-| **Total** | | | **112** |
+| Phase | UI Story | Priority | Task Count | Pages Affected |
+|-------|----------|----------|------------|----------------|
+| 1 | Setup | - | 6 | - |
+| 2 | UI1 - Dashboard | P1 | 5 | 1 |
+| 3 | UI2 - Employees | P1 | 6 | 1 |
+| 4 | UI3 - New Employee | P1 | 4 | 1 |
+| 5 | UI4 - Training Landing | P1 | 4 | 1 |
+| 6 | UI5 - Positions | P2 | 4 | 1 |
+| 7 | UI6 - Org Structure | P2 | 4 | 1 |
+| 8 | UI7 - Training Courses | P2 | 3 | 1 |
+| 9 | UI8 - Training Sessions | P2 | 3 | 1 |
+| 10 | UI9 - Specialized | P3 | 10 | 8 |
+| 11 | Polish | - | 7 | All |
+| **Total** | | | **56** | **16 pages** |
 
 ---
 
 ## Notes
 
-- [P] tasks = different files, no dependencies on incomplete tasks
-- [Story] label maps task to specific user story for traceability
-- Each user story is independently completable and testable
-- All tasks include exact file paths from plan.md structure
-- Commit after each task or logical group
-- Stop at any checkpoint to validate story independently
-- MVP scope: US1 + US2 (23 implementation tasks + 23 foundational)
+- [P] tasks = different files, no dependencies
+- [Story] label maps task to UI improvement story
+- Each UI story is independently testable on its target page
+- All tasks include exact file paths from plan.md
+- Test on 3 breakpoints: desktop (1920px), tablet (768px), mobile (375px)
+- Commit after each phase or logical group of tasks
+- MVP scope: UI1-UI4 (19 implementation tasks + 6 setup)

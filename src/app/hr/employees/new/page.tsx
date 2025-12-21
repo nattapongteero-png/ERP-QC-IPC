@@ -9,7 +9,13 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
-import { OrgUnitPicker, PositionSelect } from '@/components/shared';
+import {
+  OrgUnitPicker,
+  PositionSelect,
+  ResponsivePageHeader,
+  FormSection,
+  FormField,
+} from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import { UserPlus } from 'lucide-react';
 import type { EmployeeCreate } from '@/types/hr';
@@ -131,168 +137,155 @@ export default function NewEmployeePage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <DxButton
-          icon="back"
-          type="default"
-          stylingMode="text"
-          onClick={handleBack}
-        />
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <UserPlus className="h-8 w-8 text-blue-600" />
-            เพิ่มพนักงานใหม่
-          </h1>
-          <p className="text-gray-500 mt-1">New Employee</p>
-        </div>
-      </div>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-3xl mx-auto">
+      {/* T018: ResponsivePageHeader */}
+      <ResponsivePageHeader
+        title="เพิ่มพนักงานใหม่"
+        subtitle="New Employee"
+        icon={UserPlus}
+        iconBgColor="bg-blue-100"
+        iconColor="text-blue-600"
+        onBack={handleBack}
+        breadcrumbs={[
+          { label: 'HR', href: '/hr' },
+          { label: 'พนักงาน', href: '/hr/employees' },
+          { label: 'เพิ่มใหม่' },
+        ]}
+      />
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
-            ข้อมูลพื้นฐาน
-          </h2>
-
-          {/* Employee Code */}
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <DxTextBox
-                label="รหัสพนักงาน"
-                value={displayCode || ''}
-                onValueChange={handleCodeChange}
-                placeholder={isLoadingCode ? 'กำลังโหลด...' : 'เช่น EMP001'}
-                required
-                requiredMessage="กรุณาระบุรหัสพนักงาน"
-                width="100%"
+      {/* Form - T019: Responsive grid layout */}
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+        {/* Basic Info Section */}
+        <FormSection title="ข้อมูลพื้นฐาน" columns={2}>
+          {/* Employee Code - Full width with refresh button */}
+          <FormField label="รหัสพนักงาน" required colSpan="full">
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <DxTextBox
+                  value={displayCode || ''}
+                  onValueChange={handleCodeChange}
+                  placeholder={isLoadingCode ? 'กำลังโหลด...' : 'เช่น EMP001'}
+                  width="100%"
+                  disabled={isLoadingCode}
+                />
+              </div>
+              <DxButton
+                icon="refresh"
+                type="default"
+                stylingMode="outlined"
+                hint="สร้างรหัสใหม่"
+                onClick={() => {
+                  refetchNextCode().then((result) => {
+                    if (result.data) {
+                      setUserModifiedCode(false);
+                      setFormData(prev => ({ ...prev, employeeCode: result.data }));
+                    }
+                  });
+                }}
                 disabled={isLoadingCode}
               />
             </div>
-            <DxButton
-              icon="refresh"
-              type="default"
-              stylingMode="outlined"
-              hint="สร้างรหัสใหม่"
-              onClick={() => {
-                refetchNextCode().then((result) => {
-                  if (result.data) {
-                    setUserModifiedCode(false);
-                    setFormData(prev => ({ ...prev, employeeCode: result.data }));
-                  }
-                });
-              }}
-              disabled={isLoadingCode}
-            />
-          </div>
+          </FormField>
 
           {/* Name (Thai) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="ชื่อ (ไทย)" required>
             <DxTextBox
-              label="ชื่อ (ไทย)"
               value={formData.firstName || ''}
               onValueChange={(value) => handleInputChange('firstName', value)}
               placeholder="ชื่อภาษาไทย"
-              required
-              requiredMessage="กรุณาระบุชื่อ"
               width="100%"
             />
+          </FormField>
+          <FormField label="นามสกุล (ไทย)" required>
             <DxTextBox
-              label="นามสกุล (ไทย)"
               value={formData.lastName || ''}
               onValueChange={(value) => handleInputChange('lastName', value)}
               placeholder="นามสกุลภาษาไทย"
-              required
-              requiredMessage="กรุณาระบุนามสกุล"
               width="100%"
             />
-          </div>
+          </FormField>
 
           {/* Name (English) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="First Name (English)">
             <DxTextBox
-              label="First Name (English)"
               value={formData.firstNameEn || ''}
               onValueChange={(value) => handleInputChange('firstNameEn', value)}
               placeholder="First name in English"
               width="100%"
             />
+          </FormField>
+          <FormField label="Last Name (English)">
             <DxTextBox
-              label="Last Name (English)"
               value={formData.lastNameEn || ''}
               onValueChange={(value) => handleInputChange('lastNameEn', value)}
               placeholder="Last name in English"
               width="100%"
             />
-          </div>
+          </FormField>
 
           {/* Contact */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="อีเมล">
             <DxTextBox
-              label="อีเมล"
               mode="email"
               value={formData.email || ''}
               onValueChange={(value) => handleInputChange('email', value)}
               placeholder="email@example.com"
               width="100%"
             />
+          </FormField>
+          <FormField label="เบอร์โทร">
             <DxTextBox
-              label="เบอร์โทร"
               mode="tel"
               value={formData.phone || ''}
               onValueChange={(value) => handleInputChange('phone', value)}
               placeholder="0812345678"
               width="100%"
             />
-          </div>
+          </FormField>
 
           {/* Hire Date */}
-          <DxDateBox
-            label="วันที่เริ่มงาน"
-            value={formData.hireDate || ''}
-            onValueChange={(value) => handleInputChange('hireDate', value)}
-            required
-            requiredMessage="กรุณาระบุวันที่เริ่มงาน"
-            width="100%"
-            showClearButton
-          />
-        </div>
+          <FormField label="วันที่เริ่มงาน" required colSpan="full">
+            <DxDateBox
+              value={formData.hireDate || ''}
+              onValueChange={(value) => handleInputChange('hireDate', value)}
+              width="100%"
+              showClearButton
+            />
+          </FormField>
+        </FormSection>
 
-        {/* Organization & Position */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
-            หน่วยงานและตำแหน่ง
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Organization & Position Section */}
+        <FormSection title="หน่วยงานและตำแหน่ง" columns={2}>
+          <FormField label="หน่วยงาน">
             <OrgUnitPicker
               value={formData.orgUnitId || null}
               onValueChange={(value) => handleInputChange('orgUnitId', value || undefined)}
-              label="หน่วยงาน"
               placeholder="เลือกหน่วยงาน"
               showClearButton
               width="100%"
             />
+          </FormField>
+          <FormField label="ตำแหน่ง">
             <PositionSelect
               value={formData.positionId || null}
               onValueChange={(value) => handleInputChange('positionId', value || undefined)}
-              label="ตำแหน่ง"
               placeholder="เลือกตำแหน่ง"
               showClearButton
               orgUnitId={formData.orgUnitId}
               width="100%"
             />
-          </div>
-        </div>
+          </FormField>
+        </FormSection>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3">
+        {/* T020: Action buttons - stack on mobile */}
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
           <DxButton
             text="ยกเลิก"
             type="default"
             stylingMode="outlined"
             onClick={handleBack}
+            width="100%"
+            className="sm:w-auto"
           />
           <DxButton
             text="บันทึก"
@@ -301,6 +294,8 @@ export default function NewEmployeePage() {
             icon="save"
             useSubmitBehavior
             disabled={createMutation.isPending}
+            width="100%"
+            className="sm:w-auto"
           />
         </div>
       </form>
