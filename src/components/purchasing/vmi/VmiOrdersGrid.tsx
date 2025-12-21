@@ -42,9 +42,8 @@ export interface VmiOrder {
   warehouseName: string | null;
   status: VmiOrderStatus;
   orderDate: string;
-  expectedDate: string | null;
-  totalAmount: number;
-  currency: string;
+  expectedDeliveryDate: string | null;
+  totalValue: number;
   localPoId: number | null;
   confirmedAt: string | null;
   shippedAt: string | null;
@@ -183,10 +182,10 @@ export function VmiOrdersGrid({
     });
   };
 
-  const formatCurrency = (amount: number, currency: string = 'THB') => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
       style: 'currency',
-      currency,
+      currency: 'THB',
     }).format(amount);
   };
 
@@ -231,19 +230,19 @@ export function VmiOrdersGrid({
       cellRender: (cellInfo) => formatDate(cellInfo.data.orderDate),
     },
     {
-      dataField: 'expectedDate',
+      dataField: 'expectedDeliveryDate',
       caption: 'Expected',
       width: 110,
-      cellRender: (cellInfo) => formatDate(cellInfo.data.expectedDate),
+      cellRender: (cellInfo) => formatDate(cellInfo.data.expectedDeliveryDate),
     },
     {
-      dataField: 'totalAmount',
+      dataField: 'totalValue',
       caption: 'Amount',
       width: 120,
       alignment: 'right',
       cellRender: (cellInfo) => (
         <span className="font-medium">
-          {formatCurrency(cellInfo.data.totalAmount, cellInfo.data.currency)}
+          {formatCurrency(cellInfo.data.totalValue)}
         </span>
       ),
     },
@@ -340,16 +339,16 @@ export function VmiOrdersGrid({
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Date From</label>
               <DxDateBox
-                value={filters.dateFrom ? new Date(filters.dateFrom) : null}
-                onValueChange={(value) => handleFilterChange('dateFrom', value?.toISOString().split('T')[0])}
+                value={filters.dateFrom}
+                onValueChange={(value) => handleFilterChange('dateFrom', value || undefined)}
                 displayFormat="dd/MM/yyyy"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Date To</label>
               <DxDateBox
-                value={filters.dateTo ? new Date(filters.dateTo) : null}
-                onValueChange={(value) => handleFilterChange('dateTo', value?.toISOString().split('T')[0])}
+                value={filters.dateTo}
+                onValueChange={(value) => handleFilterChange('dateTo', value || undefined)}
                 displayFormat="dd/MM/yyyy"
               />
             </div>
@@ -366,11 +365,10 @@ export function VmiOrdersGrid({
         height={500}
         onRowClick={(e) => {
           if (e.data && onRowClick) {
-            onRowClick(e.data);
+            onRowClick(e.data as VmiOrder);
           }
         }}
         rowAlternationEnabled
-        hoverStateEnabled
         columnAutoWidth
       />
 

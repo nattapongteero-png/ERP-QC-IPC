@@ -68,9 +68,9 @@ export async function GET(
           warehouseName: vmiOrders.warehouseName,
           status: vmiOrders.status,
           orderDate: vmiOrders.orderDate,
-          expectedDate: vmiOrders.expectedDate,
-          totalAmount: vmiOrders.totalAmount,
-          currency: vmiOrders.currency,
+          expectedDeliveryDate: vmiOrders.expectedDeliveryDate,
+          totalValue: vmiOrders.totalValue,
+          itemCount: vmiOrders.itemCount,
           localPoId: vmiOrders.localPoId,
           confirmedAt: vmiOrders.confirmedAt,
           shippedAt: vmiOrders.shippedAt,
@@ -233,10 +233,10 @@ export async function PATCH(
             vendorId: order.vendorId,
             poNumber,
             orderDate: isSqlite ? now.toISOString().split('T')[0] : now,
-            expectedDate: order.expectedDate || null,
+            expectedDate: order.expectedDeliveryDate || null,
             status: 'approved',
-            totalAmount: order.totalAmount,
-            currency: order.currency,
+            totalAmount: order.totalValue,
+            currency: 'THB',
             notes: `VMI Order from ${order.hospitalName} (${order.hospitalCode}). Original PO: ${order.poNumber}`,
             createdBy: session.userId,
             createdAt: isSqlite ? now.toISOString() : now,
@@ -250,11 +250,13 @@ export async function PATCH(
           // Insert purchase order lines
           for (const line of lines) {
             await db.insert(purchaseOrderLines).values({
-              purchaseOrderId: localPoId,
-              itemId: null, // Will be linked later when items are synced
-              quantity: line.quantity,
+              poId: localPoId,
+              itemId: line.itemId || 0, // Will be linked later when items are synced
+              quantity: line.quantityOrdered,
+              receivedQuantity: line.quantityReceived || 0,
+              unit: line.unit,
               unitPrice: line.unitPrice,
-              totalPrice: line.totalPrice,
+              totalPrice: line.lineTotal,
               notes: `${line.itemName} (TPP: ${line.tppCode || 'N/A'}, TTMT: ${line.ttmtCode || 'N/A'})`,
               createdAt: isSqlite ? now.toISOString() : now,
             });
@@ -280,7 +282,7 @@ export async function PATCH(
             .update(vmiOrders)
             .set({
               status: newStatus,
-              expectedDate: expectedDeliveryDate,
+              expectedDeliveryDate: expectedDeliveryDate,
               shippedAt: isSqlite ? now.toISOString() : now,
               updatedAt: isSqlite ? now.toISOString() : now,
             })

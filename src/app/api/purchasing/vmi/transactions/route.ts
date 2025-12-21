@@ -117,7 +117,8 @@ export async function GET(request: NextRequest) {
       const transactions = await transactionsQuery;
 
       // Format transactions
-      const formattedTransactions = transactions.map((t) => ({
+      type TransactionType = typeof transactions[number];
+      const formattedTransactions = transactions.map((t: TransactionType) => ({
         id: t.id,
         vendorId: t.vendorId,
         vendorName: t.vendorName || 'Unknown',
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
         .from(vmiTransactions)
         .groupBy(vmiTransactions.transactionType);
 
-      const transactionTypes = typeStats.map((t) => ({
+      const transactionTypes = typeStats.map((t: { transactionType: string; count: number }) => ({
         type: t.transactionType,
         count: Number(t.count),
       }));

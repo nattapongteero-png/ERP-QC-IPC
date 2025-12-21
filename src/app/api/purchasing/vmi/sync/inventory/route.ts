@@ -26,7 +26,7 @@ import {
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
 import { VmiPortalService, VmiPortalError, VmiTransactionLogger } from '@/lib/services/vmi-portal.service';
-import type { VmiTransactionType, VmiInventoryPayload } from '@/types/vmi';
+import type { VmiTransactionType, VmiInventoryItem } from '@/types/vmi';
 
 // GET /api/purchasing/vmi/sync/inventory - Get inventory for a vendor's VMI items
 export async function GET(request: NextRequest) {
@@ -67,7 +67,8 @@ export async function GET(request: NextRequest) {
         .select({
           id: items.id,
           code: items.code,
-          name: items.name,
+          nameTh: items.nameTh,
+          nameEn: items.nameEn,
           tppCode: items.tppCode,
           ttmtCode: items.ttmtCode,
           primaryUnit: items.primaryUnit,
@@ -81,8 +82,9 @@ export async function GET(request: NextRequest) {
         );
 
       // Get inventory for each item
+      type VmiItemType = { id: number; code: string; nameTh: string; nameEn: string | null; tppCode: string | null; ttmtCode: string | null; primaryUnit: string };
       const inventoryData = await Promise.all(
-        vmiItems.map(async (item) => {
+        vmiItems.map(async (item: VmiItemType) => {
           // Get total available quantity from inventory lots
           const lotsResult = await db
             .select({
@@ -104,7 +106,7 @@ export async function GET(request: NextRequest) {
           return {
             itemId: item.id,
             itemCode: item.code,
-            itemName: item.name,
+            itemName: item.nameEn || item.nameTh,
             tppCode: item.tppCode,
             ttmtCode: item.ttmtCode,
             unit: item.primaryUnit,
@@ -173,7 +175,6 @@ export async function POST(request: NextRequest) {
         .select({
           id: items.id,
           code: items.code,
-          name: items.name,
           tppCode: items.tppCode,
           ttmtCode: items.ttmtCode,
           primaryUnit: items.primaryUnit,
@@ -188,7 +189,7 @@ export async function POST(request: NextRequest) {
 
       // Filter by requested IDs if provided
       if (itemIds && itemIds.length > 0) {
-        vmiItems = vmiItems.filter((item) => itemIds.includes(item.id));
+        vmiItems = vmiItems.filter((item: { id: number }) => itemIds.includes(item.id));
       }
 
       if (vmiItems.length === 0) {
@@ -199,8 +200,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Calculate inventory for each item
-      const inventoryPayloads: VmiInventoryPayload[] = await Promise.all(
-        vmiItems.map(async (item) => {
+      type VmiItemPostType = { id: number; code: string; tppCode: string | null; ttmtCode: string | null; primaryUnit: string };
+      const inventoryPayloads: VmiInventoryItem[] = await Promise.all(
+        vmiItems.map(async (item: VmiItemPostType) => {
           const lotsResult = await db
             .select({
               totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
@@ -280,6 +282,9 @@ export async function POST(request: NextRequest) {
           })
           .where(eq(vmiConfig.vendorId, vendorId));
 
+        const syncedCount = result.summary.updated + result.summary.inserted;
+        const failedCount = result.summary.failed;
+
         // Create audit log
         await createAuditLog({
           userId: session.userId,
@@ -288,8 +293,8 @@ export async function POST(request: NextRequest) {
           recordId: vendorId,
           newValue: {
             type: 'vmi_inventory_sync',
-            synced: result.synced,
-            failed: result.failed,
+            synced: syncedCount,
+            failed: failedCount,
             itemCount: vmiItems.length,
           },
           ipAddress: getClientIP(request),
@@ -298,12 +303,12 @@ export async function POST(request: NextRequest) {
         return successResponse(
           {
             vendorId,
-            synced: result.synced,
-            failed: result.failed,
+            synced: syncedCount,
+            failed: failedCount,
             errors: result.errors || [],
             syncedAt: now.toISOString(),
           },
-          `Successfully synced inventory for ${result.synced} items to VMI Portal`
+          `Successfully synced inventory for ${syncedCount} items to VMI Portal`
         );
       } catch (err) {
         if (err instanceof VmiPortalError) {

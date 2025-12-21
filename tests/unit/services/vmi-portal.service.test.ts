@@ -486,8 +486,8 @@ describe('VmiPortalService Sync Methods', () => {
     it('should sync items to VMI Portal successfully', async () => {
       const mockResult = {
         success: true,
-        synced: 3,
-        failed: 0,
+        summary: { total: 3, inserted: 3, updated: 0, failed: 0 },
+        syncedAt: new Date().toISOString(),
         errors: [],
       };
 
@@ -498,15 +498,15 @@ describe('VmiPortalService Sync Methods', () => {
       });
 
       const items = [
-        { tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test Item 1', unit: 'box' },
-        { tppCode: '9876543210987', ttmtCode: 'A98765432', name: 'Test Item 2', unit: 'bottle' },
-        { tppCode: '5555555555555', ttmtCode: 'A55555555', name: 'Test Item 3', unit: 'kg' },
+        { localCode: 'ITEM-001', tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test Item 1', unit: 'box' },
+        { localCode: 'ITEM-002', tppCode: '9876543210987', ttmtCode: 'A98765432', name: 'Test Item 2', unit: 'bottle' },
+        { localCode: 'ITEM-003', tppCode: '5555555555555', ttmtCode: 'A55555555', name: 'Test Item 3', unit: 'kg' },
       ];
 
       const result = await service.syncItems(items);
 
       expect(result).toEqual(mockResult);
-      expect(result.synced).toBe(3);
+      expect(result.summary.inserted + result.summary.updated).toBe(3);
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('/items'),
         expect.objectContaining({
@@ -519,10 +519,10 @@ describe('VmiPortalService Sync Methods', () => {
     it('should handle partial sync with some failures', async () => {
       const mockResult = {
         success: true,
-        synced: 2,
-        failed: 1,
+        summary: { total: 3, inserted: 2, updated: 0, failed: 1 },
+        syncedAt: new Date().toISOString(),
         errors: [
-          { tppCode: '0000000000000', error: 'Invalid TPP code format' },
+          { localCode: 'ITEM-INVALID', error: 'Invalid TPP code format' },
         ],
       };
 
@@ -533,15 +533,15 @@ describe('VmiPortalService Sync Methods', () => {
       });
 
       const items = [
-        { tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test Item 1', unit: 'box' },
-        { tppCode: '0000000000000', ttmtCode: 'AINVALID', name: 'Invalid Item', unit: 'unit' },
-        { tppCode: '9876543210987', ttmtCode: 'A98765432', name: 'Test Item 2', unit: 'bottle' },
+        { localCode: 'ITEM-001', tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test Item 1', unit: 'box' },
+        { localCode: 'ITEM-INVALID', tppCode: '0000000000000', ttmtCode: 'AINVALID', name: 'Invalid Item', unit: 'unit' },
+        { localCode: 'ITEM-002', tppCode: '9876543210987', ttmtCode: 'A98765432', name: 'Test Item 2', unit: 'bottle' },
       ];
 
       const result = await service.syncItems(items);
 
-      expect(result.synced).toBe(2);
-      expect(result.failed).toBe(1);
+      expect(result.summary.inserted + result.summary.updated).toBe(2);
+      expect(result.summary.failed).toBe(1);
       expect(result.errors).toHaveLength(1);
     });
 
@@ -568,7 +568,7 @@ describe('VmiPortalService Sync Methods', () => {
         }),
       });
 
-      const items = [{ tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test', unit: 'box' }];
+      const items = [{ localCode: 'ITEM-001', tppCode: '1234567890123', ttmtCode: 'A12345678', name: 'Test', unit: 'box' }];
       await expect(service.syncItems(items)).rejects.toThrow(VmiPortalError);
     });
   });
@@ -577,8 +577,8 @@ describe('VmiPortalService Sync Methods', () => {
     it('should sync price offers to VMI Portal successfully', async () => {
       const mockResult = {
         success: true,
-        synced: 2,
-        failed: 0,
+        summary: { total: 2, inserted: 2, updated: 0, failed: 0 },
+        syncedAt: new Date().toISOString(),
         errors: [],
       };
 
@@ -589,14 +589,14 @@ describe('VmiPortalService Sync Methods', () => {
       });
 
       const offers = [
-        { tppCode: '1234567890123', unitPrice: 100.50, validFrom: '2024-01-01', validTo: '2024-12-31' },
-        { tppCode: '9876543210987', unitPrice: 250.00, validFrom: '2024-01-01', validTo: '2024-06-30' },
+        { localCode: 'ITEM-001', unitPrice: 100.50, effectiveDate: '2024-01-01', expiryDate: '2024-12-31' },
+        { localCode: 'ITEM-002', unitPrice: 250.00, effectiveDate: '2024-01-01', expiryDate: '2024-06-30' },
       ];
 
       const result = await service.syncPrices(offers);
 
       expect(result).toEqual(mockResult);
-      expect(result.synced).toBe(2);
+      expect(result.summary.inserted + result.summary.updated).toBe(2);
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('/prices'),
         expect.objectContaining({
@@ -609,10 +609,10 @@ describe('VmiPortalService Sync Methods', () => {
     it('should handle price sync with validation errors', async () => {
       const mockResult = {
         success: true,
-        synced: 1,
-        failed: 1,
+        summary: { total: 2, inserted: 1, updated: 0, failed: 1 },
+        syncedAt: new Date().toISOString(),
         errors: [
-          { tppCode: '0000000000000', error: 'Item not found in VMI Portal' },
+          { localCode: 'ITEM-INVALID', error: 'Item not found in VMI Portal' },
         ],
       };
 
@@ -623,13 +623,13 @@ describe('VmiPortalService Sync Methods', () => {
       });
 
       const offers = [
-        { tppCode: '1234567890123', unitPrice: 100.50, validFrom: '2024-01-01', validTo: '2024-12-31' },
-        { tppCode: '0000000000000', unitPrice: 50.00, validFrom: '2024-01-01', validTo: '2024-12-31' },
+        { localCode: 'ITEM-001', unitPrice: 100.50, effectiveDate: '2024-01-01', expiryDate: '2024-12-31' },
+        { localCode: 'ITEM-INVALID', unitPrice: 50.00, effectiveDate: '2024-01-01', expiryDate: '2024-12-31' },
       ];
 
       const result = await service.syncPrices(offers);
 
-      expect(result.failed).toBe(1);
+      expect(result.summary.failed).toBe(1);
       expect(result.errors?.[0]).toHaveProperty('error');
     });
 
@@ -643,7 +643,7 @@ describe('VmiPortalService Sync Methods', () => {
         }),
       });
 
-      const offers = [{ tppCode: '1234567890123', unitPrice: -10.00, validFrom: '2024-01-01', validTo: '2024-12-31' }];
+      const offers = [{ localCode: 'ITEM-001', unitPrice: -10.00, effectiveDate: '2024-01-01', expiryDate: '2024-12-31' }];
       await expect(service.syncPrices(offers)).rejects.toThrow(VmiPortalError);
     });
   });
@@ -652,8 +652,8 @@ describe('VmiPortalService Sync Methods', () => {
     it('should sync inventory to VMI Portal successfully', async () => {
       const mockResult = {
         success: true,
-        synced: 3,
-        failed: 0,
+        summary: { total: 3, inserted: 0, updated: 3, failed: 0 },
+        syncedAt: new Date().toISOString(),
         errors: [],
       };
 
@@ -664,15 +664,15 @@ describe('VmiPortalService Sync Methods', () => {
       });
 
       const inventory = [
-        { tppCode: '1234567890123', availableQuantity: 500, unit: 'box' },
-        { tppCode: '9876543210987', availableQuantity: 1000, unit: 'bottle' },
-        { tppCode: '5555555555555', availableQuantity: 250, unit: 'kg' },
+        { localCode: 'ITEM-001', quantityAvailable: 500, unit: 'box' },
+        { localCode: 'ITEM-002', quantityAvailable: 1000, unit: 'bottle' },
+        { localCode: 'ITEM-003', quantityAvailable: 250, unit: 'kg' },
       ];
 
       const result = await service.syncInventory(inventory);
 
       expect(result).toEqual(mockResult);
-      expect(result.synced).toBe(3);
+      expect(result.summary.inserted + result.summary.updated).toBe(3);
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('/inventory'),
         expect.objectContaining({
@@ -685,10 +685,10 @@ describe('VmiPortalService Sync Methods', () => {
     it('should handle inventory sync with partial failures', async () => {
       const mockResult = {
         success: true,
-        synced: 2,
-        failed: 1,
+        summary: { total: 3, inserted: 0, updated: 2, failed: 1 },
+        syncedAt: new Date().toISOString(),
         errors: [
-          { tppCode: '0000000000000', error: 'Item not registered in VMI Portal' },
+          { localCode: 'ITEM-INVALID', error: 'Item not registered in VMI Portal' },
         ],
       };
 
@@ -699,21 +699,21 @@ describe('VmiPortalService Sync Methods', () => {
       });
 
       const inventory = [
-        { tppCode: '1234567890123', availableQuantity: 500, unit: 'box' },
-        { tppCode: '0000000000000', availableQuantity: 100, unit: 'unit' },
-        { tppCode: '9876543210987', availableQuantity: 1000, unit: 'bottle' },
+        { localCode: 'ITEM-001', quantityAvailable: 500, unit: 'box' },
+        { localCode: 'ITEM-INVALID', quantityAvailable: 100, unit: 'unit' },
+        { localCode: 'ITEM-002', quantityAvailable: 1000, unit: 'bottle' },
       ];
 
       const result = await service.syncInventory(inventory);
 
-      expect(result.synced).toBe(2);
-      expect(result.failed).toBe(1);
+      expect(result.summary.inserted + result.summary.updated).toBe(2);
+      expect(result.summary.failed).toBe(1);
     });
 
     it('should handle network timeout during inventory sync', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Request timeout'));
 
-      const inventory = [{ tppCode: '1234567890123', availableQuantity: 500, unit: 'box' }];
+      const inventory = [{ localCode: 'ITEM-001', quantityAvailable: 500, unit: 'box' }];
 
       await expect(service.syncInventory(inventory)).rejects.toThrow(VmiPortalError);
     });
@@ -721,8 +721,8 @@ describe('VmiPortalService Sync Methods', () => {
     it('should handle zero inventory quantities', async () => {
       const mockResult = {
         success: true,
-        synced: 1,
-        failed: 0,
+        summary: { total: 1, inserted: 0, updated: 1, failed: 0 },
+        syncedAt: new Date().toISOString(),
         errors: [],
       };
 
@@ -732,11 +732,11 @@ describe('VmiPortalService Sync Methods', () => {
         json: () => Promise.resolve(mockResult),
       });
 
-      const inventory = [{ tppCode: '1234567890123', availableQuantity: 0, unit: 'box' }];
+      const inventory = [{ localCode: 'ITEM-001', quantityAvailable: 0, unit: 'box' }];
 
       const result = await service.syncInventory(inventory);
 
-      expect(result.synced).toBe(1);
+      expect(result.summary.updated).toBe(1);
     });
   });
 });

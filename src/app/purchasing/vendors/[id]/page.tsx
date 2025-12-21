@@ -26,7 +26,7 @@ import {
   AlertCircle,
   Key,
 } from 'lucide-react';
-import { VmiCredentialsForm, VmiConfig, VmiCredentialsFormData } from '@/components/vmi/VmiCredentialsForm';
+import { VmiCredentialsForm, VmiConfig, VmiCredentialsFormData } from '@/components/purchasing/vmi/VmiCredentialsForm';
 
 interface Vendor {
   id: number;

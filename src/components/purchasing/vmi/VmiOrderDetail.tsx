@@ -57,9 +57,8 @@ export interface VmiOrderDetail {
   warehouseName: string | null;
   status: VmiOrderStatus;
   orderDate: string;
-  expectedDate: string | null;
-  totalAmount: number;
-  currency: string;
+  expectedDeliveryDate: string | null;
+  totalValue: number;
   localPoId: number | null;
   confirmedAt: string | null;
   shippedAt: string | null;
@@ -196,8 +195,10 @@ export function VmiOrderDetail({
   isCheckingReceipt = false,
   className,
 }: VmiOrderDetailProps) {
-  const [shipDate, setShipDate] = React.useState<Date | null>(
-    order.expectedDate ? new Date(order.expectedDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const [shipDate, setShipDate] = React.useState<string>(
+    order.expectedDeliveryDate
+      ? order.expectedDeliveryDate
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
 
   const statusInfo = statusConfig[order.status];
@@ -223,16 +224,16 @@ export function VmiOrderDetail({
     });
   };
 
-  const formatCurrency = (amount: number, currency: string = 'THB') => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
       style: 'currency',
-      currency,
+      currency: 'THB',
     }).format(amount);
   };
 
   const handleShip = async () => {
     if (!shipDate) return;
-    await onShip(shipDate.toISOString().split('T')[0]);
+    await onShip(shipDate);
   };
 
   const lineColumns: DxDataGridColumn[] = [
@@ -265,7 +266,7 @@ export function VmiOrderDetail({
       caption: 'Unit Price',
       width: 120,
       alignment: 'right',
-      cellRender: (cellInfo) => formatCurrency(cellInfo.data.unitPrice, order.currency),
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.unitPrice),
     },
     {
       dataField: 'totalPrice',
@@ -274,7 +275,7 @@ export function VmiOrderDetail({
       alignment: 'right',
       cellRender: (cellInfo) => (
         <span className="font-medium">
-          {formatCurrency(cellInfo.data.totalPrice, order.currency)}
+          {formatCurrency(cellInfo.data.totalPrice)}
         </span>
       ),
     },
@@ -410,7 +411,7 @@ export function VmiOrderDetail({
           >
             <div className="space-y-1">
               <InfoRow label="Order Date" value={formatDate(order.orderDate)} />
-              <InfoRow label="Expected Date" value={formatDate(order.expectedDate)} />
+              <InfoRow label="Expected Date" value={formatDate(order.expectedDeliveryDate)} />
               <InfoRow label="Vendor" value={`${order.vendorName} (${order.vendorCode})`} />
               {order.localPoId && (
                 <InfoRow
@@ -436,7 +437,7 @@ export function VmiOrderDetail({
           >
             <div className="text-center py-4">
               <div className="text-3xl font-bold text-gray-900">
-                {formatCurrency(order.totalAmount, order.currency)}
+                {formatCurrency(order.totalValue)}
               </div>
               <div className="text-sm text-gray-500 mt-1">
                 {order.lines.length} line(s)

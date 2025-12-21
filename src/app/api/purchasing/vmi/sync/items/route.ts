@@ -76,7 +76,8 @@ export async function GET(request: NextRequest) {
         .select({
           id: items.id,
           code: items.code,
-          name: items.name,
+          nameTh: items.nameTh,
+          nameEn: items.nameEn,
           tppCode: items.tppCode,
           ttmtCode: items.ttmtCode,
           primaryUnit: items.primaryUnit,
@@ -96,14 +97,15 @@ export async function GET(request: NextRequest) {
       // 2. It was updated after the last sync
       const lastSyncAt = config.lastItemsSyncAt ? new Date(config.lastItemsSyncAt) : null;
 
-      const pendingItems = itemsResult.map((item) => {
-        const updatedAt = item.updatedAt ? new Date(item.updatedAt) : null;
+      type ItemResultType = typeof itemsResult[number];
+      const pendingItems = itemsResult.map((item: ItemResultType) => {
+        const updatedAt = item.updatedAt ? new Date(item.updatedAt as string) : null;
         const needsSync = !lastSyncAt || (updatedAt && updatedAt > lastSyncAt);
 
         return {
           id: item.id,
           code: item.code,
-          name: item.name,
+          name: item.nameEn || item.nameTh,
           tppCode: item.tppCode,
           ttmtCode: item.ttmtCode,
           unit: item.primaryUnit,
@@ -112,7 +114,7 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      const pendingCount = pendingItems.filter((i) => i.needsSync).length;
+      const pendingCount = pendingItems.filter((i: { needsSync: boolean }) => i.needsSync).length;
 
       return successResponse({
         vendorId,
@@ -170,7 +172,8 @@ export async function POST(request: NextRequest) {
           .select({
             id: items.id,
             code: items.code,
-            name: items.name,
+            nameTh: items.nameTh,
+            nameEn: items.nameEn,
             tppCode: items.tppCode,
             ttmtCode: items.ttmtCode,
             primaryUnit: items.primaryUnit,
@@ -184,14 +187,15 @@ export async function POST(request: NextRequest) {
           );
 
         // Filter by requested IDs
-        itemsToSync = itemsToSync.filter((item) => itemIds.includes(item.id));
+        itemsToSync = itemsToSync.filter((item: { id: number }) => itemIds.includes(item.id));
       } else {
         // Sync all items with codes
         itemsToSync = await db
           .select({
             id: items.id,
             code: items.code,
-            name: items.name,
+            nameTh: items.nameTh,
+            nameEn: items.nameEn,
             tppCode: items.tppCode,
             ttmtCode: items.ttmtCode,
             primaryUnit: items.primaryUnit,
@@ -252,9 +256,10 @@ export async function POST(request: NextRequest) {
       service.setTransactionLogger(transactionLogger);
 
       // Prepare items for VMI Portal
-      const vmiItems: VmiItem[] = itemsToSync.map((item) => ({
+      type ItemToSyncType = { id: number; code: string; nameTh: string; nameEn: string | null; tppCode: string | null; ttmtCode: string | null; primaryUnit: string };
+      const vmiItems: VmiItem[] = itemsToSync.map((item: ItemToSyncType) => ({
         localCode: item.code,  // Required by VMI Portal API
-        name: item.name,
+        name: item.nameEn || item.nameTh,
         unit: item.primaryUnit || 'unit',
         packUnit: item.primaryUnit || 'unit',  // Required by VMI Portal API
         tppCode: item.tppCode || undefined,
@@ -276,6 +281,9 @@ export async function POST(request: NextRequest) {
           })
           .where(eq(vmiConfig.vendorId, vendorId));
 
+        const syncedCount = result.summary.updated + result.summary.inserted;
+        const failedCount = result.summary.failed;
+
         // Create audit log
         await createAuditLog({
           userId: session.userId,
@@ -284,8 +292,8 @@ export async function POST(request: NextRequest) {
           recordId: vendorId,
           newValue: {
             type: 'vmi_items_sync',
-            synced: result.synced,
-            failed: result.failed,
+            synced: syncedCount,
+            failed: failedCount,
             itemCount: itemsToSync.length,
           },
           ipAddress: getClientIP(request),
@@ -294,12 +302,12 @@ export async function POST(request: NextRequest) {
         return successResponse(
           {
             vendorId,
-            synced: result.synced,
-            failed: result.failed,
+            synced: syncedCount,
+            failed: failedCount,
             errors: result.errors || [],
             syncedAt: now.toISOString(),
           },
-          `Successfully synced ${result.synced} items to VMI Portal`
+          `Successfully synced ${syncedCount} items to VMI Portal`
         );
       } catch (err) {
         if (err instanceof VmiPortalError) {

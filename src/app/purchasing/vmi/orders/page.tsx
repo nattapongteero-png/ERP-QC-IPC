@@ -26,8 +26,8 @@ import {
   Truck,
   PackageCheck,
 } from 'lucide-react';
-import { VmiOrdersGrid, type VmiOrder, type OrderFilters } from '@/components/vmi/VmiOrdersGrid';
-import { VmiOrderDetail, type VmiOrderDetail as VmiOrderDetailType } from '@/components/vmi/VmiOrderDetail';
+import { VmiOrdersGrid, type VmiOrder, type OrderFilters } from '@/components/purchasing/vmi/VmiOrdersGrid';
+import { VmiOrderDetail, type VmiOrderDetail as VmiOrderDetailType } from '@/components/purchasing/vmi/VmiOrderDetail';
 import type { VmiOrderStatus } from '@/types/vmi';
 
 // ============================================================================

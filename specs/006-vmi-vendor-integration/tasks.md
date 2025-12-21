@@ -22,7 +22,7 @@
 - [x] T001 Add VMI environment variables to .env.example (VMI_PORTAL_BASE_URL, VMI_ENCRYPTION_KEY, CRON_SECRET)
 - [x] T002 [P] Create VMI types definition in src/types/vmi.ts
 - [x] T003 [P] Create encryption utility in src/lib/crypto/encrypt.ts with AES-256-GCM
-- [ ] T003.1 [P] Create shared ConfirmationDialog component in src/components/shared/ConfirmationDialog.tsx using DevExtreme Popup
+- [x] T003.1 [P] Create shared ConfirmationDialog component in src/components/shared/ConfirmationDialog.tsx using DevExtreme Popup
 
 ---
 
@@ -38,7 +38,7 @@
 - [x] T007 [P] Create vmi_orders table schema in src/lib/db/schema.ts
 - [x] T008 [P] Create vmi_order_lines table schema in src/lib/db/schema.ts
 - [x] T009 Extend vmi_transactions table with request_payload, response_payload, http_status, duration_ms in src/lib/db/schema.ts
-- [ ] T010 Run database migration to apply schema changes (pnpm db:generate && pnpm db:migrate)
+- [x] T010 Run database migration to apply schema changes (pnpm db:generate && pnpm db:migrate)
 - [x] T011 Create VmiPortalError class in src/lib/services/vmi-portal.service.ts
 - [x] T012 Implement VmiPortalService base class with request method in src/lib/services/vmi-portal.service.ts
 - [x] T013 [P] Create unit test for encryption utility in tests/unit/crypto/encrypt.test.ts

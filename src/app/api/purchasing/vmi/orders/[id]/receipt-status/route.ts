@@ -125,14 +125,14 @@ export async function GET(
         // Fetch receipt status from VMI Portal
         const receiptStatus = await service.getReceiptStatus(order.vmiOrderId);
 
-        // If received, update local order
-        if (receiptStatus.status === 'received' && order.status !== 'received') {
+        // If received (complete receipt), update local order
+        if (receiptStatus.receiptStatus === 'complete' && order.status !== 'received') {
           const now = new Date();
           await db
             .update(vmiOrders)
             .set({
               status: 'received',
-              receivedAt: receiptStatus.receivedAt || (isSqlite ? now.toISOString() : now),
+              receivedAt: isSqlite ? now.toISOString() : now,
               updatedAt: isSqlite ? now.toISOString() : now,
             })
             .where(eq(vmiOrders.id, orderId));
@@ -141,10 +141,10 @@ export async function GET(
         return successResponse({
           orderId,
           vmiOrderId: order.vmiOrderId,
-          orderStatus: receiptStatus.status === 'received' ? 'received' : order.status,
-          receiptStatus: receiptStatus.status,
-          receivedAt: receiptStatus.receivedAt,
-          receivedQuantities: receiptStatus.receivedQuantities,
+          orderStatus: receiptStatus.receiptStatus === 'complete' ? 'received' : order.status,
+          receiptStatus: receiptStatus.receiptStatus,
+          items: receiptStatus.items,
+          receipts: receiptStatus.receipts,
           checkedAt: new Date().toISOString(),
         });
       } catch (err) {

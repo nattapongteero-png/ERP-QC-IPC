@@ -67,20 +67,19 @@ async function runTests() {
   console.log('-'.repeat(40));
   try {
     const startTime = Date.now();
-    const orders = await service.getOrders({ limit: 5 });
+    const orders = await service.getOrders({});
     const duration = Date.now() - startTime;
 
     console.log(`   ✅ SUCCESS: Retrieved orders (${duration}ms)`);
-    console.log(`   Total orders: ${orders.total}`);
     console.log(`   Orders returned: ${orders.orders.length}`);
 
     if (orders.orders.length > 0) {
       console.log('   Sample orders:');
       orders.orders.slice(0, 3).forEach((order, i) => {
-        console.log(`     ${i + 1}. VMI Order ID: ${order.vmiOrderId}`);
+        console.log(`     ${i + 1}. Order ID: ${order.id}`);
         console.log(`        Status: ${order.status}`);
         console.log(`        Hospital: ${order.hospitalName}`);
-        console.log(`        Total: ${order.totalAmount} ${order.currency}`);
+        console.log(`        Total: ${order.totalValue} THB`);
       });
     }
   } catch (error) {
@@ -98,11 +97,11 @@ async function runTests() {
   console.log('-'.repeat(40));
   const testItems = [
     {
+      localCode: 'TEST-001',
       tppCode: '8850999111111',
       ttmtCode: 'A12345678',
       name: 'Test Herbal Product',
       unit: 'box',
-      vendorItemCode: 'TEST-001',
     },
   ];
 
@@ -112,8 +111,8 @@ async function runTests() {
     const duration = Date.now() - startTime;
 
     console.log(`   ✅ SUCCESS: Sync completed (${duration}ms)`);
-    console.log(`   Synced: ${syncResult.synced}`);
-    console.log(`   Failed: ${syncResult.failed}`);
+    console.log(`   Synced: ${syncResult.summary.inserted + syncResult.summary.updated}`);
+    console.log(`   Failed: ${syncResult.summary.failed}`);
     if (syncResult.errors && syncResult.errors.length > 0) {
       console.log(`   Errors:`);
       syncResult.errors.forEach((err, i) => {
@@ -138,11 +137,10 @@ async function runTests() {
   console.log('-'.repeat(40));
   const testPrices = [
     {
-      tppCode: '8850999111111',
+      localCode: 'TEST-001',
       unitPrice: 150.00,
-      currency: 'THB',
-      validFrom: new Date().toISOString().split('T')[0],
-      validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      effectiveDate: new Date().toISOString().split('T')[0],
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     },
   ];
 
@@ -152,8 +150,8 @@ async function runTests() {
     const duration = Date.now() - startTime;
 
     console.log(`   ✅ SUCCESS: Price sync completed (${duration}ms)`);
-    console.log(`   Synced: ${syncResult.synced}`);
-    console.log(`   Failed: ${syncResult.failed}`);
+    console.log(`   Synced: ${syncResult.summary.inserted + syncResult.summary.updated}`);
+    console.log(`   Failed: ${syncResult.summary.failed}`);
     if (syncResult.errors && syncResult.errors.length > 0) {
       console.log(`   Errors:`);
       syncResult.errors.forEach((err, i) => {
@@ -175,8 +173,8 @@ async function runTests() {
   console.log('-'.repeat(40));
   const testInventory = [
     {
-      tppCode: '8850999111111',
-      availableQuantity: 100,
+      localCode: 'TEST-001',
+      quantityAvailable: 100,
       unit: 'box',
     },
   ];
@@ -187,8 +185,8 @@ async function runTests() {
     const duration = Date.now() - startTime;
 
     console.log(`   ✅ SUCCESS: Inventory sync completed (${duration}ms)`);
-    console.log(`   Synced: ${syncResult.synced}`);
-    console.log(`   Failed: ${syncResult.failed}`);
+    console.log(`   Synced: ${syncResult.summary.inserted + syncResult.summary.updated}`);
+    console.log(`   Failed: ${syncResult.summary.failed}`);
     if (syncResult.errors && syncResult.errors.length > 0) {
       console.log(`   Errors:`);
       syncResult.errors.forEach((err, i) => {

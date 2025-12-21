@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
           lastItemsSyncAt: vmiConfig.lastItemsSyncAt,
           lastPricesSyncAt: vmiConfig.lastPricesSyncAt,
           lastInventorySyncAt: vmiConfig.lastInventorySyncAt,
-          lastOrderPollAt: vmiConfig.lastOrderPollAt,
+          lastOrdersPollAt: vmiConfig.lastOrdersPollAt,
           createdAt: vmiConfig.createdAt,
         })
         .from(vmiConfig)
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
       // Filter by vendor if specified
       const filteredConfigs = vendorIdStr
-        ? vendorConfigs.filter((c) => c.vendorId === parseInt(vendorIdStr))
+        ? vendorConfigs.filter((c: { vendorId: number }) => c.vendorId === parseInt(vendorIdStr))
         : vendorConfigs;
 
       // Get total VMI items count
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         byType: {} as Record<string, { success: number; error: number }>,
       };
 
-      recentTransactions.forEach((t) => {
+      recentTransactions.forEach((t: { transactionType: string; status: string; count: number }) => {
         const count = Number(t.count);
         transactionStats.total += count;
         if (t.status === 'success') {
@@ -156,14 +156,15 @@ export async function GET(request: NextRequest) {
         byStatus: {} as Record<string, number>,
       };
 
-      orderStats.forEach((o) => {
+      orderStats.forEach((o: { status: string; count: number }) => {
         const count = Number(o.count);
         orderSummary.total += count;
         orderSummary.byStatus[o.status] = count;
       });
 
       // Build vendor sync status
-      const vendorSyncStatuses: VendorSyncStatus[] = filteredConfigs.map((config) => {
+      type ConfigType = typeof vendorConfigs[number];
+      const vendorSyncStatuses: VendorSyncStatus[] = filteredConfigs.map((config: ConfigType) => {
         const determineSyncStatus = (
           enabled: boolean,
           lastSyncAt: unknown
@@ -200,7 +201,7 @@ export async function GET(request: NextRequest) {
       });
 
       // Calculate overall health
-      const connectedVendors = filteredConfigs.filter((c) => c.isConnected).length;
+      const connectedVendors = filteredConfigs.filter((c: ConfigType) => c.isConnected).length;
       const totalVendors = filteredConfigs.length;
       const healthPercentage = totalVendors > 0 ? Math.round((connectedVendors / totalVendors) * 100) : 0;
 

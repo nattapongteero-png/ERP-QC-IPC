@@ -82,9 +82,9 @@ export async function GET(request: NextRequest) {
           warehouseName: vmiOrders.warehouseName,
           status: vmiOrders.status,
           orderDate: vmiOrders.orderDate,
-          expectedDate: vmiOrders.expectedDate,
-          totalAmount: vmiOrders.totalAmount,
-          currency: vmiOrders.currency,
+          expectedDeliveryDate: vmiOrders.expectedDeliveryDate,
+          totalValue: vmiOrders.totalValue,
+          itemCount: vmiOrders.itemCount,
           localPoId: vmiOrders.localPoId,
           confirmedAt: vmiOrders.confirmedAt,
           shippedAt: vmiOrders.shippedAt,
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
         .from(vmiOrders)
         .where(eq(vmiOrders.vendorId, vendorId));
 
-      const existingIds = new Set(existingOrderIds.map(o => o.vmiOrderId));
+      const existingIds = new Set(existingOrderIds.map((o: { vmiOrderId: number }) => o.vmiOrderId));
 
       // Filter out existing orders
       const newOrders = ordersResponse.orders.filter(o => !existingIds.has(o.id));
@@ -208,9 +208,9 @@ export async function POST(request: NextRequest) {
           warehouseName: order.warehouseName || null,
           status: order.status as VmiOrderStatus,
           orderDate: order.orderDate,
-          expectedDate: order.expectedDate || null,
-          totalAmount: order.totalAmount,
-          currency: order.currency || 'THB',
+          expectedDeliveryDate: order.expectedDeliveryDate || null,
+          totalValue: order.totalValue,
+          itemCount: order.itemCount,
           createdAt: isSqlite ? now.toISOString() : now,
           updatedAt: isSqlite ? now.toISOString() : now,
         });
@@ -224,16 +224,18 @@ export async function POST(request: NextRequest) {
           const orderDetail = await service.getOrderDetail(order.id);
 
           // Insert order lines
-          for (const line of orderDetail.lines || []) {
+          for (const line of orderDetail.order?.items || []) {
             await db.insert(vmiOrderLines).values({
               vmiOrderId: orderId,
+              localCode: line.localCode,
               tppCode: line.tppCode || null,
               ttmtCode: line.ttmtCode || null,
-              itemName: line.itemName,
-              quantity: line.quantity,
+              itemName: line.name,
+              quantityOrdered: line.quantity,
+              quantityReceived: 0,
               unit: line.unit,
               unitPrice: line.unitPrice,
-              totalPrice: line.totalPrice || line.quantity * line.unitPrice,
+              lineTotal: line.totalPrice || line.quantity * line.unitPrice,
               createdAt: isSqlite ? now.toISOString() : now,
             });
           }

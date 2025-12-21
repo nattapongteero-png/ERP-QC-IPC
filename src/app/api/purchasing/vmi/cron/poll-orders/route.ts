@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
           .from(vmiOrders)
           .where(eq(vmiOrders.vendorId, config.vendorId));
 
-        const existingIds = new Set(existingOrderIds.map(o => o.vmiOrderId));
-        const newOrders = ordersResponse.orders.filter(o => !existingIds.has(o.id));
+        const existingIds = new Set(existingOrderIds.map((o: { vmiOrderId: number }) => o.vmiOrderId));
+        const newOrders = ordersResponse.orders.filter((o) => !existingIds.has(o.id));
 
         // Insert new orders
         let insertedCount = 0;
@@ -151,9 +151,9 @@ export async function POST(request: NextRequest) {
             warehouseName: order.warehouseName || null,
             status: order.status as VmiOrderStatus,
             orderDate: order.orderDate,
-            expectedDate: order.expectedDate || null,
-            totalAmount: order.totalAmount,
-            currency: order.currency || 'THB',
+            expectedDate: order.expectedDeliveryDate || null,
+            totalAmount: order.totalValue,
+            currency: 'THB',
             createdAt: isSqlite ? now.toISOString() : now,
             updatedAt: isSqlite ? now.toISOString() : now,
           });
@@ -166,12 +166,12 @@ export async function POST(request: NextRequest) {
           try {
             const orderDetail = await service.getOrderDetail(order.id);
 
-            for (const line of orderDetail.lines || []) {
+            for (const line of orderDetail.order?.items || []) {
               await db.insert(vmiOrderLines).values({
                 vmiOrderId: orderId,
                 tppCode: line.tppCode || null,
                 ttmtCode: line.ttmtCode || null,
-                itemName: line.itemName,
+                itemName: line.name,
                 quantity: line.quantity,
                 unit: line.unit,
                 unitPrice: line.unitPrice,

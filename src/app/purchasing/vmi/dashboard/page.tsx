@@ -10,8 +10,8 @@ import * as React from 'react';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
-import VmiTransactionLog, { Transaction } from '@/components/vmi/VmiTransactionLog';
-import VmiSyncStatus, { SyncInfo, SyncStatus } from '@/components/vmi/VmiSyncStatus';
+import VmiTransactionLog, { Transaction } from '@/components/purchasing/vmi/VmiTransactionLog';
+import VmiSyncStatus, { SyncInfo, SyncStatus } from '@/components/purchasing/vmi/VmiSyncStatus';
 import {
   Activity,
   CheckCircle,

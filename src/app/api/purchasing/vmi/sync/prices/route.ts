@@ -71,14 +71,19 @@ export async function GET(request: NextRequest) {
           vendorId: priceOffers.vendorId,
           itemId: priceOffers.itemId,
           itemCode: items.code,
-          itemName: items.name,
+          itemName: items.nameTh,
+          itemNameEn: items.nameEn,
           tppCode: items.tppCode,
           ttmtCode: items.ttmtCode,
           unitPrice: priceOffers.unitPrice,
-          currency: priceOffers.currency,
-          validFrom: priceOffers.validFrom,
-          validTo: priceOffers.validTo,
+          packPrice: priceOffers.packPrice,
+          moq: priceOffers.moq,
+          leadTimeDays: priceOffers.leadTimeDays,
+          effectiveDate: priceOffers.effectiveDate,
+          expiryDate: priceOffers.expiryDate,
+          isActive: priceOffers.isActive,
           lastSyncedAt: priceOffers.lastSyncedAt,
+          syncStatus: priceOffers.syncStatus,
           createdAt: priceOffers.createdAt,
           updatedAt: priceOffers.updatedAt,
         })
@@ -89,12 +94,13 @@ export async function GET(request: NextRequest) {
       const offersResult = await offersQuery;
 
       // Filter and enrich offers
-      const enrichedOffers = offersResult.map((offer) => {
-        const validFrom = offer.validFrom?.toString().split('T')[0] || '';
-        const validTo = offer.validTo?.toString().split('T')[0] || '';
-        const isActive = validFrom <= today && validTo >= today;
+      type OfferResultType = typeof offersResult[number];
+      const enrichedOffers = offersResult.map((offer: OfferResultType) => {
+        const validFrom = offer.effectiveDate?.toString().split('T')[0] || '';
+        const validTo = offer.expiryDate?.toString().split('T')[0] || '';
+        const isActive = offer.isActive && validFrom <= today && validTo >= today;
         const lastSyncAt = config.lastPricesSyncAt ? new Date(config.lastPricesSyncAt) : null;
-        const updatedAt = offer.updatedAt ? new Date(offer.updatedAt) : null;
+        const updatedAt = offer.updatedAt ? new Date(offer.updatedAt as string) : null;
         const needsSync = !lastSyncAt || (updatedAt && updatedAt > lastSyncAt);
 
         return {
@@ -108,11 +114,12 @@ export async function GET(request: NextRequest) {
       });
 
       // Filter by active status if requested
+      type EnrichedOfferType = typeof enrichedOffers[number];
       const filteredOffers = activeOnly
-        ? enrichedOffers.filter((o) => o.isActive)
+        ? enrichedOffers.filter((o: EnrichedOfferType) => o.isActive)
         : enrichedOffers;
 
-      const pendingCount = filteredOffers.filter((o) => o.needsSync && o.hasVmiCode).length;
+      const pendingCount = filteredOffers.filter((o: EnrichedOfferType) => o.needsSync && o.hasVmiCode).length;
 
       return successResponse({
         vendorId,
@@ -168,29 +175,34 @@ export async function POST(request: NextRequest) {
         .select({
           id: priceOffers.id,
           itemId: priceOffers.itemId,
+          itemCode: items.code,
           tppCode: items.tppCode,
           ttmtCode: items.ttmtCode,
           unitPrice: priceOffers.unitPrice,
-          currency: priceOffers.currency,
-          validFrom: priceOffers.validFrom,
-          validTo: priceOffers.validTo,
+          packPrice: priceOffers.packPrice,
+          moq: priceOffers.moq,
+          leadTimeDays: priceOffers.leadTimeDays,
+          effectiveDate: priceOffers.effectiveDate,
+          expiryDate: priceOffers.expiryDate,
+          isActive: priceOffers.isActive,
         })
         .from(priceOffers)
         .leftJoin(items, eq(priceOffers.itemId, items.id))
         .where(eq(priceOffers.vendorId, vendorId));
 
       let offersToSync = await offersQuery;
+      type OfferToSyncType = typeof offersToSync[number];
 
       // Filter by requested IDs if provided
       if (offerIds && offerIds.length > 0) {
-        offersToSync = offersToSync.filter((offer) => offerIds.includes(offer.id));
+        offersToSync = offersToSync.filter((offer: OfferToSyncType) => offerIds.includes(offer.id));
       }
 
       // Filter to only active offers with VMI codes
-      offersToSync = offersToSync.filter((offer) => {
-        const validFrom = offer.validFrom?.toString().split('T')[0] || '';
-        const validTo = offer.validTo?.toString().split('T')[0] || '';
-        const isActive = validFrom <= today && validTo >= today;
+      offersToSync = offersToSync.filter((offer: OfferToSyncType) => {
+        const validFrom = offer.effectiveDate?.toString().split('T')[0] || '';
+        const validTo = offer.expiryDate?.toString().split('T')[0] || '';
+        const isActive = offer.isActive && validFrom <= today && validTo >= today;
         const hasCode = offer.tppCode || offer.ttmtCode;
         return isActive && hasCode;
       });
@@ -242,11 +254,14 @@ export async function POST(request: NextRequest) {
       service.setTransactionLogger(transactionLogger);
 
       // Prepare offers for VMI Portal
-      const vmiOffers: VmiPriceOfferPayload[] = offersToSync.map((offer) => ({
+      const vmiOffers: VmiPriceOfferPayload[] = offersToSync.map((offer: OfferToSyncType) => ({
         localCode: offer.itemCode || '',  // Required by VMI Portal API
         unitPrice: Number(offer.unitPrice),
-        effectiveDate: offer.validFrom?.toString().split('T')[0] || today,  // Required by VMI Portal API
-        expiryDate: offer.validTo?.toString().split('T')[0] || undefined,
+        packPrice: offer.packPrice ? Number(offer.packPrice) : undefined,
+        moq: offer.moq || undefined,
+        leadTimeDays: offer.leadTimeDays || undefined,
+        effectiveDate: offer.effectiveDate?.toString().split('T')[0] || today,  // Required by VMI Portal API
+        expiryDate: offer.expiryDate?.toString().split('T')[0] || undefined,
       }));
 
       try {
@@ -275,6 +290,9 @@ export async function POST(request: NextRequest) {
             .where(eq(priceOffers.id, offer.id));
         }
 
+        const syncedCount = result.summary.updated + result.summary.inserted;
+        const failedCount = result.summary.failed;
+
         // Create audit log
         await createAuditLog({
           userId: session.userId,
@@ -283,8 +301,8 @@ export async function POST(request: NextRequest) {
           recordId: vendorId,
           newValue: {
             type: 'vmi_prices_sync',
-            synced: result.synced,
-            failed: result.failed,
+            synced: syncedCount,
+            failed: failedCount,
             offerCount: offersToSync.length,
           },
           ipAddress: getClientIP(request),
@@ -293,12 +311,12 @@ export async function POST(request: NextRequest) {
         return successResponse(
           {
             vendorId,
-            synced: result.synced,
-            failed: result.failed,
+            synced: syncedCount,
+            failed: failedCount,
             errors: result.errors || [],
             syncedAt: now.toISOString(),
           },
-          `Successfully synced ${result.synced} price offers to VMI Portal`
+          `Successfully synced ${syncedCount} price offers to VMI Portal`
         );
       } catch (err) {
         if (err instanceof VmiPortalError) {

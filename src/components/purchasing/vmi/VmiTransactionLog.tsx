@@ -56,8 +56,8 @@ export interface Transaction {
 }
 
 export interface TransactionDetail extends Transaction {
-  requestPayload: unknown;
-  responsePayload: unknown;
+  requestPayload: Record<string, unknown> | null;
+  responsePayload: Record<string, unknown> | null;
 }
 
 export interface VmiTransactionLogProps {

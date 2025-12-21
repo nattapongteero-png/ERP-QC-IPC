@@ -23,7 +23,7 @@ import {
   mysqlVMITransactions,
 } from '@/lib/db/schema';
 import { VmiPortalService, VmiPortalError, VmiTransactionLogger } from '@/lib/services/vmi-portal.service';
-import type { VmiTransactionType, VmiInventoryPayload } from '@/types/vmi';
+import type { VmiTransactionType, VmiInventoryItem } from '@/types/vmi';
 import { or, isNotNull } from 'drizzle-orm';
 
 interface VendorSyncResult {
@@ -136,8 +136,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Calculate inventory for each item
-        const inventoryPayloads: VmiInventoryPayload[] = await Promise.all(
-          vmiItems.map(async (item) => {
+        const inventoryPayloads: VmiInventoryItem[] = await Promise.all(
+          vmiItems.map(async (item: { id: number; code: string; tppCode: string | null; ttmtCode: string | null; primaryUnit: string | null }) => {
             const lotsResult = await db
               .select({
                 totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
@@ -219,12 +219,12 @@ export async function POST(request: NextRequest) {
         results.push({
           vendorId: vendor.vendorId,
           vendorName: vendor.vendorName || 'Unknown',
-          synced: syncResult.synced,
-          failed: syncResult.failed,
+          synced: syncResult.summary.updated + syncResult.summary.inserted,
+          failed: syncResult.summary.failed,
           success: true,
         });
 
-        totalSynced += syncResult.synced;
+        totalSynced += syncResult.summary.updated + syncResult.summary.inserted;
         successCount++;
       } catch (err) {
         const errorMessage = err instanceof VmiPortalError
