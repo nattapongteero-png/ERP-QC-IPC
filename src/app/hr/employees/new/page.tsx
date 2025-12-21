@@ -7,6 +7,8 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { OrgUnitPicker, PositionSelect } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import { UserPlus } from 'lucide-react';
@@ -42,8 +44,6 @@ export default function NewEmployeePage() {
     hireDate: new Date().toISOString().split('T')[0],
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
   const createMutation = useMutation({
     mutationFn: createEmployee,
     onSuccess: (data) => {
@@ -60,33 +60,24 @@ export default function NewEmployeePage() {
     router.push('/hr/employees');
   }, [router]);
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.employeeCode?.trim()) {
-      newErrors.employeeCode = 'กรุณาระบุรหัสพนักงาน';
-    }
-    if (!formData.firstName?.trim()) {
-      newErrors.firstName = 'กรุณาระบุชื่อ';
-    }
-    if (!formData.lastName?.trim()) {
-      newErrors.lastName = 'กรุณาระบุนามสกุล';
-    }
-    if (!formData.hireDate) {
-      newErrors.hireDate = 'กรุณาระบุวันที่เริ่มงาน';
-    }
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    // Basic validation
+    if (!formData.employeeCode?.trim()) {
+      toast.error('กรุณาระบุรหัสพนักงาน');
+      return;
+    }
+    if (!formData.firstName?.trim()) {
+      toast.error('กรุณาระบุชื่อ');
+      return;
+    }
+    if (!formData.lastName?.trim()) {
+      toast.error('กรุณาระบุนามสกุล');
+      return;
+    }
+    if (!formData.hireDate) {
+      toast.error('กรุณาระบุวันที่เริ่มงาน');
       return;
     }
 
@@ -106,10 +97,6 @@ export default function NewEmployeePage() {
 
   const handleInputChange = (field: keyof EmployeeCreate, value: string | number | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
   };
 
   return (
@@ -139,140 +126,87 @@ export default function NewEmployeePage() {
           </h2>
 
           {/* Employee Code */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              รหัสพนักงาน <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.employeeCode || ''}
-              onChange={(e) => handleInputChange('employeeCode', e.target.value)}
-              placeholder="เช่น EMP001"
-              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.employeeCode ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.employeeCode && (
-              <p className="text-red-500 text-sm mt-1">{errors.employeeCode}</p>
-            )}
-          </div>
+          <DxTextBox
+            label="รหัสพนักงาน"
+            value={formData.employeeCode || ''}
+            onValueChange={(value) => handleInputChange('employeeCode', value)}
+            placeholder="เช่น EMP001"
+            required
+            requiredMessage="กรุณาระบุรหัสพนักงาน"
+            width="100%"
+          />
 
           {/* Name (Thai) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ชื่อ (ไทย) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.firstName || ''}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
-                placeholder="ชื่อภาษาไทย"
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.firstName ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.firstName && (
-                <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                นามสกุล (ไทย) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.lastName || ''}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                placeholder="นามสกุลภาษาไทย"
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.lastName ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.lastName && (
-                <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
-              )}
-            </div>
+            <DxTextBox
+              label="ชื่อ (ไทย)"
+              value={formData.firstName || ''}
+              onValueChange={(value) => handleInputChange('firstName', value)}
+              placeholder="ชื่อภาษาไทย"
+              required
+              requiredMessage="กรุณาระบุชื่อ"
+              width="100%"
+            />
+            <DxTextBox
+              label="นามสกุล (ไทย)"
+              value={formData.lastName || ''}
+              onValueChange={(value) => handleInputChange('lastName', value)}
+              placeholder="นามสกุลภาษาไทย"
+              required
+              requiredMessage="กรุณาระบุนามสกุล"
+              width="100%"
+            />
           </div>
 
           {/* Name (English) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                First Name (English)
-              </label>
-              <input
-                type="text"
-                value={formData.firstNameEn || ''}
-                onChange={(e) => handleInputChange('firstNameEn', e.target.value)}
-                placeholder="First name in English"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name (English)
-              </label>
-              <input
-                type="text"
-                value={formData.lastNameEn || ''}
-                onChange={(e) => handleInputChange('lastNameEn', e.target.value)}
-                placeholder="Last name in English"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            <DxTextBox
+              label="First Name (English)"
+              value={formData.firstNameEn || ''}
+              onValueChange={(value) => handleInputChange('firstNameEn', value)}
+              placeholder="First name in English"
+              width="100%"
+            />
+            <DxTextBox
+              label="Last Name (English)"
+              value={formData.lastNameEn || ''}
+              onValueChange={(value) => handleInputChange('lastNameEn', value)}
+              placeholder="Last name in English"
+              width="100%"
+            />
           </div>
 
           {/* Contact */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                อีเมล
-              </label>
-              <input
-                type="email"
-                value={formData.email || ''}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="email@example.com"
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                เบอร์โทร
-              </label>
-              <input
-                type="tel"
-                value={formData.phone || ''}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="0812345678"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            <DxTextBox
+              label="อีเมล"
+              mode="email"
+              value={formData.email || ''}
+              onValueChange={(value) => handleInputChange('email', value)}
+              placeholder="email@example.com"
+              width="100%"
+            />
+            <DxTextBox
+              label="เบอร์โทร"
+              mode="tel"
+              value={formData.phone || ''}
+              onValueChange={(value) => handleInputChange('phone', value)}
+              placeholder="0812345678"
+              width="100%"
+            />
           </div>
 
           {/* Hire Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              วันที่เริ่มงาน <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={formData.hireDate || ''}
-              onChange={(e) => handleInputChange('hireDate', e.target.value)}
-              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.hireDate ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.hireDate && (
-              <p className="text-red-500 text-sm mt-1">{errors.hireDate}</p>
-            )}
-          </div>
+          <DxDateBox
+            label="วันที่เริ่มงาน"
+            value={formData.hireDate || ''}
+            onValueChange={(value) => handleInputChange('hireDate', value)}
+            required
+            requiredMessage="กรุณาระบุวันที่เริ่มงาน"
+            displayFormat="dd/MM/yyyy"
+            width="100%"
+            showClearButton
+          />
         </div>
 
         {/* Organization & Position */}
@@ -282,25 +216,23 @@ export default function NewEmployeePage() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <OrgUnitPicker
-                value={formData.orgUnitId || null}
-                onValueChange={(value) => handleInputChange('orgUnitId', value || undefined)}
-                label="หน่วยงาน"
-                placeholder="เลือกหน่วยงาน"
-                showClearButton
-              />
-            </div>
-            <div>
-              <PositionSelect
-                value={formData.positionId || null}
-                onValueChange={(value) => handleInputChange('positionId', value || undefined)}
-                label="ตำแหน่ง"
-                placeholder="เลือกตำแหน่ง"
-                showClearButton
-                orgUnitId={formData.orgUnitId}
-              />
-            </div>
+            <OrgUnitPicker
+              value={formData.orgUnitId || null}
+              onValueChange={(value) => handleInputChange('orgUnitId', value || undefined)}
+              label="หน่วยงาน"
+              placeholder="เลือกหน่วยงาน"
+              showClearButton
+              width="100%"
+            />
+            <PositionSelect
+              value={formData.positionId || null}
+              onValueChange={(value) => handleInputChange('positionId', value || undefined)}
+              label="ตำแหน่ง"
+              placeholder="เลือกตำแหน่ง"
+              showClearButton
+              orgUnitId={formData.orgUnitId}
+              width="100%"
+            />
           </div>
         </div>
 
