@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { PageHeader } from '@/components/ui/page-header';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, Wifi, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import Link from 'next/link';
 
 interface Settings {
   companyName: string;
@@ -234,6 +235,34 @@ export default function SettingsPage() {
                   onValueChange={(value) => handleChange('woPrefix', value)}
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Integration Settings */}
+        <Card elevation="raised">
+          <CardHeader>
+            <CardTitle>Integrations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Link
+                href="/settings/vmi"
+                className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-blue-300 transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                    <Wifi className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">VMI Portal Connections</div>
+                    <div className="text-sm text-gray-500">
+                      Manage Vendor Managed Inventory portal connections for hospital customers
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+              </Link>
             </div>
           </CardContent>
         </Card>
