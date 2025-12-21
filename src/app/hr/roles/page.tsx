@@ -209,13 +209,13 @@ export default function RolesPage() {
     },
   });
 
-  const resetNewRole = () => {
+  const resetNewRole = useCallback(() => {
     setNewRole({
       code: '',
       name: '',
       description: '',
     });
-  };
+  }, []);
 
   const handleCreateRole = useCallback(() => {
     if (!newRole.code || !newRole.name) return;
@@ -247,6 +247,22 @@ export default function RolesPage() {
 
   const handleOpenCreatePopup = useCallback(() => {
     setShowCreatePopup(true);
+  }, []);
+
+  const handleCloseCreatePopup = useCallback(() => {
+    setShowCreatePopup(false);
+    resetNewRole();
+  }, [resetNewRole]);
+
+  const handleCloseEditPopup = useCallback(() => {
+    setShowEditPopup(false);
+    setSelectedRole(null);
+  }, []);
+
+  const handleClosePermissionsPopup = useCallback(() => {
+    setShowPermissionsPopup(false);
+    setSelectedRole(null);
+    setSelectedPermissionIds([]);
   }, []);
 
   const openEditPopup = (role: AppRoleWithPermissions) => {
@@ -283,7 +299,7 @@ export default function RolesPage() {
     );
   }, [permissions]);
 
-  const renderStatusCell = (cellData: { data: AppRoleWithPermissions }) => {
+  const renderStatusCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
     if (role.isSystemRole) {
       return (
@@ -298,17 +314,31 @@ export default function RolesPage() {
     ) : (
       <Badge variant="danger">ปิดใช้งาน</Badge>
     );
-  };
+  }, []);
 
-  const renderPermissionCountCell = (cellData: { value: number }) => {
+  const renderPermissionCountCell = useCallback((cellData: { value: number }) => {
     return (
       <Badge variant="secondary" className="text-xs">
         {cellData.value} สิทธิ์
       </Badge>
     );
-  };
+  }, []);
 
-  const renderActionsCell = (cellData: { data: AppRoleWithPermissions }) => {
+  const handleOpenPermissionsPopup = useCallback((role: AppRoleWithPermissions) => {
+    openPermissionsPopup(role);
+  }, []);
+
+  const handleOpenEditPopup = useCallback((role: AppRoleWithPermissions) => {
+    openEditPopup(role);
+  }, []);
+
+  const handleDeactivateRole = useCallback((roleId: number) => {
+    if (confirm('ต้องการปิดใช้งานบทบาทนี้หรือไม่?')) {
+      deactivateMutation.mutate(roleId);
+    }
+  }, [deactivateMutation]);
+
+  const renderActionsCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
 
     return (
@@ -318,7 +348,7 @@ export default function RolesPage() {
           hint="จัดการสิทธิ์"
           type="default"
           stylingMode="text"
-          onClick={() => openPermissionsPopup(role)}
+          onClick={() => handleOpenPermissionsPopup(role)}
           disabled={role.isSystemRole}
         />
         <DxButton
@@ -326,7 +356,7 @@ export default function RolesPage() {
           hint="แก้ไข"
           type="default"
           stylingMode="text"
-          onClick={() => openEditPopup(role)}
+          onClick={() => handleOpenEditPopup(role)}
           disabled={role.isSystemRole}
         />
         {role.isActive && !role.isSystemRole && (
@@ -335,16 +365,12 @@ export default function RolesPage() {
             hint="ปิดใช้งาน"
             type="danger"
             stylingMode="text"
-            onClick={() => {
-              if (confirm('ต้องการปิดใช้งานบทบาทนี้หรือไม่?')) {
-                deactivateMutation.mutate(role.id);
-              }
-            }}
+            onClick={() => handleDeactivateRole(role.id)}
           />
         )}
       </div>
     );
-  };
+  }, [handleOpenPermissionsPopup, handleOpenEditPopup, handleDeactivateRole]);
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
@@ -456,10 +482,7 @@ export default function RolesPage() {
       {/* Create Role Popup */}
       <Popup
         visible={showCreatePopup}
-        onHiding={() => {
-          setShowCreatePopup(false);
-          resetNewRole();
-        }}
+        onHiding={handleCloseCreatePopup}
         title="สร้างบทบาทใหม่"
         width={500}
         height="auto"
@@ -515,10 +538,7 @@ export default function RolesPage() {
           location="after"
           options={{
             text: 'ยกเลิก',
-            onClick: () => {
-              setShowCreatePopup(false);
-              resetNewRole();
-            },
+            onClick: handleCloseCreatePopup,
           }}
         />
         <ToolbarItem
@@ -536,10 +556,7 @@ export default function RolesPage() {
       {/* Edit Role Popup */}
       <Popup
         visible={showEditPopup}
-        onHiding={() => {
-          setShowEditPopup(false);
-          setSelectedRole(null);
-        }}
+        onHiding={handleCloseEditPopup}
         title={`แก้ไขบทบาท: ${selectedRole?.code || ''}`}
         width={500}
         height="auto"
@@ -577,10 +594,7 @@ export default function RolesPage() {
           location="after"
           options={{
             text: 'ยกเลิก',
-            onClick: () => {
-              setShowEditPopup(false);
-              setSelectedRole(null);
-            },
+            onClick: handleCloseEditPopup,
           }}
         />
         <ToolbarItem
@@ -598,11 +612,7 @@ export default function RolesPage() {
       {/* Permissions Popup */}
       <Popup
         visible={showPermissionsPopup}
-        onHiding={() => {
-          setShowPermissionsPopup(false);
-          setSelectedRole(null);
-          setSelectedPermissionIds([]);
-        }}
+        onHiding={handleClosePermissionsPopup}
         title={`จัดการสิทธิ์: ${selectedRole?.name || ''}`}
         width={700}
         height={600}
@@ -640,11 +650,7 @@ export default function RolesPage() {
           location="after"
           options={{
             text: 'ยกเลิก',
-            onClick: () => {
-              setShowPermissionsPopup(false);
-              setSelectedRole(null);
-              setSelectedPermissionIds([]);
-            },
+            onClick: handleClosePermissionsPopup,
           }}
         />
         <ToolbarItem
