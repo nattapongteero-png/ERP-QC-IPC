@@ -133,10 +133,11 @@ export default function EmployeesPage() {
   };
 
   // T014: Compute employee stats for StatCards
-  const activeCount = employees.filter((e) => e.status === 'active').length;
-  const inactiveCount = employees.filter((e) => e.status === 'inactive').length;
+  const employeeList = Array.isArray(employees) ? employees : [];
+  const activeCount = employeeList.filter((e) => e.status === 'active').length;
+  const inactiveCount = employeeList.filter((e) => e.status === 'inactive').length;
   const thisMonth = new Date();
-  const newThisMonth = employees.filter((e) => {
+  const newThisMonth = employeeList.filter((e) => {
     if (!e.hireDate) return false;
     const hireDate = new Date(e.hireDate);
     return hireDate.getMonth() === thisMonth.getMonth() &&
@@ -148,7 +149,7 @@ export default function EmployeesPage() {
       {/* T012: ResponsivePageHeader */}
       <ResponsivePageHeader
         title="ทะเบียนพนักงาน"
-        subtitle={`Employee Directory • ${employees.length} รายการ`}
+        subtitle={`Employee Directory • ${employeeList.length} รายการ`}
         icon={Users}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
@@ -187,7 +188,7 @@ export default function EmployeesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label="พนักงานทั้งหมด"
-          value={employees.length}
+          value={employeeList.length}
           icon={Users}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
@@ -262,7 +263,7 @@ export default function EmployeesPage() {
       {/* T013: DataGrid with columnHidingEnabled and hidingPriority */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
-          dataSource={employees}
+          dataSource={employeeList}
           keyExpr="id"
           showBorders={false}
           showRowLines
