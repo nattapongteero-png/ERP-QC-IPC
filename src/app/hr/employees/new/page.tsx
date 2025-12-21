@@ -203,7 +203,6 @@ export default function NewEmployeePage() {
             onValueChange={(value) => handleInputChange('hireDate', value)}
             required
             requiredMessage="กรุณาระบุวันที่เริ่มงาน"
-            displayFormat="dd/MM/yyyy"
             width="100%"
             showClearButton
           />

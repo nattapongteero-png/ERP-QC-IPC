@@ -1,10 +1,37 @@
 "use client";
 
+import { useCallback } from 'react';
 import DateBox from 'devextreme-react/date-box';
 import Validator, { RequiredRule, RangeRule } from 'devextreme-react/validator';
 import type { DateBoxTypes } from 'devextreme-react/date-box';
 
 export type DxDateBoxType = 'date' | 'time' | 'datetime';
+
+/**
+ * Format date to Buddhist Era (พ.ศ.) string
+ * Buddhist Era = Gregorian year + 543
+ */
+function formatBuddhistDate(date: Date | null, type: DxDateBoxType): string {
+  if (!date) return '';
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const buddhistYear = date.getFullYear() + 543;
+
+  if (type === 'time') {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  if (type === 'datetime') {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${buddhistYear} ${hours}:${minutes}`;
+  }
+
+  return `${day}/${month}/${buddhistYear}`;
+}
 
 export interface DxDateBoxProps {
   /** Current value (string in ISO format YYYY-MM-DD) */
@@ -121,14 +148,7 @@ export function DxDateBox({
 }: DxDateBoxProps) {
   const hasValidation = required || min || max;
 
-  // Default display format based on type
-  const defaultDisplayFormat = type === 'datetime'
-    ? 'dd/MM/yyyy HH:mm'
-    : type === 'time'
-    ? 'HH:mm'
-    : 'dd/MM/yyyy';
-
-  const handleValueChanged = (e: DateBoxTypes.ValueChangedEvent) => {
+  const handleValueChanged = useCallback((e: DateBoxTypes.ValueChangedEvent) => {
     if (onValueChange) {
       const dateValue = e.value as Date | null;
       // Always convert Date to ISO string (YYYY-MM-DD) for consistent string-based state
@@ -137,7 +157,16 @@ export function DxDateBox({
     if (onValueChanged) {
       onValueChanged(e);
     }
-  };
+  }, [onValueChange, onValueChanged]);
+
+  // Custom Buddhist Era formatter function
+  // This ensures the displayed date uses พ.ศ. (Buddhist Era) year
+  const buddhistDisplayFormat = useCallback((date: Date | null) => {
+    return formatBuddhistDate(date, type);
+  }, [type]);
+
+  // Use custom format if no displayFormat provided, otherwise use the provided format
+  const effectiveDisplayFormat = displayFormat || buddhistDisplayFormat;
 
   return (
     <DateBox
@@ -152,7 +181,7 @@ export function DxDateBox({
       readOnly={readOnly}
       min={min}
       max={max}
-      displayFormat={displayFormat || defaultDisplayFormat}
+      displayFormat={effectiveDisplayFormat}
       width={width}
       height={height}
       showClearButton={showClearButton}
