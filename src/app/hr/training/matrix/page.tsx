@@ -73,20 +73,25 @@ export default function CompetencyMatrixPage() {
     return () => window.removeEventListener('resize', calculateHeight);
   }, []);
 
-  const { data: matrices = [], isLoading } = useQuery({
+  const { data: matricesData = [], isLoading } = useQuery({
     queryKey: ['hr', 'training', 'competency-matrix'],
     queryFn: fetchCompetencyMatrix,
   });
 
-  const { data: courses = [] } = useQuery({
+  const { data: coursesData = [] } = useQuery({
     queryKey: ['hr', 'training', 'courses'],
     queryFn: fetchCourses,
   });
 
-  const { data: orgUnits = [] } = useQuery({
+  const { data: orgUnitsData = [] } = useQuery({
     queryKey: ['hr', 'org-units'],
     queryFn: fetchOrgUnits,
   });
+
+  // Ensure data is always an array
+  const matrices = useMemo(() => Array.isArray(matricesData) ? matricesData : [], [matricesData]);
+  const courses = useMemo(() => Array.isArray(coursesData) ? coursesData : [], [coursesData]);
+  const orgUnits = useMemo(() => Array.isArray(orgUnitsData) ? orgUnitsData : [], [orgUnitsData]);
 
   // Transform matrix data for DataGrid
   const gridData = useMemo(() => {
