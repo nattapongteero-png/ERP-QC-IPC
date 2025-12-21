@@ -90,32 +90,39 @@ export function OrgChartDiagram({
   }
 
   return (
-    <Diagram
-      height={height}
-      className={className}
-      readOnly={!showToolbox}
-      simpleView={!showToolbox}
-      onSelectionChanged={handleSelectionChanged}
-      units="px"
-    >
-      <Nodes
-        dataSource={diagramNodes}
-        keyExpr="id"
-        textExpr="text"
-        parentKeyExpr="parentId"
-        typeExpr={() => 'rectangle'}
-        styleExpr={(item: DiagramNode) => ({
-          fill: TYPE_COLORS[item.type] || '#4a5568',
-        })}
-      />
-      <AutoLayout type="tree" orientation="vertical" />
-      {showToolbox && (
-        <>
-          <Toolbox visibility="visible" />
-          <PropertiesPanel visibility="visible" />
-          <ContextToolbox enabled />
-        </>
-      )}
-    </Diagram>
+    <div className="bg-white" style={{ height }}>
+      <Diagram
+        height="100%"
+        className={className}
+        readOnly={!showToolbox}
+        simpleView={!showToolbox}
+        onSelectionChanged={handleSelectionChanged}
+        units="px"
+        pageColor="#ffffff"
+      >
+        <Nodes
+          dataSource={diagramNodes}
+          keyExpr="id"
+          textExpr="text"
+          parentKeyExpr="parentId"
+          typeExpr={() => 'rectangle'}
+          styleExpr={(item: DiagramNode) => ({
+            fill: TYPE_COLORS[item.type] || '#4a5568',
+          })}
+          textStyleExpr={() => ({
+            fill: '#ffffff',
+            'font-weight': 'bold',
+          })}
+        />
+        <AutoLayout type="tree" orientation="vertical" />
+        {showToolbox && (
+          <>
+            <Toolbox visibility="visible" />
+            <PropertiesPanel visibility="visible" />
+            <ContextToolbox enabled />
+          </>
+        )}
+      </Diagram>
+    </div>
   );
 }
