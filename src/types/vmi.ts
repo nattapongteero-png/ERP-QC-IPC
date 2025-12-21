@@ -522,6 +522,8 @@ export interface VmiSyncResponse {
 // ============================================
 
 export type VmiLocalOrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+// Alias for component usage
+export type VmiSalesOrderStatus = VmiLocalOrderStatus;
 export type VmiItemMatchStatus = 'unmatched' | 'matched' | 'multiple_matches' | 'manual_mapped';
 
 export interface VmiSalesOrder {
