@@ -63,6 +63,8 @@ export interface DxDateBoxProps {
   openOnFieldClick?: boolean;
   /** Accept custom value (typed) */
   acceptCustomValue?: boolean;
+  /** Test ID for E2E testing */
+  'data-testid'?: string;
 }
 
 /**
@@ -186,6 +188,7 @@ export function DxDateBox({
   showDropDownButton = true,
   openOnFieldClick = true,
   acceptCustomValue = false,
+  'data-testid': testId,
 }: DxDateBoxProps) {
   const hasValidation = required || min || max;
 
@@ -237,6 +240,7 @@ export function DxDateBox({
       showDropDownButton={showDropDownButton}
       openOnFieldClick={openOnFieldClick}
       acceptCustomValue={acceptCustomValue}
+      elementAttr={testId ? { 'data-testid': testId } : undefined}
       calendarOptions={{
         firstDayOfWeek: 0, // Sunday
       }}
