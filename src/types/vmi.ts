@@ -398,3 +398,258 @@ export interface VmiTransactionQuery {
   page?: number;
   pageSize?: number;
 }
+
+// ============================================
+// VMI Portal Configuration (Vendor Side)
+// This system IS the vendor - connects TO VMI portals
+// ============================================
+
+export type VmiConnectionStatus = 'connected' | 'disconnected' | 'error';
+
+export interface VmiPortalConfig {
+  id: number;
+  name: string;
+  portalUrl: string;
+  apiKeyEncrypted: string;
+  vendorId: string; // Our vendor ID in this portal
+  isEnabled: boolean;
+  syncInventoryEnabled: boolean;
+  syncInventoryInterval: number; // minutes
+  syncItemsEnabled: boolean;
+  syncItemsInterval: number; // minutes
+  syncPricesEnabled: boolean;
+  syncPricesInterval: number; // minutes
+  orderPollingEnabled: boolean;
+  orderPollingInterval: number; // minutes
+  lastInventorySyncAt?: Date | null;
+  lastItemsSyncAt?: Date | null;
+  lastPricesSyncAt?: Date | null;
+  lastOrdersPollAt?: Date | null;
+  connectionStatus: VmiConnectionStatus;
+  lastErrorMessage?: string | null;
+  createdBy?: number | null;
+  updatedBy?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface VmiPortalConfigInput {
+  name: string;
+  portalUrl: string;
+  apiKey: string; // Plain text, will be encrypted
+  vendorId: string;
+  isEnabled?: boolean;
+  syncInventoryEnabled?: boolean;
+  syncInventoryInterval?: number;
+  syncItemsEnabled?: boolean;
+  syncItemsInterval?: number;
+  syncPricesEnabled?: boolean;
+  syncPricesInterval?: number;
+  orderPollingEnabled?: boolean;
+  orderPollingInterval?: number;
+}
+
+export interface VmiPortalConfigUpdate {
+  name?: string;
+  portalUrl?: string;
+  apiKey?: string; // Optional - only update if provided
+  vendorId?: string;
+  isEnabled?: boolean;
+  syncInventoryEnabled?: boolean;
+  syncInventoryInterval?: number;
+  syncItemsEnabled?: boolean;
+  syncItemsInterval?: number;
+  syncPricesEnabled?: boolean;
+  syncPricesInterval?: number;
+  orderPollingEnabled?: boolean;
+  orderPollingInterval?: number;
+}
+
+export interface VmiPortalTestResult {
+  connected: boolean;
+  latencyMs: number;
+  vendorInfo?: {
+    vendorId: string;
+    vendorName: string;
+  };
+  error?: string;
+}
+
+// ============================================
+// VMI Sync History (Vendor Side)
+// ============================================
+
+export type VmiSyncType = 'inventory' | 'items' | 'prices' | 'orders';
+export type VmiSyncTriggerType = 'manual' | 'scheduled' | 'threshold';
+export type VmiSyncStatus = 'running' | 'completed' | 'failed' | 'partial';
+
+export interface VmiSyncHistory {
+  id: number;
+  portalId: number;
+  syncType: VmiSyncType;
+  triggerType: VmiSyncTriggerType;
+  status: VmiSyncStatus;
+  itemsTotal: number;
+  itemsProcessed: number;
+  itemsFailed: number;
+  errorDetails?: Array<{ itemId: number; itemCode?: string; error: string }>;
+  triggeredBy?: number | null;
+  startedAt: Date;
+  completedAt?: Date | null;
+}
+
+export interface VmiSyncRequest {
+  portalId?: number; // Specific portal or all enabled
+  itemIds?: number[]; // Specific items or all VMI-enabled
+  async?: boolean;
+}
+
+export interface VmiSyncResponse {
+  syncId: number;
+  portalId: number;
+  syncType: VmiSyncType;
+  status: VmiSyncStatus;
+  itemsTotal: number;
+  itemsProcessed: number;
+  itemsFailed: number;
+  duration?: number; // milliseconds
+  errors?: Array<{ itemId: number; itemCode?: string; error: string }>;
+}
+
+// ============================================
+// VMI Sales Orders (Vendor Side)
+// Orders received FROM VMI Portal INTO our sales system
+// ============================================
+
+export type VmiLocalOrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type VmiItemMatchStatus = 'unmatched' | 'matched' | 'multiple_matches' | 'manual_mapped';
+
+export interface VmiSalesOrder {
+  id: number;
+  portalId: number;
+  vmiOrderId: string;
+  salesOrderId?: number | null;
+  customerId?: number | null;
+  vmiStatus: VmiOrderStatus;
+  localStatus: VmiLocalOrderStatus;
+  vmiCustomerId: string;
+  vmiCustomerName: string;
+  orderDate: Date;
+  requiredDate?: Date | null;
+  totalAmount: number;
+  currency: string;
+  orderDataJson: string; // Full order data from VMI Portal
+  polledAt: Date;
+  confirmedAt?: Date | null;
+  shippedAt?: Date | null;
+  deliveredAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface VmiSalesOrderLine {
+  id: number;
+  vmiSalesOrderId: number;
+  itemId?: number | null;
+  vmiLineId: string;
+  tppCode?: string | null;
+  ttmtCode?: string | null;
+  localCode?: string | null;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  lineTotal: number;
+  matchStatus: VmiItemMatchStatus;
+}
+
+export interface VmiSalesOrderDetail extends VmiSalesOrder {
+  portalName?: string;
+  customer?: {
+    id: number;
+    code: string;
+    name: string;
+  } | null;
+  salesOrder?: {
+    id: number;
+    soNumber: string;
+    status: string;
+  } | null;
+  lines: VmiSalesOrderLine[];
+}
+
+export interface VmiSalesOrderSummary {
+  id: number;
+  portalId: number;
+  portalName?: string;
+  vmiOrderId: string;
+  vmiStatus: VmiOrderStatus;
+  localStatus: VmiLocalOrderStatus;
+  customerId?: number | null;
+  vmiCustomerId: string;
+  vmiCustomerName: string;
+  orderDate: Date;
+  requiredDate?: Date | null;
+  totalAmount: number;
+  currency: string;
+  lineCount: number;
+  unmatchedLineCount: number;
+  salesOrderId?: number | null;
+  salesOrderNumber?: string | null;
+  polledAt: Date;
+}
+
+export interface VmiOrderPollResult {
+  portalsPolled: number;
+  ordersReceived: number;
+  orders: VmiSalesOrderSummary[];
+  errors?: Array<{ portalId: number; error: string }>;
+}
+
+export interface VmiOrderConfirmRequest {
+  expectedShipDate?: string;
+  notes?: string;
+}
+
+export interface VmiOrderShipRequest {
+  shipmentDate: string;
+  expectedDeliveryDate: string;
+  trackingNumber?: string;
+  carrier?: string;
+  notes?: string;
+}
+
+// ============================================
+// VMI Dashboard (Vendor Side)
+// ============================================
+
+export interface VmiVendorDashboardData {
+  portals: Array<{
+    id: number;
+    name: string;
+    connectionStatus: VmiConnectionStatus;
+    lastSyncAt?: string;
+    pendingOrders: number;
+  }>;
+  sync: {
+    lastInventorySync?: string;
+    lastItemsSync?: string;
+    lastPricesSync?: string;
+    lastOrdersPoll?: string;
+    itemsSynced: number;
+    inventorySynced: number;
+  };
+  orders: {
+    pending: number;
+    confirmed: number;
+    shipped: number;
+    delivered: number;
+    totalValue: number;
+  };
+  recentErrors: Array<{
+    timestamp: string;
+    portalName: string;
+    operation: string;
+    error: string;
+  }>;
+}

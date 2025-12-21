@@ -129,6 +129,14 @@ export const PERMISSIONS = {
   'hr:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.HR, ROLES.HR_ADMIN, ROLES.HR_STAFF],
   'hr:admin': [ROLES.ADMIN, ROLES.HR, ROLES.HR_ADMIN],
   'hr:health_staff': [ROLES.ADMIN, ROLES.HR, ROLES.HR_ADMIN, ROLES.HEALTH_STAFF],
+
+  // VMI Portal Integration (Vendor Side)
+  // This system IS the vendor - syncs TO VMI portals, receives orders FROM portals
+  'vmi-settings:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.SALES],
+  'vmi-settings:write': [ROLES.ADMIN, ROLES.MANAGER],
+  'vmi-sync:execute': [ROLES.ADMIN, ROLES.MANAGER, ROLES.SALES],
+  'vmi-orders:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.SALES, ROLES.WAREHOUSE],
+  'vmi-orders:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.SALES],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
