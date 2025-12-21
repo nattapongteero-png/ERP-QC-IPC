@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiErrorProvider, useApiErrors } from '@/contexts/api-error-context';
 import { GlobalApiErrors } from '@/components/ui/global-api-errors';
 import { DevExtremeProvider } from '@/components/providers/devextreme-provider';
+import { ToastProvider } from '@/components/ui/toast';
 
 // Component that intercepts fetch calls
 function FetchInterceptor({ children }: { children: React.ReactNode }) {
@@ -106,12 +108,29 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // Create QueryClient on client side only to prevent hydration issues
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1 minute
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
+
   return (
-    <DevExtremeProvider>
-      <ApiErrorProvider>
-        <FetchInterceptor>{children}</FetchInterceptor>
-        <GlobalApiErrors />
-      </ApiErrorProvider>
-    </DevExtremeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <DevExtremeProvider>
+          <ApiErrorProvider>
+            <FetchInterceptor>{children}</FetchInterceptor>
+            <GlobalApiErrors />
+          </ApiErrorProvider>
+        </DevExtremeProvider>
+      </ToastProvider>
+    </QueryClientProvider>
   );
 }
