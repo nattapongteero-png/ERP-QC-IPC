@@ -84,6 +84,12 @@ import type {
   HealthRecordPublic,
   ExaminationType,
   FitnessStatus,
+  AppRole,
+  AppRoleCreate,
+  AppRoleWithPermissions,
+  AppPermission,
+  EmployeeRole,
+  EmployeeRoleCreate,
 } from '@/types/hr';
 
 // ============================================
@@ -3172,6 +3178,543 @@ export async function getEmployeesByFitnessStatus(
         employeeId: employee.id,
         employeeName: `${employee.firstName} ${employee.lastName}`,
         restrictions: healthStatus.restrictions,
+      });
+    }
+  }
+
+  return result;
+}
+
+// ============================================
+// Role and Permission Service (T090-T092)
+// ============================================
+
+export interface EmployeeRoleWithDetails extends EmployeeRole {
+  roleName?: string;
+  roleCode?: string;
+  scopeSiteName?: string;
+  scopeOrgUnitName?: string;
+  assignedByName?: string;
+  isActive?: boolean;
+}
+
+interface AppRoleFilters {
+  isActive?: boolean;
+  isSystemRole?: boolean;
+  search?: string;
+}
+
+/**
+ * Get all app roles with filters
+ */
+export async function getAppRoles(
+  filters?: AppRoleFilters
+): Promise<AppRoleWithPermissions[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const conditions: SQL[] = [];
+
+  if (filters?.isActive !== undefined) {
+    conditions.push(eq(tables.appRoles.isActive, filters.isActive));
+  }
+
+  if (filters?.isSystemRole !== undefined) {
+    conditions.push(eq(tables.appRoles.isSystemRole, filters.isSystemRole));
+  }
+
+  if (filters?.search) {
+    conditions.push(
+      or(
+        sql`${tables.appRoles.code} LIKE ${'%' + filters.search + '%'}`,
+        sql`${tables.appRoles.name} LIKE ${'%' + filters.search + '%'}`
+      )!
+    );
+  }
+
+  const query = conditions.length > 0
+    ? db.select().from(tables.appRoles).where(and(...conditions))
+    : db.select().from(tables.appRoles);
+
+  const roles = await query.orderBy(tables.appRoles.name);
+
+  // Enrich with permission counts
+  const enriched: AppRoleWithPermissions[] = [];
+  for (const role of roles) {
+    const [countResult] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.rolePermissions)
+      .where(eq(tables.rolePermissions.roleId, role.id));
+
+    enriched.push({
+      ...role,
+      permissionCount: Number(countResult?.count || 0),
+    } as AppRoleWithPermissions);
+  }
+
+  return enriched;
+}
+
+/**
+ * Get app role by ID with permissions
+ */
+export async function getAppRoleById(id: number): Promise<AppRoleWithPermissions | null> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [role] = await db
+    .select()
+    .from(tables.appRoles)
+    .where(eq(tables.appRoles.id, id))
+    .limit(1);
+
+  if (!role) return null;
+
+  // Get permissions for this role
+  const rolePermissionIds = await db
+    .select({ permissionId: tables.rolePermissions.permissionId })
+    .from(tables.rolePermissions)
+    .where(eq(tables.rolePermissions.roleId, id));
+
+  let permissions: AppPermission[] = [];
+  if (rolePermissionIds.length > 0) {
+    const permIds = rolePermissionIds.map((rp) => rp.permissionId);
+    permissions = await db
+      .select()
+      .from(tables.appPermissions)
+      .where(sql`${tables.appPermissions.id} IN (${permIds.join(',')})`) as AppPermission[];
+  }
+
+  return {
+    ...role,
+    permissionCount: permissions.length,
+    permissions,
+  } as AppRoleWithPermissions;
+}
+
+/**
+ * Create a new app role
+ */
+export async function createAppRole(data: AppRoleCreate): Promise<AppRole> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Check for duplicate code
+  const [existing] = await db
+    .select()
+    .from(tables.appRoles)
+    .where(eq(tables.appRoles.code, data.code))
+    .limit(1);
+
+  if (existing) {
+    throw new Error('Role code already exists');
+  }
+
+  const now = new Date().toISOString();
+
+  const insertData = {
+    code: data.code,
+    name: data.name,
+    description: data.description || null,
+    isSystemRole: false,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const [result] = await db.insert(tables.appRoles).values(insertData).returning();
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_app_roles',
+    recordId: result.id,
+    newValue: insertData,
+  });
+
+  return result as AppRole;
+}
+
+/**
+ * Update an app role
+ */
+export async function updateAppRole(
+  id: number,
+  data: Partial<AppRoleCreate & { isActive?: boolean }>
+): Promise<AppRole> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const existing = await getAppRoleById(id);
+  if (!existing) {
+    throw new Error('Role not found');
+  }
+
+  // Cannot update system roles
+  if (existing.isSystemRole) {
+    throw new Error('Cannot modify system roles');
+  }
+
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description || null;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+  const [result] = await db
+    .update(tables.appRoles)
+    .set(updateData)
+    .where(eq(tables.appRoles.id, id))
+    .returning();
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_app_roles',
+    recordId: id,
+    oldValue: { name: existing.name, isActive: existing.isActive },
+    newValue: updateData,
+  });
+
+  return result as AppRole;
+}
+
+/**
+ * Deactivate an app role
+ */
+export async function deactivateAppRole(id: number): Promise<AppRole> {
+  return updateAppRole(id, { isActive: false });
+}
+
+/**
+ * Get all app permissions
+ */
+export async function getAppPermissions(): Promise<AppPermission[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const permissions = await db
+    .select()
+    .from(tables.appPermissions)
+    .orderBy(tables.appPermissions.module, tables.appPermissions.code);
+
+  return permissions as AppPermission[];
+}
+
+/**
+ * Get permissions for a role
+ */
+export async function getRolePermissions(roleId: number): Promise<AppPermission[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const rolePermissionIds = await db
+    .select({ permissionId: tables.rolePermissions.permissionId })
+    .from(tables.rolePermissions)
+    .where(eq(tables.rolePermissions.roleId, roleId));
+
+  if (rolePermissionIds.length === 0) return [];
+
+  const permIds = rolePermissionIds.map((rp) => rp.permissionId);
+  const permissions = await db
+    .select()
+    .from(tables.appPermissions)
+    .where(sql`${tables.appPermissions.id} IN (${permIds.join(',')})`);
+
+  return permissions as AppPermission[];
+}
+
+/**
+ * Update permissions for a role
+ */
+export async function updateRolePermissions(
+  roleId: number,
+  permissionIds: number[]
+): Promise<void> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const role = await getAppRoleById(roleId);
+  if (!role) {
+    throw new Error('Role not found');
+  }
+
+  if (role.isSystemRole) {
+    throw new Error('Cannot modify permissions for system roles');
+  }
+
+  // Get current permissions for audit
+  const oldPermissions = await getRolePermissions(roleId);
+  const oldPermissionIds = oldPermissions.map((p) => p.id);
+
+  // Delete existing permissions
+  await db
+    .delete(tables.rolePermissions)
+    .where(eq(tables.rolePermissions.roleId, roleId));
+
+  // Insert new permissions
+  if (permissionIds.length > 0) {
+    const now = new Date().toISOString();
+    const inserts = permissionIds.map((permissionId) => ({
+      roleId,
+      permissionId,
+      createdAt: now,
+    }));
+    await db.insert(tables.rolePermissions).values(inserts);
+  }
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_role_permissions',
+    recordId: roleId,
+    oldValue: { permissionIds: oldPermissionIds },
+    newValue: { permissionIds },
+  });
+}
+
+/**
+ * Get employee roles
+ */
+export async function getEmployeeRoles(
+  employeeId: number
+): Promise<EmployeeRoleWithDetails[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const roles = await db
+    .select()
+    .from(tables.employeeRoles)
+    .where(eq(tables.employeeRoles.employeeId, employeeId))
+    .orderBy(desc(tables.employeeRoles.effectiveFrom));
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Enrich with details
+  const enriched: EmployeeRoleWithDetails[] = [];
+  for (const role of roles) {
+    const appRole = await getAppRoleById(role.roleId);
+    let assignedByName: string | undefined;
+    if (role.assignedBy) {
+      const assignedBy = await getEmployeeById(role.assignedBy);
+      assignedByName = assignedBy ? `${assignedBy.firstName} ${assignedBy.lastName}` : undefined;
+    }
+
+    let scopeSiteName: string | undefined;
+    if (role.scopeSiteId) {
+      const site = await getOrgUnitById(role.scopeSiteId);
+      scopeSiteName = site?.name;
+    }
+
+    let scopeOrgUnitName: string | undefined;
+    if (role.scopeOrgUnitId) {
+      const orgUnit = await getOrgUnitById(role.scopeOrgUnitId);
+      scopeOrgUnitName = orgUnit?.name;
+    }
+
+    const isActive = role.effectiveFrom <= today &&
+      (!role.effectiveTo || role.effectiveTo >= today);
+
+    enriched.push({
+      ...role,
+      roleName: appRole?.name,
+      roleCode: appRole?.code,
+      scopeSiteName,
+      scopeOrgUnitName,
+      assignedByName,
+      isActive,
+    } as EmployeeRoleWithDetails);
+  }
+
+  return enriched;
+}
+
+/**
+ * Assign role to employee
+ */
+export async function assignEmployeeRole(
+  data: EmployeeRoleCreate,
+  assignedBy: number
+): Promise<EmployeeRole> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // Verify employee exists
+  const employee = await getEmployeeById(data.employeeId);
+  if (!employee) {
+    throw new Error('Employee not found');
+  }
+
+  // Verify role exists
+  const role = await getAppRoleById(data.roleId);
+  if (!role) {
+    throw new Error('Role not found');
+  }
+
+  if (!role.isActive) {
+    throw new Error('Cannot assign inactive role');
+  }
+
+  const now = new Date().toISOString();
+
+  const insertData = {
+    employeeId: data.employeeId,
+    roleId: data.roleId,
+    scopeSiteId: data.scopeSiteId || null,
+    scopeOrgUnitId: data.scopeOrgUnitId || null,
+    effectiveFrom: data.effectiveFrom,
+    effectiveTo: data.effectiveTo || null,
+    assignedBy,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const [result] = await db.insert(tables.employeeRoles).values(insertData).returning();
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_employee_roles',
+    recordId: result.id,
+    newValue: {
+      ...insertData,
+      roleName: role.name,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+    },
+  });
+
+  return result as EmployeeRole;
+}
+
+/**
+ * Revoke employee role
+ */
+export async function revokeEmployeeRole(id: number): Promise<EmployeeRole> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const [existing] = await db
+    .select()
+    .from(tables.employeeRoles)
+    .where(eq(tables.employeeRoles.id, id))
+    .limit(1);
+
+  if (!existing) {
+    throw new Error('Employee role not found');
+  }
+
+  // Set effectiveTo to now to revoke
+  const now = new Date().toISOString().split('T')[0];
+
+  const [result] = await db
+    .update(tables.employeeRoles)
+    .set({
+      effectiveTo: now,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(tables.employeeRoles.id, id))
+    .returning();
+
+  // Audit log
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'hr_employee_roles',
+    recordId: id,
+    oldValue: { effectiveTo: existing.effectiveTo },
+    newValue: { effectiveTo: now },
+  });
+
+  return result as EmployeeRole;
+}
+
+/**
+ * Get all active permissions for an employee (aggregated from all roles)
+ */
+export async function getEmployeePermissions(
+  employeeId: number
+): Promise<AppPermission[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Get active roles for employee
+  const activeRoles = await db
+    .select({ roleId: tables.employeeRoles.roleId })
+    .from(tables.employeeRoles)
+    .where(
+      and(
+        eq(tables.employeeRoles.employeeId, employeeId),
+        sql`${tables.employeeRoles.effectiveFrom} <= ${today}`,
+        or(
+          isNull(tables.employeeRoles.effectiveTo),
+          sql`${tables.employeeRoles.effectiveTo} >= ${today}`
+        )
+      )
+    );
+
+  if (activeRoles.length === 0) return [];
+
+  // Get all permission IDs for these roles
+  const roleIds = activeRoles.map((r) => r.roleId);
+  const rolePermissions = await db
+    .select({ permissionId: tables.rolePermissions.permissionId })
+    .from(tables.rolePermissions)
+    .where(sql`${tables.rolePermissions.roleId} IN (${roleIds.join(',')})`);
+
+  if (rolePermissions.length === 0) return [];
+
+  // Get unique permissions
+  const permissionIds = [...new Set(rolePermissions.map((rp) => rp.permissionId))];
+  const permissions = await db
+    .select()
+    .from(tables.appPermissions)
+    .where(sql`${tables.appPermissions.id} IN (${permissionIds.join(',')})`)
+    .orderBy(tables.appPermissions.module, tables.appPermissions.code);
+
+  return permissions as AppPermission[];
+}
+
+/**
+ * Check if employee has a specific permission
+ */
+export async function hasPermission(
+  employeeId: number,
+  permissionCode: string
+): Promise<boolean> {
+  const permissions = await getEmployeePermissions(employeeId);
+  return permissions.some((p) => p.code === permissionCode);
+}
+
+/**
+ * Get employees by role
+ */
+export async function getEmployeesByRole(
+  roleId: number
+): Promise<{ employeeId: number; employeeName: string; isActive: boolean }[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const employeeRoles = await db
+    .select()
+    .from(tables.employeeRoles)
+    .where(eq(tables.employeeRoles.roleId, roleId));
+
+  const result: { employeeId: number; employeeName: string; isActive: boolean }[] = [];
+
+  for (const er of employeeRoles) {
+    const employee = await getEmployeeById(er.employeeId);
+    if (employee) {
+      const isActive = er.effectiveFrom <= today &&
+        (!er.effectiveTo || er.effectiveTo >= today);
+      result.push({
+        employeeId: employee.id,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        isActive,
       });
     }
   }
