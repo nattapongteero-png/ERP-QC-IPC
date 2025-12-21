@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   ArrowLeft,
   Trash2,
+  Barcode,
 } from 'lucide-react';
 
 // ============================================================================
@@ -62,6 +63,9 @@ export interface Item {
   createdAt: string;
   onHand?: number;
   onHandCost?: number;
+  // VMI Standard Codes
+  tppCode: string | null;
+  ttmtCode: string | null;
 }
 
 export interface ItemFormData {
@@ -79,6 +83,9 @@ export interface ItemFormData {
   shelfLifeDays: number | null;
   storageConditions: string;
   isActive: boolean;
+  // VMI Standard Codes
+  tppCode: string;
+  ttmtCode: string;
 }
 
 export interface ItemEditFormProps {
@@ -123,6 +130,8 @@ export const getDefaultFormData = (): ItemFormData => ({
   shelfLifeDays: null,
   storageConditions: '',
   isActive: true,
+  tppCode: '',
+  ttmtCode: '',
 });
 
 export const itemToFormData = (item: Item): ItemFormData => ({
@@ -140,6 +149,8 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   shelfLifeDays: item.shelfLifeDays,
   storageConditions: item.storageConditions || '',
   isActive: item.isActive,
+  tppCode: item.tppCode || '',
+  ttmtCode: item.ttmtCode || '',
 });
 
 export const getTypeConfig = (type: string) => {
@@ -518,6 +529,46 @@ export function ItemEditForm({
                 </div>
               </SectionCard>
 
+              {/* VMI Standard Codes */}
+              <SectionCard
+                icon={<Barcode className="h-5 w-5 text-gray-600" />}
+                title="VMI Standard Codes"
+                description="Thai pharmaceutical and traditional medicine codes for VMI Portal integration"
+              >
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">TPP Code</label>
+                    <DxTextBox
+                      value={formData.tppCode}
+                      onValueChange={(value) => updateFormData('tppCode', value)}
+                      placeholder="13-digit code (e.g., 8850999111111)"
+                      maxLength={13}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Thai Pharmaceutical Product code (13 digits)</p>
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">TTMT Code</label>
+                    <DxTextBox
+                      value={formData.ttmtCode}
+                      onValueChange={(value) => updateFormData('ttmtCode', value)}
+                      placeholder="A + 8 digits (e.g., A12345678)"
+                      maxLength={10}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Thai Traditional Medicine Terminology code</p>
+                  </div>
+                </div>
+                {(formData.tppCode || formData.ttmtCode) && (
+                  <div className="mt-4 bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
+                    <div className="p-2 bg-emerald-100 rounded-lg">
+                      <CheckCircle className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <div className="text-sm text-emerald-700">
+                      <span className="font-semibold">VMI Ready:</span> This item can be synced to VMI Portal
+                    </div>
+                  </div>
+                )}
+              </SectionCard>
+
               {/* Units of Measurement */}
               <SectionCard
                 icon={<Scale className="h-5 w-5 text-gray-600" />}
@@ -730,11 +781,22 @@ export function ItemEditForm({
                     </div>
                   )}
                   {formData.reorderPoint !== null && (
-                    <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
                       <span className="text-sm text-gray-500">Reorder Point</span>
                       <span className="text-sm font-medium text-gray-900">{formData.reorderPoint?.toLocaleString()}</span>
                     </div>
                   )}
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-gray-500">VMI Status</span>
+                    {formData.tppCode || formData.ttmtCode ? (
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        <span className="text-sm font-medium text-emerald-600">Ready</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">No VMI codes</span>
+                    )}
+                  </div>
                 </div>
               </SectionCard>
 
