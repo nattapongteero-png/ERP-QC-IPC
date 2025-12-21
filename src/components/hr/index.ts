@@ -10,3 +10,6 @@ export type { OrgChartTreeProps } from './OrgChartTree';
 
 export { OrgChartDiagram } from './OrgChartDiagram';
 export type { OrgChartDiagramProps } from './OrgChartDiagram';
+
+export { EmployeeCard } from './EmployeeCard';
+export type { EmployeeCardProps } from './EmployeeCard';

@@ -1,7 +1,7 @@
 // HR/Personnel Management Service
 // Feature: 007-hr-personnel-management
 
-import { eq, and, like, or, sql, isNull } from 'drizzle-orm';
+import { eq, and, like, or, sql, isNull, desc } from 'drizzle-orm';
 import { getDb, useSqlite } from '../db';
 import { createAuditLog } from '../audit';
 import {
@@ -674,7 +674,17 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
     ? (result as unknown as { lastInsertRowid: number }).lastInsertRowid
     : (result as unknown as [{ insertId: number }])[0].insertId;
 
-  return (await getEmployeeById(Number(insertedId)))!;
+  const employee = (await getEmployeeById(Number(insertedId)))!;
+
+  // Audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'hr_employees',
+    recordId: Number(insertedId),
+    newValue: insertData as unknown as Record<string, unknown>,
+  });
+
+  return employee;
 }
 
 export async function updateEmployee(
@@ -708,6 +718,15 @@ export async function updateEmployee(
       .update(tables.employees)
       .set(updateData)
       .where(eq(tables.employees.id, id));
+
+    // Audit log
+    await createAuditLog({
+      action: 'UPDATE',
+      tableName: 'hr_employees',
+      recordId: id,
+      oldValue: existing as unknown as Record<string, unknown>,
+      newValue: updateData,
+    });
   }
 
   return (await getEmployeeById(id))!;
@@ -774,4 +793,104 @@ export async function getEmployeeCountByPosition(
     );
 
   return Number(result[0]?.count || 0);
+}
+
+// ============================================
+// Employee Assignment Service
+// ============================================
+
+export interface EmployeeAssignmentWithDetails {
+  id: number;
+  employeeId: number;
+  positionId: number | null;
+  orgUnitId: number | null;
+  isPrimary: boolean;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  reason: string | null;
+  createdAt: string;
+  positionTitle?: string;
+  orgUnitName?: string;
+}
+
+export async function getEmployeeAssignments(
+  employeeId: number
+): Promise<EmployeeAssignmentWithDetails[]> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  const assignments = await db
+    .select()
+    .from(tables.employeeAssignments)
+    .where(eq(tables.employeeAssignments.employeeId, employeeId))
+    .orderBy(desc(tables.employeeAssignments.effectiveFrom));
+
+  // Enrich with position and org unit names
+  const enrichedAssignments = await Promise.all(
+    (assignments as unknown as EmployeeAssignmentWithDetails[]).map(
+      async (assignment) => {
+        let positionTitle: string | undefined;
+        let orgUnitName: string | undefined;
+
+        if (assignment.positionId) {
+          const position = await getPositionById(assignment.positionId);
+          positionTitle = position?.title;
+        }
+
+        if (assignment.orgUnitId) {
+          const orgUnit = await getOrgUnitById(assignment.orgUnitId);
+          orgUnitName = orgUnit?.name;
+        }
+
+        return {
+          ...assignment,
+          positionTitle,
+          orgUnitName,
+        };
+      }
+    )
+  );
+
+  return enrichedAssignments;
+}
+
+export async function createEmployeeAssignment(data: {
+  employeeId: number;
+  positionId?: number;
+  orgUnitId?: number;
+  isPrimary?: boolean;
+  effectiveFrom: string;
+  reason?: string;
+}): Promise<EmployeeAssignmentWithDetails> {
+  const tables = getHRTables();
+  const db = await getDb();
+
+  // If marking as primary, set other assignments to non-primary
+  if (data.isPrimary) {
+    await db
+      .update(tables.employeeAssignments)
+      .set({ isPrimary: false })
+      .where(eq(tables.employeeAssignments.employeeId, data.employeeId));
+  }
+
+  const insertData = {
+    employeeId: data.employeeId,
+    positionId: data.positionId || null,
+    orgUnitId: data.orgUnitId || null,
+    isPrimary: data.isPrimary ?? true,
+    effectiveFrom: data.effectiveFrom,
+    reason: data.reason || null,
+  };
+
+  const result = await db
+    .insert(tables.employeeAssignments)
+    .values(insertData);
+
+  const insertedId = tables.isSqlite
+    ? (result as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (result as unknown as [{ insertId: number }])[0].insertId;
+
+  // Get the created assignment
+  const assignments = await getEmployeeAssignments(data.employeeId);
+  return assignments.find((a) => a.id === Number(insertedId))!;
 }

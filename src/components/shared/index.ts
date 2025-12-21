@@ -11,3 +11,6 @@ export type { ConfirmationDialogProps } from './ConfirmationDialog';
 
 export { OrgUnitPicker } from './OrgUnitPicker';
 export type { OrgUnitPickerProps } from './OrgUnitPicker';
+
+export { EmployeeLookup } from './EmployeeLookup';
+export type { EmployeeLookupProps } from './EmployeeLookup';
