@@ -61,19 +61,16 @@ export default function EmployeeProfilePage() {
 
   const [showAssignments, setShowAssignments] = useState(false);
 
-  // Check if this is a "new" employee route (should not fetch)
-  const isNewEmployee = employeeId === 'new';
-
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ['hr', 'employee', employeeId],
     queryFn: () => fetchEmployeeProfile(employeeId),
-    enabled: !!employeeId && !isNewEmployee,
+    enabled: !!employeeId,
   });
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['hr', 'employee', employeeId, 'assignments'],
     queryFn: () => fetchEmployeeAssignments(employeeId),
-    enabled: !!employeeId && !isNewEmployee && showAssignments,
+    enabled: !!employeeId && showAssignments,
   });
 
   const statusMutation = useMutation({
@@ -111,25 +108,6 @@ export default function EmployeeProfilePage() {
       day: 'numeric',
     });
   };
-
-  // If "new" employee, redirect to employees list (create form would go through different route)
-  if (isNewEmployee) {
-    return (
-      <div className="p-6 max-w-5xl mx-auto">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-          <p className="text-yellow-700 mb-4">
-            การเพิ่มพนักงานใหม่สามารถทำได้จากหน้ารายชื่อพนักงาน
-          </p>
-          <DxButton
-            text="ไปหน้ารายชื่อพนักงาน"
-            type="default"
-            stylingMode="contained"
-            onClick={handleBack}
-          />
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (

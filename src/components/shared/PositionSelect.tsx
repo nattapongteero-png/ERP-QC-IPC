@@ -56,7 +56,9 @@ async function fetchPositions(filters?: {
   try {
     const response = await fetch(url.toString());
     const result = await response.json();
-    return result.data || [];
+    // API returns { success: true, data: { data: positions } }
+    const data = result.data?.data || result.data;
+    return Array.isArray(data) ? data : [];
   } catch {
     return [];
   }

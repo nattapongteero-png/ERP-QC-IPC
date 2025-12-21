@@ -52,7 +52,9 @@ async function fetchOrgUnitTree(): Promise<OrgUnitTreeNode[]> {
     throw new Error('Failed to fetch organization units');
   }
   const result = await response.json();
-  return result.data || [];
+  // API returns { success: true, data: { data: tree } }
+  const data = result.data?.data || result.data;
+  return Array.isArray(data) ? data : [];
 }
 
 function transformToTreeItems(
