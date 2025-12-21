@@ -22,6 +22,7 @@
 - [x] T001 Add VMI environment variables to .env.example (VMI_PORTAL_BASE_URL, VMI_ENCRYPTION_KEY, CRON_SECRET)
 - [x] T002 [P] Create VMI types definition in src/types/vmi.ts
 - [x] T003 [P] Create encryption utility in src/lib/crypto/encrypt.ts with AES-256-GCM
+- [ ] T003.1 [P] Create shared ConfirmationDialog component in src/components/shared/ConfirmationDialog.tsx using DevExtreme Popup
 
 ---
 
@@ -64,7 +65,7 @@
 - [x] T018 [P] [US1] Create GET /api/vendors/[id]/vmi-config/route.ts to retrieve vendor VMI configuration
 - [x] T019 [P] [US1] Create PUT /api/vendors/[id]/vmi-config/route.ts to update vendor VMI configuration
 - [x] T020 [US1] Create POST /api/vendors/[id]/vmi-config/test/route.ts to test VMI Portal connection
-- [x] T021 [US1] Create VmiCredentialsForm component in src/components/vmi/VmiCredentialsForm.tsx
+- [x] T021 [US1] Create VmiCredentialsForm component in src/components/purchasing/vmi/VmiCredentialsForm.tsx using DevExtreme Form, TextBox, Button
 - [x] T022 [US1] Add VMI configuration section to vendor detail page in src/app/purchasing/vendors/[id]/page.tsx
 - [x] T023 [US1] Implement transaction logging for config test operations
 
@@ -96,8 +97,8 @@
 - [ ] T034 [US5] Create PATCH /api/purchasing/vmi/orders/[id]/route.ts for confirm/ship actions
 - [ ] T035 [US5] Create GET /api/purchasing/vmi/orders/[id]/receipt-status/route.ts
 - [ ] T036 [US5] Implement local PO creation on order confirm (link vmi_order to purchase_order)
-- [ ] T037 [P] [US5] Create VmiOrdersGrid component in src/components/vmi/VmiOrdersGrid.tsx
-- [ ] T038 [P] [US5] Create VmiOrderDetail component in src/components/vmi/VmiOrderDetail.tsx
+- [ ] T037 [P] [US5] Create VmiOrdersGrid component in src/components/purchasing/vmi/VmiOrdersGrid.tsx using DevExtreme DataGrid
+- [ ] T038 [P] [US5] Create VmiOrderDetail component in src/components/purchasing/vmi/VmiOrderDetail.tsx using DevExtreme Form, TabPanel
 - [ ] T039 [US5] Create VMI orders page in src/app/purchasing/vmi/orders/page.tsx
 - [ ] T040 [US5] Create cron endpoint POST /api/purchasing/vmi/cron/poll-orders/route.ts
 
@@ -122,7 +123,7 @@
 - [ ] T044 [US2] Create GET /api/purchasing/vmi/sync/items/route.ts for pending items list
 - [ ] T045 [US2] Create POST /api/purchasing/vmi/sync/items/route.ts for syncing items
 - [ ] T046 [US2] Add TPP/TTMT code fields to item edit form
-- [ ] T047 [US2] Create VmiSyncStatus component in src/components/vmi/VmiSyncStatus.tsx
+- [ ] T047 [US2] Create VmiSyncStatus component in src/components/purchasing/vmi/VmiSyncStatus.tsx using DevExtreme LoadIndicator, ProgressBar
 - [ ] T048 [US2] Add sync status indicator to item list for VMI vendors
 
 **Checkpoint**: User Story 2 complete - items can be synced to VMI Portal
@@ -190,8 +191,8 @@
 
 - [ ] T065 [US6] Create GET /api/purchasing/vmi/dashboard/route.ts for dashboard stats
 - [ ] T066 [US6] Create GET /api/purchasing/vmi/transactions/route.ts for transaction log
-- [ ] T067 [US6] Create VmiDashboard component in src/components/vmi/VmiDashboard.tsx
-- [ ] T068 [US6] Create VmiTransactionLog component in src/components/vmi/VmiTransactionLog.tsx
+- [ ] T067 [US6] Create VmiDashboard component in src/components/purchasing/vmi/VmiDashboard.tsx using DevExtreme Charts, DataGrid, summary tiles
+- [ ] T068 [US6] Create VmiTransactionLog component in src/components/purchasing/vmi/VmiTransactionLog.tsx using DevExtreme DataGrid with filtering
 - [ ] T069 [US6] Create VMI dashboard page in src/app/purchasing/vmi/page.tsx
 - [ ] T070 [US6] Create VMI sync management page in src/app/purchasing/vmi/sync/page.tsx
 - [ ] T071 [US6] Add VMI menu items to purchasing navigation
@@ -324,7 +325,7 @@ After each user story phase:
 
 | Phase | Tasks | Parallel Tasks |
 |-------|-------|----------------|
-| Phase 1: Setup | 3 | 2 |
+| Phase 1: Setup | 4 | 3 |
 | Phase 2: Foundational | 11 | 5 |
 | Phase 3: US1 Credentials | 9 | 4 |
 | Phase 4: US5 Orders | 17 | 4 |
@@ -333,7 +334,7 @@ After each user story phase:
 | Phase 7: US4 Inventory | 7 | 2 |
 | Phase 8: US6 Dashboard | 9 | 2 |
 | Phase 9: Polish | 8 | 3 |
-| **Total** | **79** | **26** |
+| **Total** | **80** | **27** |
 
 ### Per Story Breakdown
 

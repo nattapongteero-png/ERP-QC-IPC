@@ -34,8 +34,10 @@ Technical approach: Extend existing Next.js API routes and services with VMI-spe
 | I. Code Quality Standards | ✅ PASS | TypeScript strict mode, ESLint, no hardcoded values (API URLs in config) |
 | I. Error Verification | ✅ PASS | Will run `pnpm tsc --noEmit` and `pnpm lint` after each change |
 | I. Frequent Commits | ✅ PASS | Commit after each logical unit of work |
+| I. Reusable Components | ✅ PASS | Components in `src/components/purchasing/vmi/`, shared dialogs in `src/components/shared/` |
 | II. Testing Standards | ✅ PASS | Unit tests for services, integration tests for API endpoints |
 | III. User Experience | ✅ PASS | Loading states, error feedback, form validation per existing patterns |
+| III. DevExtreme Components | ✅ PASS | All UI uses DevExtreme DataGrid, Form, Charts, LoadIndicator |
 | IV. Performance | ✅ PASS | API <500ms, pagination for large syncs, no N+1 queries |
 | V. Security & GMP | ✅ PASS | API key encryption, audit logging, role-based access |
 
@@ -98,11 +100,16 @@ src/
 │   └── crypto/
 │       └── encrypt.ts                  # NEW: API key encryption
 ├── components/
-│   └── vmi/                            # NEW: VMI-specific components
-│       ├── VmiCredentialsForm.tsx
-│       ├── VmiSyncStatus.tsx
-│       ├── VmiOrdersGrid.tsx
-│       └── VmiDashboard.tsx
+│   ├── shared/                         # Reusable components (per Constitution I)
+│   │   └── ConfirmationDialog.tsx      # NEW: Shared confirmation dialog
+│   └── purchasing/
+│       └── vmi/                        # NEW: VMI-specific components (domain folder)
+│           ├── VmiCredentialsForm.tsx  # Uses DevExtreme Form, TextBox, Button
+│           ├── VmiSyncStatus.tsx       # Uses DevExtreme LoadIndicator
+│           ├── VmiOrdersGrid.tsx       # Uses DevExtreme DataGrid
+│           ├── VmiOrderDetail.tsx      # Uses DevExtreme Form
+│           ├── VmiDashboard.tsx        # Uses DevExtreme Charts, DataGrid
+│           └── VmiTransactionLog.tsx   # Uses DevExtreme DataGrid
 └── types/
     └── vmi.ts                          # NEW: VMI types
 
