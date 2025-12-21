@@ -1,9 +1,9 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.1.0 → 1.2.0
+Version change: 1.2.0 → 1.3.0
 Modified principles:
-  - III. User Experience Consistency: Added "DevExpress/DevExtreme Components" requirement
+  - I. Code Quality Standards: Added "Reusable Components" requirement
 Added sections: None
 Removed sections: None
 Templates requiring updates:
@@ -11,6 +11,9 @@ Templates requiring updates:
   - .specify/templates/spec-template.md: ✅ Compatible (uses testable requirements format)
   - .specify/templates/tasks-template.md: ✅ Compatible (supports test-first workflow)
 Follow-up TODOs: None
+
+Previous changes (1.1.0 → 1.2.0):
+  - III. User Experience Consistency: Added "DevExpress/DevExtreme Components" requirement
 
 Previous changes (1.0.0 → 1.1.0):
   - I. Code Quality Standards: Added "Error Verification" and "Frequent Commits" requirements
@@ -33,8 +36,15 @@ All code in this project MUST adhere to the following non-negotiable quality sta
 - **Error Handling**: All async operations MUST have explicit error handling. API endpoints MUST return appropriate HTTP status codes and structured error responses.
 - **Error Verification**: After completing any code modification, developers MUST check for coding errors by running type checking (`pnpm tsc --noEmit`) and linting (`pnpm lint`). Code with errors MUST NOT be left in the codebase.
 - **Frequent Commits**: Code MUST be committed frequently after each completed task or logical unit of work to prevent loss of progress and enable easy rollback. Uncommitted code is at risk of being lost and makes debugging harder.
+- **Reusable Components**: Common UI patterns MUST be extracted into reusable components rather than inlined in pages. This includes:
+  - **Search dialogs**: Item lookup, vendor search, customer search MUST use shared search dialog components.
+  - **Data entry dialogs**: CRUD operations (create, edit, delete confirmations) MUST use shared dialog components.
+  - **Form patterns**: Common form layouts, validation patterns, and submit handlers MUST be abstracted into reusable form components or hooks.
+  - **Data grids**: Grid configurations for similar data types SHOULD share column definitions and behaviors.
+  - **Location**: Reusable components MUST be placed in `src/components/shared/` or domain-specific folders (e.g., `src/components/purchasing/`). Page-specific components that are NOT reused SHOULD be co-located with their page.
+  - **DRY Principle**: If the same UI pattern appears in 2+ places, it MUST be refactored into a shared component. Copy-pasting UI code across pages is PROHIBITED.
 
-**Rationale**: Consistent code quality reduces bugs, improves maintainability, and enables faster onboarding of new team members. Frequent commits and immediate error verification prevent accumulated technical debt and reduce the risk of losing work.
+**Rationale**: Consistent code quality reduces bugs, improves maintainability, and enables faster onboarding of new team members. Frequent commits and immediate error verification prevent accumulated technical debt and reduce the risk of losing work. Reusable components ensure UI consistency, reduce code duplication, and make updates easier—fixing a bug or adding a feature in one shared component benefits all consumers.
 
 ### II. Testing Standards
 
@@ -147,4 +157,4 @@ For day-to-day development guidance, refer to:
 - `.specify/` directory for feature specification workflows
 - Code comments and existing patterns for implementation guidance
 
-**Version**: 1.2.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-21
+**Version**: 1.3.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-21
