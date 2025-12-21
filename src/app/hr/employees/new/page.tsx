@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
@@ -13,6 +13,16 @@ import { OrgUnitPicker, PositionSelect } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import { UserPlus } from 'lucide-react';
 import type { EmployeeCreate } from '@/types/hr';
+
+// Fetch next available employee code
+async function fetchNextCode(): Promise<string> {
+  const response = await fetch('/api/hr/employees/next-code');
+  if (!response.ok) {
+    throw new Error('Failed to fetch next code');
+  }
+  const result = await response.json();
+  return result.data?.code || 'EMP001';
+}
 
 async function createEmployee(data: EmployeeCreate): Promise<{ id: number }> {
   const response = await fetch('/api/hr/employees', {
@@ -44,6 +54,24 @@ export default function NewEmployeePage() {
     hireDate: new Date().toISOString().split('T')[0],
   });
 
+  // Track if user has manually changed the code
+  const [userModifiedCode, setUserModifiedCode] = useState(false);
+
+  // Fetch next employee code
+  const { data: nextCode, refetch: refetchNextCode, isLoading: isLoadingCode } = useQuery({
+    queryKey: ['hr', 'employees', 'next-code'],
+    queryFn: fetchNextCode,
+  });
+
+  // Get the display code: use formData if user modified it, otherwise use nextCode
+  const displayCode = userModifiedCode ? formData.employeeCode : (nextCode || formData.employeeCode);
+
+  // Handler for code change that tracks user modification
+  const handleCodeChange = useCallback((value: string) => {
+    setUserModifiedCode(true);
+    setFormData(prev => ({ ...prev, employeeCode: value }));
+  }, []);
+
   const createMutation = useMutation({
     mutationFn: createEmployee,
     onSuccess: (data) => {
@@ -63,8 +91,11 @@ export default function NewEmployeePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Use displayCode for the actual employee code
+    const employeeCode = displayCode || formData.employeeCode;
+
     // Basic validation
-    if (!formData.employeeCode?.trim()) {
+    if (!employeeCode?.trim()) {
       toast.error('กรุณาระบุรหัสพนักงาน');
       return;
     }
@@ -82,7 +113,7 @@ export default function NewEmployeePage() {
     }
 
     createMutation.mutate({
-      employeeCode: formData.employeeCode!,
+      employeeCode: employeeCode,
       firstName: formData.firstName!,
       lastName: formData.lastName!,
       firstNameEn: formData.firstNameEn || undefined,
@@ -126,15 +157,35 @@ export default function NewEmployeePage() {
           </h2>
 
           {/* Employee Code */}
-          <DxTextBox
-            label="รหัสพนักงาน"
-            value={formData.employeeCode || ''}
-            onValueChange={(value) => handleInputChange('employeeCode', value)}
-            placeholder="เช่น EMP001"
-            required
-            requiredMessage="กรุณาระบุรหัสพนักงาน"
-            width="100%"
-          />
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <DxTextBox
+                label="รหัสพนักงาน"
+                value={displayCode || ''}
+                onValueChange={handleCodeChange}
+                placeholder={isLoadingCode ? 'กำลังโหลด...' : 'เช่น EMP001'}
+                required
+                requiredMessage="กรุณาระบุรหัสพนักงาน"
+                width="100%"
+                disabled={isLoadingCode}
+              />
+            </div>
+            <DxButton
+              icon="refresh"
+              type="default"
+              stylingMode="outlined"
+              hint="สร้างรหัสใหม่"
+              onClick={() => {
+                refetchNextCode().then((result) => {
+                  if (result.data) {
+                    setUserModifiedCode(false);
+                    setFormData(prev => ({ ...prev, employeeCode: result.data }));
+                  }
+                });
+              }}
+              disabled={isLoadingCode}
+            />
+          </div>
 
           {/* Name (Thai) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
