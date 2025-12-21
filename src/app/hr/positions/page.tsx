@@ -13,16 +13,15 @@ import DataGrid, {
   Pager,
   Selection,
   Scrolling,
-  Editing,
   Toolbar,
   Item,
   Lookup,
-  Popup as GridPopup,
-  Form as GridForm,
 } from 'devextreme-react/data-grid';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
+import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
-import { SimpleItem, GroupItem } from 'devextreme-react/form';
+import SelectBox from 'devextreme-react/select-box';
+import CheckBox from 'devextreme-react/check-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +29,24 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import { Briefcase, FileText, Check, X, Clock } from 'lucide-react';
 import type { Position, OrgUnit, JobDescription } from '@/types/hr';
-import type { RowInsertingEvent, RowUpdatingEvent } from 'devextreme/ui/data_grid';
+
+interface PositionFormData {
+  code: string;
+  title: string;
+  titleEn: string;
+  orgUnitId: number | null;
+  jobGrade: string;
+  isGmpCritical: boolean;
+}
+
+const emptyFormData: PositionFormData = {
+  code: '',
+  title: '',
+  titleEn: '',
+  orgUnitId: null,
+  jobGrade: '',
+  isGmpCritical: false,
+};
 
 const JD_STATUS_CONFIG = {
   draft: { label: 'ร่าง', variant: 'secondary' as const, icon: FileText },
@@ -66,7 +82,10 @@ async function createPosition(data: Partial<Position>): Promise<Position> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Failed to create position');
+  if (!response.ok) {
+    const result = await response.json();
+    throw new Error(result.error || 'Failed to create position');
+  }
   const result = await response.json();
   return result.data;
 }
@@ -77,7 +96,10 @@ async function updatePosition(id: number, data: Partial<Position>): Promise<Posi
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Failed to update position');
+  if (!response.ok) {
+    const result = await response.json();
+    throw new Error(result.error || 'Failed to update position');
+  }
   const result = await response.json();
   return result.data;
 }
@@ -88,7 +110,10 @@ async function createJobDescription(positionId: number, data: Partial<JobDescrip
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Failed to create job description');
+  if (!response.ok) {
+    const result = await response.json();
+    throw new Error(result.error || 'Failed to create job description');
+  }
   const result = await response.json();
   return result.data;
 }
@@ -98,9 +123,12 @@ export default function PositionsPage() {
   const toast = useToast();
 
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+  const [showCreatePopup, setShowCreatePopup] = useState(false);
+  const [showEditPopup, setShowEditPopup] = useState(false);
   const [showJDPopup, setShowJDPopup] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
   const [gridHeight, setGridHeight] = useState(600);
+  const [formData, setFormData] = useState<PositionFormData>(emptyFormData);
   const [newJD, setNewJD] = useState({
     responsibilities: '',
     authorities: '',
@@ -142,10 +170,12 @@ export default function PositionsPage() {
     mutationFn: createPosition,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'positions'] });
+      setShowCreatePopup(false);
+      setFormData(emptyFormData);
       toast.success('สร้างตำแหน่งสำเร็จ');
     },
-    onError: () => {
-      toast.error('ไม่สามารถสร้างตำแหน่งได้');
+    onError: (error: Error) => {
+      toast.error(error.message || 'ไม่สามารถสร้างตำแหน่งได้');
     },
   });
 
@@ -154,10 +184,13 @@ export default function PositionsPage() {
       updatePosition(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'positions'] });
+      setShowEditPopup(false);
+      setSelectedPosition(null);
+      setFormData(emptyFormData);
       toast.success('อัปเดตตำแหน่งสำเร็จ');
     },
-    onError: () => {
-      toast.error('ไม่สามารถอัปเดตตำแหน่งได้');
+    onError: (error: Error) => {
+      toast.error(error.message || 'ไม่สามารถอัปเดตตำแหน่งได้');
     },
   });
 
@@ -170,43 +203,59 @@ export default function PositionsPage() {
       setNewJD({ responsibilities: '', authorities: '', qualifications: '' });
       toast.success('สร้างรายละเอียดงานสำเร็จ');
     },
-    onError: () => {
-      toast.error('ไม่สามารถสร้างรายละเอียดงานได้');
+    onError: (error: Error) => {
+      toast.error(error.message || 'ไม่สามารถสร้างรายละเอียดงานได้');
     },
   });
 
-  const handleRowInserting = useCallback(
-    (e: RowInsertingEvent) => {
-      e.cancel = new Promise<boolean>((resolve, reject) => {
-        createMutation.mutate(e.data, {
-          onSuccess: () => resolve(false),
-          onError: () => reject(),
-        });
-      });
-    },
-    [createMutation]
-  );
+  const handleCreatePosition = useCallback(() => {
+    if (!formData.code || !formData.title) return;
+    createMutation.mutate({
+      code: formData.code,
+      title: formData.title,
+      titleEn: formData.titleEn || undefined,
+      orgUnitId: formData.orgUnitId || undefined,
+      jobGrade: formData.jobGrade || undefined,
+      isGmpCritical: formData.isGmpCritical,
+    });
+  }, [formData, createMutation]);
 
-  const handleRowUpdating = useCallback(
-    (e: RowUpdatingEvent) => {
-      const id = e.key as number;
-      e.cancel = new Promise<boolean>((resolve, reject) => {
-        updateMutation.mutate(
-          { id, data: e.newData },
-          {
-            onSuccess: () => resolve(false),
-            onError: () => reject(),
-          }
-        );
-      });
-    },
-    [updateMutation]
-  );
+  const handleUpdatePosition = useCallback(() => {
+    if (!selectedPosition || !formData.title) return;
+    updateMutation.mutate({
+      id: selectedPosition.id,
+      data: {
+        code: formData.code,
+        title: formData.title,
+        titleEn: formData.titleEn || undefined,
+        orgUnitId: formData.orgUnitId || undefined,
+        jobGrade: formData.jobGrade || undefined,
+        isGmpCritical: formData.isGmpCritical,
+      },
+    });
+  }, [selectedPosition, formData, updateMutation]);
+
+  const openEditPopup = useCallback((position: Position) => {
+    setSelectedPosition(position);
+    setFormData({
+      code: position.code || '',
+      title: position.title || '',
+      titleEn: position.titleEn || '',
+      orgUnitId: position.orgUnitId || null,
+      jobGrade: position.jobGrade || '',
+      isGmpCritical: position.isGmpCritical || false,
+    });
+    setShowEditPopup(true);
+  }, []);
 
   const handleRowClick = useCallback((e: { data: Position }) => {
     setSelectedPosition(e.data);
     setShowDetailPanel(true);
   }, []);
+
+  const handleRowDblClick = useCallback((e: { data: Position }) => {
+    openEditPopup(e.data);
+  }, [openEditPopup]);
 
   const handleCreateJD = useCallback(() => {
     if (!selectedPosition) return;
@@ -239,6 +288,82 @@ export default function PositionsPage() {
     });
   };
 
+  // Form content for popup
+  const renderFormContent = () => (
+    <div className="space-y-4 p-2">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            รหัสตำแหน่ง <span className="text-red-500">*</span>
+          </label>
+          <TextBox
+            value={formData.code}
+            onValueChanged={(e) => setFormData((prev) => ({ ...prev, code: e.value || '' }))}
+            placeholder="เช่น QC-001"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            ระดับตำแหน่ง
+          </label>
+          <TextBox
+            value={formData.jobGrade}
+            onValueChanged={(e) => setFormData((prev) => ({ ...prev, jobGrade: e.value || '' }))}
+            placeholder="เช่น Manager, Supervisor"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          ชื่อตำแหน่ง (ภาษาไทย) <span className="text-red-500">*</span>
+        </label>
+        <TextBox
+          value={formData.title}
+          onValueChanged={(e) => setFormData((prev) => ({ ...prev, title: e.value || '' }))}
+          placeholder="ชื่อตำแหน่งภาษาไทย"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          ชื่อตำแหน่ง (ภาษาอังกฤษ)
+        </label>
+        <TextBox
+          value={formData.titleEn}
+          onValueChanged={(e) => setFormData((prev) => ({ ...prev, titleEn: e.value || '' }))}
+          placeholder="Position title in English"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          หน่วยงาน
+        </label>
+        <SelectBox
+          dataSource={orgUnits}
+          valueExpr="id"
+          displayExpr="name"
+          value={formData.orgUnitId}
+          onValueChanged={(e) => setFormData((prev) => ({ ...prev, orgUnitId: e.value }))}
+          placeholder="เลือกหน่วยงาน..."
+          searchEnabled
+          showClearButton
+        />
+      </div>
+
+      <div className="flex items-center gap-2 pt-2">
+        <CheckBox
+          value={formData.isGmpCritical}
+          onValueChanged={(e) => setFormData((prev) => ({ ...prev, isGmpCritical: e.value || false }))}
+        />
+        <label className="text-sm font-medium text-gray-700">
+          ตำแหน่ง GMP Critical
+        </label>
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
       {/* T026: ResponsivePageHeader */}
@@ -252,6 +377,17 @@ export default function PositionsPage() {
           { label: 'HR', href: '/hr' },
           { label: 'ตำแหน่งงาน' },
         ]}
+        actions={
+          <DxButton
+            text="เพิ่มตำแหน่ง"
+            icon="plus"
+            type="default"
+            onClick={() => {
+              setFormData(emptyFormData);
+              setShowCreatePopup(true);
+            }}
+          />
+        }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
@@ -269,8 +405,7 @@ export default function PositionsPage() {
             columnHidingEnabled
             height={gridHeight}
             onRowClick={handleRowClick}
-            onRowInserting={handleRowInserting}
-            onRowUpdating={handleRowUpdating}
+            onRowDblClick={handleRowDblClick}
             hoverStateEnabled
             loadPanel={{ enabled: isLoading }}
             selectedRowKeys={selectedPosition ? [selectedPosition.id] : []}
@@ -286,44 +421,8 @@ export default function PositionsPage() {
               showInfo
             />
             <Selection mode="single" />
-            <Editing mode="popup" allowAdding allowUpdating useIcons>
-              <GridPopup title="ตำแหน่งงาน" showTitle width={600} height="auto" />
-              <GridForm>
-                <GroupItem colCount={2}>
-                  <SimpleItem dataField="code" isRequired>
-                    <label text="รหัสตำแหน่ง" />
-                  </SimpleItem>
-                  <SimpleItem dataField="jobGrade">
-                    <label text="ระดับตำแหน่ง" />
-                  </SimpleItem>
-                </GroupItem>
-                <SimpleItem dataField="title" isRequired>
-                  <label text="ชื่อตำแหน่ง (ภาษาไทย)" />
-                </SimpleItem>
-                <SimpleItem dataField="titleEn">
-                  <label text="ชื่อตำแหน่ง (ภาษาอังกฤษ)" />
-                </SimpleItem>
-                <SimpleItem
-                  dataField="orgUnitId"
-                  editorType="dxSelectBox"
-                  editorOptions={{
-                    dataSource: orgUnits,
-                    valueExpr: 'id',
-                    displayExpr: 'name',
-                    searchEnabled: true,
-                    showClearButton: true,
-                  }}
-                >
-                  <label text="หน่วยงาน" />
-                </SimpleItem>
-                <SimpleItem dataField="isGmpCritical" editorType="dxCheckBox">
-                  <label text="ตำแหน่ง GMP Critical" />
-                </SimpleItem>
-              </GridForm>
-            </Editing>
 
             <Toolbar>
-              <Item name="addRowButton" />
               <Item name="searchPanel" />
             </Toolbar>
 
@@ -373,13 +472,22 @@ export default function PositionsPage() {
                     <h3 className="font-semibold text-gray-900">{selectedPosition.title}</h3>
                     <p className="text-sm text-gray-500">{selectedPosition.code}</p>
                   </div>
-                  <button
-                    onClick={() => setShowDetailPanel(false)}
-                    className="lg:hidden p-1 text-gray-400 hover:text-gray-600"
-                    aria-label="Close panel"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <DxButton
+                      icon="edit"
+                      hint="แก้ไข"
+                      type="default"
+                      stylingMode="text"
+                      onClick={() => openEditPopup(selectedPosition)}
+                    />
+                    <button
+                      onClick={() => setShowDetailPanel(false)}
+                      className="lg:hidden p-1 text-gray-400 hover:text-gray-600"
+                      aria-label="Close panel"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   {selectedPosition.isGmpCritical && (
@@ -453,6 +561,82 @@ export default function PositionsPage() {
         </div>
       </div>
 
+      {/* Create Position Popup */}
+      <Popup
+        visible={showCreatePopup}
+        onHiding={() => {
+          setShowCreatePopup(false);
+          setFormData(emptyFormData);
+        }}
+        title="เพิ่มตำแหน่งงานใหม่"
+        width={600}
+        height="auto"
+        showCloseButton
+      >
+        {renderFormContent()}
+
+        <ToolbarItem
+          widget="dxButton"
+          location="after"
+          options={{
+            text: 'ยกเลิก',
+            onClick: () => {
+              setShowCreatePopup(false);
+              setFormData(emptyFormData);
+            },
+          }}
+        />
+        <ToolbarItem
+          widget="dxButton"
+          location="after"
+          options={{
+            text: 'สร้าง',
+            type: 'default',
+            disabled: !formData.code || !formData.title || createMutation.isPending,
+            onClick: handleCreatePosition,
+          }}
+        />
+      </Popup>
+
+      {/* Edit Position Popup */}
+      <Popup
+        visible={showEditPopup}
+        onHiding={() => {
+          setShowEditPopup(false);
+          setSelectedPosition(null);
+          setFormData(emptyFormData);
+        }}
+        title={`แก้ไขตำแหน่ง: ${selectedPosition?.code || ''}`}
+        width={600}
+        height="auto"
+        showCloseButton
+      >
+        {renderFormContent()}
+
+        <ToolbarItem
+          widget="dxButton"
+          location="after"
+          options={{
+            text: 'ยกเลิก',
+            onClick: () => {
+              setShowEditPopup(false);
+              setSelectedPosition(null);
+              setFormData(emptyFormData);
+            },
+          }}
+        />
+        <ToolbarItem
+          widget="dxButton"
+          location="after"
+          options={{
+            text: 'บันทึก',
+            type: 'default',
+            disabled: !formData.title || updateMutation.isPending,
+            onClick: handleUpdatePosition,
+          }}
+        />
+      </Popup>
+
       {/* Create Job Description Popup */}
       <Popup
         visible={showJDPopup}
@@ -501,21 +685,18 @@ export default function PositionsPage() {
           widget="dxButton"
           location="after"
           options={{
-            text: 'บันทึก',
-            type: 'default',
-            stylingMode: 'contained',
-            onClick: handleCreateJD,
-            disabled: createJDMutation.isPending,
+            text: 'ยกเลิก',
+            onClick: () => setShowJDPopup(false),
           }}
         />
         <ToolbarItem
           widget="dxButton"
           location="after"
           options={{
-            text: 'ยกเลิก',
+            text: 'บันทึก',
             type: 'default',
-            stylingMode: 'outlined',
-            onClick: () => setShowJDPopup(false),
+            disabled: createJDMutation.isPending,
+            onClick: handleCreateJD,
           }}
         />
       </Popup>
