@@ -198,8 +198,8 @@ export default function RolesPage() {
     );
   }, [permissions]);
 
-  // Render functions
-  const renderStatusCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
+  // Render functions - NOT wrapped in useCallback (like courses page pattern)
+  const renderStatusCell = (cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
     if (role.isSystemRole) {
       return (
@@ -214,17 +214,17 @@ export default function RolesPage() {
     ) : (
       <Badge variant="danger">ปิดใช้งาน</Badge>
     );
-  }, []);
+  };
 
-  const renderPermissionCountCell = useCallback((cellData: { value: number }) => {
+  const renderPermissionCountCell = (cellData: { value: number }) => {
     return (
       <Badge variant="secondary" className="text-xs">
         {cellData.value} สิทธิ์
       </Badge>
     );
-  }, []);
+  };
 
-  const renderActionsCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
+  const renderActionsCell = (cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
 
     return (
@@ -256,7 +256,7 @@ export default function RolesPage() {
         )}
       </div>
     );
-  }, [handleOpenPermissionsPopup, handleOpenEditDialog, handleDeactivateRole]);
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
