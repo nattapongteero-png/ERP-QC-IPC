@@ -16,12 +16,10 @@ import DataGrid, {
   Editing,
   Toolbar,
   Item,
+  Popup as GridPopup,
+  Form as GridForm,
 } from 'devextreme-react/data-grid';
-import { Popup, ToolbarItem } from 'devextreme-react/popup';
-import TextBox from 'devextreme-react/text-box';
-import TextArea from 'devextreme-react/text-area';
-import NumberBox from 'devextreme-react/number-box';
-import CheckBox from 'devextreme-react/check-box';
+import { SimpleItem, GroupItem } from 'devextreme-react/form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
@@ -62,18 +60,7 @@ async function updateCourse(id: number, data: Partial<TrainingCourse>): Promise<
 export default function TrainingCoursesPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [gridHeight, setGridHeight] = useState(600);
-  const [newCourse, setNewCourse] = useState({
-    code: '',
-    name: '',
-    nameEn: '',
-    description: '',
-    category: '',
-    validityDays: undefined as number | undefined,
-    durationHours: undefined as number | undefined,
-    isMandatory: false,
-  });
 
   // Responsive height calculation
   useEffect(() => {
@@ -102,17 +89,6 @@ export default function TrainingCoursesPage() {
     mutationFn: createCourse,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'courses'] });
-      setShowCreatePopup(false);
-      setNewCourse({
-        code: '',
-        name: '',
-        nameEn: '',
-        description: '',
-        category: '',
-        validityDays: undefined,
-        durationHours: undefined,
-        isMandatory: false,
-      });
       toast.success('สร้างหลักสูตรอบรมสำเร็จ');
     },
     onError: () => {
@@ -159,10 +135,6 @@ export default function TrainingCoursesPage() {
     },
     [updateMutation]
   );
-
-  const handleCreateCourse = useCallback(() => {
-    createMutation.mutate(newCourse);
-  }, [newCourse, createMutation]);
 
   const renderMandatoryCell = (cellData: { value: boolean }) => {
     return cellData.value ? (
@@ -277,7 +249,39 @@ export default function TrainingCoursesPage() {
           <Paging defaultPageSize={20} />
           <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
           <Selection mode="single" />
-          <Editing mode="row" allowAdding allowUpdating useIcons />
+          <Editing mode="popup" allowAdding allowUpdating useIcons>
+            <GridPopup title="หลักสูตรอบรม" showTitle width={600} height="auto" />
+            <GridForm>
+              <GroupItem colCount={2}>
+                <SimpleItem dataField="code" isRequired>
+                  <label text="รหัสหลักสูตร" />
+                </SimpleItem>
+                <SimpleItem dataField="category">
+                  <label text="หมวดหมู่" />
+                </SimpleItem>
+              </GroupItem>
+              <SimpleItem dataField="name" isRequired>
+                <label text="ชื่อหลักสูตร (ภาษาไทย)" />
+              </SimpleItem>
+              <SimpleItem dataField="nameEn">
+                <label text="ชื่อหลักสูตร (ภาษาอังกฤษ)" />
+              </SimpleItem>
+              <SimpleItem dataField="description" editorType="dxTextArea" editorOptions={{ height: 100 }}>
+                <label text="รายละเอียด" />
+              </SimpleItem>
+              <GroupItem colCount={2}>
+                <SimpleItem dataField="validityDays" editorType="dxNumberBox" editorOptions={{ min: 0 }}>
+                  <label text="อายุการรับรอง (วัน)" />
+                </SimpleItem>
+                <SimpleItem dataField="durationHours" editorType="dxNumberBox" editorOptions={{ min: 0 }}>
+                  <label text="ระยะเวลาอบรม (ชั่วโมง)" />
+                </SimpleItem>
+              </GroupItem>
+              <SimpleItem dataField="isMandatory" editorType="dxCheckBox">
+                <label text="หลักสูตรบังคับ" />
+              </SimpleItem>
+            </GridForm>
+          </Editing>
 
           <Toolbar>
             <Item name="addRowButton" />
@@ -321,94 +325,6 @@ export default function TrainingCoursesPage() {
           />
         </DataGrid>
       </div>
-
-      {/* Create Course Popup */}
-      <Popup
-        visible={showCreatePopup}
-        onHiding={() => setShowCreatePopup(false)}
-        title="สร้างหลักสูตรอบรมใหม่"
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <TextBox
-              value={newCourse.code}
-              onValueChanged={(e) => setNewCourse((prev) => ({ ...prev, code: e.value || '' }))}
-              label="รหัสหลักสูตร"
-              labelMode="floating"
-            />
-            <TextBox
-              value={newCourse.category}
-              onValueChanged={(e) => setNewCourse((prev) => ({ ...prev, category: e.value || '' }))}
-              label="หมวดหมู่"
-              labelMode="floating"
-            />
-          </div>
-          <TextBox
-            value={newCourse.name}
-            onValueChanged={(e) => setNewCourse((prev) => ({ ...prev, name: e.value || '' }))}
-            label="ชื่อหลักสูตร (ภาษาไทย)"
-            labelMode="floating"
-          />
-          <TextBox
-            value={newCourse.nameEn}
-            onValueChanged={(e) => setNewCourse((prev) => ({ ...prev, nameEn: e.value || '' }))}
-            label="ชื่อหลักสูตร (ภาษาอังกฤษ)"
-            labelMode="floating"
-          />
-          <TextArea
-            value={newCourse.description}
-            onValueChanged={(e) => setNewCourse((prev) => ({ ...prev, description: e.value || '' }))}
-            label="รายละเอียด"
-            labelMode="floating"
-            height={100}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <NumberBox
-              value={newCourse.validityDays}
-              onValueChanged={(e) => setNewCourse((prev) => ({ ...prev, validityDays: e.value }))}
-              label="อายุการรับรอง (วัน)"
-              labelMode="floating"
-              min={0}
-            />
-            <NumberBox
-              value={newCourse.durationHours}
-              onValueChanged={(e) => setNewCourse((prev) => ({ ...prev, durationHours: e.value }))}
-              label="ระยะเวลาอบรม (ชั่วโมง)"
-              labelMode="floating"
-              min={0}
-            />
-          </div>
-          <CheckBox
-            value={newCourse.isMandatory}
-            onValueChanged={(e) => setNewCourse((prev) => ({ ...prev, isMandatory: e.value || false }))}
-            text="หลักสูตรบังคับ"
-          />
-        </div>
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'บันทึก',
-            type: 'default',
-            stylingMode: 'contained',
-            onClick: handleCreateCourse,
-            disabled: createMutation.isPending || !newCourse.code || !newCourse.name,
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            type: 'default',
-            stylingMode: 'outlined',
-            onClick: () => setShowCreatePopup(false),
-          }}
-        />
-      </Popup>
     </div>
   );
 }

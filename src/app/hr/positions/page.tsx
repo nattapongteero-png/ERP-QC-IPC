@@ -17,9 +17,12 @@ import DataGrid, {
   Toolbar,
   Item,
   Lookup,
+  Popup as GridPopup,
+  Form as GridForm,
 } from 'devextreme-react/data-grid';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TextArea from 'devextreme-react/text-area';
+import { SimpleItem, GroupItem } from 'devextreme-react/form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
@@ -283,12 +286,41 @@ export default function PositionsPage() {
               showInfo
             />
             <Selection mode="single" />
-            <Editing
-              mode="row"
-              allowAdding
-              allowUpdating
-              useIcons
-            />
+            <Editing mode="popup" allowAdding allowUpdating useIcons>
+              <GridPopup title="ตำแหน่งงาน" showTitle width={600} height="auto" />
+              <GridForm>
+                <GroupItem colCount={2}>
+                  <SimpleItem dataField="code" isRequired>
+                    <label text="รหัสตำแหน่ง" />
+                  </SimpleItem>
+                  <SimpleItem dataField="jobGrade">
+                    <label text="ระดับตำแหน่ง" />
+                  </SimpleItem>
+                </GroupItem>
+                <SimpleItem dataField="title" isRequired>
+                  <label text="ชื่อตำแหน่ง (ภาษาไทย)" />
+                </SimpleItem>
+                <SimpleItem dataField="titleEn">
+                  <label text="ชื่อตำแหน่ง (ภาษาอังกฤษ)" />
+                </SimpleItem>
+                <SimpleItem
+                  dataField="orgUnitId"
+                  editorType="dxSelectBox"
+                  editorOptions={{
+                    dataSource: orgUnits,
+                    valueExpr: 'id',
+                    displayExpr: 'name',
+                    searchEnabled: true,
+                    showClearButton: true,
+                  }}
+                >
+                  <label text="หน่วยงาน" />
+                </SimpleItem>
+                <SimpleItem dataField="isGmpCritical" editorType="dxCheckBox">
+                  <label text="ตำแหน่ง GMP Critical" />
+                </SimpleItem>
+              </GridForm>
+            </Editing>
 
             <Toolbar>
               <Item name="addRowButton" />
