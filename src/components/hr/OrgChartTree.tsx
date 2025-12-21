@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState, useMemo, useRef } from 'react';
 import TreeList, { Column, Editing, Selection, SearchPanel, HeaderFilter, Scrolling, Sorting, ColumnChooser, Lookup } from 'devextreme-react/tree-list';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/toast';
 import type { OrgUnit, OrgUnitCreate, OrgUnitUpdate } from '@/types/hr';
-import type { RowInsertingEvent, RowUpdatingEvent, RowRemovingEvent } from 'devextreme/ui/tree_list';
+import type { RowInsertingEvent, RowUpdatingEvent, RowRemovingEvent, InitNewRowEvent, EditorPreparingEvent } from 'devextreme/ui/tree_list';
 import type { SelectionChangedEvent } from 'devextreme/ui/tree_list';
 
 export interface OrgChartTreeProps {
@@ -31,6 +31,37 @@ const ORG_UNIT_TYPES = [
   { value: 'section', label: 'หมวด' },
   { value: 'unit', label: 'หน่วย' },
 ];
+
+// Prefix mapping for auto-generating codes
+const ORG_TYPE_PREFIXES: Record<string, string> = {
+  company: 'COMP',
+  site: 'SITE',
+  division: 'DIV',
+  department: 'DEPT',
+  section: 'SEC',
+  unit: 'UNIT',
+};
+
+/**
+ * Generate next org unit code based on existing codes
+ */
+function generateNextCode(existingCodes: string[], type: string): string {
+  const prefix = ORG_TYPE_PREFIXES[type] || 'ORG';
+
+  // Find existing codes with this prefix
+  const pattern = new RegExp(`^${prefix}-(\\d+)$`);
+  const numbers = existingCodes
+    .map(code => {
+      const match = code.match(pattern);
+      return match ? parseInt(match[1], 10) : 0;
+    })
+    .filter(n => n > 0);
+
+  const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
+  const nextNumber = maxNumber + 1;
+
+  return `${prefix}-${String(nextNumber).padStart(3, '0')}`;
+}
 
 async function fetchOrgUnits(): Promise<OrgUnit[]> {
   const response = await fetch('/api/hr/org-units?isActive=true');
@@ -88,6 +119,7 @@ export function OrgChartTree({
   className,
 }: OrgChartTreeProps) {
   const [selectedRowKey, setSelectedRowKey] = useState<number | null>(null);
+  const isInsertingRef = useRef(false);
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -103,6 +135,9 @@ export function OrgChartTree({
       hasItems: orgUnits.some(u => u.parentId === unit.id),
     }));
   }, [orgUnits]);
+
+  // Get all existing codes for auto-generation
+  const existingCodes = useMemo(() => orgUnits.map(u => u.code), [orgUnits]);
 
   const createMutation = useMutation({
     mutationFn: createOrgUnit,
@@ -196,6 +231,59 @@ export function OrgChartTree({
     [deleteMutation]
   );
 
+  // Handle new row initialization - auto-generate code
+  const handleInitNewRow = useCallback(
+    (e: InitNewRowEvent<FlatOrgUnit, number>) => {
+      isInsertingRef.current = true;
+      const defaultType = 'department';
+      const generatedCode = generateNextCode(existingCodes, defaultType);
+
+      e.data = {
+        ...e.data,
+        code: generatedCode,
+        type: defaultType,
+        isGmpCritical: false,
+        effectiveFrom: new Date().toISOString().split('T')[0],
+      } as FlatOrgUnit;
+    },
+    [existingCodes]
+  );
+
+  // Handle editor preparation - make code read-only when editing existing row
+  const handleEditorPreparing = useCallback(
+    (e: EditorPreparingEvent<FlatOrgUnit, number>) => {
+      if (e.dataField === 'code' && e.parentType === 'dataRow') {
+        // Check if this is an edit (not insert) by checking if the row has an id
+        if (!isInsertingRef.current) {
+          e.editorOptions.readOnly = true;
+        }
+      }
+
+      // Regenerate code when type changes during insert
+      if (e.dataField === 'type' && isInsertingRef.current && e.parentType === 'dataRow') {
+        const originalOnValueChanged = e.editorOptions.onValueChanged;
+        e.editorOptions.onValueChanged = (args: { value: string }) => {
+          if (originalOnValueChanged) {
+            originalOnValueChanged(args);
+          }
+          // Update the code based on new type
+          const newCode = generateNextCode(existingCodes, args.value);
+          if (e.row?.data) {
+            e.row.data.code = newCode;
+          }
+          // Refresh the code cell
+          e.component?.cellValue(e.row!.rowIndex, 'code', newCode);
+        };
+      }
+    },
+    [existingCodes]
+  );
+
+  // Reset inserting flag when editing ends
+  const handleEditingStart = useCallback(() => {
+    isInsertingRef.current = false;
+  }, []);
+
   const parentLookupData = useMemo(() => {
     return [{ id: null, displayName: '(รากของต้นไม้)' }, ...flatData.map(u => ({
       id: u.id,
@@ -227,6 +315,9 @@ export function OrgChartTree({
       className={className}
       selectedRowKeys={selectedRowKey ? [selectedRowKey] : []}
       onSelectionChanged={handleSelectionChanged}
+      onInitNewRow={handleInitNewRow}
+      onEditingStart={handleEditingStart}
+      onEditorPreparing={handleEditorPreparing}
       onRowInserting={handleRowInserting}
       onRowUpdating={handleRowUpdating}
       onRowRemoving={handleRowRemoving}
