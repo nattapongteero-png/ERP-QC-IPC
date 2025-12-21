@@ -20,7 +20,7 @@ import TextArea from 'devextreme-react/text-area';
 import TagBox from 'devextreme-react/tag-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxDateBox, buddhistDateFormat } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import {
@@ -389,7 +389,8 @@ export default function HealthRecordsPage() {
               dataField="examinationDate"
               caption="วันที่ตรวจ"
               dataType="date"
-              format="dd/MM/yyyy"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              format={buddhistDateFormat as any}
               width={120}
             />
             <Column
@@ -407,7 +408,8 @@ export default function HealthRecordsPage() {
               dataField="nextExamDue"
               caption="ครบกำหนดตรวจครั้งถัดไป"
               dataType="date"
-              format="dd/MM/yyyy"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              format={buddhistDateFormat as any}
               width={160}
             />
             <Column
@@ -452,14 +454,16 @@ export default function HealthRecordsPage() {
               dataField="lastExamDate"
               caption="วันที่ตรวจครั้งล่าสุด"
               dataType="date"
-              format="dd/MM/yyyy"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              format={buddhistDateFormat as any}
               width={160}
             />
             <Column
               dataField="nextExamDue"
               caption="ครบกำหนด"
               dataType="date"
-              format="dd/MM/yyyy"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              format={buddhistDateFormat as any}
               width={120}
             />
             <Column
@@ -511,14 +515,16 @@ export default function HealthRecordsPage() {
               dataField="lastExamDate"
               caption="วันที่ตรวจครั้งล่าสุด"
               dataType="date"
-              format="dd/MM/yyyy"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              format={buddhistDateFormat as any}
               width={160}
             />
             <Column
               dataField="nextExamDue"
               caption="กำหนดตรวจ"
               dataType="date"
-              format="dd/MM/yyyy"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              format={buddhistDateFormat as any}
               width={120}
             />
             <Column

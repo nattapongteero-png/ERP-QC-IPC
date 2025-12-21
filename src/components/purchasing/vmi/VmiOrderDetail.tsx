@@ -320,7 +320,6 @@ export function VmiOrderDetail({
               <DxDateBox
                 value={shipDate}
                 onValueChange={setShipDate}
-                displayFormat="dd/MM/yyyy"
                 width={140}
               />
               <DxButton

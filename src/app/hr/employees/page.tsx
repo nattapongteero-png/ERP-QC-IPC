@@ -21,6 +21,7 @@ import DataGrid, {
 import { useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
+import { buddhistDateFormat } from '@/components/ui/dx-date-box';
 import { OrgUnitPicker } from '@/components/shared';
 import { Users, UserPlus, Filter, RefreshCw } from 'lucide-react';
 import type { Employee } from '@/types/hr';
@@ -263,7 +264,8 @@ export default function EmployeesPage() {
             dataField="hireDate"
             caption="วันเริ่มงาน"
             dataType="date"
-            format="dd/MM/yyyy"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            format={buddhistDateFormat as any}
             width={120}
           />
         </DataGrid>

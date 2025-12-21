@@ -341,7 +341,6 @@ export function VmiOrdersGrid({
               <DxDateBox
                 value={filters.dateFrom}
                 onValueChange={(value) => handleFilterChange('dateFrom', value || undefined)}
-                displayFormat="dd/MM/yyyy"
               />
             </div>
             <div>
@@ -349,7 +348,6 @@ export function VmiOrdersGrid({
               <DxDateBox
                 value={filters.dateTo}
                 onValueChange={(value) => handleFilterChange('dateTo', value || undefined)}
-                displayFormat="dd/MM/yyyy"
               />
             </div>
           </div>

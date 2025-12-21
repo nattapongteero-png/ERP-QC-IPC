@@ -17,6 +17,7 @@ import { Popup } from 'devextreme-react/popup';
 import SelectBox from 'devextreme-react/select-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
+import { buddhistDateTimeFormat } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import {
   Bell,
@@ -377,7 +378,8 @@ export default function NotificationsPage() {
             caption="วันที่สร้าง"
             dataType="datetime"
             width={160}
-            format="dd/MM/yyyy HH:mm"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            format={buddhistDateTimeFormat as any}
           />
           <Column
             caption="จัดการ"
