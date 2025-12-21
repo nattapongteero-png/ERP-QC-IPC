@@ -82,7 +82,9 @@ export const sqliteItems = sqliteTable('items', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: text('tpp_code'), // Thai Pharmaceutical Product code (13 digits)
+  tppName: text('tpp_name'), // TPP product name from VMI Portal
   ttmtCode: text('ttmt_code'), // Thai Traditional Medicine Terminology (A + 8 digits)
+  ttmtName: text('ttmt_name'), // TTMT product name (FSN) from VMI Portal
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -950,7 +952,9 @@ export const mysqlItems = mysqlTable('items', {
   isActive: mysqlBoolean('is_active').notNull().default(true),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: varchar('tpp_code', { length: 13 }), // Thai Pharmaceutical Product code (13 digits)
+  tppName: varchar('tpp_name', { length: 255 }), // TPP product name from VMI Portal
   ttmtCode: varchar('ttmt_code', { length: 10 }), // Thai Traditional Medicine Terminology (A + 8 digits)
+  ttmtName: varchar('ttmt_name', { length: 255 }), // TTMT product name (FSN) from VMI Portal
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
