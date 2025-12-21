@@ -29,6 +29,13 @@ import {
   Sparkles,
   Activity,
   Building2,
+  UserCog,
+  Network,
+  GraduationCap,
+  Shield,
+  HeartPulse,
+  Bell,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -92,6 +99,22 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingBag },
       { name: 'Customers', href: '/sales/customers', icon: UserCheck },
+    ],
+  },
+  {
+    name: 'HR',
+    href: '/hr',
+    icon: UserCog,
+    children: [
+      { name: 'Organization', href: '/hr/org', icon: Network },
+      { name: 'Employees', href: '/hr/employees', icon: Users },
+      { name: 'Positions', href: '/hr/positions', icon: ClipboardList },
+      { name: 'Training', href: '/hr/training', icon: GraduationCap },
+      { name: 'Authorizations', href: '/hr/authorizations', icon: Shield },
+      { name: 'Health Records', href: '/hr/health-records', icon: HeartPulse },
+      { name: 'Roles', href: '/hr/roles', icon: UserCheck },
+      { name: 'Notifications', href: '/hr/notifications', icon: Bell },
+      { name: 'Audit Trail', href: '/hr/audit', icon: History },
     ],
   },
   { name: 'Reports', href: '/reports', icon: FileText },
