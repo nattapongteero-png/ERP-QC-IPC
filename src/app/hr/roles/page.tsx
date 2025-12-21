@@ -16,6 +16,7 @@ import DataGrid, {
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TagBox from 'devextreme-react/tag-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Button from 'devextreme-react/button';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
@@ -229,7 +230,7 @@ export default function RolesPage() {
 
     return (
       <div className="flex gap-1">
-        <DxButton
+        <Button
           icon="key"
           hint="จัดการสิทธิ์"
           type="default"
@@ -237,7 +238,7 @@ export default function RolesPage() {
           onClick={() => handleOpenPermissionsPopup(role)}
           disabled={role.isSystemRole}
         />
-        <DxButton
+        <Button
           icon="edit"
           hint="แก้ไข"
           type="default"
@@ -246,7 +247,7 @@ export default function RolesPage() {
           disabled={role.isSystemRole}
         />
         {role.isActive && !role.isSystemRole && (
-          <DxButton
+          <Button
             icon="close"
             hint="ปิดใช้งาน"
             type="danger"
