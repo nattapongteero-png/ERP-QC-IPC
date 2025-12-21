@@ -70,6 +70,58 @@ async function deactivateRole(id: number): Promise<void> {
   }
 }
 
+// Separate component for each module's TagBox to prevent re-render issues
+function PermissionModuleTagBox({
+  module,
+  modulePermissions,
+  selectedPermissionIds,
+  onSelectionChange,
+}: {
+  module: string;
+  modulePermissions: AppPermission[];
+  selectedPermissionIds: number[];
+  onSelectionChange: (newIds: number[]) => void;
+}) {
+  // Calculate value for this module only
+  const modulePermissionIds = useMemo(
+    () => modulePermissions.map((p) => p.id),
+    [modulePermissions]
+  );
+
+  const value = useMemo(
+    () => selectedPermissionIds.filter((id) => modulePermissionIds.includes(id)),
+    [selectedPermissionIds, modulePermissionIds]
+  );
+
+  const handleValueChanged = useCallback(
+    (e: { value?: number[] }) => {
+      const otherModuleIds = selectedPermissionIds.filter(
+        (id) => !modulePermissionIds.includes(id)
+      );
+      onSelectionChange([...otherModuleIds, ...(e.value || [])]);
+    },
+    [selectedPermissionIds, modulePermissionIds, onSelectionChange]
+  );
+
+  return (
+    <div className="border rounded-lg p-4">
+      <h3 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+        <Settings className="h-4 w-4" />
+        {module}
+      </h3>
+      <TagBox
+        items={modulePermissions}
+        displayExpr="name"
+        valueExpr="id"
+        value={value}
+        onValueChanged={handleValueChanged}
+        showSelectionControls
+        placeholder="เลือกสิทธิ์..."
+      />
+    </div>
+  );
+}
+
 export default function RolesPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -372,61 +424,48 @@ export default function RolesPage() {
         role={editingRole}
       />
 
-      {/* Permissions Popup */}
-      <Popup
-        visible={showPermissionsPopup}
-        onHiding={handleClosePermissionsPopup}
-        title={`จัดการสิทธิ์: ${selectedRole?.name || ''}`}
-        width={700}
-        height={600}
-        showCloseButton
-      >
-        <div className="space-y-4 p-2 h-full overflow-y-auto">
-          {Object.entries(permissionsByModule).map(([module, modulePermissions]) => (
-            <div key={module} className="border rounded-lg p-4">
-              <h3 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                {module}
-              </h3>
-              <TagBox
-                items={modulePermissions}
-                displayExpr="name"
-                valueExpr="id"
-                value={selectedPermissionIds.filter((id) =>
-                  modulePermissions.some((p) => p.id === id)
-                )}
-                onValueChanged={(e) => {
-                  const otherModuleIds = selectedPermissionIds.filter(
-                    (id) => !modulePermissions.some((p) => p.id === id)
-                  );
-                  setSelectedPermissionIds([...otherModuleIds, ...(e.value || [])]);
-                }}
-                showSelectionControls
-                placeholder="เลือกสิทธิ์..."
+      {/* Permissions Popup - only render when visible */}
+      {showPermissionsPopup && (
+        <Popup
+          visible={true}
+          onHiding={handleClosePermissionsPopup}
+          title={`จัดการสิทธิ์: ${selectedRole?.name || ''}`}
+          width={700}
+          height={600}
+          showCloseButton
+        >
+          <div className="space-y-4 p-2 h-full overflow-y-auto">
+            {Object.entries(permissionsByModule).map(([module, modulePermissions]) => (
+              <PermissionModuleTagBox
+                key={module}
+                module={module}
+                modulePermissions={modulePermissions}
+                selectedPermissionIds={selectedPermissionIds}
+                onSelectionChange={(newIds) => setSelectedPermissionIds(newIds)}
               />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            onClick: handleClosePermissionsPopup,
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'บันทึก',
-            type: 'default',
-            disabled: permissionsMutation.isPending,
-            onClick: handleUpdatePermissions,
-          }}
-        />
-      </Popup>
+          <ToolbarItem
+            widget="dxButton"
+            location="after"
+            options={{
+              text: 'ยกเลิก',
+              onClick: handleClosePermissionsPopup,
+            }}
+          />
+          <ToolbarItem
+            widget="dxButton"
+            location="after"
+            options={{
+              text: 'บันทึก',
+              type: 'default',
+              disabled: permissionsMutation.isPending,
+              onClick: handleUpdatePermissions,
+            }}
+          />
+        </Popup>
+      )}
     </div>
   );
 }
