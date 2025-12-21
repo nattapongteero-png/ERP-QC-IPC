@@ -1,10 +1,9 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0
+Version change: 1.1.0 → 1.2.0
 Modified principles:
-  - I. Code Quality Standards: Added "Error Verification" and "Frequent Commits" requirements
-  - Development Workflow: Enhanced steps 2-4 with mandatory error checking and commit requirements
+  - III. User Experience Consistency: Added "DevExpress/DevExtreme Components" requirement
 Added sections: None
 Removed sections: None
 Templates requiring updates:
@@ -12,6 +11,10 @@ Templates requiring updates:
   - .specify/templates/spec-template.md: ✅ Compatible (uses testable requirements format)
   - .specify/templates/tasks-template.md: ✅ Compatible (supports test-first workflow)
 Follow-up TODOs: None
+
+Previous changes (1.0.0 → 1.1.0):
+  - I. Code Quality Standards: Added "Error Verification" and "Frequent Commits" requirements
+  - Development Workflow: Enhanced steps 2-4 with mandatory error checking and commit requirements
 -->
 
 # Herbal Medicine ERP Constitution
@@ -54,10 +57,11 @@ The user interface MUST provide a consistent, accessible, and responsive experie
 - **Loading States**: All async operations MUST display appropriate loading indicators. Users MUST NOT see blank screens or unresponsive UI during data fetching.
 - **Error Feedback**: All user-facing errors MUST display clear, actionable messages in the user's language (Thai or English based on context). Technical error details SHOULD be logged but NOT displayed to users.
 - **Form Validation**: All forms MUST validate inputs on blur and before submission. Validation errors MUST be displayed inline next to the relevant field.
-- **Consistent Styling**: Use Tailwind CSS utility classes consistently. Custom CSS SHOULD be avoided unless Tailwind utilities are insufficient. Component styling MUST follow existing patterns in the codebase.
-- **Accessibility**: Interactive elements MUST be keyboard accessible. Form inputs MUST have associated labels. Color MUST NOT be the only means of conveying information.
+- **DevExpress/DevExtreme Components**: All UI components MUST use DevExpress/DevExtreme React components as the primary component library. The project has a purchased enterprise license for all DevExpress products. Native HTML elements or other component libraries (e.g., shadcn/ui, Material UI, Ant Design) MUST NOT be used when a DevExtreme equivalent exists. This ensures consistent look-and-feel, professional-grade functionality, and full utilization of the licensed software.
+- **Consistent Styling**: Use Tailwind CSS utility classes for layout and spacing. DevExtreme theming MUST be used for component styling. Custom CSS SHOULD be avoided unless DevExtreme theming and Tailwind utilities are insufficient. Component styling MUST follow existing patterns in the codebase.
+- **Accessibility**: Interactive elements MUST be keyboard accessible. Form inputs MUST have associated labels. Color MUST NOT be the only means of conveying information. DevExtreme components provide built-in accessibility features that SHOULD be utilized.
 
-**Rationale**: Consistent UX builds user trust, reduces training time, and ensures the system is usable across devices common in warehouse and production environments.
+**Rationale**: Consistent UX builds user trust, reduces training time, and ensures the system is usable across devices common in warehouse and production environments. Using DevExpress/DevExtreme components exclusively maximizes the value of the enterprise license investment while providing enterprise-grade features like data grids, charts, forms, and reporting out of the box.
 
 ### IV. Performance Requirements
 
@@ -143,4 +147,4 @@ For day-to-day development guidance, refer to:
 - `.specify/` directory for feature specification workflows
 - Code comments and existing patterns for implementation guidance
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-17
+**Version**: 1.2.0 | **Ratified**: 2025-12-17 | **Last Amended**: 2025-12-21
