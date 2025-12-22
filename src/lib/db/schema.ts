@@ -2037,6 +2037,513 @@ export const mysqlVmiSalesOrderLines = mysqlTable('vmi_sales_order_lines', {
 });
 
 // ============================================
+// GMP Compliance - Document Control (MySQL)
+// ============================================
+
+// Document Types (Master Data)
+export const mysqlDocumentTypes = mysqlTable('document_types', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 20 }).notNull().unique(), // SOP, POL, FORM, WI, SPEC
+  name: varchar('name', { length: 200 }).notNull(),
+  prefix: varchar('prefix', { length: 20 }), // Document number prefix
+  approvalChain: mysqlText('approval_chain'), // JSON array of required approver roles
+  reviewPeriodMonths: int('review_period_months'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Documents
+export const mysqlDocuments = mysqlTable('documents', {
+  id: int('id').primaryKey().autoincrement(),
+  documentNumber: varchar('document_number', { length: 50 }).notNull().unique(),
+  title: varchar('title', { length: 500 }).notNull(),
+  typeId: int('type_id').references(() => mysqlDocumentTypes.id),
+  departmentId: int('department_id').references(() => mysqlHROrgUnits.id),
+  currentVersionId: int('current_version_id'), // Will be FK to document_versions
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, active, obsolete, archived
+  retentionYears: int('retention_years').notNull().default(7),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Document Versions
+export const mysqlDocumentVersions = mysqlTable('document_versions', {
+  id: int('id').primaryKey().autoincrement(),
+  documentId: int('document_id').notNull().references(() => mysqlDocuments.id),
+  versionNumber: varchar('version_number', { length: 20 }).notNull(), // e.g., "1.0", "1.1", "2.0"
+  content: mysqlText('content'), // Document content (markdown/HTML)
+  filePath: varchar('file_path', { length: 500 }), // Attached file path
+  changeDescription: mysqlText('change_description'), // What changed in this version
+  status: varchar('status', { length: 30 }).notNull().default('draft'), // draft, pending_approval, approved, rejected, superseded
+  effectiveDate: datetime('effective_date'), // When this version becomes active
+  obsoleteDate: datetime('obsolete_date'), // When this version became obsolete
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Document Approvals
+export const mysqlDocumentApprovals = mysqlTable('document_approvals', {
+  id: int('id').primaryKey().autoincrement(),
+  versionId: int('version_id').notNull().references(() => mysqlDocumentVersions.id),
+  approverId: int('approver_id').references(() => mysqlUsers.id),
+  approvalRole: varchar('approval_role', { length: 50 }), // author, reviewer, approver
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, approved, rejected
+  comments: mysqlText('comments'),
+  signedAt: datetime('signed_at'),
+  delegatedFrom: int('delegated_from').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - CAPA Management (MySQL) - หมวด 1
+// ============================================
+
+// CAPA (Corrective and Preventive Actions)
+export const mysqlCapa = mysqlTable('capa', {
+  id: int('id').primaryKey().autoincrement(),
+  capaNumber: varchar('capa_number', { length: 50 }).notNull().unique(), // CAPA-YYMM-####
+  title: varchar('title', { length: 500 }).notNull(),
+  sourceType: varchar('source_type', { length: 30 }).notNull(), // deviation, complaint, audit_finding, other
+  sourceId: int('source_id'), // FK to source table
+  deviationId: int('deviation_id').references(() => mysqlDeviations.id),
+  complaintId: int('complaint_id'), // Will reference complaints table
+  auditFindingId: int('audit_finding_id'), // Will reference audit_findings table
+  type: varchar('type', { length: 20 }).notNull(), // corrective, preventive, both
+  priority: varchar('priority', { length: 20 }).notNull().default('medium'), // low, medium, high, critical
+  status: varchar('status', { length: 30 }).notNull().default('open'), // open, investigation, action_pending, verification, closed, cancelled
+  rootCauseAnalysis: mysqlText('root_cause_analysis'),
+  rootCauseCategory: varchar('root_cause_category', { length: 100 }), // 5-why category
+  dueDate: datetime('due_date'),
+  closedDate: datetime('closed_date'),
+  ownerId: int('owner_id').references(() => mysqlUsers.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// CAPA Actions
+export const mysqlCapaActions = mysqlTable('capa_actions', {
+  id: int('id').primaryKey().autoincrement(),
+  capaId: int('capa_id').notNull().references(() => mysqlCapa.id),
+  actionNumber: int('action_number').notNull(),
+  description: mysqlText('description').notNull(),
+  actionType: varchar('action_type', { length: 20 }).notNull(), // immediate, corrective, preventive
+  assigneeId: int('assignee_id').references(() => mysqlUsers.id),
+  dueDate: datetime('due_date'),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, in_progress, completed, overdue
+  completionNotes: mysqlText('completion_notes'),
+  completedAt: datetime('completed_at'),
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// CAPA Effectiveness
+export const mysqlCapaEffectiveness = mysqlTable('capa_effectiveness', {
+  id: int('id').primaryKey().autoincrement(),
+  capaId: int('capa_id').notNull().references(() => mysqlCapa.id),
+  checkNumber: int('check_number').notNull(),
+  checkDate: datetime('check_date'),
+  verifierId: int('verifier_id').references(() => mysqlUsers.id),
+  criteria: mysqlText('criteria'),
+  result: varchar('result', { length: 20 }), // effective, not_effective, partial
+  evidence: mysqlText('evidence'),
+  followUpRequired: mysqlBoolean('follow_up_required').default(false),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - Change Control (MySQL) - หมวด 1
+// ============================================
+
+// Change Requests
+export const mysqlChangeRequests = mysqlTable('change_requests', {
+  id: int('id').primaryKey().autoincrement(),
+  changeNumber: varchar('change_number', { length: 50 }).notNull().unique(), // CC-YYMM-####
+  title: varchar('title', { length: 500 }).notNull(),
+  changeType: varchar('change_type', { length: 30 }).notNull(), // process, equipment, document, supplier, formula, other
+  description: mysqlText('description'),
+  justification: mysqlText('justification'),
+  impactAssessment: mysqlText('impact_assessment'),
+  riskAssessment: mysqlText('risk_assessment'),
+  status: varchar('status', { length: 30 }).notNull().default('draft'), // draft, pending_review, approved, rejected, implemented, closed
+  priority: varchar('priority', { length: 20 }).notNull().default('medium'), // low, medium, high, urgent
+  requesterId: int('requester_id').references(() => mysqlUsers.id),
+  ownerId: int('owner_id').references(() => mysqlUsers.id),
+  targetDate: datetime('target_date'),
+  implementedDate: datetime('implemented_date'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Change Approvals
+export const mysqlChangeApprovals = mysqlTable('change_approvals', {
+  id: int('id').primaryKey().autoincrement(),
+  changeId: int('change_id').notNull().references(() => mysqlChangeRequests.id),
+  approverId: int('approver_id').references(() => mysqlUsers.id),
+  role: varchar('role', { length: 50 }), // qa, production, regulatory, management
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, approved, rejected
+  comments: mysqlText('comments'),
+  signedAt: datetime('signed_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - Complaints (MySQL) - หมวด 9
+// ============================================
+
+// Complaints
+export const mysqlComplaints = mysqlTable('complaints', {
+  id: int('id').primaryKey().autoincrement(),
+  complaintNumber: varchar('complaint_number', { length: 50 }).notNull().unique(), // COMP-YYMM-####
+  receivedDate: datetime('received_date').notNull(),
+  source: varchar('source', { length: 30 }).notNull(), // customer, distributor, regulatory, internal
+  customerName: varchar('customer_name', { length: 200 }),
+  customerContact: varchar('customer_contact', { length: 500 }),
+  productId: int('product_id').references(() => mysqlItems.id),
+  lotId: int('lot_id').references(() => mysqlInventoryLots.id),
+  category: varchar('category', { length: 30 }).notNull(), // quality, efficacy, safety, packaging, labeling, other
+  severity: varchar('severity', { length: 20 }).notNull(), // minor, major, critical
+  description: mysqlText('description').notNull(),
+  status: varchar('status', { length: 30 }).notNull().default('received'), // received, under_investigation, resolved, closed
+  regulatoryReportRequired: mysqlBoolean('regulatory_report_required').default(false),
+  regulatoryReportDate: datetime('regulatory_report_date'),
+  capaId: int('capa_id').references(() => mysqlCapa.id),
+  recallRequired: mysqlBoolean('recall_required').default(false),
+  recallId: int('recall_id'), // Will reference recalls table
+  closedDate: datetime('closed_date'),
+  closedBy: int('closed_by').references(() => mysqlUsers.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Complaint Investigations
+export const mysqlComplaintInvestigations = mysqlTable('complaint_investigations', {
+  id: int('id').primaryKey().autoincrement(),
+  complaintId: int('complaint_id').notNull().references(() => mysqlComplaints.id),
+  investigatorId: int('investigator_id').references(() => mysqlUsers.id),
+  startDate: datetime('start_date'),
+  completionDate: datetime('completion_date'),
+  batchRecordReview: mysqlText('batch_record_review'),
+  retainSampleTest: mysqlText('retain_sample_test'),
+  rootCause: mysqlText('root_cause'),
+  conclusion: mysqlText('conclusion'),
+  recommendation: mysqlText('recommendation'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - Recalls (MySQL) - หมวด 9
+// ============================================
+
+// Recalls
+export const mysqlRecalls = mysqlTable('recalls', {
+  id: int('id').primaryKey().autoincrement(),
+  recallNumber: varchar('recall_number', { length: 50 }).notNull().unique(), // RCL-YYMM-####
+  initiatedDate: datetime('initiated_date').notNull(),
+  recallClass: varchar('recall_class', { length: 20 }).notNull(), // class_i, class_ii, class_iii
+  reason: mysqlText('reason').notNull(),
+  productId: int('product_id').references(() => mysqlItems.id),
+  affectedLots: mysqlText('affected_lots'), // JSON array of lot IDs
+  status: varchar('status', { length: 30 }).notNull().default('initiated'), // initiated, in_progress, completed, closed
+  distributedQuantity: decimal('distributed_quantity', { precision: 15, scale: 3 }).default('0'),
+  returnedQuantity: decimal('returned_quantity', { precision: 15, scale: 3 }).default('0'),
+  reconciledQuantity: decimal('reconciled_quantity', { precision: 15, scale: 3 }).default('0'),
+  effectivenessRate: decimal('effectiveness_rate', { precision: 5, scale: 2 }).default('0'),
+  regulatoryReportDate: datetime('regulatory_report_date'),
+  closureDate: datetime('closure_date'),
+  coordinatorId: int('coordinator_id').references(() => mysqlUsers.id),
+  complaintId: int('complaint_id').references(() => mysqlComplaints.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Recall Notifications
+export const mysqlRecallNotifications = mysqlTable('recall_notifications', {
+  id: int('id').primaryKey().autoincrement(),
+  recallId: int('recall_id').notNull().references(() => mysqlRecalls.id),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  customerName: varchar('customer_name', { length: 200 }),
+  contactInfo: varchar('contact_info', { length: 500 }),
+  quantityDistributed: decimal('quantity_distributed', { precision: 15, scale: 3 }).default('0'),
+  notificationMethod: varchar('notification_method', { length: 30 }), // phone, email, fax, courier
+  notifiedAt: datetime('notified_at'),
+  acknowledgedAt: datetime('acknowledged_at'),
+  responseStatus: varchar('response_status', { length: 30 }).default('pending'), // pending, acknowledged, returning, returned, unresponsive
+  quantityReturned: decimal('quantity_returned', { precision: 15, scale: 3 }).default('0'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Recall Reconciliation
+export const mysqlRecallReconciliation = mysqlTable('recall_reconciliation', {
+  id: int('id').primaryKey().autoincrement(),
+  recallId: int('recall_id').notNull().references(() => mysqlRecalls.id),
+  lotId: int('lot_id').references(() => mysqlInventoryLots.id),
+  distributedQty: decimal('distributed_qty', { precision: 15, scale: 3 }).default('0'),
+  returnedQty: decimal('returned_qty', { precision: 15, scale: 3 }).default('0'),
+  destroyedQty: decimal('destroyed_qty', { precision: 15, scale: 3 }).default('0'),
+  accountedQty: decimal('accounted_qty', { precision: 15, scale: 3 }).default('0'),
+  unaccountedQty: decimal('unaccounted_qty', { precision: 15, scale: 3 }).default('0'),
+  reconciliationNotes: mysqlText('reconciliation_notes'),
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - Sanitation (MySQL) - หมวด 4
+// ============================================
+
+// Sanitation Schedules
+export const mysqlSanitationSchedules = mysqlTable('sanitation_schedules', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 200 }).notNull(),
+  areaType: varchar('area_type', { length: 30 }).notNull(), // production, warehouse, lab, office
+  areaId: int('area_id'),
+  equipmentId: int('equipment_id'),
+  frequency: varchar('frequency', { length: 20 }).notNull(), // daily, weekly, monthly, quarterly
+  dayOfWeek: int('day_of_week'), // 0-6 for weekly
+  dayOfMonth: int('day_of_month'), // 1-31 for monthly
+  method: mysqlText('method'),
+  verificationRequired: mysqlBoolean('verification_required').default(true),
+  isActive: mysqlBoolean('is_active').default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Sanitation Logs
+export const mysqlSanitationLogs = mysqlTable('sanitation_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  scheduleId: int('schedule_id').references(() => mysqlSanitationSchedules.id),
+  scheduledDate: datetime('scheduled_date'),
+  performedDate: datetime('performed_date'),
+  performedBy: int('performed_by').references(() => mysqlUsers.id),
+  method: mysqlText('method'),
+  chemicalsUsed: mysqlText('chemicals_used'),
+  status: varchar('status', { length: 20 }).notNull(), // completed, partial, missed
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
+  deviationId: int('deviation_id').references(() => mysqlDeviations.id),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Pest Control Logs
+export const mysqlPestControlLogs = mysqlTable('pest_control_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  serviceDate: datetime('service_date').notNull(),
+  contractorName: varchar('contractor_name', { length: 200 }),
+  technicianName: varchar('technician_name', { length: 200 }),
+  serviceType: varchar('service_type', { length: 30 }).notNull(), // routine, emergency, follow_up
+  areasServiced: mysqlText('areas_serviced'), // JSON array of areas
+  treatmentMethod: mysqlText('treatment_method'),
+  findingsCount: int('findings_count').default(0),
+  findings: mysqlText('findings'),
+  recommendations: mysqlText('recommendations'),
+  followUpRequired: mysqlBoolean('follow_up_required').default(false),
+  followUpDate: datetime('follow_up_date'),
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - Stability Program (MySQL) - หมวด 7.4
+// ============================================
+
+// Stability Protocols
+export const mysqlStabilityProtocols = mysqlTable('stability_protocols', {
+  id: int('id').primaryKey().autoincrement(),
+  protocolNumber: varchar('protocol_number', { length: 50 }).notNull().unique(), // STAB-PROT-###
+  name: varchar('name', { length: 200 }).notNull(),
+  productId: int('product_id').references(() => mysqlItems.id),
+  studyType: varchar('study_type', { length: 30 }).notNull(), // long_term, accelerated, intermediate
+  storageCondition: varchar('storage_condition', { length: 100 }), // e.g., "25°C/60%RH"
+  timepoints: mysqlText('timepoints'), // JSON array of months
+  testsRequired: mysqlText('tests_required'), // JSON array of test spec IDs
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, approved, obsolete
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Stability Studies
+export const mysqlStabilityStudies = mysqlTable('stability_studies', {
+  id: int('id').primaryKey().autoincrement(),
+  studyNumber: varchar('study_number', { length: 50 }).notNull().unique(), // STAB-YYMM-####
+  protocolId: int('protocol_id').references(() => mysqlStabilityProtocols.id),
+  lotId: int('lot_id').references(() => mysqlInventoryLots.id),
+  startDate: datetime('start_date').notNull(),
+  endDate: datetime('end_date'),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active, completed, cancelled, on_hold
+  chamberLocation: varchar('chamber_location', { length: 100 }),
+  notes: mysqlText('notes'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Stability Samples
+export const mysqlStabilitySamples = mysqlTable('stability_samples', {
+  id: int('id').primaryKey().autoincrement(),
+  studyId: int('study_id').notNull().references(() => mysqlStabilityStudies.id),
+  sampleNumber: varchar('sample_number', { length: 50 }),
+  timepoint: int('timepoint').notNull(), // Months from study start
+  scheduledDate: datetime('scheduled_date'),
+  actualDate: datetime('actual_date'),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, sampled, tested, skipped
+  qualityTestId: int('quality_test_id').references(() => mysqlQualityTests.id),
+  oosDetected: mysqlBoolean('oos_detected').default(false),
+  oosInvestigationId: int('oos_investigation_id').references(() => mysqlDeviations.id),
+  sampledBy: int('sampled_by').references(() => mysqlUsers.id),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Stability Trends
+export const mysqlStabilityTrends = mysqlTable('stability_trends', {
+  id: int('id').primaryKey().autoincrement(),
+  studyId: int('study_id').notNull().references(() => mysqlStabilityStudies.id),
+  testParameter: varchar('test_parameter', { length: 100 }),
+  dataPoints: mysqlText('data_points'), // JSON array of {month, value}
+  trendSlope: decimal('trend_slope', { precision: 10, scale: 4 }),
+  projectedFailureMonth: int('projected_failure_month'),
+  lastUpdated: datetime('last_updated').default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - Internal Audit (MySQL) - หมวด 10
+// ============================================
+
+// Audit Plans
+export const mysqlAuditPlans = mysqlTable('audit_plans', {
+  id: int('id').primaryKey().autoincrement(),
+  planYear: int('plan_year').notNull(),
+  name: varchar('name', { length: 200 }),
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, approved, in_progress, completed
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Audits
+export const mysqlAudits = mysqlTable('audits', {
+  id: int('id').primaryKey().autoincrement(),
+  auditNumber: varchar('audit_number', { length: 50 }).notNull().unique(), // AUD-YYMM-####
+  planId: int('plan_id').references(() => mysqlAuditPlans.id),
+  auditType: varchar('audit_type', { length: 20 }).notNull(), // internal, external, regulatory
+  scope: mysqlText('scope'),
+  gmpChapters: mysqlText('gmp_chapters'), // JSON array of หมวด (1-10)
+  scheduledDate: datetime('scheduled_date'),
+  actualDate: datetime('actual_date'),
+  leadAuditorId: int('lead_auditor_id').references(() => mysqlUsers.id),
+  auditTeam: mysqlText('audit_team'), // JSON array of user IDs
+  status: varchar('status', { length: 20 }).notNull().default('scheduled'), // scheduled, in_progress, completed, cancelled
+  summary: mysqlText('summary'),
+  reportPath: varchar('report_path', { length: 500 }),
+  closedDate: datetime('closed_date'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Audit Findings
+export const mysqlAuditFindings = mysqlTable('audit_findings', {
+  id: int('id').primaryKey().autoincrement(),
+  auditId: int('audit_id').notNull().references(() => mysqlAudits.id),
+  findingNumber: varchar('finding_number', { length: 20 }), // F-001, F-002 within audit
+  category: varchar('category', { length: 20 }).notNull(), // observation, minor, major, critical
+  gmpChapter: int('gmp_chapter'), // หมวด reference (1-10)
+  gmpRequirement: mysqlText('gmp_requirement'),
+  description: mysqlText('description').notNull(),
+  evidence: mysqlText('evidence'),
+  areaOwner: int('area_owner').references(() => mysqlUsers.id),
+  capaRequired: mysqlBoolean('capa_required').default(false),
+  capaId: int('capa_id').references(() => mysqlCapa.id),
+  status: varchar('status', { length: 20 }).notNull().default('open'), // open, capa_assigned, closed
+  closedDate: datetime('closed_date'),
+  closedBy: int('closed_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - Contracts (MySQL) - หมวด 8
+// ============================================
+
+// Manufacturing Contracts
+export const mysqlManufacturingContracts = mysqlTable('manufacturing_contracts', {
+  id: int('id').primaryKey().autoincrement(),
+  contractNumber: varchar('contract_number', { length: 50 }).notNull().unique(),
+  contractorName: varchar('contractor_name', { length: 200 }).notNull(),
+  contractorType: varchar('contractor_type', { length: 30 }).notNull(), // manufacturer, laboratory, both
+  scope: mysqlText('scope'),
+  effectiveDate: datetime('effective_date'),
+  expirationDate: datetime('expiration_date'),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active, expired, terminated
+  qualityAgreementPath: varchar('quality_agreement_path', { length: 500 }),
+  lastAuditDate: datetime('last_audit_date'),
+  nextAuditDue: datetime('next_audit_due'),
+  contactPerson: varchar('contact_person', { length: 200 }),
+  contactEmail: varchar('contact_email', { length: 200 }),
+  contactPhone: varchar('contact_phone', { length: 50 }),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Contract Batches
+export const mysqlContractBatches = mysqlTable('contract_batches', {
+  id: int('id').primaryKey().autoincrement(),
+  contractId: int('contract_id').notNull().references(() => mysqlManufacturingContracts.id),
+  lotId: int('lot_id').references(() => mysqlInventoryLots.id),
+  activityType: varchar('activity_type', { length: 30 }).notNull(), // manufacturing, testing, packaging
+  activityDescription: mysqlText('activity_description'),
+  performedDate: datetime('performed_date'),
+  certificatePath: varchar('certificate_path', { length: 500 }),
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// GMP Compliance - PQR (MySQL) - หมวด 1
+// ============================================
+
+// PQR Reports
+export const mysqlPqrReports = mysqlTable('pqr_reports', {
+  id: int('id').primaryKey().autoincrement(),
+  reportNumber: varchar('report_number', { length: 50 }).notNull().unique(), // PQR-YYYY-###
+  productId: int('product_id').references(() => mysqlItems.id),
+  reviewYear: int('review_year').notNull(),
+  periodStart: datetime('period_start'),
+  periodEnd: datetime('period_end'),
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, under_review, approved
+  batchesProduced: int('batches_produced').default(0),
+  deviationCount: int('deviation_count').default(0),
+  capaCount: int('capa_count').default(0),
+  complaintCount: int('complaint_count').default(0),
+  oosCount: int('oos_count').default(0),
+  recallCount: int('recall_count').default(0),
+  stabilityStatus: mysqlText('stability_status'),
+  conclusions: mysqlText('conclusions'),
+  recommendations: mysqlText('recommendations'),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// PQR Metrics
+export const mysqlPqrMetrics = mysqlTable('pqr_metrics', {
+  id: int('id').primaryKey().autoincrement(),
+  pqrId: int('pqr_id').notNull().references(() => mysqlPqrReports.id),
+  metricType: varchar('metric_type', { length: 50 }), // deviation_rate, capa_closure, oosRate
+  metricValue: decimal('metric_value', { precision: 10, scale: 4 }),
+  target: decimal('target', { precision: 10, scale: 4 }),
+  status: varchar('status', { length: 20 }), // pass, fail, warning
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
 // Report Categories (SQLite - for testing)
 // ============================================
 export const sqliteReportCategories = sqliteTable('report_categories', {

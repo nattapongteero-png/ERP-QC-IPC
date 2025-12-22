@@ -6,7 +6,7 @@
  * approval workflows, and audit trail.
  */
 
-import { getDb } from '../db';
+import { getDb, useSqlite } from '../db';
 import { eq, and, desc, asc, gte, lte, like, or, isNull, sql } from 'drizzle-orm';
 import {
   sqliteDocumentTypes,
@@ -15,6 +15,12 @@ import {
   sqliteDocumentApprovals,
   sqliteUsers,
   sqliteHROrgUnits,
+  mysqlDocumentTypes,
+  mysqlDocuments,
+  mysqlDocumentVersions,
+  mysqlDocumentApprovals,
+  mysqlUsers,
+  mysqlHROrgUnits,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import type {
@@ -83,14 +89,23 @@ interface DbApprovalRow {
 
 // Get table references based on database type
 function getTables() {
-  // For now, only SQLite is implemented for GMP compliance
+  if (useSqlite()) {
+    return {
+      documentTypes: sqliteDocumentTypes,
+      documents: sqliteDocuments,
+      versions: sqliteDocumentVersions,
+      approvals: sqliteDocumentApprovals,
+      users: sqliteUsers,
+      orgUnits: sqliteHROrgUnits,
+    };
+  }
   return {
-    documentTypes: sqliteDocumentTypes,
-    documents: sqliteDocuments,
-    versions: sqliteDocumentVersions,
-    approvals: sqliteDocumentApprovals,
-    users: sqliteUsers,
-    orgUnits: sqliteHROrgUnits,
+    documentTypes: mysqlDocumentTypes,
+    documents: mysqlDocuments,
+    versions: mysqlDocumentVersions,
+    approvals: mysqlDocumentApprovals,
+    users: mysqlUsers,
+    orgUnits: mysqlHROrgUnits,
   };
 }
 

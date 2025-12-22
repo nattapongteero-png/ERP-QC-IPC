@@ -14,7 +14,32 @@ import {
   sqliteCapaEffectiveness,
   sqliteDeviations,
   sqliteUsers,
+  mysqlCapa,
+  mysqlCapaActions,
+  mysqlCapaEffectiveness,
+  mysqlDeviations,
+  mysqlUsers,
 } from '../db/schema';
+
+// Get table references based on database type
+function getTables() {
+  if (useSqlite()) {
+    return {
+      capa: sqliteCapa,
+      actions: sqliteCapaActions,
+      effectiveness: sqliteCapaEffectiveness,
+      deviations: sqliteDeviations,
+      users: sqliteUsers,
+    };
+  }
+  return {
+    capa: mysqlCapa,
+    actions: mysqlCapaActions,
+    effectiveness: mysqlCapaEffectiveness,
+    deviations: mysqlDeviations,
+    users: mysqlUsers,
+  };
+}
 import { createAuditLog } from '../audit';
 import type {
   CapaSourceType,
@@ -102,31 +127,28 @@ interface DbCapaEffectivenessRow {
  * Generate next CAPA number (CAPA-YYMM-####)
  */
 export async function generateCapaNumber(): Promise<string> {
+  const { capa } = getTables();
   const now = new Date();
   const year = now.getFullYear().toString().slice(-2);
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const prefix = `CAPA-${year}${month}-`;
 
-  if (useSqlite()) {
-    // Get the latest CAPA number for this month
-    const result = await (await getDb())
-      .select({ capaNumber: sqliteCapa.capaNumber })
-      .from(sqliteCapa)
-      .where(like(sqliteCapa.capaNumber, `${prefix}%`))
-      .orderBy(desc(sqliteCapa.capaNumber))
-      .limit(1);
+  // Get the latest CAPA number for this month
+  const result = await (await getDb())
+    .select({ capaNumber: capa.capaNumber })
+    .from(capa)
+    .where(like(capa.capaNumber, `${prefix}%`))
+    .orderBy(desc(capa.capaNumber))
+    .limit(1);
 
-    let nextNumber = 1;
-    if (result.length > 0) {
-      const lastNumber = result[0].capaNumber;
-      const numPart = parseInt(lastNumber.split('-')[2], 10);
-      nextNumber = numPart + 1;
-    }
-
-    return `${prefix}${nextNumber.toString().padStart(4, '0')}`;
+  let nextNumber = 1;
+  if (result.length > 0) {
+    const lastNumber = result[0].capaNumber;
+    const numPart = parseInt(lastNumber.split('-')[2], 10);
+    nextNumber = numPart + 1;
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  return `${prefix}${nextNumber.toString().padStart(4, '0')}`;
 }
 
 // ============================================
@@ -194,7 +216,7 @@ export async function listCapas(
         dueDate: sqliteCapa.dueDate,
         closedDate: sqliteCapa.closedDate,
         ownerId: sqliteCapa.ownerId,
-        ownerName: sqliteUsers.displayName,
+        ownerName: sqliteUsers.name,
         createdBy: sqliteCapa.createdBy,
         createdAt: sqliteCapa.createdAt,
         updatedAt: sqliteCapa.updatedAt,
@@ -261,7 +283,7 @@ export async function getCapaById(id: number): Promise<Capa | null> {
         dueDate: sqliteCapa.dueDate,
         closedDate: sqliteCapa.closedDate,
         ownerId: sqliteCapa.ownerId,
-        ownerName: sqliteUsers.displayName,
+        ownerName: sqliteUsers.name,
         createdBy: sqliteCapa.createdBy,
         createdAt: sqliteCapa.createdAt,
         updatedAt: sqliteCapa.updatedAt,
