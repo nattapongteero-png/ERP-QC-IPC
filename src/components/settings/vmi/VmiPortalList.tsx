@@ -10,6 +10,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import Link from 'next/link';
 import { DxDataGrid, type DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +27,6 @@ import {
 import { cn } from '@/lib/utils/cn';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
-import { VmiPortalConfigForm } from './VmiPortalConfigForm';
 
 // ============================================
 // Types
@@ -93,8 +93,6 @@ async function testConnection(id: number): Promise<{ connected: boolean; error?:
 
 export function VmiPortalList() {
   const queryClient = useQueryClient();
-  const [selectedPortal, setSelectedPortal] = useState<VmiPortalConfigSummary | undefined>();
-  const [isFormVisible, setIsFormVisible] = useState(false);
   const [testingPortalId, setTestingPortalId] = useState<number | null>(null);
 
   // Fetch portals
@@ -127,18 +125,6 @@ export function VmiPortalList() {
     },
   });
 
-  // Handle add new portal
-  const handleAdd = useCallback(() => {
-    setSelectedPortal(undefined);
-    setIsFormVisible(true);
-  }, []);
-
-  // Handle edit portal
-  const handleEdit = useCallback((portal: VmiPortalConfigSummary) => {
-    setSelectedPortal(portal);
-    setIsFormVisible(true);
-  }, []);
-
   // Handle delete portal
   const handleDelete = useCallback(
     async (portal: VmiPortalConfigSummary) => {
@@ -157,17 +143,6 @@ export function VmiPortalList() {
     },
     [testMutation]
   );
-
-  // Handle form save
-  const handleFormSave = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['vmi-portals'] });
-  }, [queryClient]);
-
-  // Handle form close
-  const handleFormClose = useCallback(() => {
-    setIsFormVisible(false);
-    setSelectedPortal(undefined);
-  }, []);
 
   // Define columns
   const columns: DxDataGridColumn[] = [
@@ -280,14 +255,13 @@ export function VmiPortalList() {
             >
               <PlayCircle className="h-4 w-4" />
             </button>
-            <button
-              onClick={() => handleEdit(rowData)}
-              disabled={isDeleting}
+            <Link
+              href={`/settings/vmi/${rowData.id}`}
               className="p-1.5 rounded hover:bg-gray-100 transition-colors text-gray-500 hover:text-blue-600"
               title="Edit"
             >
               <Edit2 className="h-4 w-4" />
-            </button>
+            </Link>
             <button
               onClick={() => handleDelete(rowData)}
               disabled={isDeleting}
@@ -337,12 +311,13 @@ export function VmiPortalList() {
             toolbarItems={
               <>
                 <Item location="before">
-                  <DxButton
-                    text="Add Portal"
-                    icon="plus"
-                    type="success"
-                    onClick={handleAdd}
-                  />
+                  <Link href="/settings/vmi/new">
+                    <DxButton
+                      text="Add Portal"
+                      icon="plus"
+                      type="success"
+                    />
+                  </Link>
                 </Item>
                 <Item location="after">
                   <DxButton
@@ -385,14 +360,6 @@ export function VmiPortalList() {
           )}
         </CardContent>
       </Card>
-
-      {/* Portal Config Form */}
-      <VmiPortalConfigForm
-        portal={selectedPortal}
-        visible={isFormVisible}
-        onClose={handleFormClose}
-        onSave={handleFormSave}
-      />
     </>
   );
 }

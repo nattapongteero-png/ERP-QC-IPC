@@ -299,8 +299,9 @@ export class VmiPortalConfigService {
     const startTime = Date.now();
 
     try {
-      // Make a test request to the portal's health/info endpoint
-      const response = await fetch(`${config.portalUrl}/health`, {
+      // Make a test request to the portal's vendor items API endpoint
+      // According to docs/VMI-VENDOR-API.md, the base URL is /api/external/vendor
+      const response = await fetch(`${config.portalUrl}/api/external/vendor/items`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -336,7 +337,13 @@ export class VmiPortalConfigService {
         };
       } else {
         const errorText = await response.text();
-        await this.updateConnectionStatus(id, 'error', `HTTP ${response.status}: ${errorText}`);
+        // Truncate error message - don't store full HTML pages
+        const truncatedError = errorText.startsWith('<!DOCTYPE') || errorText.startsWith('<html')
+          ? `${response.statusText} (HTML error page)`
+          : errorText.length > 200
+            ? errorText.substring(0, 200) + '...'
+            : errorText;
+        await this.updateConnectionStatus(id, 'error', `HTTP ${response.status}: ${truncatedError}`);
 
         return {
           connected: false,
