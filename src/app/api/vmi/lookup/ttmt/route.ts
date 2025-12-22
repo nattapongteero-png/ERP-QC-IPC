@@ -1,8 +1,6 @@
 import { NextRequest } from 'next/server';
 import { successResponse, errorResponse, serverErrorResponse } from '@/lib/api-utils';
-
-const VMI_PORTAL_BASE_URL = 'https://vmi-portal.bmscloud.in.th';
-const VMI_API_KEY = process.env.VMI_PORTAL_API_KEY || '';
+import { vmiPortalConfigService } from '@/lib/services/vmi-portal-config.service';
 
 export interface TtmtItem {
   ttmtCode: string;
@@ -34,9 +32,14 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') || '50';
     const offset = searchParams.get('offset') || '0';
 
-    if (!VMI_API_KEY) {
-      return errorResponse('VMI Portal API key not configured');
+    // Get the first enabled portal configuration
+    const portals = await vmiPortalConfigService.getEnabledWithApiKeys();
+    if (portals.length === 0) {
+      return errorResponse('No VMI Portal configured. Please configure a VMI Portal in Settings.');
     }
+
+    const portal = portals[0];
+    const baseUrl = portal.portalUrl.replace(/\/$/, ''); // Remove trailing slash
 
     const params = new URLSearchParams({
       limit,
@@ -47,11 +50,11 @@ export async function GET(request: NextRequest) {
     }
 
     const response = await fetch(
-      `${VMI_PORTAL_BASE_URL}/api/external/vendor/lookup/ttmt?${params}`,
+      `${baseUrl}/api/external/vendor/lookup/ttmt?${params}`,
       {
         method: 'GET',
         headers: {
-          'X-API-Key': VMI_API_KEY,
+          'X-API-Key': portal.decryptedApiKey,
           'Content-Type': 'application/json',
         },
       }
