@@ -169,6 +169,11 @@ export const PERMISSIONS = {
   'sanitation:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION, ROLES.WAREHOUSE],
   'sanitation:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
   'sanitation:verify': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+
+  // Internal Audit (หมวด 10)
+  'audit:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'audit:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'audit:approve': [ROLES.ADMIN, ROLES.MANAGER],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

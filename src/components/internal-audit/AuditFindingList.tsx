@@ -1,0 +1,168 @@
+'use client';
+
+/**
+ * Audit Finding List Component
+ * Feature: 009-gmp-compliance-gap-analysis (หมวด 10)
+ *
+ * DataGrid for displaying and managing audit findings.
+ */
+
+import { useMemo } from 'react';
+import { DxDataGrid } from '@/components/ui/dx-data-grid';
+import { DxColumn } from '@/components/ui/dx-column';
+import { DxButton } from '@/components/ui/dx-button';
+import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
+import type { AuditFinding, AuditFindingCategory, AuditFindingStatus } from '@/types/audits';
+
+interface AuditFindingListProps {
+  findings: AuditFinding[];
+  onEdit?: (finding: AuditFinding) => void;
+  onAssignCapa?: (findingId: number) => void;
+  onClose?: (findingId: number) => void;
+  canEdit?: boolean;
+  loading?: boolean;
+}
+
+const categoryColors: Record<AuditFindingCategory, string> = {
+  observation: 'text-blue-600 bg-blue-100',
+  minor: 'text-yellow-600 bg-yellow-100',
+  major: 'text-orange-600 bg-orange-100',
+  critical: 'text-red-600 bg-red-100',
+};
+
+export function AuditFindingList({
+  findings,
+  onEdit,
+  onAssignCapa,
+  onClose,
+  canEdit = false,
+  loading = false,
+}: AuditFindingListProps) {
+  const columns = useMemo(
+    () => [
+      {
+        dataField: 'findingNumber',
+        caption: 'Finding #',
+        width: 90,
+      },
+      {
+        dataField: 'auditNumber',
+        caption: 'Audit #',
+        width: 120,
+      },
+      {
+        dataField: 'category',
+        caption: 'Category',
+        width: 100,
+        cellRender: (data: { value: AuditFindingCategory }) => {
+          const colors = categoryColors[data.value] || '';
+          return (
+            <span className={`px-2 py-1 rounded text-xs font-medium ${colors}`}>
+              {data.value.charAt(0).toUpperCase() + data.value.slice(1)}
+            </span>
+          );
+        },
+      },
+      {
+        dataField: 'gmpChapter',
+        caption: 'GMP Chapter',
+        width: 100,
+        cellRender: (data: { value: number }) => `หมวด ${data.value}`,
+      },
+      {
+        dataField: 'description',
+        caption: 'Description',
+        width: 250,
+      },
+      {
+        dataField: 'areaOwnerName',
+        caption: 'Owner',
+        width: 120,
+        cellRender: (data: { value: string | undefined }) => {
+          return data.value || <span className="text-muted-foreground text-xs">—</span>;
+        },
+      },
+      {
+        dataField: 'capaNumber',
+        caption: 'CAPA',
+        width: 120,
+        cellRender: (data: { value: string | undefined; data: AuditFinding }) => {
+          if (data.value) return data.value;
+          if (data.data.capaRequired) {
+            return <span className="text-orange-600 text-xs">Required</span>;
+          }
+          return <span className="text-muted-foreground text-xs">—</span>;
+        },
+      },
+      {
+        dataField: 'status',
+        caption: 'Status',
+        width: 110,
+        cellRender: (data: { value: AuditFindingStatus }) => (
+          <WorkflowStatusBadge status={data.value} />
+        ),
+      },
+    ],
+    []
+  );
+
+  const actionsCellRender = (data: { data: AuditFinding }) => {
+    const needsCapa = data.data.capaRequired && !data.data.capaId && data.data.status === 'open';
+    const canCloseFinding =
+      data.data.status !== 'closed' &&
+      (!data.data.capaRequired || data.data.capaId);
+
+    return (
+      <div className="flex gap-1">
+        {canEdit && onEdit && data.data.status === 'open' && (
+          <DxButton
+            icon="edit"
+            hint="Edit"
+            onClick={() => onEdit(data.data)}
+            stylingMode="text"
+          />
+        )}
+        {canEdit && needsCapa && onAssignCapa && (
+          <DxButton
+            icon="link"
+            hint="Assign CAPA"
+            onClick={() => onAssignCapa(data.data.id)}
+            stylingMode="text"
+            type="default"
+          />
+        )}
+        {canEdit && canCloseFinding && onClose && (
+          <DxButton
+            icon="check"
+            hint="Close"
+            onClick={() => onClose(data.data.id)}
+            stylingMode="text"
+            type="success"
+          />
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <DxDataGrid
+      dataSource={findings}
+      showBorders
+      columnAutoWidth
+      rowAlternationEnabled
+      hoverStateEnabled
+      loadPanel={{ enabled: loading }}
+    >
+      {columns.map((col) => (
+        <DxColumn key={col.dataField} {...col} />
+      ))}
+      <DxColumn
+        caption="Actions"
+        width={120}
+        cellRender={actionsCellRender}
+        allowSorting={false}
+        allowFiltering={false}
+      />
+    </DxDataGrid>
+  );
+}
