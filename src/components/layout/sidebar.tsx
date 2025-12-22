@@ -36,6 +36,8 @@ import {
   HeartPulse,
   Bell,
   History,
+  Share2,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -96,8 +98,6 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
-      { name: 'VMI Dashboard', href: '/purchasing/vmi/dashboard', icon: Activity },
-      { name: 'VMI Orders', href: '/purchasing/vmi/orders', icon: ShoppingCart },
     ],
   },
   {
@@ -107,7 +107,19 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'sales', 'warehouse'],
     children: [
       { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingBag },
+      { name: 'VMI Orders', href: '/sales/vmi-orders', icon: Share2 },
       { name: 'Customers', href: '/sales/customers', icon: UserCheck },
+    ],
+  },
+  {
+    name: 'VMI Portal',
+    href: '/vmi',
+    icon: Share2,
+    roles: ['admin', 'manager', 'sales', 'warehouse'],
+    children: [
+      { name: 'Dashboard', href: '/vmi', icon: Activity },
+      { name: 'Sync', href: '/vmi/sync', icon: RefreshCw },
+      { name: 'Orders', href: '/sales/vmi-orders', icon: ShoppingCart },
     ],
   },
   {

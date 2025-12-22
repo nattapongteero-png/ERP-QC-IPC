@@ -1,0 +1,431 @@
+openapi: 3.0.3
+info:
+  title: VMI Sync API
+  description: API for syncing inventory, items, and prices to VMI Portals
+  version: 1.0.0
+servers:
+  - url: /api/vmi-sync
+    description: Internal API
+
+paths:
+  /inventory:
+    post:
+      summary: Sync inventory to VMI Portal(s)
+      operationId: syncInventory
+      tags: [VMI Sync]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '202':
+          description: Sync started (async)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      syncId:
+                        type: string
+                        description: ID to check sync status
+                      message:
+                        type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /items:
+    post:
+      summary: Sync item catalog to VMI Portal(s)
+      operationId: syncItems
+      tags: [VMI Sync]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '202':
+          description: Sync started (async)
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /prices:
+    post:
+      summary: Sync prices to VMI Portal(s)
+      operationId: syncPrices
+      tags: [VMI Sync]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '202':
+          description: Sync started (async)
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /status:
+    get:
+      summary: Get sync status and history
+      operationId: getSyncStatus
+      tags: [VMI Sync]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: portalId
+          in: query
+          schema:
+            type: integer
+          description: Filter by portal ID
+        - name: syncType
+          in: query
+          schema:
+            type: string
+            enum: [inventory, items, prices, orders]
+          description: Filter by sync type
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [running, completed, failed, partial]
+          description: Filter by status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Sync status list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SyncHistoryItem'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /status/{syncId}:
+    parameters:
+      - name: syncId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Sync history ID
+
+    get:
+      summary: Get specific sync operation details
+      operationId: getSyncDetails
+      tags: [VMI Sync]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sync details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SyncHistoryDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /scheduled/inventory:
+    post:
+      summary: Triggered by cron for scheduled inventory sync
+      operationId: scheduledInventorySync
+      tags: [VMI Sync - Scheduled]
+      security:
+        - cronAuth: []
+      responses:
+        '200':
+          description: Scheduled sync completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      portalsProcessed:
+                        type: integer
+                      results:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PortalSyncResult'
+
+  /scheduled/items:
+    post:
+      summary: Triggered by cron for scheduled items sync
+      operationId: scheduledItemsSync
+      tags: [VMI Sync - Scheduled]
+      security:
+        - cronAuth: []
+      responses:
+        '200':
+          description: Scheduled sync completed
+
+  /scheduled/prices:
+    post:
+      summary: Triggered by cron for scheduled prices sync
+      operationId: scheduledPricesSync
+      tags: [VMI Sync - Scheduled]
+      security:
+        - cronAuth: []
+      responses:
+        '200':
+          description: Scheduled sync completed
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cronAuth:
+      type: apiKey
+      in: header
+      name: X-Cron-Secret
+      description: Secret for scheduled job authentication
+
+  schemas:
+    SyncRequest:
+      type: object
+      properties:
+        portalId:
+          type: integer
+          description: Specific portal ID (omit for all enabled portals)
+        itemIds:
+          type: array
+          items:
+            type: integer
+          description: Specific item IDs (omit for all VMI-enabled items)
+        async:
+          type: boolean
+          default: false
+          description: Run sync asynchronously
+
+    SyncResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            syncId:
+              type: integer
+              description: Sync history record ID
+            portalId:
+              type: integer
+            syncType:
+              type: string
+              enum: [inventory, items, prices]
+            status:
+              type: string
+              enum: [completed, partial, failed]
+            itemsTotal:
+              type: integer
+            itemsProcessed:
+              type: integer
+            itemsFailed:
+              type: integer
+            duration:
+              type: integer
+              description: Duration in milliseconds
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  itemId:
+                    type: integer
+                  itemCode:
+                    type: string
+                  error:
+                    type: string
+
+    SyncHistoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        portalId:
+          type: integer
+        portalName:
+          type: string
+        syncType:
+          type: string
+          enum: [inventory, items, prices, orders]
+        triggerType:
+          type: string
+          enum: [manual, scheduled, threshold]
+        status:
+          type: string
+          enum: [running, completed, failed, partial]
+        itemsTotal:
+          type: integer
+        itemsProcessed:
+          type: integer
+        itemsFailed:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        triggeredByName:
+          type: string
+          nullable: true
+
+    SyncHistoryDetail:
+      allOf:
+        - $ref: '#/components/schemas/SyncHistoryItem'
+        - type: object
+          properties:
+            errorDetails:
+              type: array
+              items:
+                type: object
+                properties:
+                  itemId:
+                    type: integer
+                  itemCode:
+                    type: string
+                  error:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+    PortalSyncResult:
+      type: object
+      properties:
+        portalId:
+          type: integer
+        portalName:
+          type: string
+        success:
+          type: boolean
+        itemsSynced:
+          type: integer
+        error:
+          type: string
+          nullable: true
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string

@@ -1,0 +1,417 @@
+openapi: 3.0.3
+info:
+  title: VMI Portal Settings API
+  description: API for managing VMI Portal configurations
+  version: 1.0.0
+servers:
+  - url: /api/settings/vmi
+    description: Internal API
+
+paths:
+  /:
+    get:
+      summary: List all VMI portal configurations
+      operationId: listVmiPortals
+      tags: [VMI Settings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+          description: Filter by enabled status
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [connected, disconnected, error]
+          description: Filter by connection status
+      responses:
+        '200':
+          description: List of portal configurations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VmiPortalConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create new VMI portal configuration
+      operationId: createVmiPortal
+      tags: [VMI Settings]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVmiPortalRequest'
+      responses:
+        '201':
+          description: Portal configuration created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VmiPortalConfig'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /{portalId}:
+    parameters:
+      - name: portalId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Portal configuration ID
+
+    get:
+      summary: Get portal configuration details
+      operationId: getVmiPortal
+      tags: [VMI Settings]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Portal configuration details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VmiPortalConfig'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update portal configuration
+      operationId: updateVmiPortal
+      tags: [VMI Settings]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVmiPortalRequest'
+      responses:
+        '200':
+          description: Portal configuration updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VmiPortalConfig'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete portal configuration
+      operationId: deleteVmiPortal
+      tags: [VMI Settings]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Portal configuration deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /{portalId}/test:
+    parameters:
+      - name: portalId
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Test portal connection
+      operationId: testVmiPortalConnection
+      tags: [VMI Settings]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Connection test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      connected:
+                        type: boolean
+                      latencyMs:
+                        type: integer
+                      vendorInfo:
+                        type: object
+                        properties:
+                          vendorId:
+                            type: string
+                          vendorName:
+                            type: string
+                      error:
+                        type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    VmiPortalConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        portalUrl:
+          type: string
+          format: uri
+        vendorId:
+          type: string
+        isEnabled:
+          type: boolean
+        syncInventoryEnabled:
+          type: boolean
+        syncInventoryInterval:
+          type: integer
+          description: Interval in minutes
+        syncItemsEnabled:
+          type: boolean
+        syncItemsInterval:
+          type: integer
+        syncPricesEnabled:
+          type: boolean
+        syncPricesInterval:
+          type: integer
+        orderPollingEnabled:
+          type: boolean
+        orderPollingInterval:
+          type: integer
+        lastInventorySyncAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastItemsSyncAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastPricesSyncAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastOrdersPollAt:
+          type: string
+          format: date-time
+          nullable: true
+        connectionStatus:
+          type: string
+          enum: [connected, disconnected, error]
+        lastErrorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - portalUrl
+        - vendorId
+        - isEnabled
+        - connectionStatus
+
+    CreateVmiPortalRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        portalUrl:
+          type: string
+          format: uri
+        apiKey:
+          type: string
+          minLength: 1
+          description: Plain API key (will be encrypted)
+        vendorId:
+          type: string
+          minLength: 1
+        isEnabled:
+          type: boolean
+          default: true
+        syncInventoryEnabled:
+          type: boolean
+          default: true
+        syncInventoryInterval:
+          type: integer
+          minimum: 1
+          default: 60
+        syncItemsEnabled:
+          type: boolean
+          default: true
+        syncItemsInterval:
+          type: integer
+          minimum: 1
+          default: 1440
+        syncPricesEnabled:
+          type: boolean
+          default: true
+        syncPricesInterval:
+          type: integer
+          minimum: 1
+          default: 1440
+        orderPollingEnabled:
+          type: boolean
+          default: true
+        orderPollingInterval:
+          type: integer
+          minimum: 1
+          default: 15
+      required:
+        - name
+        - portalUrl
+        - apiKey
+        - vendorId
+
+    UpdateVmiPortalRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        portalUrl:
+          type: string
+          format: uri
+        apiKey:
+          type: string
+          minLength: 1
+          description: New API key (will be encrypted), omit to keep existing
+        vendorId:
+          type: string
+          minLength: 1
+        isEnabled:
+          type: boolean
+        syncInventoryEnabled:
+          type: boolean
+        syncInventoryInterval:
+          type: integer
+          minimum: 1
+        syncItemsEnabled:
+          type: boolean
+        syncItemsInterval:
+          type: integer
+          minimum: 1
+        syncPricesEnabled:
+          type: boolean
+        syncPricesInterval:
+          type: integer
+          minimum: 1
+        orderPollingEnabled:
+          type: boolean
+        orderPollingInterval:
+          type: integer
+          minimum: 1
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Unauthorized
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    message:
+                      type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Portal configuration not found

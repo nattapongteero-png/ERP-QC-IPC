@@ -2,34 +2,20 @@
  * Unit Tests for VMI Portal Service
  *
  * Tests the VmiPortalService class for VMI Portal API integration
+ * API keys are stored in plain text (configured via UI settings)
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { VmiPortalService, VmiPortalError } from '@/lib/services/vmi-portal.service';
-import { encrypt } from '@/lib/crypto/encrypt';
 
 describe('VmiPortalService', () => {
   const originalEnv = {
-    VMI_ENCRYPTION_KEY: process.env.VMI_ENCRYPTION_KEY,
     VMI_PORTAL_BASE_URL: process.env.VMI_PORTAL_BASE_URL,
   };
 
   const testApiKey = 'test-api-key-12345';
-  let encryptedApiKey: string;
-
-  beforeAll(() => {
-    // Set up encryption key
-    process.env.VMI_ENCRYPTION_KEY = 'a'.repeat(64);
-    encryptedApiKey = encrypt(testApiKey);
-  });
 
   afterAll(() => {
-    // Restore original env
-    if (originalEnv.VMI_ENCRYPTION_KEY) {
-      process.env.VMI_ENCRYPTION_KEY = originalEnv.VMI_ENCRYPTION_KEY;
-    } else {
-      delete process.env.VMI_ENCRYPTION_KEY;
-    }
     if (originalEnv.VMI_PORTAL_BASE_URL) {
       process.env.VMI_PORTAL_BASE_URL = originalEnv.VMI_PORTAL_BASE_URL;
     } else {
@@ -45,7 +31,7 @@ describe('VmiPortalService', () => {
     it('should create service with valid config', () => {
       const service = new VmiPortalService({
         vendorId: 1,
-        apiKeyEncrypted: encryptedApiKey,
+        apiKeyEncrypted: testApiKey, // Plain text API key
       });
 
       expect(service).toBeDefined();
@@ -55,7 +41,7 @@ describe('VmiPortalService', () => {
       const customUrl = 'https://custom-vmi-portal.example.com/api';
       const service = new VmiPortalService({
         vendorId: 1,
-        apiKeyEncrypted: encryptedApiKey,
+        apiKeyEncrypted: testApiKey,
         baseUrl: customUrl,
       });
 
@@ -66,7 +52,7 @@ describe('VmiPortalService', () => {
       process.env.VMI_PORTAL_BASE_URL = 'https://env-vmi-portal.example.com/api';
       const service = new VmiPortalService({
         vendorId: 1,
-        apiKeyEncrypted: encryptedApiKey,
+        apiKeyEncrypted: testApiKey,
       });
 
       expect(service).toBeDefined();
@@ -85,7 +71,7 @@ describe('VmiPortalService', () => {
 
       const service = new VmiPortalService({
         vendorId: 1,
-        apiKeyEncrypted: encryptedApiKey,
+        apiKeyEncrypted: testApiKey,
         baseUrl: 'https://test-vmi-portal.example.com/api',
       });
 
@@ -97,7 +83,7 @@ describe('VmiPortalService', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
-            'X-API-Key': testApiKey,
+            'X-API-Key': testApiKey, // API key used directly
           }),
         })
       );
@@ -116,7 +102,7 @@ describe('VmiPortalService', () => {
 
       const service = new VmiPortalService({
         vendorId: 1,
-        apiKeyEncrypted: encryptedApiKey,
+        apiKeyEncrypted: testApiKey,
         baseUrl: 'https://test-vmi-portal.example.com/api',
       });
 
@@ -129,7 +115,7 @@ describe('VmiPortalService', () => {
 
       const service = new VmiPortalService({
         vendorId: 1,
-        apiKeyEncrypted: encryptedApiKey,
+        apiKeyEncrypted: testApiKey,
         baseUrl: 'https://test-vmi-portal.example.com/api',
       });
 
@@ -192,32 +178,14 @@ describe('VmiPortalError', () => {
 });
 
 describe('VmiPortalService Order Methods', () => {
-  const originalEnv = {
-    VMI_ENCRYPTION_KEY: process.env.VMI_ENCRYPTION_KEY,
-  };
-
   const testApiKey = 'test-api-key-orders';
-  let encryptedApiKey: string;
   let service: VmiPortalService;
-
-  beforeAll(() => {
-    process.env.VMI_ENCRYPTION_KEY = 'a'.repeat(64);
-    encryptedApiKey = encrypt(testApiKey);
-  });
-
-  afterAll(() => {
-    if (originalEnv.VMI_ENCRYPTION_KEY) {
-      process.env.VMI_ENCRYPTION_KEY = originalEnv.VMI_ENCRYPTION_KEY;
-    } else {
-      delete process.env.VMI_ENCRYPTION_KEY;
-    }
-  });
 
   beforeEach(() => {
     vi.restoreAllMocks();
     service = new VmiPortalService({
       vendorId: 1,
-      apiKeyEncrypted: encryptedApiKey,
+      apiKeyEncrypted: testApiKey,
       baseUrl: 'https://test-vmi-portal.example.com/api',
     });
   });
@@ -452,32 +420,14 @@ describe('VmiPortalService Order Methods', () => {
 });
 
 describe('VmiPortalService Sync Methods', () => {
-  const originalEnv = {
-    VMI_ENCRYPTION_KEY: process.env.VMI_ENCRYPTION_KEY,
-  };
-
   const testApiKey = 'test-api-key-sync';
-  let encryptedApiKey: string;
   let service: VmiPortalService;
-
-  beforeAll(() => {
-    process.env.VMI_ENCRYPTION_KEY = 'a'.repeat(64);
-    encryptedApiKey = encrypt(testApiKey);
-  });
-
-  afterAll(() => {
-    if (originalEnv.VMI_ENCRYPTION_KEY) {
-      process.env.VMI_ENCRYPTION_KEY = originalEnv.VMI_ENCRYPTION_KEY;
-    } else {
-      delete process.env.VMI_ENCRYPTION_KEY;
-    }
-  });
 
   beforeEach(() => {
     vi.restoreAllMocks();
     service = new VmiPortalService({
       vendorId: 1,
-      apiKeyEncrypted: encryptedApiKey,
+      apiKeyEncrypted: testApiKey,
       baseUrl: 'https://test-vmi-portal.example.com/api',
     });
   });

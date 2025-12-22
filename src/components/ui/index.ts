@@ -124,3 +124,10 @@ export type { DxFormProps } from './dx-form';
 
 export { DxLoadIndicator, DxLoadPanel, DxSkeleton } from './dx-load-indicator';
 export type { DxLoadIndicatorProps, DxLoadPanelProps, DxSkeletonProps } from './dx-load-indicator';
+
+// Search Dialogs
+export { TppSearchDialog } from './tpp-search-dialog';
+export type { TppItem } from './tpp-search-dialog';
+
+export { TtmtSearchDialog } from './ttmt-search-dialog';
+export type { TtmtItem } from './ttmt-search-dialog';

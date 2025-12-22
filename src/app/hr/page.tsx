@@ -176,7 +176,7 @@ export default function HRDashboardPage() {
           href="/hr/training"
           trend={
             (stats?.expiringTraining || 0) > 0
-              ? { value: stats?.expiringTraining || 0, direction: 'up', label: 'ต้องติดตาม' }
+              ? { value: String(stats?.expiringTraining || 0), direction: 'up' }
               : undefined
           }
           isLoading={isLoading}
@@ -204,7 +204,7 @@ export default function HRDashboardPage() {
           href="/hr/notifications"
           trend={
             (stats?.pendingNotifications || 0) > 0
-              ? { value: stats?.pendingNotifications || 0, direction: 'up', label: 'ด่วน' }
+              ? { value: String(stats?.pendingNotifications || 0), direction: 'up' }
               : undefined
           }
           isLoading={isLoading}

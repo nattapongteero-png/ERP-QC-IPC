@@ -82,7 +82,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       const allowedFields = [
         'code', 'nameTh', 'nameEn', 'type', 'category', 'primaryUnit',
         'secondaryUnit', 'conversionRate', 'shelfLifeDays', 'storageCondition',
-        'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive'
+        'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
+        'tppCode', 'tppName', 'ttmtCode', 'ttmtName'
       ];
       
       for (const field of allowedFields) {

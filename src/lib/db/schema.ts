@@ -82,7 +82,12 @@ export const sqliteItems = sqliteTable('items', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: text('tpp_code'), // Thai Pharmaceutical Product code (13 digits)
+  tppName: text('tpp_name'), // TPP product name from VMI Portal
   ttmtCode: text('ttmt_code'), // Thai Traditional Medicine Terminology (A + 8 digits)
+  ttmtName: text('ttmt_name'), // TTMT product name (FSN) from VMI Portal
+  // VMI Vendor Sync fields (008-vmi-vendor-sync)
+  vmiSyncEnabled: integer('vmi_sync_enabled', { mode: 'boolean' }).notNull().default(false),
+  lastVmiSyncAt: text('last_vmi_sync_at'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -419,6 +424,9 @@ export const sqliteSalesOrders = sqliteTable('sales_orders', {
   notes: text('notes'),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  // VMI Vendor Sync fields (008-vmi-vendor-sync)
+  vmiSalesOrderId: integer('vmi_sales_order_id'), // FK to vmi_sales_orders.id (set later)
+  source: text('source').notNull().default('direct'), // direct, vmi, api
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -454,6 +462,9 @@ export const sqliteCustomers = sqliteTable('customers', {
   paymentTerms: text('payment_terms'),
   notes: text('notes'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // VMI Vendor Sync fields (008-vmi-vendor-sync)
+  vmiCustomerId: text('vmi_customer_id'), // Customer ID from VMI Portal
+  vmiPortalId: integer('vmi_portal_id'), // FK to vmi_portal_config.id (set later)
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -950,7 +961,12 @@ export const mysqlItems = mysqlTable('items', {
   isActive: mysqlBoolean('is_active').notNull().default(true),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: varchar('tpp_code', { length: 13 }), // Thai Pharmaceutical Product code (13 digits)
+  tppName: varchar('tpp_name', { length: 255 }), // TPP product name from VMI Portal
   ttmtCode: varchar('ttmt_code', { length: 10 }), // Thai Traditional Medicine Terminology (A + 8 digits)
+  ttmtName: varchar('ttmt_name', { length: 255 }), // TTMT product name (FSN) from VMI Portal
+  // VMI Vendor Sync fields (008-vmi-vendor-sync)
+  vmiSyncEnabled: mysqlBoolean('vmi_sync_enabled').notNull().default(false),
+  lastVmiSyncAt: datetime('last_vmi_sync_at'),
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1287,6 +1303,9 @@ export const mysqlSalesOrders = mysqlTable('sales_orders', {
   notes: mysqlText('notes'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  // VMI Vendor Sync fields (008-vmi-vendor-sync)
+  vmiSalesOrderId: int('vmi_sales_order_id'), // FK to vmi_sales_orders.id (set later)
+  source: varchar('source', { length: 20 }).notNull().default('direct'), // direct, vmi, api
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1322,6 +1341,9 @@ export const mysqlCustomers = mysqlTable('customers', {
   paymentTerms: varchar('payment_terms', { length: 100 }),
   notes: mysqlText('notes'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  // VMI Vendor Sync fields (008-vmi-vendor-sync)
+  vmiCustomerId: varchar('vmi_customer_id', { length: 50 }), // Customer ID from VMI Portal
+  vmiPortalId: int('vmi_portal_id'), // FK to vmi_portal_config.id (set later)
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1805,6 +1827,98 @@ export const mysqlHRAuditLog = mysqlTable('hr_audit_log', {
 });
 
 // ============================================
+// VMI Portal Integration (Vendor Side) - MySQL
+// Feature: 008-vmi-vendor-sync
+// This system IS the vendor - syncs TO VMI portals, receives orders FROM portals
+// ============================================
+
+// VMI Portal Configuration
+export const mysqlVmiPortalConfig = mysqlTable('vmi_portal_config', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  portalUrl: varchar('portal_url', { length: 255 }).notNull(),
+  apiKeyEncrypted: mysqlText('api_key_encrypted').notNull(),
+  vendorId: varchar('vendor_id', { length: 50 }).notNull(), // Our vendor ID in this portal
+  isEnabled: mysqlBoolean('is_enabled').notNull().default(true),
+  syncInventoryEnabled: mysqlBoolean('sync_inventory_enabled').notNull().default(true),
+  syncInventoryInterval: int('sync_inventory_interval').notNull().default(60), // minutes
+  syncItemsEnabled: mysqlBoolean('sync_items_enabled').notNull().default(true),
+  syncItemsInterval: int('sync_items_interval').notNull().default(1440), // minutes (24h default)
+  syncPricesEnabled: mysqlBoolean('sync_prices_enabled').notNull().default(true),
+  syncPricesInterval: int('sync_prices_interval').notNull().default(1440), // minutes (24h default)
+  orderPollingEnabled: mysqlBoolean('order_polling_enabled').notNull().default(true),
+  orderPollingInterval: int('order_polling_interval').notNull().default(15), // minutes
+  lastInventorySyncAt: datetime('last_inventory_sync_at'),
+  lastItemsSyncAt: datetime('last_items_sync_at'),
+  lastPricesSyncAt: datetime('last_prices_sync_at'),
+  lastOrdersPollAt: datetime('last_orders_poll_at'),
+  connectionStatus: varchar('connection_status', { length: 20 }).notNull().default('disconnected'), // connected, disconnected, error
+  lastErrorMessage: mysqlText('last_error_message'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  updatedBy: int('updated_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// VMI Sync History
+export const mysqlVmiSyncHistory = mysqlTable('vmi_sync_history', {
+  id: int('id').primaryKey().autoincrement(),
+  portalId: int('portal_id').notNull().references(() => mysqlVmiPortalConfig.id),
+  syncType: varchar('sync_type', { length: 20 }).notNull(), // inventory, items, prices, orders
+  triggerType: varchar('trigger_type', { length: 20 }).notNull(), // manual, scheduled, threshold
+  status: varchar('status', { length: 20 }).notNull(), // running, completed, failed, partial
+  itemsTotal: int('items_total').notNull().default(0),
+  itemsProcessed: int('items_processed').notNull().default(0),
+  itemsFailed: int('items_failed').notNull().default(0),
+  errorDetails: mysqlText('error_details'), // JSON array of {itemId, itemCode, error}
+  triggeredBy: int('triggered_by').references(() => mysqlUsers.id),
+  startedAt: datetime('started_at').notNull().default(new Date()),
+  completedAt: datetime('completed_at'),
+});
+
+// VMI Sales Orders (orders received FROM VMI Portal INTO our sales system)
+export const mysqlVmiSalesOrders = mysqlTable('vmi_sales_orders', {
+  id: int('id').primaryKey().autoincrement(),
+  portalId: int('portal_id').notNull().references(() => mysqlVmiPortalConfig.id),
+  vmiOrderId: varchar('vmi_order_id', { length: 50 }).notNull(), // Order ID from VMI Portal
+  salesOrderId: int('sales_order_id').references(() => mysqlSalesOrders.id),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  vmiStatus: varchar('vmi_status', { length: 20 }).notNull(), // submitted, confirmed, shipped, received, cancelled
+  localStatus: varchar('local_status', { length: 20 }).notNull().default('pending'), // pending, confirmed, processing, shipped, delivered, cancelled
+  vmiCustomerId: varchar('vmi_customer_id', { length: 50 }).notNull(), // Customer ID from VMI Portal
+  vmiCustomerName: varchar('vmi_customer_name', { length: 200 }).notNull(), // Customer name from VMI Portal
+  orderDate: datetime('order_date').notNull(),
+  requiredDate: datetime('required_date'),
+  totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull().default('THB'),
+  orderDataJson: mysqlText('order_data_json').notNull(), // Full order data from VMI Portal
+  polledAt: datetime('polled_at').notNull().default(new Date()),
+  confirmedAt: datetime('confirmed_at'),
+  shippedAt: datetime('shipped_at'),
+  deliveredAt: datetime('delivered_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// VMI Sales Order Lines
+export const mysqlVmiSalesOrderLines = mysqlTable('vmi_sales_order_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  vmiSalesOrderId: int('vmi_sales_order_id').notNull().references(() => mysqlVmiSalesOrders.id),
+  itemId: int('item_id').references(() => mysqlItems.id), // Matched local item
+  vmiLineId: varchar('vmi_line_id', { length: 50 }).notNull(), // Line ID from VMI Portal
+  tppCode: varchar('tpp_code', { length: 20 }),
+  ttmtCode: varchar('ttmt_code', { length: 20 }),
+  localCode: varchar('local_code', { length: 50 }), // Our item code (if matched)
+  itemName: varchar('item_name', { length: 200 }).notNull(), // Item name from VMI
+  quantity: decimal('quantity', { precision: 15, scale: 3 }).notNull(),
+  unit: varchar('unit', { length: 20 }).notNull(),
+  unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
+  lineTotal: decimal('line_total', { precision: 15, scale: 2 }).notNull(),
+  matchStatus: varchar('match_status', { length: 20 }).notNull().default('unmatched'), // unmatched, matched, multiple_matches, manual_mapped
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
 // Report Categories (SQLite - for testing)
 // ============================================
 export const sqliteReportCategories = sqliteTable('report_categories', {
@@ -1868,6 +1982,98 @@ export const sqliteReportExecutions = sqliteTable('report_executions', {
   status: text('status').notNull(), // 'success', 'error', 'cancelled'
   errorMessage: text('error_message'),
   ipAddress: text('ip_address'),
+});
+
+// ============================================
+// VMI Portal Integration (Vendor Side) - SQLite
+// Feature: 008-vmi-vendor-sync
+// This system IS the vendor - syncs TO VMI portals, receives orders FROM portals
+// ============================================
+
+// VMI Portal Configuration
+export const sqliteVmiPortalConfig = sqliteTable('vmi_portal_config', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+  portalUrl: text('portal_url').notNull(),
+  apiKeyEncrypted: text('api_key_encrypted').notNull(),
+  vendorId: text('vendor_id').notNull(), // Our vendor ID in this portal
+  isEnabled: integer('is_enabled', { mode: 'boolean' }).notNull().default(true),
+  syncInventoryEnabled: integer('sync_inventory_enabled', { mode: 'boolean' }).notNull().default(true),
+  syncInventoryInterval: integer('sync_inventory_interval').notNull().default(60), // minutes
+  syncItemsEnabled: integer('sync_items_enabled', { mode: 'boolean' }).notNull().default(true),
+  syncItemsInterval: integer('sync_items_interval').notNull().default(1440), // minutes (24h default)
+  syncPricesEnabled: integer('sync_prices_enabled', { mode: 'boolean' }).notNull().default(true),
+  syncPricesInterval: integer('sync_prices_interval').notNull().default(1440), // minutes (24h default)
+  orderPollingEnabled: integer('order_polling_enabled', { mode: 'boolean' }).notNull().default(true),
+  orderPollingInterval: integer('order_polling_interval').notNull().default(15), // minutes
+  lastInventorySyncAt: text('last_inventory_sync_at'),
+  lastItemsSyncAt: text('last_items_sync_at'),
+  lastPricesSyncAt: text('last_prices_sync_at'),
+  lastOrdersPollAt: text('last_orders_poll_at'),
+  connectionStatus: text('connection_status').notNull().default('disconnected'), // connected, disconnected, error
+  lastErrorMessage: text('last_error_message'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  updatedBy: integer('updated_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// VMI Sync History
+export const sqliteVmiSyncHistory = sqliteTable('vmi_sync_history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  portalId: integer('portal_id').notNull().references(() => sqliteVmiPortalConfig.id),
+  syncType: text('sync_type').notNull(), // inventory, items, prices, orders
+  triggerType: text('trigger_type').notNull(), // manual, scheduled, threshold
+  status: text('status').notNull(), // running, completed, failed, partial
+  itemsTotal: integer('items_total').notNull().default(0),
+  itemsProcessed: integer('items_processed').notNull().default(0),
+  itemsFailed: integer('items_failed').notNull().default(0),
+  errorDetails: text('error_details'), // JSON array of {itemId, itemCode, error}
+  triggeredBy: integer('triggered_by').references(() => sqliteUsers.id),
+  startedAt: text('started_at').notNull().default('CURRENT_TIMESTAMP'),
+  completedAt: text('completed_at'),
+});
+
+// VMI Sales Orders (orders received FROM VMI Portal INTO our sales system)
+export const sqliteVmiSalesOrders = sqliteTable('vmi_sales_orders', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  portalId: integer('portal_id').notNull().references(() => sqliteVmiPortalConfig.id),
+  vmiOrderId: text('vmi_order_id').notNull(), // Order ID from VMI Portal
+  salesOrderId: integer('sales_order_id').references(() => sqliteSalesOrders.id),
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  vmiStatus: text('vmi_status').notNull(), // submitted, confirmed, shipped, received, cancelled
+  localStatus: text('local_status').notNull().default('pending'), // pending, confirmed, processing, shipped, delivered, cancelled
+  vmiCustomerId: text('vmi_customer_id').notNull(), // Customer ID from VMI Portal
+  vmiCustomerName: text('vmi_customer_name').notNull(), // Customer name from VMI Portal
+  orderDate: text('order_date').notNull(),
+  requiredDate: text('required_date'),
+  totalAmount: real('total_amount').notNull(),
+  currency: text('currency').notNull().default('THB'),
+  orderDataJson: text('order_data_json').notNull(), // Full order data from VMI Portal
+  polledAt: text('polled_at').notNull().default('CURRENT_TIMESTAMP'),
+  confirmedAt: text('confirmed_at'),
+  shippedAt: text('shipped_at'),
+  deliveredAt: text('delivered_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// VMI Sales Order Lines
+export const sqliteVmiSalesOrderLines = sqliteTable('vmi_sales_order_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  vmiSalesOrderId: integer('vmi_sales_order_id').notNull().references(() => sqliteVmiSalesOrders.id),
+  itemId: integer('item_id').references(() => sqliteItems.id), // Matched local item
+  vmiLineId: text('vmi_line_id').notNull(), // Line ID from VMI Portal
+  tppCode: text('tpp_code'),
+  ttmtCode: text('ttmt_code'),
+  localCode: text('local_code'), // Our item code (if matched)
+  itemName: text('item_name').notNull(), // Item name from VMI
+  quantity: real('quantity').notNull(),
+  unit: text('unit').notNull(),
+  unitPrice: real('unit_price').notNull(),
+  lineTotal: real('line_total').notNull(),
+  matchStatus: text('match_status').notNull().default('unmatched'), // unmatched, matched, multiple_matches, manual_mapped
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
 // Export type aliases for easier use
@@ -1945,3 +2151,13 @@ export type HRNotification = typeof sqliteHRNotifications.$inferSelect;
 export type NewHRNotification = typeof sqliteHRNotifications.$inferInsert;
 export type HRAuditLogEntry = typeof sqliteHRAuditLog.$inferSelect;
 export type NewHRAuditLogEntry = typeof sqliteHRAuditLog.$inferInsert;
+
+// VMI Portal Integration Types (008-vmi-vendor-sync)
+export type VmiPortalConfig = typeof sqliteVmiPortalConfig.$inferSelect;
+export type NewVmiPortalConfig = typeof sqliteVmiPortalConfig.$inferInsert;
+export type VmiSyncHistory = typeof sqliteVmiSyncHistory.$inferSelect;
+export type NewVmiSyncHistory = typeof sqliteVmiSyncHistory.$inferInsert;
+export type VmiSalesOrder = typeof sqliteVmiSalesOrders.$inferSelect;
+export type NewVmiSalesOrder = typeof sqliteVmiSalesOrders.$inferInsert;
+export type VmiSalesOrderLine = typeof sqliteVmiSalesOrderLines.$inferSelect;
+export type NewVmiSalesOrderLine = typeof sqliteVmiSalesOrderLines.$inferInsert;

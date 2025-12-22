@@ -137,7 +137,7 @@ export default function TrainingLandingPage() {
           accentColor="border-yellow-500"
           trend={
             (stats?.expiringCertifications || 0) > 0
-              ? { value: stats?.expiringCertifications || 0, direction: 'up', label: 'ต้องติดตาม' }
+              ? { value: String(stats?.expiringCertifications || 0), direction: 'up' }
               : undefined
           }
           isLoading={isLoading}

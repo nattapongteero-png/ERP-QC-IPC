@@ -5,7 +5,7 @@
  * Handles authentication, request/response logging, and error handling.
  */
 
-import { decrypt } from '@/lib/crypto/encrypt';
+// API key is stored in plain text (configured via UI settings)
 import type {
   VmiVendorConfig,
   VmiItem,
@@ -103,7 +103,7 @@ export class VmiPortalService {
   constructor(config: VmiPortalServiceConfig) {
     this.vendorId = config.vendorId;
     this.baseUrl = config.baseUrl || process.env.VMI_PORTAL_BASE_URL || VmiPortalService.DEFAULT_BASE_URL;
-    this.apiKey = decrypt(config.apiKeyEncrypted);
+    this.apiKey = config.apiKeyEncrypted; // Plain text API key
     this.vmiVendorId = config.vmiVendorId;
   }
 

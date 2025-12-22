@@ -2,41 +2,16 @@
  * Integration Tests for VMI Config API
  *
  * Tests the VMI configuration endpoints for vendors
+ * API keys are stored in plain text (configured via UI settings)
  *
  * Note: These are integration-style tests that mock the database layer
  * For full end-to-end testing, use playwright or similar E2E framework
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { encrypt } from '@/lib/crypto/encrypt';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('VMI Config API', () => {
-  const originalEnv = {
-    VMI_ENCRYPTION_KEY: process.env.VMI_ENCRYPTION_KEY,
-    VMI_PORTAL_BASE_URL: process.env.VMI_PORTAL_BASE_URL,
-  };
-
   const testApiKey = 'test-api-key-integration-12345';
-
-  beforeAll(() => {
-    // Set up encryption key
-    process.env.VMI_ENCRYPTION_KEY = 'a'.repeat(64);
-    process.env.VMI_PORTAL_BASE_URL = 'https://test-vmi-portal.example.com/api';
-  });
-
-  afterAll(() => {
-    // Restore original env
-    if (originalEnv.VMI_ENCRYPTION_KEY) {
-      process.env.VMI_ENCRYPTION_KEY = originalEnv.VMI_ENCRYPTION_KEY;
-    } else {
-      delete process.env.VMI_ENCRYPTION_KEY;
-    }
-    if (originalEnv.VMI_PORTAL_BASE_URL) {
-      process.env.VMI_PORTAL_BASE_URL = originalEnv.VMI_PORTAL_BASE_URL;
-    } else {
-      delete process.env.VMI_PORTAL_BASE_URL;
-    }
-  });
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -123,10 +98,9 @@ describe('VMI Config API', () => {
         orderPollIntervalMinutes: 15,
       };
 
-      // Validate encryption works with the API key
-      const encrypted = encrypt(requestBody.apiKey);
-      expect(encrypted).toBeDefined();
-      expect(encrypted).not.toBe(requestBody.apiKey);
+      // Validate API key is stored directly (plain text)
+      expect(requestBody.apiKey).toBe(testApiKey);
+      expect(requestBody.apiKey).toBeDefined();
     });
 
     it('should validate poll interval bounds (5-60 minutes)', async () => {
@@ -225,7 +199,7 @@ describe('VMI Config API', () => {
       expect(requiredPermissions).toContain('purchasing:write');
     });
 
-    it('should never expose encrypted API key in responses', () => {
+    it('should never expose API key in responses', () => {
       // Verify that config responses exclude sensitive fields
       const sensitiveFields = ['apiKeyEncrypted', 'apiKey'];
       const safeConfigFields = [

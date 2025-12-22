@@ -33,6 +33,8 @@ import {
   ShieldCheck,
   Barcode,
 } from 'lucide-react';
+import { TppSearchDialog, TppItem } from '@/components/ui/tpp-search-dialog';
+import { TtmtSearchDialog, TtmtItem } from '@/components/ui/ttmt-search-dialog';
 
 // ============================================================================
 // Types
@@ -59,7 +61,9 @@ export interface Item {
   onHandCost?: number;
   // VMI Standard Codes
   tppCode: string | null;
+  tppName: string | null;
   ttmtCode: string | null;
+  ttmtName: string | null;
 }
 
 export interface ItemFormData {
@@ -79,7 +83,9 @@ export interface ItemFormData {
   isActive: boolean;
   // VMI Standard Codes
   tppCode: string;
+  tppName: string;
   ttmtCode: string;
+  ttmtName: string;
 }
 
 export interface ItemEditFormProps {
@@ -125,7 +131,9 @@ export const getDefaultFormData = (): ItemFormData => ({
   storageConditions: '',
   isActive: true,
   tppCode: '',
+  tppName: '',
   ttmtCode: '',
+  ttmtName: '',
 });
 
 export const itemToFormData = (item: Item): ItemFormData => ({
@@ -144,7 +152,9 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   storageConditions: item.storageConditions || '',
   isActive: item.isActive,
   tppCode: item.tppCode || '',
+  tppName: item.tppName || '',
   ttmtCode: item.ttmtCode || '',
+  ttmtName: item.ttmtName || '',
 });
 
 export const getTypeConfig = (type: string) => {
@@ -354,6 +364,10 @@ export function ItemEditForm({
     item ? itemToFormData(item) : getDefaultFormData()
   );
 
+  // State for TPP/TTMT search dialogs
+  const [showTppSearch, setShowTppSearch] = React.useState(false);
+  const [showTtmtSearch, setShowTtmtSearch] = React.useState(false);
+
   // Fetch categories and units from database
   const { data: categories, isLoading: categoriesLoading } = useItemCategories();
   const { data: units, isLoading: unitsLoading } = useItemUnits();
@@ -390,6 +404,23 @@ export function ItemEditForm({
   const updateFormData = <K extends keyof ItemFormData>(key: K, value: ItemFormData[K]) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
+
+  // TPP/TTMT selection handlers
+  const handleTppSelect = React.useCallback((tppItem: TppItem) => {
+    setFormData(prev => ({
+      ...prev,
+      tppCode: tppItem.tppCode,
+      tppName: tppItem.tppName,
+    }));
+  }, []);
+
+  const handleTtmtSelect = React.useCallback((ttmtItem: TtmtItem) => {
+    setFormData(prev => ({
+      ...prev,
+      ttmtCode: ttmtItem.ttmtCode,
+      ttmtName: ttmtItem.fsn, // Use FSN as the name
+    }));
+  }, []);
 
   const typeConfig = getTypeConfig(formData.type);
   const TypeIcon = typeConfig.icon;
@@ -523,31 +554,73 @@ export function ItemEditForm({
                 </div>
               </SectionCard>
 
-              {/* VMI Standard Codes */}
+              {/* VMI Standard Codes - Only for Finished Goods */}
+              {formData.type === 'finished_goods' && (
               <SectionCard
                 icon={<Barcode className="h-5 w-5 text-gray-600" />}
                 title="VMI Standard Codes"
                 description="Thai pharmaceutical and traditional medicine codes for VMI Portal integration"
               >
                 <div className="grid grid-cols-2 gap-5">
+                  {/* TPP Code */}
                   <div className="col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">TPP Code</label>
-                    <DxTextBox
-                      value={formData.tppCode}
-                      onValueChange={(value) => updateFormData('tppCode', value)}
-                      placeholder="13-digit code (e.g., 8850999111111)"
-                      maxLength={13}
-                    />
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <DxTextBox
+                          value={formData.tppCode}
+                          onValueChange={(value) => {
+                            updateFormData('tppCode', value);
+                            if (!value) updateFormData('tppName', '');
+                          }}
+                          placeholder="13-digit code"
+                          maxLength={13}
+                        />
+                      </div>
+                      <DxButton
+                        icon="search"
+                        hint="Search TPP codes from VMI Portal"
+                        type="default"
+                        stylingMode="outlined"
+                        onClick={() => setShowTppSearch(true)}
+                      />
+                    </div>
+                    {formData.tppName && (
+                      <p className="text-xs text-blue-600 mt-1 truncate" title={formData.tppName}>
+                        {formData.tppName}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500 mt-1">Thai Pharmaceutical Product code (13 digits)</p>
                   </div>
+
+                  {/* TTMT Code */}
                   <div className="col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">TTMT Code</label>
-                    <DxTextBox
-                      value={formData.ttmtCode}
-                      onValueChange={(value) => updateFormData('ttmtCode', value)}
-                      placeholder="A + 8 digits (e.g., A12345678)"
-                      maxLength={10}
-                    />
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <DxTextBox
+                          value={formData.ttmtCode}
+                          onValueChange={(value) => {
+                            updateFormData('ttmtCode', value);
+                            if (!value) updateFormData('ttmtName', '');
+                          }}
+                          placeholder="A + 8 digits"
+                          maxLength={10}
+                        />
+                      </div>
+                      <DxButton
+                        icon="search"
+                        hint="Search TTMT codes from VMI Portal"
+                        type="default"
+                        stylingMode="outlined"
+                        onClick={() => setShowTtmtSearch(true)}
+                      />
+                    </div>
+                    {formData.ttmtName && (
+                      <p className="text-xs text-green-600 mt-1 truncate" title={formData.ttmtName}>
+                        {formData.ttmtName}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500 mt-1">Thai Traditional Medicine Terminology code</p>
                   </div>
                 </div>
@@ -562,6 +635,19 @@ export function ItemEditForm({
                   </div>
                 )}
               </SectionCard>
+              )}
+
+              {/* TPP/TTMT Search Dialogs */}
+              <TppSearchDialog
+                open={showTppSearch}
+                onOpenChange={setShowTppSearch}
+                onSelect={handleTppSelect}
+              />
+              <TtmtSearchDialog
+                open={showTtmtSearch}
+                onOpenChange={setShowTtmtSearch}
+                onSelect={handleTtmtSelect}
+              />
 
               {/* Units of Measurement */}
               <SectionCard
