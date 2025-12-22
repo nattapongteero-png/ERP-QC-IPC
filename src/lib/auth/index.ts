@@ -159,6 +159,11 @@ export const PERMISSIONS = {
   'recalls:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'recalls:execute': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.WAREHOUSE],
   'recalls:close': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+
+  // Stability Program (หมวด 7.4)
+  'stability:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
+  'stability:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'stability:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
