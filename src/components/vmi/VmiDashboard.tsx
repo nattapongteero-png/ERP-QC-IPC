@@ -63,7 +63,7 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
   const [syncResponse, ordersResponse, portalsResponse] = await Promise.all([
     fetch('/api/vmi-sync/status?limit=3'),
     fetch('/api/sales/vmi-orders?limit=100'),
-    fetch('/api/settings/vmi-portal'),
+    fetch('/api/settings/vmi'),
   ]);
 
   const syncData = await syncResponse.json();
