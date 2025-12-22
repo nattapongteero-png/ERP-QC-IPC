@@ -464,5 +464,14 @@ export async function initializeDatabaseWithSync(): Promise<void> {
     // Don't throw - allow server to start even if seeding fails
   }
 
+  // Seed GMP compliance lookup tables if they are empty
+  try {
+    const { seedGmpTables } = await import('./seed-gmp');
+    await seedGmpTables();
+  } catch (error) {
+    console.error('[Database] Failed to seed GMP tables:', error);
+    // Don't throw - allow server to start even if seeding fails
+  }
+
   console.log('[Database] Database initialization complete.');
 }

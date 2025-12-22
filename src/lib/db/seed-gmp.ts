@@ -11,10 +11,12 @@ import { useSqlite, getSqliteDb, getMysqlDb } from './index';
 import * as schema from './schema';
 
 // Default document types for Document Control (หมวด 5)
+// Thai FDA GMP requires controlled documents with proper approval workflows
 const defaultDocumentTypes = [
   {
     code: 'SOP',
     name: 'Standard Operating Procedure',
+    nameTh: 'ขั้นตอนการปฏิบัติงานมาตรฐาน',
     prefix: 'SOP',
     approvalChain: JSON.stringify(['author', 'reviewer', 'approver']),
     reviewPeriodMonths: 24, // 2 years
@@ -22,6 +24,7 @@ const defaultDocumentTypes = [
   {
     code: 'POL',
     name: 'Policy',
+    nameTh: 'นโยบาย',
     prefix: 'POL',
     approvalChain: JSON.stringify(['author', 'reviewer', 'qa_manager', 'management']),
     reviewPeriodMonths: 36, // 3 years
@@ -29,6 +32,7 @@ const defaultDocumentTypes = [
   {
     code: 'FORM',
     name: 'Form/Record',
+    nameTh: 'แบบฟอร์ม/บันทึก',
     prefix: 'FRM',
     approvalChain: JSON.stringify(['author', 'approver']),
     reviewPeriodMonths: 24, // 2 years
@@ -36,6 +40,7 @@ const defaultDocumentTypes = [
   {
     code: 'WI',
     name: 'Work Instruction',
+    nameTh: 'วิธีปฏิบัติงาน',
     prefix: 'WI',
     approvalChain: JSON.stringify(['author', 'supervisor', 'approver']),
     reviewPeriodMonths: 12, // 1 year
@@ -43,6 +48,7 @@ const defaultDocumentTypes = [
   {
     code: 'SPEC',
     name: 'Specification',
+    nameTh: 'ข้อกำหนด',
     prefix: 'SPEC',
     approvalChain: JSON.stringify(['author', 'qa_reviewer', 'qa_manager']),
     reviewPeriodMonths: 24, // 2 years
@@ -50,6 +56,7 @@ const defaultDocumentTypes = [
   {
     code: 'MAN',
     name: 'Manual',
+    nameTh: 'คู่มือ',
     prefix: 'MAN',
     approvalChain: JSON.stringify(['author', 'reviewer', 'qa_manager', 'management']),
     reviewPeriodMonths: 36, // 3 years
@@ -57,6 +64,7 @@ const defaultDocumentTypes = [
   {
     code: 'PRO',
     name: 'Protocol',
+    nameTh: 'โปรโตคอล',
     prefix: 'PRO',
     approvalChain: JSON.stringify(['author', 'reviewer', 'qa_approver']),
     reviewPeriodMonths: 24, // 2 years
@@ -64,6 +72,7 @@ const defaultDocumentTypes = [
   {
     code: 'RPT',
     name: 'Report Template',
+    nameTh: 'แม่แบบรายงาน',
     prefix: 'RPT',
     approvalChain: JSON.stringify(['author', 'reviewer', 'approver']),
     reviewPeriodMonths: 24, // 2 years
@@ -71,6 +80,7 @@ const defaultDocumentTypes = [
   {
     code: 'LOG',
     name: 'Log Book Template',
+    nameTh: 'แม่แบบสมุดบันทึก',
     prefix: 'LOG',
     approvalChain: JSON.stringify(['author', 'supervisor']),
     reviewPeriodMonths: 24, // 2 years
@@ -78,6 +88,7 @@ const defaultDocumentTypes = [
   {
     code: 'CHK',
     name: 'Checklist',
+    nameTh: 'รายการตรวจสอบ',
     prefix: 'CHK',
     approvalChain: JSON.stringify(['author', 'approver']),
     reviewPeriodMonths: 12, // 1 year
@@ -133,10 +144,18 @@ async function seedDocumentTypes(isSqlite: boolean): Promise<number> {
         });
       }
     } else {
-      // MySQL version would go here if mysqlDocumentTypes is defined
-      // For now, this feature uses SQLite for testing
-      console.log(`[GMP Seed] MySQL seeding not yet implemented for ${tableName}`);
-      return 0;
+      // MySQL version
+      const db = await getMysqlDb();
+      const documentTypesTable = schema.mysqlDocumentTypes;
+      for (const docType of defaultDocumentTypes) {
+        await db.insert(documentTypesTable).values({
+          code: docType.code,
+          name: docType.name,
+          prefix: docType.prefix,
+          approvalChain: docType.approvalChain,
+          reviewPeriodMonths: docType.reviewPeriodMonths,
+        });
+      }
     }
 
     console.log(`[GMP Seed] Successfully seeded ${defaultDocumentTypes.length} document types`);
