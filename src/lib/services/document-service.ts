@@ -797,7 +797,7 @@ export async function processApproval(
     .set({
       status: decision,
       comments,
-      signedAt: new Date().toISOString(),
+      signedAt: formatDateForDb(),
     })
     .where(eq(approvals.id, approvalId));
 
@@ -836,7 +836,7 @@ export async function processApproval(
         .update(versions)
         .set({
           status: 'superseded',
-          obsoleteDate: new Date().toISOString(),
+          obsoleteDate: formatDateForDb(),
         })
         .where(
           and(
@@ -848,7 +848,7 @@ export async function processApproval(
       // Update version effective date
       await database
         .update(versions)
-        .set({ effectiveDate: new Date().toISOString() })
+        .set({ effectiveDate: formatDateForDb() })
         .where(eq(versions.id, approval.versionId));
 
       // Update document status
@@ -962,7 +962,7 @@ export async function markDocumentObsolete(
       .update(versions)
       .set({
         status: 'superseded',
-        obsoleteDate: new Date().toISOString(),
+        obsoleteDate: formatDateForDb(),
       })
       .where(eq(versions.id, doc.currentVersionId));
   }
