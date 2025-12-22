@@ -1,8 +1,9 @@
 "use client";
 
+import * as React from 'react';
 import TagBox from 'devextreme-react/tag-box';
 import type { TagBoxTypes } from 'devextreme-react/tag-box';
-import { forwardRef } from 'react';
+import { forwardRef, type ForwardedRef } from 'react';
 
 export interface DxTagBoxProps {
   /** Data source for the tag box */
@@ -71,8 +72,8 @@ export interface DxTagBoxProps {
   validationStatus?: 'valid' | 'invalid' | 'pending';
 }
 
-export const DxTagBox = forwardRef<TagBox, DxTagBoxProps>(
-  function DxTagBox(props, ref) {
+export const DxTagBox = forwardRef(
+  function DxTagBox(props: DxTagBoxProps, ref: ForwardedRef<unknown>) {
     const {
       dataSource,
       items,
@@ -110,7 +111,8 @@ export const DxTagBox = forwardRef<TagBox, DxTagBoxProps>(
 
     return (
       <TagBox
-        ref={ref}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ref={ref as any}
         dataSource={dataSource}
         items={items}
         displayExpr={displayExpr}

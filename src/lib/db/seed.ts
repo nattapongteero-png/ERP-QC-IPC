@@ -29,7 +29,7 @@ export async function seedDatabase() {
   // Create admin user
   const adminPassword = await hashPassword('admin123');
   try {
-    if (isSqlite) {
+    if (usingSqlite) {
       await (db as any).insert(usersTable).values({
         email: 'admin@herbal-erp.com',
         password: adminPassword,
@@ -72,7 +72,7 @@ export async function seedDatabase() {
   // Helper function to insert and ignore duplicates
   async function insertIgnoreDuplicate(table: any, values: any) {
     try {
-      if (isSqlite) {
+      if (usingSqlite) {
         await (db as any).insert(table).values(values).onConflictDoNothing();
       } else {
         await (db as any).insert(table).values(values);

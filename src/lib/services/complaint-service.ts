@@ -93,7 +93,7 @@ export async function generateComplaintNumber(): Promise<string> {
   const prefix = `COMP-${year}${month}-`;
 
   if (isSqlite()) {
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({ complaintNumber: sqliteComplaints.complaintNumber })
       .from(sqliteComplaints)
       .where(like(sqliteComplaints.complaintNumber, `${prefix}%`))
@@ -139,14 +139,14 @@ export async function listComplaints(
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
-    const countResult = await (await getDb())
+    const countResult = await ((await getDb()) as any)
       .select({ count: count() })
       .from(sqliteComplaints)
       .where(whereClause);
     const total = countResult[0]?.count || 0;
 
     // Get complaints with related data
-    const complaints = await (await getDb())
+    const complaints = await ((await getDb()) as any)
       .select({
         id: sqliteComplaints.id,
         complaintNumber: sqliteComplaints.complaintNumber,
@@ -155,7 +155,7 @@ export async function listComplaints(
         customerName: sqliteComplaints.customerName,
         customerContact: sqliteComplaints.customerContact,
         productId: sqliteComplaints.productId,
-        productName: sqliteItems.name,
+        productName: sqliteItems.nameTh,
         lotId: sqliteComplaints.lotId,
         lotNumber: sqliteInventoryLots.lotNumber,
         category: sqliteComplaints.category,
@@ -202,7 +202,7 @@ export async function listComplaints(
  */
 export async function getComplaintById(id: number): Promise<Complaint | null> {
   if (isSqlite()) {
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({
         id: sqliteComplaints.id,
         complaintNumber: sqliteComplaints.complaintNumber,
@@ -211,7 +211,7 @@ export async function getComplaintById(id: number): Promise<Complaint | null> {
         customerName: sqliteComplaints.customerName,
         customerContact: sqliteComplaints.customerContact,
         productId: sqliteComplaints.productId,
-        productName: sqliteItems.name,
+        productName: sqliteItems.nameTh,
         lotId: sqliteComplaints.lotId,
         lotNumber: sqliteInventoryLots.lotNumber,
         category: sqliteComplaints.category,
@@ -246,7 +246,7 @@ export async function getComplaintById(id: number): Promise<Complaint | null> {
       status: c.status as ComplaintStatus,
       regulatoryReportRequired: c.regulatoryReportRequired || false,
       recallRequired: c.recallRequired || false,
-    };
+    } as Complaint;
   }
 
   throw new Error('MySQL not implemented for Complaints');
@@ -261,12 +261,12 @@ export async function getComplaintDetails(id: number): Promise<ComplaintDetails 
 
   if (isSqlite()) {
     // Get investigation
-    const investigationResult = await (await getDb())
+    const investigationResult = await ((await getDb()) as any)
       .select({
         id: sqliteComplaintInvestigations.id,
         complaintId: sqliteComplaintInvestigations.complaintId,
         investigatorId: sqliteComplaintInvestigations.investigatorId,
-        investigatorName: sqliteUsers.displayName,
+        investigatorName: sqliteUsers.name,
         startDate: sqliteComplaintInvestigations.startDate,
         completionDate: sqliteComplaintInvestigations.completionDate,
         batchRecordReview: sqliteComplaintInvestigations.batchRecordReview,
@@ -296,7 +296,7 @@ export async function getComplaintDetails(id: number): Promise<ComplaintDetails 
     // Get linked CAPA if exists
     let capa: object | undefined;
     if (complaint.capaId) {
-      const capaResult = await (await getDb())
+      const capaResult = await ((await getDb()) as any)
         .select({
           id: sqliteCapa.id,
           capaNumber: sqliteCapa.capaNumber,
@@ -332,7 +332,7 @@ export async function createComplaint(
     const complaintNumber = await generateComplaintNumber();
     const now = new Date().toISOString();
 
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .insert(sqliteComplaints)
       .values({
         complaintNumber,
@@ -359,10 +359,10 @@ export async function createComplaint(
     // Create audit log
     await createAuditLog({
       userId,
-      action: 'complaint_created',
+      action: 'CREATE',
       tableName: 'complaints',
       recordId: complaintId,
-      newValues: { complaintNumber, category: data.category, severity: data.severity },
+      newValue: { complaintNumber, category: data.category, severity: data.severity },
     });
 
     const complaint = await getComplaintById(complaintId);
@@ -394,7 +394,7 @@ export async function updateComplaint(
     if (data.regulatoryReportRequired !== undefined) updateData.regulatoryReportRequired = data.regulatoryReportRequired;
     if (data.regulatoryReportDate !== undefined) updateData.regulatoryReportDate = data.regulatoryReportDate;
 
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteComplaints)
       .set(updateData)
       .where(eq(sqliteComplaints.id, id));
@@ -402,11 +402,11 @@ export async function updateComplaint(
     // Create audit log
     await createAuditLog({
       userId,
-      action: 'complaint_updated',
+      action: 'UPDATE',
       tableName: 'complaints',
       recordId: id,
-      oldValues: { status: existing.status, severity: existing.severity },
-      newValues: updateData,
+      oldValue: { status: existing.status, severity: existing.severity },
+      newValue: updateData,
     });
 
     const updated = await getComplaintById(id);
@@ -437,7 +437,7 @@ export async function routeToQC(
     const now = new Date().toISOString();
 
     // Create investigation record
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .insert(sqliteComplaintInvestigations)
       .values({
         complaintId,
@@ -450,7 +450,7 @@ export async function routeToQC(
     const investigationId = result[0].id;
 
     // Update complaint status
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteComplaints)
       .set({ status: 'under_investigation', updatedAt: now })
       .where(eq(sqliteComplaints.id, complaintId));
@@ -458,15 +458,15 @@ export async function routeToQC(
     // Create audit log
     await createAuditLog({
       userId,
-      action: 'complaint_routed_to_qc',
+      action: 'UPDATE',
       tableName: 'complaint_investigations',
       recordId: investigationId,
-      newValues: { complaintId, investigatorId },
+      newValue: { complaintId, investigatorId },
     });
 
     // Get investigator name
-    const investigator = await (await getDb())
-      .select({ displayName: sqliteUsers.displayName })
+    const investigator = await ((await getDb()) as any)
+      .select({ displayName: sqliteUsers.name })
       .from(sqliteUsers)
       .where(eq(sqliteUsers.id, investigatorId))
       .limit(1);
@@ -499,7 +499,7 @@ export async function recordInvestigation(
 ): Promise<ComplaintInvestigation> {
   if (isSqlite()) {
     // Get existing investigation
-    const existingInv = await (await getDb())
+    const existingInv = await ((await getDb()) as any)
       .select()
       .from(sqliteComplaintInvestigations)
       .where(eq(sqliteComplaintInvestigations.complaintId, complaintId))
@@ -511,7 +511,7 @@ export async function recordInvestigation(
 
     const now = new Date().toISOString();
 
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteComplaintInvestigations)
       .set({
         batchRecordReview: data.batchRecordReview || null,
@@ -524,7 +524,7 @@ export async function recordInvestigation(
       .where(eq(sqliteComplaintInvestigations.complaintId, complaintId));
 
     // Update complaint status to resolved
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteComplaints)
       .set({ status: 'resolved', updatedAt: now })
       .where(eq(sqliteComplaints.id, complaintId));
@@ -532,19 +532,19 @@ export async function recordInvestigation(
     // Create audit log
     await createAuditLog({
       userId,
-      action: 'complaint_investigation_recorded',
+      action: 'UPDATE',
       tableName: 'complaint_investigations',
       recordId: existingInv[0].id,
-      newValues: { rootCause: data.rootCause, conclusion: data.conclusion },
+      newValue: { rootCause: data.rootCause, conclusion: data.conclusion },
     });
 
     // Get updated investigation with investigator name
-    const investigationResult = await (await getDb())
+    const investigationResult = await ((await getDb()) as any)
       .select({
         id: sqliteComplaintInvestigations.id,
         complaintId: sqliteComplaintInvestigations.complaintId,
         investigatorId: sqliteComplaintInvestigations.investigatorId,
-        investigatorName: sqliteUsers.displayName,
+        investigatorName: sqliteUsers.name,
         startDate: sqliteComplaintInvestigations.startDate,
         completionDate: sqliteComplaintInvestigations.completionDate,
         batchRecordReview: sqliteComplaintInvestigations.batchRecordReview,
@@ -597,7 +597,7 @@ export async function closeComplaint(
 
     const now = new Date().toISOString();
 
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteComplaints)
       .set({
         status: 'closed',
@@ -610,10 +610,10 @@ export async function closeComplaint(
     // Create audit log
     await createAuditLog({
       userId,
-      action: 'complaint_closed',
+      action: 'UPDATE',
       tableName: 'complaints',
       recordId: id,
-      newValues: { closedDate: now, closureNotes },
+      newValue: { closedDate: now, closureNotes },
     });
 
     const closed = await getComplaintById(id);
@@ -634,7 +634,7 @@ export async function linkCapa(
   if (isSqlite()) {
     const now = new Date().toISOString();
 
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteComplaints)
       .set({
         capaId,
@@ -645,10 +645,10 @@ export async function linkCapa(
     // Create audit log
     await createAuditLog({
       userId,
-      action: 'complaint_capa_linked',
+      action: 'UPDATE',
       tableName: 'complaints',
       recordId: complaintId,
-      newValues: { capaId },
+      newValue: { capaId },
     });
 
     const updated = await getComplaintById(complaintId);
@@ -692,12 +692,12 @@ export async function getComplaintTrends(
     const startDateStr = startDate.toISOString().split('T')[0];
 
     // Get all complaints in period
-    const complaints = await (await getDb())
+    const complaints = await ((await getDb()) as any)
       .select({
         receivedDate: sqliteComplaints.receivedDate,
         category: sqliteComplaints.category,
         productId: sqliteComplaints.productId,
-        productName: sqliteItems.name,
+        productName: sqliteItems.nameTh,
       })
       .from(sqliteComplaints)
       .leftJoin(sqliteItems, eq(sqliteComplaints.productId, sqliteItems.id))
@@ -787,7 +787,7 @@ export async function getComplaintDashboard(): Promise<{
     const monthStartStr = monthStart.toISOString().split('T')[0];
 
     // Get all complaints
-    const allComplaints = await (await getDb())
+    const allComplaints = await ((await getDb()) as any)
       .select({
         status: sqliteComplaints.status,
         severity: sqliteComplaints.severity,

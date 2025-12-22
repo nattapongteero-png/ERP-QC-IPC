@@ -9,7 +9,7 @@
 
 import { useMemo } from 'react';
 import { DxDataGrid } from '@/components/ui/dx-data-grid';
-import { DxColumn } from '@/components/ui/dx-column';
+import { DxColumn, type DxColumnProps } from '@/components/ui/dx-column';
 import { DxButton } from '@/components/ui/dx-button';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import type { SanitationSchedule, AreaType, SanitationFrequency } from '@/types/sanitation';
@@ -96,45 +96,48 @@ export function SanitationScheduleList({
     []
   );
 
-  const actionsCellRender = (data: { data: SanitationSchedule }) => (
-    <div className="flex gap-1">
-      {onRecordLog && data.data.isActive && (
-        <DxButton
-          icon="plus"
-          hint="Record Log"
-          onClick={() => onRecordLog(data.data.id)}
-          stylingMode="text"
-        />
-      )}
-      {onViewLogs && (
-        <DxButton
-          icon="find"
-          hint="View Logs"
-          onClick={() => onViewLogs(data.data.id)}
-          stylingMode="text"
-        />
-      )}
-      {onEdit && (
-        <DxButton
-          icon="edit"
-          hint="Edit"
-          onClick={() => onEdit(data.data)}
-          stylingMode="text"
-        />
-      )}
-    </div>
-  );
+  const actionsCellRender = (data: { data?: SanitationSchedule }) => {
+    if (!data.data) return null;
+    return (
+      <div className="flex gap-1">
+        {onRecordLog && data.data.isActive && (
+          <DxButton
+            icon="plus"
+            hint="Record Log"
+            onClick={() => onRecordLog(data.data!.id)}
+            stylingMode="text"
+          />
+        )}
+        {onViewLogs && (
+          <DxButton
+            icon="find"
+            hint="View Logs"
+            onClick={() => onViewLogs(data.data!.id)}
+            stylingMode="text"
+          />
+        )}
+        {onEdit && (
+          <DxButton
+            icon="edit"
+            hint="Edit"
+            onClick={() => onEdit(data.data!)}
+            stylingMode="text"
+          />
+        )}
+      </div>
+    );
+  };
 
   return (
     <DxDataGrid
-      dataSource={schedules}
+      dataSource={schedules as unknown as Record<string, unknown>[]}
       showBorders
       columnAutoWidth
       rowAlternationEnabled
       loading={loading}
     >
       {columns.map((col) => (
-        <DxColumn key={col.dataField} {...col} />
+        <DxColumn key={col.dataField} {...col as DxColumnProps} />
       ))}
       <DxColumn
         caption="Actions"

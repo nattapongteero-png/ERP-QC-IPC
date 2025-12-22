@@ -104,7 +104,8 @@ export function PestControlLogList({
     []
   );
 
-  const actionsCellRender = (data: { data: PestControlLog }) => {
+  const actionsCellRender = (data: { data?: PestControlLog }) => {
+    if (!data.data) return null;
     const needsVerification = !data.data.verifiedBy;
 
     return (
@@ -113,7 +114,7 @@ export function PestControlLogList({
           <DxButton
             icon="check"
             hint="Verify"
-            onClick={() => onVerify(data.data.id)}
+            onClick={() => onVerify(data.data!.id)}
             stylingMode="text"
             type="success"
           />
@@ -122,7 +123,7 @@ export function PestControlLogList({
           <DxButton
             icon="edit"
             hint="Edit"
-            onClick={() => onEdit(data.data)}
+            onClick={() => onEdit(data.data!)}
             stylingMode="text"
           />
         )}
@@ -132,7 +133,7 @@ export function PestControlLogList({
 
   return (
     <DxDataGrid
-      dataSource={logs}
+      dataSource={logs as unknown as Record<string, unknown>[]}
       showBorders
       columnAutoWidth
       rowAlternationEnabled

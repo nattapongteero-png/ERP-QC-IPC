@@ -128,7 +128,8 @@ function getTables() {
  */
 export async function generateDocumentNumber(typeId: number): Promise<string> {
   const { documentTypes, documents } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get document type with prefix
   const [docType] = await database
@@ -166,7 +167,8 @@ export async function getDocumentTypes(): Promise<Array<{
   reviewPeriodMonths: number | null;
 }>> {
   const { documentTypes } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   return database
     .select({
@@ -188,7 +190,8 @@ export async function createDocument(
   userId: number
 ): Promise<{ id: number; documentNumber: string }> {
   const { documents, documentTypes } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Generate document number
   const documentNumber = await generateDocumentNumber(data.typeId);
@@ -257,7 +260,8 @@ export async function createDocument(
  */
 export async function getDocumentById(id: number): Promise<DocumentDetails | null> {
   const { documents, documentTypes, versions, approvals, users, orgUnits } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get document with related data
   const [doc] = await database
@@ -372,7 +376,8 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
  */
 export async function getDocuments(params: DocumentListParams): Promise<DocumentListResponse> {
   const { documents, documentTypes, users, orgUnits, versions } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const conditions = [];
 
@@ -470,7 +475,8 @@ export async function updateDocument(
   userId: number
 ): Promise<boolean> {
   const { documents } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get current document
   const [current] = await database
@@ -519,7 +525,8 @@ export async function createVersion(
   userId: number
 ): Promise<{ id: number; versionNumber: string }> {
   const { documents, versions } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get document
   const [doc] = await database
@@ -612,7 +619,8 @@ export async function createVersion(
  */
 export async function getVersionHistory(documentId: number): Promise<DocumentVersion[]> {
   const { versions, approvals, users } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const docVersions = await database
     .select({
@@ -695,7 +703,8 @@ export async function submitForApproval(
   userId: number
 ): Promise<boolean> {
   const { versions, approvals, documents, documentTypes } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get version with document
   const [version] = await database
@@ -769,7 +778,8 @@ export async function processApproval(
   userId: number
 ): Promise<{ versionStatus: DocumentVersionStatus }> {
   const { approvals, versions, documents } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get approval
   const [approval] = await database
@@ -896,7 +906,8 @@ export async function getPendingApprovals(userId: number): Promise<Array<{
   submittedAt: string;
 }>> {
   const { approvals, versions, documents, users } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const pending = await database
     .select({
@@ -934,7 +945,8 @@ export async function markDocumentObsolete(
   userId: number
 ): Promise<boolean> {
   const { documents, versions } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get document
   const [doc] = await database
@@ -992,7 +1004,8 @@ export async function updateDocumentStatus(
   userId: number
 ): Promise<boolean> {
   const { documents, versions } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get document
   const [doc] = await database
@@ -1071,7 +1084,8 @@ export async function getDocumentStatistics(): Promise<{
   upForReview: number;
 }> {
   const { documents, documentTypes, approvals } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get all documents with type
   const allDocs = await database

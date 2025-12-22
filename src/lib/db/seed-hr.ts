@@ -1029,7 +1029,7 @@ async function isTableEmpty(tableName: string, isSqlite: boolean): Promise<boole
       const db = await getMysqlDb();
       const result = await db.execute(sql.raw(`SELECT COUNT(*) as count FROM \`${tableName}\``));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (result[0] as any[])[0]?.count === 0;
+      return (result[0] as unknown as any[])[0]?.count === 0;
     }
   } catch {
     console.log(`[HR Seed] Could not check table ${tableName}, will attempt to seed`);
@@ -1052,8 +1052,8 @@ async function seedOrgUnits(isSqlite: boolean): Promise<number> {
   console.log(`[HR Seed] Seeding ${tableName} with ${defaultOrgUnits.length} default values...`);
 
   try {
-    const orgUnitTable = usingSqlite ? schema.sqliteHROrgUnits : schema.mysqlHROrgUnits;
-    const db = usingSqlite ? getSqliteDb() : await getMysqlDb();
+    const orgUnitTable = isSqlite ? schema.sqliteHROrgUnits : schema.mysqlHROrgUnits;
+    const db = isSqlite ? getSqliteDb() : await getMysqlDb();
 
     // First pass: insert all org units without parent references
     const codeToIdMap: Record<string, number> = {};
@@ -1086,7 +1086,8 @@ async function seedOrgUnits(isSqlite: boolean): Promise<number> {
         const id = codeToIdMap[orgUnit.code];
         if (parentId && id) {
           if (isSqlite) {
-            await db.run(sql.raw(`UPDATE "${tableName}" SET parent_id = ${parentId} WHERE id = ${id}`));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (db as any).run(sql.raw(`UPDATE "${tableName}" SET parent_id = ${parentId} WHERE id = ${id}`));
           } else {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (db as any).execute(sql.raw(`UPDATE \`${tableName}\` SET parent_id = ${parentId} WHERE id = ${id}`));
@@ -1129,7 +1130,7 @@ async function seedPositions(isSqlite: boolean): Promise<number> {
       const db = await getMysqlDb();
       const result = await db.execute(sql.raw(`SELECT id, code FROM \`hr_org_units\``));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (result[0] as any[]).forEach((row: any) => {
+      (result[0] as unknown as any[]).forEach((row: any) => {
         orgUnitMap[row.code] = row.id;
       });
     }
@@ -1141,8 +1142,8 @@ async function seedPositions(isSqlite: boolean): Promise<number> {
   console.log(`[HR Seed] Seeding ${tableName} with ${defaultPositions.length} default values...`);
 
   try {
-    const positionsTable = usingSqlite ? schema.sqliteHRPositions : schema.mysqlHRPositions;
-    const db = usingSqlite ? getSqliteDb() : await getMysqlDb();
+    const positionsTable = isSqlite ? schema.sqliteHRPositions : schema.mysqlHRPositions;
+    const db = isSqlite ? getSqliteDb() : await getMysqlDb();
 
     for (const position of defaultPositions) {
       const orgUnitId = orgUnitMap[position.orgUnitCode];
@@ -1186,8 +1187,8 @@ async function seedTrainingCourses(isSqlite: boolean): Promise<number> {
   console.log(`[HR Seed] Seeding ${tableName} with ${defaultTrainingCourses.length} default values...`);
 
   try {
-    const coursesTable = usingSqlite ? schema.sqliteHRTrainingCourses : schema.mysqlHRTrainingCourses;
-    const db = usingSqlite ? getSqliteDb() : await getMysqlDb();
+    const coursesTable = isSqlite ? schema.sqliteHRTrainingCourses : schema.mysqlHRTrainingCourses;
+    const db = isSqlite ? getSqliteDb() : await getMysqlDb();
 
     for (const course of defaultTrainingCourses) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1227,8 +1228,8 @@ async function seedAppRoles(isSqlite: boolean): Promise<number> {
   console.log(`[HR Seed] Seeding ${tableName} with ${defaultAppRoles.length} default values...`);
 
   try {
-    const rolesTable = usingSqlite ? schema.sqliteHRAppRoles : schema.mysqlHRAppRoles;
-    const db = usingSqlite ? getSqliteDb() : await getMysqlDb();
+    const rolesTable = isSqlite ? schema.sqliteHRAppRoles : schema.mysqlHRAppRoles;
+    const db = isSqlite ? getSqliteDb() : await getMysqlDb();
 
     for (const role of defaultAppRoles) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1263,8 +1264,8 @@ async function seedAppPermissions(isSqlite: boolean): Promise<number> {
   console.log(`[HR Seed] Seeding ${tableName} with ${defaultAppPermissions.length} default values...`);
 
   try {
-    const permissionsTable = usingSqlite ? schema.sqliteHRAppPermissions : schema.mysqlHRAppPermissions;
-    const db = usingSqlite ? getSqliteDb() : await getMysqlDb();
+    const permissionsTable = isSqlite ? schema.sqliteHRAppPermissions : schema.mysqlHRAppPermissions;
+    const db = isSqlite ? getSqliteDb() : await getMysqlDb();
 
     for (const permission of defaultAppPermissions) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1299,11 +1300,11 @@ export async function seedHRTables(): Promise<{
   const usingSqlite = isSqlite();
   console.log(`[HR Seed] Starting HR tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 
-  const orgUnitsSeeded = await seedOrgUnits(isSqlite);
-  const positionsSeeded = await seedPositions(isSqlite);
-  const trainingCoursesSeeded = await seedTrainingCourses(isSqlite);
-  const appRolesSeeded = await seedAppRoles(isSqlite);
-  const appPermissionsSeeded = await seedAppPermissions(isSqlite);
+  const orgUnitsSeeded = await seedOrgUnits(usingSqlite);
+  const positionsSeeded = await seedPositions(usingSqlite);
+  const trainingCoursesSeeded = await seedTrainingCourses(usingSqlite);
+  const appRolesSeeded = await seedAppRoles(usingSqlite);
+  const appPermissionsSeeded = await seedAppPermissions(usingSqlite);
 
   console.log(`[HR Seed] HR tables seeding complete.`);
   console.log(`[HR Seed] Org units: ${orgUnitsSeeded}, Positions: ${positionsSeeded}, Courses: ${trainingCoursesSeeded}, Roles: ${appRolesSeeded}, Permissions: ${appPermissionsSeeded}`);

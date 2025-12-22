@@ -88,14 +88,16 @@ export function SanitationTrendChart({ data, loading = false }: SanitationTrendC
             <XAxis dataKey="name" />
             <YAxis domain={[0, 100]} />
             <Tooltip
-              formatter={(value: number, name: string) => [
-                name === 'complianceRate' ? `${value.toFixed(1)}%` : value,
-                name === 'complianceRate'
+              formatter={(value: number | string | undefined, name: string | undefined) => {
+                const numValue = typeof value === 'number' ? value : 0;
+                const label = name === 'complianceRate' ? `${numValue.toFixed(1)}%` : numValue;
+                const displayName = name === 'complianceRate'
                   ? 'Compliance Rate'
                   : name === 'completedCount'
                     ? 'Completed'
-                    : 'Missed',
-              ]}
+                    : 'Missed';
+                return [label, displayName];
+              }}
             />
             <Legend />
             <Bar dataKey="completedCount" fill="#22c55e" name="Completed" />
@@ -139,9 +141,12 @@ export function SanitationTrendChart({ data, loading = false }: SanitationTrendC
               <XAxis dataKey="date" />
               <YAxis domain={[0, 100]} />
               <Tooltip
-                formatter={(value: number, name: string) =>
-                  name === 'complianceRate' ? [`${value.toFixed(1)}%`, 'Compliance'] : [value, name]
-                }
+                formatter={(value: number | string | undefined, name: string | undefined) => {
+                  const numValue = typeof value === 'number' ? value : 0;
+                  return name === 'complianceRate'
+                    ? [`${numValue.toFixed(1)}%`, 'Compliance']
+                    : [numValue, name || ''];
+                }}
               />
               <Legend />
               <Line

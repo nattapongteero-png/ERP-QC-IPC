@@ -107,7 +107,7 @@ async function isTableEmpty(tableName: string, isSqlite: boolean): Promise<boole
     } else {
       const db = await getMysqlDb();
       const result = await db.execute(sql.raw(`SELECT COUNT(*) as count FROM \`${tableName}\``));
-      return (result[0] as Array<{ count: number }>)[0]?.count === 0;
+      return (result[0] as unknown as Array<{ count: number }>)[0]?.count === 0;
     }
   } catch (error) {
     // Table might not exist yet or connection issue - assume empty and try to seed
@@ -176,7 +176,7 @@ export async function seedGmpTables(): Promise<{
   const usingSqlite = isSqlite();
   console.log(`[GMP Seed] Starting GMP tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 
-  const documentTypesSeeded = await seedDocumentTypes(isSqlite);
+  const documentTypesSeeded = await seedDocumentTypes(usingSqlite);
 
   console.log(`[GMP Seed] GMP tables seeding complete.`);
   console.log(`[GMP Seed] Document types seeded: ${documentTypesSeeded}`);

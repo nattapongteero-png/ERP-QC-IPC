@@ -50,7 +50,8 @@ import type {
 export async function getAuditPlans(
   params: AuditPlanListParams = {}
 ): Promise<AuditPlan[]> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const conditions = [];
 
   if (params.year) {
@@ -110,7 +111,8 @@ export async function getAuditPlans(
  * Get a single audit plan by ID
  */
 export async function getAuditPlanById(id: number): Promise<AuditPlan | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const plans = await database
     .select({
@@ -162,7 +164,8 @@ export async function createAuditPlan(
   data: AuditPlanCreate,
   userId: number
 ): Promise<AuditPlan> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const result = await database
     .insert(sqliteAuditPlans)
@@ -194,7 +197,8 @@ export async function updateAuditPlan(
   data: AuditPlanUpdate,
   userId: number
 ): Promise<AuditPlan | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getAuditPlanById(id);
   if (!existing) return null;
@@ -229,7 +233,8 @@ export async function approveAuditPlan(
   id: number,
   userId: number
 ): Promise<AuditPlan | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getAuditPlanById(id);
   if (!existing) return null;
@@ -263,7 +268,8 @@ export async function approveAuditPlan(
  * Generate audit number
  */
 export async function generateAuditNumber(): Promise<string> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const now = new Date();
   const yearMonth = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
   const prefix = `AUD-${yearMonth}-`;
@@ -289,7 +295,8 @@ export async function generateAuditNumber(): Promise<string> {
 export async function getAudits(
   params: AuditListParams = {}
 ): Promise<AuditListResponse> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
@@ -382,7 +389,8 @@ export async function getAudits(
  * Get audit details by ID
  */
 export async function getAuditById(id: number): Promise<AuditDetails | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const audits = await database
     .select({
@@ -470,7 +478,8 @@ export async function createAudit(
   data: AuditCreate,
   userId: number
 ): Promise<Audit> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const auditNumber = await generateAuditNumber();
 
@@ -510,7 +519,8 @@ export async function updateAudit(
   data: AuditUpdate,
   userId: number
 ): Promise<Audit | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getAuditById(id);
   if (!existing) return null;
@@ -548,7 +558,8 @@ export async function startAudit(
   id: number,
   userId: number
 ): Promise<Audit | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getAuditById(id);
   if (!existing) return null;
@@ -592,7 +603,8 @@ export async function completeAudit(
   data: AuditCompleteRequest,
   userId: number
 ): Promise<Audit | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getAuditById(id);
   if (!existing) return null;
@@ -627,7 +639,8 @@ export async function completeAudit(
  * Generate finding number within audit
  */
 async function generateFindingNumber(auditId: number): Promise<string> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await database
     .select()
@@ -649,7 +662,8 @@ async function generateFindingNumber(auditId: number): Promise<string> {
 export async function getAuditFindings(
   params: AuditFindingListParams = {}
 ): Promise<AuditFindingListResponse> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
@@ -721,7 +735,8 @@ export async function getAuditFindings(
  * Get finding by ID
  */
 export async function getAuditFindingById(id: number): Promise<AuditFinding | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const findings = await database
     .select({
@@ -769,7 +784,8 @@ export async function createAuditFinding(
   data: AuditFindingCreate,
   userId: number
 ): Promise<AuditFinding> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const findingNumber = await generateFindingNumber(data.auditId);
 
@@ -809,7 +825,8 @@ export async function updateAuditFinding(
   data: AuditFindingUpdate,
   userId: number
 ): Promise<AuditFinding | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getAuditFindingById(id);
   if (!existing) return null;
@@ -848,7 +865,8 @@ export async function assignCapaToFinding(
   capaId: number,
   userId: number
 ): Promise<AuditFinding | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getAuditFindingById(findingId);
   if (!existing) return null;
@@ -880,7 +898,8 @@ export async function closeAuditFinding(
   id: number,
   userId: number
 ): Promise<AuditFinding | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getAuditFindingById(id);
   if (!existing) return null;
@@ -918,7 +937,8 @@ export async function closeAuditFinding(
  * Get audit statistics for a year
  */
 export async function getAuditStatistics(year: number): Promise<AuditStatistics> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const startOfYear = `${year}-01-01`;
   const endOfYear = `${year}-12-31`;
@@ -983,7 +1003,8 @@ export async function getAuditStatistics(year: number): Promise<AuditStatistics>
  * Get GMP chapter coverage for a year
  */
 export async function getChapterCoverage(year: number): Promise<ChapterCoverage> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const startOfYear = `${year}-01-01`;
   const endOfYear = `${year}-12-31`;
