@@ -156,6 +156,12 @@ export interface JobDescriptionCreate {
 // Employee
 // ============================================
 
+export type Gender = 'male' | 'female' | 'other';
+export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'O+' | 'O-' | 'AB+' | 'AB-';
+export type MaritalStatus = 'single' | 'married' | 'divorced' | 'widowed';
+export type EducationLevel = 'primary' | 'secondary' | 'vocational' | 'bachelor' | 'master' | 'doctorate';
+export type MilitaryStatus = 'exempted' | 'completed' | 'pending' | 'not_applicable';
+
 export interface Employee {
   id: number;
   userId: number | null;
@@ -164,8 +170,66 @@ export interface Employee {
   lastName: string;
   firstNameEn?: string | null;
   lastNameEn?: string | null;
+  nickname?: string | null;
   email?: string | null;
   phone?: string | null;
+
+  // Personal Identification
+  thaiCid?: string | null;
+  dateOfBirth?: string | null;
+  gender?: Gender | null;
+  bloodType?: BloodType | null;
+  religion?: string | null;
+  maritalStatus?: MaritalStatus | null;
+  nationalityCode?: string | null;
+
+  // Photo
+  photoUrl?: string | null;
+  photoThumbnailUrl?: string | null;
+
+  // Government IDs
+  ssoNumber?: string | null;
+  taxId?: string | null;
+
+  // Address - Current
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  subDistrict?: string | null;
+  district?: string | null;
+  province?: string | null;
+  postalCode?: string | null;
+
+  // Address - Permanent
+  permanentAddressLine1?: string | null;
+  permanentAddressLine2?: string | null;
+  permanentSubDistrict?: string | null;
+  permanentDistrict?: string | null;
+  permanentProvince?: string | null;
+  permanentPostalCode?: string | null;
+  useSameAddress?: boolean | null;
+
+  // Emergency Contact
+  emergencyContactName?: string | null;
+  emergencyContactRelation?: string | null;
+  emergencyContactPhone?: string | null;
+
+  // Banking
+  bankName?: string | null;
+  bankBranch?: string | null;
+  bankAccountNumber?: string | null;
+  bankAccountName?: string | null;
+
+  // Education
+  educationLevel?: EducationLevel | null;
+  educationField?: string | null;
+  educationInstitution?: string | null;
+
+  // Military Status
+  militaryStatus?: MilitaryStatus | null;
+
+  // Medical Notes
+  medicalNotes?: string | null;
+
   positionId: number | null;
   orgUnitId: number | null;
   siteId: number | null;
@@ -191,8 +255,66 @@ export interface EmployeeCreate {
   lastName: string;
   firstNameEn?: string;
   lastNameEn?: string;
+  nickname?: string;
   email?: string;
   phone?: string;
+
+  // Personal Identification
+  thaiCid?: string;
+  dateOfBirth?: string;
+  gender?: Gender;
+  bloodType?: BloodType;
+  religion?: string;
+  maritalStatus?: MaritalStatus;
+  nationalityCode?: string;
+
+  // Photo
+  photoUrl?: string;
+  photoThumbnailUrl?: string;
+
+  // Government IDs
+  ssoNumber?: string;
+  taxId?: string;
+
+  // Address - Current
+  addressLine1?: string;
+  addressLine2?: string;
+  subDistrict?: string;
+  district?: string;
+  province?: string;
+  postalCode?: string;
+
+  // Address - Permanent
+  permanentAddressLine1?: string;
+  permanentAddressLine2?: string;
+  permanentSubDistrict?: string;
+  permanentDistrict?: string;
+  permanentProvince?: string;
+  permanentPostalCode?: string;
+  useSameAddress?: boolean;
+
+  // Emergency Contact
+  emergencyContactName?: string;
+  emergencyContactRelation?: string;
+  emergencyContactPhone?: string;
+
+  // Banking
+  bankName?: string;
+  bankBranch?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
+
+  // Education
+  educationLevel?: EducationLevel;
+  educationField?: string;
+  educationInstitution?: string;
+
+  // Military Status
+  militaryStatus?: MilitaryStatus;
+
+  // Medical Notes
+  medicalNotes?: string;
+
   positionId?: number;
   orgUnitId?: number;
   siteId?: number;
@@ -204,8 +326,54 @@ export interface EmployeeUpdate {
   lastName?: string;
   firstNameEn?: string;
   lastNameEn?: string;
+  nickname?: string;
   email?: string;
   phone?: string;
+
+  thaiCid?: string;
+  dateOfBirth?: string;
+  gender?: Gender;
+  bloodType?: BloodType;
+  religion?: string;
+  maritalStatus?: MaritalStatus;
+
+  photoUrl?: string;
+  photoThumbnailUrl?: string;
+
+  ssoNumber?: string;
+  taxId?: string;
+
+  addressLine1?: string;
+  addressLine2?: string;
+  subDistrict?: string;
+  district?: string;
+  province?: string;
+  postalCode?: string;
+
+  permanentAddressLine1?: string;
+  permanentAddressLine2?: string;
+  permanentSubDistrict?: string;
+  permanentDistrict?: string;
+  permanentProvince?: string;
+  permanentPostalCode?: string;
+  useSameAddress?: boolean;
+
+  emergencyContactName?: string;
+  emergencyContactRelation?: string;
+  emergencyContactPhone?: string;
+
+  bankName?: string;
+  bankBranch?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
+
+  educationLevel?: EducationLevel;
+  educationField?: string;
+  educationInstitution?: string;
+
+  militaryStatus?: MilitaryStatus;
+  medicalNotes?: string;
+
   positionId?: number;
   orgUnitId?: number;
   siteId?: number;
