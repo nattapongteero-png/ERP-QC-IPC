@@ -142,6 +142,11 @@ export const PERMISSIONS = {
   'documents:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
   'documents:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'documents:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+
+  // CAPA Management (หมวด 1)
+  'capa:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
+  'capa:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'capa:close': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
