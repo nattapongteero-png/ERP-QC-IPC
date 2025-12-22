@@ -315,7 +315,11 @@ export function VmiPortalConfigForm({
                     <XCircle className="h-5 w-5 text-red-600" />
                     <div>
                       <div className="font-medium">Connection Failed</div>
-                      <div className="text-sm">{testResult.error}</div>
+                      <div className="text-sm">
+                        {typeof testResult.error === 'string'
+                          ? testResult.error
+                          : (testResult.error as { message?: string })?.message || 'Unknown error'}
+                      </div>
                     </div>
                   </>
                 )}

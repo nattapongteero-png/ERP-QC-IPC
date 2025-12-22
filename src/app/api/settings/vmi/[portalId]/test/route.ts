@@ -61,11 +61,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         latencyMs: result.latencyMs,
         vendorInfo: result.vendorInfo,
         testedAt: new Date().toISOString(),
-        error: result.error
-          ? {
-              message: result.error,
-            }
-          : undefined,
+        error: result.error,
       },
     });
   } catch (error) {
