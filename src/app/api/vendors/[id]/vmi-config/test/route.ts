@@ -46,7 +46,7 @@ export async function POST(
       const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
 
       // Check if vendor exists
-      const vendorResult = await db
+      const vendorResult = await (db as any)
         .select()
         .from(vendors)
         .where(eq(vendors.id, vendorId));
@@ -56,7 +56,7 @@ export async function POST(
       }
 
       // Get VMI config
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -81,7 +81,7 @@ export async function POST(
           error?: string
         ) {
           const now = new Date();
-          await db.insert(vmiTransactions).values({
+          await (db as any).insert(vmiTransactions).values({
             vendorId: logVendorId,
             transactionType,
             endpoint,
@@ -119,7 +119,7 @@ export async function POST(
           // Return specific error for auth issues
           if (err.code === 'UNAUTHORIZED' || err.code === 'API_KEY_EXPIRED' || err.code === 'API_KEY_REVOKED') {
             // Update config to mark as disconnected
-            await db
+            await (db as any)
               .update(vmiConfig)
               .set({
                 isConnected: false,
@@ -140,7 +140,7 @@ export async function POST(
       }
 
       // Update connection status
-      await db
+      await (db as any)
         .update(vmiConfig)
         .set({
           isConnected,

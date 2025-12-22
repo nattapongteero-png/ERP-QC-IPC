@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       const customers = isSqlite ? sqliteCustomers : mysqlCustomers;
 
       // Get the highest customer code number
-      const result = await db
+      const result = await (db as any)
         .select({ code: customers.code })
         .from(customers)
         .where(sql`${customers.code} LIKE 'CUS%'`)

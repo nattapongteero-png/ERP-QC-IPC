@@ -22,7 +22,7 @@ export async function GET(
       const inventoryLots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get PO details
-      const poResult = await db
+      const poResult = await (db as any)
         .select({
           id: purchaseOrders.id,
           poNumber: purchaseOrders.poNumber,
@@ -51,7 +51,7 @@ export async function GET(
       const po = poResult[0];
 
       // Get PO lines
-      const linesResult = await db
+      const linesResult = await (db as any)
         .select({
           id: purchaseOrderLines.id,
           itemId: purchaseOrderLines.itemId,
@@ -90,7 +90,7 @@ export async function GET(
       });
 
       // Get received lots for this PO
-      const receivedLots = await db
+      const receivedLots = await (db as any)
         .select({
           id: inventoryLots.id,
           lotNumber: inventoryLots.lotNumber,

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       // If lotNumber is provided but not lotId, look up the lot by number
       if (!lotId && lotNumber) {
         const database = await getDb();
-        const [lot] = await database
+        const [lot] = await (database as any)
           .select({ id: lots.id })
           .from(lots)
           .where(eq(lots.lotNumber, lotNumber))

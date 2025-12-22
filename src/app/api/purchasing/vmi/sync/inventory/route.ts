@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Verify vendor has VMI configuration
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       const config = configResult[0];
 
       // Get items with TPP or TTMT codes
-      const vmiItems = await db
+      const vmiItems = await (db as any)
         .select({
           id: items.id,
           code: items.code,
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       const inventoryData = await Promise.all(
         vmiItems.map(async (item: VmiItemType) => {
           // Get total available quantity from inventory lots
-          const lotsResult = await db
+          const lotsResult = await (db as any)
             .select({
               totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
               reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
       const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
 
       // Get vendor config
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Get VMI items
-      let vmiItems = await db
+      let vmiItems = await (db as any)
         .select({
           id: items.id,
           code: items.code,
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
       type VmiItemPostType = { id: number; code: string; tppCode: string | null; ttmtCode: string | null; primaryUnit: string };
       const inventoryPayloads: VmiInventoryItem[] = await Promise.all(
         vmiItems.map(async (item: VmiItemPostType) => {
-          const lotsResult = await db
+          const lotsResult = await (db as any)
             .select({
               totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
               reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
           error?: string
         ) {
           const now = new Date();
-          await db.insert(vmiTransactions).values({
+          await (db as any).insert(vmiTransactions).values({
             vendorId: logVendorId,
             transactionType,
             endpoint,
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         // Update last sync time
-        await db
+        await (db as any)
           .update(vmiConfig)
           .set({
             lastInventorySyncAt: isSqlite ? now.toISOString() : now,

@@ -22,7 +22,7 @@ export async function GET(
       const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get SO details (customer info is stored directly in sales_orders table)
-      const soResult = await db
+      const soResult = await (db as any)
         .select({
           id: salesOrders.id,
           soNumber: salesOrders.soNumber,
@@ -50,7 +50,7 @@ export async function GET(
       const so = soResult[0];
 
       // Get SO lines
-      const linesResult = await db
+      const linesResult = await (db as any)
         .select({
           id: salesOrderLines.id,
           itemId: salesOrderLines.itemId,
@@ -78,7 +78,7 @@ export async function GET(
           const totalPrice = Number(line.totalPrice) || 0;
 
           // Get available stock for this item using FEFO
-          const availableLots = await db
+          const availableLots = await (db as any)
             .select({
               id: inventoryLots.id,
               lotNumber: inventoryLots.lotNumber,

@@ -15,7 +15,7 @@ export async function GET(
       const db = await getDb();
       const warehouses = isSqlite() ? sqliteWarehouses : mysqlWarehouses;
 
-      const [warehouse] = await db
+      const [warehouse] = await (db as any)
         .select()
         .from(warehouses)
         .where(eq(warehouses.id, parseInt(id)));
@@ -45,7 +45,7 @@ export async function PUT(
       const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
       const warehouseId = parseInt(id);
 
-      const [existing] = await db
+      const [existing] = await (db as any)
         .select()
         .from(warehouses)
         .where(eq(warehouses.id, warehouseId));
@@ -64,13 +64,13 @@ export async function PUT(
         updatedAt: isSqlite ? now.toISOString() : now,
       };
 
-      await db
+      await (db as any)
         .update(warehouses)
         .set(updateData)
         .where(eq(warehouses.id, warehouseId));
 
       // Fetch updated record
-      const [updated] = await db
+      const [updated] = await (db as any)
         .select()
         .from(warehouses)
         .where(eq(warehouses.id, warehouseId));
@@ -105,7 +105,7 @@ export async function DELETE(
       const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
       const warehouseId = parseInt(id);
 
-      const [existing] = await db
+      const [existing] = await (db as any)
         .select()
         .from(warehouses)
         .where(eq(warehouses.id, warehouseId));
@@ -117,7 +117,7 @@ export async function DELETE(
       const now = new Date();
 
       // Soft delete by setting isActive to false
-      await db
+      await (db as any)
         .update(warehouses)
         .set({ isActive: false, updatedAt: isSqlite ? now.toISOString() : now })
         .where(eq(warehouses.id, warehouseId));

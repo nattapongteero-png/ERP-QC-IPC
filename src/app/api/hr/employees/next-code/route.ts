@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       const employees = isSqlite ? sqliteHREmployees : mysqlHREmployees;
 
       // Get the highest employee code number
-      const result = await db
+      const result = await (db as any)
         .select({ code: employees.employeeCode })
         .from(employees)
         .where(sql`${employees.employeeCode} LIKE 'EMP%'`)

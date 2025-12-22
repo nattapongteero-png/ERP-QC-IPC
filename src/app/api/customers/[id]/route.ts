@@ -35,6 +35,7 @@ export async function GET(
       const salesOrders = isSqlite ? sqliteSalesOrders : mysqlSalesOrders;
 
       // Get customer details
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const customerResult = await (db as any)
         .select()
         .from(customers)
@@ -62,6 +63,7 @@ export async function GET(
         .limit(10);
 
       // Get summary statistics
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const soStats = await (db as any).select({
           totalOrders: sql<number>`count(*)`,
           totalAmount: sql<number>`sum(${salesOrders.totalAmount})`,

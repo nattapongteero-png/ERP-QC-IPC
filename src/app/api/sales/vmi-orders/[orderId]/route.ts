@@ -109,7 +109,7 @@ export async function PUT(
         .where(eq(vmiSalesOrdersTable.id, id));
     } else {
       const { vmiSalesOrdersTable } = await import('@/lib/db/mysql/schema');
-      await db
+      await (db as any)
         .update(vmiSalesOrdersTable)
         .set({
           notes: data.notes ?? order.notes,

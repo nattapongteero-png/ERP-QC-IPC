@@ -45,7 +45,7 @@ export async function GET(
       const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
 
       // Get order
-      const orderResult = await db
+      const orderResult = await (db as any)
         .select()
         .from(vmiOrders)
         .where(eq(vmiOrders.id, orderId));
@@ -71,7 +71,7 @@ export async function GET(
       }
 
       // Get vendor config
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, order.vendorId));
@@ -96,7 +96,7 @@ export async function GET(
           error?: string
         ) {
           const now = new Date();
-          await db.insert(vmiTransactions).values({
+          await (db as any).insert(vmiTransactions).values({
             vendorId: logVendorId,
             transactionType,
             endpoint,
@@ -128,7 +128,7 @@ export async function GET(
         // If received (complete receipt), update local order
         if (receiptStatus.receiptStatus === 'complete' && order.status !== 'received') {
           const now = new Date();
-          await db
+          await (db as any)
             .update(vmiOrders)
             .set({
               status: 'received',

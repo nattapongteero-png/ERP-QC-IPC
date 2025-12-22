@@ -43,7 +43,7 @@ export async function GET(
       const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
 
       // Check if vendor exists
-      const vendorResult = await db
+      const vendorResult = await (db as any)
         .select()
         .from(vendors)
         .where(eq(vendors.id, vendorId));
@@ -53,7 +53,7 @@ export async function GET(
       }
 
       // Get VMI config for this vendor
-      const configResult = await db
+      const configResult = await (db as any)
         .select({
           id: vmiConfig.id,
           vendorId: vmiConfig.vendorId,
@@ -128,7 +128,7 @@ export async function PUT(
       const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
 
       // Check if vendor exists
-      const vendorResult = await db
+      const vendorResult = await (db as any)
         .select()
         .from(vendors)
         .where(eq(vendors.id, vendorId));
@@ -143,7 +143,7 @@ export async function PUT(
       }
 
       // Check if config already exists
-      const existingConfig = await db
+      const existingConfig = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -173,7 +173,7 @@ export async function PUT(
           updateData.orderPollIntervalMinutes = Math.max(5, Math.min(60, orderPollIntervalMinutes));
         }
 
-        await db
+        await (db as any)
           .update(vmiConfig)
           .set(updateData)
           .where(eq(vmiConfig.vendorId, vendorId));
@@ -213,7 +213,7 @@ export async function PUT(
           updatedAt: isSqlite ? now.toISOString() : now,
         };
 
-        const result = await db.insert(vmiConfig).values(insertData);
+        const result = await (db as any).insert(vmiConfig).values(insertData);
 
         const insertedId = isSqlite
           ? (result as { lastInsertRowid: number }).lastInsertRowid

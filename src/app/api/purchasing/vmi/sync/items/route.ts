@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       const vendors = isSqlite ? sqliteVendors : mysqlVendors;
 
       // Verify vendor has VMI configuration
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       const config = configResult[0];
 
       // Get vendor info
-      const vendorResult = await db
+      const vendorResult = await (db as any)
         .select({ name: vendors.name })
         .from(vendors)
         .where(eq(vendors.id, vendorId));
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
       // Get items with TPP or TTMT codes that belong to this vendor's approved list
       // For now, get all items with codes - can be filtered by AVL later
-      const itemsResult = await db
+      const itemsResult = await (db as any)
         .select({
           id: items.id,
           code: items.code,
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
 
       // Get vendor config
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
       let itemsToSync;
       if (itemIds && itemIds.length > 0) {
         // Sync specific items
-        itemsToSync = await db
+        itemsToSync = await (db as any)
           .select({
             id: items.id,
             code: items.code,
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
         itemsToSync = itemsToSync.filter((item: { id: number }) => itemIds.includes(item.id));
       } else {
         // Sync all items with codes
-        itemsToSync = await db
+        itemsToSync = await (db as any)
           .select({
             id: items.id,
             code: items.code,
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
           error?: string
         ) {
           const now = new Date();
-          await db.insert(vmiTransactions).values({
+          await (db as any).insert(vmiTransactions).values({
             vendorId: logVendorId,
             transactionType,
             endpoint,
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         // Update last sync time
-        await db
+        await (db as any)
           .update(vmiConfig)
           .set({
             lastItemsSyncAt: isSqlite ? now.toISOString() : now,

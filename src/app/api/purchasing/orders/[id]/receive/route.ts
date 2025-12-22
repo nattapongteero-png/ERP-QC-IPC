@@ -36,7 +36,7 @@ export async function POST(
       const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
 
       // Validate warehouse exists and is active
-      const warehouseResult = await db
+      const warehouseResult = await (db as any)
         .select({ id: warehouses.id })
         .from(warehouses)
         .where(and(eq(warehouses.id, warehouseId), eq(warehouses.isActive, true)))
@@ -47,7 +47,7 @@ export async function POST(
       }
 
       // Get PO
-      const poResult = await db
+      const poResult = await (db as any)
         .select()
         .from(purchaseOrders)
         .where(eq(purchaseOrders.id, poId));
@@ -59,7 +59,7 @@ export async function POST(
       const po = poResult[0];
 
       // Get PO line with item info
-      const lineResult = await db
+      const lineResult = await (db as any)
         .select({
           id: purchaseOrderLines.id,
           itemId: purchaseOrderLines.itemId,
@@ -113,13 +113,13 @@ export async function POST(
 
       // Update PO line received quantity
       const newReceivedQty = lineReceivedQuantity + receiveQuantity;
-      await db
+      await (db as any)
         .update(purchaseOrderLines)
         .set({ receivedQuantity: newReceivedQty })
         .where(eq(purchaseOrderLines.id, lineId));
 
       // Check if all lines are fully received, update PO status
-      const allLines = await db
+      const allLines = await (db as any)
         .select({
           quantity: purchaseOrderLines.quantity,
           receivedQuantity: purchaseOrderLines.receivedQuantity,
@@ -140,7 +140,7 @@ export async function POST(
       }
 
       if (newStatus !== po.status) {
-        await db
+        await (db as any)
           .update(purchaseOrders)
           .set({
             status: newStatus,

@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const db = await getDb();
 
-    const units = await db
+    const units = await (db as any)
       .select()
       .from(mysqlItemUnits)
       .where(eq(mysqlItemUnits.isActive, true))
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await db.insert(mysqlItemUnits).values({
+    const result = await (db as any).insert(mysqlItemUnits).values({
       code,
       nameTh,
       nameEn: nameEn || null,
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
     const insertId = result[0].insertId;
 
-    const [newUnit] = await db
+    const [newUnit] = await (db as any)
       .select()
       .from(mysqlItemUnits)
       .where(eq(mysqlItemUnits.id, insertId));

@@ -22,7 +22,7 @@ export async function GET(
       const users = isSqlite() ? sqliteUsers : mysqlUsers;
 
       // Get test details
-      const testResult = await db
+      const testResult = await (db as any)
         .select({
           id: qualityTests.id,
           lotId: qualityTests.lotId,
@@ -53,7 +53,7 @@ export async function GET(
       let lotInfo = null;
       let itemInfo = null;
       if (test.lotId) {
-        const lotResult = await db
+        const lotResult = await (db as any)
           .select({
             id: inventoryLots.id,
             lotNumber: inventoryLots.lotNumber,
@@ -69,7 +69,7 @@ export async function GET(
 
         // Get item info from lot
         if (lotInfo?.itemId) {
-          const itemResult = await db
+          const itemResult = await (db as any)
             .select({
               id: items.id,
               code: items.code,
@@ -87,7 +87,7 @@ export async function GET(
       // Get specification details
       let specInfo = null;
       if (test.specId) {
-        const specResult = await db
+        const specResult = await (db as any)
           .select({
             id: qualitySpecs.id,
             itemId: qualitySpecs.itemId,
@@ -107,7 +107,7 @@ export async function GET(
       // Get tester info
       let testerInfo = null;
       if (test.testedBy) {
-        const testerResult = await db
+        const testerResult = await (db as any)
           .select({
             id: users.id,
             name: users.name,
@@ -121,7 +121,7 @@ export async function GET(
       // Get approver info
       let approverInfo = null;
       if (test.approvedBy) {
-        const approverResult = await db
+        const approverResult = await (db as any)
           .select({
             id: users.id,
             name: users.name,

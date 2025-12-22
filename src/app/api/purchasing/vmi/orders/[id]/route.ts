@@ -55,7 +55,7 @@ export async function GET(
       const vendors = isSqlite ? sqliteVendors : mysqlVendors;
 
       // Get order with vendor info
-      const orderResult = await db
+      const orderResult = await (db as any)
         .select({
           id: vmiOrders.id,
           vendorId: vmiOrders.vendorId,
@@ -88,7 +88,7 @@ export async function GET(
       }
 
       // Get order lines
-      const lines = await db
+      const lines = await (db as any)
         .select()
         .from(vmiOrderLines)
         .where(eq(vmiOrderLines.vmiOrderId, orderId));
@@ -138,7 +138,7 @@ export async function PATCH(
       const purchaseOrderLines = isSqlite ? sqlitePurchaseOrderLines : mysqlPurchaseOrderLines;
 
       // Get order
-      const orderResult = await db
+      const orderResult = await (db as any)
         .select()
         .from(vmiOrders)
         .where(eq(vmiOrders.id, orderId));
@@ -159,7 +159,7 @@ export async function PATCH(
       }
 
       // Get vendor config
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, order.vendorId));
@@ -184,7 +184,7 @@ export async function PATCH(
           error?: string
         ) {
           const now = new Date();
-          await db.insert(vmiTransactions).values({
+          await (db as any).insert(vmiTransactions).values({
             vendorId: logVendorId,
             transactionType,
             endpoint,
@@ -220,7 +220,7 @@ export async function PATCH(
           newStatus = 'confirmed';
 
           // Create local purchase order (T036)
-          const lines = await db
+          const lines = await (db as any)
             .select()
             .from(vmiOrderLines)
             .where(eq(vmiOrderLines.vmiOrderId, orderId));
@@ -229,7 +229,7 @@ export async function PATCH(
           const poNumber = `VMI-${order.hospitalCode}-${order.poNumber}`;
 
           // Insert purchase order
-          const poResult = await db.insert(purchaseOrders).values({
+          const poResult = await (db as any).insert(purchaseOrders).values({
             vendorId: order.vendorId,
             poNumber,
             orderDate: isSqlite ? now.toISOString().split('T')[0] : now,
@@ -249,7 +249,7 @@ export async function PATCH(
 
           // Insert purchase order lines
           for (const line of lines) {
-            await db.insert(purchaseOrderLines).values({
+            await (db as any).insert(purchaseOrderLines).values({
               poId: localPoId,
               itemId: line.itemId || 0, // Will be linked later when items are synced
               quantity: line.quantityOrdered,
@@ -263,7 +263,7 @@ export async function PATCH(
           }
 
           // Update VMI order with local PO ID
-          await db
+          await (db as any)
             .update(vmiOrders)
             .set({
               status: newStatus,
@@ -278,7 +278,7 @@ export async function PATCH(
           await service.shipOrder(order.vmiOrderId, expectedDeliveryDate);
           newStatus = 'shipped';
 
-          await db
+          await (db as any)
             .update(vmiOrders)
             .set({
               status: newStatus,

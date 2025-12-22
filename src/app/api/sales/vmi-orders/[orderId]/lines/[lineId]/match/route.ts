@@ -82,7 +82,7 @@ export async function POST(
       item = items[0];
     } else {
       const { itemsTable } = await import('@/lib/db/mysql/schema');
-      const items = await db
+      const items = await (db as any)
         .select()
         .from(itemsTable)
         .where(eq(itemsTable.id, data.itemId))
@@ -112,7 +112,7 @@ export async function POST(
         .where(eq(vmiSalesOrderLinesTable.id, lineIdNum));
     } else {
       const { vmiSalesOrderLinesTable } = await import('@/lib/db/mysql/schema');
-      await db
+      await (db as any)
         .update(vmiSalesOrderLinesTable)
         .set({
           matchedItemId: data.itemId,

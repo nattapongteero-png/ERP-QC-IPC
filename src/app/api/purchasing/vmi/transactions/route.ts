@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
       }));
 
       // Get transaction type stats
-      const typeStats = await db
+      const typeStats = await (db as any)
         .select({
           transactionType: vmiTransactions.transactionType,
           count: sql<number>`count(*)`,

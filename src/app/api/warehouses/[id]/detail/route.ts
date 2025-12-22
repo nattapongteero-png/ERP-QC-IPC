@@ -21,7 +21,7 @@ export async function GET(
       const transactions = isSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
 
       // Get warehouse details
-      const warehouseResult = await db.select().from(warehouses).where(eq(warehouses.id, parseInt(id)));
+      const warehouseResult = await (db as any).select().from(warehouses).where(eq(warehouses.id, parseInt(id)));
       
       if (warehouseResult.length === 0) {
         return NextResponse.json({ success: false, error: 'Warehouse not found' }, { status: 404 });
@@ -30,7 +30,7 @@ export async function GET(
       const warehouse = warehouseResult[0];
 
       // Get inventory lots in this warehouse
-      const lotsResult = await db
+      const lotsResult = await (db as any)
         .select({
           id: inventoryLots.id,
           lotNumber: inventoryLots.lotNumber,
@@ -50,7 +50,7 @@ export async function GET(
         .where(eq(inventoryLots.warehouseId, parseInt(id)));
 
       // Get recent transactions for this warehouse (from or to)
-      const transactionsResult = await db
+      const transactionsResult = await (db as any)
         .select({
           id: transactions.id,
           transactionType: transactions.transactionType,

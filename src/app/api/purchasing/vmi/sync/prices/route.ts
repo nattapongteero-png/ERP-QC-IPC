@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       const items = isSqlite ? sqliteItems : mysqlItems;
 
       // Verify vendor has VMI configuration
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
 
       // Get vendor config
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
           error?: string
         ) {
           const now = new Date();
-          await db.insert(vmiTransactions).values({
+          await (db as any).insert(vmiTransactions).values({
             vendorId: logVendorId,
             transactionType,
             endpoint,
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         // Update last sync time
-        await db
+        await (db as any)
           .update(vmiConfig)
           .set({
             lastPricesSyncAt: isSqlite ? now.toISOString() : now,
@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
 
         // Update lastSyncedAt for synced offers
         for (const offer of offersToSync) {
-          await db
+          await (db as any)
             .update(priceOffers)
             .set({
               lastSyncedAt: isSqlite ? now.toISOString() : now,

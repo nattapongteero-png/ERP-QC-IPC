@@ -35,7 +35,7 @@ export async function GET(
       const items = isSqlite ? sqliteItems : mysqlItems;
 
       // Get vendor details
-      const vendorResult = await db
+      const vendorResult = await (db as any)
         .select()
         .from(vendors)
         .where(eq(vendors.id, vendorId));
@@ -47,7 +47,7 @@ export async function GET(
       const vendor = vendorResult[0];
 
       // Get recent purchase orders for this vendor
-      const recentPOs = await db
+      const recentPOs = await (db as any)
         .select({
           id: purchaseOrders.id,
           poNumber: purchaseOrders.poNumber,
@@ -63,7 +63,7 @@ export async function GET(
         .limit(10);
 
       // Get approved items for this vendor (AVL)
-      const approvedItems = await db
+      const approvedItems = await (db as any)
         .select({
           id: approvedVendorList.id,
           itemId: approvedVendorList.itemId,
@@ -79,7 +79,7 @@ export async function GET(
         .where(eq(approvedVendorList.vendorId, vendorId));
 
       // Get summary statistics
-      const poStats = await db
+      const poStats = await (db as any)
         .select({
           totalOrders: sql<number>`count(*)`,
           totalAmount: sql<number>`sum(${purchaseOrders.totalAmount})`,
@@ -87,7 +87,7 @@ export async function GET(
         .from(purchaseOrders)
         .where(eq(purchaseOrders.vendorId, vendorId));
 
-      const statusCounts = await db
+      const statusCounts = await (db as any)
         .select({
           status: purchaseOrders.status,
           count: sql<number>`count(*)`,
@@ -157,7 +157,7 @@ export async function PUT(
       const vendors = isSqlite ? sqliteVendors : mysqlVendors;
 
       // Check if vendor exists
-      const existing = await db
+      const existing = await (db as any)
         .select()
         .from(vendors)
         .where(eq(vendors.id, vendorId));
@@ -167,7 +167,7 @@ export async function PUT(
       }
 
       // Check if code is unique (excluding current vendor)
-      const codeCheck = await db
+      const codeCheck = await (db as any)
         .select()
         .from(vendors)
         .where(eq(vendors.code, code));
@@ -177,7 +177,7 @@ export async function PUT(
       }
 
       const now = new Date();
-      await db
+      await (db as any)
         .update(vendors)
         .set({
           code,
@@ -233,7 +233,7 @@ export async function DELETE(
       const purchaseOrders = isSqlite ? sqlitePurchaseOrders : mysqlPurchaseOrders;
 
       // Check if vendor exists
-      const existing = await db
+      const existing = await (db as any)
         .select()
         .from(vendors)
         .where(eq(vendors.id, vendorId));
@@ -243,7 +243,7 @@ export async function DELETE(
       }
 
       // Check if vendor has any purchase orders
-      const poCount = await db
+      const poCount = await (db as any)
         .select({ count: sql<number>`count(*)` })
         .from(purchaseOrders)
         .where(eq(purchaseOrders.vendorId, vendorId));
@@ -251,7 +251,7 @@ export async function DELETE(
       if (Number(poCount[0]?.count) > 0) {
         // Soft delete - deactivate instead of hard delete
         const now = new Date();
-        await db
+        await (db as any)
           .update(vendors)
           .set({
             isActive: false,

@@ -23,7 +23,7 @@ export async function GET(
       const qualityTests = isSqlite() ? sqliteQualityTests : mysqlQualityTests;
 
       // Get work order details
-      const woResult = await db
+      const woResult = await (db as any)
         .select({
           id: workOrders.id,
           woNumber: workOrders.woNumber,
@@ -58,7 +58,7 @@ export async function GET(
       const workOrder = woResult[0];
 
       // Get work order materials
-      const materialsResult = await db
+      const materialsResult = await (db as any)
         .select({
           id: workOrderMaterials.id,
           itemId: workOrderMaterials.itemId,
@@ -80,7 +80,7 @@ export async function GET(
       const materialsWithLots = await Promise.all(
         materialsResult.map(async (material: any) => {
           if (material.lotId) {
-            const lotResult = await db
+            const lotResult = await (db as any)
               .select({
                 lotNumber: inventoryLots.lotNumber,
                 expiryDate: inventoryLots.expiryDate,
@@ -98,7 +98,7 @@ export async function GET(
       );
 
       // Get QC tests for lots associated with this work order
-      const qcTestsResult = await db
+      const qcTestsResult = await (db as any)
         .select({
           id: qualityTests.id,
           lotId: qualityTests.lotId,

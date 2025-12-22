@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const vendors = isSqlite ? sqliteVendors : mysqlVendors;
 
       // Get transaction with vendor info
-      const result = await db
+      const result = await (db as any)
         .select({
           id: vmiTransactions.id,
           vendorId: vmiTransactions.vendorId,

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         // Verify employee exists
         const hrEmployees = getEmployeesTable();
-        const [employee] = await db
+        const [employee] = await (db as any)
           .select({ id: hrEmployees.id })
           .from(hrEmployees)
           .where(eq(hrEmployees.id, employeeId))
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         const photoThumbnailUrl = `/uploads/employees/${employeeId}/${thumbnailFileName}`;
 
         // Update employee record
-        await db
+        await (db as any)
           .update(hrEmployees)
           .set({
             photoUrl,
@@ -145,7 +145,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         const db = await getDb();
 
         const hrEmployees = getEmployeesTable();
-        const [employee] = await db
+        const [employee] = await (db as any)
           .select({
             id: hrEmployees.id,
             photoUrl: hrEmployees.photoUrl,
@@ -179,7 +179,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         }
 
         // Clear URLs in database
-        await db
+        await (db as any)
           .update(hrEmployees)
           .set({
             photoUrl: null,

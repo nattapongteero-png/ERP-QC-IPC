@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Get all connected VMI vendor configs that are due for polling
     const now = new Date();
-    const configs = await db
+    const configs = await (db as any)
       .select()
       .from(vmiConfig)
       .where(eq(vmiConfig.isConnected, true));
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
             durationMs: number,
             error?: string
           ) {
-            await db.insert(vmiTransactions).values({
+            await (db as any).insert(vmiTransactions).values({
               vendorId: logVendorId,
               transactionType,
               endpoint,
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         const ordersResponse = await service.getOrders({ status: 'submitted' });
 
         // Get existing VMI order IDs
-        const existingOrderIds = await db
+        const existingOrderIds = await (db as any)
           .select({ vmiOrderId: vmiOrders.vmiOrderId })
           .from(vmiOrders)
           .where(eq(vmiOrders.vendorId, config.vendorId));
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
         let insertedCount = 0;
         for (const order of newOrders) {
           // Insert order
-          const orderInsert = await db.insert(vmiOrders).values({
+          const orderInsert = await (db as any).insert(vmiOrders).values({
             vendorId: config.vendorId,
             vmiOrderId: order.id,
             hospitalCode: order.hospitalCode,
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
             const orderDetail = await service.getOrderDetail(order.id);
 
             for (const line of orderDetail.order?.items || []) {
-              await db.insert(vmiOrderLines).values({
+              await (db as any).insert(vmiOrderLines).values({
                 vmiOrderId: orderId,
                 tppCode: line.tppCode || null,
                 ttmtCode: line.ttmtCode || null,
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Update last poll time
-        await db
+        await (db as any)
           .update(vmiConfig)
           .set({
             lastOrdersPollAt: isSqlite ? now.toISOString() : now,

@@ -35,7 +35,7 @@ export async function GET(
       const workOrders = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
 
       // Get lot with item and warehouse info
-      const [lot] = await db
+      const [lot] = await (db as any)
         .select({
           id: lots.id,
           lotNumber: lots.lotNumber,
@@ -77,7 +77,7 @@ export async function GET(
       // Get vendor info if exists
       let vendorInfo = null;
       if (lot.vendorId) {
-        const [vendor] = await db
+        const [vendor] = await (db as any)
           .select({
             id: vendors.id,
             code: vendors.code,
@@ -92,7 +92,7 @@ export async function GET(
       }
 
       // Get transaction history
-      const transactionHistory = await db
+      const transactionHistory = await (db as any)
         .select({
           id: transactions.id,
           transactionType: transactions.transactionType,
@@ -122,7 +122,7 @@ export async function GET(
       }));
 
       // Get QC tests for this lot
-      const qcTests = await db
+      const qcTests = await (db as any)
         .select({
           id: qualityTests.id,
           sampleNumber: qualityTests.sampleNumber,
@@ -151,7 +151,7 @@ export async function GET(
       }));
 
       // Get work orders that used this lot (traceability)
-      const relatedWorkOrders = await db
+      const relatedWorkOrders = await (db as any)
         .select({
           id: workOrders.id,
           woNumber: workOrders.woNumber,

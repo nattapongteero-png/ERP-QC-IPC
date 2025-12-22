@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
 
     // Get all vendors with inventory sync enabled
-    const enabledVendors = await db
+    const enabledVendors = await (db as any)
       .select({
         vendorId: vmiConfig.vendorId,
         vendorName: vendors.name,
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     for (const vendor of enabledVendors) {
       try {
         // Get VMI items for this vendor
-        const vmiItems = await db
+        const vmiItems = await (db as any)
           .select({
             id: items.id,
             code: items.code,
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
         // Calculate inventory for each item
         const inventoryPayloads: VmiInventoryItem[] = await Promise.all(
           vmiItems.map(async (item: { id: number; code: string; tppCode: string | null; ttmtCode: string | null; primaryUnit: string | null }) => {
-            const lotsResult = await db
+            const lotsResult = await (db as any)
               .select({
                 totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
                 reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
             error?: string
           ) {
             const now = new Date();
-            await db.insert(vmiTransactions).values({
+            await (db as any).insert(vmiTransactions).values({
               vendorId: logVendorId,
               transactionType,
               endpoint,
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         // Update last sync time
-        await db
+        await (db as any)
           .update(vmiConfig)
           .set({
             lastInventorySyncAt: isSqlite ? now.toISOString() : now,

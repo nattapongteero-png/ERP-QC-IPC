@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get transactions with joins
-      const result = await db
+      const result = await (db as any)
         .select({
           id: transactions.id,
           transactionNumber: transactions.referenceNumber,
@@ -68,11 +68,11 @@ export async function GET(request: NextRequest) {
         .offset(offset);
 
       // Get warehouse names
-      const warehouseList = await db.select().from(warehouses);
+      const warehouseList = await (db as any).select().from(warehouses);
       const warehouseMap = new Map(warehouseList.map((w: any) => [w.id, w.name]));
 
       // Get user names
-      const userList = await db.select({ id: users.id, name: users.name }).from(users);
+      const userList = await (db as any).select({ id: users.id, name: users.name }).from(users);
       const userMap = new Map(userList.map((u: any) => [u.id, u.name]));
 
       // Enrich results
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       }));
 
       // Get total count
-      const countResult = await db
+      const countResult = await (db as any)
         .select({ count: sql<number>`count(*)` })
         .from(transactions)
         .where(conditions.length > 0 ? and(...conditions) : undefined);
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get the lot
-      const [lot] = await db.select().from(lots).where(eq(lots.id, lotId));
+      const [lot] = await (db as any).select().from(lots).where(eq(lots.id, lotId));
       if (!lot) {
         return NextResponse.json({ success: false, error: 'Lot not found' }, { status: 404 });
       }
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       const transactionNumber = `${prefix}-${dateStr}-${random}`;
 
       // Create transaction
-      const [newTransaction] = await db.insert(transactions).values({
+      const [newTransaction] = await (db as any).insert(transactions).values({
         referenceNumber: transactionNumber,
         transactionType: type,
         lotId,
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Update lot
-      await db.update(lots).set({
+      await (db as any).update(lots).set({
         quantity: newQuantity,
         warehouseId: newWarehouseId,
         updatedAt: isSqlite ? now.toISOString() : now,

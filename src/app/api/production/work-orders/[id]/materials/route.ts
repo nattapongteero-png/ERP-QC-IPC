@@ -35,7 +35,7 @@ export async function GET(
       const items = isSqlite ? sqliteItems : mysqlItems;
       const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
-      const materials = await db
+      const materials = await (db as any)
         .select({
           id: workOrderMaterials.id,
           itemId: workOrderMaterials.itemId,
@@ -85,7 +85,7 @@ export async function POST(
       const inventoryTransactions = isSqlite ? sqliteInventoryTransactions : mysqlInventoryTransactions;
 
       // Check work order exists and is in valid status
-      const [workOrder] = await db
+      const [workOrder] = await (db as any)
         .select()
         .from(workOrders)
         .where(eq(workOrders.id, workOrderId));
@@ -101,7 +101,7 @@ export async function POST(
 
       // If lotId is provided, validate lot availability
       if (lotId) {
-        const [lot] = await db
+        const [lot] = await (db as any)
           .select()
           .from(inventoryLots)
           .where(eq(inventoryLots.id, lotId));
@@ -121,7 +121,7 @@ export async function POST(
         }
 
         // Reserve quantity in lot
-        await db
+        await (db as any)
           .update(inventoryLots)
           .set({
             reservedQuantity: sql`${inventoryLots.reservedQuantity} + ${qtyToUse}`,

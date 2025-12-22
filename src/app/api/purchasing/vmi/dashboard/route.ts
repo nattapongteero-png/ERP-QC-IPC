@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
         : vendorConfigs;
 
       // Get total VMI items count
-      const vmiItemsResult = await db
+      const vmiItemsResult = await (db as any)
         .select({ count: sql<number>`count(*)` })
         .from(items)
         .where(
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
 
       // Get recent transactions (last 24 hours)
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const recentTransactions = await db
+      const recentTransactions = await (db as any)
         .select({
           transactionType: vmiTransactions.transactionType,
           status: vmiTransactions.status,
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
       });
 
       // Get order stats
-      const orderStats = await db
+      const orderStats = await (db as any)
         .select({
           status: vmiOrders.status,
           count: sql<number>`count(*)`,

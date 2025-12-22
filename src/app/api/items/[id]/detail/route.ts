@@ -23,7 +23,7 @@ export async function GET(
       const workOrders = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
 
       // Get item details
-      const itemResult = await db.select().from(items).where(eq(items.id, parseInt(id)));
+      const itemResult = await (db as any).select().from(items).where(eq(items.id, parseInt(id)));
       
       if (itemResult.length === 0) {
         return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
@@ -32,7 +32,7 @@ export async function GET(
       const item = itemResult[0];
 
       // Get inventory lots for this item
-      const lotsResult = await db
+      const lotsResult = await (db as any)
         .select({
           id: inventoryLots.id,
           lotNumber: inventoryLots.lotNumber,
@@ -49,7 +49,7 @@ export async function GET(
         .where(eq(inventoryLots.itemId, parseInt(id)));
 
       // Get BOM that produces this item (if this item is a finished product)
-      const bomResult = await db
+      const bomResult = await (db as any)
         .select({
           id: bom.id,
           code: bom.code,
@@ -65,7 +65,7 @@ export async function GET(
       // Get BOM lines for each BOM (components)
       const bomWithLines = await Promise.all(
         bomResult.map(async (b: any) => {
-          const lines = await db
+          const lines = await (db as any)
             .select({
               id: bomLines.id,
               itemId: bomLines.itemId,
@@ -84,7 +84,7 @@ export async function GET(
       );
 
       // Get items that use this item as a component (where used)
-      const whereUsedResult = await db
+      const whereUsedResult = await (db as any)
         .select({
           bomLineId: bomLines.id,
           bomId: bomLines.bomId,
@@ -101,7 +101,7 @@ export async function GET(
       // Enrich where used with product info
       const whereUsedWithProduct = await Promise.all(
         whereUsedResult.map(async (wu: any) => {
-          const productResult = await db
+          const productResult = await (db as any)
             .select({
               code: items.code,
               nameTh: items.nameTh,
@@ -119,7 +119,7 @@ export async function GET(
       );
 
       // Get recent work orders for this item
-      const workOrdersResult = await db
+      const workOrdersResult = await (db as any)
         .select({
           id: workOrders.id,
           woNumber: workOrders.woNumber,

@@ -63,14 +63,14 @@ export async function GET(request: NextRequest) {
       }
 
       // Get total count
-      const countResult = await db
+      const countResult = await (db as any)
         .select({ count: sql<number>`count(*)` })
         .from(vmiOrders)
         .where(conditions.length > 0 ? and(...conditions) : undefined);
       const total = Number(countResult[0]?.count) || 0;
 
       // Get orders with vendor info
-      const orders = await db
+      const orders = await (db as any)
         .select({
           id: vmiOrders.id,
           vendorId: vmiOrders.vendorId,
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
 
       // Get vendor config
-      const configResult = await db
+      const configResult = await (db as any)
         .select()
         .from(vmiConfig)
         .where(eq(vmiConfig.vendorId, vendorId));
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
           error?: string
         ) {
           const now = new Date();
-          await db.insert(vmiTransactions).values({
+          await (db as any).insert(vmiTransactions).values({
             vendorId: logVendorId,
             transactionType,
             endpoint,
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       const ordersResponse = await service.getOrders({ status: 'submitted' });
 
       // Get existing VMI order IDs to avoid duplicates
-      const existingOrderIds = await db
+      const existingOrderIds = await (db as any)
         .select({ vmiOrderId: vmiOrders.vmiOrderId })
         .from(vmiOrders)
         .where(eq(vmiOrders.vendorId, vendorId));
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         // Insert order
-        const orderInsert = await db.insert(vmiOrders).values({
+        const orderInsert = await (db as any).insert(vmiOrders).values({
           vendorId,
           vmiOrderId: order.id,
           hospitalCode: order.hospitalCode,
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 
           // Insert order lines
           for (const line of orderDetail.order?.items || []) {
-            await db.insert(vmiOrderLines).values({
+            await (db as any).insert(vmiOrderLines).values({
               vmiOrderId: orderId,
               localCode: line.localCode,
               tppCode: line.tppCode || null,
@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
 
       // Update last poll time
       const now = new Date();
-      await db
+      await (db as any)
         .update(vmiConfig)
         .set({
           lastOrdersPollAt: isSqlite ? now.toISOString() : now,

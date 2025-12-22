@@ -22,7 +22,7 @@ export async function GET(
       const users = isSqlite() ? sqliteUsers : mysqlUsers;
 
       // Get deviation details
-      const deviationResult = await db
+      const deviationResult = await (db as any)
         .select()
         .from(deviations)
         .where(eq(deviations.id, parseInt(id)));
@@ -36,7 +36,7 @@ export async function GET(
       // Get item details
       let itemInfo = null;
       if (deviation.itemId) {
-        const itemResult = await db
+        const itemResult = await (db as any)
           .select({
             id: items.id,
             code: items.code,
@@ -53,7 +53,7 @@ export async function GET(
       // Get lot details
       let lotInfo = null;
       if (deviation.lotId) {
-        const lotResult = await db
+        const lotResult = await (db as any)
           .select({
             id: inventoryLots.id,
             lotNumber: inventoryLots.lotNumber,
@@ -69,7 +69,7 @@ export async function GET(
       // Get work order details
       let woInfo = null;
       if (deviation.woId) {
-        const woResult = await db
+        const woResult = await (db as any)
           .select({
             id: workOrders.id,
             woNumber: workOrders.woNumber,
@@ -84,7 +84,7 @@ export async function GET(
       // Get reporter info
       let reporterInfo = null;
       if (deviation.reportedBy) {
-        const reporterResult = await db
+        const reporterResult = await (db as any)
           .select({
             id: users.id,
             name: users.name,
@@ -98,7 +98,7 @@ export async function GET(
       // Get assignee info
       let assigneeInfo = null;
       if (deviation.assignedTo) {
-        const assigneeResult = await db
+        const assigneeResult = await (db as any)
           .select({
             id: users.id,
             name: users.name,

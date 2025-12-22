@@ -43,7 +43,7 @@ export async function GET(
       const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get work order to find the batch number
-      const [workOrder] = await db
+      const [workOrder] = await (db as any)
         .select()
         .from(workOrders)
         .where(eq(workOrders.id, workOrderId));
@@ -53,7 +53,7 @@ export async function GET(
       }
 
       // Find lot by batch number (the produced lot)
-      const lots = await db
+      const lots = await (db as any)
         .select()
         .from(inventoryLots)
         .where(eq(inventoryLots.batchNumber, workOrder.batchNumber));
@@ -65,7 +65,7 @@ export async function GET(
       // Get QC tests for these lots
       const allTests: any[] = [];
       for (const lot of lots) {
-        const tests = await db
+        const tests = await (db as any)
           .select()
           .from(qualityTests)
           .where(eq(qualityTests.lotId, lot.id));
@@ -102,7 +102,7 @@ export async function POST(
       const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Check work order exists
-      const [workOrder] = await db
+      const [workOrder] = await (db as any)
         .select()
         .from(workOrders)
         .where(eq(workOrders.id, workOrderId));
@@ -115,7 +115,7 @@ export async function POST(
       let targetLotId = lotId;
       if (!targetLotId) {
         // Find lot by batch number
-        const [lot] = await db
+        const [lot] = await (db as any)
           .select()
           .from(inventoryLots)
           .where(eq(inventoryLots.batchNumber, workOrder.batchNumber));
