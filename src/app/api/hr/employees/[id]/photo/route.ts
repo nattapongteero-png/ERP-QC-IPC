@@ -9,7 +9,7 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { db, isSqlite } from '@/lib/db';
+import { getDb, useSqlite } from '@/lib/db';
 import {
   sqliteHREmployees,
   mysqlHREmployees,
@@ -30,7 +30,7 @@ interface RouteParams {
 }
 
 function getEmployeesTable() {
-  return isSqlite ? sqliteHREmployees : mysqlHREmployees;
+  return useSqlite() ? sqliteHREmployees : mysqlHREmployees;
 }
 
 // POST /api/hr/employees/[id]/photo - Upload employee photo
@@ -44,6 +44,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         if (isNaN(employeeId)) {
           return errorResponse('Invalid employee ID');
         }
+
+        // Get database connection
+        const db = await getDb();
 
         // Verify employee exists
         const hrEmployees = getEmployeesTable();
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           .set({
             photoUrl,
             photoThumbnailUrl,
-            updatedAt: isSqlite ? new Date().toISOString() : new Date(),
+            updatedAt: useSqlite() ? new Date().toISOString() : new Date(),
           })
           .where(eq(hrEmployees.id, employeeId));
 
@@ -137,6 +140,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         if (isNaN(employeeId)) {
           return errorResponse('Invalid employee ID');
         }
+
+        // Get database connection
+        const db = await getDb();
 
         const hrEmployees = getEmployeesTable();
         const [employee] = await db
@@ -178,7 +184,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
           .set({
             photoUrl: null,
             photoThumbnailUrl: null,
-            updatedAt: isSqlite ? new Date().toISOString() : new Date(),
+            updatedAt: useSqlite() ? new Date().toISOString() : new Date(),
           })
           .where(eq(hrEmployees.id, employeeId));
 
