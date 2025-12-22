@@ -21,9 +21,17 @@ import DataGrid, {
 import { useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
-import { buddhistDateFormat } from '@/components/ui/dx-date-box';
 import { OrgUnitPicker, ResponsivePageHeader, StatCard } from '@/components/shared';
-import { Users, UserPlus, UserCheck, Clock } from 'lucide-react';
+import {
+  Users,
+  UserPlus,
+  UserCheck,
+  Clock,
+  Mail,
+  Phone,
+  Calendar,
+  ChevronRight,
+} from 'lucide-react';
 import type { Employee } from '@/types/hr';
 
 const STATUS_OPTIONS = [
@@ -31,6 +39,42 @@ const STATUS_OPTIONS = [
   { value: 'inactive', label: 'พักงาน' },
   { value: 'terminated', label: 'พ้นสภาพ' },
 ];
+
+// Professional avatar gradient colors based on name hash
+const AVATAR_GRADIENTS = [
+  'from-blue-500 to-blue-600',
+  'from-emerald-500 to-teal-600',
+  'from-violet-500 to-purple-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+  'from-cyan-500 to-sky-600',
+  'from-indigo-500 to-blue-600',
+  'from-fuchsia-500 to-pink-600',
+];
+
+function getAvatarGradient(name: string): string {
+  const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
+}
+
+function formatRelativeDate(dateStr: string | Date | null): string {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 30) return `${diffDays} วันที่แล้ว`;
+  if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30);
+    return `${months} เดือนที่แล้ว`;
+  }
+  const years = Math.floor(diffDays / 365);
+  const remainingMonths = Math.floor((diffDays % 365) / 30);
+  if (remainingMonths > 0) {
+    return `${years} ปี ${remainingMonths} เดือน`;
+  }
+  return `${years} ปี`;
+}
 
 async function fetchEmployees(filters: {
   orgUnitId?: number;
@@ -64,7 +108,7 @@ export default function EmployeesPage() {
   // T015: Responsive height calculation for DataGrid
   useEffect(() => {
     const calculateHeight = () => {
-      const headerHeight = 200; // Approximate header + stats + filters height
+      const headerHeight = 200;
       const padding = 100;
       const minHeight = 400;
       const availableHeight = window.innerHeight - headerHeight - padding;
@@ -100,33 +144,124 @@ export default function EmployeesPage() {
     setStatusFilter(null);
   }, []);
 
+  // Enhanced status cell with dot indicator and refined styling
   const renderStatusCell = (cellData: { value: string }) => {
     const status = cellData.value;
+    const statusConfig = {
+      active: { variant: 'success' as const, label: 'ใช้งาน' },
+      inactive: { variant: 'warning' as const, label: 'พักงาน' },
+      terminated: { variant: 'danger' as const, label: 'พ้นสภาพ' },
+    };
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
+
     return (
-      <Badge
-        variant={
-          status === 'active' ? 'success' :
-          status === 'inactive' ? 'warning' : 'danger'
-        }
-      >
-        {status === 'active' ? 'ใช้งาน' :
-         status === 'inactive' ? 'พักงาน' : 'พ้นสภาพ'}
-      </Badge>
+      <div className="flex items-center justify-center">
+        <Badge variant={config.variant} dot className="font-medium">
+          {config.label}
+        </Badge>
+      </div>
     );
   };
 
+  // Professional employee cell with gradient avatar and enhanced typography
   const renderEmployeeCell = (cellData: { data: Employee }) => {
     const emp = cellData.data;
+    const fullName = `${emp.firstName} ${emp.lastName}`;
+    const gradient = getAvatarGradient(fullName);
+
     return (
-      <div className="flex items-center gap-3 py-1">
-        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+      <div className="flex items-center gap-3.5 py-2 group">
+        {/* Gradient Avatar */}
+        <div className={`
+          relative w-10 h-10 rounded-full bg-gradient-to-br ${gradient}
+          flex items-center justify-center text-white font-semibold text-sm
+          shadow-sm ring-2 ring-white
+          transition-transform duration-200 group-hover:scale-105
+        `}>
           {emp.firstName?.charAt(0)}{emp.lastName?.charAt(0)}
+          {/* Online indicator for active employees */}
+          {emp.status === 'active' && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+          )}
         </div>
-        <div>
-          <div className="font-medium text-gray-900">
-            {emp.firstName} {emp.lastName}
+
+        {/* Employee Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-800 truncate">
+              {fullName}
+            </span>
+            <ChevronRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-          <div className="text-xs text-gray-500">{emp.employeeCode}</div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+              {emp.employeeCode}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Professional contact cell with icon
+  const renderEmailCell = (cellData: { value: string; data: Employee }) => {
+    const email = cellData.value;
+    if (!email) {
+      return <span className="text-slate-300 text-sm italic">-</span>;
+    }
+    return (
+      <div className="flex items-center gap-2 py-1">
+        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <Mail className="w-3.5 h-3.5 text-blue-500" />
+        </div>
+        <span className="text-slate-600 text-sm truncate hover:text-blue-600 transition-colors">
+          {email}
+        </span>
+      </div>
+    );
+  };
+
+  // Professional phone cell with icon
+  const renderPhoneCell = (cellData: { value: string }) => {
+    const phone = cellData.value;
+    if (!phone) {
+      return <span className="text-slate-300 text-sm italic">-</span>;
+    }
+    return (
+      <div className="flex items-center gap-2 py-1">
+        <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+          <Phone className="w-3.5 h-3.5 text-emerald-500" />
+        </div>
+        <span className="text-slate-600 text-sm font-mono">
+          {phone}
+        </span>
+      </div>
+    );
+  };
+
+  // Enhanced date cell with relative time
+  const renderHireDateCell = (cellData: { value: string | Date }) => {
+    const dateValue = cellData.value;
+    if (!dateValue) {
+      return <span className="text-slate-300 text-sm italic">-</span>;
+    }
+
+    const date = new Date(dateValue);
+    const formattedDate = date.toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    const tenure = formatRelativeDate(dateValue);
+
+    return (
+      <div className="flex items-center gap-2 py-1">
+        <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+          <Calendar className="w-3.5 h-3.5 text-violet-500" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-slate-700 text-sm">{formattedDate}</span>
+          <span className="text-xs text-slate-400">{tenure}</span>
         </div>
       </div>
     );
@@ -222,7 +357,7 @@ export default function EmployeesPage() {
 
       {/* T016: Mobile-optimized filters */}
       {showFilters && (
-        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 md:gap-4">
             <div className="w-full sm:w-64">
               <OrgUnitPicker
@@ -240,7 +375,7 @@ export default function EmployeesPage() {
               <select
                 value={statusFilter || ''}
                 onChange={(e) => setStatusFilter(e.target.value || null)}
-                className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               >
                 <option value="">ทั้งหมด</option>
                 {STATUS_OPTIONS.map((opt) => (
@@ -260,14 +395,14 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* T013: DataGrid with columnHidingEnabled and hidingPriority */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* T013: DataGrid with enhanced styling */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <DataGrid
           dataSource={employeeList}
           keyExpr="id"
           showBorders={false}
           showRowLines
-          rowAlternationEnabled
+          rowAlternationEnabled={false}
           columnAutoWidth
           allowColumnReordering
           allowColumnResizing
@@ -276,10 +411,11 @@ export default function EmployeesPage() {
           onRowClick={handleRowClick}
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
+          className="[&_.dx-datagrid-headers]:bg-slate-50/80 [&_.dx-datagrid-headers]:border-b [&_.dx-datagrid-headers]:border-slate-200 [&_.dx-header-row>td]:font-semibold [&_.dx-header-row>td]:text-slate-600 [&_.dx-header-row>td]:text-xs [&_.dx-header-row>td]:uppercase [&_.dx-header-row>td]:tracking-wider [&_.dx-header-row>td]:py-3 [&_.dx-data-row]:border-b [&_.dx-data-row]:border-slate-100 [&_.dx-data-row:hover]:bg-blue-50/50 [&_.dx-data-row]:transition-colors [&_.dx-data-row]:cursor-pointer"
         >
-          <SearchPanel visible placeholder="ค้นหา..." width={240} />
+          <SearchPanel visible placeholder="ค้นหาพนักงาน..." width={280} />
           <HeaderFilter visible />
-          <FilterRow visible />
+          <FilterRow visible={false} />
           <Scrolling mode="virtual" />
           <Paging defaultPageSize={20} />
           <Pager
@@ -296,30 +432,32 @@ export default function EmployeesPage() {
             <Item name="exportButton" />
           </Toolbar>
 
-          {/* T013: Columns with hidingPriority for mobile responsiveness */}
+          {/* Professional columns with enhanced cell renderers */}
           <Column
             caption="พนักงาน"
             cellRender={renderEmployeeCell}
-            minWidth={180}
+            minWidth={220}
             calculateSortValue={(data: Employee) => `${data.firstName} ${data.lastName}`}
             hidingPriority={0}
           />
           <Column
             dataField="email"
             caption="อีเมล"
-            width={200}
+            cellRender={renderEmailCell}
+            minWidth={240}
             hidingPriority={2}
           />
           <Column
             dataField="phone"
             caption="เบอร์โทร"
-            width={120}
+            cellRender={renderPhoneCell}
+            width={160}
             hidingPriority={3}
           />
           <Column
             dataField="status"
             caption="สถานะ"
-            width={100}
+            width={120}
             cellRender={renderStatusCell}
             alignment="center"
             hidingPriority={1}
@@ -334,10 +472,8 @@ export default function EmployeesPage() {
           <Column
             dataField="hireDate"
             caption="วันเริ่มงาน"
-            dataType="date"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            format={buddhistDateFormat as any}
-            width={120}
+            cellRender={renderHireDateCell}
+            minWidth={160}
             hidingPriority={4}
           />
         </DataGrid>
