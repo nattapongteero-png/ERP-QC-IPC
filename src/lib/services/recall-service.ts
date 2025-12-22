@@ -115,7 +115,7 @@ export async function generateRecallNumber(): Promise<string> {
   const prefix = `RCL-${year}${month}-`;
 
   if (isSqlite()) {
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({ recallNumber: sqliteRecalls.recallNumber })
       .from(sqliteRecalls)
       .where(like(sqliteRecalls.recallNumber, `${prefix}%`))
@@ -150,7 +150,7 @@ export async function createRecall(
   const now = new Date().toISOString().split('T')[0];
 
   if (isSqlite()) {
-    const [result] = await (await getDb())
+    const [result] = await ((await getDb()) as any)
       .insert(sqliteRecalls)
       .values({
         recallNumber,
@@ -170,10 +170,10 @@ export async function createRecall(
 
     await createAuditLog({
       action: 'CREATE',
-      entityType: 'recall',
-      entityId: result.id.toString(),
+      tableName: 'recall',
+      recordId: result.id,
       userId,
-      newValue: JSON.stringify({ recallNumber, ...data }),
+      newValue: { recallNumber, ...data },
     });
 
     return getRecallById(result.id) as Promise<Recall>;
@@ -187,7 +187,7 @@ export async function createRecall(
  */
 export async function getRecallById(id: number): Promise<Recall | null> {
   if (isSqlite()) {
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({
         id: sqliteRecalls.id,
         recallNumber: sqliteRecalls.recallNumber,
@@ -195,7 +195,7 @@ export async function getRecallById(id: number): Promise<Recall | null> {
         recallClass: sqliteRecalls.recallClass,
         reason: sqliteRecalls.reason,
         productId: sqliteRecalls.productId,
-        productName: sqliteItems.name,
+        productName: sqliteItems.nameTh,
         affectedLots: sqliteRecalls.affectedLots,
         status: sqliteRecalls.status,
         distributedQuantity: sqliteRecalls.distributedQuantity,
@@ -242,7 +242,7 @@ export async function getRecallDetails(id: number): Promise<RecallDetails | null
   if (recall.complaintId) {
     // Get basic complaint info
     if (isSqlite()) {
-      const result = await (await getDb())
+      const result = await ((await getDb()) as any)
         .select({
           id: sqliteComplaints.id,
           complaintNumber: sqliteComplaints.complaintNumber,
@@ -278,7 +278,7 @@ export async function updateRecall(
   if (!existing) return null;
 
   if (isSqlite()) {
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteRecalls)
       .set({
         ...data,
@@ -288,11 +288,11 @@ export async function updateRecall(
 
     await createAuditLog({
       action: 'UPDATE',
-      entityType: 'recall',
-      entityId: id.toString(),
+      tableName: 'recall',
+      recordId: id,
       userId,
-      oldValue: JSON.stringify(existing),
-      newValue: JSON.stringify(data),
+      oldValue: existing,
+      newValue: data,
     });
 
     return getRecallById(id);
@@ -320,7 +320,7 @@ export async function listRecalls(
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
-    const countResult = await (await getDb())
+    const countResult = await ((await getDb()) as any)
       .select({ count: count() })
       .from(sqliteRecalls)
       .where(whereClause);
@@ -328,7 +328,7 @@ export async function listRecalls(
     const total = countResult[0]?.count || 0;
 
     // Get recalls
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({
         id: sqliteRecalls.id,
         recallNumber: sqliteRecalls.recallNumber,
@@ -336,7 +336,7 @@ export async function listRecalls(
         recallClass: sqliteRecalls.recallClass,
         reason: sqliteRecalls.reason,
         productId: sqliteRecalls.productId,
-        productName: sqliteItems.name,
+        productName: sqliteItems.nameTh,
         affectedLots: sqliteRecalls.affectedLots,
         status: sqliteRecalls.status,
         distributedQuantity: sqliteRecalls.distributedQuantity,
@@ -362,7 +362,7 @@ export async function listRecalls(
       .limit(limit)
       .offset(offset);
 
-    const recalls = result.map((row) => mapRowToRecall(row as DbRecallRow));
+    const recalls = result.map((row: any) => mapRowToRecall(row as DbRecallRow));
 
     return { recalls, total };
   }
@@ -389,7 +389,7 @@ export async function getDistributionData(
 
   if (isSqlite()) {
     // Get sales orders that shipped these lots
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({
         customerId: sqliteCustomers.id,
         customerName: sqliteCustomers.name,
@@ -413,7 +413,7 @@ export async function getDistributionData(
         )
       );
 
-    return result.map((row) => ({
+    return result.map((row: any) => ({
       customerId: row.customerId || 0,
       customerName: row.customerName || 'Unknown',
       contactInfo: row.contactInfo || '',
@@ -436,7 +436,7 @@ export async function calculateDistributedQuantity(
   if (lotIds.length === 0) return 0;
 
   if (isSqlite()) {
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({
         total: sql<number>`SUM(${sqliteSalesOrderLines.shippedQuantity})`,
       })
@@ -466,7 +466,7 @@ export async function getRecallNotifications(
   recallId: number
 ): Promise<RecallNotification[]> {
   if (isSqlite()) {
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({
         id: sqliteRecallNotifications.id,
         recallId: sqliteRecallNotifications.recallId,
@@ -485,7 +485,7 @@ export async function getRecallNotifications(
       .where(eq(sqliteRecallNotifications.recallId, recallId))
       .orderBy(desc(sqliteRecallNotifications.notifiedAt));
 
-    return result.map((row) => mapRowToNotification(row as DbNotificationRow));
+    return result.map((row: any) => mapRowToNotification(row as DbNotificationRow));
   }
 
   return [];
@@ -505,7 +505,7 @@ export async function createNotification(
   let quantityDistributed = 0;
 
   if (isSqlite()) {
-    const customer = await (await getDb())
+    const customer = await ((await getDb()) as any)
       .select({
         name: sqliteCustomers.name,
         phone: sqliteCustomers.phone,
@@ -530,7 +530,7 @@ export async function createNotification(
       quantityDistributed = customerDist.reduce((sum, d) => sum + d.quantityDistributed, 0);
     }
 
-    const [result] = await (await getDb())
+    const [result] = await ((await getDb()) as any)
       .insert(sqliteRecallNotifications)
       .values({
         recallId,
@@ -548,10 +548,10 @@ export async function createNotification(
 
     await createAuditLog({
       action: 'CREATE',
-      entityType: 'recall_notification',
-      entityId: result.id.toString(),
+      tableName: 'recall_notification',
+      recordId: result.id,
       userId,
-      newValue: JSON.stringify({ recallId, ...data }),
+      newValue: { recallId, ...data },
     });
 
     const notifications = await getRecallNotifications(recallId);
@@ -570,7 +570,7 @@ export async function updateNotification(
   userId: number
 ): Promise<RecallNotification | null> {
   if (isSqlite()) {
-    const existing = await (await getDb())
+    const existing = await ((await getDb()) as any)
       .select()
       .from(sqliteRecallNotifications)
       .where(eq(sqliteRecallNotifications.id, id))
@@ -587,7 +587,7 @@ export async function updateNotification(
       updateData.acknowledgedAt = new Date().toISOString();
     }
 
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteRecallNotifications)
       .set(updateData)
       .where(eq(sqliteRecallNotifications.id, id));
@@ -598,11 +598,11 @@ export async function updateNotification(
 
     await createAuditLog({
       action: 'UPDATE',
-      entityType: 'recall_notification',
-      entityId: id.toString(),
+      tableName: 'recall_notification',
+      recordId: id,
       userId,
-      oldValue: JSON.stringify(existing[0]),
-      newValue: JSON.stringify(data),
+      oldValue: existing[0],
+      newValue: data,
     });
 
     const notifications = await getRecallNotifications(notification.recallId);
@@ -623,7 +623,7 @@ export async function getRecallReconciliation(
   recallId: number
 ): Promise<RecallReconciliation[]> {
   if (isSqlite()) {
-    const result = await (await getDb())
+    const result = await ((await getDb()) as any)
       .select({
         id: sqliteRecallReconciliation.id,
         recallId: sqliteRecallReconciliation.recallId,
@@ -644,7 +644,7 @@ export async function getRecallReconciliation(
       .leftJoin(sqliteUsers, eq(sqliteRecallReconciliation.verifiedBy, sqliteUsers.id))
       .where(eq(sqliteRecallReconciliation.recallId, recallId));
 
-    return result.map((row) => mapRowToReconciliation(row as DbReconciliationRow));
+    return result.map((row: any) => mapRowToReconciliation(row as DbReconciliationRow));
   }
 
   return [];
@@ -660,7 +660,7 @@ export async function recordReconciliation(
 ): Promise<RecallReconciliation> {
   if (isSqlite()) {
     // Check if reconciliation exists for this lot
-    const existing = await (await getDb())
+    const existing = await ((await getDb()) as any)
       .select()
       .from(sqliteRecallReconciliation)
       .where(
@@ -684,7 +684,7 @@ export async function recordReconciliation(
 
     if (existing.length > 0) {
       // Update existing
-      await (await getDb())
+      await ((await getDb()) as any)
         .update(sqliteRecallReconciliation)
         .set({
           returnedQty,
@@ -699,15 +699,15 @@ export async function recordReconciliation(
 
       await createAuditLog({
         action: 'UPDATE',
-        entityType: 'recall_reconciliation',
-        entityId: existing[0].id.toString(),
+        tableName: 'recall_reconciliation',
+        recordId: existing[0].id,
         userId,
-        oldValue: JSON.stringify(existing[0]),
-        newValue: JSON.stringify(data),
+        oldValue: existing[0],
+        newValue: data,
       });
     } else {
       // Create new
-      const [result] = await (await getDb())
+      const [result] = await ((await getDb()) as any)
         .insert(sqliteRecallReconciliation)
         .values({
           recallId,
@@ -726,10 +726,10 @@ export async function recordReconciliation(
 
       await createAuditLog({
         action: 'CREATE',
-        entityType: 'recall_reconciliation',
-        entityId: result.id.toString(),
+        tableName: 'recall_reconciliation',
+        recordId: result.id,
         userId,
-        newValue: JSON.stringify({ recallId, ...data }),
+        newValue: { recallId, ...data },
       });
     }
 
@@ -765,7 +765,7 @@ export async function startRecall(
   const distributedQty = await calculateDistributedQuantity(recall.affectedLots);
 
   if (isSqlite()) {
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteRecalls)
       .set({
         status: 'in_progress',
@@ -776,11 +776,11 @@ export async function startRecall(
 
     await createAuditLog({
       action: 'UPDATE',
-      entityType: 'recall',
-      entityId: id.toString(),
+      tableName: 'recall',
+      recordId: id,
       userId,
-      oldValue: JSON.stringify({ status: 'initiated' }),
-      newValue: JSON.stringify({ status: 'in_progress', distributedQuantity: distributedQty }),
+      oldValue: { status: 'initiated' },
+      newValue: { status: 'in_progress', distributedQuantity: distributedQty },
     });
 
     return getRecallById(id);
@@ -804,7 +804,7 @@ export async function completeRecall(
   }
 
   if (isSqlite()) {
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteRecalls)
       .set({
         status: 'completed',
@@ -814,11 +814,11 @@ export async function completeRecall(
 
     await createAuditLog({
       action: 'UPDATE',
-      entityType: 'recall',
-      entityId: id.toString(),
+      tableName: 'recall',
+      recordId: id,
       userId,
-      oldValue: JSON.stringify({ status: 'in_progress' }),
-      newValue: JSON.stringify({ status: 'completed' }),
+      oldValue: { status: 'in_progress' },
+      newValue: { status: 'completed' },
     });
 
     return getRecallById(id);
@@ -843,7 +843,7 @@ export async function closeRecall(
   }
 
   if (isSqlite()) {
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteRecalls)
       .set({
         status: 'closed',
@@ -857,11 +857,11 @@ export async function closeRecall(
 
     await createAuditLog({
       action: 'UPDATE',
-      entityType: 'recall',
-      entityId: id.toString(),
+      tableName: 'recall',
+      recordId: id,
       userId,
-      oldValue: JSON.stringify({ status: 'completed' }),
-      newValue: JSON.stringify({ status: 'closed', ...data }),
+      oldValue: { status: 'completed' },
+      newValue: { status: 'closed', ...data },
     });
 
     return getRecallById(id);
@@ -876,7 +876,7 @@ export async function closeRecall(
 async function updateRecallTotals(recallId: number): Promise<void> {
   if (isSqlite()) {
     // Sum returned quantities from notifications
-    const notificationResult = await (await getDb())
+    const notificationResult = await ((await getDb()) as any)
       .select({
         totalReturned: sql<number>`SUM(${sqliteRecallNotifications.quantityReturned})`,
       })
@@ -884,7 +884,7 @@ async function updateRecallTotals(recallId: number): Promise<void> {
       .where(eq(sqliteRecallNotifications.recallId, recallId));
 
     // Sum reconciled quantities
-    const reconciliationResult = await (await getDb())
+    const reconciliationResult = await ((await getDb()) as any)
       .select({
         totalReconciled: sql<number>`SUM(${sqliteRecallReconciliation.returnedQty} + ${sqliteRecallReconciliation.destroyedQty} + ${sqliteRecallReconciliation.accountedQty})`,
       })
@@ -903,7 +903,7 @@ async function updateRecallTotals(recallId: number): Promise<void> {
       ? (reconciledQuantity / distributedQuantity) * 100
       : 0;
 
-    await (await getDb())
+    await ((await getDb()) as any)
       .update(sqliteRecalls)
       .set({
         returnedQuantity,
@@ -932,7 +932,7 @@ export async function executeMockDrill(
 
   if (isSqlite()) {
     // Get lot information
-    const lot = await (await getDb())
+    const lot = await ((await getDb()) as any)
       .select({
         id: sqliteInventoryLots.id,
         lotNumber: sqliteInventoryLots.lotNumber,
@@ -946,7 +946,7 @@ export async function executeMockDrill(
     }
 
     // Get distribution data
-    const distribution = await (await getDb())
+    const distribution = await ((await getDb()) as any)
       .select({
         customerId: sqliteCustomers.id,
         customerName: sqliteCustomers.name,
@@ -973,7 +973,7 @@ export async function executeMockDrill(
     const endTime = Date.now();
     const timeToIdentify = (endTime - startTime) / 1000; // Convert to seconds
 
-    const distributionReport: DistributionRecord[] = distribution.map((row) => ({
+    const distributionReport: DistributionRecord[] = distribution.map((row: any) => ({
       customerId: row.customerId || 0,
       customerName: row.customerName || 'Unknown',
       contactInfo: row.contactInfo || '',
@@ -996,16 +996,15 @@ export async function executeMockDrill(
 
     await createAuditLog({
       action: 'CREATE',
-      entityType: 'mock_drill',
-      entityId: drillId,
+      tableName: 'mock_drill',
       userId,
-      newValue: JSON.stringify({
+      newValue: {
         drillId,
         lotId: data.lotId,
         customersIdentified: uniqueCustomers,
         timeToIdentify,
         passedTarget,
-      }),
+      },
     });
 
     return {

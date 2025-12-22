@@ -122,7 +122,8 @@ function parseJsonArray<T>(value: string | null, defaultValue: T[] = []): T[] {
 // ============================================
 
 export async function generateProtocolNumber(): Promise<string> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get highest protocol number
   const result = await database
@@ -147,7 +148,8 @@ export async function generateProtocolNumber(): Promise<string> {
 // ============================================
 
 export async function generateStudyNumber(): Promise<string> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const now = new Date();
   const yearMonth = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -179,7 +181,8 @@ export async function createProtocol(
   data: StabilityProtocolCreate,
   userId: number
 ): Promise<StabilityProtocol> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const protocolNumber = await generateProtocolNumber();
 
   const insertResult = await database.insert(sqliteStabilityProtocols).values({
@@ -201,7 +204,7 @@ export async function createProtocol(
     action: 'CREATE',
     tableName: 'stability_protocols',
     recordId: protocolId,
-    newValue: JSON.stringify({ protocolNumber, ...data }),
+    newValue: { protocolNumber, ...data },
   });
 
   const protocol = await getProtocolById(protocolId);
@@ -212,7 +215,8 @@ export async function createProtocol(
 }
 
 export async function getProtocolById(id: number): Promise<StabilityProtocol | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const result = await database
     .select({
@@ -246,7 +250,8 @@ export async function getProtocolById(id: number): Promise<StabilityProtocol | n
 export async function listProtocols(
   params?: StabilityProtocolListParams
 ): Promise<StabilityProtocol[]> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const conditions = [];
   if (params?.productId) {
@@ -282,7 +287,7 @@ export async function listProtocols(
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(sqliteStabilityProtocols.id));
 
-  return result.map((row) => mapProtocolRow(row as DbProtocolRow));
+  return result.map((row: any) => mapProtocolRow(row as DbProtocolRow));
 }
 
 export async function updateProtocol(
@@ -290,7 +295,8 @@ export async function updateProtocol(
   data: StabilityProtocolUpdate,
   userId: number
 ): Promise<StabilityProtocol | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getProtocolById(id);
   if (!existing) return null;
@@ -317,15 +323,16 @@ export async function updateProtocol(
     action: 'UPDATE',
     tableName: 'stability_protocols',
     recordId: id,
-    oldValue: JSON.stringify(existing),
-    newValue: JSON.stringify(data),
+    oldValue: existing,
+    newValue: data,
   });
 
   return getProtocolById(id);
 }
 
 export async function approveProtocol(id: number, userId: number): Promise<StabilityProtocol | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getProtocolById(id);
   if (!existing) return null;
@@ -349,7 +356,7 @@ export async function approveProtocol(id: number, userId: number): Promise<Stabi
     action: 'APPROVE',
     tableName: 'stability_protocols',
     recordId: id,
-    newValue: JSON.stringify({ status: 'approved', approvedBy: userId, approvedAt: now }),
+    newValue: { status: 'approved', approvedBy: userId, approvedAt: now },
   });
 
   return getProtocolById(id);
@@ -363,7 +370,8 @@ export async function createStudy(
   data: StabilityStudyCreate,
   userId: number
 ): Promise<StabilityStudy> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const studyNumber = await generateStudyNumber();
 
   // Verify protocol is approved
@@ -397,7 +405,7 @@ export async function createStudy(
     action: 'CREATE',
     tableName: 'stability_studies',
     recordId: studyId,
-    newValue: JSON.stringify({ studyNumber, ...data }),
+    newValue: { studyNumber, ...data },
   });
 
   const study = await getStudyById(studyId);
@@ -412,7 +420,8 @@ async function generateSampleSchedule(
   protocolId: number,
   startDate: string
 ): Promise<void> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const protocol = await getProtocolById(protocolId);
   if (!protocol) return;
 
@@ -436,7 +445,8 @@ async function generateSampleSchedule(
 }
 
 export async function getStudyById(id: number): Promise<StabilityStudy | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const result = await database
     .select({
@@ -497,7 +507,8 @@ export async function getStudyDetails(id: number): Promise<StabilityStudyDetails
 export async function listStudies(
   params?: StabilityStudyListParams
 ): Promise<StabilityStudyListResponse> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const page = params?.page || 1;
   const limit = params?.limit || 20;
   const offset = (page - 1) * limit;
@@ -561,7 +572,7 @@ export async function listStudies(
     .offset(offset);
 
   const studies = await Promise.all(
-    result.map(async (row) => {
+    result.map(async (row: any) => {
       const study = mapStudyRow(row as DbStudyRow);
       // Add computed fields
       const samples = await getSamples({ studyId: study.id });
@@ -597,7 +608,8 @@ export async function updateStudy(
   data: StabilityStudyUpdate,
   userId: number
 ): Promise<StabilityStudy | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getStudyById(id);
   if (!existing) return null;
@@ -622,8 +634,8 @@ export async function updateStudy(
     action: 'UPDATE',
     tableName: 'stability_studies',
     recordId: id,
-    oldValue: JSON.stringify(existing),
-    newValue: JSON.stringify(data),
+    oldValue: existing,
+    newValue: data,
   });
 
   return getStudyById(id);
@@ -636,7 +648,8 @@ export async function updateStudy(
 export async function getSamples(
   params?: StabilitySampleListParams
 ): Promise<StabilitySampleListResponse> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const page = params?.page || 1;
   const limit = params?.limit || 50;
   const offset = (page - 1) * limit;
@@ -699,13 +712,14 @@ export async function getSamples(
     .limit(limit)
     .offset(offset);
 
-  const samples = result.map((row) => mapSampleRow(row as DbSampleRow));
+  const samples = result.map((row: any) => mapSampleRow(row as DbSampleRow));
 
   return { samples, total };
 }
 
 export async function getSampleById(id: number): Promise<StabilitySample | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const result = await database
     .select({
@@ -738,7 +752,8 @@ export async function updateSample(
   data: StabilitySampleUpdate,
   userId: number
 ): Promise<StabilitySample | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getSampleById(id);
   if (!existing) return null;
@@ -763,8 +778,8 @@ export async function updateSample(
     action: 'UPDATE',
     tableName: 'stability_samples',
     recordId: id,
-    oldValue: JSON.stringify(existing),
-    newValue: JSON.stringify(data),
+    oldValue: existing,
+    newValue: data,
   });
 
   return getSampleById(id);
@@ -775,7 +790,8 @@ export async function recordTest(
   data: RecordTestRequest,
   userId: number
 ): Promise<StabilitySample | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getSampleById(sampleId);
   if (!existing) return null;
@@ -792,10 +808,10 @@ export async function recordTest(
 
   await createAuditLog({
     userId,
-    action: 'TEST_RECORDED',
+    action: 'CREATE',
     tableName: 'stability_samples',
     recordId: sampleId,
-    newValue: JSON.stringify(data),
+    newValue: data,
   });
 
   // TODO: Update trend data if applicable
@@ -808,7 +824,8 @@ export async function recordTest(
 // ============================================
 
 export async function getSampleAlerts(daysAhead: number = 30): Promise<SampleAlert[]> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const today = new Date();
   const futureDate = new Date();
@@ -846,7 +863,7 @@ export async function getSampleAlerts(daysAhead: number = 30): Promise<SampleAle
     )
     .orderBy(sqliteStabilitySamples.scheduledDate);
 
-  return result.map((row) => {
+  return result.map((row: any) => {
     const scheduledDate = row.scheduledDate || todayStr;
     const daysUntilDue = Math.floor(
       (new Date(scheduledDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
@@ -871,7 +888,8 @@ export async function getSampleAlerts(daysAhead: number = 30): Promise<SampleAle
 // ============================================
 
 export async function getStabilityTrends(productId?: number): Promise<StabilityTrends> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get active studies count
   const conditions = [eq(sqliteStabilityStudies.status, 'active')];
@@ -919,7 +937,7 @@ export async function getStabilityTrends(productId?: number): Promise<StabilityT
     .from(sqliteStabilitySamples)
     .where(
       and(
-        eq(sqliteStabilitySamples.oosDetected, 1),
+        eq(sqliteStabilitySamples.oosDetected, true),
         gte(sqliteStabilitySamples.actualDate, monthStartStr)
       )
     );
@@ -975,7 +993,8 @@ export async function getStabilityTrends(productId?: number): Promise<StabilityT
 }
 
 export async function getStudyTrendData(studyId: number): Promise<StudyTrendData | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const study = await getStudyById(studyId);
   if (!study) return null;
@@ -994,7 +1013,7 @@ export async function getStudyTrendData(studyId: number): Promise<StudyTrendData
     .from(sqliteStabilityTrends)
     .where(eq(sqliteStabilityTrends.studyId, studyId));
 
-  const parameters: TrendParameter[] = trendResult.map((row) => {
+  const parameters: TrendParameter[] = trendResult.map((row: any) => {
     const dataPoints = parseJsonArray<{ timepoint: number; value: number; date: string }>(
       row.dataPoints
     );

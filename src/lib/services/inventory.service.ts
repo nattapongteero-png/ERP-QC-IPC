@@ -75,7 +75,8 @@ function getTables() {
  */
 export async function recalculateItemOnHand(itemId: number): Promise<number> {
   const { lots, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const usingSqlite = isSqlite();
 
   // Sum quantities from released lots for this item
@@ -111,7 +112,8 @@ export async function getLotsForPicking(
   warehouseId?: number
 ): Promise<{ allocated: LotAllocation[]; remaining: number }> {
   const { lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Build query conditions
   const conditions = [
@@ -170,7 +172,8 @@ export async function reserveLots(
   userId: number
 ): Promise<boolean> {
   const { lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   for (const alloc of allocations) {
     // Update reserved quantity
@@ -211,7 +214,8 @@ export async function issueMaterial(
   reason?: string
 ): Promise<number> {
   const { lots, transactions } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get current lot
   const [lot] = await database
@@ -291,7 +295,8 @@ export async function receiveMaterial(
   userId: number
 ): Promise<number> {
   const { lots, transactions } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Create new lot in quarantine status
   const [newLot] = await database
@@ -354,7 +359,8 @@ export async function updateLotStatus(
   coaNumber?: string
 ): Promise<boolean> {
   const { lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get current lot
   const [lot] = await database
@@ -401,7 +407,8 @@ export async function updateLotStatus(
  */
 export async function getStockSummary(itemId: number): Promise<StockSummary | null> {
   const { lots, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get item info
   const [item] = await database
@@ -462,7 +469,8 @@ export async function checkExpiryAlerts(daysThreshold: number = 30): Promise<{
   expired: Array<{ lotId: number; lotNumber: string; itemName: string; expiryDate: string }>;
 }> {
   const { lots, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const today = new Date().toISOString().split('T')[0];
   const thresholdDate = new Date();
@@ -527,7 +535,8 @@ export async function checkExpiryAlerts(daysThreshold: number = 30): Promise<{
  */
 export async function traceForward(lotId: number, level: number = 0): Promise<TraceabilityResult[]> {
   const { lots, transactions, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const results: TraceabilityResult[] = [];
 
@@ -603,7 +612,8 @@ export async function traceForward(lotId: number, level: number = 0): Promise<Tr
  */
 export async function traceBackward(lotId: number, level: number = 0): Promise<TraceabilityResult[]> {
   const { lots, transactions, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const results: TraceabilityResult[] = [];
 
@@ -706,7 +716,8 @@ export async function adjustInventory(
   approvedBy?: number
 ): Promise<number> {
   const { lots, transactions } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get current lot
   const [lot] = await database
@@ -769,7 +780,8 @@ export async function transferInventory(
   reason?: string
 ): Promise<{ newLotId: number; transactionId: number }> {
   const { lots, transactions } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get current lot
   const [lot] = await database

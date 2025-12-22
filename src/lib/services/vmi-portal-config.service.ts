@@ -110,8 +110,8 @@ export class VmiPortalConfigService {
       lastItemsSyncAt: record.lastItemsSyncAt,
       lastPricesSyncAt: record.lastPricesSyncAt,
       lastOrdersPollAt: record.lastOrdersPollAt,
-      createdAt: typeof record.createdAt === 'string' ? record.createdAt : record.createdAt.toISOString(),
-      updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : record.updatedAt.toISOString(),
+      createdAt: typeof record.createdAt === 'string' ? record.createdAt : (record.createdAt as Date).toISOString(),
+      updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : (record.updatedAt as Date).toISOString(),
     };
   }
 
@@ -123,18 +123,20 @@ export class VmiPortalConfigService {
    * List all portal configurations
    */
   async list(): Promise<VmiPortalConfigSummary[]> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const records = await db.select().from(table);
-    return records.map((record) => this.toSummary(record));
+    return records.map((record: any) => this.toSummary(record));
   }
 
   /**
    * Get portal configuration by ID
    */
   async getById(id: number): Promise<VmiPortalConfigSummary | null> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const [record] = await db.select().from(table).where(eq(table.id, id));
@@ -145,7 +147,8 @@ export class VmiPortalConfigService {
    * Get portal configuration with decrypted API key (for internal use only)
    */
   async getByIdWithApiKey(id: number): Promise<(VmiPortalConfig & { decryptedApiKey: string }) | null> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const [record] = await db.select().from(table).where(eq(table.id, id));
@@ -161,11 +164,12 @@ export class VmiPortalConfigService {
    * Get all enabled portal configurations with decrypted API keys
    */
   async getEnabledWithApiKeys(): Promise<Array<VmiPortalConfig & { decryptedApiKey: string }>> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const records = await db.select().from(table).where(eq(table.isEnabled, true));
-    return records.map((record) => ({
+    return records.map((record: any) => ({
       ...record,
       decryptedApiKey: record.apiKeyEncrypted, // Stored in plain text
     }));
@@ -175,7 +179,8 @@ export class VmiPortalConfigService {
    * Create new portal configuration
    */
   async create(input: VmiPortalConfigInput, userId?: number): Promise<VmiPortalConfigSummary> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     // Validate portal URL
@@ -219,7 +224,8 @@ export class VmiPortalConfigService {
    * Update portal configuration
    */
   async update(id: number, input: VmiPortalConfigUpdate, userId?: number): Promise<VmiPortalConfigSummary> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     // Check if exists
@@ -271,7 +277,8 @@ export class VmiPortalConfigService {
    * Delete portal configuration
    */
   async delete(id: number): Promise<void> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     // Check if exists
@@ -369,7 +376,8 @@ export class VmiPortalConfigService {
    * Update connection status
    */
   async updateConnectionStatus(id: number, status: VmiConnectionStatus, errorMessage?: string): Promise<void> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const updateData: Record<string, unknown> = {
@@ -394,7 +402,8 @@ export class VmiPortalConfigService {
    * Update last inventory sync timestamp
    */
   async updateLastInventorySync(id: number): Promise<void> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const now = this.isSqlite ? new Date().toISOString() : new Date();
@@ -412,7 +421,8 @@ export class VmiPortalConfigService {
    * Update last items sync timestamp
    */
   async updateLastItemsSync(id: number): Promise<void> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const now = this.isSqlite ? new Date().toISOString() : new Date();
@@ -430,7 +440,8 @@ export class VmiPortalConfigService {
    * Update last prices sync timestamp
    */
   async updateLastPricesSync(id: number): Promise<void> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const now = this.isSqlite ? new Date().toISOString() : new Date();
@@ -448,7 +459,8 @@ export class VmiPortalConfigService {
    * Update last orders poll timestamp
    */
   async updateLastOrdersPoll(id: number): Promise<void> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const table = this.getTable();
 
     const now = this.isSqlite ? new Date().toISOString() : new Date();

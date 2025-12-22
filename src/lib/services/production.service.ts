@@ -144,7 +144,8 @@ export async function explodeBOM(
   level: number = 0
 ): Promise<BOMExplosionResult[]> {
   const { bom, bomLines, items, lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const results: BOMExplosionResult[] = [];
 
@@ -243,7 +244,8 @@ export async function createWorkOrder(
   userId: number
 ): Promise<number> {
   const { workOrders, bom, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get BOM details
   const [bomHeader] = await database
@@ -324,7 +326,8 @@ export async function updateWorkOrderStatus(
   reason?: string
 ): Promise<boolean> {
   const { workOrders } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get current work order
   const [wo] = await database
@@ -392,7 +395,8 @@ export async function dispenseMaterial(
   tolerancePercent: number = 2
 ): Promise<{ success: boolean; deviationRequired: boolean; message: string }> {
   const { workOrders, workOrderLines, bomLines, lots, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get work order
   const [wo] = await database
@@ -496,7 +500,8 @@ export async function dispenseMaterial(
  */
 export async function calculateYield(workOrderId: number): Promise<YieldCalculation> {
   const { workOrders, bom } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get work order with BOM
   const [wo] = await database
@@ -554,7 +559,8 @@ export async function recordProductionOutput(
   userId: number
 ): Promise<number> {
   const { workOrders, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get work order
   const [wo] = await database
@@ -640,7 +646,8 @@ export async function recordProductionOutput(
  */
 async function getBOMBatchSize(bomId: number): Promise<number> {
   const { bom } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const [bomHeader] = await database
     .select({ batchSize: bom.batchSize })
@@ -668,7 +675,8 @@ export async function calculateMRP(
   requiredDate: string;
 }>> {
   const { items, lots, bom } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const requirements: Array<{
     itemId: number;
@@ -770,7 +778,8 @@ export async function performLineClearance(
   userId: number
 ): Promise<boolean> {
   const { workOrders } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Validate all items are checked
   const uncheckedItems = checklist.filter((item: any) => !item.checked);
@@ -830,7 +839,8 @@ export async function calculateBOMCost(
   quantity?: number
 ): Promise<BOMCostResult> {
   const { bom, bomLines, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get BOM header
   const [bomHeader] = await database
@@ -940,7 +950,8 @@ export interface WhereUsedResult {
  */
 export async function getWhereUsed(itemId: number): Promise<WhereUsedResult[]> {
   const { bom, bomLines, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const results = await database
     .select({
@@ -982,7 +993,8 @@ export async function detectCircularReference(
   path: number[] = []
 ): Promise<number[] | null> {
   const { bom, bomLines } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Check if we've already visited this BOM
   if (visited.has(bomId)) {
@@ -1030,7 +1042,8 @@ export async function validateBOMCircularReference(
   lineItemIds: number[]
 ): Promise<{ valid: boolean; message?: string; path?: string[] }> {
   const { bom, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Check if any line item eventually leads back to the product
   for (const itemId of lineItemIds) {
@@ -1108,7 +1121,8 @@ export async function copyBOM(
   userId: number
 ): Promise<number> {
   const { bom, bomLines } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get source BOM
   const [sourceBom] = await database
@@ -1211,7 +1225,8 @@ export async function addBOMLine(
   userId: number
 ): Promise<number> {
   const { bom, bomLines } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Verify BOM exists
   const [bomHeader] = await database
@@ -1303,7 +1318,8 @@ export async function updateBOMLine(
   userId: number
 ): Promise<void> {
   const { bom, bomLines } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get existing line
   const [existingLine] = await database
@@ -1355,7 +1371,8 @@ export async function removeBOMLine(
   userId: number
 ): Promise<void> {
   const { bom, bomLines } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get existing line
   const [existingLine] = await database
@@ -1433,7 +1450,8 @@ export async function explodeBOMConsolidated(
   // Consolidate by itemId
   const consolidated = new Map<number, ConsolidatedBOMResult>();
   const { items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   for (const result of explosionResults) {
     const existing = consolidated.get(result.itemId);

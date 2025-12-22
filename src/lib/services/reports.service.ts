@@ -77,7 +77,8 @@ export async function getInventoryValuationReport(): Promise<{
   items: Array<{ itemCode: string; itemName: string; quantity: number; unit: string; unitCost: number; totalValue: number }>;
 }> {
   const { items, lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const inventoryData = await database
     .select({
@@ -151,7 +152,8 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
   summary: { expiredCount: number; expiredValue: number; nearExpiryCount: number; nearExpiryValue: number };
 }> {
   const { items, lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -240,7 +242,8 @@ export async function getProductionYieldReport(
   batches: Array<{ woNumber: string; batchNumber: string; productName: string; plannedQty: number; actualQty: number; yieldPercent: number; status: string }>;
 }> {
   const { workOrders, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const conditions = [
     or(eq(workOrders.status, 'completed'), eq(workOrders.status, 'closed')),
@@ -326,7 +329,8 @@ export async function getTraceabilityReport(
   backwardTrace: Array<{ level: number; itemCode: string; itemName: string; lotNumber: string; quantity: number; date?: string; coaNumber?: string }>;
 }> {
   const { lots, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get source lot
   const [sourceLot] = await database
@@ -398,7 +402,8 @@ export async function getQualitySummaryReport(
   byTestType: Array<{ testType: string; total: number; passed: number; failed: number; passRate: number }>;
 }> {
   const { tests, deviations } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get test statistics
   const testConditions = [];
@@ -484,7 +489,8 @@ export async function getStockMovementReport(
   }>;
 }> {
   const { transactions, lots, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const conditions = [];
   if (dateFrom) conditions.push(gte(transactions.createdAt, dateFrom));
@@ -562,7 +568,8 @@ export async function getVendorPerformanceReport(): Promise<{
   }>;
 }> {
   const { vendors, purchaseOrders, lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const vendorData = await database
     .select({
@@ -656,7 +663,8 @@ export async function logReportExecution(params: {
   errorMessage?: string;
   ipAddress?: string;
 }): Promise<number> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const { reportExecutions } = getTables();
 
   const result = await database.insert(reportExecutions).values({
@@ -763,7 +771,8 @@ export async function getReportExecutions(params: {
   }>;
   total: number;
 }> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const { reportExecutions, reportTemplates } = getTables();
   const limit = params.limit || 50;
   const offset = params.offset || 0;
@@ -836,7 +845,8 @@ export async function getReportExecutionStats(templateId: number): Promise<{
   lastExecuted: string | null;
   exportFormats: Record<string, number>;
 }> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const { reportExecutions } = getTables();
 
   // Get action counts
@@ -956,7 +966,8 @@ export async function getUserReportHistory(params: {
   }>;
   total: number;
 }> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const { reportExecutions, reportTemplates } = getTables();
   const limit = params.limit || 50;
   const offset = params.offset || 0;

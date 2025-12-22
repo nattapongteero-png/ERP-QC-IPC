@@ -126,7 +126,7 @@ export async function getReportThumbnail(
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const usingSqlite = isSqlite();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 
@@ -186,7 +186,7 @@ export async function updateReportThumbnail(
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const usingSqlite = isSqlite();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 
@@ -222,7 +222,7 @@ export async function generateMissingThumbnails(): Promise<number> {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const usingSqlite = isSqlite();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 

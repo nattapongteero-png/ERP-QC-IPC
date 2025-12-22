@@ -136,7 +136,8 @@ export class VmiSalesOrderService {
     limit: number;
     totalPages: number;
   }> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { orders, portals, lines } = this.getTables();
     const page = query.page || 1;
     const limit = query.limit || 20;
@@ -179,7 +180,7 @@ export class VmiSalesOrderService {
       .offset(offset);
 
     // Get line counts for each order
-    const orderIds = orderRecords.map((r) => r.order.id);
+    const orderIds = orderRecords.map((r: any) => r.order.id);
     let lineCounts: Record<number, { total: number; unmatched: number }> = {};
 
     if (orderIds.length > 0) {
@@ -204,7 +205,7 @@ export class VmiSalesOrderService {
     }
 
     // Transform to summaries
-    const items: VmiSalesOrderSummary[] = orderRecords.map((r) => ({
+    const items: VmiSalesOrderSummary[] = orderRecords.map((r: any) => ({
       id: r.order.id,
       portalId: r.order.portalId,
       portalName: r.portalName || undefined,
@@ -242,7 +243,8 @@ export class VmiSalesOrderService {
    * Get order by ID with full details
    */
   async getOrderById(orderId: number): Promise<VmiSalesOrderDetail | null> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { orders, portals, lines, items, customers } = this.getTables();
 
     // Get order with portal
@@ -266,7 +268,7 @@ export class VmiSalesOrderService {
         .select({
           id: customers.id,
           code: customers.code,
-          name: customers.nameTh,
+          name: customers.name,
         })
         .from(customers)
         .where(eq(customers.id, orderRecord.order.customerId));
@@ -285,7 +287,7 @@ export class VmiSalesOrderService {
       .leftJoin(items, eq(lines.itemId, items.id))
       .where(eq(lines.vmiSalesOrderId, orderId));
 
-    const orderLines = lineRecords.map((r) => ({
+    const orderLines = lineRecords.map((r: any) => ({
       id: r.line.id,
       vmiLineId: r.line.vmiLineId,
       itemId: r.line.itemId,
@@ -325,7 +327,7 @@ export class VmiSalesOrderService {
       totalAmount: Number(orderRecord.order.totalAmount),
       currency: orderRecord.order.currency,
       lineCount: orderLines.length,
-      unmatchedLineCount: orderLines.filter((l) => l.matchStatus === 'unmatched').length,
+      unmatchedLineCount: orderLines.filter((l: any) => l.matchStatus === 'unmatched').length,
       salesOrderId: orderRecord.order.salesOrderId,
       polledAt: new Date(orderRecord.order.polledAt as string),
       confirmedAt: orderRecord.order.confirmedAt
@@ -340,6 +342,8 @@ export class VmiSalesOrderService {
       customer,
       lines: orderLines,
       orderDataJson: orderRecord.order.orderDataJson,
+      createdAt: new Date(orderRecord.order.createdAt as string),
+      updatedAt: new Date(orderRecord.order.updatedAt as string),
     };
   }
 
@@ -451,7 +455,8 @@ export class VmiSalesOrderService {
     portalId: number,
     vmiOrderId: string
   ): Promise<VmiSalesOrder | null> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { orders } = this.getTables();
 
     const [record] = await db
@@ -469,7 +474,8 @@ export class VmiSalesOrderService {
     portalId: number,
     portalOrder: PortalOrder
   ): Promise<VmiSalesOrderSummary> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { orders, lines } = this.getTables();
 
     const now = this.isSqlite ? new Date().toISOString() : new Date();
@@ -518,7 +524,7 @@ export class VmiSalesOrderService {
     }
 
     // Return summary
-    const unmatchedCount = portalOrder.lines.filter((l) => {
+    const unmatchedCount = portalOrder.lines.filter((l: any) => {
       const matchResult = this.matchItemSync(l.tppCode, l.ttmtCode, l.localCode);
       return matchResult.status === 'unmatched';
     }).length;
@@ -555,7 +561,8 @@ export class VmiSalesOrderService {
     ttmtCode?: string,
     localCode?: string
   ): Promise<{ itemId: number | null; status: VmiItemMatchStatus }> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { items } = this.getTables();
 
     // Try to find matching item
@@ -613,7 +620,8 @@ export class VmiSalesOrderService {
     lineId: number,
     itemId: number
   ): Promise<VmiSalesOrderLine> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { lines, items } = this.getTables();
 
     // Verify order line exists
@@ -664,7 +672,8 @@ export class VmiSalesOrderService {
       notes?: string;
     }
   ): Promise<VmiSalesOrderDetail> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { orders, customers } = this.getTables();
 
     // Verify order exists
@@ -715,7 +724,8 @@ export class VmiSalesOrderService {
     salesOrder: { id: number; soNumber: string; status: string };
     message: string;
   }> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { orders, portals } = this.getTables();
 
     // Get order with details
@@ -725,7 +735,7 @@ export class VmiSalesOrderService {
     }
 
     // Check all items are matched
-    const unmatchedLines = order.lines.filter((l) => l.matchStatus === 'unmatched');
+    const unmatchedLines = order.lines.filter((l: any) => l.matchStatus === 'unmatched');
     if (unmatchedLines.length > 0) {
       throw new VmiSalesOrderError(
         'UNMATCHED_ITEMS',
@@ -812,7 +822,8 @@ export class VmiSalesOrderService {
     vmiOrder: VmiSalesOrderDetail;
     message: string;
   }> {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { orders, portals } = this.getTables();
 
     // Get order
@@ -901,7 +912,8 @@ export class VmiSalesOrderService {
       apiKeyEncrypted: string;
     }>
   > {
-    const db = await this.getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
     const { portals } = this.getTables();
 
     const conditions = [eq(portals.isEnabled, true), eq(portals.orderPollingEnabled, true)];

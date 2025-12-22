@@ -22,6 +22,7 @@ import type {
   Audit,
   AuditCreate,
   AuditUpdate,
+  AuditCompleteRequest,
   AuditDetails,
   AuditFinding,
   AuditFindingCreate,
@@ -74,13 +75,15 @@ export async function getAuditPlans(
 
   // Enrich with audit counts
   return Promise.all(
-    plans.map(async (row) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    plans.map(async (row: any) => {
       const audits = await database
         .select()
         .from(sqliteAudits)
         .where(eq(sqliteAudits.planId, row.plan.id));
 
-      const completedCount = audits.filter((a) => a.status === 'completed').length;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const completedCount = audits.filter((a: any) => a.status === 'completed').length;
 
       // Get creator name (second join)
       const creator = await database
@@ -133,7 +136,7 @@ export async function getAuditPlanById(id: number): Promise<AuditPlan | null> {
     .from(sqliteAudits)
     .where(eq(sqliteAudits.planId, id));
 
-  const completedCount = audits.filter((a) => a.status === 'completed').length;
+  const completedCount = audits.filter((a: any) => a.status === 'completed').length;
 
   const creator = await database
     .select()
@@ -181,8 +184,8 @@ export async function createAuditPlan(
   await createAuditLog({
     userId,
     action: 'CREATE',
-    entityType: 'audit_plan',
-    entityId: result[0].id,
+    tableName: 'audit_plan',
+    recordId: result[0].id,
     newValue: result[0],
   });
 
@@ -217,9 +220,9 @@ export async function updateAuditPlan(
   await createAuditLog({
     userId,
     action: 'UPDATE',
-    entityType: 'audit_plan',
-    entityId: id,
-    previousValue: existing,
+    tableName: 'audit_plan',
+    recordId: id,
+    oldValue: existing,
     newValue: { ...existing, ...updateData },
   });
 
@@ -252,9 +255,9 @@ export async function approveAuditPlan(
   await createAuditLog({
     userId,
     action: 'APPROVE',
-    entityType: 'audit_plan',
-    entityId: id,
-    previousValue: existing,
+    tableName: 'audit_plan',
+    recordId: id,
+    oldValue: existing,
   });
 
   return getAuditPlanById(id);
@@ -335,7 +338,7 @@ export async function getAudits(
 
   // Filter by GMP chapter if specified
   if (params.gmpChapter) {
-    audits = audits.filter((a) => {
+    audits = audits.filter((a: any) => {
       const chapters = a.audit.gmpChapters ? JSON.parse(a.audit.gmpChapters) : [];
       return chapters.includes(params.gmpChapter);
     });
@@ -348,13 +351,13 @@ export async function getAudits(
 
   // Enrich with findings counts
   const enrichedAudits = await Promise.all(
-    audits.map(async (row) => {
+    audits.map(async (row: any) => {
       const findings = await database
         .select()
         .from(sqliteAuditFindings)
         .where(eq(sqliteAuditFindings.auditId, row.audit.id));
 
-      const openCount = findings.filter((f) => f.status !== 'closed').length;
+      const openCount = findings.filter((f: any) => f.status !== 'closed').length;
 
       return {
         id: row.audit.id,
@@ -419,7 +422,7 @@ export async function getAuditById(id: number): Promise<AuditDetails | null> {
     .where(eq(sqliteAuditFindings.auditId, id))
     .orderBy(sqliteAuditFindings.findingNumber);
 
-  const findings: AuditFinding[] = findingsRows.map((fr) => ({
+  const findings: AuditFinding[] = findingsRows.map((fr: any) => ({
     id: fr.finding.id,
     auditId: fr.finding.auditId,
     findingNumber: fr.finding.findingNumber || '',
@@ -445,7 +448,7 @@ export async function getAuditById(id: number): Promise<AuditDetails | null> {
     plan = await getAuditPlanById(row.audit.planId);
   }
 
-  const openCount = findings.filter((f) => f.status !== 'closed').length;
+  const openCount = findings.filter((f: any) => f.status !== 'closed').length;
 
   return {
     id: row.audit.id,
@@ -502,8 +505,8 @@ export async function createAudit(
   await createAuditLog({
     userId,
     action: 'CREATE',
-    entityType: 'audit',
-    entityId: result[0].id,
+    tableName: 'audit',
+    recordId: result[0].id,
     newValue: result[0],
   });
 
@@ -542,9 +545,9 @@ export async function updateAudit(
   await createAuditLog({
     userId,
     action: 'UPDATE',
-    entityType: 'audit',
-    entityId: id,
-    previousValue: existing,
+    tableName: 'audit',
+    recordId: id,
+    oldValue: existing,
     newValue: { ...existing, ...updateData },
   });
 
@@ -586,10 +589,10 @@ export async function startAudit(
 
   await createAuditLog({
     userId,
-    action: 'START',
-    entityType: 'audit',
-    entityId: id,
-    previousValue: existing,
+    action: 'UPDATE',
+    tableName: 'audit',
+    recordId: id,
+    oldValue: existing,
   });
 
   return getAuditById(id);
@@ -622,10 +625,10 @@ export async function completeAudit(
 
   await createAuditLog({
     userId,
-    action: 'COMPLETE',
-    entityType: 'audit',
-    entityId: id,
-    previousValue: existing,
+    action: 'UPDATE',
+    tableName: 'audit',
+    recordId: id,
+    oldValue: existing,
   });
 
   return getAuditById(id);
@@ -707,7 +710,7 @@ export async function getAuditFindings(
     .where(whereClause);
 
   return {
-    findings: findings.map((row) => ({
+    findings: findings.map((row: any) => ({
       id: row.finding.id,
       auditId: row.finding.auditId,
       auditNumber: row.audit?.auditNumber,
@@ -809,8 +812,8 @@ export async function createAuditFinding(
   await createAuditLog({
     userId,
     action: 'CREATE',
-    entityType: 'audit_finding',
-    entityId: result[0].id,
+    tableName: 'audit_finding',
+    recordId: result[0].id,
     newValue: result[0],
   });
 
@@ -848,9 +851,9 @@ export async function updateAuditFinding(
   await createAuditLog({
     userId,
     action: 'UPDATE',
-    entityType: 'audit_finding',
-    entityId: id,
-    previousValue: existing,
+    tableName: 'audit_finding',
+    recordId: id,
+    oldValue: existing,
     newValue: { ...existing, ...updateData },
   });
 
@@ -881,10 +884,10 @@ export async function assignCapaToFinding(
 
   await createAuditLog({
     userId,
-    action: 'ASSIGN_CAPA',
-    entityType: 'audit_finding',
-    entityId: findingId,
-    previousValue: existing,
+    action: 'UPDATE',
+    tableName: 'audit_finding',
+    recordId: findingId,
+    oldValue: existing,
     newValue: { capaId },
   });
 
@@ -920,10 +923,10 @@ export async function closeAuditFinding(
 
   await createAuditLog({
     userId,
-    action: 'CLOSE',
-    entityType: 'audit_finding',
-    entityId: id,
-    previousValue: existing,
+    action: 'UPDATE',
+    tableName: 'audit_finding',
+    recordId: id,
+    oldValue: existing,
   });
 
   return getAuditFindingById(id);
@@ -954,29 +957,29 @@ export async function getAuditStatistics(year: number): Promise<AuditStatistics>
       )
     );
 
-  const completedAudits = audits.filter((a) => a.status === 'completed');
+  const completedAudits = audits.filter((a: any) => a.status === 'completed');
 
   // Get all findings from these audits
-  const auditIds = audits.map((a) => a.id);
+  const auditIds = audits.map((a: any) => a.id);
   let findings: (typeof sqliteAuditFindings.$inferSelect)[] = [];
   if (auditIds.length > 0) {
     findings = await database
       .select()
       .from(sqliteAuditFindings)
-      .where(sql`${sqliteAuditFindings.auditId} IN (${sql.join(auditIds.map(id => sql`${id}`), sql`, `)})`);
+      .where(sql`${sqliteAuditFindings.auditId} IN (${sql.join(auditIds.map((id: any) => sql`${id}`), sql`, `)})`);
   }
 
   const findingsByCategory = {
-    observation: findings.filter((f) => f.category === 'observation').length,
-    minor: findings.filter((f) => f.category === 'minor').length,
-    major: findings.filter((f) => f.category === 'major').length,
-    critical: findings.filter((f) => f.category === 'critical').length,
+    observation: findings.filter((f: any) => f.category === 'observation').length,
+    minor: findings.filter((f: any) => f.category === 'minor').length,
+    major: findings.filter((f: any) => f.category === 'major').length,
+    critical: findings.filter((f: any) => f.category === 'critical').length,
   };
 
-  const openFindings = findings.filter((f) => f.status !== 'closed').length;
+  const openFindings = findings.filter((f: any) => f.status !== 'closed').length;
 
   // Calculate average closure time
-  const closedFindings = findings.filter((f) => f.status === 'closed' && f.closedDate);
+  const closedFindings = findings.filter((f: any) => f.status === 'closed' && f.closedDate);
   let avgCapaClosureTime = 0;
   if (closedFindings.length > 0) {
     const totalDays = closedFindings.reduce((sum, f) => {
@@ -1021,13 +1024,13 @@ export async function getChapterCoverage(year: number): Promise<ChapterCoverage>
     );
 
   // Get all findings
-  const auditIds = audits.map((a) => a.id);
+  const auditIds = audits.map((a: any) => a.id);
   let findings: (typeof sqliteAuditFindings.$inferSelect)[] = [];
   if (auditIds.length > 0) {
     findings = await database
       .select()
       .from(sqliteAuditFindings)
-      .where(sql`${sqliteAuditFindings.auditId} IN (${sql.join(auditIds.map(id => sql`${id}`), sql`, `)})`);
+      .where(sql`${sqliteAuditFindings.auditId} IN (${sql.join(auditIds.map((id: any) => sql`${id}`), sql`, `)})`);
   }
 
   const chapters = [];
@@ -1046,20 +1049,20 @@ export async function getChapterCoverage(year: number): Promise<ChapterCoverage>
 
   for (let chapter = 1; chapter <= 10; chapter++) {
     // Audits covering this chapter
-    const chapterAudits = audits.filter((a) => {
+    const chapterAudits = audits.filter((a: any) => {
       const chs = a.gmpChapters ? JSON.parse(a.gmpChapters) : [];
       return chs.includes(chapter);
     });
 
-    const completedChapterAudits = chapterAudits.filter((a) => a.status === 'completed');
+    const completedChapterAudits = chapterAudits.filter((a: any) => a.status === 'completed');
 
     // Findings for this chapter
-    const chapterFindings = findings.filter((f) => f.gmpChapter === chapter);
+    const chapterFindings = findings.filter((f: any) => f.gmpChapter === chapter);
 
     // Last audit date for this chapter
     const lastAudit = completedChapterAudits
-      .filter((a) => a.actualDate)
-      .sort((a, b) => b.actualDate!.localeCompare(a.actualDate!))[0];
+      .filter((a: any) => a.actualDate)
+      .sort((a: any, b: any) => b.actualDate!.localeCompare(a.actualDate!))[0];
 
     chapters.push({
       chapter,
