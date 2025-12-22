@@ -7,7 +7,7 @@
  * Page for viewing and managing a specific GMP document.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
@@ -79,6 +79,7 @@ export default function DocumentDetailPage() {
   const [isMajorRevision, setIsMajorRevision] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
 
   // Fetch document
   const {
@@ -106,10 +107,30 @@ export default function DocumentDetailPage() {
     },
   });
 
+  // Set default selected version to latest when document loads
+  useEffect(() => {
+    if (document?.versions && document.versions.length > 0 && selectedVersionId === null) {
+      // Default to the latest version (first in sorted list, or currentVersion)
+      const latestVersion = document.versions[0];
+      setSelectedVersionId(latestVersion.id);
+    }
+  }, [document?.versions, selectedVersionId]);
+
+  // Get the selected version data
+  const selectedVersion = useMemo(() => {
+    if (!document?.versions || selectedVersionId === null) {
+      return document?.currentVersion || null;
+    }
+    return document.versions.find(v => v.id === selectedVersionId) || document.currentVersion || null;
+  }, [document?.versions, document?.currentVersion, selectedVersionId]);
+
+  // Check if viewing the current/latest version
+  const isViewingLatest = selectedVersion?.id === document?.currentVersionId ||
+    (document?.versions && document.versions.length > 0 && selectedVersion?.id === document.versions[0].id);
+
   // Handle version select from history
   const handleVersionSelect = (version: DocumentVersion) => {
-    console.log('Selected version:', version);
-    // Could show version content in a modal
+    setSelectedVersionId(version.id);
   };
 
   // Handle new version creation
@@ -265,34 +286,76 @@ export default function DocumentDetailPage() {
                 <Clock className="h-4 w-4" />
                 <span>Retention: {document.retentionYears} years</span>
               </div>
-              {document.currentVersion && (
+              {selectedVersion && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <FileText className="h-4 w-4" />
                   <span>
-                    Current Version: {document.currentVersion.versionNumber} (
-                    {document.currentVersion.status})
+                    Viewing: Version {selectedVersion.versionNumber} ({selectedVersion.status})
+                    {!isViewingLatest && ' - Historical'}
                   </span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Current Version Content */}
-          {document.currentVersion?.content && (
+          {/* Version Preview Header */}
+          {selectedVersion && (
+            <div className={`bg-card border rounded-lg shadow-sm p-4 ${!isViewingLatest ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-900/10' : ''}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${!isViewingLatest ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-primary/10'}`}>
+                    <FileText className={`h-5 w-5 ${!isViewingLatest ? 'text-amber-600' : 'text-primary'}`} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">
+                      Version {selectedVersion.versionNumber}
+                      {!isViewingLatest && (
+                        <span className="ml-2 text-xs px-2 py-0.5 bg-amber-200 text-amber-800 rounded-full">
+                          Historical Version
+                        </span>
+                      )}
+                      {isViewingLatest && selectedVersion.id === document.currentVersionId && (
+                        <span className="ml-2 text-xs px-2 py-0.5 bg-primary text-primary-foreground rounded-full">
+                          Current
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Created by {selectedVersion.createdByName || 'Unknown'} on{' '}
+                      {new Date(selectedVersion.createdAt).toLocaleDateString('th-TH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <WorkflowStatusBadge status={selectedVersion.status} />
+              </div>
+              {selectedVersion.changeDescription && (
+                <p className="mt-3 text-sm text-muted-foreground border-t pt-3">
+                  <span className="font-medium">Change Notes:</span> {selectedVersion.changeDescription}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Selected Version Content */}
+          {selectedVersion?.content && (
             <div className="bg-card border rounded-lg shadow-sm p-6">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
                 Document Content
               </h3>
               <div className="prose prose-sm max-w-none dark:prose-invert">
                 <pre className="whitespace-pre-wrap text-sm bg-muted/50 p-4 rounded-lg">
-                  {document.currentVersion.content}
+                  {selectedVersion.content}
                 </pre>
               </div>
             </div>
           )}
 
           {/* Attached File */}
-          {document.currentVersion?.filePath && (
+          {selectedVersion?.filePath && (
             <div className="bg-card border rounded-lg shadow-sm p-6">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
                 Attached File
@@ -302,15 +365,15 @@ export default function DocumentDetailPage() {
                   <FileText className="h-8 w-8 text-primary" />
                   <div>
                     <p className="font-medium">
-                      {document.currentVersion.filePath.split('/').pop()}
+                      {selectedVersion.filePath.split('/').pop()}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Version {document.currentVersion.versionNumber}
+                      Version {selectedVersion.versionNumber}
                     </p>
                   </div>
                 </div>
                 <a
-                  href={`/api/documents/download/${document.currentVersion.filePath.replace('data/', '')}`}
+                  href={`/api/documents/download/${selectedVersion.filePath.replace('data/', '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
@@ -322,15 +385,15 @@ export default function DocumentDetailPage() {
             </div>
           )}
 
-          {/* Current Version Approvals */}
-          {document.currentVersion?.approvals &&
-            document.currentVersion.approvals.length > 0 && (
+          {/* Selected Version Approvals */}
+          {selectedVersion?.approvals &&
+            selectedVersion.approvals.length > 0 && (
               <div className="bg-card border rounded-lg shadow-sm p-6">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
                   Approval Status
                 </h3>
                 <ApprovalChain
-                  steps={document.currentVersion.approvals.map((a) => ({
+                  steps={selectedVersion.approvals.map((a) => ({
                     id: a.id,
                     role: a.approvalRole,
                     approverName: a.approverName || undefined,
@@ -349,6 +412,7 @@ export default function DocumentDetailPage() {
             <DocumentVersionHistory
               documentId={documentId}
               currentVersionId={document.currentVersionId || undefined}
+              selectedVersionId={selectedVersionId || undefined}
               onVersionSelect={handleVersionSelect}
             />
           </div>

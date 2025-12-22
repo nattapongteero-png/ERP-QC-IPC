@@ -20,6 +20,7 @@ import type { DocumentVersion, DocumentVersionStatus } from '@/types/documents';
 interface DocumentVersionHistoryProps {
   documentId: number;
   currentVersionId?: number;
+  selectedVersionId?: number;
   onVersionSelect?: (version: DocumentVersion) => void;
 }
 
@@ -62,6 +63,7 @@ function VersionStatusIcon({ status }: { status: DocumentVersionStatus }) {
 export function DocumentVersionHistory({
   documentId,
   currentVersionId,
+  selectedVersionId,
   onVersionSelect,
 }: DocumentVersionHistoryProps) {
   // Fetch version history
@@ -108,13 +110,16 @@ export function DocumentVersionHistory({
       <div className="space-y-3">
         {versions.map((version) => {
           const isCurrent = version.id === currentVersionId;
+          const isSelected = version.id === selectedVersionId;
 
           return (
             <div
               key={version.id}
               className={`
                 p-4 rounded-lg border transition-colors cursor-pointer
-                ${isCurrent ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
+                ${isSelected ? 'border-primary ring-2 ring-primary/30 bg-primary/5' : ''}
+                ${isCurrent && !isSelected ? 'border-primary/50 bg-primary/5' : ''}
+                ${!isSelected && !isCurrent ? 'border-border hover:border-primary/50' : ''}
               `}
               onClick={() => onVersionSelect?.(version)}
             >
@@ -125,7 +130,12 @@ export function DocumentVersionHistory({
                   <span className="font-semibold">
                     Version {version.versionNumber}
                   </span>
-                  {isCurrent && (
+                  {isSelected && (
+                    <span className="text-xs px-2 py-0.5 bg-blue-500 text-white rounded-full">
+                      Viewing
+                    </span>
+                  )}
+                  {isCurrent && !isSelected && (
                     <span className="text-xs px-2 py-0.5 bg-primary text-primary-foreground rounded-full">
                       Current
                     </span>
