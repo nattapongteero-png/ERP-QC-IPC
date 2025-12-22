@@ -6,7 +6,7 @@
  * QC routing, and trend analysis.
  */
 
-import { db, useSqlite } from '../db';
+import { getDb, useSqlite } from '../db';
 import { eq, and, desc, asc, gte, lte, like, or, sql, count } from 'drizzle-orm';
 import {
   sqliteComplaints,
@@ -93,7 +93,7 @@ export async function generateComplaintNumber(): Promise<string> {
   const prefix = `COMP-${year}${month}-`;
 
   if (useSqlite()) {
-    const result = await db()
+    const result = await (await getDb())
       .select({ complaintNumber: sqliteComplaints.complaintNumber })
       .from(sqliteComplaints)
       .where(like(sqliteComplaints.complaintNumber, `${prefix}%`))
@@ -139,14 +139,14 @@ export async function listComplaints(
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
-    const countResult = await db()
+    const countResult = await (await getDb())
       .select({ count: count() })
       .from(sqliteComplaints)
       .where(whereClause);
     const total = countResult[0]?.count || 0;
 
     // Get complaints with related data
-    const complaints = await db()
+    const complaints = await (await getDb())
       .select({
         id: sqliteComplaints.id,
         complaintNumber: sqliteComplaints.complaintNumber,
@@ -202,7 +202,7 @@ export async function listComplaints(
  */
 export async function getComplaintById(id: number): Promise<Complaint | null> {
   if (useSqlite()) {
-    const result = await db()
+    const result = await (await getDb())
       .select({
         id: sqliteComplaints.id,
         complaintNumber: sqliteComplaints.complaintNumber,
@@ -261,7 +261,7 @@ export async function getComplaintDetails(id: number): Promise<ComplaintDetails 
 
   if (useSqlite()) {
     // Get investigation
-    const investigationResult = await db()
+    const investigationResult = await (await getDb())
       .select({
         id: sqliteComplaintInvestigations.id,
         complaintId: sqliteComplaintInvestigations.complaintId,
@@ -296,7 +296,7 @@ export async function getComplaintDetails(id: number): Promise<ComplaintDetails 
     // Get linked CAPA if exists
     let capa: object | undefined;
     if (complaint.capaId) {
-      const capaResult = await db()
+      const capaResult = await (await getDb())
         .select({
           id: sqliteCapa.id,
           capaNumber: sqliteCapa.capaNumber,
@@ -332,7 +332,7 @@ export async function createComplaint(
     const complaintNumber = await generateComplaintNumber();
     const now = new Date().toISOString();
 
-    const result = await db()
+    const result = await (await getDb())
       .insert(sqliteComplaints)
       .values({
         complaintNumber,
@@ -394,7 +394,7 @@ export async function updateComplaint(
     if (data.regulatoryReportRequired !== undefined) updateData.regulatoryReportRequired = data.regulatoryReportRequired;
     if (data.regulatoryReportDate !== undefined) updateData.regulatoryReportDate = data.regulatoryReportDate;
 
-    await db()
+    await (await getDb())
       .update(sqliteComplaints)
       .set(updateData)
       .where(eq(sqliteComplaints.id, id));
@@ -437,7 +437,7 @@ export async function routeToQC(
     const now = new Date().toISOString();
 
     // Create investigation record
-    const result = await db()
+    const result = await (await getDb())
       .insert(sqliteComplaintInvestigations)
       .values({
         complaintId,
@@ -450,7 +450,7 @@ export async function routeToQC(
     const investigationId = result[0].id;
 
     // Update complaint status
-    await db()
+    await (await getDb())
       .update(sqliteComplaints)
       .set({ status: 'under_investigation', updatedAt: now })
       .where(eq(sqliteComplaints.id, complaintId));
@@ -465,7 +465,7 @@ export async function routeToQC(
     });
 
     // Get investigator name
-    const investigator = await db()
+    const investigator = await (await getDb())
       .select({ displayName: sqliteUsers.displayName })
       .from(sqliteUsers)
       .where(eq(sqliteUsers.id, investigatorId))
@@ -499,7 +499,7 @@ export async function recordInvestigation(
 ): Promise<ComplaintInvestigation> {
   if (useSqlite()) {
     // Get existing investigation
-    const existingInv = await db()
+    const existingInv = await (await getDb())
       .select()
       .from(sqliteComplaintInvestigations)
       .where(eq(sqliteComplaintInvestigations.complaintId, complaintId))
@@ -511,7 +511,7 @@ export async function recordInvestigation(
 
     const now = new Date().toISOString();
 
-    await db()
+    await (await getDb())
       .update(sqliteComplaintInvestigations)
       .set({
         batchRecordReview: data.batchRecordReview || null,
@@ -524,7 +524,7 @@ export async function recordInvestigation(
       .where(eq(sqliteComplaintInvestigations.complaintId, complaintId));
 
     // Update complaint status to resolved
-    await db()
+    await (await getDb())
       .update(sqliteComplaints)
       .set({ status: 'resolved', updatedAt: now })
       .where(eq(sqliteComplaints.id, complaintId));
@@ -539,7 +539,7 @@ export async function recordInvestigation(
     });
 
     // Get updated investigation with investigator name
-    const investigationResult = await db()
+    const investigationResult = await (await getDb())
       .select({
         id: sqliteComplaintInvestigations.id,
         complaintId: sqliteComplaintInvestigations.complaintId,
@@ -597,7 +597,7 @@ export async function closeComplaint(
 
     const now = new Date().toISOString();
 
-    await db()
+    await (await getDb())
       .update(sqliteComplaints)
       .set({
         status: 'closed',
@@ -634,7 +634,7 @@ export async function linkCapa(
   if (useSqlite()) {
     const now = new Date().toISOString();
 
-    await db()
+    await (await getDb())
       .update(sqliteComplaints)
       .set({
         capaId,
@@ -692,7 +692,7 @@ export async function getComplaintTrends(
     const startDateStr = startDate.toISOString().split('T')[0];
 
     // Get all complaints in period
-    const complaints = await db()
+    const complaints = await (await getDb())
       .select({
         receivedDate: sqliteComplaints.receivedDate,
         category: sqliteComplaints.category,
@@ -787,7 +787,7 @@ export async function getComplaintDashboard(): Promise<{
     const monthStartStr = monthStart.toISOString().split('T')[0];
 
     // Get all complaints
-    const allComplaints = await db()
+    const allComplaints = await (await getDb())
       .select({
         status: sqliteComplaints.status,
         severity: sqliteComplaints.severity,

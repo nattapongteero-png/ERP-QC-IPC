@@ -5,7 +5,7 @@
  * Manages stability protocols, studies, sample scheduling, and trend analysis.
  */
 
-import { getSqliteDb } from '../db';
+import { getDb } from '../db';
 import { eq, and, desc, like, or, sql, count, lte, gte, isNull } from 'drizzle-orm';
 import {
   sqliteStabilityProtocols,
@@ -122,7 +122,7 @@ function parseJsonArray<T>(value: string | null, defaultValue: T[] = []): T[] {
 // ============================================
 
 export async function generateProtocolNumber(): Promise<string> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   // Get highest protocol number
   const result = await database
@@ -147,7 +147,7 @@ export async function generateProtocolNumber(): Promise<string> {
 // ============================================
 
 export async function generateStudyNumber(): Promise<string> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const now = new Date();
   const yearMonth = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -179,7 +179,7 @@ export async function createProtocol(
   data: StabilityProtocolCreate,
   userId: number
 ): Promise<StabilityProtocol> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const protocolNumber = await generateProtocolNumber();
 
   const insertResult = await database.insert(sqliteStabilityProtocols).values({
@@ -212,7 +212,7 @@ export async function createProtocol(
 }
 
 export async function getProtocolById(id: number): Promise<StabilityProtocol | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const result = await database
     .select({
@@ -246,7 +246,7 @@ export async function getProtocolById(id: number): Promise<StabilityProtocol | n
 export async function listProtocols(
   params?: StabilityProtocolListParams
 ): Promise<StabilityProtocol[]> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const conditions = [];
   if (params?.productId) {
@@ -290,7 +290,7 @@ export async function updateProtocol(
   data: StabilityProtocolUpdate,
   userId: number
 ): Promise<StabilityProtocol | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getProtocolById(id);
   if (!existing) return null;
@@ -325,7 +325,7 @@ export async function updateProtocol(
 }
 
 export async function approveProtocol(id: number, userId: number): Promise<StabilityProtocol | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getProtocolById(id);
   if (!existing) return null;
@@ -363,7 +363,7 @@ export async function createStudy(
   data: StabilityStudyCreate,
   userId: number
 ): Promise<StabilityStudy> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const studyNumber = await generateStudyNumber();
 
   // Verify protocol is approved
@@ -412,7 +412,7 @@ async function generateSampleSchedule(
   protocolId: number,
   startDate: string
 ): Promise<void> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const protocol = await getProtocolById(protocolId);
   if (!protocol) return;
 
@@ -436,7 +436,7 @@ async function generateSampleSchedule(
 }
 
 export async function getStudyById(id: number): Promise<StabilityStudy | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const result = await database
     .select({
@@ -497,7 +497,7 @@ export async function getStudyDetails(id: number): Promise<StabilityStudyDetails
 export async function listStudies(
   params?: StabilityStudyListParams
 ): Promise<StabilityStudyListResponse> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const page = params?.page || 1;
   const limit = params?.limit || 20;
   const offset = (page - 1) * limit;
@@ -597,7 +597,7 @@ export async function updateStudy(
   data: StabilityStudyUpdate,
   userId: number
 ): Promise<StabilityStudy | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getStudyById(id);
   if (!existing) return null;
@@ -636,7 +636,7 @@ export async function updateStudy(
 export async function getSamples(
   params?: StabilitySampleListParams
 ): Promise<StabilitySampleListResponse> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const page = params?.page || 1;
   const limit = params?.limit || 50;
   const offset = (page - 1) * limit;
@@ -705,7 +705,7 @@ export async function getSamples(
 }
 
 export async function getSampleById(id: number): Promise<StabilitySample | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const result = await database
     .select({
@@ -738,7 +738,7 @@ export async function updateSample(
   data: StabilitySampleUpdate,
   userId: number
 ): Promise<StabilitySample | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getSampleById(id);
   if (!existing) return null;
@@ -775,7 +775,7 @@ export async function recordTest(
   data: RecordTestRequest,
   userId: number
 ): Promise<StabilitySample | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getSampleById(sampleId);
   if (!existing) return null;
@@ -808,7 +808,7 @@ export async function recordTest(
 // ============================================
 
 export async function getSampleAlerts(daysAhead: number = 30): Promise<SampleAlert[]> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const today = new Date();
   const futureDate = new Date();
@@ -871,7 +871,7 @@ export async function getSampleAlerts(daysAhead: number = 30): Promise<SampleAle
 // ============================================
 
 export async function getStabilityTrends(productId?: number): Promise<StabilityTrends> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   // Get active studies count
   const conditions = [eq(sqliteStabilityStudies.status, 'active')];
@@ -975,7 +975,7 @@ export async function getStabilityTrends(productId?: number): Promise<StabilityT
 }
 
 export async function getStudyTrendData(studyId: number): Promise<StudyTrendData | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const study = await getStudyById(studyId);
   if (!study) return null;

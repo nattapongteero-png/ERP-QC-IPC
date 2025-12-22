@@ -6,7 +6,7 @@
  * effectiveness verification, and audit trail.
  */
 
-import { db, useSqlite } from '../db';
+import { getDb, useSqlite } from '../db';
 import { eq, and, desc, asc, gte, lte, like, or, isNull, sql, count } from 'drizzle-orm';
 import {
   sqliteCapa,
@@ -109,7 +109,7 @@ export async function generateCapaNumber(): Promise<string> {
 
   if (useSqlite()) {
     // Get the latest CAPA number for this month
-    const result = await db()
+    const result = await (await getDb())
       .select({ capaNumber: sqliteCapa.capaNumber })
       .from(sqliteCapa)
       .where(like(sqliteCapa.capaNumber, `${prefix}%`))
@@ -169,14 +169,14 @@ export async function listCapas(
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
-    const countResult = await db()
+    const countResult = await (await getDb())
       .select({ count: count() })
       .from(sqliteCapa)
       .where(whereClause);
     const total = countResult[0]?.count || 0;
 
     // Get CAPAs with user info
-    const capas = await db()
+    const capas = await (await getDb())
       .select({
         id: sqliteCapa.id,
         capaNumber: sqliteCapa.capaNumber,
@@ -209,7 +209,7 @@ export async function listCapas(
     // Add action counts and overdue status
     const capaList: Capa[] = await Promise.all(
       capas.map(async (capa: DbCapaRow) => {
-        const actions = await db()
+        const actions = await (await getDb())
           .select({ status: sqliteCapaActions.status })
           .from(sqliteCapaActions)
           .where(eq(sqliteCapaActions.capaId, capa.id));
@@ -243,7 +243,7 @@ export async function listCapas(
  */
 export async function getCapaById(id: number): Promise<Capa | null> {
   if (useSqlite()) {
-    const result = await db()
+    const result = await (await getDb())
       .select({
         id: sqliteCapa.id,
         capaNumber: sqliteCapa.capaNumber,
@@ -300,7 +300,7 @@ export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
 
   if (useSqlite()) {
     // Get actions
-    const actionsResult = await db()
+    const actionsResult = await (await getDb())
       .select({
         id: sqliteCapaActions.id,
         capaId: sqliteCapaActions.capaId,
@@ -326,7 +326,7 @@ export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
       actionsResult.map(async (action: DbCapaActionRow) => {
         let verifiedByName: string | undefined;
         if (action.verifiedBy) {
-          const verifier = await db()
+          const verifier = await (await getDb())
             .select({ displayName: sqliteUsers.displayName })
             .from(sqliteUsers)
             .where(eq(sqliteUsers.id, action.verifiedBy))
@@ -345,7 +345,7 @@ export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
     );
 
     // Get effectiveness checks
-    const effectivenessResult = await db()
+    const effectivenessResult = await (await getDb())
       .select({
         id: sqliteCapaEffectiveness.id,
         capaId: sqliteCapaEffectiveness.capaId,
@@ -379,7 +379,7 @@ export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
     // Get source details if applicable
     let source: object | undefined;
     if (capa.deviationId) {
-      const deviation = await db()
+      const deviation = await (await getDb())
         .select()
         .from(sqliteDeviations)
         .where(eq(sqliteDeviations.id, capa.deviationId))
@@ -430,7 +430,7 @@ export async function createCapa(
       }
     }
 
-    const result = await db()
+    const result = await (await getDb())
       .insert(sqliteCapa)
       .values({
         capaNumber,
@@ -481,7 +481,7 @@ export async function createFromDeviation(
 ): Promise<Capa> {
   if (useSqlite()) {
     // Verify deviation exists
-    const deviation = await db()
+    const deviation = await (await getDb())
       .select()
       .from(sqliteDeviations)
       .where(eq(sqliteDeviations.id, deviationId))
@@ -541,7 +541,7 @@ export async function updateCapa(
     if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
     if (data.ownerId !== undefined) updateData.ownerId = data.ownerId;
 
-    await db()
+    await (await getDb())
       .update(sqliteCapa)
       .set(updateData)
       .where(eq(sqliteCapa.id, id));
@@ -595,7 +595,7 @@ export async function closeCapa(
 
     const now = new Date().toISOString();
 
-    await db()
+    await (await getDb())
       .update(sqliteCapa)
       .set({
         status: 'closed',
@@ -640,7 +640,7 @@ export async function addAction(
     }
 
     // Get next action number
-    const actions = await db()
+    const actions = await (await getDb())
       .select({ actionNumber: sqliteCapaActions.actionNumber })
       .from(sqliteCapaActions)
       .where(eq(sqliteCapaActions.capaId, capaId))
@@ -650,7 +650,7 @@ export async function addAction(
     const nextActionNumber = actions.length > 0 ? actions[0].actionNumber + 1 : 1;
     const now = new Date().toISOString();
 
-    const result = await db()
+    const result = await (await getDb())
       .insert(sqliteCapaActions)
       .values({
         capaId,
@@ -668,7 +668,7 @@ export async function addAction(
 
     // Update CAPA status to action_pending if still in investigation
     if (['open', 'investigation'].includes(capa.status)) {
-      await db()
+      await (await getDb())
         .update(sqliteCapa)
         .set({ status: 'action_pending', updatedAt: now })
         .where(eq(sqliteCapa.id, capaId));
@@ -684,7 +684,7 @@ export async function addAction(
     });
 
     // Fetch and return the action with assignee name
-    const actionResult = await db()
+    const actionResult = await (await getDb())
       .select({
         id: sqliteCapaActions.id,
         capaId: sqliteCapaActions.capaId,
@@ -727,7 +727,7 @@ export async function updateAction(
 ): Promise<CapaAction> {
   if (useSqlite()) {
     // Get existing action
-    const existing = await db()
+    const existing = await (await getDb())
       .select()
       .from(sqliteCapaActions)
       .where(eq(sqliteCapaActions.id, actionId))
@@ -747,7 +747,7 @@ export async function updateAction(
       updateData.completedAt = new Date().toISOString();
     }
 
-    await db()
+    await (await getDb())
       .update(sqliteCapaActions)
       .set(updateData)
       .where(eq(sqliteCapaActions.id, actionId));
@@ -763,7 +763,7 @@ export async function updateAction(
     });
 
     // Fetch and return updated action
-    const actionResult = await db()
+    const actionResult = await (await getDb())
       .select({
         id: sqliteCapaActions.id,
         capaId: sqliteCapaActions.capaId,
@@ -804,7 +804,7 @@ export async function verifyAction(
   userId: number
 ): Promise<CapaAction> {
   if (useSqlite()) {
-    const existing = await db()
+    const existing = await (await getDb())
       .select()
       .from(sqliteCapaActions)
       .where(eq(sqliteCapaActions.id, actionId))
@@ -820,7 +820,7 @@ export async function verifyAction(
 
     const now = new Date().toISOString();
 
-    await db()
+    await (await getDb())
       .update(sqliteCapaActions)
       .set({
         verifiedBy: userId,
@@ -839,7 +839,7 @@ export async function verifyAction(
 
     // Check if all actions are now verified - update CAPA status
     const capaId = existing[0].capaId;
-    const allActions = await db()
+    const allActions = await (await getDb())
       .select({ status: sqliteCapaActions.status, verifiedBy: sqliteCapaActions.verifiedBy })
       .from(sqliteCapaActions)
       .where(eq(sqliteCapaActions.capaId, capaId));
@@ -850,14 +850,14 @@ export async function verifyAction(
     );
 
     if (allVerified) {
-      await db()
+      await (await getDb())
         .update(sqliteCapa)
         .set({ status: 'verification', updatedAt: now })
         .where(eq(sqliteCapa.id, capaId));
     }
 
     // Fetch and return updated action
-    const actionResult = await db()
+    const actionResult = await (await getDb())
       .select({
         id: sqliteCapaActions.id,
         capaId: sqliteCapaActions.capaId,
@@ -883,7 +883,7 @@ export async function verifyAction(
     // Get verifier name
     let verifiedByName: string | undefined;
     if (action.verifiedBy) {
-      const verifier = await db()
+      const verifier = await (await getDb())
         .select({ displayName: sqliteUsers.displayName })
         .from(sqliteUsers)
         .where(eq(sqliteUsers.id, action.verifiedBy))
@@ -923,7 +923,7 @@ export async function recordEffectiveness(
     }
 
     // Get next check number
-    const checks = await db()
+    const checks = await (await getDb())
       .select({ checkNumber: sqliteCapaEffectiveness.checkNumber })
       .from(sqliteCapaEffectiveness)
       .where(eq(sqliteCapaEffectiveness.capaId, capaId))
@@ -933,7 +933,7 @@ export async function recordEffectiveness(
     const nextCheckNumber = checks.length > 0 ? checks[0].checkNumber + 1 : 1;
     const now = new Date().toISOString();
 
-    const result = await db()
+    const result = await (await getDb())
       .insert(sqliteCapaEffectiveness)
       .values({
         capaId,
@@ -961,7 +961,7 @@ export async function recordEffectiveness(
     });
 
     // Fetch and return the effectiveness check
-    const checkResult = await db()
+    const checkResult = await (await getDb())
       .select({
         id: sqliteCapaEffectiveness.id,
         capaId: sqliteCapaEffectiveness.capaId,
@@ -1010,7 +1010,7 @@ export async function getCapaDashboard(): Promise<CapaDashboard> {
     const monthStartStr = monthStart.toISOString().split('T')[0];
 
     // Get all CAPAs
-    const allCapas = await db()
+    const allCapas = await (await getDb())
       .select({
         status: sqliteCapa.status,
         priority: sqliteCapa.priority,
@@ -1076,7 +1076,7 @@ export async function getCapaDashboard(): Promise<CapaDashboard> {
     const avgClosureTime = closedCount > 0 ? Math.round(totalClosureTime / closedCount) : 0;
 
     // Calculate effectiveness rate
-    const effectivenessChecks = await db()
+    const effectivenessChecks = await (await getDb())
       .select({ result: sqliteCapaEffectiveness.result })
       .from(sqliteCapaEffectiveness);
 

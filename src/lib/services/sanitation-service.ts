@@ -6,7 +6,7 @@
  */
 
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
-import { getSqliteDb } from '../db';
+import { getDb } from '../db';
 import {
   sqliteSanitationSchedules,
   sqliteSanitationLogs,
@@ -46,7 +46,7 @@ import type {
 export async function getSanitationSchedules(
   params: SanitationScheduleListParams = {}
 ): Promise<SanitationSchedule[]> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const conditions = [];
 
   if (params.areaType) {
@@ -107,7 +107,7 @@ export async function getSanitationSchedules(
  * Get a single sanitation schedule by ID
  */
 export async function getSanitationScheduleById(id: number): Promise<SanitationSchedule | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const schedule = await database
     .select()
@@ -157,7 +157,7 @@ export async function createSanitationSchedule(
   data: SanitationScheduleCreate,
   userId: number
 ): Promise<SanitationSchedule> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const result = await database
     .insert(sqliteSanitationSchedules)
@@ -211,7 +211,7 @@ export async function updateSanitationSchedule(
   data: SanitationScheduleUpdate,
   userId: number
 ): Promise<SanitationSchedule | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getSanitationScheduleById(id);
   if (!existing) return null;
@@ -249,7 +249,7 @@ export async function deleteSanitationSchedule(
   id: number,
   userId: number
 ): Promise<boolean> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getSanitationScheduleById(id);
   if (!existing) return false;
@@ -280,7 +280,7 @@ export async function deleteSanitationSchedule(
 export async function getSanitationLogs(
   params: SanitationLogListParams = {}
 ): Promise<SanitationLogListResponse> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
@@ -359,7 +359,7 @@ export async function getSanitationLogs(
  * Get a single sanitation log by ID
  */
 export async function getSanitationLogById(id: number): Promise<SanitationLog | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const logs = await database
     .select({
@@ -406,7 +406,7 @@ export async function createSanitationLog(
   data: SanitationLogCreate,
   userId: number
 ): Promise<SanitationLog> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   // Get the schedule's method if not provided
   let method = data.method;
@@ -449,7 +449,7 @@ export async function updateSanitationLog(
   data: SanitationLogUpdate,
   userId: number
 ): Promise<SanitationLog | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getSanitationLogById(id);
   if (!existing) return null;
@@ -484,7 +484,7 @@ export async function verifySanitationLog(
   id: number,
   userId: number
 ): Promise<SanitationLog | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getSanitationLogById(id);
   if (!existing) return null;
@@ -518,7 +518,7 @@ export async function verifySanitationLog(
 export async function getPestControlLogs(
   params: PestControlLogListParams = {}
 ): Promise<PestControlLogListResponse> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
@@ -580,7 +580,7 @@ export async function getPestControlLogs(
  * Get a single pest control log by ID
  */
 export async function getPestControlLogById(id: number): Promise<PestControlLog | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const logs = await database
     .select({
@@ -621,7 +621,7 @@ export async function createPestControlLog(
   data: PestControlLogCreate,
   userId: number
 ): Promise<PestControlLog> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const result = await database
     .insert(sqlitePestControlLogs)
@@ -660,7 +660,7 @@ export async function updatePestControlLog(
   data: PestControlLogUpdate,
   userId: number
 ): Promise<PestControlLog | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getPestControlLogById(id);
   if (!existing) return null;
@@ -697,7 +697,7 @@ export async function verifyPestControlLog(
   id: number,
   userId: number
 ): Promise<PestControlLog | null> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   const existing = await getPestControlLogById(id);
   if (!existing) return null;
@@ -726,7 +726,7 @@ export async function verifyPestControlLog(
  * Get pending sanitation tasks (overdue and upcoming)
  */
 export async function getPendingTasks(daysAhead: number = 7): Promise<PendingTask[]> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const today = new Date();
 
   // Get all active schedules
@@ -787,7 +787,7 @@ export async function getPendingTasks(daysAhead: number = 7): Promise<PendingTas
 export async function getSanitationTrends(
   params: SanitationTrendsParams = {}
 ): Promise<SanitationTrends> {
-  const database = getSqliteDb();
+  const database = await getDb();
   const period = params.period || 'month';
 
   // Calculate date range
@@ -971,7 +971,7 @@ function calculateNextDueDate(
  * Calculate compliance rate for a schedule
  */
 async function calculateScheduleCompliance(scheduleId: number): Promise<number> {
-  const database = getSqliteDb();
+  const database = await getDb();
 
   // Get logs from the last 30 days
   const thirtyDaysAgo = new Date();
