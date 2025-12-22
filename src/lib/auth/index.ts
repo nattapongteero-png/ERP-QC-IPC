@@ -153,6 +153,12 @@ export const PERMISSIONS = {
   'complaints:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.SALES],
   'complaints:investigate': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'complaints:close': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+
+  // Recall Management (หมวด 9)
+  'recalls:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.SALES, ROLES.WAREHOUSE],
+  'recalls:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'recalls:execute': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.WAREHOUSE],
+  'recalls:close': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
