@@ -17,14 +17,14 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create feature branch `009-gmp-compliance-gap-analysis` and verify clean state
-- [ ] T002 [P] Create shared type definitions in `src/types/documents.ts`
-- [ ] T003 [P] Create shared type definitions in `src/types/capa.ts`
-- [ ] T004 [P] Create shared type definitions in `src/types/complaints.ts`
-- [ ] T005 [P] Create shared type definitions in `src/types/recalls.ts`
-- [ ] T006 [P] Create shared type definitions in `src/types/sanitation.ts`
-- [ ] T007 [P] Create shared type definitions in `src/types/stability.ts`
-- [ ] T008 [P] Create shared type definitions in `src/types/audits.ts`
+- [x] T001 Create feature branch `009-gmp-compliance-gap-analysis` and verify clean state
+- [x] T002 [P] Create shared type definitions in `src/types/documents.ts`
+- [x] T003 [P] Create shared type definitions in `src/types/capa.ts`
+- [x] T004 [P] Create shared type definitions in `src/types/complaints.ts`
+- [x] T005 [P] Create shared type definitions in `src/types/recalls.ts`
+- [x] T006 [P] Create shared type definitions in `src/types/sanitation.ts`
+- [x] T007 [P] Create shared type definitions in `src/types/stability.ts`
+- [x] T008 [P] Create shared type definitions in `src/types/audits.ts`
 
 ---
 
