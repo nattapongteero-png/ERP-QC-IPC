@@ -193,6 +193,7 @@ export async function createDocument(
   }
 
   // Create document
+  const now = new Date();
   const insertValues = {
     documentNumber,
     title: data.title,
@@ -201,6 +202,8 @@ export async function createDocument(
     status: 'draft',
     retentionYears,
     createdBy: userId,
+    createdAt: useSqlite() ? now.toISOString() : now,
+    updatedAt: useSqlite() ? now.toISOString() : now,
   };
 
   let newDocId: number;
@@ -535,6 +538,7 @@ export async function createVersion(
   }
 
   // Create version
+  const now = new Date();
   const versionInsertValues = {
     documentId: data.documentId,
     versionNumber: newVersionNumber,
@@ -543,6 +547,7 @@ export async function createVersion(
     changeDescription: data.changeDescription || null,
     status: 'draft',
     createdBy: userId,
+    createdAt: useSqlite() ? now.toISOString() : now,
   };
 
   let newVersionId: number;
