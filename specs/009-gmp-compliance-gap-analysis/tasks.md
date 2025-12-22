@@ -36,42 +36,42 @@
 
 ### Database Schema (SQLite + MySQL dual-schema)
 
-- [ ] T009 Create `documents` table in `src/lib/db/schema.ts` and `src/lib/db/schema-mysql.ts`
-- [ ] T010 Create `document_versions` table with FK to documents
-- [ ] T011 Create `document_approvals` table with FK to document_versions
-- [ ] T012 Create `document_types` table (master data)
-- [ ] T013 Create `capa` table in schema (FK to existing deviations)
-- [ ] T014 Create `capa_actions` table with FK to capa
-- [ ] T015 Create `capa_effectiveness` table with FK to capa
-- [ ] T016 Create `complaints` table (FK to items, inventory_lots)
-- [ ] T017 Create `complaint_investigations` table with FK to complaints
-- [ ] T018 Create `recalls` table (FK to items)
-- [ ] T019 Create `recall_notifications` table with FK to recalls
-- [ ] T020 Create `recall_reconciliation` table with FK to recalls
-- [ ] T021 Create `sanitation_schedules` table
-- [ ] T022 Create `sanitation_logs` table with FK to sanitation_schedules
-- [ ] T023 Create `pest_control_logs` table
-- [ ] T024 Create `stability_protocols` table (FK to items)
-- [ ] T025 Create `stability_studies` table with FK to protocols, inventory_lots
-- [ ] T026 Create `stability_samples` table with FK to studies, quality_tests
-- [ ] T027 Create `stability_trends` table with FK to studies
-- [ ] T028 Create `audit_plans` table
-- [ ] T029 Create `audits` table with FK to audit_plans
-- [ ] T030 Create `audit_findings` table with FK to audits, capa
-- [ ] T031 Create `manufacturing_contracts` table
-- [ ] T032 Create `contract_batches` table with FK to contracts, inventory_lots
-- [ ] T033 Create `change_requests` table
-- [ ] T034 Create `change_approvals` table with FK to change_requests
-- [ ] T035 Create `pqr_reports` table (FK to items)
-- [ ] T036 Create `pqr_metrics` table with FK to pqr_reports
-- [ ] T037 Generate and run Drizzle migrations
+- [x] T009 Create `documents` table in `src/lib/db/schema.ts` and `src/lib/db/schema-mysql.ts`
+- [x] T010 Create `document_versions` table with FK to documents
+- [x] T011 Create `document_approvals` table with FK to document_versions
+- [x] T012 Create `document_types` table (master data)
+- [x] T013 Create `capa` table in schema (FK to existing deviations)
+- [x] T014 Create `capa_actions` table with FK to capa
+- [x] T015 Create `capa_effectiveness` table with FK to capa
+- [x] T016 Create `complaints` table (FK to items, inventory_lots)
+- [x] T017 Create `complaint_investigations` table with FK to complaints
+- [x] T018 Create `recalls` table (FK to items)
+- [x] T019 Create `recall_notifications` table with FK to recalls
+- [x] T020 Create `recall_reconciliation` table with FK to recalls
+- [x] T021 Create `sanitation_schedules` table
+- [x] T022 Create `sanitation_logs` table with FK to sanitation_schedules
+- [x] T023 Create `pest_control_logs` table
+- [x] T024 Create `stability_protocols` table (FK to items)
+- [x] T025 Create `stability_studies` table with FK to protocols, inventory_lots
+- [x] T026 Create `stability_samples` table with FK to studies, quality_tests
+- [x] T027 Create `stability_trends` table with FK to studies
+- [x] T028 Create `audit_plans` table
+- [x] T029 Create `audits` table with FK to audit_plans
+- [x] T030 Create `audit_findings` table with FK to audits, capa
+- [x] T031 Create `manufacturing_contracts` table
+- [x] T032 Create `contract_batches` table with FK to contracts, inventory_lots
+- [x] T033 Create `change_requests` table
+- [x] T034 Create `change_approvals` table with FK to change_requests
+- [x] T035 Create `pqr_reports` table (FK to items)
+- [x] T036 Create `pqr_metrics` table with FK to pqr_reports
+- [x] T037 Generate and run Drizzle migrations
 
 ### Shared Components
 
-- [ ] T038 [P] Create `WorkflowStatusBadge.tsx` in `src/components/shared/` for document/CAPA/complaint status
-- [ ] T039 [P] Create `ApprovalChain.tsx` in `src/components/shared/` for approval workflow UI
-- [ ] T040 [P] Create `AuditTrailViewer.tsx` in `src/components/shared/` for audit log display
-- [ ] T041 [P] Create `TrendChart.tsx` in `src/components/shared/` using DevExtreme dxChart
+- [x] T038 [P] Create `WorkflowStatusBadge.tsx` in `src/components/shared/` for document/CAPA/complaint status
+- [x] T039 [P] Create `ApprovalChain.tsx` in `src/components/shared/` for approval workflow UI
+- [x] T040 [P] Create `AuditTrailViewer.tsx` in `src/components/shared/` for audit log display
+- [x] T041 [P] Create `TrendChart.tsx` in `src/components/shared/` using DevExtreme dxChart
 
 ### Seed Data
 
