@@ -1,9 +1,12 @@
 "use client";
 
-import Tabs from 'devextreme-react/tabs';
+import Tabs, { Item as TabItem } from 'devextreme-react/tabs';
 import type { TabsTypes } from 'devextreme-react/tabs';
 
-export interface DxTabItem {
+// Re-export Item as DxTabItem for declarative tab definition
+export { TabItem as DxTabItem };
+
+export interface DxTabItemData {
   /** Optional id - auto-generated from index if not provided */
   id?: number;
   text: string;
@@ -15,7 +18,9 @@ export interface DxTabItem {
 
 export interface DxTabsProps {
   /** Tab items */
-  items: DxTabItem[];
+  items?: DxTabItemData[];
+  /** Children (alternative to items prop) */
+  children?: React.ReactNode;
   /** Selected tab index */
   selectedIndex?: number;
   /** Selected index change handler */
@@ -41,7 +46,9 @@ export interface DxTabsProps {
   /** Additional CSS class */
   className?: string;
   /** Tab item render function */
-  itemRender?: (itemData: DxTabItem) => React.ReactNode;
+  itemRender?: (itemData: DxTabItemData) => React.ReactNode;
+  /** Option changed handler (for declarative usage with children) */
+  onOptionChanged?: (e: { name: string; value: unknown }) => void;
 }
 
 /**
@@ -90,8 +97,10 @@ export interface DxTabsProps {
  */
 export function DxTabs({
   items,
+  children,
   selectedIndex = 0,
   onSelectedIndexChange,
+  onOptionChanged,
   onItemClick,
   width,
   height,
@@ -105,14 +114,14 @@ export function DxTabs({
   itemRender,
 }: DxTabsProps) {
   // Ensure each item has an id (auto-generate from index if not provided)
-  const itemsWithIds = items.map((item, index) => ({
+  const itemsWithIds = items?.map((item, index) => ({
     ...item,
     id: item.id ?? index,
   }));
 
   const handleSelectionChanged = (e: TabsTypes.SelectionChangedEvent) => {
     if (onSelectedIndexChange && e.addedItems.length > 0) {
-      const selectedItem = e.addedItems[0] as DxTabItem & { id: number };
+      const selectedItem = e.addedItems[0] as DxTabItemData & { id: number };
       onSelectedIndexChange(selectedItem.id);
     }
   };
@@ -123,6 +132,37 @@ export function DxTabs({
     }
   };
 
+  // Handle both declarative (children) and programmatic (items) usage
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleOptionChanged = (e: any) => {
+    if (onOptionChanged) {
+      onOptionChanged(e);
+    }
+  };
+
+  // If children are provided, use declarative pattern
+  if (children) {
+    return (
+      <Tabs
+        selectedIndex={selectedIndex}
+        onOptionChanged={handleOptionChanged}
+        onItemClick={handleItemClick}
+        width={width}
+        height={height}
+        showNavButtons={showNavButtons}
+        scrollByContent={scrollByContent}
+        orientation={orientation}
+        selectionMode={selectionMode}
+        iconPosition={iconPosition}
+        stylingMode={stylingMode}
+        className={className}
+      >
+        {children}
+      </Tabs>
+    );
+  }
+
+  // Otherwise use items array
   return (
     <Tabs
       items={itemsWithIds}

@@ -15,8 +15,30 @@ import DataGrid, {
   SearchPanel,
   Toolbar,
   Item,
+  Summary,
+  TotalItem,
 } from 'devextreme-react/data-grid';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
+
+// Re-export DevExtreme components for direct use
+export {
+  Column as DxColumn,
+  Paging as DxPaging,
+  Pager as DxPager,
+  Sorting as DxSorting,
+  FilterRow as DxFilterRow,
+  HeaderFilter as DxHeaderFilter,
+  Selection as DxSelection,
+  Export as DxExport,
+  ColumnChooser as DxColumnChooser,
+  Scrolling as DxScrolling,
+  LoadPanel as DxLoadPanel,
+  SearchPanel as DxSearchPanel,
+  Toolbar as DxToolbar,
+  Item as DxItem,
+  Summary as DxSummary,
+  TotalItem as DxTotalItem,
+};
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
