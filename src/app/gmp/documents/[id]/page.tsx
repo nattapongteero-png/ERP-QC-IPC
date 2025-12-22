@@ -9,8 +9,8 @@
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DocumentForm, DocumentVersionHistory, DocumentApprovalDialog } from '@/components/documents';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -19,10 +19,6 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import {
   FileText,
-  Edit,
-  Plus,
-  Send,
-  Archive,
   Clock,
   User,
   Building,
@@ -31,7 +27,6 @@ import {
 import type {
   DocumentDetails,
   DocumentVersion,
-  PendingApproval,
 } from '@/types/documents';
 
 // ============================================
@@ -63,22 +58,6 @@ async function createVersion(
   return result.data;
 }
 
-async function submitForApproval(
-  documentId: number,
-  versionId: number,
-  approvers: number[]
-): Promise<void> {
-  const response = await fetch(`/api/documents/${documentId}/approve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ versionId, approvers }),
-  });
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to submit for approval');
-  }
-}
-
 // ============================================
 // Component
 // ============================================
@@ -86,7 +65,6 @@ async function submitForApproval(
 export default function DocumentDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const queryClient = useQueryClient();
   const documentId = Number(params.id);
 
   // State
@@ -312,23 +290,14 @@ export default function DocumentDetailPage() {
       </div>
 
       {/* Edit Document Dialog */}
-      <DxPopup
-        visible={showEditForm}
-        onHiding={() => setShowEditForm(false)}
-        title="Edit Document"
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        <DocumentForm
-          document={document}
-          onSave={() => {
-            setShowEditForm(false);
-            refetch();
-          }}
-          onCancel={() => setShowEditForm(false)}
-        />
-      </DxPopup>
+      <DocumentFormDialog
+        open={showEditForm}
+        onOpenChange={setShowEditForm}
+        document={document}
+        onSave={() => {
+          refetch();
+        }}
+      />
 
       {/* New Version Dialog */}
       <DxPopup
@@ -402,11 +371,11 @@ export default function DocumentDetailPage() {
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground">
             This will submit version {document.currentVersion?.versionNumber} for
-            approval based on the document type's approval chain.
+            approval based on the document type&apos;s approval chain.
           </p>
           <p className="text-sm">
             Required approvers will be notified and the version status will change
-            to "Pending Approval".
+            to &quot;Pending Approval&quot;.
           </p>
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton

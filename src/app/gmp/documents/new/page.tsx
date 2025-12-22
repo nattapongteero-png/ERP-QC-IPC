@@ -4,41 +4,46 @@
  * New GMP Document Page
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 5)
  *
- * Page for creating a new GMP controlled document.
+ * Page for creating a new GMP controlled document using a dialog.
  */
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DocumentForm } from '@/components/documents';
-import { ResponsivePageHeader } from '@/components/shared';
+import { DocumentFormDialog } from '@/components/documents';
 import type { Document } from '@/types/documents';
 
 export default function NewDocumentPage() {
   const router = useRouter();
+  // Start with dialog open
+  const [open, setOpen] = useState(true);
 
   const handleSave = (document: Document) => {
     // Redirect to the new document's detail page
     router.push(`/gmp/documents/${document.id}`);
   };
 
-  const handleCancel = () => {
-    router.back();
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      // Navigate back when dialog is closed
+      router.push('/gmp/documents');
+    }
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Page Header */}
-      <ResponsivePageHeader
-        title="Create New Document"
-        subtitle="Create a new GMP controlled document"
-        onBack={() => router.push('/gmp/documents')}
-      />
-
-      {/* Form */}
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-card border rounded-lg shadow-sm">
-          <DocumentForm onSave={handleSave} onCancel={handleCancel} />
-        </div>
+    <div className="container mx-auto py-6">
+      {/* Background content - shows document list page briefly */}
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-muted rounded w-1/4" />
+        <div className="h-64 bg-muted rounded" />
       </div>
+
+      {/* Document Form Dialog */}
+      <DocumentFormDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        onSave={handleSave}
+      />
     </div>
   );
 }
