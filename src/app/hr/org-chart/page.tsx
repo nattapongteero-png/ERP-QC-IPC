@@ -96,12 +96,12 @@ export default function OrgChartPage() {
     queryFn: fetchOrgUnitStats,
   });
 
-  // Responsive height calculation
+  // Responsive height calculation - increased for better visibility
   useEffect(() => {
     const calculateHeight = () => {
-      const headerHeight = 480; // Adjusted for stats and chart sections
-      const padding = 100;
-      const minHeight = 350;
+      const headerHeight = 380; // Reduced to give more space to TreeView
+      const padding = 50;
+      const minHeight = 500; // Increased minimum height
       const availableHeight = window.innerHeight - headerHeight - padding;
       setChartHeight(Math.max(minHeight, availableHeight));
     };
@@ -321,9 +321,9 @@ export default function OrgChartPage() {
       </div>
 
       {/* Main Content - Tree/Diagram + Detail Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
-        {/* Org Chart View */}
-        <div className="lg:col-span-3 bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
+        {/* Org Chart View - takes 4 of 5 columns for more width */}
+        <div className="lg:col-span-4 bg-white rounded-xl border border-gray-200 overflow-hidden">
           {viewMode === 'tree' ? (
             <OrgChartTree
               height={chartHeight}
