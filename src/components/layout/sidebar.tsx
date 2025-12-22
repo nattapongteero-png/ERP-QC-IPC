@@ -112,7 +112,7 @@ const navigation: NavItem[] = [
       { name: 'Recalls', href: '/gmp/recalls', icon: Undo2 },
       { name: 'Sanitation', href: '/gmp/sanitation', icon: Droplets },
       { name: 'Stability', href: '/gmp/stability', icon: FlaskConical },
-      { name: 'Audits', href: '/gmp/audits', icon: Search },
+      { name: 'Internal Audit', href: '/gmp/internal-audit', icon: Search },
       { name: 'Contracts', href: '/gmp/contracts', icon: Briefcase },
       { name: 'PQR', href: '/gmp/pqr', icon: BarChart3 },
     ],
