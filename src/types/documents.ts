@@ -61,6 +61,7 @@ export interface DocumentCreate {
   typeId: number;
   departmentId?: number | null;
   content?: string;
+  retentionYears?: number;
 }
 
 export interface DocumentUpdate {
@@ -72,6 +73,12 @@ export interface DocumentUpdate {
 export interface DocumentWithVersion extends Document {
   currentVersion: DocumentVersion | null;
   approvals: DocumentApproval[];
+}
+
+export interface DocumentDetails extends Document {
+  typeCode?: string;
+  currentVersion: DocumentVersion | null;
+  versions: DocumentVersion[];
 }
 
 // ============================================
@@ -91,12 +98,15 @@ export interface DocumentVersion {
   createdBy: number;
   createdByName?: string;
   createdAt: string;
+  approvals?: DocumentApproval[];
 }
 
 export interface DocumentVersionCreate {
+  documentId: number;
   content?: string;
   filePath?: string;
-  changeDescription: string;
+  changeDescription?: string;
+  isMajorRevision?: boolean;
 }
 
 export interface DocumentVersionUpdate {
@@ -150,8 +160,8 @@ export interface DocumentListParams {
 export interface DocumentListResponse {
   documents: Document[];
   total: number;
-  page: number;
-  limit: number;
+  page?: number;
+  limit?: number;
 }
 
 export interface PendingApproval {
