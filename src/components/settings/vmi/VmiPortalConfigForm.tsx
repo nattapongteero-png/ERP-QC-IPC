@@ -276,7 +276,7 @@ export function VmiPortalConfigForm({
       <div className="h-full flex flex-col">
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-5xl mx-auto space-y-6">
+          <div className="max-w-7xl mx-auto space-y-6">
             {/* Error Message */}
             {error && (
               <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 text-red-800 border border-red-200">
@@ -348,7 +348,7 @@ export function VmiPortalConfigForm({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column - Portal Settings */}
               <Card elevation="raised">
-                <CardContent className="pt-6">
+                <CardContent className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Portal Settings</h3>
                   <DxForm
                     formData={formData}
@@ -430,7 +430,7 @@ export function VmiPortalConfigForm({
 
               {/* Right Column - Sync Settings */}
               <Card elevation="raised">
-                <CardContent className="pt-6">
+                <CardContent className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Sync Settings</h3>
                   <DxForm
                     formData={formData}
@@ -536,7 +536,7 @@ export function VmiPortalConfigForm({
 
         {/* Fixed Footer Actions */}
         <div className="flex-shrink-0 border-t bg-gray-50 px-6 py-4">
-          <div className="max-w-5xl mx-auto flex justify-between">
+          <div className="max-w-7xl mx-auto flex justify-between">
             <div>
               {isEditMode && (
                 <DxButton
