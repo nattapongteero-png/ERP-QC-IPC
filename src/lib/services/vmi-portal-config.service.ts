@@ -15,7 +15,7 @@ import {
   type VmiPortalConfig,
   type NewVmiPortalConfig,
 } from '@/lib/db/schema';
-import { encrypt, decrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
+// API key is stored in plain text (configured via UI settings)
 import type {
   VmiPortalConfigInput,
   VmiPortalConfigUpdate,
@@ -99,7 +99,7 @@ export class VmiPortalConfigService {
       portalUrl: record.portalUrl,
       vendorId: record.vendorId,
       isEnabled: record.isEnabled,
-      hasApiKey: !!record.apiKeyEncrypted && isValidCiphertext(record.apiKeyEncrypted),
+      hasApiKey: !!record.apiKeyEncrypted && record.apiKeyEncrypted.length > 0,
       syncInventoryEnabled: record.syncInventoryEnabled,
       syncItemsEnabled: record.syncItemsEnabled,
       syncPricesEnabled: record.syncPricesEnabled,
@@ -153,7 +153,7 @@ export class VmiPortalConfigService {
 
     return {
       ...record,
-      decryptedApiKey: decrypt(record.apiKeyEncrypted),
+      decryptedApiKey: record.apiKeyEncrypted, // Stored in plain text
     };
   }
 
@@ -167,7 +167,7 @@ export class VmiPortalConfigService {
     const records = await db.select().from(table).where(eq(table.isEnabled, true));
     return records.map((record) => ({
       ...record,
-      decryptedApiKey: decrypt(record.apiKeyEncrypted),
+      decryptedApiKey: record.apiKeyEncrypted, // Stored in plain text
     }));
   }
 
@@ -183,15 +183,12 @@ export class VmiPortalConfigService {
       throw new VmiPortalConfigError('INVALID_URL', 'Portal URL must use HTTPS');
     }
 
-    // Encrypt API key
-    const apiKeyEncrypted = encrypt(input.apiKey);
-
     const now = this.isSqlite ? new Date().toISOString() : new Date();
 
     const newRecord: NewVmiPortalConfig = {
       name: input.name,
       portalUrl: input.portalUrl,
-      apiKeyEncrypted,
+      apiKeyEncrypted: input.apiKey, // Store API key directly (plain text)
       vendorId: input.vendorId,
       isEnabled: input.isEnabled ?? true,
       syncInventoryEnabled: input.syncInventoryEnabled ?? true,
@@ -255,9 +252,9 @@ export class VmiPortalConfigService {
     if (input.orderPollingEnabled !== undefined) updateData.orderPollingEnabled = input.orderPollingEnabled;
     if (input.orderPollingInterval !== undefined) updateData.orderPollingInterval = input.orderPollingInterval;
 
-    // Encrypt new API key if provided
+    // Store new API key if provided (plain text)
     if (input.apiKey) {
-      updateData.apiKeyEncrypted = encrypt(input.apiKey);
+      updateData.apiKeyEncrypted = input.apiKey;
     }
 
     await db.update(table).set(updateData).where(eq(table.id, id));
