@@ -20,9 +20,11 @@ export default function VmiPage() {
         <PageHeader
           title="VMI Integration"
           description="Manage your Vendor Managed Inventory integration with hospital VMI Portals."
-          breadcrumb={[
-            { label: 'VMI' },
-          ]}
+          breadcrumb={
+            <nav className="flex text-sm text-gray-500">
+              <span className="text-gray-900">VMI</span>
+            </nav>
+          }
         />
 
         <VmiDashboard />

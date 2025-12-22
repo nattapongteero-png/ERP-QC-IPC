@@ -9,6 +9,7 @@
  * Feature: 008-vmi-vendor-sync
  */
 
+import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -195,10 +196,13 @@ export default function VmiSyncPage() {
         <PageHeader
           title="VMI Synchronization"
           description="Manage outbound synchronization of inventory, items, and prices to VMI Portals."
-          breadcrumb={[
-            { label: 'VMI', href: '/vmi' },
-            { label: 'Sync' },
-          ]}
+          breadcrumb={
+            <nav className="flex text-sm text-gray-500">
+              <Link href="/vmi" className="hover:text-gray-700">VMI</Link>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900">Sync</span>
+            </nav>
+          }
           actions={
             <DxButton
               icon="refresh"

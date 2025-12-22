@@ -22,10 +22,13 @@ export default function VmiSettingsPage() {
         <PageHeader
           title="VMI Portal Settings"
           description="Manage connections to external VMI (Vendor Managed Inventory) portals. This system acts as the vendor/supplier, syncing inventory and receiving orders from hospital customers."
-          breadcrumb={[
-            { label: 'Settings', href: '/settings' },
-            { label: 'VMI Portals' },
-          ]}
+          breadcrumb={
+            <nav className="flex text-sm text-gray-500">
+              <Link href="/settings" className="hover:text-gray-700">Settings</Link>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900">VMI Portals</span>
+            </nav>
+          }
           actions={
             <Link href="/settings">
               <DxButton

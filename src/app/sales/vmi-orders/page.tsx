@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,10 +39,13 @@ export default function VmiOrdersPage() {
         <PageHeader
           title="VMI Orders"
           description="Manage orders received from VMI Portals. Match items, confirm orders, and track shipments."
-          breadcrumb={[
-            { label: 'Sales', href: '/sales' },
-            { label: 'VMI Orders' },
-          ]}
+          breadcrumb={
+            <nav className="flex text-sm text-gray-500">
+              <Link href="/sales" className="hover:text-gray-700">Sales</Link>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900">VMI Orders</span>
+            </nav>
+          }
           actions={
             selectedOrder && (
               <DxButton
