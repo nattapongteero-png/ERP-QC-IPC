@@ -321,9 +321,9 @@ export function DxDataGrid<T = Record<string, unknown>>({
         </Toolbar>
       )}
 
-      {responsiveFilteredColumns.map((col) => (
+      {responsiveFilteredColumns.map((col, index) => (
         <Column
-          key={col.dataField}
+          key={col.dataField || `col-${index}`}
           dataField={col.dataField}
           caption={col.caption}
           dataType={col.dataType}
