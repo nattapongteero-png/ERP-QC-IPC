@@ -14,9 +14,9 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { AuditPlanList } from '@/components/internal-audit';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxTextBox } from '@/components/ui/dx-textbox';
-import { DxNumberBox } from '@/components/ui/dx-numberbox';
-import { DxTextArea } from '@/components/ui/dx-textarea';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
 import { toast } from 'sonner';
 import type { AuditPlan } from '@/types/audits';
 

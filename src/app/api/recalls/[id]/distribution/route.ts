@@ -6,9 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/auth';
+
+
+import { getSession, hasPermission } from '@/lib/auth';
 import { getDistributionData, getRecallById } from '@/lib/services/recall-service';
 
 export async function GET(
@@ -16,12 +16,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:read')) {
+    if (!hasPermission(session.role as any, 'recalls:read')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 

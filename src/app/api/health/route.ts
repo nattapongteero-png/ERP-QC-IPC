@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { isSchemaSynced, useSqlite, getDb } from '@/lib/db';
+import { isSchemaSynced, isSqlite, getDb } from '@/lib/db';
 
 export async function GET() {
   let dbStatus = 'unknown';
-  let dbType = useSqlite() ? 'sqlite' : 'mysql';
+  let dbType = isSqlite() ? 'sqlite' : 'mysql';
 
   try {
     // Try to get database connection

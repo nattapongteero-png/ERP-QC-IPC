@@ -6,9 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/auth';
+
+
+import { getSession, hasPermission } from '@/lib/auth';
 import { updateNotification } from '@/lib/services/recall-service';
 import { recallNotificationUpdateSchema } from '@/lib/validation/recalls';
 
@@ -17,12 +17,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; notificationId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:execute')) {
+    if (!hasPermission(session.role as any, 'recalls:execute')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
@@ -36,7 +36,7 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = recallNotificationUpdateSchema.parse(body);
 
-    const notification = await updateNotification(notifId, validatedData, session.user.id);
+    const notification = await updateNotification(notifId, validatedData, session.id);
 
     if (!notification) {
       return NextResponse.json({ success: false, error: 'Notification not found' }, { status: 404 });

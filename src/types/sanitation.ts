@@ -135,7 +135,7 @@ export interface PestControlLogUpdate {
   findings?: string;
   recommendations?: string;
   followUpRequired?: boolean;
-  followUpDate?: string;
+  followUpDate?: string | null;
 }
 
 // ============================================

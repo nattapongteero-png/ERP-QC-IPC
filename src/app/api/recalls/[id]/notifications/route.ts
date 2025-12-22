@@ -7,9 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/auth';
+
+
+import { getSession, hasPermission } from '@/lib/auth';
 import {
   getRecallNotifications,
   createNotification,
@@ -22,12 +22,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:read')) {
+    if (!hasPermission(session.role as any, 'recalls:read')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
@@ -58,12 +58,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:execute')) {
+    if (!hasPermission(session.role as any, 'recalls:execute')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
@@ -82,7 +82,7 @@ export async function POST(
     const body = await request.json();
     const validatedData = recallNotificationCreateSchema.parse(body);
 
-    const notification = await createNotification(recallId, validatedData, session.user.id);
+    const notification = await createNotification(recallId, validatedData, session.id);
 
     return NextResponse.json({ success: true, data: notification }, { status: 201 });
   } catch (error) {

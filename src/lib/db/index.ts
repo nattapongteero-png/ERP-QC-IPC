@@ -1,11 +1,17 @@
 import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
 import { drizzle as drizzleMysql } from 'drizzle-orm/mysql2';
+import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import type { MySql2Database } from 'drizzle-orm/mysql2';
 import Database from 'better-sqlite3';
 import mysql from 'mysql2/promise';
 import * as schema from './schema';
 
+export type SqliteDb = BetterSQLite3Database<typeof schema>;
+export type MysqlDb = MySql2Database<typeof schema>;
+export type Db = SqliteDb | MysqlDb;
+
 // Environment detection - use custom DB_TYPE env var since Next.js overrides NODE_ENV
-export function useSqlite(): boolean {
+export function isSqlite(): boolean {
   // Use DB_TYPE=sqlite for SQLite, otherwise use MySQL
   return process.env.DB_TYPE === 'sqlite';
 }
@@ -26,11 +32,11 @@ export function markSchemaSynced(): void {
 }
 
 // SQLite connection (for testing)
-let sqliteDb: ReturnType<typeof drizzleSqlite> | null = null;
+let sqliteDb: SqliteDb | null = null;
 
 const DB_PATH = process.env.SQLITE_DB_PATH || '/home/ubuntu/herbal-medicine-erp/data/herbal-erp.db';
 
-export function getSqliteDb(dbPath: string = DB_PATH) {
+export function getSqliteDb(dbPath: string = DB_PATH): SqliteDb {
   if (!sqliteDb) {
     const sqlite = new Database(dbPath);
     sqlite.pragma('journal_mode = WAL');
@@ -41,9 +47,9 @@ export function getSqliteDb(dbPath: string = DB_PATH) {
 
 // MySQL connection pool (for production)
 let mysqlPool: mysql.Pool | null = null;
-let mysqlDb: any = null;
+let mysqlDb: MysqlDb | null = null;
 
-export async function getMysqlDb() {
+export async function getMysqlDb(): Promise<MysqlDb> {
   if (!mysqlDb) {
     // Parse DATABASE_URL if provided
     const databaseUrl = process.env.DATABASE_URL;
@@ -82,8 +88,8 @@ export async function getMysqlDb() {
 }
 
 // Get appropriate database based on environment
-export async function getDb() {
-  if (useSqlite()) {
+export async function getDb(): Promise<Db> {
+  if (isSqlite()) {
     return getSqliteDb();
   }
   return getMysqlDb();
@@ -119,7 +125,7 @@ let cachedDb: any = null;
 
 export function db() {
   if (cachedDb) return cachedDb;
-  if (useSqlite()) {
+  if (isSqlite()) {
     cachedDb = getSqliteDb();
   } else {
     // For MySQL, we need async initialization

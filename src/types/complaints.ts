@@ -64,7 +64,7 @@ export interface ComplaintUpdate {
   status?: ComplaintStatus;
   severity?: ComplaintSeverity;
   regulatoryReportRequired?: boolean;
-  regulatoryReportDate?: string;
+  regulatoryReportDate?: string | null;
 }
 
 export interface ComplaintDetails extends Complaint {

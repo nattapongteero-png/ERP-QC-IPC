@@ -37,7 +37,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!parseResult.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid data', details: parseResult.error.errors },
+        { success: false, error: 'Invalid data', details: parseResult.error.issues },
         { status: 400 }
       );
     }

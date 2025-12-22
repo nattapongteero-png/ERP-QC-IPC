@@ -6,9 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/auth';
+
+
+import { getSession, hasPermission } from '@/lib/auth';
 import { closeRecall } from '@/lib/services/recall-service';
 import { recallCloseSchema } from '@/lib/validation/recalls';
 
@@ -17,12 +17,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:close')) {
+    if (!hasPermission(session.role as any, 'recalls:close')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
@@ -36,7 +36,7 @@ export async function POST(
     const body = await request.json();
     const validatedData = recallCloseSchema.parse(body);
 
-    const recall = await closeRecall(recallId, validatedData, session.user.id);
+    const recall = await closeRecall(recallId, validatedData, session.id);
 
     if (!recall) {
       return NextResponse.json({ success: false, error: 'Recall not found' }, { status: 404 });

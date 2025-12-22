@@ -7,9 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/auth';
+
+
+import { getSession, hasPermission } from '@/lib/auth';
 import { getRecallDetails, updateRecall } from '@/lib/services/recall-service';
 import { recallUpdateSchema } from '@/lib/validation/recalls';
 
@@ -18,12 +18,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:read')) {
+    if (!hasPermission(session.role as any, 'recalls:read')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
@@ -53,12 +53,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:write')) {
+    if (!hasPermission(session.role as any, 'recalls:write')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
@@ -72,7 +72,7 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = recallUpdateSchema.parse(body);
 
-    const recall = await updateRecall(recallId, validatedData, session.user.id);
+    const recall = await updateRecall(recallId, validatedData, session.id);
 
     if (!recall) {
       return NextResponse.json({ success: false, error: 'Recall not found' }, { status: 404 });

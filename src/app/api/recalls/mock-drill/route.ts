@@ -6,27 +6,27 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/auth';
+
+
+import { getSession, hasPermission } from '@/lib/auth';
 import { executeMockDrill } from '@/lib/services/recall-service';
 import { mockDrillRequestSchema } from '@/lib/validation/recalls';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:execute')) {
+    if (!hasPermission(session.role as any, 'recalls:execute')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
     const validatedData = mockDrillRequestSchema.parse(body);
 
-    const result = await executeMockDrill(validatedData, session.user.id);
+    const result = await executeMockDrill(validatedData, session.id);
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {

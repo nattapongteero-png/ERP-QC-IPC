@@ -9,7 +9,7 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteHREmployees,
   mysqlHREmployees,
@@ -30,7 +30,7 @@ interface RouteParams {
 }
 
 function getEmployeesTable() {
-  return useSqlite() ? sqliteHREmployees : mysqlHREmployees;
+  return isSqlite() ? sqliteHREmployees : mysqlHREmployees;
 }
 
 // POST /api/hr/employees/[id]/photo - Upload employee photo
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           .set({
             photoUrl,
             photoThumbnailUrl,
-            updatedAt: useSqlite() ? new Date().toISOString() : new Date(),
+            updatedAt: isSqlite() ? new Date().toISOString() : new Date(),
           })
           .where(eq(hrEmployees.id, employeeId));
 
@@ -184,7 +184,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
           .set({
             photoUrl: null,
             photoThumbnailUrl: null,
-            updatedAt: useSqlite() ? new Date().toISOString() : new Date(),
+            updatedAt: isSqlite() ? new Date().toISOString() : new Date(),
           })
           .where(eq(hrEmployees.id, employeeId));
 

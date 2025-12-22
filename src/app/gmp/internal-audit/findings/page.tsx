@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { AuditFindingList } from '@/components/internal-audit';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxSelectBox } from '@/components/ui/dx-selectbox';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { toast } from 'sonner';
 import type { AuditFinding, AuditFindingStatus, AuditFindingCategory } from '@/types/audits';
 

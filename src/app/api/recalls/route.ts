@@ -7,20 +7,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/auth';
+import { getSession, hasPermission } from '@/lib/auth';
 import { listRecalls, createRecall } from '@/lib/services/recall-service';
 import { recallCreateSchema, recallListParamsSchema } from '@/lib/validation/recalls';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:read')) {
+    if (!hasPermission(session.role as any, 'recalls:read')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
@@ -46,19 +44,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role, 'recalls:write')) {
+    if (!hasPermission(session.role as any, 'recalls:write')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
     const validatedData = recallCreateSchema.parse(body);
 
-    const recall = await createRecall(validatedData, session.user.id);
+    const recall = await createRecall(validatedData, sessionId);
 
     return NextResponse.json({ success: true, data: recall }, { status: 201 });
   } catch (error) {

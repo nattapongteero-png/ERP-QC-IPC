@@ -16,12 +16,13 @@ export async function POST(request: NextRequest) {
 
     console.log('Login attempt - DB_TYPE:', process.env.DB_TYPE);
     const db = await getDb();
-    const useSqlite = process.env.DB_TYPE === 'sqlite';
-    console.log('useSqlite:', useSqlite);
+    const isUsingSqlite = process.env.DB_TYPE === 'sqlite';
+    console.log('isUsingSqlite:', isUsingSqlite);
 
-    // Find user
+    // Find user - need to cast db to any due to SQLite/MySQL type differences
     let user;
-    if (useSqlite) {
+    if (isUsingSqlite) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const users = await (db as any)
         .select()
         .from(schema.sqliteUsers)
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
         .limit(1);
       user = users[0];
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const users = await (db as any)
         .select()
         .from(schema.mysqlUsers)
