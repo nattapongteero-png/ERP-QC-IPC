@@ -26,14 +26,14 @@ import { createAuditLog } from '../audit';
 
 /**
  * Format date for database insert/update
- * SQLite uses ISO string, MySQL uses YYYY-MM-DD HH:MM:SS format
+ * SQLite uses ISO string, MySQL uses Date objects (Drizzle handles conversion)
  */
-function formatDateForDb(date: Date = new Date()): string {
+function formatDateForDb(date: Date = new Date()): string | Date {
   if (useSqlite()) {
     return date.toISOString();
   }
-  // MySQL datetime format: YYYY-MM-DD HH:MM:SS
-  return date.toISOString().slice(0, 19).replace('T', ' ');
+  // MySQL: Drizzle ORM expects Date objects for datetime columns
+  return date;
 }
 
 import type {
