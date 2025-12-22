@@ -68,24 +68,23 @@ export async function POST(
 
     // Verify item exists
     const { useSqlite, db, sqliteDb } = await import('@/lib/db');
+    const { sqliteItems, mysqlItems, sqliteVmiSalesOrderLines, mysqlVmiSalesOrderLines } = await import('@/lib/db/schema');
     const { eq } = await import('drizzle-orm');
 
     let item;
     // eslint-disable-next-line react-hooks/rules-of-hooks
     if (useSqlite()) {
-      const { itemsTable } = await import('@/lib/db/sqlite/schema');
       const items = await sqliteDb
         .select()
-        .from(itemsTable)
-        .where(eq(itemsTable.id, data.itemId))
+        .from(sqliteItems)
+        .where(eq(sqliteItems.id, data.itemId))
         .limit(1);
       item = items[0];
     } else {
-      const { itemsTable } = await import('@/lib/db/mysql/schema');
       const items = await db
         .select()
-        .from(itemsTable)
-        .where(eq(itemsTable.id, data.itemId))
+        .from(mysqlItems)
+        .where(eq(mysqlItems.id, data.itemId))
         .limit(1);
       item = items[0];
     }
@@ -100,27 +99,25 @@ export async function POST(
     // Update the line with the matched item
     // eslint-disable-next-line react-hooks/rules-of-hooks
     if (useSqlite()) {
-      const { vmiSalesOrderLinesTable } = await import('@/lib/db/sqlite/schema');
       await sqliteDb
-        .update(vmiSalesOrderLinesTable)
+        .update(sqliteVmiSalesOrderLines)
         .set({
           matchedItemId: data.itemId,
           matchMethod: 'manual',
           unitPrice: item.sellingPrice,
           lineTotal: item.sellingPrice ? item.sellingPrice * line.quantity : null,
         })
-        .where(eq(vmiSalesOrderLinesTable.id, lineIdNum));
+        .where(eq(sqliteVmiSalesOrderLines.id, lineIdNum));
     } else {
-      const { vmiSalesOrderLinesTable } = await import('@/lib/db/mysql/schema');
       await db
-        .update(vmiSalesOrderLinesTable)
+        .update(mysqlVmiSalesOrderLines)
         .set({
           matchedItemId: data.itemId,
           matchMethod: 'manual',
           unitPrice: item.sellingPrice ? String(item.sellingPrice) : null,
           lineTotal: item.sellingPrice ? String(Number(item.sellingPrice) * line.quantity) : null,
         })
-        .where(eq(vmiSalesOrderLinesTable.id, lineIdNum));
+        .where(eq(mysqlVmiSalesOrderLines.id, lineIdNum));
     }
 
     // Get updated order

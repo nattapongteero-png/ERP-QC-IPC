@@ -94,29 +94,28 @@ export async function PUT(
 
     // Update order using raw database update
     const { useSqlite, db, sqliteDb } = await import('@/lib/db');
+    const { sqliteVmiSalesOrders, mysqlVmiSalesOrders } = await import('@/lib/db/schema');
     const { eq } = await import('drizzle-orm');
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     if (useSqlite()) {
-      const { vmiSalesOrdersTable } = await import('@/lib/db/sqlite/schema');
       await sqliteDb
-        .update(vmiSalesOrdersTable)
+        .update(sqliteVmiSalesOrders)
         .set({
           notes: data.notes ?? order.notes,
           priority: data.priority ?? order.priority,
           updatedAt: new Date(),
         })
-        .where(eq(vmiSalesOrdersTable.id, id));
+        .where(eq(sqliteVmiSalesOrders.id, id));
     } else {
-      const { vmiSalesOrdersTable } = await import('@/lib/db/mysql/schema');
       await db
-        .update(vmiSalesOrdersTable)
+        .update(mysqlVmiSalesOrders)
         .set({
           notes: data.notes ?? order.notes,
           priority: data.priority ?? order.priority,
           updatedAt: new Date(),
         })
-        .where(eq(vmiSalesOrdersTable.id, id));
+        .where(eq(mysqlVmiSalesOrders.id, id));
     }
 
     // Get updated order
