@@ -35,7 +35,7 @@ export async function GET(
       const salesOrders = isSqlite ? sqliteSalesOrders : mysqlSalesOrders;
 
       // Get customer details
-      const customerResult = await db
+      const customerResult = await (db as any)
         .select()
         .from(customers)
         .where(eq(customers.id, customerId));
@@ -47,8 +47,7 @@ export async function GET(
       const customer = customerResult[0];
 
       // Get recent sales orders for this customer
-      const recentSOs = await db
-        .select({
+      const recentSOs = await (db as any).select({
           id: salesOrders.id,
           soNumber: salesOrders.soNumber,
           orderDate: salesOrders.orderDate,
@@ -63,16 +62,14 @@ export async function GET(
         .limit(10);
 
       // Get summary statistics
-      const soStats = await db
-        .select({
+      const soStats = await (db as any).select({
           totalOrders: sql<number>`count(*)`,
           totalAmount: sql<number>`sum(${salesOrders.totalAmount})`,
         })
         .from(salesOrders)
         .where(eq(salesOrders.customerName, customer.name));
 
-      const statusCounts = await db
-        .select({
+      const statusCounts = await (db as any).select({
           status: salesOrders.status,
           count: sql<number>`count(*)`,
         })
@@ -146,8 +143,7 @@ export async function PUT(
       const customers = isSqlite ? sqliteCustomers : mysqlCustomers;
 
       // Check if customer exists
-      const existing = await db
-        .select()
+      const existing = await (db as any).select()
         .from(customers)
         .where(eq(customers.id, customerId));
 
@@ -156,8 +152,7 @@ export async function PUT(
       }
 
       // Check if code is unique (excluding current customer)
-      const codeCheck = await db
-        .select()
+      const codeCheck = await (db as any).select()
         .from(customers)
         .where(eq(customers.code, code));
 
@@ -166,8 +161,7 @@ export async function PUT(
       }
 
       const now = new Date();
-      await db
-        .update(customers)
+      await (db as any).update(customers)
         .set({
           code,
           name,
@@ -223,8 +217,7 @@ export async function DELETE(
       const salesOrders = isSqlite ? sqliteSalesOrders : mysqlSalesOrders;
 
       // Check if customer exists
-      const existing = await db
-        .select()
+      const existing = await (db as any).select()
         .from(customers)
         .where(eq(customers.id, customerId));
 
@@ -233,16 +226,14 @@ export async function DELETE(
       }
 
       // Check if customer has any sales orders
-      const soCount = await db
-        .select({ count: sql<number>`count(*)` })
+      const soCount = await (db as any).select({ count: sql<number>`count(*)` })
         .from(salesOrders)
         .where(eq(salesOrders.customerName, existing[0].name));
 
       if (Number(soCount[0]?.count) > 0) {
         // Soft delete - deactivate instead of hard delete
         const now = new Date();
-        await db
-          .update(customers)
+        await (db as any).update(customers)
           .set({
             isActive: false,
             updatedAt: isSqlite ? now.toISOString() : now,

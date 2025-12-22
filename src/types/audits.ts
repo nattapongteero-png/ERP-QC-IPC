@@ -55,8 +55,11 @@ export interface Audit {
   auditType: AuditType;
   scope: string;
   gmpChapters: number[]; // หมวด covered (1-10)
+  objectives?: string | null; // Audit objectives
   scheduledDate: string;
   actualDate: string | null;
+  startedAt?: string | null; // When audit started
+  completedAt?: string | null; // When audit completed
   leadAuditorId: number;
   leadAuditorName?: string;
   auditTeam: number[]; // User IDs

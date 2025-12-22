@@ -2,13 +2,12 @@ import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { withAuth, successResponse, errorResponse } from '@/lib/api-utils';
 import { getTraceabilityReport } from '@/lib/services/reports.service';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { sqliteInventoryLots, mysqlInventoryLots } from '@/lib/db/schema';
 
 // Get the appropriate lots table based on database type
-// eslint-disable-next-line react-hooks/rules-of-hooks
-const isSqlite = useSqlite();
-const lots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+const usingSqlite = isSqlite();
+const lots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
 // GET - Get traceability for a lot
 export async function GET(request: NextRequest) {

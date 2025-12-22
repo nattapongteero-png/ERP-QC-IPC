@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { 
   sqliteInventoryLots, sqliteInventoryTransactions, sqliteItems, sqliteWarehouses, sqliteUsers,
   mysqlInventoryLots, mysqlInventoryTransactions, mysqlItems, mysqlWarehouses, mysqlUsers
@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
       const dateTo = searchParams.get('dateTo') || '';
       const offset = (page - 1) * limit;
 
-      const transactions = useSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
-      const lots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
-      const users = useSqlite() ? sqliteUsers : mysqlUsers;
+      const transactions = isSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
+      const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const items = isSqlite() ? sqliteItems : mysqlItems;
+      const warehouses = isSqlite() ? sqliteWarehouses : mysqlWarehouses;
+      const users = isSqlite() ? sqliteUsers : mysqlUsers;
 
       // Build conditions
       const conditions = [];
@@ -110,8 +110,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
       }
 
-      const transactions = useSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
-      const lots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const transactions = isSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
+      const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get the lot
       const [lot] = await db.select().from(lots).where(eq(lots.id, lotId));
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
 
       // Generate transaction number
       const now = new Date();
-      const isSqlite = useSqlite();
+      const usingSqlite = isSqlite();
       const prefix = type.substring(0, 3);
       const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
       const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         referenceId: null,
         reason: notes || null,
         performedBy: user.userId,
-        createdAt: isSqlite ? now.toISOString() : now,
+        createdAt: usingSqlite ? now.toISOString() : now,
       }).returning();
 
       // Update lot quantity based on transaction type

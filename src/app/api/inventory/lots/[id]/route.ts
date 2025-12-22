@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and, desc } from 'drizzle-orm';
 import { withAuth } from '@/lib/api-utils';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteInventoryLots, mysqlInventoryLots,
   sqliteItems, mysqlItems,
@@ -24,15 +24,15 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const lots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
-      const vendors = useSqlite() ? sqliteVendors : mysqlVendors;
-      const transactions = useSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
-      const qualityTests = useSqlite() ? sqliteQualityTests : mysqlQualityTests;
-      const qualitySpecs = useSqlite() ? sqliteQualitySpecs : mysqlQualitySpecs;
-      const users = useSqlite() ? sqliteUsers : mysqlUsers;
-      const workOrders = useSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+      const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const items = isSqlite() ? sqliteItems : mysqlItems;
+      const warehouses = isSqlite() ? sqliteWarehouses : mysqlWarehouses;
+      const vendors = isSqlite() ? sqliteVendors : mysqlVendors;
+      const transactions = isSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
+      const qualityTests = isSqlite() ? sqliteQualityTests : mysqlQualityTests;
+      const qualitySpecs = isSqlite() ? sqliteQualitySpecs : mysqlQualitySpecs;
+      const users = isSqlite() ? sqliteUsers : mysqlUsers;
+      const workOrders = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
 
       // Get lot with item and warehouse info
       const [lot] = await db
@@ -112,7 +112,7 @@ export async function GET(
       const userIds = [...new Set(transactionHistory.map((t: any) => t.performedBy).filter(Boolean))];
       let userMap: Map<number, string> = new Map();
       if (userIds.length > 0) {
-        const userList = await db.select({ id: users.id, name: users.name }).from(users);
+        const userList = await (db as any).select({ id: users.id, name: users.name }).from(users);
         userMap = new Map(userList.map((u: any) => [u.id, u.name]));
       }
 
@@ -141,7 +141,7 @@ export async function GET(
       const testerIds = [...new Set(qcTests.map((t: any) => t.testedBy).filter(Boolean))];
       let testerMap: Map<number, string> = new Map();
       if (testerIds.length > 0) {
-        const testerList = await db.select({ id: users.id, name: users.name }).from(users);
+        const testerList = await (db as any).select({ id: users.id, name: users.name }).from(users);
         testerMap = new Map(testerList.map((u: any) => [u.id, u.name]));
       }
 
@@ -218,11 +218,11 @@ export async function PUT(
     try {
       const { id } = await params;
       const db = await getDb();
-      const lots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
       const body = await request.json();
 
       // Get current lot for audit
-      const [currentLot] = await db.select().from(lots).where(eq(lots.id, parseInt(id)));
+      const [currentLot] = await (db as any).select().from(lots).where(eq(lots.id, parseInt(id)));
       if (!currentLot) {
         return NextResponse.json({ success: false, error: 'Lot not found' }, { status: 404 });
       }
@@ -240,7 +240,7 @@ export async function PUT(
       if (body.expiryDate !== undefined) updateData.expiryDate = body.expiryDate;
       if (body.coaNumber !== undefined) updateData.coaNumber = body.coaNumber;
 
-      await db.update(lots).set(updateData).where(eq(lots.id, parseInt(id)));
+      await (db as any).update(lots).set(updateData).where(eq(lots.id, parseInt(id)));
 
       // Log audit
       await createAuditLog({
@@ -254,7 +254,7 @@ export async function PUT(
       });
 
       // Get updated lot
-      const [updatedLot] = await db.select().from(lots).where(eq(lots.id, parseInt(id)));
+      const [updatedLot] = await (db as any).select().from(lots).where(eq(lots.id, parseInt(id)));
 
       return NextResponse.json({ success: true, data: updatedLot, message: 'Lot updated successfully' });
     } catch (error) {
@@ -273,10 +273,10 @@ export async function DELETE(
     try {
       const { id } = await params;
       const db = await getDb();
-      const lots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get current lot
-      const [currentLot] = await db.select().from(lots).where(eq(lots.id, parseInt(id)));
+      const [currentLot] = await (db as any).select().from(lots).where(eq(lots.id, parseInt(id)));
       if (!currentLot) {
         return NextResponse.json({ success: false, error: 'Lot not found' }, { status: 404 });
       }
@@ -290,7 +290,7 @@ export async function DELETE(
       }
 
       // Delete lot
-      await db.delete(lots).where(eq(lots.id, parseInt(id)));
+      await (db as any).delete(lots).where(eq(lots.id, parseInt(id)));
 
       // Log audit
       await createAuditLog({
