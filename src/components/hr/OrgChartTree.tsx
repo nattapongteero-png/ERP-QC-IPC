@@ -8,6 +8,19 @@ import { useToast } from '@/components/ui/toast';
 import type { OrgUnit, OrgUnitCreate, OrgUnitUpdate } from '@/types/hr';
 import type { RowInsertingEvent, RowUpdatingEvent, RowRemovingEvent, InitNewRowEvent, EditorPreparingEvent } from 'devextreme/ui/tree_list';
 import type { SelectionChangedEvent } from 'devextreme/ui/tree_list';
+import {
+  Building2,
+  Factory,
+  Layers,
+  FolderTree,
+  Users,
+  Box,
+  Shield,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  Calendar,
+} from 'lucide-react';
 
 export interface OrgChartTreeProps {
   /** Height of the tree list */
@@ -32,6 +45,51 @@ const ORG_UNIT_TYPES = [
   { value: 'section', label: 'หมวด' },
   { value: 'unit', label: 'หน่วย' },
 ];
+
+// Type styling configuration
+const TYPE_CONFIG: Record<string, {
+  icon: typeof Building2;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+}> = {
+  company: {
+    icon: Building2,
+    color: 'text-slate-700',
+    bgColor: 'bg-slate-100',
+    borderColor: 'border-slate-300',
+  },
+  site: {
+    icon: Factory,
+    color: 'text-blue-700',
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+  },
+  division: {
+    icon: Layers,
+    color: 'text-indigo-700',
+    bgColor: 'bg-indigo-50',
+    borderColor: 'border-indigo-200',
+  },
+  department: {
+    icon: FolderTree,
+    color: 'text-cyan-700',
+    bgColor: 'bg-cyan-50',
+    borderColor: 'border-cyan-200',
+  },
+  section: {
+    icon: Users,
+    color: 'text-teal-700',
+    bgColor: 'bg-teal-50',
+    borderColor: 'border-teal-200',
+  },
+  unit: {
+    icon: Box,
+    color: 'text-emerald-700',
+    bgColor: 'bg-emerald-50',
+    borderColor: 'border-emerald-200',
+  },
+};
 
 // Prefix mapping for auto-generating codes
 const ORG_TYPE_PREFIXES: Record<string, string> = {
@@ -356,12 +414,56 @@ export function OrgChartTree({
         />
       )}
 
-      <Column dataField="code" caption="รหัส" width={100} allowEditing />
-      <Column dataField="name" caption="ชื่อหน่วยงาน" minWidth={200} allowEditing />
+      {/* Organization Unit - Combined code, name with icon */}
+      <Column
+        dataField="name"
+        caption="หน่วยงาน"
+        minWidth={280}
+        allowEditing
+        cellRender={(cellData: { data: FlatOrgUnit }) => {
+          const unit = cellData.data;
+          const config = TYPE_CONFIG[unit.type] || TYPE_CONFIG.department;
+          const Icon = config.icon;
+          const typeLabel = ORG_UNIT_TYPES.find(t => t.value === unit.type)?.label || unit.type;
+
+          return (
+            <div className="flex items-center gap-3 py-1">
+              <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${config.bgColor} border ${config.borderColor} flex items-center justify-center`}>
+                <Icon className={`h-4.5 w-4.5 ${config.color}`} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900 truncate">{unit.name}</span>
+                  {unit.isGmpCritical && (
+                    <ShieldCheck className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                    {unit.code}
+                  </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${config.bgColor} ${config.color} border ${config.borderColor}`}>
+                    {typeLabel}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        }}
+      />
+
+      {/* Code - Hidden in grid, shown in edit form */}
+      <Column dataField="code" caption="รหัส" width={100} visible={false} allowEditing />
+
+      {/* Name English - Hidden */}
       <Column dataField="nameEn" caption="ชื่อ (อังกฤษ)" width={200} visible={false} allowEditing />
-      <Column dataField="type" caption="ประเภท" width={120} allowEditing>
+
+      {/* Type - Hidden in grid (shown in combined cell), visible in edit */}
+      <Column dataField="type" caption="ประเภท" width={120} visible={false} allowEditing>
         <Lookup dataSource={ORG_UNIT_TYPES} valueExpr="value" displayExpr="label" />
       </Column>
+
+      {/* Parent - Hidden */}
       <Column dataField="parentId" caption="หน่วยงานหลัก" width={200} visible={false} allowEditing>
         <Lookup
           dataSource={parentLookupData}
@@ -370,17 +472,36 @@ export function OrgChartTree({
           allowClearing
         />
       </Column>
+
+      {/* GMP Critical - Professional badge */}
       <Column
         dataField="isGmpCritical"
-        caption="GMP Critical"
-        width={100}
+        caption="GMP"
+        width={110}
         dataType="boolean"
+        alignment="center"
         allowEditing
+        cellRender={(cellData: { value: boolean }) => (
+          cellData.value ? (
+            <div className="flex items-center justify-center">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                <Shield className="h-3.5 w-3.5" />
+                Critical
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <span className="text-xs text-gray-400">—</span>
+            </div>
+          )
+        )}
       />
+
+      {/* Effective Date - With icon */}
       <Column
         dataField="effectiveFrom"
-        caption="วันที่เริ่มต้น"
-        width={120}
+        caption="เริ่มใช้งาน"
+        width={140}
         dataType="date"
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         format={buddhistDateFormat as any}
@@ -389,7 +510,21 @@ export function OrgChartTree({
           displayFormat: buddhistDateFormat,
           type: 'date',
         }}
+        cellRender={(cellData: { value: Date | string | null }) => {
+          if (!cellData.value) return <span className="text-gray-400">—</span>;
+          const date = new Date(cellData.value);
+          const thaiYear = date.getFullYear() + 543;
+          const formatted = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${thaiYear}`;
+          return (
+            <div className="flex items-center gap-2 text-gray-600">
+              <Calendar className="h-3.5 w-3.5 text-gray-400" />
+              <span className="text-sm">{formatted}</span>
+            </div>
+          );
+        }}
       />
+
+      {/* Effective To - Hidden */}
       <Column
         dataField="effectiveTo"
         caption="วันที่สิ้นสุด"
@@ -404,16 +539,29 @@ export function OrgChartTree({
           type: 'date',
         }}
       />
+
+      {/* Status - Professional badge */}
       <Column
         dataField="isActive"
         caption="สถานะ"
-        width={80}
+        width={110}
         dataType="boolean"
+        alignment="center"
         allowEditing={false}
         cellRender={(cellData: { value: boolean }) => (
-          <span className={cellData.value ? 'text-green-600' : 'text-red-600'}>
-            {cellData.value ? 'ใช้งาน' : 'ปิดใช้งาน'}
-          </span>
+          <div className="flex items-center justify-center">
+            {cellData.value ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                ใช้งาน
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200">
+                <XCircle className="h-3.5 w-3.5" />
+                ปิด
+              </span>
+            )}
+          </div>
         )}
       />
     </TreeList>
