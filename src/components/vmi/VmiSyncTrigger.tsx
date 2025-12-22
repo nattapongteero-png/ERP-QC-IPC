@@ -20,7 +20,11 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  Info,
+  Settings,
+  ExternalLink,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { VmiSyncType, VmiSyncStatus } from '@/types/vmi';
 
@@ -135,19 +139,36 @@ export function VmiSyncTrigger({ portalId, onSyncComplete }: VmiSyncTriggerProps
       return null;
     };
 
-    const getResultSummary = () => {
-      if (error) return (error as Error).message;
-      if (!result || result.length === 0) return null;
+    const getResultSummary = (): { text: string; showHelp: boolean } => {
+      if (error) return { text: (error as Error).message, showHelp: true };
+      if (!result || result.length === 0) return { text: '', showHelp: false };
 
       const totalProcessed = result.reduce((sum, r) => sum + r.itemsProcessed, 0);
       const totalFailed = result.reduce((sum, r) => sum + r.itemsFailed, 0);
+      const totalItems = result.reduce((sum, r) => sum + r.itemsTotal, 0);
       const duration = result.reduce((sum, r) => sum + r.duration, 0);
 
-      if (result.length === 1) {
-        return `${totalProcessed} synced${totalFailed > 0 ? `, ${totalFailed} failed` : ''} (${Math.round(duration / 1000)}s)`;
+      // Show help if 0 items were found
+      if (totalItems === 0) {
+        return {
+          text: 'No items found to sync',
+          showHelp: true,
+        };
       }
-      return `${result.length} portals, ${totalProcessed} items (${Math.round(duration / 1000)}s)`;
+
+      if (result.length === 1) {
+        return {
+          text: `${totalProcessed} synced${totalFailed > 0 ? `, ${totalFailed} failed` : ''} (${Math.round(duration / 1000)}s)`,
+          showHelp: false,
+        };
+      }
+      return {
+        text: `${result.length} portals, ${totalProcessed} items (${Math.round(duration / 1000)}s)`,
+        showHelp: false,
+      };
     };
+
+    const summary = getResultSummary();
 
     return (
       <div className="space-y-2">
@@ -167,12 +188,13 @@ export function VmiSyncTrigger({ portalId, onSyncComplete }: VmiSyncTriggerProps
           </div>
           {getStatusIcon()}
         </div>
-        {(result || error) && (
+        {(result || error) && summary.text && (
           <div className={cn(
             'text-sm px-2',
-            error ? 'text-red-600' : 'text-gray-500'
+            error ? 'text-red-600' : summary.showHelp ? 'text-amber-600' : 'text-gray-500'
           )}>
-            {getResultSummary()}
+            {summary.showHelp && <Info className="inline h-3 w-3 mr-1" />}
+            {summary.text}
           </div>
         )}
       </div>
@@ -228,6 +250,42 @@ export function VmiSyncTrigger({ portalId, onSyncComplete }: VmiSyncTriggerProps
               disabled={inventoryMutation.isPending || itemsMutation.isPending || pricesMutation.isPending}
             />
           </div>
+
+          {/* Help Section - Show when any sync returned 0 items */}
+          {(lastResults.inventory?.[0]?.itemsTotal === 0 ||
+            lastResults.items?.[0]?.itemsTotal === 0 ||
+            lastResults.prices?.[0]?.itemsTotal === 0) && (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <h4 className="font-medium text-amber-800 flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-4 w-4" />
+                No Items to Sync?
+              </h4>
+              <div className="text-sm text-amber-700 space-y-2">
+                <p>To sync items to VMI portals, you need to:</p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>
+                    <strong>Configure VMI Portal</strong> - Set up at least one VMI portal connection in{' '}
+                    <Link href="/settings/vmi" className="underline hover:text-amber-900">
+                      Settings → VMI Portals
+                    </Link>
+                  </li>
+                  <li>
+                    <strong>Enable VMI Sync on Items</strong> - Go to{' '}
+                    <Link href="/inventory/items" className="underline hover:text-amber-900">
+                      Inventory → Items
+                    </Link>{' '}
+                    and enable &quot;VMI Sync Enabled&quot; checkbox for items you want to sync
+                  </li>
+                  <li>
+                    <strong>Add VMI Standard Codes</strong> - For Items sync, add TPP/TTMT codes to items in the VMI Standard Codes section
+                  </li>
+                </ol>
+                <p className="mt-3 pt-2 border-t border-amber-200">
+                  <strong>Quick Setup:</strong> Edit any item → scroll to &quot;VMI Settings&quot; → check &quot;Enable VMI Sync&quot;
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
