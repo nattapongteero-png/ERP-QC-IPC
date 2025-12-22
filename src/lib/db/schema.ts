@@ -683,8 +683,67 @@ export const sqliteHREmployees = sqliteTable('hr_employees', {
   lastName: text('last_name').notNull(),
   firstNameEn: text('first_name_en'),
   lastNameEn: text('last_name_en'),
+  nickname: text('nickname'),
   email: text('email'),
   phone: text('phone'),
+
+  // Personal Identification (เอกสารประจำตัว)
+  thaiCid: text('thai_cid'), // เลขบัตรประชาชน 13 หลัก (encrypted)
+  thaiCidHash: text('thai_cid_hash'), // Hash for duplicate checking
+  dateOfBirth: text('date_of_birth'),
+  gender: text('gender'), // male, female, other
+  bloodType: text('blood_type'), // A, B, O, AB with +/-
+  religion: text('religion'),
+  maritalStatus: text('marital_status'), // single, married, divorced, widowed
+  nationalityCode: text('nationality_code').default('TH'),
+
+  // Photo
+  photoUrl: text('photo_url'),
+  photoThumbnailUrl: text('photo_thumbnail_url'),
+
+  // Government IDs (encrypted)
+  ssoNumber: text('sso_number'), // เลขประกันสังคม
+  taxId: text('tax_id'), // เลขประจำตัวผู้เสียภาษี
+
+  // Address - Current
+  addressLine1: text('address_line1'),
+  addressLine2: text('address_line2'),
+  subDistrict: text('sub_district'), // ตำบล/แขวง
+  district: text('district'), // อำเภอ/เขต
+  province: text('province'), // จังหวัด
+  postalCode: text('postal_code'),
+
+  // Address - Permanent (ที่อยู่ตามทะเบียนบ้าน)
+  permanentAddressLine1: text('permanent_address_line1'),
+  permanentAddressLine2: text('permanent_address_line2'),
+  permanentSubDistrict: text('permanent_sub_district'),
+  permanentDistrict: text('permanent_district'),
+  permanentProvince: text('permanent_province'),
+  permanentPostalCode: text('permanent_postal_code'),
+  useSameAddress: integer('use_same_address', { mode: 'boolean' }).default(false),
+
+  // Emergency Contact (ผู้ติดต่อฉุกเฉิน)
+  emergencyContactName: text('emergency_contact_name'),
+  emergencyContactRelation: text('emergency_contact_relation'),
+  emergencyContactPhone: text('emergency_contact_phone'),
+
+  // Banking (สำหรับจ่ายเงินเดือน)
+  bankName: text('bank_name'),
+  bankBranch: text('bank_branch'),
+  bankAccountNumber: text('bank_account_number'), // encrypted
+  bankAccountName: text('bank_account_name'),
+
+  // Education & Qualifications
+  educationLevel: text('education_level'), // primary, secondary, vocational, bachelor, master, doctorate
+  educationField: text('education_field'),
+  educationInstitution: text('education_institution'),
+
+  // Thai Male Military Status
+  militaryStatus: text('military_status'), // exempted, completed, pending, not_applicable
+
+  // Medical Notes (for GMP - allergies, restrictions)
+  medicalNotes: text('medical_notes'),
+
   positionId: integer('position_id').references(() => sqliteHRPositions.id),
   orgUnitId: integer('org_unit_id').references(() => sqliteHROrgUnits.id),
   siteId: integer('site_id'),
@@ -1628,8 +1687,67 @@ export const mysqlHREmployees = mysqlTable('hr_employees', {
   lastName: varchar('last_name', { length: 50 }).notNull(),
   firstNameEn: varchar('first_name_en', { length: 50 }),
   lastNameEn: varchar('last_name_en', { length: 50 }),
+  nickname: varchar('nickname', { length: 50 }),
   email: varchar('email', { length: 100 }),
   phone: varchar('phone', { length: 20 }),
+
+  // Personal Identification (เอกสารประจำตัว)
+  thaiCid: varchar('thai_cid', { length: 255 }), // encrypted - 13 digits
+  thaiCidHash: varchar('thai_cid_hash', { length: 64 }), // SHA-256 hash
+  dateOfBirth: datetime('date_of_birth'),
+  gender: varchar('gender', { length: 10 }),
+  bloodType: varchar('blood_type', { length: 5 }),
+  religion: varchar('religion', { length: 30 }),
+  maritalStatus: varchar('marital_status', { length: 20 }),
+  nationalityCode: varchar('nationality_code', { length: 3 }).default('TH'),
+
+  // Photo
+  photoUrl: varchar('photo_url', { length: 255 }),
+  photoThumbnailUrl: varchar('photo_thumbnail_url', { length: 255 }),
+
+  // Government IDs (encrypted)
+  ssoNumber: varchar('sso_number', { length: 255 }),
+  taxId: varchar('tax_id', { length: 255 }),
+
+  // Address - Current
+  addressLine1: varchar('address_line1', { length: 255 }),
+  addressLine2: varchar('address_line2', { length: 255 }),
+  subDistrict: varchar('sub_district', { length: 100 }),
+  district: varchar('district', { length: 100 }),
+  province: varchar('province', { length: 100 }),
+  postalCode: varchar('postal_code', { length: 10 }),
+
+  // Address - Permanent
+  permanentAddressLine1: varchar('permanent_address_line1', { length: 255 }),
+  permanentAddressLine2: varchar('permanent_address_line2', { length: 255 }),
+  permanentSubDistrict: varchar('permanent_sub_district', { length: 100 }),
+  permanentDistrict: varchar('permanent_district', { length: 100 }),
+  permanentProvince: varchar('permanent_province', { length: 100 }),
+  permanentPostalCode: varchar('permanent_postal_code', { length: 10 }),
+  useSameAddress: mysqlBoolean('use_same_address').default(false),
+
+  // Emergency Contact
+  emergencyContactName: varchar('emergency_contact_name', { length: 100 }),
+  emergencyContactRelation: varchar('emergency_contact_relation', { length: 50 }),
+  emergencyContactPhone: varchar('emergency_contact_phone', { length: 20 }),
+
+  // Banking
+  bankName: varchar('bank_name', { length: 100 }),
+  bankBranch: varchar('bank_branch', { length: 100 }),
+  bankAccountNumber: varchar('bank_account_number', { length: 255 }), // encrypted
+  bankAccountName: varchar('bank_account_name', { length: 100 }),
+
+  // Education & Qualifications
+  educationLevel: varchar('education_level', { length: 30 }),
+  educationField: varchar('education_field', { length: 100 }),
+  educationInstitution: varchar('education_institution', { length: 200 }),
+
+  // Thai Male Military Status
+  militaryStatus: varchar('military_status', { length: 20 }),
+
+  // Medical Notes
+  medicalNotes: mysqlText('medical_notes'),
+
   positionId: int('position_id').references(() => mysqlHRPositions.id),
   orgUnitId: int('org_unit_id').references(() => mysqlHROrgUnits.id),
   siteId: int('site_id'),
