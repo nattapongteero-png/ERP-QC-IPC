@@ -30,10 +30,10 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const workOrderMaterials = isSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+      const usingSqlite = isSqlite();
+      const workOrderMaterials = usingSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
+      const items = usingSqlite ? sqliteItems : mysqlItems;
+      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
       const materials = await (db as any)
         .select({
@@ -78,11 +78,11 @@ export async function POST(
       }
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const workOrderMaterials = isSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
-      const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
-      const inventoryTransactions = isSqlite ? sqliteInventoryTransactions : mysqlInventoryTransactions;
+      const usingSqlite = isSqlite();
+      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
+      const workOrderMaterials = usingSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
+      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+      const inventoryTransactions = usingSqlite ? sqliteInventoryTransactions : mysqlInventoryTransactions;
 
       // Check work order exists and is in valid status
       const [workOrder] = await (db as any)
@@ -139,10 +139,10 @@ export async function POST(
         unit,
         status: lotId ? 'issued' : 'pending',
         issuedBy: lotId ? session.userId : null,
-        issuedAt: lotId ? (isSqlite ? new Date().toISOString() : new Date()) : null,
+        issuedAt: lotId ? (usingSqlite ? new Date().toISOString() : new Date()) : null,
       });
 
-      const materialId = isSqlite ? result.lastInsertRowid : result[0].insertId;
+      const materialId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
 
       // If lot is provided and actualQuantity, create inventory transaction
       if (lotId && actualQuantity) {

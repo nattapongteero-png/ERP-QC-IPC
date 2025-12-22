@@ -16,15 +16,15 @@ export async function seedDatabase() {
   await initializeDatabase();
 
   const db = await getDb();
-  const isSqlite = isSqlite();
+  const usingSqlite = isSqlite();
 
-  console.log(`Seeding database (${isSqlite ? 'SQLite' : 'MySQL'})...`);
+  console.log(`Seeding database (${usingSqlite ? 'SQLite' : 'MySQL'})...`);
 
   // Get the appropriate schema tables
-  const usersTable = isSqlite ? schema.sqliteUsers : schema.mysqlUsers;
-  const warehousesTable = isSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
-  const itemsTable = isSqlite ? schema.sqliteItems : schema.mysqlItems;
-  const vendorsTable = isSqlite ? schema.sqliteVendors : schema.mysqlVendors;
+  const usersTable = usingSqlite ? schema.sqliteUsers : schema.mysqlUsers;
+  const warehousesTable = usingSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
+  const itemsTable = usingSqlite ? schema.sqliteItems : schema.mysqlItems;
+  const vendorsTable = usingSqlite ? schema.sqliteVendors : schema.mysqlVendors;
 
   // Create admin user
   const adminPassword = await hashPassword('admin123');
@@ -153,7 +153,7 @@ export async function seedDatabase() {
   console.log('Sample vendors created');
 
   // Seed report categories
-  const reportCategoriesTable = isSqlite ? schema.sqliteReportCategories : schema.mysqlReportCategories;
+  const reportCategoriesTable = usingSqlite ? schema.sqliteReportCategories : schema.mysqlReportCategories;
   for (const category of reportCategories) {
     await insertIgnoreDuplicate(reportCategoriesTable, {
       ...category,

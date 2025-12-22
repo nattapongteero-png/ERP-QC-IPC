@@ -27,9 +27,9 @@ export async function GET(request: NextRequest) {
       const isActive = searchParams.get('isActive');
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
-      const itemsTable = isSqlite ? sqliteItems : mysqlItems;
+      const usingSqlite = isSqlite();
+      const specsTable = usingSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
+      const itemsTable = usingSqlite ? sqliteItems : mysqlItems;
 
       const conditions = [];
       if (itemId) {
@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
       }
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
+      const usingSqlite = isSqlite();
+      const specsTable = usingSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
 
       const result = await (db as any).insert(specsTable).values({
         itemId,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         isActive: true,
       });
 
-      const specId = isSqlite ? result.lastInsertRowid : result[0].insertId;
+      const specId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
 
       await createAuditLog({
         userId: session.userId,

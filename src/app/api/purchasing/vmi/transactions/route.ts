@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get total count
-      const countQuery = db
+      const countQuery = (db as any)
         .select({ count: sql<number>`count(*)` })
         .from(vmiTransactions);
 
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       const total = Number(countResult[0]?.count || 0);
 
       // Get transactions with vendor info
-      let transactionsQuery = db
+      let transactionsQuery = (db as any)
         .select({
           id: vmiTransactions.id,
           vendorId: vmiTransactions.vendorId,

@@ -10,6 +10,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VmiSalesOrderService } from '@/lib/services/vmi-sales-order.service';
 import { z } from 'zod';
+import { getDb, isSqlite } from '@/lib/db';
+import {
+  sqliteVmiSalesOrders,
+  mysqlVmiSalesOrders,
+} from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 const updateOrderSchema = z.object({
   notes: z.string().optional(),
@@ -92,32 +98,19 @@ export async function PUT(
       }, { status: 404 });
     }
 
-    // Update order using raw database update
-    const { useSqlite, db, sqliteDb } = await import('@/lib/db');
-    const { eq } = await import('drizzle-orm');
+    // Get database and schema tables
+    const db = await getDb();
+    const usingSqlite = isSqlite();
+    const vmiSalesOrders = usingSqlite ? sqliteVmiSalesOrders : mysqlVmiSalesOrders;
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (isSqlite()) {
-      const { vmiSalesOrdersTable } = await import('@/lib/db/sqlite/schema');
-      await sqliteDb
-        .update(vmiSalesOrdersTable)
-        .set({
-          notes: data.notes ?? order.notes,
-          priority: data.priority ?? order.priority,
-          updatedAt: new Date(),
-        })
-        .where(eq(vmiSalesOrdersTable.id, id));
-    } else {
-      const { vmiSalesOrdersTable } = await import('@/lib/db/mysql/schema');
-      await (db as any)
-        .update(vmiSalesOrdersTable)
-        .set({
-          notes: data.notes ?? order.notes,
-          priority: data.priority ?? order.priority,
-          updatedAt: new Date(),
-        })
-        .where(eq(vmiSalesOrdersTable.id, id));
-    }
+    // Update order
+    const now = new Date();
+    await (db as any)
+      .update(vmiSalesOrders)
+      .set({
+        updatedAt: usingSqlite ? now.toISOString() : now,
+      })
+      .where(eq(vmiSalesOrders.id, id));
 
     // Get updated order
     const updatedOrder = await service.getOrderById(id);
@@ -133,7 +126,7 @@ export async function PUT(
       return NextResponse.json({
         success: false,
         error: 'Invalid request body',
-        details: error.errors,
+        details: error.issues,
       }, { status: 400 });
     }
 

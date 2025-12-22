@@ -57,15 +57,15 @@ export async function GET(request: NextRequest) {
       const vendorIdStr = searchParams.get('vendorId');
 
       const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
-      const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
-      const vmiOrders = isSqlite ? sqliteVMIOrders : mysqlVMIOrders;
-      const items = isSqlite ? sqliteItems : mysqlItems;
+      const usingSqlite = process.env.DB_TYPE === 'sqlite';
+      const vmiConfig = usingSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
+      const vendors = usingSqlite ? sqliteVendors : mysqlVendors;
+      const vmiTransactions = usingSqlite ? sqliteVMITransactions : mysqlVMITransactions;
+      const vmiOrders = usingSqlite ? sqliteVMIOrders : mysqlVMIOrders;
+      const items = usingSqlite ? sqliteItems : mysqlItems;
 
       // Get all VMI vendor configs with vendor info
-      const vendorConfigsQuery = db
+      const vendorConfigsQuery = (db as any)
         .select({
           vendorId: vmiConfig.vendorId,
           vendorName: vendors.name,
@@ -76,8 +76,6 @@ export async function GET(request: NextRequest) {
           lastItemsSyncAt: vmiConfig.lastItemsSyncAt,
           lastPricesSyncAt: vmiConfig.lastPricesSyncAt,
           lastInventorySyncAt: vmiConfig.lastInventorySyncAt,
-          lastOrdersPollAt: vmiConfig.lastOrdersPollAt,
-          createdAt: vmiConfig.createdAt,
         })
         .from(vmiConfig)
         .innerJoin(vendors, eq(vmiConfig.vendorId, vendors.id));
@@ -89,21 +87,17 @@ export async function GET(request: NextRequest) {
         ? vendorConfigs.filter((c: { vendorId: number }) => c.vendorId === parseInt(vendorIdStr))
         : vendorConfigs;
 
-      // Get total VMI items count
-      const vmiItemsResult = await (db as any)
+      // Get item sync stats - count items with VMI sync enabled
+      const itemStats = await (db as any)
         .select({ count: sql<number>`count(*)` })
         .from(items)
-        .where(
-          and(
-            eq(items.isActive, true),
-            or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
-          )
-        );
-      const totalVmiItems = Number(vmiItemsResult[0]?.count || 0);
+        .where(eq(items.vmiSyncEnabled, true));
 
-      // Get recent transactions (last 24 hours)
+      const totalVmiItems = Number(itemStats[0]?.count || 0);
+
+      // Get recent transaction stats (last 24 hours)
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const recentTransactions = await (db as any)
+      const transactionStatsQuery = (db as any)
         .select({
           transactionType: vmiTransactions.transactionType,
           status: vmiTransactions.status,
@@ -111,38 +105,18 @@ export async function GET(request: NextRequest) {
         })
         .from(vmiTransactions)
         .where(
-          sql`${vmiTransactions.createdAt} >= ${isSqlite ? oneDayAgo.toISOString() : oneDayAgo}`
+          sql`${vmiTransactions.createdAt} >= ${usingSqlite ? oneDayAgo.toISOString() : oneDayAgo}`
         )
         .groupBy(vmiTransactions.transactionType, vmiTransactions.status);
 
       // Aggregate transaction stats
       const transactionStats = {
         total: 0,
-        success: 0,
-        error: 0,
-        byType: {} as Record<string, { success: number; error: number }>,
+        pending: 0,
+        completed: 0,
+        failed: 0,
       };
 
-      recentTransactions.forEach((t: { transactionType: string; status: string; count: number }) => {
-        const count = Number(t.count);
-        transactionStats.total += count;
-        if (t.status === 'success') {
-          transactionStats.success += count;
-        } else if (t.status === 'error') {
-          transactionStats.error += count;
-        }
-
-        if (!transactionStats.byType[t.transactionType]) {
-          transactionStats.byType[t.transactionType] = { success: 0, error: 0 };
-        }
-        if (t.status === 'success') {
-          transactionStats.byType[t.transactionType].success += count;
-        } else if (t.status === 'error') {
-          transactionStats.byType[t.transactionType].error += count;
-        }
-      });
-
-      // Get order stats
       const orderStats = await (db as any)
         .select({
           status: vmiOrders.status,

@@ -157,7 +157,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       // Build update object
       const updateData: Record<string, any> = {
-        updatedAt: isSqlite ? new Date().toISOString() : new Date(),
+        updatedAt: usingSqlite ? new Date().toISOString() : new Date(),
       };
 
       if (title !== undefined) updateData.title = title;
@@ -174,7 +174,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       // Auto-set closed fields if status is closed
       if (status === 'closed' && oldDeviation.status !== 'closed') {
         updateData.closedBy = session.userId;
-        updateData.closedAt = isSqlite ? new Date().toISOString() : new Date();
+        updateData.closedAt = usingSqlite ? new Date().toISOString() : new Date();
       }
 
       // Update deviation

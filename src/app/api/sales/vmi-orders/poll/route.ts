@@ -38,28 +38,24 @@ export async function POST(request: NextRequest) {
     }
 
     const service = new VmiSalesOrderService();
-    const results = await service.pollOrders();
-
-    // Calculate totals
-    const totalNew = results.reduce((sum, r) => sum + r.ordersReceived, 0);
-    const totalErrors = results.filter(r => r.errors && r.errors.length > 0).length;
+    const result = await service.pollOrders();
 
     // Log for cron monitoring
     console.log('[VMI Order Poll] Scheduled poll completed:', {
-      portalsPolled: results.length,
-      totalNewOrders: totalNew,
-      portalsWithErrors: totalErrors,
+      portalsPolled: result.portalsPolled,
+      totalNewOrders: result.ordersReceived,
+      portalsWithErrors: result.errors?.length || 0,
       timestamp: new Date().toISOString(),
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        results,
+        result,
         summary: {
-          portalsPolled: results.length,
-          totalNewOrders: totalNew,
-          portalsWithErrors: totalErrors,
+          portalsPolled: result.portalsPolled,
+          totalNewOrders: result.ordersReceived,
+          portalsWithErrors: result.errors?.length || 0,
           timestamp: new Date().toISOString(),
         },
       },

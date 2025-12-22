@@ -41,8 +41,8 @@ export async function PUT(
       const { id } = await params;
       const db = await getDb();
       const body = await request.json();
-      const isSqlite = isSqlite();
-      const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
+      const usingSqlite = isSqlite();
+      const warehouses = usingSqlite ? sqliteWarehouses : mysqlWarehouses;
       const warehouseId = parseInt(id);
 
       const [existing] = await (db as any)
@@ -61,7 +61,7 @@ export async function PUT(
         location: body.location || null,
         type: body.type || 'general',
         isActive: body.isActive ?? true,
-        updatedAt: isSqlite ? now.toISOString() : now,
+        updatedAt: usingSqlite ? now.toISOString() : now,
       };
 
       await (db as any)
@@ -101,8 +101,8 @@ export async function DELETE(
     try {
       const { id } = await params;
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
+      const usingSqlite = isSqlite();
+      const warehouses = usingSqlite ? sqliteWarehouses : mysqlWarehouses;
       const warehouseId = parseInt(id);
 
       const [existing] = await (db as any)
@@ -119,7 +119,7 @@ export async function DELETE(
       // Soft delete by setting isActive to false
       await (db as any)
         .update(warehouses)
-        .set({ isActive: false, updatedAt: isSqlite ? now.toISOString() : now })
+        .set({ isActive: false, updatedAt: usingSqlite ? now.toISOString() : now })
         .where(eq(warehouses.id, warehouseId));
 
       await createAuditLog({

@@ -106,25 +106,25 @@ import type {
 
 function getHRTables() {
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const isSqlite = isSqlite();
+  const usingSqlite = isSqlite();
   return {
-    orgUnits: isSqlite ? sqliteHROrgUnits : mysqlHROrgUnits,
-    positions: isSqlite ? sqliteHRPositions : mysqlHRPositions,
-    jobDescriptions: isSqlite ? sqliteHRJobDescriptions : mysqlHRJobDescriptions,
-    employees: isSqlite ? sqliteHREmployees : mysqlHREmployees,
-    employeeAssignments: isSqlite ? sqliteHREmployeeAssignments : mysqlHREmployeeAssignments,
-    trainingCourses: isSqlite ? sqliteHRTrainingCourses : mysqlHRTrainingCourses,
-    trainingSessions: isSqlite ? sqliteHRTrainingSessions : mysqlHRTrainingSessions,
-    trainingRecords: isSqlite ? sqliteHRTrainingRecords : mysqlHRTrainingRecords,
-    authorizations: isSqlite ? sqliteHRAuthorizations : mysqlHRAuthorizations,
-    delegations: isSqlite ? sqliteHRDelegations : mysqlHRDelegations,
-    healthRecords: isSqlite ? sqliteHRHealthRecords : mysqlHRHealthRecords,
-    appRoles: isSqlite ? sqliteHRAppRoles : mysqlHRAppRoles,
-    appPermissions: isSqlite ? sqliteHRAppPermissions : mysqlHRAppPermissions,
-    rolePermissions: isSqlite ? sqliteHRRolePermissions : mysqlHRRolePermissions,
-    employeeRoles: isSqlite ? sqliteHREmployeeRoles : mysqlHREmployeeRoles,
-    notifications: isSqlite ? sqliteHRNotifications : mysqlHRNotifications,
-    auditLog: isSqlite ? sqliteHRAuditLog : mysqlHRAuditLog,
+    orgUnits: usingSqlite ? sqliteHROrgUnits : mysqlHROrgUnits,
+    positions: usingSqlite ? sqliteHRPositions : mysqlHRPositions,
+    jobDescriptions: usingSqlite ? sqliteHRJobDescriptions : mysqlHRJobDescriptions,
+    employees: usingSqlite ? sqliteHREmployees : mysqlHREmployees,
+    employeeAssignments: usingSqlite ? sqliteHREmployeeAssignments : mysqlHREmployeeAssignments,
+    trainingCourses: usingSqlite ? sqliteHRTrainingCourses : mysqlHRTrainingCourses,
+    trainingSessions: usingSqlite ? sqliteHRTrainingSessions : mysqlHRTrainingSessions,
+    trainingRecords: usingSqlite ? sqliteHRTrainingRecords : mysqlHRTrainingRecords,
+    authorizations: usingSqlite ? sqliteHRAuthorizations : mysqlHRAuthorizations,
+    delegations: usingSqlite ? sqliteHRDelegations : mysqlHRDelegations,
+    healthRecords: usingSqlite ? sqliteHRHealthRecords : mysqlHRHealthRecords,
+    appRoles: usingSqlite ? sqliteHRAppRoles : mysqlHRAppRoles,
+    appPermissions: usingSqlite ? sqliteHRAppPermissions : mysqlHRAppPermissions,
+    rolePermissions: usingSqlite ? sqliteHRRolePermissions : mysqlHRRolePermissions,
+    employeeRoles: usingSqlite ? sqliteHREmployeeRoles : mysqlHREmployeeRoles,
+    notifications: usingSqlite ? sqliteHRNotifications : mysqlHRNotifications,
+    auditLog: usingSqlite ? sqliteHRAuditLog : mysqlHRAuditLog,
     isSqlite,
   };
 }
@@ -4477,7 +4477,7 @@ export async function checkTrainingExpirations(
   const tables = getHRTables();
   const db = await getDb();
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const isSqlite = isSqlite();
+  const usingSqlite = isSqlite();
 
   const today = new Date();
   const futureDate = new Date(today.getTime() + withinDays * 24 * 60 * 60 * 1000);

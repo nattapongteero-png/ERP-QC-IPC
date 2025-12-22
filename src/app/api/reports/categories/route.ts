@@ -13,9 +13,9 @@ export async function GET() {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
 
-    const categoriesTable = isSqlite
+    const categoriesTable = usingSqlite
       ? schema.sqliteReportCategories
       : schema.mysqlReportCategories;
 
@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const body = await request.json();
 
-    const categoriesTable = isSqlite
+    const categoriesTable = usingSqlite
       ? schema.sqliteReportCategories
       : schema.mysqlReportCategories;
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       .insert(categoriesTable)
       .values(insertData);
 
-    const insertedId = isSqlite ? result.lastInsertRowid : result[0].insertId;
+    const insertedId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
 
     return NextResponse.json({
       success: true,

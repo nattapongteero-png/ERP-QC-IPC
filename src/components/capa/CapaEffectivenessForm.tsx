@@ -255,7 +255,7 @@ export function CapaEffectivenessForm({
           <div className="space-y-2">
             <label className="text-sm font-medium">Check Date</label>
             <DxDateBox
-              value={formData.checkDate ? new Date(formData.checkDate) : null}
+              value={formData.checkDate || undefined}
               onValueChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,

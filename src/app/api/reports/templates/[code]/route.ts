@@ -17,13 +17,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { code } = await params;
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
-    const categoriesTable = isSqlite
+    const categoriesTable = usingSqlite
       ? schema.sqliteReportCategories
       : schema.mysqlReportCategories;
 
@@ -95,11 +95,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { code } = await params;
     const body = await request.json();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 
@@ -167,10 +167,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { code } = await params;
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 

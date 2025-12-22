@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
 
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const categoriesTable = isSqlite
+    const categoriesTable = usingSqlite
       ? schema.sqliteReportCategories
       : schema.mysqlReportCategories;
 
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
     const body = await request.json();
@@ -88,7 +88,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const categoriesTable = isSqlite
+    const categoriesTable = usingSqlite
       ? schema.sqliteReportCategories
       : schema.mysqlReportCategories;
 
@@ -146,7 +146,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
 
@@ -157,10 +157,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const categoriesTable = isSqlite
+    const categoriesTable = usingSqlite
       ? schema.sqliteReportCategories
       : schema.mysqlReportCategories;
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 

@@ -76,7 +76,7 @@ function getTables() {
 export async function recalculateItemOnHand(itemId: number): Promise<number> {
   const { lots, items } = getTables();
   const database = await getDb();
-  const isSqlite = isSqlite();
+  const usingSqlite = isSqlite();
 
   // Sum quantities from released lots for this item
   const [result] = await (database as any)
@@ -94,7 +94,7 @@ export async function recalculateItemOnHand(itemId: number): Promise<number> {
     .update(items)
     .set({
       onHand,
-      updatedAt: isSqlite ? now.toISOString() : now,
+      updatedAt: usingSqlite ? now.toISOString() : now,
     })
     .where(eq(items.id, itemId));
 

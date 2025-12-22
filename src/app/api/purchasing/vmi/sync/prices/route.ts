@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       const today = new Date().toISOString().split('T')[0];
 
       // Get price offers with item info
-      const offersQuery = db
+      const offersQuery = (db as any)
         .select({
           id: priceOffers.id,
           vendorId: priceOffers.vendorId,
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
 
       // Get offers to sync with item info
       const today = new Date().toISOString().split('T')[0];
-      let offersQuery = db
+      let offersQuery = (db as any)
         .select({
           id: priceOffers.id,
           itemId: priceOffers.itemId,

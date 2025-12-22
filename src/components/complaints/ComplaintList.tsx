@@ -9,7 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DxDataGrid } from '@/components/ui/dx-data-grid';
+import { DxDataGrid, type DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { MessageSquareWarning, AlertTriangle } from 'lucide-react';
@@ -256,30 +256,14 @@ export function ComplaintList({
 
       <DxDataGrid
         dataSource={data?.complaints || []}
-        columns={columns}
+        columns={columns as DxDataGridColumn[]}
         showBorders={false}
         rowAlternationEnabled
-        hoverStateEnabled
         onRowClick={handleRowClick}
-        paging={{
-          enabled: true,
-          pageSize,
-          pageIndex: page - 1,
-        }}
-        pager={{
-          visible: true,
-          showPageSizeSelector: true,
-          allowedPageSizes: [10, 20, 50],
-          showInfo: true,
-        }}
-        onOptionChanged={(e: { name: string; value: number }) => {
-          if (e.name === 'paging.pageIndex') {
-            setPage(e.value + 1);
-          } else if (e.name === 'paging.pageSize') {
-            setPageSize(e.value);
-          }
-        }}
-        loadPanel={{ enabled: isLoading }}
+        paging
+        pageSize={pageSize}
+        allowedPageSizes={[10, 20, 50]}
+        loading={isLoading}
         noDataText="No complaints found"
         height="auto"
       />

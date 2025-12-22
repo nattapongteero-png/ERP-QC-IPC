@@ -259,7 +259,7 @@ export function ComplaintForm({
             Received Date <span className="text-destructive">*</span>
           </label>
           <DxDateBox
-            value={formData.receivedDate ? new Date(formData.receivedDate) : null}
+            value={formData.receivedDate || undefined}
             onValueChange={(value) =>
               setFormData((prev) => ({
                 ...prev,

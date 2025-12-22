@@ -9,7 +9,7 @@
 
 import { useMemo } from 'react';
 import { DxDataGrid } from '@/components/ui/dx-data-grid';
-import { DxColumn } from '@/components/ui/dx-column';
+import { DxColumn, type DxColumnProps } from '@/components/ui/dx-column';
 import { DxButton } from '@/components/ui/dx-button';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import type { PestControlLog, PestControlServiceType } from '@/types/sanitation';
@@ -136,11 +136,10 @@ export function PestControlLogList({
       showBorders
       columnAutoWidth
       rowAlternationEnabled
-      hoverStateEnabled
-      loadPanel={{ enabled: loading }}
+      loading={loading}
     >
       {columns.map((col) => (
-        <DxColumn key={col.dataField} {...col} />
+        <DxColumn key={col.dataField} {...col as DxColumnProps} />
       ))}
       <DxColumn
         caption="Actions"

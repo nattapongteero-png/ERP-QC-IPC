@@ -200,7 +200,7 @@ export default function SanitationLogsPage() {
           <div>
             <label className="block text-sm font-medium mb-1">Schedule *</label>
             <DxSelectBox
-              items={schedules || []}
+              items={(schedules || []) as unknown as Array<{ id: number; name: string }>}
               value={formData.scheduleId}
               onValueChanged={(e) => setFormData({ ...formData, scheduleId: e.value })}
               displayExpr="name"

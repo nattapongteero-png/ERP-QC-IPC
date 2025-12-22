@@ -32,10 +32,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
-      const testsTable = isSqlite ? sqliteQualityTests : mysqlQualityTests;
-      const itemsTable = isSqlite ? sqliteItems : mysqlItems;
+      const usingSqlite = isSqlite();
+      const specsTable = usingSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
+      const testsTable = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
+      const itemsTable = usingSqlite ? sqliteItems : mysqlItems;
 
       // Get spec with item info
       const specResult = await (db as any)
@@ -134,8 +134,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       } = body;
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
+      const usingSqlite = isSqlite();
+      const specsTable = usingSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
 
       // Check if spec exists
       const existing = await (db as any)
@@ -151,7 +151,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       // Build update object
       const updateData: Record<string, any> = {
-        updatedAt: isSqlite ? new Date().toISOString() : new Date(),
+        updatedAt: usingSqlite ? new Date().toISOString() : new Date(),
       };
 
       if (testName !== undefined) updateData.testName = testName;
@@ -198,9 +198,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
-      const testsTable = isSqlite ? sqliteQualityTests : mysqlQualityTests;
+      const usingSqlite = isSqlite();
+      const specsTable = usingSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
+      const testsTable = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
 
       // Check if spec exists
       const existing = await (db as any)

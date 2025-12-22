@@ -28,12 +28,12 @@ export async function POST(
       }
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const purchaseOrders = isSqlite ? sqlitePurchaseOrders : mysqlPurchaseOrders;
-      const purchaseOrderLines = isSqlite ? sqlitePurchaseOrderLines : mysqlPurchaseOrderLines;
-      const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
+      const usingSqlite = isSqlite();
+      const purchaseOrders = usingSqlite ? sqlitePurchaseOrders : mysqlPurchaseOrders;
+      const purchaseOrderLines = usingSqlite ? sqlitePurchaseOrderLines : mysqlPurchaseOrderLines;
+      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+      const items = usingSqlite ? sqliteItems : mysqlItems;
+      const warehouses = usingSqlite ? sqliteWarehouses : mysqlWarehouses;
 
       // Validate warehouse exists and is active
       const warehouseResult = await (db as any)
@@ -91,8 +91,8 @@ export async function POST(
       }
 
       const now = new Date();
-      const parsedExpiryDate = isSqlite ? expiryDate : new Date(expiryDate);
-      const parsedReceivedDate = isSqlite ? now.toISOString() : now;
+      const parsedExpiryDate = usingSqlite ? expiryDate : new Date(expiryDate);
+      const parsedReceivedDate = usingSqlite ? now.toISOString() : now;
 
       // Create inventory lot
       const lotResult = await (db as any).insert(inventoryLots).values({
@@ -105,11 +105,11 @@ export async function POST(
         expiryDate: parsedExpiryDate,
         receivedDate: parsedReceivedDate,
         poNumber: po.poNumber,
-        createdAt: isSqlite ? now.toISOString() : now,
-        updatedAt: isSqlite ? now.toISOString() : now,
+        createdAt: usingSqlite ? now.toISOString() : now,
+        updatedAt: usingSqlite ? now.toISOString() : now,
       });
 
-      const lotId = isSqlite ? lotResult.lastInsertRowid : lotResult[0].insertId;
+      const lotId = usingSqlite ? lotResult.lastInsertRowid : lotResult[0].insertId;
 
       // Update PO line received quantity
       const newReceivedQty = lineReceivedQuantity + receiveQuantity;
@@ -144,7 +144,7 @@ export async function POST(
           .update(purchaseOrders)
           .set({
             status: newStatus,
-            updatedAt: isSqlite ? now.toISOString() : now,
+            updatedAt: usingSqlite ? now.toISOString() : now,
           })
           .where(eq(purchaseOrders.id, poId));
       }

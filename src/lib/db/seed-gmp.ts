@@ -173,8 +173,8 @@ async function seedDocumentTypes(isSqlite: boolean): Promise<number> {
 export async function seedGmpTables(): Promise<{
   documentTypesSeeded: number;
 }> {
-  const isSqlite = isSqlite();
-  console.log(`[GMP Seed] Starting GMP tables seeding for ${isSqlite ? 'SQLite' : 'MySQL'}...`);
+  const usingSqlite = isSqlite();
+  console.log(`[GMP Seed] Starting GMP tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 
   const documentTypesSeeded = await seedDocumentTypes(isSqlite);
 

@@ -56,7 +56,7 @@ export {
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useMobile } from '@/hooks/use-mobile';
 
 export interface DxDataGridColumn {
@@ -106,8 +106,8 @@ export interface DxDataGridColumn {
 export interface DxDataGridProps<T = any> {
   /** Data source - accepts any array of objects */
   dataSource: T[];
-  /** Column definitions */
-  columns: DxDataGridColumn[];
+  /** Column definitions (optional if using children) */
+  columns?: DxDataGridColumn[];
   /** Row key field */
   keyExpr?: string;
   /** Show borders */
@@ -181,6 +181,8 @@ export interface DxDataGridProps<T = any> {
   responsiveColumns?: boolean;
   /** Fill available height (use with flex container) - overrides height props on tablet */
   fillHeight?: boolean;
+  /** Children (for child-based column/paging definitions) */
+  children?: React.ReactNode;
 }
 
 /**
@@ -245,6 +247,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
   tabletHeight,
   responsiveColumns = true,
   fillHeight = false,
+  children,
 }: DxDataGridProps<T>) {
   // Detect device type for responsive behavior
   const { isMobile, isTablet } = useMobile();
@@ -260,6 +263,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
 
   // Filter columns based on device type when responsiveColumns is enabled
   const responsiveFilteredColumns = useMemo(() => {
+    if (!columns) return [];
     if (!responsiveColumns) return columns;
 
     return columns.filter((col) => {
@@ -381,6 +385,9 @@ export function DxDataGrid<T = Record<string, unknown>>({
           sortIndex={col.sortIndex}
         />
       ))}
+
+      {/* Render children (for child-based definitions) */}
+      {children}
     </DataGrid>
   );
 }

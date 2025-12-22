@@ -17,10 +17,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { code } = await params;
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 

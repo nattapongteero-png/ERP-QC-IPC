@@ -37,10 +37,10 @@ export async function GET(
       const { id } = await params;
       const workOrderId = parseInt(id);
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const qualityTests = isSqlite ? sqliteQualityTests : mysqlQualityTests;
-      const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+      const usingSqlite = isSqlite();
+      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
+      const qualityTests = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
+      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get work order to find the batch number
       const [workOrder] = await (db as any)
@@ -96,10 +96,10 @@ export async function POST(
       }
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const qualityTests = isSqlite ? sqliteQualityTests : mysqlQualityTests;
-      const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+      const usingSqlite = isSqlite();
+      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
+      const qualityTests = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
+      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Check work order exists
       const [workOrder] = await (db as any)
@@ -141,10 +141,10 @@ export async function POST(
         result: null,
         notes: notes || null,
         createdBy: session.userId,
-        createdAt: isSqlite ? new Date().toISOString() : new Date(),
+        createdAt: usingSqlite ? new Date().toISOString() : new Date(),
       });
 
-      const testId = isSqlite ? result.lastInsertRowid : result[0].insertId;
+      const testId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
 
       // Audit log
       await createAuditLog({

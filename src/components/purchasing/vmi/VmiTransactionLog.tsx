@@ -253,7 +253,6 @@ export function VmiTransactionLog({
         showBorders={true}
         showRowLines={true}
         rowAlternationEnabled={true}
-        hoverStateEnabled={true}
         height={500}
         columnAutoWidth={true}
       >

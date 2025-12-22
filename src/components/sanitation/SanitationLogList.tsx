@@ -122,8 +122,7 @@ export function SanitationLogList({
       showBorders
       columnAutoWidth
       rowAlternationEnabled
-      hoverStateEnabled
-      loadPanel={{ enabled: loading }}
+      loading={loading}
     >
       {columns.map((col) => (
         <DxColumn key={col.dataField} {...col} />

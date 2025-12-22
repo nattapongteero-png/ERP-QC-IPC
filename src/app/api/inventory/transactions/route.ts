@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       await (db as any).update(lots).set({
         quantity: newQuantity,
         warehouseId: newWarehouseId,
-        updatedAt: isSqlite ? now.toISOString() : now,
+        updatedAt: usingSqlite ? now.toISOString() : now,
       }).where(eq(lots.id, lotId));
 
       // Log audit

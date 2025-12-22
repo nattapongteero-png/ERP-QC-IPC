@@ -181,8 +181,8 @@ export async function seedLookupTables(): Promise<{
   categoriesSeeded: number;
   unitsSeeded: number;
 }> {
-  const isSqlite = isSqlite();
-  console.log(`[Lookup Seed] Starting lookup tables seeding for ${isSqlite ? 'SQLite' : 'MySQL'}...`);
+  const usingSqlite = isSqlite();
+  console.log(`[Lookup Seed] Starting lookup tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 
   const categoriesSeeded = await seedItemCategories(isSqlite);
   const unitsSeeded = await seedItemUnits(isSqlite);

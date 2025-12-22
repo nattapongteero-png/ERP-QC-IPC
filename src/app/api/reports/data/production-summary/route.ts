@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { searchParams } = new URL(request.url);
 
     const startDate = searchParams.get('startDate');
@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     // Get the appropriate schema tables
-    const itemsTable = isSqlite ? schema.sqliteItems : schema.mysqlItems;
-    const workOrdersTable = isSqlite ? schema.sqliteWorkOrders : schema.mysqlWorkOrders;
-    const bomTable = isSqlite ? schema.sqliteBOM : schema.mysqlBOM;
+    const itemsTable = usingSqlite ? schema.sqliteItems : schema.mysqlItems;
+    const workOrdersTable = usingSqlite ? schema.sqliteWorkOrders : schema.mysqlWorkOrders;
+    const bomTable = usingSqlite ? schema.sqliteBOM : schema.mysqlBOM;
 
     // Build conditions
     const conditions = [];

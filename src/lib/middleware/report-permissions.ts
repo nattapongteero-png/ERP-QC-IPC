@@ -33,7 +33,7 @@ export async function checkReportPermission(
 
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
 
     const templatesTable = isSqlite
       ? schema.sqliteReportTemplates
@@ -145,7 +145,7 @@ export async function getUserTemplatePermissions(
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
 
     const templatesTable = isSqlite
       ? schema.sqliteReportTemplates

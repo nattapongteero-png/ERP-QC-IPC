@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
       const workOrderId = searchParams.get('workOrderId');
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
-      const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const operations = isSqlite ? sqliteOperations : mysqlOperations;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const users = isSqlite ? sqliteUsers : mysqlUsers;
+      const usingSqlite = isSqlite();
+      const batchRecords = usingSqlite ? sqliteBatchRecords : mysqlBatchRecords;
+      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
+      const operations = usingSqlite ? sqliteOperations : mysqlOperations;
+      const items = usingSqlite ? sqliteItems : mysqlItems;
+      const users = usingSqlite ? sqliteUsers : mysqlUsers;
 
       const conditions = [];
       if (search) {
@@ -164,9 +164,9 @@ export async function POST(request: NextRequest) {
       }
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
-      const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
+      const usingSqlite = isSqlite();
+      const batchRecords = usingSqlite ? sqliteBatchRecords : mysqlBatchRecords;
+      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
 
       // Verify work order exists
       const [wo] = await (db as any)
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         status: 'pending',
       });
 
-      const recordId = isSqlite ? result.lastInsertRowid : result[0].insertId;
+      const recordId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
 
       // Audit log
       await createAuditLog({

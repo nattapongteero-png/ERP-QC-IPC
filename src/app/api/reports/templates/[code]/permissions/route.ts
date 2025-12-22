@@ -17,13 +17,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { code } = await params;
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
-    const permissionsTable = isSqlite
+    const permissionsTable = usingSqlite
       ? schema.sqliteReportPermissions
       : schema.mysqlReportPermissions;
 
@@ -80,14 +80,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { code } = await params;
     const body = await request.json();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
-    const permissionsTable = isSqlite
+    const permissionsTable = usingSqlite
       ? schema.sqliteReportPermissions
       : schema.mysqlReportPermissions;
 
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .insert(permissionsTable)
       .values(insertData);
 
-    const insertedId = isSqlite ? result.lastInsertRowid : result[0].insertId;
+    const insertedId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
 
     return NextResponse.json({
       success: true,
@@ -186,7 +186,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { code } = await params;
     const { searchParams } = new URL(request.url);
     const permissionId = searchParams.get('id');
@@ -198,10 +198,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
-    const permissionsTable = isSqlite
+    const permissionsTable = usingSqlite
       ? schema.sqliteReportPermissions
       : schema.mysqlReportPermissions;
 

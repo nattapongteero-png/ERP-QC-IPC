@@ -16,16 +16,16 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = isSqlite();
+    const usingSqlite = isSqlite();
     const { searchParams } = new URL(request.url);
 
     const warehouseId = searchParams.get('warehouseId');
     const asOfDate = searchParams.get('asOfDate') || new Date().toISOString().split('T')[0];
 
     // Get the appropriate schema tables
-    const itemsTable = isSqlite ? schema.sqliteItems : schema.mysqlItems;
-    const lotsTable = isSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
-    const warehousesTable = isSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
+    const itemsTable = usingSqlite ? schema.sqliteItems : schema.mysqlItems;
+    const lotsTable = usingSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
+    const warehousesTable = usingSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
 
     // Build inventory valuation query
     const conditions = [];

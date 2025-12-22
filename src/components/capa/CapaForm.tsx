@@ -357,7 +357,7 @@ export function CapaForm({
             Due Date <span className="text-destructive">*</span>
           </label>
           <DxDateBox
-            value={formData.dueDate ? new Date(formData.dueDate) : null}
+            value={formData.dueDate || undefined}
             onValueChange={(value) =>
               setFormData((prev) => ({
                 ...prev,

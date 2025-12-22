@@ -9,6 +9,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VmiSalesOrderService } from '@/lib/services/vmi-sales-order.service';
 import { z } from 'zod';
+import { getDb, isSqlite } from '@/lib/db';
+import {
+  sqliteItems,
+  mysqlItems,
+  sqliteVmiSalesOrderLines,
+  mysqlVmiSalesOrderLines,
+} from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 const matchLineSchema = z.object({
   itemId: z.number(),
@@ -50,10 +58,10 @@ export async function POST(
     }
 
     // Check if order is in an editable state
-    if (order.status !== 'pending') {
+    if (order.localStatus !== 'pending') {
       return NextResponse.json({
         success: false,
-        error: `Cannot modify order with status '${order.status}'. Only pending orders can be edited.`,
+        error: `Cannot modify order with status '${order.localStatus}'. Only pending orders can be edited.`,
       }, { status: 400 });
     }
 
@@ -66,29 +74,18 @@ export async function POST(
       }, { status: 404 });
     }
 
-    // Verify item exists
-    const { useSqlite, db, sqliteDb } = await import('@/lib/db');
-    const { eq } = await import('drizzle-orm');
+    // Get database and schema tables
+    const db = await getDb();
+    const usingSqlite = isSqlite();
+    const items = usingSqlite ? sqliteItems : mysqlItems;
+    const vmiSalesOrderLines = usingSqlite ? sqliteVmiSalesOrderLines : mysqlVmiSalesOrderLines;
 
-    let item;
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (isSqlite()) {
-      const { itemsTable } = await import('@/lib/db/sqlite/schema');
-      const items = await sqliteDb
-        .select()
-        .from(itemsTable)
-        .where(eq(itemsTable.id, data.itemId))
-        .limit(1);
-      item = items[0];
-    } else {
-      const { itemsTable } = await import('@/lib/db/mysql/schema');
-      const items = await (db as any)
-        .select()
-        .from(itemsTable)
-        .where(eq(itemsTable.id, data.itemId))
-        .limit(1);
-      item = items[0];
-    }
+    // Verify item exists
+    const [item] = await (db as any)
+      .select()
+      .from(items)
+      .where(eq(items.id, data.itemId))
+      .limit(1);
 
     if (!item) {
       return NextResponse.json({
@@ -98,30 +95,13 @@ export async function POST(
     }
 
     // Update the line with the matched item
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (isSqlite()) {
-      const { vmiSalesOrderLinesTable } = await import('@/lib/db/sqlite/schema');
-      await sqliteDb
-        .update(vmiSalesOrderLinesTable)
-        .set({
-          matchedItemId: data.itemId,
-          matchMethod: 'manual',
-          unitPrice: item.sellingPrice,
-          lineTotal: item.sellingPrice ? item.sellingPrice * line.quantity : null,
-        })
-        .where(eq(vmiSalesOrderLinesTable.id, lineIdNum));
-    } else {
-      const { vmiSalesOrderLinesTable } = await import('@/lib/db/mysql/schema');
-      await (db as any)
-        .update(vmiSalesOrderLinesTable)
-        .set({
-          matchedItemId: data.itemId,
-          matchMethod: 'manual',
-          unitPrice: item.sellingPrice ? String(item.sellingPrice) : null,
-          lineTotal: item.sellingPrice ? String(Number(item.sellingPrice) * line.quantity) : null,
-        })
-        .where(eq(vmiSalesOrderLinesTable.id, lineIdNum));
-    }
+    await (db as any)
+      .update(vmiSalesOrderLines)
+      .set({
+        itemId: data.itemId,
+        matchStatus: 'matched',
+      })
+      .where(eq(vmiSalesOrderLines.id, lineIdNum));
 
     // Get updated order
     const updatedOrder = await service.getOrderById(orderIdNum);
@@ -133,7 +113,7 @@ export async function POST(
         lineId: lineIdNum,
         matchedItemId: data.itemId,
         matchedItemCode: item.code,
-        matchedItemName: item.name,
+        matchedItemName: item.nameTh || item.nameEn,
         message: 'Line matched successfully',
         order: updatedOrder,
       },
@@ -145,7 +125,7 @@ export async function POST(
       return NextResponse.json({
         success: false,
         error: 'Invalid request body',
-        details: error.errors,
+        details: error.issues,
       }, { status: 400 });
     }
 

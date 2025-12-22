@@ -36,14 +36,14 @@ export async function GET(
       const recordId = parseInt(id);
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
-      const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const operations = isSqlite ? sqliteOperations : mysqlOperations;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const users = isSqlite ? sqliteUsers : mysqlUsers;
-      const workOrderMaterials = isSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
-      const qualityTests = isSqlite ? sqliteQualityTests : mysqlQualityTests;
+      const usingSqlite = isSqlite();
+      const batchRecords = usingSqlite ? sqliteBatchRecords : mysqlBatchRecords;
+      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
+      const operations = usingSqlite ? sqliteOperations : mysqlOperations;
+      const items = usingSqlite ? sqliteItems : mysqlItems;
+      const users = usingSqlite ? sqliteUsers : mysqlUsers;
+      const workOrderMaterials = usingSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
+      const qualityTests = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
 
       // Get batch record with joins
       const [record] = await (db as any)
@@ -189,8 +189,8 @@ export async function PUT(
       } = body;
 
       const db = await getDb();
-      const isSqlite = isSqlite();
-      const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
+      const usingSqlite = isSqlite();
+      const batchRecords = usingSqlite ? sqliteBatchRecords : mysqlBatchRecords;
 
       // Check if record exists
       const [existing] = await (db as any)
@@ -204,7 +204,7 @@ export async function PUT(
 
       // Build update object
       const updateData: Record<string, any> = {
-        updatedAt: isSqlite ? new Date().toISOString() : new Date(),
+        updatedAt: usingSqlite ? new Date().toISOString() : new Date(),
       };
 
       if (status !== undefined) updateData.status = status;
@@ -219,15 +219,15 @@ export async function PUT(
       if (performedBy !== undefined) updateData.performedBy = performedBy;
       if (verifiedBy !== undefined) {
         updateData.verifiedBy = verifiedBy;
-        updateData.verifiedAt = isSqlite ? new Date().toISOString() : new Date();
+        updateData.verifiedAt = usingSqlite ? new Date().toISOString() : new Date();
       }
 
       // Auto-set times based on status
       if (status === 'in_progress' && !existing.startTime && !startTime) {
-        updateData.startTime = isSqlite ? new Date().toISOString() : new Date();
+        updateData.startTime = usingSqlite ? new Date().toISOString() : new Date();
       }
       if (status === 'completed' && !existing.endTime && !endTime) {
-        updateData.endTime = isSqlite ? new Date().toISOString() : new Date();
+        updateData.endTime = usingSqlite ? new Date().toISOString() : new Date();
       }
       if (status === 'in_progress' && !existing.performedBy && !performedBy) {
         updateData.performedBy = session.userId;
