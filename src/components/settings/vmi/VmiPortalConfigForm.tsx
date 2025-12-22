@@ -268,276 +268,305 @@ export function VmiPortalConfigForm({
       visible={visible}
       onHiding={handleClose}
       title={isEditMode ? 'Edit VMI Portal Configuration' : 'New VMI Portal Configuration'}
-      width={700}
-      height="auto"
+      fullScreen
       showCloseButton
       dragEnabled={false}
       className="vmi-portal-config-popup"
     >
-      <div className="space-y-6">
-        {/* Error Message */}
-        {error && (
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 text-red-800 border border-red-200">
-            <XCircle className="h-5 w-5 text-red-600" />
-            {error}
-          </div>
-        )}
-
-        {/* Test Result */}
-        {testResult && (
-          <div
-            className={cn(
-              'flex items-center gap-3 p-4 rounded-lg border',
-              testResult.connected
-                ? 'bg-green-50 text-green-800 border-green-200'
-                : 'bg-red-50 text-red-800 border-red-200'
-            )}
-          >
-            {testResult.connected ? (
-              <>
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <div className="font-medium">Connection Successful</div>
-                  <div className="text-sm">
-                    Latency: {testResult.latencyMs}ms
-                    {testResult.vendorInfo && (
-                      <span className="ml-2">
-                        | Vendor: {testResult.vendorInfo.vendorName}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
+      <div className="h-full flex flex-col">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-5xl mx-auto space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 text-red-800 border border-red-200">
                 <XCircle className="h-5 w-5 text-red-600" />
-                <div>
-                  <div className="font-medium">Connection Failed</div>
-                  <div className="text-sm">{testResult.error}</div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Status and Last Sync Info (Edit Mode) */}
-        {isEditMode && (
-          <Card elevation="flat">
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <ConnectionStatus />
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  {portal.lastOrdersPollAt && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      Last Poll: {new Date(portal.lastOrdersPollAt).toLocaleString()}
-                    </div>
-                  )}
-                </div>
+                {error}
               </div>
-              {portal.lastErrorMessage && (
-                <div className="mt-2 text-sm text-red-600">{portal.lastErrorMessage}</div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Form */}
-        <DxForm
-          formData={formData}
-          onFormDataChange={handleFormDataChange}
-          colCount={2}
-          labelLocation="top"
-          validationGroup="vmiPortalForm"
-          formRef={formRef}
-        >
-          {/* Basic Settings */}
-          <DxFormGroup caption="Portal Settings" colSpan={2} colCount={2}>
-            <DxFormItem
-              dataField="name"
-              label={{ text: 'Portal Name' }}
-              isRequired
-              editorOptions={{
-                placeholder: 'e.g., Siriraj VMI Portal',
-              }}
-              validationRules={[
-                { type: 'required', message: 'Portal name is required' },
-                { type: 'stringLength', max: 100, message: 'Portal name must be at most 100 characters' },
-              ]}
-            />
-            <DxFormItem
-              dataField="vendorId"
-              label={{ text: 'Vendor ID' }}
-              isRequired
-              editorOptions={{
-                placeholder: 'Your vendor ID in this portal',
-              }}
-              validationRules={[
-                { type: 'required', message: 'Vendor ID is required' },
-                { type: 'stringLength', max: 50, message: 'Vendor ID must be at most 50 characters' },
-              ]}
-            />
-            <DxFormItem
-              dataField="portalUrl"
-              colSpan={2}
-              label={{ text: 'Portal URL' }}
-              isRequired
-              editorOptions={{
-                placeholder: 'https://vmi-portal.example.com',
-              }}
-              validationRules={[
-                { type: 'required', message: 'Portal URL is required' },
-                {
-                  type: 'pattern',
-                  pattern: /^https:\/\/.+/,
-                  message: 'Portal URL must start with https://',
-                },
-              ]}
-            />
-            <DxFormItem
-              dataField="apiKey"
-              colSpan={2}
-              label={{ text: isEditMode ? 'API Key (leave blank to keep existing)' : 'API Key' }}
-              isRequired={!isEditMode}
-              editorType="dxTextBox"
-              editorOptions={{
-                mode: 'password',
-                placeholder: isEditMode ? '••••••••••••••••' : 'Enter API key',
-              }}
-              validationRules={
-                isEditMode
-                  ? []
-                  : [
-                      { type: 'required', message: 'API key is required' },
-                      { type: 'stringLength', max: 500, message: 'API key must be at most 500 characters' },
-                    ]
-              }
-            />
-            <DxFormItem
-              dataField="isEnabled"
-              label={{ text: 'Enabled' }}
-              editorType="dxCheckBox"
-              editorOptions={{
-                text: 'Enable this portal connection',
-              }}
-            />
-          </DxFormGroup>
-
-          {/* Sync Settings */}
-          <DxFormGroup caption="Sync Settings" colSpan={2} colCount={2}>
-            <DxFormItem
-              dataField="syncInventoryEnabled"
-              label={{ text: 'Inventory Sync' }}
-              editorType="dxCheckBox"
-              editorOptions={{
-                text: 'Enable inventory synchronization',
-              }}
-            />
-            <DxFormItem
-              dataField="syncInventoryInterval"
-              label={{ text: 'Inventory Sync Interval (minutes)' }}
-              editorType="dxNumberBox"
-              editorOptions={{
-                min: 5,
-                max: 1440,
-                step: 5,
-                showSpinButtons: true,
-              }}
-              validationRules={[
-                { type: 'range', min: 5, max: 1440, message: 'Interval must be between 5 and 1440 minutes' },
-              ]}
-            />
-            <DxFormItem
-              dataField="syncItemsEnabled"
-              label={{ text: 'Items Sync' }}
-              editorType="dxCheckBox"
-              editorOptions={{
-                text: 'Enable items catalog synchronization',
-              }}
-            />
-            <DxFormItem
-              dataField="syncItemsInterval"
-              label={{ text: 'Items Sync Interval (minutes)' }}
-              editorType="dxNumberBox"
-              editorOptions={{
-                min: 5,
-                max: 1440,
-                step: 5,
-                showSpinButtons: true,
-              }}
-            />
-            <DxFormItem
-              dataField="syncPricesEnabled"
-              label={{ text: 'Prices Sync' }}
-              editorType="dxCheckBox"
-              editorOptions={{
-                text: 'Enable price synchronization',
-              }}
-            />
-            <DxFormItem
-              dataField="syncPricesInterval"
-              label={{ text: 'Prices Sync Interval (minutes)' }}
-              editorType="dxNumberBox"
-              editorOptions={{
-                min: 5,
-                max: 1440,
-                step: 5,
-                showSpinButtons: true,
-              }}
-            />
-            <DxFormItem
-              dataField="orderPollingEnabled"
-              label={{ text: 'Order Polling' }}
-              editorType="dxCheckBox"
-              editorOptions={{
-                text: 'Enable order polling',
-              }}
-            />
-            <DxFormItem
-              dataField="orderPollingInterval"
-              label={{ text: 'Order Polling Interval (minutes)' }}
-              editorType="dxNumberBox"
-              editorOptions={{
-                min: 5,
-                max: 1440,
-                step: 5,
-                showSpinButtons: true,
-              }}
-            />
-          </DxFormGroup>
-        </DxForm>
-
-        {/* Actions */}
-        <div className="flex justify-between pt-4 border-t">
-          <div>
-            {isEditMode && (
-              <DxButton
-                text={isTesting ? 'Testing...' : 'Test Connection'}
-                icon={isTesting ? undefined : 'wifi'}
-                type="default"
-                onClick={handleTestConnection}
-                disabled={isTesting || isSaving}
-              >
-                {isTesting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              </DxButton>
             )}
+
+            {/* Test Result */}
+            {testResult && (
+              <div
+                className={cn(
+                  'flex items-center gap-3 p-4 rounded-lg border',
+                  testResult.connected
+                    ? 'bg-green-50 text-green-800 border-green-200'
+                    : 'bg-red-50 text-red-800 border-red-200'
+                )}
+              >
+                {testResult.connected ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <div className="font-medium">Connection Successful</div>
+                      <div className="text-sm">
+                        Latency: {testResult.latencyMs}ms
+                        {testResult.vendorInfo && (
+                          <span className="ml-2">
+                            | Vendor: {testResult.vendorInfo.vendorName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-5 w-5 text-red-600" />
+                    <div>
+                      <div className="font-medium">Connection Failed</div>
+                      <div className="text-sm">{testResult.error}</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Status and Last Sync Info (Edit Mode) */}
+            {isEditMode && (
+              <Card elevation="flat">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <ConnectionStatus />
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      {portal.lastOrdersPollAt && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          Last Poll: {new Date(portal.lastOrdersPollAt).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {portal.lastErrorMessage && (
+                    <div className="mt-2 text-sm text-red-600">{portal.lastErrorMessage}</div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Form - Two Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column - Portal Settings */}
+              <Card elevation="raised">
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Portal Settings</h3>
+                  <DxForm
+                    formData={formData}
+                    onFormDataChange={handleFormDataChange}
+                    colCount={1}
+                    labelLocation="top"
+                    validationGroup="vmiPortalForm"
+                    formRef={formRef}
+                  >
+                    <DxFormItem
+                      dataField="name"
+                      label={{ text: 'Portal Name' }}
+                      isRequired
+                      editorOptions={{
+                        placeholder: 'e.g., Siriraj VMI Portal',
+                      }}
+                      validationRules={[
+                        { type: 'required', message: 'Portal name is required' },
+                        { type: 'stringLength', max: 100, message: 'Portal name must be at most 100 characters' },
+                      ]}
+                    />
+                    <DxFormItem
+                      dataField="vendorId"
+                      label={{ text: 'Vendor ID' }}
+                      isRequired
+                      editorOptions={{
+                        placeholder: 'Your vendor ID in this portal',
+                      }}
+                      validationRules={[
+                        { type: 'required', message: 'Vendor ID is required' },
+                        { type: 'stringLength', max: 50, message: 'Vendor ID must be at most 50 characters' },
+                      ]}
+                    />
+                    <DxFormItem
+                      dataField="portalUrl"
+                      label={{ text: 'Portal URL' }}
+                      isRequired
+                      editorOptions={{
+                        placeholder: 'https://vmi-portal.example.com',
+                      }}
+                      validationRules={[
+                        { type: 'required', message: 'Portal URL is required' },
+                        {
+                          type: 'pattern',
+                          pattern: /^https:\/\/.+/,
+                          message: 'Portal URL must start with https://',
+                        },
+                      ]}
+                    />
+                    <DxFormItem
+                      dataField="apiKey"
+                      label={{ text: isEditMode ? 'API Key (leave blank to keep existing)' : 'API Key' }}
+                      isRequired={!isEditMode}
+                      editorType="dxTextBox"
+                      editorOptions={{
+                        mode: 'password',
+                        placeholder: isEditMode ? '••••••••••••••••' : 'Enter API key',
+                      }}
+                      validationRules={
+                        isEditMode
+                          ? []
+                          : [
+                              { type: 'required', message: 'API key is required' },
+                              { type: 'stringLength', max: 500, message: 'API key must be at most 500 characters' },
+                            ]
+                      }
+                    />
+                    <DxFormItem
+                      dataField="isEnabled"
+                      label={{ text: 'Status' }}
+                      editorType="dxCheckBox"
+                      editorOptions={{
+                        text: 'Enable this portal connection',
+                      }}
+                    />
+                  </DxForm>
+                </CardContent>
+              </Card>
+
+              {/* Right Column - Sync Settings */}
+              <Card elevation="raised">
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Sync Settings</h3>
+                  <DxForm
+                    formData={formData}
+                    onFormDataChange={handleFormDataChange}
+                    colCount={2}
+                    labelLocation="top"
+                  >
+                    <DxFormItem
+                      dataField="syncInventoryEnabled"
+                      label={{ text: 'Inventory Sync' }}
+                      editorType="dxCheckBox"
+                      editorOptions={{
+                        text: 'Enable',
+                      }}
+                    />
+                    <DxFormItem
+                      dataField="syncInventoryInterval"
+                      label={{ text: 'Interval (minutes)' }}
+                      editorType="dxNumberBox"
+                      editorOptions={{
+                        min: 5,
+                        max: 1440,
+                        step: 5,
+                        showSpinButtons: true,
+                      }}
+                      validationRules={[
+                        { type: 'range', min: 5, max: 1440, message: 'Interval must be between 5 and 1440 minutes' },
+                      ]}
+                    />
+                    <DxFormItem
+                      dataField="syncItemsEnabled"
+                      label={{ text: 'Items Sync' }}
+                      editorType="dxCheckBox"
+                      editorOptions={{
+                        text: 'Enable',
+                      }}
+                    />
+                    <DxFormItem
+                      dataField="syncItemsInterval"
+                      label={{ text: 'Interval (minutes)' }}
+                      editorType="dxNumberBox"
+                      editorOptions={{
+                        min: 5,
+                        max: 1440,
+                        step: 5,
+                        showSpinButtons: true,
+                      }}
+                    />
+                    <DxFormItem
+                      dataField="syncPricesEnabled"
+                      label={{ text: 'Prices Sync' }}
+                      editorType="dxCheckBox"
+                      editorOptions={{
+                        text: 'Enable',
+                      }}
+                    />
+                    <DxFormItem
+                      dataField="syncPricesInterval"
+                      label={{ text: 'Interval (minutes)' }}
+                      editorType="dxNumberBox"
+                      editorOptions={{
+                        min: 5,
+                        max: 1440,
+                        step: 5,
+                        showSpinButtons: true,
+                      }}
+                    />
+                    <DxFormItem
+                      dataField="orderPollingEnabled"
+                      label={{ text: 'Order Polling' }}
+                      editorType="dxCheckBox"
+                      editorOptions={{
+                        text: 'Enable',
+                      }}
+                    />
+                    <DxFormItem
+                      dataField="orderPollingInterval"
+                      label={{ text: 'Interval (minutes)' }}
+                      editorType="dxNumberBox"
+                      editorOptions={{
+                        min: 5,
+                        max: 1440,
+                        step: 5,
+                        showSpinButtons: true,
+                      }}
+                    />
+                  </DxForm>
+
+                  {/* Sync Interval Help */}
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Sync Interval Guide</h4>
+                    <ul className="text-xs text-blue-700 space-y-1">
+                      <li><strong>5-15 min:</strong> Real-time sync (high API usage)</li>
+                      <li><strong>30-60 min:</strong> Frequent updates (recommended for inventory)</li>
+                      <li><strong>1440 min (24h):</strong> Daily sync (recommended for items/prices)</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <DxButton
-              text="Cancel"
-              type="normal"
-              onClick={handleClose}
-              disabled={isSaving}
-            />
-            <DxButton
-              text={isSaving ? 'Saving...' : 'Save'}
-              icon={isSaving ? undefined : 'save'}
-              type="success"
-              onClick={handleSave}
-              disabled={isSaving || isTesting}
-            >
-              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            </DxButton>
+        </div>
+
+        {/* Fixed Footer Actions */}
+        <div className="flex-shrink-0 border-t bg-gray-50 px-6 py-4">
+          <div className="max-w-5xl mx-auto flex justify-between">
+            <div>
+              {isEditMode && (
+                <DxButton
+                  text={isTesting ? 'Testing...' : 'Test Connection'}
+                  icon={isTesting ? undefined : 'wifi'}
+                  type="default"
+                  onClick={handleTestConnection}
+                  disabled={isTesting || isSaving}
+                >
+                  {isTesting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                </DxButton>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <DxButton
+                text="Cancel"
+                type="normal"
+                onClick={handleClose}
+                disabled={isSaving}
+              />
+              <DxButton
+                text={isSaving ? 'Saving...' : 'Save Configuration'}
+                icon={isSaving ? undefined : 'save'}
+                type="success"
+                onClick={handleSave}
+                disabled={isSaving || isTesting}
+              >
+                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              </DxButton>
+            </div>
           </div>
         </div>
       </div>
