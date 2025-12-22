@@ -38,6 +38,16 @@ import {
   History,
   Share2,
   RefreshCw,
+  FileSearch,
+  Target,
+  MessageSquare,
+  Undo2,
+  Droplets,
+  FlaskConical,
+  Search,
+  Briefcase,
+  BarChart3,
+  Bug,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -88,6 +98,23 @@ const navigation: NavItem[] = [
       { name: 'Tests', href: '/quality/tests', icon: TestTube },
       { name: 'Specifications', href: '/quality/specs', icon: FileText },
       { name: 'Deviations', href: '/quality/deviations', icon: AlertCircle },
+    ],
+  },
+  {
+    name: 'GMP Compliance',
+    href: '/gmp',
+    icon: Shield,
+    roles: ['admin', 'manager', 'qc', 'qa', 'production'],
+    children: [
+      { name: 'Documents', href: '/gmp/documents', icon: FileSearch },
+      { name: 'CAPA', href: '/gmp/capa', icon: Target },
+      { name: 'Complaints', href: '/gmp/complaints', icon: MessageSquare },
+      { name: 'Recalls', href: '/gmp/recalls', icon: Undo2 },
+      { name: 'Sanitation', href: '/gmp/sanitation', icon: Droplets },
+      { name: 'Stability', href: '/gmp/stability', icon: FlaskConical },
+      { name: 'Audits', href: '/gmp/audits', icon: Search },
+      { name: 'Contracts', href: '/gmp/contracts', icon: Briefcase },
+      { name: 'PQR', href: '/gmp/pqr', icon: BarChart3 },
     ],
   },
   {

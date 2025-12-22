@@ -75,8 +75,8 @@
 
 ### Seed Data
 
-- [ ] T042 Seed `document_types` with SOP, POL, FORM, WI, SPEC records
-- [ ] T043 Add navigation menu entries for new modules in layout
+- [x] T042 Seed `document_types` with SOP, POL, FORM, WI, SPEC records
+- [x] T043 Add navigation menu entries for new modules in layout
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
