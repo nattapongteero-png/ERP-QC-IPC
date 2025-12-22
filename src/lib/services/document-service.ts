@@ -23,6 +23,19 @@ import {
   mysqlHROrgUnits,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
+
+/**
+ * Format date for database insert/update
+ * SQLite uses ISO string, MySQL uses YYYY-MM-DD HH:MM:SS format
+ */
+function formatDateForDb(date: Date = new Date()): string {
+  if (useSqlite()) {
+    return date.toISOString();
+  }
+  // MySQL datetime format: YYYY-MM-DD HH:MM:SS
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 import type {
   DocumentStatus,
   DocumentVersionStatus,
@@ -193,7 +206,7 @@ export async function createDocument(
   }
 
   // Create document
-  const now = new Date();
+  const nowStr = formatDateForDb();
   const insertValues = {
     documentNumber,
     title: data.title,
@@ -202,8 +215,8 @@ export async function createDocument(
     status: 'draft',
     retentionYears,
     createdBy: userId,
-    createdAt: useSqlite() ? now.toISOString() : now,
-    updatedAt: useSqlite() ? now.toISOString() : now,
+    createdAt: nowStr,
+    updatedAt: nowStr,
   };
 
   let newDocId: number;
@@ -472,7 +485,7 @@ export async function updateDocument(
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date().toISOString(),
+    updatedAt: formatDateForDb(),
   };
 
   if (data.title !== undefined) updateData.title = data.title;
@@ -538,7 +551,7 @@ export async function createVersion(
   }
 
   // Create version
-  const now = new Date();
+  const nowStr = formatDateForDb();
   const versionInsertValues = {
     documentId: data.documentId,
     versionNumber: newVersionNumber,
@@ -547,7 +560,7 @@ export async function createVersion(
     changeDescription: data.changeDescription || null,
     status: 'draft',
     createdBy: userId,
-    createdAt: useSqlite() ? now.toISOString() : now,
+    createdAt: nowStr,
   };
 
   let newVersionId: number;
@@ -572,7 +585,7 @@ export async function createVersion(
     .update(documents)
     .set({
       currentVersionId: newVersion.id,
-      updatedAt: new Date().toISOString(),
+      updatedAt: formatDateForDb(),
     })
     .where(eq(documents.id, data.documentId));
 
@@ -844,7 +857,7 @@ export async function processApproval(
         .set({
           status: 'active',
           currentVersionId: approval.versionId,
-          updatedAt: new Date().toISOString(),
+          updatedAt: formatDateForDb(),
         })
         .where(eq(documents.id, version.documentId));
     }
@@ -939,7 +952,7 @@ export async function markDocumentObsolete(
     .update(documents)
     .set({
       status: 'obsolete',
-      updatedAt: new Date().toISOString(),
+      updatedAt: formatDateForDb(),
     })
     .where(eq(documents.id, documentId));
 
