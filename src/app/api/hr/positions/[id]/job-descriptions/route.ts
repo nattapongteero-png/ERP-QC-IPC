@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         if (currentOnly) {
           const current = await getCurrentJobDescription(positionId);
-          return successResponse({ data: current ? [current] : [] });
+          return successResponse(current ? [current] : []);
         }
 
         const jobDescriptions = await getJobDescriptions({
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           status: status as 'draft' | 'pending_approval' | 'approved' | 'obsolete' | undefined,
         });
 
-        return successResponse({ data: jobDescriptions });
+        return successResponse(jobDescriptions);
       } catch (error) {
         return serverErrorResponse(error);
       }

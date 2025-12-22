@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
           search: search || undefined,
         });
 
-        return successResponse({ data: courses });
+        return successResponse(courses);
       } catch (error) {
         return serverErrorResponse(error);
       }

@@ -2076,6 +2076,513 @@ export const sqliteVmiSalesOrderLines = sqliteTable('vmi_sales_order_lines', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// ============================================
+// GMP Compliance Gap Analysis (009) - Document Control (หมวด 5)
+// ============================================
+
+// Document Types (Master Data)
+export const sqliteDocumentTypes = sqliteTable('document_types', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(), // SOP, POL, FORM, WI, SPEC
+  name: text('name').notNull(),
+  prefix: text('prefix'), // Document number prefix
+  approvalChain: text('approval_chain'), // JSON array of required approver roles
+  reviewPeriodMonths: integer('review_period_months'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Documents
+export const sqliteDocuments = sqliteTable('documents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  documentNumber: text('document_number').notNull().unique(),
+  title: text('title').notNull(),
+  typeId: integer('type_id').references(() => sqliteDocumentTypes.id),
+  departmentId: integer('department_id').references(() => sqliteHROrgUnits.id),
+  currentVersionId: integer('current_version_id'), // Will be FK to document_versions
+  status: text('status').notNull().default('draft'), // draft, active, obsolete, archived
+  retentionYears: integer('retention_years').notNull().default(7),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Document Versions
+export const sqliteDocumentVersions = sqliteTable('document_versions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  documentId: integer('document_id').notNull().references(() => sqliteDocuments.id),
+  versionNumber: text('version_number').notNull(), // e.g., "1.0", "1.1", "2.0"
+  content: text('content'), // Document content (markdown/HTML)
+  filePath: text('file_path'), // Attached file path
+  changeDescription: text('change_description'), // What changed in this version
+  status: text('status').notNull().default('draft'), // draft, pending_approval, approved, rejected, superseded
+  effectiveDate: text('effective_date'), // When this version becomes active
+  obsoleteDate: text('obsolete_date'), // When this version became obsolete
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Document Approvals
+export const sqliteDocumentApprovals = sqliteTable('document_approvals', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  versionId: integer('version_id').notNull().references(() => sqliteDocumentVersions.id),
+  approverId: integer('approver_id').references(() => sqliteUsers.id),
+  approvalRole: text('approval_role'), // author, reviewer, approver
+  status: text('status').notNull().default('pending'), // pending, approved, rejected
+  comments: text('comments'),
+  signedAt: text('signed_at'),
+  delegatedFrom: integer('delegated_from').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - CAPA Management (หมวด 1)
+// ============================================
+
+// CAPA (Corrective and Preventive Actions)
+export const sqliteCapa = sqliteTable('capa', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  capaNumber: text('capa_number').notNull().unique(), // CAPA-YYMM-####
+  title: text('title').notNull(),
+  sourceType: text('source_type').notNull(), // deviation, complaint, audit_finding, other
+  sourceId: integer('source_id'), // FK to source table
+  deviationId: integer('deviation_id').references(() => sqliteDeviations.id),
+  complaintId: integer('complaint_id'), // Will reference complaints table
+  auditFindingId: integer('audit_finding_id'), // Will reference audit_findings table
+  type: text('type').notNull(), // corrective, preventive, both
+  priority: text('priority').notNull().default('medium'), // low, medium, high, critical
+  status: text('status').notNull().default('open'), // open, investigation, action_pending, verification, closed, cancelled
+  rootCauseAnalysis: text('root_cause_analysis'),
+  rootCauseCategory: text('root_cause_category'), // 5-why category
+  dueDate: text('due_date'),
+  closedDate: text('closed_date'),
+  ownerId: integer('owner_id').references(() => sqliteUsers.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// CAPA Actions
+export const sqliteCapaActions = sqliteTable('capa_actions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  capaId: integer('capa_id').notNull().references(() => sqliteCapa.id),
+  actionNumber: integer('action_number').notNull(),
+  description: text('description').notNull(),
+  actionType: text('action_type').notNull(), // immediate, corrective, preventive
+  assigneeId: integer('assignee_id').references(() => sqliteUsers.id),
+  dueDate: text('due_date'),
+  status: text('status').notNull().default('pending'), // pending, in_progress, completed, overdue
+  completionNotes: text('completion_notes'),
+  completedAt: text('completed_at'),
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// CAPA Effectiveness
+export const sqliteCapaEffectiveness = sqliteTable('capa_effectiveness', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  capaId: integer('capa_id').notNull().references(() => sqliteCapa.id),
+  checkNumber: integer('check_number').notNull(),
+  checkDate: text('check_date'),
+  verifierId: integer('verifier_id').references(() => sqliteUsers.id),
+  criteria: text('criteria'),
+  result: text('result'), // effective, not_effective, partial
+  evidence: text('evidence'),
+  followUpRequired: integer('follow_up_required', { mode: 'boolean' }).default(false),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - Change Control (หมวด 1)
+// ============================================
+
+// Change Requests
+export const sqliteChangeRequests = sqliteTable('change_requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  changeNumber: text('change_number').notNull().unique(), // CC-YYMM-####
+  title: text('title').notNull(),
+  changeType: text('change_type').notNull(), // process, equipment, document, supplier, formula, other
+  description: text('description'),
+  justification: text('justification'),
+  impactAssessment: text('impact_assessment'),
+  riskAssessment: text('risk_assessment'),
+  status: text('status').notNull().default('draft'), // draft, pending_review, approved, rejected, implemented, closed
+  priority: text('priority').notNull().default('medium'), // low, medium, high, urgent
+  requesterId: integer('requester_id').references(() => sqliteUsers.id),
+  ownerId: integer('owner_id').references(() => sqliteUsers.id),
+  targetDate: text('target_date'),
+  implementedDate: text('implemented_date'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Change Approvals
+export const sqliteChangeApprovals = sqliteTable('change_approvals', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  changeId: integer('change_id').notNull().references(() => sqliteChangeRequests.id),
+  approverId: integer('approver_id').references(() => sqliteUsers.id),
+  role: text('role'), // qa, production, regulatory, management
+  status: text('status').notNull().default('pending'), // pending, approved, rejected
+  comments: text('comments'),
+  signedAt: text('signed_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - Complaints (หมวด 9)
+// ============================================
+
+// Complaints
+export const sqliteComplaints = sqliteTable('complaints', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  complaintNumber: text('complaint_number').notNull().unique(), // COMP-YYMM-####
+  receivedDate: text('received_date').notNull(),
+  source: text('source').notNull(), // customer, distributor, regulatory, internal
+  customerName: text('customer_name'),
+  customerContact: text('customer_contact'),
+  productId: integer('product_id').references(() => sqliteItems.id),
+  lotId: integer('lot_id').references(() => sqliteInventoryLots.id),
+  category: text('category').notNull(), // quality, efficacy, safety, packaging, labeling, other
+  severity: text('severity').notNull(), // minor, major, critical
+  description: text('description').notNull(),
+  status: text('status').notNull().default('received'), // received, under_investigation, resolved, closed
+  regulatoryReportRequired: integer('regulatory_report_required', { mode: 'boolean' }).default(false),
+  regulatoryReportDate: text('regulatory_report_date'),
+  capaId: integer('capa_id').references(() => sqliteCapa.id),
+  recallRequired: integer('recall_required', { mode: 'boolean' }).default(false),
+  recallId: integer('recall_id'), // Will reference recalls table
+  closedDate: text('closed_date'),
+  closedBy: integer('closed_by').references(() => sqliteUsers.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Complaint Investigations
+export const sqliteComplaintInvestigations = sqliteTable('complaint_investigations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  complaintId: integer('complaint_id').notNull().references(() => sqliteComplaints.id),
+  investigatorId: integer('investigator_id').references(() => sqliteUsers.id),
+  startDate: text('start_date'),
+  completionDate: text('completion_date'),
+  batchRecordReview: text('batch_record_review'),
+  retainSampleTest: text('retain_sample_test'),
+  rootCause: text('root_cause'),
+  conclusion: text('conclusion'),
+  recommendation: text('recommendation'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - Recalls (หมวด 9)
+// ============================================
+
+// Recalls
+export const sqliteRecalls = sqliteTable('recalls', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  recallNumber: text('recall_number').notNull().unique(), // RCL-YYMM-####
+  initiatedDate: text('initiated_date').notNull(),
+  recallClass: text('recall_class').notNull(), // class_i, class_ii, class_iii
+  reason: text('reason').notNull(),
+  productId: integer('product_id').references(() => sqliteItems.id),
+  affectedLots: text('affected_lots'), // JSON array of lot IDs
+  status: text('status').notNull().default('initiated'), // initiated, in_progress, completed, closed
+  distributedQuantity: real('distributed_quantity').default(0),
+  returnedQuantity: real('returned_quantity').default(0),
+  reconciledQuantity: real('reconciled_quantity').default(0),
+  effectivenessRate: real('effectiveness_rate').default(0),
+  regulatoryReportDate: text('regulatory_report_date'),
+  closureDate: text('closure_date'),
+  coordinatorId: integer('coordinator_id').references(() => sqliteUsers.id),
+  complaintId: integer('complaint_id').references(() => sqliteComplaints.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Recall Notifications
+export const sqliteRecallNotifications = sqliteTable('recall_notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  recallId: integer('recall_id').notNull().references(() => sqliteRecalls.id),
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  customerName: text('customer_name'),
+  contactInfo: text('contact_info'),
+  quantityDistributed: real('quantity_distributed').default(0),
+  notificationMethod: text('notification_method'), // phone, email, fax, courier
+  notifiedAt: text('notified_at'),
+  acknowledgedAt: text('acknowledged_at'),
+  responseStatus: text('response_status').default('pending'), // pending, acknowledged, returning, returned, unresponsive
+  quantityReturned: real('quantity_returned').default(0),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Recall Reconciliation
+export const sqliteRecallReconciliation = sqliteTable('recall_reconciliation', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  recallId: integer('recall_id').notNull().references(() => sqliteRecalls.id),
+  lotId: integer('lot_id').references(() => sqliteInventoryLots.id),
+  distributedQty: real('distributed_qty').default(0),
+  returnedQty: real('returned_qty').default(0),
+  destroyedQty: real('destroyed_qty').default(0),
+  accountedQty: real('accounted_qty').default(0),
+  unaccountedQty: real('unaccounted_qty').default(0),
+  reconciliationNotes: text('reconciliation_notes'),
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - Sanitation (หมวด 4)
+// ============================================
+
+// Sanitation Schedules
+export const sqliteSanitationSchedules = sqliteTable('sanitation_schedules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  areaType: text('area_type').notNull(), // production, warehouse, lab, office
+  areaId: integer('area_id'),
+  equipmentId: integer('equipment_id'),
+  frequency: text('frequency').notNull(), // daily, weekly, monthly, quarterly
+  dayOfWeek: integer('day_of_week'), // 0-6 for weekly
+  dayOfMonth: integer('day_of_month'), // 1-31 for monthly
+  method: text('method'),
+  verificationRequired: integer('verification_required', { mode: 'boolean' }).default(true),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Sanitation Logs
+export const sqliteSanitationLogs = sqliteTable('sanitation_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  scheduleId: integer('schedule_id').references(() => sqliteSanitationSchedules.id),
+  scheduledDate: text('scheduled_date'),
+  performedDate: text('performed_date'),
+  performedBy: integer('performed_by').references(() => sqliteUsers.id),
+  method: text('method'),
+  chemicalsUsed: text('chemicals_used'),
+  status: text('status').notNull(), // completed, partial, missed
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
+  deviationId: integer('deviation_id').references(() => sqliteDeviations.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Pest Control Logs
+export const sqlitePestControlLogs = sqliteTable('pest_control_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  serviceDate: text('service_date').notNull(),
+  contractorName: text('contractor_name'),
+  technicianName: text('technician_name'),
+  serviceType: text('service_type').notNull(), // routine, emergency, follow_up
+  areasServiced: text('areas_serviced'), // JSON array of areas
+  treatmentMethod: text('treatment_method'),
+  findingsCount: integer('findings_count').default(0),
+  findings: text('findings'),
+  recommendations: text('recommendations'),
+  followUpRequired: integer('follow_up_required', { mode: 'boolean' }).default(false),
+  followUpDate: text('follow_up_date'),
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - Stability Program (หมวด 7.4)
+// ============================================
+
+// Stability Protocols
+export const sqliteStabilityProtocols = sqliteTable('stability_protocols', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  protocolNumber: text('protocol_number').notNull().unique(), // STAB-PROT-###
+  name: text('name').notNull(),
+  productId: integer('product_id').references(() => sqliteItems.id),
+  studyType: text('study_type').notNull(), // long_term, accelerated, intermediate
+  storageCondition: text('storage_condition'), // e.g., "25°C/60%RH"
+  timepoints: text('timepoints'), // JSON array of months
+  testsRequired: text('tests_required'), // JSON array of test spec IDs
+  status: text('status').notNull().default('draft'), // draft, approved, obsolete
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Stability Studies
+export const sqliteStabilityStudies = sqliteTable('stability_studies', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  studyNumber: text('study_number').notNull().unique(), // STAB-YYMM-####
+  protocolId: integer('protocol_id').references(() => sqliteStabilityProtocols.id),
+  lotId: integer('lot_id').references(() => sqliteInventoryLots.id),
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date'),
+  status: text('status').notNull().default('active'), // active, completed, cancelled, on_hold
+  chamberLocation: text('chamber_location'),
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Stability Samples
+export const sqliteStabilitySamples = sqliteTable('stability_samples', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  studyId: integer('study_id').notNull().references(() => sqliteStabilityStudies.id),
+  sampleNumber: text('sample_number'),
+  timepoint: integer('timepoint').notNull(), // Months from study start
+  scheduledDate: text('scheduled_date'),
+  actualDate: text('actual_date'),
+  status: text('status').notNull().default('pending'), // pending, sampled, tested, skipped
+  qualityTestId: integer('quality_test_id').references(() => sqliteQualityTests.id),
+  oosDetected: integer('oos_detected', { mode: 'boolean' }).default(false),
+  oosInvestigationId: integer('oos_investigation_id').references(() => sqliteDeviations.id),
+  sampledBy: integer('sampled_by').references(() => sqliteUsers.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Stability Trends
+export const sqliteStabilityTrends = sqliteTable('stability_trends', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  studyId: integer('study_id').notNull().references(() => sqliteStabilityStudies.id),
+  testParameter: text('test_parameter'),
+  dataPoints: text('data_points'), // JSON array of {month, value}
+  trendSlope: real('trend_slope'),
+  projectedFailureMonth: integer('projected_failure_month'),
+  lastUpdated: text('last_updated').default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - Internal Audit (หมวด 10)
+// ============================================
+
+// Audit Plans
+export const sqliteAuditPlans = sqliteTable('audit_plans', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  planYear: integer('plan_year').notNull(),
+  name: text('name'),
+  status: text('status').notNull().default('draft'), // draft, approved, in_progress, completed
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Audits
+export const sqliteAudits = sqliteTable('audits', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  auditNumber: text('audit_number').notNull().unique(), // AUD-YYMM-####
+  planId: integer('plan_id').references(() => sqliteAuditPlans.id),
+  auditType: text('audit_type').notNull(), // internal, external, regulatory
+  scope: text('scope'),
+  gmpChapters: text('gmp_chapters'), // JSON array of หมวด (1-10)
+  scheduledDate: text('scheduled_date'),
+  actualDate: text('actual_date'),
+  leadAuditorId: integer('lead_auditor_id').references(() => sqliteUsers.id),
+  auditTeam: text('audit_team'), // JSON array of user IDs
+  status: text('status').notNull().default('scheduled'), // scheduled, in_progress, completed, cancelled
+  summary: text('summary'),
+  reportPath: text('report_path'),
+  closedDate: text('closed_date'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Audit Findings
+export const sqliteAuditFindings = sqliteTable('audit_findings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  auditId: integer('audit_id').notNull().references(() => sqliteAudits.id),
+  findingNumber: text('finding_number'), // F-001, F-002 within audit
+  category: text('category').notNull(), // observation, minor, major, critical
+  gmpChapter: integer('gmp_chapter'), // หมวด reference (1-10)
+  gmpRequirement: text('gmp_requirement'),
+  description: text('description').notNull(),
+  evidence: text('evidence'),
+  areaOwner: integer('area_owner').references(() => sqliteUsers.id),
+  capaRequired: integer('capa_required', { mode: 'boolean' }).default(false),
+  capaId: integer('capa_id').references(() => sqliteCapa.id),
+  status: text('status').notNull().default('open'), // open, capa_assigned, closed
+  closedDate: text('closed_date'),
+  closedBy: integer('closed_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - Contracts (หมวด 8)
+// ============================================
+
+// Manufacturing Contracts
+export const sqliteManufacturingContracts = sqliteTable('manufacturing_contracts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  contractNumber: text('contract_number').notNull().unique(),
+  contractorName: text('contractor_name').notNull(),
+  contractorType: text('contractor_type').notNull(), // manufacturer, laboratory, both
+  scope: text('scope'),
+  effectiveDate: text('effective_date'),
+  expirationDate: text('expiration_date'),
+  status: text('status').notNull().default('active'), // active, expired, terminated
+  qualityAgreementPath: text('quality_agreement_path'),
+  lastAuditDate: text('last_audit_date'),
+  nextAuditDue: text('next_audit_due'),
+  contactPerson: text('contact_person'),
+  contactEmail: text('contact_email'),
+  contactPhone: text('contact_phone'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Contract Batches
+export const sqliteContractBatches = sqliteTable('contract_batches', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  contractId: integer('contract_id').notNull().references(() => sqliteManufacturingContracts.id),
+  lotId: integer('lot_id').references(() => sqliteInventoryLots.id),
+  activityType: text('activity_type').notNull(), // manufacturing, testing, packaging
+  activityDescription: text('activity_description'),
+  performedDate: text('performed_date'),
+  certificatePath: text('certificate_path'),
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// GMP Compliance Gap Analysis (009) - PQR (หมวด 1)
+// ============================================
+
+// PQR Reports
+export const sqlitePqrReports = sqliteTable('pqr_reports', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  reportNumber: text('report_number').notNull().unique(), // PQR-YYYY-###
+  productId: integer('product_id').references(() => sqliteItems.id),
+  reviewYear: integer('review_year').notNull(),
+  periodStart: text('period_start'),
+  periodEnd: text('period_end'),
+  status: text('status').notNull().default('draft'), // draft, under_review, approved
+  batchesProduced: integer('batches_produced').default(0),
+  deviationCount: integer('deviation_count').default(0),
+  capaCount: integer('capa_count').default(0),
+  complaintCount: integer('complaint_count').default(0),
+  oosCount: integer('oos_count').default(0),
+  recallCount: integer('recall_count').default(0),
+  stabilityStatus: text('stability_status'),
+  conclusions: text('conclusions'),
+  recommendations: text('recommendations'),
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// PQR Metrics
+export const sqlitePqrMetrics = sqliteTable('pqr_metrics', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  pqrId: integer('pqr_id').notNull().references(() => sqlitePqrReports.id),
+  metricType: text('metric_type'), // deviation_rate, capa_closure, oosRate
+  metricValue: real('metric_value'),
+  target: real('target'),
+  status: text('status'), // pass, fail, warning
+  details: text('details'), // JSON supporting data
+  calculatedAt: text('calculated_at').default('CURRENT_TIMESTAMP'),
+});
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -2161,3 +2668,80 @@ export type VmiSalesOrder = typeof sqliteVmiSalesOrders.$inferSelect;
 export type NewVmiSalesOrder = typeof sqliteVmiSalesOrders.$inferInsert;
 export type VmiSalesOrderLine = typeof sqliteVmiSalesOrderLines.$inferSelect;
 export type NewVmiSalesOrderLine = typeof sqliteVmiSalesOrderLines.$inferInsert;
+
+// GMP Compliance Gap Analysis Types (009-gmp-compliance-gap-analysis)
+// Document Control (หมวด 5)
+export type DocumentType = typeof sqliteDocumentTypes.$inferSelect;
+export type NewDocumentType = typeof sqliteDocumentTypes.$inferInsert;
+export type Document = typeof sqliteDocuments.$inferSelect;
+export type NewDocument = typeof sqliteDocuments.$inferInsert;
+export type DocumentVersion = typeof sqliteDocumentVersions.$inferSelect;
+export type NewDocumentVersion = typeof sqliteDocumentVersions.$inferInsert;
+export type DocumentApproval = typeof sqliteDocumentApprovals.$inferSelect;
+export type NewDocumentApproval = typeof sqliteDocumentApprovals.$inferInsert;
+
+// CAPA Management (หมวด 1)
+export type Capa = typeof sqliteCapa.$inferSelect;
+export type NewCapa = typeof sqliteCapa.$inferInsert;
+export type CapaAction = typeof sqliteCapaActions.$inferSelect;
+export type NewCapaAction = typeof sqliteCapaActions.$inferInsert;
+export type CapaEffectiveness = typeof sqliteCapaEffectiveness.$inferSelect;
+export type NewCapaEffectiveness = typeof sqliteCapaEffectiveness.$inferInsert;
+
+// Change Control (หมวด 1)
+export type ChangeRequest = typeof sqliteChangeRequests.$inferSelect;
+export type NewChangeRequest = typeof sqliteChangeRequests.$inferInsert;
+export type ChangeApproval = typeof sqliteChangeApprovals.$inferSelect;
+export type NewChangeApproval = typeof sqliteChangeApprovals.$inferInsert;
+
+// Complaints (หมวด 9)
+export type Complaint = typeof sqliteComplaints.$inferSelect;
+export type NewComplaint = typeof sqliteComplaints.$inferInsert;
+export type ComplaintInvestigation = typeof sqliteComplaintInvestigations.$inferSelect;
+export type NewComplaintInvestigation = typeof sqliteComplaintInvestigations.$inferInsert;
+
+// Recalls (หมวด 9)
+export type Recall = typeof sqliteRecalls.$inferSelect;
+export type NewRecall = typeof sqliteRecalls.$inferInsert;
+export type RecallNotification = typeof sqliteRecallNotifications.$inferSelect;
+export type NewRecallNotification = typeof sqliteRecallNotifications.$inferInsert;
+export type RecallReconciliation = typeof sqliteRecallReconciliation.$inferSelect;
+export type NewRecallReconciliation = typeof sqliteRecallReconciliation.$inferInsert;
+
+// Sanitation & Pest Control (หมวด 4)
+export type SanitationSchedule = typeof sqliteSanitationSchedules.$inferSelect;
+export type NewSanitationSchedule = typeof sqliteSanitationSchedules.$inferInsert;
+export type SanitationLog = typeof sqliteSanitationLogs.$inferSelect;
+export type NewSanitationLog = typeof sqliteSanitationLogs.$inferInsert;
+export type PestControlLog = typeof sqlitePestControlLogs.$inferSelect;
+export type NewPestControlLog = typeof sqlitePestControlLogs.$inferInsert;
+
+// Stability Program (หมวด 7.4)
+export type StabilityProtocol = typeof sqliteStabilityProtocols.$inferSelect;
+export type NewStabilityProtocol = typeof sqliteStabilityProtocols.$inferInsert;
+export type StabilityStudy = typeof sqliteStabilityStudies.$inferSelect;
+export type NewStabilityStudy = typeof sqliteStabilityStudies.$inferInsert;
+export type StabilitySample = typeof sqliteStabilitySamples.$inferSelect;
+export type NewStabilitySample = typeof sqliteStabilitySamples.$inferInsert;
+export type StabilityTrend = typeof sqliteStabilityTrends.$inferSelect;
+export type NewStabilityTrend = typeof sqliteStabilityTrends.$inferInsert;
+
+// Internal Audit (หมวด 10)
+export type AuditPlan = typeof sqliteAuditPlans.$inferSelect;
+export type NewAuditPlan = typeof sqliteAuditPlans.$inferInsert;
+export type Audit = typeof sqliteAudits.$inferSelect;
+export type NewAudit = typeof sqliteAudits.$inferInsert;
+export type AuditFinding = typeof sqliteAuditFindings.$inferSelect;
+export type NewAuditFinding = typeof sqliteAuditFindings.$inferInsert;
+
+// Contract Manufacturing (หมวด 8)
+export type ManufacturingContract = typeof sqliteManufacturingContracts.$inferSelect;
+export type NewManufacturingContract = typeof sqliteManufacturingContracts.$inferInsert;
+export type ContractBatch = typeof sqliteContractBatches.$inferSelect;
+export type NewContractBatch = typeof sqliteContractBatches.$inferInsert;
+
+// Product Quality Review (หมวด 1)
+export type PqrReport = typeof sqlitePqrReports.$inferSelect;
+export type NewPqrReport = typeof sqlitePqrReports.$inferInsert;
+export type PqrMetric = typeof sqlitePqrMetrics.$inferSelect;
+export type NewPqrMetric = typeof sqlitePqrMetrics.$inferInsert;

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     async () => {
       try {
         const tree = await getOrgUnitTree();
-        return successResponse({ data: tree });
+        return successResponse(tree);
       } catch (error) {
         return serverErrorResponse(error);
       }

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
 
         const assignments = await getEmployeeAssignments(employeeId);
-        return successResponse({ data: assignments });
+        return successResponse(assignments);
       } catch (error) {
         return serverErrorResponse(error);
       }

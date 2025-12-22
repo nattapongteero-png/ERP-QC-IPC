@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
           toDate: toDate || undefined,
         });
 
-        return successResponse({ data: sessions });
+        return successResponse(sessions);
       } catch (error) {
         return serverErrorResponse(error);
       }

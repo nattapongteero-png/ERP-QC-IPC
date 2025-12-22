@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        return successResponse({ data: stats });
+        return successResponse(stats);
       } catch (error) {
         return serverErrorResponse(error);
       }

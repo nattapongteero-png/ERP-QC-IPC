@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
 
         const children = await getOrgUnitChildren(parentId);
-        return successResponse({ data: children });
+        return successResponse(children);
       } catch (error) {
         return serverErrorResponse(error);
       }

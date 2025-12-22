@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
           search,
         });
 
-        return successResponse({ data: orgUnits });
+        return successResponse(orgUnits);
       } catch (error) {
         return serverErrorResponse(error);
       }

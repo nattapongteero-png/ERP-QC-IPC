@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
           // positionTitle and orgUnitName would require joining
         }));
 
-        return successResponse({ data: summaries });
+        return successResponse(summaries);
       } catch (error) {
         return serverErrorResponse(error);
       }

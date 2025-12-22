@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
           : undefined;
 
         const matrices = await getCompetencyMatrixGrid(empIds, crsIds);
-        return successResponse({ data: matrices });
+        return successResponse(matrices);
       } catch (error) {
         return serverErrorResponse(error);
       }

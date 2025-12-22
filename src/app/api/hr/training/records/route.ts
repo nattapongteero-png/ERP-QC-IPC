@@ -35,12 +35,12 @@ export async function GET(request: NextRequest) {
         // Handle special queries for expiring/expired records
         if (expiringWithinDays) {
           const expiring = await getExpiringTrainingRecords(Number(expiringWithinDays));
-          return successResponse({ data: expiring });
+          return successResponse(expiring);
         }
 
         if (expiredOnly === 'true') {
           const expired = await getExpiredTrainingRecords();
-          return successResponse({ data: expired });
+          return successResponse(expired);
         }
 
         const records = await getTrainingRecords({
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
           status: status || undefined,
         });
 
-        return successResponse({ data: records });
+        return successResponse(records);
       } catch (error) {
         return serverErrorResponse(error);
       }
