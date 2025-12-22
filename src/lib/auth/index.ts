@@ -137,6 +137,11 @@ export const PERMISSIONS = {
   'vmi-sync:execute': [ROLES.ADMIN, ROLES.MANAGER, ROLES.SALES],
   'vmi-orders:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.SALES, ROLES.WAREHOUSE],
   'vmi-orders:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.SALES],
+
+  // GMP Document Control (หมวด 5)
+  'documents:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
+  'documents:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'documents:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
