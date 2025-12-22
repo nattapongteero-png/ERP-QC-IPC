@@ -101,7 +101,7 @@ export default function OrgChartPage() {
     const calculateHeight = () => {
       const headerHeight = 320; // Reduced further for more table space
       const padding = 32;
-      const minHeight = 600; // Increased minimum height
+      const minHeight = 900; // Increased minimum height
       const availableHeight = window.innerHeight - headerHeight - padding;
       setChartHeight(Math.max(minHeight, availableHeight));
     };
