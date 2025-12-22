@@ -386,7 +386,7 @@ export function OrgChartTree({
       <Selection mode="single" />
       <SearchPanel visible placeholder="ค้นหา..." />
       <HeaderFilter visible />
-      <Scrolling mode="virtual" />
+      <Scrolling mode="standard" />
       <Sorting mode="multiple" />
       <ColumnChooser enabled mode="select" />
 
