@@ -32,6 +32,16 @@ import {
   FileText,
   Hash,
   Globe,
+  CreditCard,
+  MapPin,
+  AlertTriangle,
+  Landmark,
+  GraduationCap,
+  Heart,
+  HeartPulse,
+  Users,
+  Droplet,
+  Image,
 } from 'lucide-react';
 import type { EmployeeProfile, EmployeeStatus } from '@/types/hr';
 import type { EmployeeAssignmentWithDetails } from '@/lib/services/hr.service';
@@ -58,6 +68,52 @@ const STATUS_CONFIG = {
     textColor: 'text-red-700',
     borderColor: 'border-red-200',
   },
+};
+
+const GENDER_LABELS: Record<string, string> = {
+  male: 'ชาย',
+  female: 'หญิง',
+  other: 'อื่นๆ',
+};
+
+const BLOOD_TYPE_LABELS: Record<string, string> = {
+  A: 'A',
+  B: 'B',
+  O: 'O',
+  AB: 'AB',
+  'A+': 'A+',
+  'A-': 'A-',
+  'B+': 'B+',
+  'B-': 'B-',
+  'O+': 'O+',
+  'O-': 'O-',
+  'AB+': 'AB+',
+  'AB-': 'AB-',
+  unknown: 'ไม่ทราบ',
+};
+
+const MARITAL_STATUS_LABELS: Record<string, string> = {
+  single: 'โสด',
+  married: 'สมรส',
+  divorced: 'หย่าร้าง',
+  widowed: 'หม้าย',
+};
+
+const EDUCATION_LABELS: Record<string, string> = {
+  below_high_school: 'ต่ำกว่ามัธยมศึกษา',
+  high_school: 'มัธยมศึกษา',
+  vocational: 'ปวช.',
+  diploma: 'ปวส.',
+  bachelor: 'ปริญญาตรี',
+  master: 'ปริญญาโท',
+  doctorate: 'ปริญญาเอก',
+};
+
+const MILITARY_STATUS_LABELS: Record<string, string> = {
+  exempted: 'ได้รับการยกเว้น',
+  completed: 'ผ่านการเกณฑ์ทหาร',
+  reserved: 'กองหนุน',
+  not_applicable: 'ไม่เกี่ยวข้อง',
 };
 
 async function fetchEmployeeProfile(id: string): Promise<EmployeeProfile> {
@@ -109,6 +165,66 @@ function calculateTenure(hireDate: string): string {
     return `${years} ปี ${months} เดือน`;
   }
   return `${months} เดือน`;
+}
+
+// Collapsible Section Component
+function ProfileSection({
+  title,
+  icon: Icon,
+  iconColor,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconColor: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between hover:bg-gray-100 transition-colors"
+      >
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+          {title}
+        </h3>
+        {isOpen ? (
+          <ChevronUp className="h-5 w-5 text-gray-400" />
+        ) : (
+          <ChevronDown className="h-5 w-5 text-gray-400" />
+        )}
+      </button>
+      {isOpen && <div className="p-6">{children}</div>}
+    </div>
+  );
+}
+
+// Info Item Component
+function InfoItem({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | null | undefined;
+  icon?: React.ComponentType<{ className?: string }>;
+}) {
+  if (!value) return null;
+
+  return (
+    <div className="bg-gray-50 rounded-lg p-3">
+      <div className="flex items-center gap-2 text-gray-500 mb-1">
+        {Icon && <Icon className="h-4 w-4" />}
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <p className="font-medium text-gray-900 text-sm">{value}</p>
+    </div>
+  );
 }
 
 export default function EmployeeProfilePage() {
@@ -166,6 +282,30 @@ export default function EmployeeProfilePage() {
     const date = new Date(dateString);
     const thaiYear = date.getFullYear() + 543;
     return `${date.getDate()} ${date.toLocaleDateString('th-TH', { month: 'short' })} ${thaiYear}`;
+  }, []);
+
+  const formatThaiCid = useCallback((cid: string | null | undefined) => {
+    if (!cid || cid.length !== 13) return null;
+    // Mask the CID for display: X-XXXX-XXXXX-XX-X
+    return `${cid[0]}-XXXX-XXXXX-XX-${cid[12]}`;
+  }, []);
+
+  const formatBankAccount = useCallback((account: string | null | undefined) => {
+    if (!account || account.length < 4) return account || null;
+    const lastFour = account.slice(-4);
+    return `XXX-X-${lastFour}`;
+  }, []);
+
+  const formatAddress = useCallback((
+    line1?: string | null,
+    line2?: string | null,
+    subDistrict?: string | null,
+    district?: string | null,
+    province?: string | null,
+    postalCode?: string | null
+  ) => {
+    const parts = [line1, line2, subDistrict, district, province, postalCode].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : null;
   }, []);
 
   const avatarGradient = useMemo(() => {
@@ -231,6 +371,37 @@ export default function EmployeeProfilePage() {
     : null;
   const initials = `${profile.firstName?.charAt(0) || ''}${profile.lastName?.charAt(0) || ''}`;
 
+  const currentAddress = formatAddress(
+    profile.addressLine1,
+    profile.addressLine2,
+    profile.subDistrict,
+    profile.district,
+    profile.province,
+    profile.postalCode
+  );
+
+  const permanentAddress = formatAddress(
+    profile.permanentAddressLine1,
+    profile.permanentAddressLine2,
+    profile.permanentSubDistrict,
+    profile.permanentDistrict,
+    profile.permanentProvince,
+    profile.permanentPostalCode
+  );
+
+  const hasPersonalInfo = profile.thaiCid || profile.dateOfBirth || profile.gender ||
+    profile.bloodType || profile.religion || profile.maritalStatus;
+
+  const hasAddress = currentAddress || permanentAddress;
+
+  const hasEmergencyContact = profile.emergencyContactName || profile.emergencyContactPhone;
+
+  const hasBankingInfo = profile.bankName || profile.bankAccountNumber;
+
+  const hasEducation = profile.educationLevel || profile.educationField || profile.educationInstitution;
+
+  const hasGovernmentIds = profile.ssoNumber || profile.taxId;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -245,9 +416,18 @@ export default function EmployeeProfilePage() {
                 <ChevronLeft className="h-5 w-5 text-gray-600" />
               </button>
               <div className="flex items-center gap-3">
-                <div className={`hidden sm:flex w-12 h-12 rounded-xl bg-gradient-to-br ${avatarGradient} items-center justify-center text-white font-bold text-lg shadow-md`}>
-                  {initials}
-                </div>
+                {/* Photo or Avatar */}
+                {profile.photoThumbnailUrl ? (
+                  <img
+                    src={profile.photoThumbnailUrl}
+                    alt={fullName}
+                    className="hidden sm:block w-12 h-12 rounded-xl object-cover shadow-md"
+                  />
+                ) : (
+                  <div className={`hidden sm:flex w-12 h-12 rounded-xl bg-gradient-to-br ${avatarGradient} items-center justify-center text-white font-bold text-lg shadow-md`}>
+                    {initials}
+                  </div>
+                )}
                 <div>
                   <h1 className="text-lg lg:text-xl font-semibold text-gray-900">{fullName}</h1>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -339,11 +519,23 @@ export default function EmployeeProfilePage() {
                 <div className="p-6">
                   {/* Avatar & Name - Desktop */}
                   <div className="flex items-start gap-5 mb-6">
-                    <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-gradient-to-br ${avatarGradient} flex items-center justify-center text-white text-2xl lg:text-3xl font-bold shadow-lg flex-shrink-0`}>
-                      {initials}
-                    </div>
+                    {/* Photo or Avatar */}
+                    {profile.photoUrl ? (
+                      <img
+                        src={profile.photoUrl}
+                        alt={fullName}
+                        className="w-20 h-20 lg:w-24 lg:h-24 rounded-2xl object-cover shadow-lg flex-shrink-0"
+                      />
+                    ) : (
+                      <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-gradient-to-br ${avatarGradient} flex items-center justify-center text-white text-2xl lg:text-3xl font-bold shadow-lg flex-shrink-0`}>
+                        {initials}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <h2 className="text-xl lg:text-2xl font-bold text-gray-900">{fullName}</h2>
+                      {profile.nickname && (
+                        <p className="text-gray-500 text-sm mt-0.5">"{profile.nickname}"</p>
+                      )}
                       {fullNameEn && (
                         <p className="text-gray-500 flex items-center gap-1.5 mt-1">
                           <Globe className="h-4 w-4" />
@@ -417,6 +609,181 @@ export default function EmployeeProfilePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Personal Identification */}
+              {hasPersonalInfo && (
+                <ProfileSection
+                  title="ข้อมูลส่วนบุคคล"
+                  icon={CreditCard}
+                  iconColor="text-purple-500"
+                >
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    {profile.thaiCid && (
+                      <InfoItem
+                        label="เลขบัตรประชาชน"
+                        value={formatThaiCid(profile.thaiCid)}
+                        icon={CreditCard}
+                      />
+                    )}
+                    {profile.dateOfBirth && (
+                      <InfoItem
+                        label="วันเกิด"
+                        value={formatDate(profile.dateOfBirth)}
+                        icon={Calendar}
+                      />
+                    )}
+                    {profile.gender && (
+                      <InfoItem
+                        label="เพศ"
+                        value={GENDER_LABELS[profile.gender] || profile.gender}
+                        icon={User}
+                      />
+                    )}
+                    {profile.bloodType && (
+                      <InfoItem
+                        label="กรุ๊ปเลือด"
+                        value={BLOOD_TYPE_LABELS[profile.bloodType] || profile.bloodType}
+                        icon={Droplet}
+                      />
+                    )}
+                    {profile.religion && (
+                      <InfoItem
+                        label="ศาสนา"
+                        value={profile.religion}
+                        icon={Heart}
+                      />
+                    )}
+                    {profile.maritalStatus && (
+                      <InfoItem
+                        label="สถานะสมรส"
+                        value={MARITAL_STATUS_LABELS[profile.maritalStatus] || profile.maritalStatus}
+                        icon={Users}
+                      />
+                    )}
+                    {profile.nationalityCode && (
+                      <InfoItem
+                        label="สัญชาติ"
+                        value={profile.nationalityCode === 'TH' ? 'ไทย' : profile.nationalityCode}
+                        icon={Globe}
+                      />
+                    )}
+                  </div>
+                </ProfileSection>
+              )}
+
+              {/* Government IDs */}
+              {hasGovernmentIds && (
+                <ProfileSection
+                  title="ข้อมูลราชการ"
+                  icon={FileText}
+                  iconColor="text-orange-500"
+                  defaultOpen={false}
+                >
+                  <div className="grid grid-cols-2 gap-4">
+                    {profile.ssoNumber && (
+                      <InfoItem
+                        label="เลขประกันสังคม"
+                        value={profile.ssoNumber}
+                        icon={Shield}
+                      />
+                    )}
+                    {profile.taxId && (
+                      <InfoItem
+                        label="เลขประจำตัวผู้เสียภาษี"
+                        value={profile.taxId}
+                        icon={FileText}
+                      />
+                    )}
+                    {profile.militaryStatus && (
+                      <InfoItem
+                        label="สถานะทหาร"
+                        value={MILITARY_STATUS_LABELS[profile.militaryStatus] || profile.militaryStatus}
+                        icon={Shield}
+                      />
+                    )}
+                  </div>
+                </ProfileSection>
+              )}
+
+              {/* Address Information */}
+              {hasAddress && (
+                <ProfileSection
+                  title="ที่อยู่"
+                  icon={MapPin}
+                  iconColor="text-teal-500"
+                  defaultOpen={false}
+                >
+                  <div className="space-y-4">
+                    {currentAddress && (
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-teal-500" />
+                          ที่อยู่ปัจจุบัน
+                        </h4>
+                        <p className="text-gray-900">{currentAddress}</p>
+                      </div>
+                    )}
+                    {permanentAddress && !profile.useSameAddress && (
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-teal-500" />
+                          ที่อยู่ตามทะเบียนบ้าน
+                        </h4>
+                        <p className="text-gray-900">{permanentAddress}</p>
+                      </div>
+                    )}
+                    {profile.useSameAddress && (
+                      <p className="text-sm text-gray-500 italic">ที่อยู่ตามทะเบียนบ้านเหมือนที่อยู่ปัจจุบัน</p>
+                    )}
+                  </div>
+                </ProfileSection>
+              )}
+
+              {/* Education */}
+              {hasEducation && (
+                <ProfileSection
+                  title="การศึกษา"
+                  icon={GraduationCap}
+                  iconColor="text-indigo-500"
+                  defaultOpen={false}
+                >
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {profile.educationLevel && (
+                      <InfoItem
+                        label="ระดับการศึกษา"
+                        value={EDUCATION_LABELS[profile.educationLevel] || profile.educationLevel}
+                        icon={GraduationCap}
+                      />
+                    )}
+                    {profile.educationField && (
+                      <InfoItem
+                        label="สาขา"
+                        value={profile.educationField}
+                      />
+                    )}
+                    {profile.educationInstitution && (
+                      <InfoItem
+                        label="สถาบัน"
+                        value={profile.educationInstitution}
+                      />
+                    )}
+                  </div>
+                </ProfileSection>
+              )}
+
+              {/* Medical Notes */}
+              {profile.medicalNotes && (
+                <ProfileSection
+                  title="ข้อมูลสุขภาพ"
+                  icon={HeartPulse}
+                  iconColor="text-red-500"
+                  defaultOpen={false}
+                >
+                  <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+                    <p className="text-gray-900 whitespace-pre-wrap">{profile.medicalNotes}</p>
+                  </div>
+                </ProfileSection>
+              )}
 
               {/* Assignment History */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -560,6 +927,79 @@ export default function EmployeeProfilePage() {
                   )}
                 </div>
               </div>
+
+              {/* Emergency Contact */}
+              {hasEmergencyContact && (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      ติดต่อฉุกเฉิน
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+                      {profile.emergencyContactName && (
+                        <p className="font-medium text-gray-900">{profile.emergencyContactName}</p>
+                      )}
+                      {profile.emergencyContactRelation && (
+                        <p className="text-sm text-gray-600 mt-1">({profile.emergencyContactRelation})</p>
+                      )}
+                      {profile.emergencyContactPhone && (
+                        <a
+                          href={`tel:${profile.emergencyContactPhone}`}
+                          className="flex items-center gap-2 mt-2 text-red-600 font-medium"
+                        >
+                          <Phone className="h-4 w-4" />
+                          {profile.emergencyContactPhone}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Banking Info */}
+              {hasBankingInfo && (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Landmark className="h-5 w-5 text-green-600" />
+                      ข้อมูลธนาคาร
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="bg-green-50 rounded-xl p-4 border border-green-100 space-y-2">
+                      {profile.bankName && (
+                        <div>
+                          <p className="text-xs text-gray-500">ธนาคาร</p>
+                          <p className="font-medium text-gray-900">{profile.bankName}</p>
+                        </div>
+                      )}
+                      {profile.bankBranch && (
+                        <div>
+                          <p className="text-xs text-gray-500">สาขา</p>
+                          <p className="font-medium text-gray-900">{profile.bankBranch}</p>
+                        </div>
+                      )}
+                      {profile.bankAccountNumber && (
+                        <div>
+                          <p className="text-xs text-gray-500">เลขบัญชี</p>
+                          <p className="font-medium text-gray-900 font-mono">
+                            {formatBankAccount(profile.bankAccountNumber)}
+                          </p>
+                        </div>
+                      )}
+                      {profile.bankAccountName && (
+                        <div>
+                          <p className="text-xs text-gray-500">ชื่อบัญชี</p>
+                          <p className="font-medium text-gray-900">{profile.bankAccountName}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Authorizations */}
               {profile.authorizations && profile.authorizations.length > 0 && (
