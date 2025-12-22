@@ -98,8 +98,6 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
-      { name: 'VMI Dashboard', href: '/purchasing/vmi/dashboard', icon: Activity },
-      { name: 'VMI Orders', href: '/purchasing/vmi/orders', icon: ShoppingCart },
     ],
   },
   {
