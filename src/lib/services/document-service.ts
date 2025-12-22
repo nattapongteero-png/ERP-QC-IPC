@@ -193,18 +193,32 @@ export async function createDocument(
   }
 
   // Create document
-  const [newDoc] = await database
-    .insert(documents)
-    .values({
-      documentNumber,
-      title: data.title,
-      typeId: data.typeId,
-      departmentId: data.departmentId || null,
-      status: 'draft',
-      retentionYears,
-      createdBy: userId,
-    })
-    .returning({ id: documents.id });
+  const insertValues = {
+    documentNumber,
+    title: data.title,
+    typeId: data.typeId,
+    departmentId: data.departmentId || null,
+    status: 'draft',
+    retentionYears,
+    createdBy: userId,
+  };
+
+  let newDocId: number;
+
+  if (useSqlite()) {
+    // SQLite supports returning
+    const [newDoc] = await database
+      .insert(documents)
+      .values(insertValues)
+      .returning({ id: documents.id });
+    newDocId = newDoc.id;
+  } else {
+    // MySQL - insert and get last insert ID
+    const result = await database.insert(documents).values(insertValues);
+    newDocId = (result as any)[0]?.insertId;
+  }
+
+  const newDoc = { id: newDocId };
 
   // Create audit log
   await createAuditLog({
@@ -519,18 +533,32 @@ export async function createVersion(
   }
 
   // Create version
-  const [newVersion] = await database
-    .insert(versions)
-    .values({
-      documentId: data.documentId,
-      versionNumber: newVersionNumber,
-      content: data.content || null,
-      filePath: data.filePath || null,
-      changeDescription: data.changeDescription || null,
-      status: 'draft',
-      createdBy: userId,
-    })
-    .returning({ id: versions.id });
+  const versionInsertValues = {
+    documentId: data.documentId,
+    versionNumber: newVersionNumber,
+    content: data.content || null,
+    filePath: data.filePath || null,
+    changeDescription: data.changeDescription || null,
+    status: 'draft',
+    createdBy: userId,
+  };
+
+  let newVersionId: number;
+
+  if (useSqlite()) {
+    // SQLite supports returning
+    const [result] = await database
+      .insert(versions)
+      .values(versionInsertValues)
+      .returning({ id: versions.id });
+    newVersionId = result.id;
+  } else {
+    // MySQL - insert and get last insert ID
+    const result = await database.insert(versions).values(versionInsertValues);
+    newVersionId = (result as any)[0]?.insertId;
+  }
+
+  const newVersion = { id: newVersionId };
 
   // Update document's current version
   await database
