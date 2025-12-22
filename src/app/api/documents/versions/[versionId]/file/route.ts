@@ -14,7 +14,8 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { getDb } from '@/lib/db';
+import { getDb, useSqlite } from '@/lib/db';
+import { sqliteDocumentVersions, mysqlDocumentVersions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 // MIME types mapping
@@ -47,9 +48,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         // Get version from database
         const database = await getDb();
-
-        // Dynamically import schema to handle SQLite/MySQL
-        const { useSqlite, sqliteDocumentVersions, mysqlDocumentVersions } = await import('@/lib/db/schema');
         const versions = useSqlite() ? sqliteDocumentVersions : mysqlDocumentVersions;
 
         const [version] = await database
