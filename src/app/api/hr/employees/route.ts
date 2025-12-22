@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
           search: search || undefined,
         });
 
-        return successResponse({ data: employees });
+        return successResponse(employees);
       } catch (error) {
         return serverErrorResponse(error);
       }
