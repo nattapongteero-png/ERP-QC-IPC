@@ -2,6 +2,8 @@
 // Feature: 007-hr-personnel-management
 
 import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
+import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
+import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
 import { getDb, useSqlite } from '../db';
 import { createAuditLog } from '../audit';
 import {
@@ -678,7 +680,33 @@ export async function getEmployees(filters?: {
   return results as unknown as EmployeeWithDetails[];
 }
 
-export async function getEmployeeById(id: number): Promise<Employee | null> {
+/**
+ * Decrypt sensitive employee fields for authorized access
+ * Note: Only decrypt for authorized users (HR admins or the employee themselves)
+ */
+function decryptEmployeeData(employee: Employee): Employee {
+  const decrypted = { ...employee };
+
+  if (decrypted.thaiCid) {
+    decrypted.thaiCid = decrypt(decrypted.thaiCid);
+  }
+  if (decrypted.ssoNumber) {
+    decrypted.ssoNumber = decrypt(decrypted.ssoNumber);
+  }
+  if (decrypted.taxId) {
+    decrypted.taxId = decrypt(decrypted.taxId);
+  }
+  if (decrypted.bankAccountNumber) {
+    decrypted.bankAccountNumber = decrypt(decrypted.bankAccountNumber);
+  }
+
+  return decrypted;
+}
+
+export async function getEmployeeById(
+  id: number,
+  options: { decryptSensitive?: boolean } = {}
+): Promise<Employee | null> {
   const tables = getHRTables();
   const db = await getDb();
 
@@ -688,13 +716,17 @@ export async function getEmployeeById(id: number): Promise<Employee | null> {
     .where(eq(tables.employees.id, id))
     .limit(1);
 
-  return results.length > 0 ? (results[0] as unknown as Employee) : null;
+  if (results.length === 0) return null;
+
+  const employee = results[0] as unknown as Employee;
+  return options.decryptSensitive ? decryptEmployeeData(employee) : employee;
 }
 
 export async function getEmployeeProfile(
-  id: number
+  id: number,
+  options: { decryptSensitive?: boolean } = { decryptSensitive: true }
 ): Promise<EmployeeProfile | null> {
-  const employee = await getEmployeeById(id);
+  const employee = await getEmployeeById(id, options);
   if (!employee) return null;
 
   const position = employee.positionId
@@ -741,15 +773,98 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
     throw new Error('Employee code already exists');
   }
 
-  const insertData = {
+  // Validate and process Thai CID if provided
+  let thaiCidEncrypted: string | null = null;
+  let thaiCidHash: string | null = null;
+  if (data.thaiCid) {
+    const cleanedCid = cleanThaiCid(data.thaiCid);
+    if (!validateThaiCid(cleanedCid)) {
+      throw new Error('Invalid Thai CID format or checksum');
+    }
+
+    // Check for duplicates using hash
+    thaiCidHash = hashForLookup(cleanedCid);
+    const existingCid = await db
+      .select({ id: tables.employees.id })
+      .from(tables.employees)
+      .where(eq(tables.employees.thaiCidHash, thaiCidHash))
+      .limit(1);
+
+    if (existingCid.length > 0) {
+      throw new Error('Thai CID already registered');
+    }
+
+    thaiCidEncrypted = encrypt(cleanedCid);
+  }
+
+  const insertData: Record<string, unknown> = {
     userId: data.userId || null,
     employeeCode: data.employeeCode,
     firstName: data.firstName,
     lastName: data.lastName,
     firstNameEn: data.firstNameEn || null,
     lastNameEn: data.lastNameEn || null,
+    nickname: data.nickname || null,
     email: data.email || null,
     phone: data.phone || null,
+
+    // Personal Identification (encrypted)
+    thaiCid: thaiCidEncrypted,
+    thaiCidHash: thaiCidHash,
+    dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+    gender: data.gender || null,
+    bloodType: data.bloodType || null,
+    religion: data.religion || null,
+    maritalStatus: data.maritalStatus || null,
+    nationalityCode: data.nationalityCode || 'TH',
+
+    // Photo
+    photoUrl: data.photoUrl || null,
+    photoThumbnailUrl: data.photoThumbnailUrl || null,
+
+    // Government IDs (encrypted)
+    ssoNumber: data.ssoNumber ? encrypt(data.ssoNumber) : null,
+    taxId: data.taxId ? encrypt(data.taxId) : null,
+
+    // Address - Current
+    addressLine1: data.addressLine1 || null,
+    addressLine2: data.addressLine2 || null,
+    subDistrict: data.subDistrict || null,
+    district: data.district || null,
+    province: data.province || null,
+    postalCode: data.postalCode || null,
+
+    // Address - Permanent
+    permanentAddressLine1: data.permanentAddressLine1 || null,
+    permanentAddressLine2: data.permanentAddressLine2 || null,
+    permanentSubDistrict: data.permanentSubDistrict || null,
+    permanentDistrict: data.permanentDistrict || null,
+    permanentProvince: data.permanentProvince || null,
+    permanentPostalCode: data.permanentPostalCode || null,
+    useSameAddress: data.useSameAddress || false,
+
+    // Emergency Contact
+    emergencyContactName: data.emergencyContactName || null,
+    emergencyContactRelation: data.emergencyContactRelation || null,
+    emergencyContactPhone: data.emergencyContactPhone || null,
+
+    // Banking (encrypted)
+    bankName: data.bankName || null,
+    bankBranch: data.bankBranch || null,
+    bankAccountNumber: data.bankAccountNumber ? encrypt(data.bankAccountNumber) : null,
+    bankAccountName: data.bankAccountName || null,
+
+    // Education
+    educationLevel: data.educationLevel || null,
+    educationField: data.educationField || null,
+    educationInstitution: data.educationInstitution || null,
+
+    // Military Status
+    militaryStatus: data.militaryStatus || null,
+
+    // Medical Notes
+    medicalNotes: data.medicalNotes || null,
+
     positionId: data.positionId || null,
     orgUnitId: data.orgUnitId || null,
     siteId: data.siteId || null,
@@ -789,12 +904,120 @@ export async function updateEmployee(
   }
 
   const updateData: Record<string, unknown> = {};
+
+  // Basic fields
   if (data.firstName !== undefined) updateData.firstName = data.firstName;
   if (data.lastName !== undefined) updateData.lastName = data.lastName;
   if (data.firstNameEn !== undefined) updateData.firstNameEn = data.firstNameEn;
   if (data.lastNameEn !== undefined) updateData.lastNameEn = data.lastNameEn;
+  if (data.nickname !== undefined) updateData.nickname = data.nickname;
   if (data.email !== undefined) updateData.email = data.email;
   if (data.phone !== undefined) updateData.phone = data.phone;
+
+  // Thai CID (encrypted)
+  if (data.thaiCid !== undefined) {
+    if (data.thaiCid) {
+      const cleanedCid = cleanThaiCid(data.thaiCid);
+      if (!validateThaiCid(cleanedCid)) {
+        throw new Error('Invalid Thai CID format or checksum');
+      }
+
+      const cidHash = hashForLookup(cleanedCid);
+      // Check for duplicates (excluding current employee)
+      const existingCid = await db
+        .select({ id: tables.employees.id })
+        .from(tables.employees)
+        .where(
+          and(
+            eq(tables.employees.thaiCidHash, cidHash),
+            sql`${tables.employees.id} != ${id}`
+          )
+        )
+        .limit(1);
+
+      if (existingCid.length > 0) {
+        throw new Error('Thai CID already registered');
+      }
+
+      updateData.thaiCid = encrypt(cleanedCid);
+      updateData.thaiCidHash = cidHash;
+    } else {
+      updateData.thaiCid = null;
+      updateData.thaiCidHash = null;
+    }
+  }
+
+  // Personal identification
+  if (data.dateOfBirth !== undefined)
+    updateData.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+  if (data.gender !== undefined) updateData.gender = data.gender;
+  if (data.bloodType !== undefined) updateData.bloodType = data.bloodType;
+  if (data.religion !== undefined) updateData.religion = data.religion;
+  if (data.maritalStatus !== undefined) updateData.maritalStatus = data.maritalStatus;
+
+  // Photo
+  if (data.photoUrl !== undefined) updateData.photoUrl = data.photoUrl;
+  if (data.photoThumbnailUrl !== undefined) updateData.photoThumbnailUrl = data.photoThumbnailUrl;
+
+  // Government IDs (encrypted)
+  if (data.ssoNumber !== undefined)
+    updateData.ssoNumber = data.ssoNumber ? encrypt(data.ssoNumber) : null;
+  if (data.taxId !== undefined)
+    updateData.taxId = data.taxId ? encrypt(data.taxId) : null;
+
+  // Address - Current
+  if (data.addressLine1 !== undefined) updateData.addressLine1 = data.addressLine1;
+  if (data.addressLine2 !== undefined) updateData.addressLine2 = data.addressLine2;
+  if (data.subDistrict !== undefined) updateData.subDistrict = data.subDistrict;
+  if (data.district !== undefined) updateData.district = data.district;
+  if (data.province !== undefined) updateData.province = data.province;
+  if (data.postalCode !== undefined) updateData.postalCode = data.postalCode;
+
+  // Address - Permanent
+  if (data.permanentAddressLine1 !== undefined)
+    updateData.permanentAddressLine1 = data.permanentAddressLine1;
+  if (data.permanentAddressLine2 !== undefined)
+    updateData.permanentAddressLine2 = data.permanentAddressLine2;
+  if (data.permanentSubDistrict !== undefined)
+    updateData.permanentSubDistrict = data.permanentSubDistrict;
+  if (data.permanentDistrict !== undefined)
+    updateData.permanentDistrict = data.permanentDistrict;
+  if (data.permanentProvince !== undefined)
+    updateData.permanentProvince = data.permanentProvince;
+  if (data.permanentPostalCode !== undefined)
+    updateData.permanentPostalCode = data.permanentPostalCode;
+  if (data.useSameAddress !== undefined) updateData.useSameAddress = data.useSameAddress;
+
+  // Emergency Contact
+  if (data.emergencyContactName !== undefined)
+    updateData.emergencyContactName = data.emergencyContactName;
+  if (data.emergencyContactRelation !== undefined)
+    updateData.emergencyContactRelation = data.emergencyContactRelation;
+  if (data.emergencyContactPhone !== undefined)
+    updateData.emergencyContactPhone = data.emergencyContactPhone;
+
+  // Banking (encrypted)
+  if (data.bankName !== undefined) updateData.bankName = data.bankName;
+  if (data.bankBranch !== undefined) updateData.bankBranch = data.bankBranch;
+  if (data.bankAccountNumber !== undefined)
+    updateData.bankAccountNumber = data.bankAccountNumber
+      ? encrypt(data.bankAccountNumber)
+      : null;
+  if (data.bankAccountName !== undefined) updateData.bankAccountName = data.bankAccountName;
+
+  // Education
+  if (data.educationLevel !== undefined) updateData.educationLevel = data.educationLevel;
+  if (data.educationField !== undefined) updateData.educationField = data.educationField;
+  if (data.educationInstitution !== undefined)
+    updateData.educationInstitution = data.educationInstitution;
+
+  // Military Status
+  if (data.militaryStatus !== undefined) updateData.militaryStatus = data.militaryStatus;
+
+  // Medical Notes
+  if (data.medicalNotes !== undefined) updateData.medicalNotes = data.medicalNotes;
+
+  // Organization
   if (data.positionId !== undefined) updateData.positionId = data.positionId;
   if (data.orgUnitId !== undefined) updateData.orgUnitId = data.orgUnitId;
   if (data.siteId !== undefined) updateData.siteId = data.siteId;
