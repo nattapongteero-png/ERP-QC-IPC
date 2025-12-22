@@ -17,6 +17,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 - MySQL (production), SQLite (testing) via Drizzle ORM - extends existing dual-schema pattern (007-hr-personnel-management)
 - TypeScript 5.x with Next.js 15+ (App Router) + Next.js 16.0.10, React 19.2.1, Drizzle ORM 0.45.1, DevExtreme React 25.1.7, TanStack Query 5.90.12, Zod 4.2.1 (008-vmi-vendor-sync)
 - MySQL 8.0 (production), SQLite (testing) via Drizzle ORM dual-schema pattern (008-vmi-vendor-sync)
+- TypeScript 5.x with strict mode enabled + Next.js 16.0.10, React 19.2.1, DevExtreme React 25.1.7, Drizzle ORM 0.45.1, TanStack Query 5.90.12, Zod 4.2.1 (009-gmp-compliance-gap-analysis)
 
 - TypeScript 5.x (Next.js 15 project) + Next.js 15, React 19, Drizzle ORM, Tailwind CSS (001-reorganize-src-structure)
 
@@ -36,9 +37,9 @@ npm test && npm run lint
 TypeScript 5.x (Next.js 15 project): Follow standard conventions
 
 ## Recent Changes
+- 009-gmp-compliance-gap-analysis: Added TypeScript 5.x with strict mode enabled + Next.js 16.0.10, React 19.2.1, DevExtreme React 25.1.7, Drizzle ORM 0.45.1, TanStack Query 5.90.12, Zod 4.2.1
 - 008-vmi-vendor-sync: Added TypeScript 5.x with Next.js 15+ (App Router) + Next.js 16.0.10, React 19.2.1, Drizzle ORM 0.45.1, DevExtreme React 25.1.7, TanStack Query 5.90.12, Zod 4.2.1
 - 007-hr-personnel-management: Added TypeScript 5.x with Next.js 15 (App Router), React 19 + Drizzle ORM, DevExtreme React 25.1.x, Zod 4.2.x, TanStack Query 5.x, jsonwebtoken (existing)
-- 006-vmi-vendor-integration: Added TypeScript 5.x with Next.js 15 (App Router) + React 19, Drizzle ORM, DevExtreme React 25.1.x, Zod 4.2.x, TanStack Query 5.x
 
 
 <!-- MANUAL ADDITIONS START -->

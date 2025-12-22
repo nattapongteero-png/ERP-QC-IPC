@@ -1,0 +1,826 @@
+openapi: 3.0.3
+info:
+  title: Complaints & Recalls API
+  description: API for Complaint Handling and Product Recall Management (หมวด 9)
+  version: 1.0.0
+
+paths:
+  # COMPLAINTS
+  /api/complaints:
+    get:
+      summary: List complaints
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [received, under_investigation, resolved, closed]
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [quality, efficacy, safety, packaging, labeling, other]
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [minor, major, critical]
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Complaint list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  complaints:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Complaint'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create new complaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateComplaintRequest'
+      responses:
+        '201':
+          description: Complaint created
+
+  /api/complaints/{id}:
+    get:
+      summary: Get complaint details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Complaint with investigation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintDetails'
+
+    patch:
+      summary: Update complaint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateComplaintRequest'
+      responses:
+        '200':
+          description: Complaint updated
+
+  /api/complaints/{id}/investigation:
+    post:
+      summary: Add investigation record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvestigationRequest'
+      responses:
+        '201':
+          description: Investigation recorded
+
+  /api/complaints/{id}/close:
+    post:
+      summary: Close complaint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                closureNotes:
+                  type: string
+      responses:
+        '200':
+          description: Complaint closed
+
+  /api/complaints/trends:
+    get:
+      summary: Get complaint trends
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [month, quarter, year]
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [category, product, severity]
+      responses:
+        '200':
+          description: Trend data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintTrends'
+
+  # RECALLS
+  /api/recalls:
+    get:
+      summary: List recalls
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [initiated, in_progress, completed, closed]
+        - name: recallClass
+          in: query
+          schema:
+            type: string
+            enum: [class_i, class_ii, class_iii]
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Recall list
+
+    post:
+      summary: Initiate recall
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecallRequest'
+      responses:
+        '201':
+          description: Recall initiated
+
+  /api/recalls/{id}:
+    get:
+      summary: Get recall details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Recall with distribution and reconciliation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecallDetails'
+
+    patch:
+      summary: Update recall
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRecallRequest'
+      responses:
+        '200':
+          description: Recall updated
+
+  /api/recalls/{id}/distribution:
+    get:
+      summary: Get distribution data for recall
+      description: Aggregates inventory transactions by customer for affected lots
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Distribution data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DistributionRecord'
+
+  /api/recalls/{id}/notifications:
+    get:
+      summary: List customer notifications
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification list
+
+    post:
+      summary: Record notification sent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationRequest'
+      responses:
+        '201':
+          description: Notification recorded
+
+  /api/recalls/{id}/notifications/{notificationId}:
+    patch:
+      summary: Update notification status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationRequest'
+      responses:
+        '200':
+          description: Notification updated
+
+  /api/recalls/{id}/reconciliation:
+    get:
+      summary: Get reconciliation status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reconciliation data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReconciliationRecord'
+
+    post:
+      summary: Record reconciliation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReconciliationRequest'
+      responses:
+        '201':
+          description: Reconciliation recorded
+
+  /api/recalls/{id}/close:
+    post:
+      summary: Close recall with effectiveness assessment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                effectivenessAssessment:
+                  type: string
+                regulatoryReportPath:
+                  type: string
+      responses:
+        '200':
+          description: Recall closed
+
+  /api/recalls/mock-drill:
+    post:
+      summary: Execute mock recall drill
+      description: Simulates recall to test readiness
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lotId
+              properties:
+                lotId:
+                  type: integer
+                drillName:
+                  type: string
+      responses:
+        '200':
+          description: Mock drill results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MockDrillResult'
+
+components:
+  schemas:
+    Complaint:
+      type: object
+      properties:
+        id:
+          type: integer
+        complaintNumber:
+          type: string
+        receivedDate:
+          type: string
+          format: date
+        source:
+          type: string
+          enum: [customer, distributor, regulatory, internal]
+        customerName:
+          type: string
+        productId:
+          type: integer
+        productName:
+          type: string
+        lotNumber:
+          type: string
+        category:
+          type: string
+          enum: [quality, efficacy, safety, packaging, labeling, other]
+        severity:
+          type: string
+          enum: [minor, major, critical]
+        status:
+          type: string
+          enum: [received, under_investigation, resolved, closed]
+        regulatoryReportRequired:
+          type: boolean
+        capaId:
+          type: integer
+        recallId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    ComplaintDetails:
+      allOf:
+        - $ref: '#/components/schemas/Complaint'
+        - type: object
+          properties:
+            description:
+              type: string
+            customerContact:
+              type: string
+            investigation:
+              $ref: '#/components/schemas/Investigation'
+            capa:
+              type: object
+              description: Linked CAPA summary
+            recall:
+              type: object
+              description: Linked recall summary
+
+    Investigation:
+      type: object
+      properties:
+        id:
+          type: integer
+        complaintId:
+          type: integer
+        investigatorId:
+          type: integer
+        investigatorName:
+          type: string
+        startDate:
+          type: string
+          format: date
+        completionDate:
+          type: string
+          format: date
+        batchRecordReview:
+          type: string
+        retainSampleTest:
+          type: string
+        rootCause:
+          type: string
+        conclusion:
+          type: string
+        recommendation:
+          type: string
+
+    ComplaintTrends:
+      type: object
+      properties:
+        period:
+          type: string
+        dataPoints:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              count:
+                type: integer
+        byCategory:
+          type: object
+          additionalProperties:
+            type: integer
+        byProduct:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+              productName:
+                type: string
+              count:
+                type: integer
+
+    Recall:
+      type: object
+      properties:
+        id:
+          type: integer
+        recallNumber:
+          type: string
+        initiatedDate:
+          type: string
+          format: date
+        recallClass:
+          type: string
+          enum: [class_i, class_ii, class_iii]
+        reason:
+          type: string
+        productId:
+          type: integer
+        productName:
+          type: string
+        affectedLots:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [initiated, in_progress, completed, closed]
+        distributedQuantity:
+          type: number
+        returnedQuantity:
+          type: number
+        effectivenessRate:
+          type: number
+        coordinatorId:
+          type: integer
+        coordinatorName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    RecallDetails:
+      allOf:
+        - $ref: '#/components/schemas/Recall'
+        - type: object
+          properties:
+            notifications:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecallNotification'
+            reconciliation:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReconciliationRecord'
+            complaint:
+              type: object
+              description: Source complaint if any
+
+    DistributionRecord:
+      type: object
+      properties:
+        customerId:
+          type: integer
+        customerName:
+          type: string
+        contactInfo:
+          type: string
+        lotId:
+          type: integer
+        lotNumber:
+          type: string
+        quantityDistributed:
+          type: number
+        shipDate:
+          type: string
+          format: date
+
+    RecallNotification:
+      type: object
+      properties:
+        id:
+          type: integer
+        recallId:
+          type: integer
+        customerId:
+          type: integer
+        customerName:
+          type: string
+        contactInfo:
+          type: string
+        quantityDistributed:
+          type: number
+        notificationMethod:
+          type: string
+          enum: [phone, email, fax, courier]
+        notifiedAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type: string
+          format: date-time
+        responseStatus:
+          type: string
+          enum: [pending, acknowledged, returning, returned, unresponsive]
+        quantityReturned:
+          type: number
+        notes:
+          type: string
+
+    ReconciliationRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        recallId:
+          type: integer
+        lotId:
+          type: integer
+        lotNumber:
+          type: string
+        distributedQty:
+          type: number
+        returnedQty:
+          type: number
+        destroyedQty:
+          type: number
+        accountedQty:
+          type: number
+        unaccountedQty:
+          type: number
+        reconciliationNotes:
+          type: string
+        verifiedBy:
+          type: integer
+        verifiedAt:
+          type: string
+          format: date-time
+
+    MockDrillResult:
+      type: object
+      properties:
+        drillId:
+          type: string
+        lotId:
+          type: integer
+        lotNumber:
+          type: string
+        executedAt:
+          type: string
+          format: date-time
+        customersIdentified:
+          type: integer
+        totalDistributed:
+          type: number
+        timeToIdentify:
+          type: integer
+          description: Seconds to retrieve distribution data
+        passedTarget:
+          type: boolean
+          description: Met 4-hour target
+        distributionReport:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionRecord'
+
+    CreateComplaintRequest:
+      type: object
+      required:
+        - receivedDate
+        - source
+        - productId
+        - category
+        - severity
+        - description
+      properties:
+        receivedDate:
+          type: string
+          format: date
+        source:
+          type: string
+          enum: [customer, distributor, regulatory, internal]
+        customerName:
+          type: string
+        customerContact:
+          type: string
+        productId:
+          type: integer
+        lotId:
+          type: integer
+        category:
+          type: string
+          enum: [quality, efficacy, safety, packaging, labeling, other]
+        severity:
+          type: string
+          enum: [minor, major, critical]
+        description:
+          type: string
+
+    UpdateComplaintRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [received, under_investigation, resolved, closed]
+        severity:
+          type: string
+          enum: [minor, major, critical]
+        regulatoryReportRequired:
+          type: boolean
+        regulatoryReportDate:
+          type: string
+          format: date
+
+    CreateInvestigationRequest:
+      type: object
+      required:
+        - rootCause
+        - conclusion
+      properties:
+        batchRecordReview:
+          type: string
+        retainSampleTest:
+          type: string
+        rootCause:
+          type: string
+        conclusion:
+          type: string
+        recommendation:
+          type: string
+
+    CreateRecallRequest:
+      type: object
+      required:
+        - recallClass
+        - reason
+        - productId
+        - affectedLots
+        - coordinatorId
+      properties:
+        recallClass:
+          type: string
+          enum: [class_i, class_ii, class_iii]
+        reason:
+          type: string
+        productId:
+          type: integer
+        affectedLots:
+          type: array
+          items:
+            type: integer
+        coordinatorId:
+          type: integer
+        complaintId:
+          type: integer
+
+    UpdateRecallRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [initiated, in_progress, completed]
+        regulatoryReportDate:
+          type: string
+          format: date
+
+    CreateNotificationRequest:
+      type: object
+      required:
+        - customerId
+        - notificationMethod
+      properties:
+        customerId:
+          type: integer
+        notificationMethod:
+          type: string
+          enum: [phone, email, fax, courier]
+        notes:
+          type: string
+
+    UpdateNotificationRequest:
+      type: object
+      properties:
+        responseStatus:
+          type: string
+          enum: [pending, acknowledged, returning, returned, unresponsive]
+        quantityReturned:
+          type: number
+        notes:
+          type: string
+
+    CreateReconciliationRequest:
+      type: object
+      required:
+        - lotId
+      properties:
+        lotId:
+          type: integer
+        returnedQty:
+          type: number
+        destroyedQty:
+          type: number
+        accountedQty:
+          type: number
+        reconciliationNotes:
+          type: string

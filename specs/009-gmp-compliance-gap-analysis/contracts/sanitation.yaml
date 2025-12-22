@@ -1,0 +1,621 @@
+openapi: 3.0.3
+info:
+  title: Sanitation & Pest Control API
+  description: API for Sanitation Program and Pest Control Management (หมวด 4)
+  version: 1.0.0
+
+paths:
+  # SANITATION SCHEDULES
+  /api/sanitation/schedules:
+    get:
+      summary: List sanitation schedules
+      parameters:
+        - name: areaType
+          in: query
+          schema:
+            type: string
+            enum: [production, warehouse, lab, office]
+        - name: frequency
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, quarterly]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Schedule list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SanitationSchedule'
+
+    post:
+      summary: Create sanitation schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScheduleRequest'
+      responses:
+        '201':
+          description: Schedule created
+
+  /api/sanitation/schedules/{id}:
+    get:
+      summary: Get schedule details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Schedule with recent logs
+
+    patch:
+      summary: Update schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScheduleRequest'
+      responses:
+        '200':
+          description: Schedule updated
+
+    delete:
+      summary: Deactivate schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Schedule deactivated
+
+  # SANITATION LOGS
+  /api/sanitation/logs:
+    get:
+      summary: List sanitation logs
+      parameters:
+        - name: scheduleId
+          in: query
+          schema:
+            type: integer
+        - name: areaType
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [completed, partial, missed]
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Log list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SanitationLog'
+                  total:
+                    type: integer
+
+    post:
+      summary: Record sanitation completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLogRequest'
+      responses:
+        '201':
+          description: Log recorded
+
+  /api/sanitation/logs/{id}:
+    get:
+      summary: Get log details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Log details
+
+    patch:
+      summary: Update log (add verification)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLogRequest'
+      responses:
+        '200':
+          description: Log updated
+
+  /api/sanitation/logs/pending:
+    get:
+      summary: List pending/overdue sanitation tasks
+      responses:
+        '200':
+          description: Pending tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingTask'
+
+  # PEST CONTROL
+  /api/sanitation/pest-control:
+    get:
+      summary: List pest control logs
+      parameters:
+        - name: serviceType
+          in: query
+          schema:
+            type: string
+            enum: [routine, emergency, follow_up]
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pest control log list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PestControlLog'
+                  total:
+                    type: integer
+
+    post:
+      summary: Record pest control activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePestControlRequest'
+      responses:
+        '201':
+          description: Log recorded
+
+  /api/sanitation/pest-control/{id}:
+    get:
+      summary: Get pest control log details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Log details
+
+    patch:
+      summary: Update pest control log
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePestControlRequest'
+      responses:
+        '200':
+          description: Log updated
+
+  # TRENDS
+  /api/sanitation/trends:
+    get:
+      summary: Get sanitation trends
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, quarter, year]
+        - name: areaType
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trend data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SanitationTrends'
+
+components:
+  schemas:
+    SanitationSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        areaType:
+          type: string
+          enum: [production, warehouse, lab, office]
+        areaId:
+          type: integer
+        areaName:
+          type: string
+        equipmentId:
+          type: integer
+        equipmentName:
+          type: string
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly, quarterly]
+        dayOfWeek:
+          type: integer
+        dayOfMonth:
+          type: integer
+        method:
+          type: string
+        verificationRequired:
+          type: boolean
+        isActive:
+          type: boolean
+        lastCompleted:
+          type: string
+          format: date
+        nextDue:
+          type: string
+          format: date
+        complianceRate:
+          type: number
+          description: Percentage of on-time completions
+
+    SanitationLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        scheduleId:
+          type: integer
+        scheduleName:
+          type: string
+        areaType:
+          type: string
+        scheduledDate:
+          type: string
+          format: date
+        performedDate:
+          type: string
+          format: date
+        performedBy:
+          type: integer
+        performedByName:
+          type: string
+        method:
+          type: string
+        chemicalsUsed:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial, missed]
+        verifiedBy:
+          type: integer
+        verifiedByName:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+        deviationId:
+          type: integer
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    PestControlLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        serviceDate:
+          type: string
+          format: date
+        contractorName:
+          type: string
+        technicianName:
+          type: string
+        serviceType:
+          type: string
+          enum: [routine, emergency, follow_up]
+        areasServiced:
+          type: array
+          items:
+            type: string
+        treatmentMethod:
+          type: string
+        findingsCount:
+          type: integer
+        findings:
+          type: string
+        recommendations:
+          type: string
+        followUpRequired:
+          type: boolean
+        followUpDate:
+          type: string
+          format: date
+        verifiedBy:
+          type: integer
+        verifiedByName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    PendingTask:
+      type: object
+      properties:
+        scheduleId:
+          type: integer
+        scheduleName:
+          type: string
+        areaType:
+          type: string
+        areaName:
+          type: string
+        frequency:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        isOverdue:
+          type: boolean
+        daysOverdue:
+          type: integer
+
+    SanitationTrends:
+      type: object
+      properties:
+        period:
+          type: string
+        overallComplianceRate:
+          type: number
+        byArea:
+          type: array
+          items:
+            type: object
+            properties:
+              areaType:
+                type: string
+              complianceRate:
+                type: number
+              completedCount:
+                type: integer
+              missedCount:
+                type: integer
+        pestActivityTrend:
+          type: array
+          items:
+            type: object
+            properties:
+              period:
+                type: string
+              findingsCount:
+                type: integer
+        dataPoints:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              completed:
+                type: integer
+              missed:
+                type: integer
+              complianceRate:
+                type: number
+
+    CreateScheduleRequest:
+      type: object
+      required:
+        - name
+        - areaType
+        - frequency
+        - method
+      properties:
+        name:
+          type: string
+        areaType:
+          type: string
+          enum: [production, warehouse, lab, office]
+        areaId:
+          type: integer
+        equipmentId:
+          type: integer
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly, quarterly]
+        dayOfWeek:
+          type: integer
+          description: 0-6 for weekly schedules
+        dayOfMonth:
+          type: integer
+          description: 1-31 for monthly schedules
+        method:
+          type: string
+        verificationRequired:
+          type: boolean
+          default: true
+
+    UpdateScheduleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        method:
+          type: string
+        verificationRequired:
+          type: boolean
+        isActive:
+          type: boolean
+
+    CreateLogRequest:
+      type: object
+      required:
+        - scheduleId
+        - performedDate
+        - status
+      properties:
+        scheduleId:
+          type: integer
+        scheduledDate:
+          type: string
+          format: date
+        performedDate:
+          type: string
+          format: date
+        method:
+          type: string
+        chemicalsUsed:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial, missed]
+        notes:
+          type: string
+
+    UpdateLogRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [completed, partial, missed]
+        notes:
+          type: string
+
+    CreatePestControlRequest:
+      type: object
+      required:
+        - serviceDate
+        - contractorName
+        - serviceType
+        - areasServiced
+      properties:
+        serviceDate:
+          type: string
+          format: date
+        contractorName:
+          type: string
+        technicianName:
+          type: string
+        serviceType:
+          type: string
+          enum: [routine, emergency, follow_up]
+        areasServiced:
+          type: array
+          items:
+            type: string
+        treatmentMethod:
+          type: string
+        findingsCount:
+          type: integer
+          default: 0
+        findings:
+          type: string
+        recommendations:
+          type: string
+        followUpRequired:
+          type: boolean
+          default: false
+        followUpDate:
+          type: string
+          format: date
+
+    UpdatePestControlRequest:
+      type: object
+      properties:
+        findings:
+          type: string
+        recommendations:
+          type: string
+        followUpRequired:
+          type: boolean
+        followUpDate:
+          type: string
+          format: date

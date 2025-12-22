@@ -1,0 +1,493 @@
+openapi: 3.0.3
+info:
+  title: CAPA Management API
+  description: API for Corrective and Preventive Action Management (หมวด 1)
+  version: 1.0.0
+
+paths:
+  /api/capa:
+    get:
+      summary: List CAPAs
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, investigation, action_pending, verification, closed, cancelled]
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [corrective, preventive, both]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: sourceType
+          in: query
+          schema:
+            type: string
+            enum: [deviation, complaint, audit_finding, other]
+        - name: ownerId
+          in: query
+          schema:
+            type: integer
+        - name: overdue
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: CAPA list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  capas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Capa'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create new CAPA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCapaRequest'
+      responses:
+        '201':
+          description: CAPA created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capa'
+
+  /api/capa/{id}:
+    get:
+      summary: Get CAPA details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: CAPA with actions and effectiveness records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapaDetails'
+
+    patch:
+      summary: Update CAPA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCapaRequest'
+      responses:
+        '200':
+          description: Updated CAPA
+
+  /api/capa/{id}/actions:
+    get:
+      summary: List actions for a CAPA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Action list
+
+    post:
+      summary: Add action to CAPA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActionRequest'
+      responses:
+        '201':
+          description: Action created
+
+  /api/capa/{id}/actions/{actionId}:
+    patch:
+      summary: Update action status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateActionRequest'
+      responses:
+        '200':
+          description: Action updated
+
+  /api/capa/{id}/effectiveness:
+    get:
+      summary: List effectiveness checks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Effectiveness check list
+
+    post:
+      summary: Record effectiveness check
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEffectivenessRequest'
+      responses:
+        '201':
+          description: Effectiveness check recorded
+
+  /api/capa/{id}/close:
+    post:
+      summary: Close CAPA
+      description: Requires all actions complete and at least one effective verification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                closureNotes:
+                  type: string
+      responses:
+        '200':
+          description: CAPA closed
+        '400':
+          description: Cannot close - actions incomplete or no effectiveness verification
+
+  /api/capa/dashboard:
+    get:
+      summary: Get CAPA dashboard metrics
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapaDashboard'
+
+components:
+  schemas:
+    Capa:
+      type: object
+      properties:
+        id:
+          type: integer
+        capaNumber:
+          type: string
+        title:
+          type: string
+        sourceType:
+          type: string
+          enum: [deviation, complaint, audit_finding, other]
+        sourceId:
+          type: integer
+        sourceNumber:
+          type: string
+          description: Deviation/Complaint/Finding number
+        type:
+          type: string
+          enum: [corrective, preventive, both]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [open, investigation, action_pending, verification, closed, cancelled]
+        dueDate:
+          type: string
+          format: date
+        ownerId:
+          type: integer
+        ownerName:
+          type: string
+        isOverdue:
+          type: boolean
+        actionCount:
+          type: integer
+        actionsCompleted:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    CapaDetails:
+      allOf:
+        - $ref: '#/components/schemas/Capa'
+        - type: object
+          properties:
+            rootCauseAnalysis:
+              type: string
+            rootCauseCategory:
+              type: string
+            closedDate:
+              type: string
+              format: date
+            actions:
+              type: array
+              items:
+                $ref: '#/components/schemas/CapaAction'
+            effectivenessChecks:
+              type: array
+              items:
+                $ref: '#/components/schemas/CapaEffectiveness'
+            source:
+              type: object
+              description: Details of source deviation/complaint/finding
+
+    CapaAction:
+      type: object
+      properties:
+        id:
+          type: integer
+        capaId:
+          type: integer
+        actionNumber:
+          type: integer
+        description:
+          type: string
+        actionType:
+          type: string
+          enum: [immediate, corrective, preventive]
+        assigneeId:
+          type: integer
+        assigneeName:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pending, in_progress, completed, overdue]
+        completionNotes:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+        verifiedBy:
+          type: integer
+        verifiedAt:
+          type: string
+          format: date-time
+
+    CapaEffectiveness:
+      type: object
+      properties:
+        id:
+          type: integer
+        capaId:
+          type: integer
+        checkNumber:
+          type: integer
+        checkDate:
+          type: string
+          format: date
+        verifierId:
+          type: integer
+        verifierName:
+          type: string
+        criteria:
+          type: string
+        result:
+          type: string
+          enum: [effective, not_effective, partial]
+        evidence:
+          type: string
+        followUpRequired:
+          type: boolean
+        notes:
+          type: string
+
+    CapaDashboard:
+      type: object
+      properties:
+        totalOpen:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        byPriority:
+          type: object
+          additionalProperties:
+            type: integer
+        overdue:
+          type: integer
+        closedThisMonth:
+          type: integer
+        avgClosureTime:
+          type: number
+          description: Average days to close
+        effectivenessRate:
+          type: number
+          description: Percentage of CAPAs deemed effective
+
+    CreateCapaRequest:
+      type: object
+      required:
+        - title
+        - sourceType
+        - type
+        - priority
+        - ownerId
+        - dueDate
+      properties:
+        title:
+          type: string
+        sourceType:
+          type: string
+          enum: [deviation, complaint, audit_finding, other]
+        sourceId:
+          type: integer
+        type:
+          type: string
+          enum: [corrective, preventive, both]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        ownerId:
+          type: integer
+        dueDate:
+          type: string
+          format: date
+        rootCauseAnalysis:
+          type: string
+        rootCauseCategory:
+          type: string
+
+    UpdateCapaRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [open, investigation, action_pending, verification]
+        rootCauseAnalysis:
+          type: string
+        rootCauseCategory:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        ownerId:
+          type: integer
+
+    CreateActionRequest:
+      type: object
+      required:
+        - description
+        - actionType
+        - assigneeId
+        - dueDate
+      properties:
+        description:
+          type: string
+        actionType:
+          type: string
+          enum: [immediate, corrective, preventive]
+        assigneeId:
+          type: integer
+        dueDate:
+          type: string
+          format: date
+
+    UpdateActionRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        completionNotes:
+          type: string
+        dueDate:
+          type: string
+          format: date
+
+    CreateEffectivenessRequest:
+      type: object
+      required:
+        - criteria
+        - result
+      properties:
+        checkDate:
+          type: string
+          format: date
+        criteria:
+          type: string
+        result:
+          type: string
+          enum: [effective, not_effective, partial]
+        evidence:
+          type: string
+        followUpRequired:
+          type: boolean
+        notes:
+          type: string

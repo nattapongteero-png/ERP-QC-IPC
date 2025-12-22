@@ -1,0 +1,382 @@
+openapi: 3.0.3
+info:
+  title: Document Control API
+  description: API for GMP Document Control System (หมวด 5)
+  version: 1.0.0
+
+paths:
+  /api/documents:
+    get:
+      summary: List documents
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, active, obsolete, archived]
+        - name: typeId
+          in: query
+          schema:
+            type: integer
+        - name: departmentId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Document list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Document'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+    post:
+      summary: Create new document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentRequest'
+      responses:
+        '201':
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+
+  /api/documents/{id}:
+    get:
+      summary: Get document details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Document with current version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentWithVersion'
+
+    patch:
+      summary: Update document metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentRequest'
+      responses:
+        '200':
+          description: Updated document
+
+  /api/documents/{id}/versions:
+    get:
+      summary: List all versions of a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Version history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentVersion'
+
+    post:
+      summary: Create new version (draft)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVersionRequest'
+      responses:
+        '201':
+          description: New version created
+
+  /api/documents/{id}/versions/{versionId}:
+    get:
+      summary: Get specific version
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Version details
+
+  /api/documents/{id}/approve:
+    post:
+      summary: Submit version for approval
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                versionId:
+                  type: integer
+                approvers:
+                  type: array
+                  items:
+                    type: integer
+                  description: User IDs of required approvers
+      responses:
+        '200':
+          description: Submitted for approval
+
+  /api/documents/approvals:
+    get:
+      summary: List pending approvals for current user
+      responses:
+        '200':
+          description: Pending approval list
+
+  /api/documents/approvals/{id}:
+    post:
+      summary: Approve or reject document version
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - decision
+              properties:
+                decision:
+                  type: string
+                  enum: [approved, rejected]
+                comments:
+                  type: string
+      responses:
+        '200':
+          description: Decision recorded
+
+  /api/documents/types:
+    get:
+      summary: List document types
+      responses:
+        '200':
+          description: Document type list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentType'
+
+components:
+  schemas:
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        documentNumber:
+          type: string
+        title:
+          type: string
+        typeId:
+          type: integer
+        typeName:
+          type: string
+        departmentId:
+          type: integer
+        departmentName:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, obsolete, archived]
+        currentVersionNumber:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DocumentWithVersion:
+      allOf:
+        - $ref: '#/components/schemas/Document'
+        - type: object
+          properties:
+            currentVersion:
+              $ref: '#/components/schemas/DocumentVersion'
+            approvals:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentApproval'
+
+    DocumentVersion:
+      type: object
+      properties:
+        id:
+          type: integer
+        documentId:
+          type: integer
+        versionNumber:
+          type: string
+        content:
+          type: string
+        filePath:
+          type: string
+        changeDescription:
+          type: string
+        status:
+          type: string
+          enum: [draft, pending_approval, approved, rejected, superseded]
+        effectiveDate:
+          type: string
+          format: date
+        obsoleteDate:
+          type: string
+          format: date
+        createdBy:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    DocumentApproval:
+      type: object
+      properties:
+        id:
+          type: integer
+        versionId:
+          type: integer
+        approverId:
+          type: integer
+        approverName:
+          type: string
+        approvalRole:
+          type: string
+          enum: [author, reviewer, approver]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        comments:
+          type: string
+        signedAt:
+          type: string
+          format: date-time
+
+    DocumentType:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        prefix:
+          type: string
+        reviewPeriodMonths:
+          type: integer
+
+    CreateDocumentRequest:
+      type: object
+      required:
+        - title
+        - typeId
+        - departmentId
+      properties:
+        title:
+          type: string
+        typeId:
+          type: integer
+        departmentId:
+          type: integer
+        content:
+          type: string
+
+    UpdateDocumentRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        departmentId:
+          type: integer
+        status:
+          type: string
+          enum: [active, obsolete, archived]
+
+    CreateVersionRequest:
+      type: object
+      required:
+        - content
+        - changeDescription
+      properties:
+        content:
+          type: string
+        filePath:
+          type: string
+        changeDescription:
+          type: string

@@ -1,0 +1,681 @@
+openapi: 3.0.3
+info:
+  title: Stability Program API
+  description: API for Stability Studies Management (หมวด 7.4)
+  version: 1.0.0
+
+paths:
+  # PROTOCOLS
+  /api/stability/protocols:
+    get:
+      summary: List stability protocols
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: studyType
+          in: query
+          schema:
+            type: string
+            enum: [long_term, accelerated, intermediate]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, approved, obsolete]
+      responses:
+        '200':
+          description: Protocol list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StabilityProtocol'
+
+    post:
+      summary: Create stability protocol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProtocolRequest'
+      responses:
+        '201':
+          description: Protocol created
+
+  /api/stability/protocols/{id}:
+    get:
+      summary: Get protocol details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Protocol details
+
+    patch:
+      summary: Update protocol
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProtocolRequest'
+      responses:
+        '200':
+          description: Protocol updated
+
+  /api/stability/protocols/{id}/approve:
+    post:
+      summary: Approve protocol
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Protocol approved
+
+  # STUDIES
+  /api/stability/studies:
+    get:
+      summary: List stability studies
+      parameters:
+        - name: protocolId
+          in: query
+          schema:
+            type: integer
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, completed, cancelled, on_hold]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Study list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  studies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StabilityStudy'
+                  total:
+                    type: integer
+
+    post:
+      summary: Enroll batch in stability study
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStudyRequest'
+      responses:
+        '201':
+          description: Study created with sample schedule
+
+  /api/stability/studies/{id}:
+    get:
+      summary: Get study details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Study with samples and results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StabilityStudyDetails'
+
+    patch:
+      summary: Update study
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStudyRequest'
+      responses:
+        '200':
+          description: Study updated
+
+  # SAMPLES
+  /api/stability/samples:
+    get:
+      summary: List stability samples
+      parameters:
+        - name: studyId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, sampled, tested, skipped]
+        - name: dueSoon
+          in: query
+          schema:
+            type: boolean
+          description: Filter to samples due within 30 days
+        - name: overdue
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Sample list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  samples:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StabilitySample'
+                  total:
+                    type: integer
+
+  /api/stability/samples/{id}:
+    get:
+      summary: Get sample details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Sample with test results
+
+    patch:
+      summary: Update sample status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSampleRequest'
+      responses:
+        '200':
+          description: Sample updated
+
+  /api/stability/samples/{id}/test:
+    post:
+      summary: Record test results for sample
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordTestRequest'
+      responses:
+        '200':
+          description: Test results recorded
+
+  /api/stability/samples/alerts:
+    get:
+      summary: Get samples due for testing
+      parameters:
+        - name: daysAhead
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Upcoming samples
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SampleAlert'
+
+  # TRENDS
+  /api/stability/trends:
+    get:
+      summary: Get stability trends
+      parameters:
+        - name: studyId
+          in: query
+          schema:
+            type: integer
+        - name: productId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Trend data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StabilityTrends'
+
+  /api/stability/trends/{studyId}:
+    get:
+      summary: Get trend data for specific study
+      parameters:
+        - name: studyId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: parameter
+          in: query
+          schema:
+            type: string
+          description: Specific test parameter to chart
+      responses:
+        '200':
+          description: Study trend chart data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyTrendData'
+
+components:
+  schemas:
+    StabilityProtocol:
+      type: object
+      properties:
+        id:
+          type: integer
+        protocolNumber:
+          type: string
+        name:
+          type: string
+        productId:
+          type: integer
+        productName:
+          type: string
+        studyType:
+          type: string
+          enum: [long_term, accelerated, intermediate]
+        storageCondition:
+          type: string
+        timepoints:
+          type: array
+          items:
+            type: integer
+          description: Months from start
+        testsRequired:
+          type: array
+          items:
+            type: object
+            properties:
+              testId:
+                type: integer
+              testName:
+                type: string
+        status:
+          type: string
+          enum: [draft, approved, obsolete]
+        approvedBy:
+          type: integer
+        approvedByName:
+          type: string
+        approvedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    StabilityStudy:
+      type: object
+      properties:
+        id:
+          type: integer
+        studyNumber:
+          type: string
+        protocolId:
+          type: integer
+        protocolNumber:
+          type: string
+        lotId:
+          type: integer
+        lotNumber:
+          type: string
+        productId:
+          type: integer
+        productName:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [active, completed, cancelled, on_hold]
+        chamberLocation:
+          type: string
+        currentTimepoint:
+          type: integer
+          description: Most recent completed timepoint
+        nextDueDate:
+          type: string
+          format: date
+        oosCount:
+          type: integer
+        createdBy:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    StabilityStudyDetails:
+      allOf:
+        - $ref: '#/components/schemas/StabilityStudy'
+        - type: object
+          properties:
+            protocol:
+              $ref: '#/components/schemas/StabilityProtocol'
+            samples:
+              type: array
+              items:
+                $ref: '#/components/schemas/StabilitySample'
+            trends:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrendParameter'
+
+    StabilitySample:
+      type: object
+      properties:
+        id:
+          type: integer
+        studyId:
+          type: integer
+        sampleNumber:
+          type: string
+        timepoint:
+          type: integer
+          description: Months from study start
+        scheduledDate:
+          type: string
+          format: date
+        actualDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pending, sampled, tested, skipped]
+        qualityTestId:
+          type: integer
+        oosDetected:
+          type: boolean
+        oosInvestigationId:
+          type: integer
+        sampledBy:
+          type: integer
+        sampledByName:
+          type: string
+        notes:
+          type: string
+
+    SampleAlert:
+      type: object
+      properties:
+        sampleId:
+          type: integer
+        studyId:
+          type: integer
+        studyNumber:
+          type: string
+        productName:
+          type: string
+        lotNumber:
+          type: string
+        timepoint:
+          type: integer
+        scheduledDate:
+          type: string
+          format: date
+        daysUntilDue:
+          type: integer
+        isOverdue:
+          type: boolean
+
+    TrendParameter:
+      type: object
+      properties:
+        parameter:
+          type: string
+        unit:
+          type: string
+        specification:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+        dataPoints:
+          type: array
+          items:
+            type: object
+            properties:
+              timepoint:
+                type: integer
+              value:
+                type: number
+              date:
+                type: string
+                format: date
+        trendSlope:
+          type: number
+        projectedFailureMonth:
+          type: integer
+
+    StabilityTrends:
+      type: object
+      properties:
+        totalActiveStudies:
+          type: integer
+        overduesamples:
+          type: integer
+        oosThisMonth:
+          type: integer
+        studiesByProduct:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+              productName:
+                type: string
+              activeStudies:
+                type: integer
+              completedStudies:
+                type: integer
+
+    StudyTrendData:
+      type: object
+      properties:
+        studyId:
+          type: integer
+        studyNumber:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendParameter'
+        projections:
+          type: array
+          items:
+            type: object
+            properties:
+              parameter:
+                type: string
+              projectedValue:
+                type: number
+              atMonth:
+                type: integer
+              withinSpec:
+                type: boolean
+
+    CreateProtocolRequest:
+      type: object
+      required:
+        - name
+        - productId
+        - studyType
+        - storageCondition
+        - timepoints
+        - testsRequired
+      properties:
+        name:
+          type: string
+        productId:
+          type: integer
+        studyType:
+          type: string
+          enum: [long_term, accelerated, intermediate]
+        storageCondition:
+          type: string
+        timepoints:
+          type: array
+          items:
+            type: integer
+          description: e.g., [0, 1, 2, 3, 6, 9, 12, 18, 24, 36]
+        testsRequired:
+          type: array
+          items:
+            type: integer
+          description: Quality spec IDs
+
+    UpdateProtocolRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        storageCondition:
+          type: string
+        timepoints:
+          type: array
+          items:
+            type: integer
+        testsRequired:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+          enum: [draft, obsolete]
+
+    CreateStudyRequest:
+      type: object
+      required:
+        - protocolId
+        - lotId
+        - startDate
+      properties:
+        protocolId:
+          type: integer
+        lotId:
+          type: integer
+        startDate:
+          type: string
+          format: date
+        chamberLocation:
+          type: string
+        notes:
+          type: string
+
+    UpdateStudyRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, completed, cancelled, on_hold]
+        chamberLocation:
+          type: string
+        notes:
+          type: string
+
+    UpdateSampleRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, sampled, tested, skipped]
+        actualDate:
+          type: string
+          format: date
+        notes:
+          type: string
+
+    RecordTestRequest:
+      type: object
+      required:
+        - qualityTestId
+      properties:
+        qualityTestId:
+          type: integer
+          description: Link to quality_tests table result
+        oosDetected:
+          type: boolean
+        notes:
+          type: string

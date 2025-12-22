@@ -1,0 +1,701 @@
+openapi: 3.0.3
+info:
+  title: Internal Audit API
+  description: API for Self-Inspection and Internal Audit Management (หมวด 10)
+  version: 1.0.0
+
+paths:
+  # AUDIT PLANS
+  /api/audits/plans:
+    get:
+      summary: List audit plans
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, approved, in_progress, completed]
+      responses:
+        '200':
+          description: Plan list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditPlan'
+
+    post:
+      summary: Create annual audit plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlanRequest'
+      responses:
+        '201':
+          description: Plan created
+
+  /api/audits/plans/{id}:
+    get:
+      summary: Get plan details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Plan with scheduled audits
+
+    patch:
+      summary: Update plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlanRequest'
+      responses:
+        '200':
+          description: Plan updated
+
+  /api/audits/plans/{id}/approve:
+    post:
+      summary: Approve audit plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Plan approved
+
+  # AUDITS
+  /api/audits:
+    get:
+      summary: List audits
+      parameters:
+        - name: planId
+          in: query
+          schema:
+            type: integer
+        - name: auditType
+          in: query
+          schema:
+            type: string
+            enum: [internal, external, regulatory]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, in_progress, completed, cancelled]
+        - name: gmpChapter
+          in: query
+          schema:
+            type: integer
+          description: Filter by หมวด (1-10)
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Audit list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audits:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Audit'
+                  total:
+                    type: integer
+
+    post:
+      summary: Schedule audit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuditRequest'
+      responses:
+        '201':
+          description: Audit scheduled
+
+  /api/audits/{id}:
+    get:
+      summary: Get audit details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Audit with findings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditDetails'
+
+    patch:
+      summary: Update audit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAuditRequest'
+      responses:
+        '200':
+          description: Audit updated
+
+  /api/audits/{id}/start:
+    post:
+      summary: Start audit execution
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Audit started
+
+  /api/audits/{id}/complete:
+    post:
+      summary: Complete audit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                summary:
+                  type: string
+                reportPath:
+                  type: string
+      responses:
+        '200':
+          description: Audit completed
+
+  # FINDINGS
+  /api/audits/findings:
+    get:
+      summary: List audit findings
+      parameters:
+        - name: auditId
+          in: query
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [observation, minor, major, critical]
+        - name: gmpChapter
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, capa_assigned, closed]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Finding list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  findings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditFinding'
+                  total:
+                    type: integer
+
+    post:
+      summary: Record audit finding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFindingRequest'
+      responses:
+        '201':
+          description: Finding recorded
+
+  /api/audits/findings/{id}:
+    get:
+      summary: Get finding details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Finding with CAPA
+
+    patch:
+      summary: Update finding
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFindingRequest'
+      responses:
+        '200':
+          description: Finding updated
+
+  /api/audits/findings/{id}/capa:
+    post:
+      summary: Create CAPA from finding
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ownerId
+                - dueDate
+              properties:
+                ownerId:
+                  type: integer
+                dueDate:
+                  type: string
+                  format: date
+                priority:
+                  type: string
+                  enum: [low, medium, high, critical]
+      responses:
+        '201':
+          description: CAPA created and linked
+
+  /api/audits/findings/{id}/close:
+    post:
+      summary: Close finding
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                closureNotes:
+                  type: string
+      responses:
+        '200':
+          description: Finding closed
+
+  # REPORTS
+  /api/audits/reports:
+    get:
+      summary: Get audit statistics
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Audit statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditStatistics'
+
+  /api/audits/reports/coverage:
+    get:
+      summary: Get GMP chapter coverage
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Coverage by chapter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChapterCoverage'
+
+components:
+  schemas:
+    AuditPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        planYear:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, approved, in_progress, completed]
+        totalAudits:
+          type: integer
+        completedAudits:
+          type: integer
+        approvedBy:
+          type: integer
+        approvedByName:
+          type: string
+        approvedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    Audit:
+      type: object
+      properties:
+        id:
+          type: integer
+        auditNumber:
+          type: string
+        planId:
+          type: integer
+        auditType:
+          type: string
+          enum: [internal, external, regulatory]
+        scope:
+          type: string
+        gmpChapters:
+          type: array
+          items:
+            type: integer
+          description: หมวด covered (1-10)
+        scheduledDate:
+          type: string
+          format: date
+        actualDate:
+          type: string
+          format: date
+        leadAuditorId:
+          type: integer
+        leadAuditorName:
+          type: string
+        auditTeam:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+        findingsCount:
+          type: integer
+        openFindingsCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditDetails:
+      allOf:
+        - $ref: '#/components/schemas/Audit'
+        - type: object
+          properties:
+            summary:
+              type: string
+            reportPath:
+              type: string
+            closedDate:
+              type: string
+              format: date
+            findings:
+              type: array
+              items:
+                $ref: '#/components/schemas/AuditFinding'
+            plan:
+              $ref: '#/components/schemas/AuditPlan'
+
+    AuditFinding:
+      type: object
+      properties:
+        id:
+          type: integer
+        auditId:
+          type: integer
+        auditNumber:
+          type: string
+        findingNumber:
+          type: string
+        category:
+          type: string
+          enum: [observation, minor, major, critical]
+        gmpChapter:
+          type: integer
+        gmpChapterName:
+          type: string
+        gmpRequirement:
+          type: string
+        description:
+          type: string
+        evidence:
+          type: string
+        areaOwner:
+          type: integer
+        areaOwnerName:
+          type: string
+        capaRequired:
+          type: boolean
+        capaId:
+          type: integer
+        capaNumber:
+          type: string
+        status:
+          type: string
+          enum: [open, capa_assigned, closed]
+        closedDate:
+          type: string
+          format: date
+        closedBy:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditStatistics:
+      type: object
+      properties:
+        year:
+          type: integer
+        totalPlanned:
+          type: integer
+        totalCompleted:
+          type: integer
+        completionRate:
+          type: number
+        totalFindings:
+          type: integer
+        findingsByCategory:
+          type: object
+          properties:
+            observation:
+              type: integer
+            minor:
+              type: integer
+            major:
+              type: integer
+            critical:
+              type: integer
+        openFindings:
+          type: integer
+        avgCapaClosureTime:
+          type: number
+          description: Average days to close findings
+
+    ChapterCoverage:
+      type: object
+      properties:
+        year:
+          type: integer
+        chapters:
+          type: array
+          items:
+            type: object
+            properties:
+              chapter:
+                type: integer
+              name:
+                type: string
+              auditsPlanned:
+                type: integer
+              auditsCompleted:
+                type: integer
+              findingsCount:
+                type: integer
+              lastAuditDate:
+                type: string
+                format: date
+
+    CreatePlanRequest:
+      type: object
+      required:
+        - planYear
+        - name
+      properties:
+        planYear:
+          type: integer
+        name:
+          type: string
+
+    UpdatePlanRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, in_progress, completed]
+
+    CreateAuditRequest:
+      type: object
+      required:
+        - planId
+        - auditType
+        - scope
+        - gmpChapters
+        - scheduledDate
+        - leadAuditorId
+      properties:
+        planId:
+          type: integer
+        auditType:
+          type: string
+          enum: [internal, external, regulatory]
+        scope:
+          type: string
+        gmpChapters:
+          type: array
+          items:
+            type: integer
+        scheduledDate:
+          type: string
+          format: date
+        leadAuditorId:
+          type: integer
+        auditTeam:
+          type: array
+          items:
+            type: integer
+
+    UpdateAuditRequest:
+      type: object
+      properties:
+        scope:
+          type: string
+        scheduledDate:
+          type: string
+          format: date
+        leadAuditorId:
+          type: integer
+        auditTeam:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+          enum: [scheduled, in_progress, cancelled]
+
+    CreateFindingRequest:
+      type: object
+      required:
+        - auditId
+        - category
+        - gmpChapter
+        - description
+      properties:
+        auditId:
+          type: integer
+        category:
+          type: string
+          enum: [observation, minor, major, critical]
+        gmpChapter:
+          type: integer
+        gmpRequirement:
+          type: string
+        description:
+          type: string
+        evidence:
+          type: string
+        areaOwner:
+          type: integer
+        capaRequired:
+          type: boolean
+          default: false
+
+    UpdateFindingRequest:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [observation, minor, major, critical]
+        description:
+          type: string
+        evidence:
+          type: string
+        areaOwner:
+          type: integer
+        capaRequired:
+          type: boolean
