@@ -27,13 +27,16 @@ interface RouteParams {
   params: Promise<{ path: string[] }>;
 }
 
-// GET /api/documents/download/[...path] - Download file
+// GET /api/documents/download/[...path] - Download or view file
+// Use ?inline=true to view inline (for PDF preview)
 export async function GET(request: NextRequest, { params }: RouteParams) {
   return withAuth(
     request,
     async () => {
       try {
         const { path: pathSegments } = await params;
+        const { searchParams } = new URL(request.url);
+        const isInline = searchParams.get('inline') === 'true';
 
         if (!pathSegments || pathSegments.length === 0) {
           return errorResponse('File path is required', 400);
@@ -75,12 +78,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         const filename = relativePath.split('/').pop() || 'document';
 
         // Return file with appropriate headers
+        // Use inline for preview, attachment for download
+        const disposition = isInline ? 'inline' : 'attachment';
+
         return new NextResponse(fileBuffer, {
           headers: {
             'Content-Type': mimeType,
-            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Content-Disposition': `${disposition}; filename="${filename}"`,
             'Content-Length': String(fileBuffer.length),
             'Cache-Control': 'private, max-age=3600',
+            ...(isInline && { 'X-Frame-Options': 'SAMEORIGIN' }),
           },
         });
       } catch (error) {

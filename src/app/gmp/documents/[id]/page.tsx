@@ -145,8 +145,9 @@ function DocumentPreview({
   const [hasError, setHasError] = useState(false);
 
   const extension = getFileExtension(filePath);
-  const downloadUrl = `/api/documents/download/${filePath.replace('data/', '')}`;
-  const viewUrl = `/api/documents/view/${filePath.replace('data/', '')}`;
+  const basePath = `/api/documents/download/${filePath.replace('data/', '')}`;
+  const downloadUrl = basePath;
+  const viewUrl = `${basePath}?inline=true`;
   const isPdf = extension === 'pdf';
 
   if (isPdf) {
