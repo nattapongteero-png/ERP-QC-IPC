@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check permission
-    if (!hasPermission(session.role as Role, 'vmi-sync:write')) {
+    if (!hasPermission(session.role as Role, 'vmi-settings:write')) {
       return NextResponse.json(
         { success: false, error: 'Permission denied' },
         { status: 403 }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Validation failed',
-          details: validationResult.error.errors,
+          details: validationResult.error.issues,
         },
         { status: 400 }
       );
