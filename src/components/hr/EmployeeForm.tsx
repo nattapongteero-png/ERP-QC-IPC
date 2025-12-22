@@ -25,6 +25,8 @@ import {
   UserPlus,
   Edit3,
   RefreshCw,
+  Briefcase,
+  Hash,
 } from 'lucide-react';
 import type { EmployeeCreate, EmployeeProfile, EmployeeStatus } from '@/types/hr';
 
@@ -228,310 +230,313 @@ export function EmployeeForm({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
-            </button>
-            <div>
-              <h1 className="font-semibold text-gray-900">
-                {isCreate ? 'เพิ่มพนักงานใหม่' : 'แก้ไขข้อมูลพนักงาน'}
-              </h1>
-              <p className="text-xs text-gray-500">
-                {isCreate ? 'New Employee' : formData.employeeCode}
-              </p>
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200">
+        <div className="px-4 lg:px-8 py-4">
+          <div className="flex items-center justify-between max-w-6xl mx-auto">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-600" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className={`hidden sm:flex w-12 h-12 rounded-xl items-center justify-center ${isCreate ? 'bg-blue-100' : 'bg-indigo-100'}`}>
+                  {isCreate ? (
+                    <UserPlus className="h-6 w-6 text-blue-600" />
+                  ) : (
+                    <Edit3 className="h-6 w-6 text-indigo-600" />
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-lg lg:text-xl font-semibold text-gray-900">
+                    {isCreate ? 'เพิ่มพนักงานใหม่' : 'แก้ไขข้อมูลพนักงาน'}
+                  </h1>
+                  <p className="text-sm text-gray-500">
+                    {isCreate ? 'กรอกข้อมูลพนักงานใหม่' : `รหัส: ${formData.employeeCode}`}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <X className="h-4 w-4" />
-              ยกเลิก
-            </button>
-            <button
-              type="submit"
-              form="employee-form"
-              disabled={isPending}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="h-4 w-4" />
-              {isPending ? 'กำลังบันทึก...' : 'บันทึก'}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="hidden sm:flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <X className="h-4 w-4" />
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                form="employee-form"
+                disabled={isPending}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                <Save className="h-4 w-4" />
+                <span className="hidden sm:inline">{isPending ? 'กำลังบันทึก...' : 'บันทึก'}</span>
+                <span className="sm:hidden">{isPending ? '...' : 'บันทึก'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Form Content */}
-      <form id="employee-form" onSubmit={handleSubmit} className="p-4 pb-24 sm:pb-8 max-w-3xl mx-auto space-y-4">
-        {/* Profile Header Card */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-5 py-6 text-center">
-            <div className="w-20 h-20 mx-auto bg-white/20 rounded-2xl flex items-center justify-center mb-3">
-              {isCreate ? (
-                <UserPlus className="h-10 w-10 text-white" />
-              ) : (
-                <Edit3 className="h-10 w-10 text-white" />
-              )}
-            </div>
-            <h2 className="text-white font-semibold text-lg">
-              {isCreate ? 'ข้อมูลพนักงานใหม่' : 'แก้ไขข้อมูลพนักงาน'}
-            </h2>
-            <p className="text-blue-100 text-sm mt-1">
-              กรอกข้อมูลให้ครบถ้วน
-            </p>
-          </div>
-        </div>
-
-        {/* Employee Code Section */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <User className="h-5 w-5 text-gray-400" />
-              รหัสพนักงาน
-            </h3>
-          </div>
-          <div className="p-5">
-            <div className="flex items-end gap-3">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  รหัสพนักงาน <span className="text-red-500">*</span>
-                </label>
-                <DxTextBox
-                  value={displayCode || ''}
-                  onValueChange={handleCodeChange}
-                  placeholder={isLoadingCode ? 'กำลังโหลด...' : 'เช่น EMP001'}
-                  width="100%"
-                  disabled={isLoadingCode || mode === 'edit'}
-                  readOnly={mode === 'edit'}
-                />
-              </div>
-              {mode === 'create' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    refetchNextCode().then((result) => {
-                      if (result.data) {
-                        setUserModifiedCode(false);
-                        setFormData(prev => ({ ...prev, employeeCode: result.data }));
-                      }
-                    });
-                  }}
-                  disabled={isLoadingCode}
-                  className="flex-shrink-0 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  <RefreshCw className={`h-5 w-5 text-gray-600 ${isLoadingCode ? 'animate-spin' : ''}`} />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Personal Info Section */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <User className="h-5 w-5 text-gray-400" />
-              ข้อมูลส่วนตัว
-            </h3>
-          </div>
-          <div className="p-5 space-y-4">
-            {/* Thai Name */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ชื่อ (ไทย) <span className="text-red-500">*</span>
-                </label>
-                <DxTextBox
-                  value={formData.firstName || ''}
-                  onValueChange={(value) => handleInputChange('firstName', value)}
-                  placeholder="ชื่อภาษาไทย"
-                  width="100%"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  นามสกุล (ไทย) <span className="text-red-500">*</span>
-                </label>
-                <DxTextBox
-                  value={formData.lastName || ''}
-                  onValueChange={(value) => handleInputChange('lastName', value)}
-                  placeholder="นามสกุลภาษาไทย"
-                  width="100%"
-                />
-              </div>
-            </div>
-
-            {/* English Name */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name (English)
-                </label>
-                <DxTextBox
-                  value={formData.firstNameEn || ''}
-                  onValueChange={(value) => handleInputChange('firstNameEn', value)}
-                  placeholder="First name in English"
-                  width="100%"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name (English)
-                </label>
-                <DxTextBox
-                  value={formData.lastNameEn || ''}
-                  onValueChange={(value) => handleInputChange('lastNameEn', value)}
-                  placeholder="Last name in English"
-                  width="100%"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Contact Info Section */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Mail className="h-5 w-5 text-gray-400" />
-              ข้อมูลติดต่อ
-            </h3>
-          </div>
-          <div className="p-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  อีเมล
-                </label>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <Mail className="h-4 w-4 text-gray-400" />
+      <form id="employee-form" onSubmit={handleSubmit} className="px-4 lg:px-8 py-6 pb-24 sm:pb-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Desktop: Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Main Info */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Employee Code & Personal Info */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-500" />
+                    ข้อมูลพนักงาน
+                  </h3>
+                </div>
+                <div className="p-6 space-y-5">
+                  {/* Employee Code */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Hash className="h-4 w-4 inline mr-1.5 text-gray-400" />
+                      รหัสพนักงาน <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <DxTextBox
+                          value={displayCode || ''}
+                          onValueChange={handleCodeChange}
+                          placeholder={isLoadingCode ? 'กำลังโหลด...' : 'เช่น EMP001'}
+                          width="100%"
+                          disabled={isLoadingCode || mode === 'edit'}
+                          readOnly={mode === 'edit'}
+                        />
+                      </div>
+                      {mode === 'create' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            refetchNextCode().then((result) => {
+                              if (result.data) {
+                                setUserModifiedCode(false);
+                                setFormData(prev => ({ ...prev, employeeCode: result.data }));
+                              }
+                            });
+                          }}
+                          disabled={isLoadingCode}
+                          className="flex-shrink-0 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                          title="สร้างรหัสใหม่"
+                        >
+                          <RefreshCw className={`h-5 w-5 text-gray-600 ${isLoadingCode ? 'animate-spin' : ''}`} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <DxTextBox
-                    mode="email"
-                    value={formData.email || ''}
-                    onValueChange={(value) => handleInputChange('email', value)}
-                    placeholder="email@example.com"
-                    width="100%"
-                    inputAttr={{ style: { paddingLeft: '2.5rem' } }}
-                  />
+
+                  {/* Names Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ชื่อ (ไทย) <span className="text-red-500">*</span>
+                      </label>
+                      <DxTextBox
+                        value={formData.firstName || ''}
+                        onValueChange={(value) => handleInputChange('firstName', value)}
+                        placeholder="ชื่อภาษาไทย"
+                        width="100%"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        นามสกุล (ไทย) <span className="text-red-500">*</span>
+                      </label>
+                      <DxTextBox
+                        value={formData.lastName || ''}
+                        onValueChange={(value) => handleInputChange('lastName', value)}
+                        placeholder="นามสกุลภาษาไทย"
+                        width="100%"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        First Name (English)
+                      </label>
+                      <DxTextBox
+                        value={formData.firstNameEn || ''}
+                        onValueChange={(value) => handleInputChange('firstNameEn', value)}
+                        placeholder="First name"
+                        width="100%"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Last Name (English)
+                      </label>
+                      <DxTextBox
+                        value={formData.lastNameEn || ''}
+                        onValueChange={(value) => handleInputChange('lastNameEn', value)}
+                        placeholder="Last name"
+                        width="100%"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  เบอร์โทร
-                </label>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <Phone className="h-4 w-4 text-gray-400" />
+
+              {/* Organization & Position */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Briefcase className="h-5 w-5 text-indigo-500" />
+                    หน่วยงานและตำแหน่ง
+                  </h3>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <Building2 className="h-4 w-4 inline mr-1.5 text-gray-400" />
+                        หน่วยงาน
+                      </label>
+                      <OrgUnitPicker
+                        value={formData.orgUnitId || null}
+                        onValueChange={(value) => handleInputChange('orgUnitId', value || undefined)}
+                        placeholder="เลือกหน่วยงาน"
+                        showClearButton
+                        width="100%"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <Briefcase className="h-4 w-4 inline mr-1.5 text-gray-400" />
+                        ตำแหน่ง
+                      </label>
+                      <PositionSelect
+                        value={formData.positionId || null}
+                        onValueChange={(value) => handleInputChange('positionId', value || undefined)}
+                        placeholder="เลือกตำแหน่ง"
+                        showClearButton
+                        orgUnitId={formData.orgUnitId}
+                        width="100%"
+                      />
+                    </div>
                   </div>
-                  <DxTextBox
-                    mode="tel"
-                    value={formData.phone || ''}
-                    onValueChange={(value) => handleInputChange('phone', value)}
-                    placeholder="0812345678"
-                    width="100%"
-                    inputAttr={{ style: { paddingLeft: '2.5rem' } }}
-                  />
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Organization & Position Section */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-gray-400" />
-              หน่วยงานและตำแหน่ง
-            </h3>
-          </div>
-          <div className="p-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  หน่วยงาน
-                </label>
-                <OrgUnitPicker
-                  value={formData.orgUnitId || null}
-                  onValueChange={(value) => handleInputChange('orgUnitId', value || undefined)}
-                  placeholder="เลือกหน่วยงาน"
-                  showClearButton
-                  width="100%"
-                />
+            {/* Right Column - Contact & Employment */}
+            <div className="space-y-6">
+              {/* Contact Info */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-emerald-500" />
+                    ข้อมูลติดต่อ
+                  </h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Mail className="h-4 w-4 inline mr-1.5 text-gray-400" />
+                      อีเมล
+                    </label>
+                    <DxTextBox
+                      mode="email"
+                      value={formData.email || ''}
+                      onValueChange={(value) => handleInputChange('email', value)}
+                      placeholder="email@example.com"
+                      width="100%"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Phone className="h-4 w-4 inline mr-1.5 text-gray-400" />
+                      เบอร์โทร
+                    </label>
+                    <DxTextBox
+                      mode="tel"
+                      value={formData.phone || ''}
+                      onValueChange={(value) => handleInputChange('phone', value)}
+                      placeholder="0812345678"
+                      width="100%"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ตำแหน่ง
-                </label>
-                <PositionSelect
-                  value={formData.positionId || null}
-                  onValueChange={(value) => handleInputChange('positionId', value || undefined)}
-                  placeholder="เลือกตำแหน่ง"
-                  showClearButton
-                  orgUnitId={formData.orgUnitId}
-                  width="100%"
-                />
+
+              {/* Employment Info */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-orange-500" />
+                    ข้อมูลการจ้างงาน
+                  </h3>
+                </div>
+                <div className="p-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      วันที่เริ่มงาน <span className="text-red-500">*</span>
+                    </label>
+                    <DxDateBox
+                      value={formData.hireDate || ''}
+                      onValueChange={(value) => handleInputChange('hireDate', value)}
+                      width="100%"
+                      showClearButton
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Help Card - Desktop Only */}
+              <div className="hidden lg:block bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-5">
+                <h4 className="font-medium text-blue-900 mb-2">คำแนะนำ</h4>
+                <ul className="text-sm text-blue-700 space-y-1.5">
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">•</span>
+                    กรอกข้อมูลที่มีเครื่องหมาย * ให้ครบถ้วน
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">•</span>
+                    รหัสพนักงานจะสร้างอัตโนมัติ
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">•</span>
+                    สามารถเพิ่มหน่วยงานและตำแหน่งภายหลังได้
+                  </li>
+                </ul>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Employment Info Section */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-gray-400" />
-              ข้อมูลการจ้างงาน
-            </h3>
-          </div>
-          <div className="p-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                วันที่เริ่มงาน <span className="text-red-500">*</span>
-              </label>
-              <DxDateBox
-                value={formData.hireDate || ''}
-                onValueChange={(value) => handleInputChange('hireDate', value)}
-                width="100%"
-                showClearButton
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Bottom Actions */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 sm:hidden">
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="flex-1 py-3 px-4 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="submit"
-              form="employee-form"
-              disabled={isPending}
-              className="flex-1 py-3 px-4 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              {isPending ? 'กำลังบันทึก...' : 'บันทึก'}
-            </button>
           </div>
         </div>
       </form>
+
+      {/* Mobile Bottom Actions */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 sm:hidden z-20">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex-1 py-3 px-4 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="submit"
+            form="employee-form"
+            disabled={isPending}
+            className="flex-1 py-3 px-4 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <Save className="h-4 w-4" />
+            {isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
