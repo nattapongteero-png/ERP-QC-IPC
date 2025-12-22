@@ -15,7 +15,7 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, X } from 'lucide-react';
 import { useMobile } from '@/hooks/use-mobile';
 import type { DocumentType, DocumentCreate, Document } from '@/types/documents';
@@ -109,6 +109,7 @@ export function DocumentFormDialog({
 }: DocumentFormDialogProps) {
   const isEditing = !!document;
   const { isMobile } = useMobile();
+  const queryClient = useQueryClient();
 
   // Create a unique key for resetting form state when dialog opens
   const formKey = useMemo(() => {
@@ -155,6 +156,8 @@ export function DocumentFormDialog({
   const createMutation = useMutation({
     mutationFn: createDocument,
     onSuccess: (data) => {
+      // Invalidate documents query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
       onSave?.(data);
       onOpenChange(false);
     },
@@ -168,6 +171,10 @@ export function DocumentFormDialog({
     mutationFn: (data: Partial<DocumentCreate>) =>
       updateDocument(document!.id, data),
     onSuccess: (data) => {
+      // Invalidate documents query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      // Also invalidate the specific document query
+      queryClient.invalidateQueries({ queryKey: ['document', document!.id] });
       onSave?.(data);
       onOpenChange(false);
     },

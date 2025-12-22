@@ -388,7 +388,8 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
     .from(documents)
     .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-  const total = countResult?.count || 0;
+  // Handle MySQL BigInt by converting to Number
+  const total = Number(countResult?.count) || 0;
 
   // Get documents
   const docs = await database
@@ -419,7 +420,7 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
     .offset(offset);
 
   return {
-    documents: docs.map((d: DbDocumentRow) => ({
+    documents: docs.map((d: any) => ({
       id: d.id,
       documentNumber: d.documentNumber,
       title: d.title,
@@ -433,8 +434,9 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
       retentionYears: d.retentionYears,
       createdBy: d.createdBy!,
       createdByName: d.createdByName || undefined,
-      createdAt: d.createdAt,
-      updatedAt: d.updatedAt,
+      // Handle Date objects from MySQL
+      createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : d.createdAt,
+      updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : d.updatedAt,
     })),
     total,
   };
