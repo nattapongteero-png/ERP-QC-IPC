@@ -371,7 +371,7 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
  * List documents with filters and pagination
  */
 export async function getDocuments(params: DocumentListParams): Promise<DocumentListResponse> {
-  const { documents, documentTypes, users, orgUnits } = getTables();
+  const { documents, documentTypes, users, orgUnits, versions } = getTables();
   const database = await getDb();
 
   const conditions = [];
@@ -407,7 +407,7 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
   // Handle MySQL BigInt by converting to Number
   const total = Number(countResult?.count) || 0;
 
-  // Get documents
+  // Get documents with current version number
   const docs = await database
     .select({
       id: documents.id,
@@ -419,6 +419,7 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
       departmentId: documents.departmentId,
       departmentName: orgUnits.name,
       currentVersionId: documents.currentVersionId,
+      currentVersionNumber: versions.versionNumber,
       status: documents.status,
       retentionYears: documents.retentionYears,
       createdBy: documents.createdBy,
@@ -430,6 +431,7 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
     .leftJoin(documentTypes, eq(documents.typeId, documentTypes.id))
     .leftJoin(orgUnits, eq(documents.departmentId, orgUnits.id))
     .leftJoin(users, eq(documents.createdBy, users.id))
+    .leftJoin(versions, eq(documents.currentVersionId, versions.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(documents.updatedAt))
     .limit(limit)
@@ -446,6 +448,7 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
       departmentId: d.departmentId,
       departmentName: d.departmentName || undefined,
       currentVersionId: d.currentVersionId,
+      currentVersionNumber: d.currentVersionNumber || undefined,
       status: d.status as DocumentStatus,
       retentionYears: d.retentionYears,
       createdBy: d.createdBy!,
@@ -974,6 +977,84 @@ export async function markDocumentObsolete(
     recordId: documentId,
     oldValue: { status: doc.status },
     newValue: { status: 'obsolete', reason },
+  });
+
+  return true;
+}
+
+/**
+ * Update document status
+ * Allows direct status changes for administrative purposes
+ */
+export async function updateDocumentStatus(
+  documentId: number,
+  newStatus: DocumentStatus,
+  userId: number
+): Promise<boolean> {
+  const { documents, versions } = getTables();
+  const database = await getDb();
+
+  // Get document
+  const [doc] = await database
+    .select()
+    .from(documents)
+    .where(eq(documents.id, documentId));
+
+  if (!doc) {
+    throw new Error(`Document ${documentId} not found`);
+  }
+
+  if (doc.status === newStatus) {
+    throw new Error(`Document is already ${newStatus}`);
+  }
+
+  // Update document status
+  await database
+    .update(documents)
+    .set({
+      status: newStatus,
+      updatedAt: formatDateForDb(),
+    })
+    .where(eq(documents.id, documentId));
+
+  // Handle version status based on document status change
+  if (doc.currentVersionId) {
+    if (newStatus === 'obsolete' || newStatus === 'archived') {
+      // Mark current version as superseded
+      await database
+        .update(versions)
+        .set({
+          status: 'superseded',
+          obsoleteDate: formatDateForDb(),
+        })
+        .where(eq(versions.id, doc.currentVersionId));
+    } else if (newStatus === 'active') {
+      // Mark current version as approved if not already
+      await database
+        .update(versions)
+        .set({
+          status: 'approved',
+          effectiveDate: formatDateForDb(),
+        })
+        .where(eq(versions.id, doc.currentVersionId));
+    } else if (newStatus === 'draft') {
+      // Mark current version as draft
+      await database
+        .update(versions)
+        .set({
+          status: 'draft',
+        })
+        .where(eq(versions.id, doc.currentVersionId));
+    }
+  }
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'documents',
+    recordId: documentId,
+    oldValue: { status: doc.status },
+    newValue: { status: newStatus },
   });
 
   return true;

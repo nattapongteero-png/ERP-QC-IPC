@@ -30,6 +30,7 @@ import {
 import type {
   DocumentDetails,
   DocumentVersion,
+  DocumentStatus,
 } from '@/types/documents';
 
 // ============================================
@@ -61,6 +62,21 @@ async function createVersion(
   return result.data;
 }
 
+async function updateDocumentStatus(
+  documentId: number,
+  status: DocumentStatus
+): Promise<void> {
+  const response = await fetch(`/api/documents/${documentId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to update status');
+  }
+}
+
 // ============================================
 // Component
 // ============================================
@@ -80,6 +96,8 @@ export default function DocumentDetailPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<DocumentStatus | null>(null);
 
   // Fetch document
   const {
@@ -104,6 +122,19 @@ export default function DocumentDetailPage() {
       setIsMajorRevision(false);
       setSelectedFile(null);
       refetch();
+    },
+  });
+
+  // Update status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: (status: DocumentStatus) => updateDocumentStatus(documentId, status),
+    onSuccess: () => {
+      setShowStatusDialog(false);
+      setPendingStatus(null);
+      refetch();
+    },
+    onError: (error) => {
+      alert(error instanceof Error ? error.message : 'Failed to update status');
     },
   });
 
@@ -257,7 +288,16 @@ export default function DocumentDetailPage() {
                   </p>
                 </div>
               </div>
-              <WorkflowStatusBadge status={document.status} />
+              <div className="flex items-center gap-2">
+                <WorkflowStatusBadge status={document.status} />
+                <button
+                  onClick={() => setShowStatusDialog(true)}
+                  className="text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+                  title="Change Status"
+                >
+                  Change
+                </button>
+              </div>
             </div>
 
             {/* Metadata Grid */}
@@ -576,6 +616,76 @@ export default function DocumentDetailPage() {
                 refetch();
               }}
               type="success"
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Change Status Dialog */}
+      <DxPopup
+        visible={showStatusDialog}
+        onHiding={() => {
+          setShowStatusDialog(false);
+          setPendingStatus(null);
+        }}
+        title="Change Document Status"
+        width={400}
+        height="auto"
+        showCloseButton
+      >
+        <div className="p-4 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Current status: <span className="font-medium">{document.status}</span>
+          </p>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">New Status</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['draft', 'active', 'obsolete', 'archived'] as DocumentStatus[])
+                .filter((s) => s !== document.status)
+                .map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setPendingStatus(status)}
+                    className={`p-3 border rounded-lg text-sm font-medium transition-colors ${
+                      pendingStatus === status
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-gray-200 hover:border-primary/50'
+                    }`}
+                  >
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </button>
+                ))}
+            </div>
+          </div>
+          {pendingStatus && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                {pendingStatus === 'active' && 'This will mark the document as active and make the current version effective.'}
+                {pendingStatus === 'draft' && 'This will revert the document to draft status.'}
+                {pendingStatus === 'obsolete' && 'This will mark the document as obsolete and supersede all versions.'}
+                {pendingStatus === 'archived' && 'This will archive the document for historical reference only.'}
+              </p>
+            </div>
+          )}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              onClick={() => {
+                setShowStatusDialog(false);
+                setPendingStatus(null);
+              }}
+              stylingMode="outlined"
+              disabled={updateStatusMutation.isPending}
+            />
+            <DxButton
+              text={updateStatusMutation.isPending ? 'Updating...' : 'Update Status'}
+              onClick={() => {
+                if (pendingStatus) {
+                  updateStatusMutation.mutate(pendingStatus);
+                }
+              }}
+              type="success"
+              disabled={!pendingStatus || updateStatusMutation.isPending}
             />
           </div>
         </div>
