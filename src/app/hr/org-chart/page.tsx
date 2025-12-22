@@ -99,9 +99,9 @@ export default function OrgChartPage() {
   // Responsive height calculation - increased for better visibility
   useEffect(() => {
     const calculateHeight = () => {
-      const headerHeight = 380; // Reduced to give more space to TreeView
-      const padding = 50;
-      const minHeight = 500; // Increased minimum height
+      const headerHeight = 320; // Reduced further for more table space
+      const padding = 32;
+      const minHeight = 600; // Increased minimum height
       const availableHeight = window.innerHeight - headerHeight - padding;
       setChartHeight(Math.max(minHeight, availableHeight));
     };
