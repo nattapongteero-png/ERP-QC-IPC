@@ -6,7 +6,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { useSqlite, getSqliteDb, getMysqlDb } from './index';
+import { isSqlite, getSqliteDb, getMysqlDb } from './index';
 import * as schema from './schema';
 
 // Default item categories
@@ -181,7 +181,7 @@ export async function seedLookupTables(): Promise<{
   categoriesSeeded: number;
   unitsSeeded: number;
 }> {
-  const isSqlite = useSqlite();
+  const isSqlite = isSqlite();
   console.log(`[Lookup Seed] Starting lookup tables seeding for ${isSqlite ? 'SQLite' : 'MySQL'}...`);
 
   const categoriesSeeded = await seedItemCategories(isSqlite);

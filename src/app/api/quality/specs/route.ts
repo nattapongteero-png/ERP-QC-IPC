@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq, sql, and } from 'drizzle-orm';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteQualitySpecs,
   sqliteItems,
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       const isActive = searchParams.get('isActive');
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
       const itemsTable = isSqlite ? sqliteItems : mysqlItems;
 
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       }
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
 
       const result = await (db as any).insert(specsTable).values({

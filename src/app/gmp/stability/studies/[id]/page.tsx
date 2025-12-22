@@ -17,7 +17,8 @@ import {
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
+import { DxTabs } from '@/components/ui/dx-tabs';
+import type { DxTabItem } from '@/components/ui/dx-tabs';
 import {
   FlaskConical,
   Calendar,
@@ -254,14 +255,13 @@ export default function StabilityStudyDetailPage() {
       {/* Tabs */}
       <div className="bg-card border rounded-lg shadow-sm">
         <DxTabs
+          items={[
+            { id: 0, text: 'Sample Schedule', icon: 'clock' },
+            { id: 1, text: 'Trends', icon: 'chart' },
+          ] as DxTabItem[]}
           selectedIndex={activeTab}
-          onOptionChanged={(e) => {
-            if (e.name === 'selectedIndex') setActiveTab(e.value);
-          }}
-        >
-          <DxTabItem title="Sample Schedule" icon="clock" />
-          <DxTabItem title="Trends" icon="chart" />
-        </DxTabs>
+          onSelectedIndexChange={setActiveTab}
+        />
 
         <div className="p-6">
           {activeTab === 0 && (

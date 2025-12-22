@@ -8,7 +8,7 @@
  */
 
 import { eq, and, desc, inArray, or, like, gte, lte, sql } from 'drizzle-orm';
-import { useSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
+import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
 import {
   sqliteItems,
   mysqlItems,
@@ -99,7 +99,7 @@ export class VmiSalesOrderService {
 
   constructor() {
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    this.isSqlite = useSqlite();
+    this.isSqlite = isSqlite();
   }
 
   /**

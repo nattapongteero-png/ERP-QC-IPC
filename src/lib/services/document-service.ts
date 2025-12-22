@@ -6,7 +6,7 @@
  * approval workflows, and audit trail.
  */
 
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, desc, asc, gte, lte, like, or, isNull, sql } from 'drizzle-orm';
 import {
   sqliteDocumentTypes,
@@ -29,7 +29,7 @@ import { createAuditLog } from '../audit';
  * SQLite uses ISO string, MySQL uses Date objects (Drizzle handles conversion)
  */
 function formatDateForDb(date: Date = new Date()): string | Date {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return date.toISOString();
   }
   // MySQL: Drizzle ORM expects Date objects for datetime columns
@@ -102,7 +102,7 @@ interface DbApprovalRow {
 
 // Get table references based on database type
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       documentTypes: sqliteDocumentTypes,
       documents: sqliteDocuments,
@@ -221,7 +221,7 @@ export async function createDocument(
 
   let newDocId: number;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // SQLite supports returning
     const [newDoc] = await database
       .insert(documents)
@@ -568,7 +568,7 @@ export async function createVersion(
 
   let newVersionId: number;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // SQLite supports returning
     const [result] = await database
       .insert(versions)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import { eq, and, like } from 'drizzle-orm';
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+    const isSqlite = isSqlite();
     const { searchParams } = new URL(request.url);
 
     const categoryId = searchParams.get('categoryId');
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+    const isSqlite = isSqlite();
     const body = await request.json();
 
     const templatesTable = isSqlite

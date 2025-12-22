@@ -29,10 +29,10 @@ export interface DxSelectBoxProps<T = string> {
   onValueChanged?: (e: SelectBoxTypes.ValueChangedEvent) => void;
   /** Options array */
   items?: DxSelectBoxOption<T>[];
-  /** Data source (alternative to items) */
-  dataSource?: T[] | DxSelectBoxOption<T>[];
+  /** Data source (alternative to items) - accepts any array of objects */
+  dataSource?: T[] | DxSelectBoxOption<T>[] | Record<string, unknown>[];
   /** Display expression (field name for display text) */
-  displayExpr?: string | ((item: DxSelectBoxOption<T>) => string);
+  displayExpr?: string | ((item: DxSelectBoxOption<T> | Record<string, unknown>) => string);
   /** Value expression (field name for value) */
   valueExpr?: string;
   /** Placeholder text */

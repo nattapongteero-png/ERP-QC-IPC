@@ -20,7 +20,8 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
-import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
+import { DxTabs } from '@/components/ui/dx-tabs';
+import type { DxTabItem } from '@/components/ui/dx-tabs';
 import {
   AlertTriangle,
   Package,
@@ -317,15 +318,14 @@ export default function RecallDetailPage() {
       {/* Tabs */}
       <div className="bg-card border rounded-lg shadow-sm">
         <DxTabs
+          items={[
+            { id: 0, text: 'Distribution', icon: 'globe' },
+            { id: 1, text: 'Notifications', icon: 'message' },
+            { id: 2, text: 'Reconciliation', icon: 'check' },
+          ] as DxTabItem[]}
           selectedIndex={activeTab}
-          onOptionChanged={(e) => {
-            if (e.name === 'selectedIndex') setActiveTab(e.value);
-          }}
-        >
-          <DxTabItem title="Distribution" icon="globe" />
-          <DxTabItem title="Notifications" icon="message" />
-          <DxTabItem title="Reconciliation" icon="check" />
-        </DxTabs>
+          onSelectedIndexChange={setActiveTab}
+        />
 
         <div className="p-6">
           {activeTab === 0 && <RecallDistributionTable recallId={recallId} />}

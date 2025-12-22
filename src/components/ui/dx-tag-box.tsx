@@ -7,6 +7,8 @@ import { forwardRef } from 'react';
 export interface DxTagBoxProps {
   /** Data source for the tag box */
   dataSource?: unknown[];
+  /** Items array (alternative to dataSource) */
+  items?: unknown[];
   /** Display expression (field name or function) */
   displayExpr?: string | ((item: unknown) => string);
   /** Value expression (field name) */
@@ -37,6 +39,10 @@ export interface DxTagBoxProps {
   maxDisplayedTags?: number;
   /** Show multiTag only mode */
   showMultiTagOnly?: boolean;
+  /** Show selection controls (select all / deselect all) */
+  showSelectionControls?: boolean;
+  /** How values are applied */
+  applyValueMode?: 'instantly' | 'useButtons';
   /** On value changed callback */
   onValueChanged?: (e: TagBoxTypes.ValueChangedEvent) => void;
   /** On selection changed callback */
@@ -69,6 +75,7 @@ export const DxTagBox = forwardRef<TagBox, DxTagBoxProps>(
   function DxTagBox(props, ref) {
     const {
       dataSource,
+      items,
       displayExpr,
       valueExpr,
       value,
@@ -84,6 +91,8 @@ export const DxTagBox = forwardRef<TagBox, DxTagBoxProps>(
       acceptCustomValue,
       maxDisplayedTags,
       showMultiTagOnly,
+      showSelectionControls,
+      applyValueMode,
       onValueChanged,
       onSelectionChanged,
       itemRender,
@@ -103,6 +112,7 @@ export const DxTagBox = forwardRef<TagBox, DxTagBoxProps>(
       <TagBox
         ref={ref}
         dataSource={dataSource}
+        items={items}
         displayExpr={displayExpr}
         valueExpr={valueExpr}
         value={value}
@@ -118,6 +128,8 @@ export const DxTagBox = forwardRef<TagBox, DxTagBoxProps>(
         acceptCustomValue={acceptCustomValue}
         maxDisplayedTags={maxDisplayedTags}
         showMultiTagOnly={showMultiTagOnly}
+        showSelectionControls={showSelectionControls}
+        applyValueMode={applyValueMode}
         onValueChanged={onValueChanged}
         onSelectionChanged={onSelectionChanged}
         itemRender={itemRender}

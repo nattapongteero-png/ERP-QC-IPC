@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { 
   sqliteQualityTests, sqliteQualitySpecs, sqliteItems, sqliteInventoryLots, sqliteUsers,
   mysqlQualityTests, mysqlQualitySpecs, mysqlItems, mysqlInventoryLots, mysqlUsers
@@ -15,11 +15,11 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const qualityTests = useSqlite() ? sqliteQualityTests : mysqlQualityTests;
-      const qualitySpecs = useSqlite() ? sqliteQualitySpecs : mysqlQualitySpecs;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const users = useSqlite() ? sqliteUsers : mysqlUsers;
+      const qualityTests = isSqlite() ? sqliteQualityTests : mysqlQualityTests;
+      const qualitySpecs = isSqlite() ? sqliteQualitySpecs : mysqlQualitySpecs;
+      const items = isSqlite() ? sqliteItems : mysqlItems;
+      const inventoryLots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const users = isSqlite() ? sqliteUsers : mysqlUsers;
 
       // Get test details
       const testResult = await db

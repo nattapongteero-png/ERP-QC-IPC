@@ -3,7 +3,7 @@
  * Real-world sales management with ATP calculation and order fulfillment
  */
 
-import { db, useSqlite } from '../db';
+import { db, isSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteSalesOrders,
@@ -33,7 +33,7 @@ export interface ATPResult {
 
 // Get table references
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       salesOrders: sqliteSalesOrders,
       salesOrderLines: sqliteSalesOrderLines,

@@ -6,7 +6,7 @@
  * QC routing, and trend analysis.
  */
 
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, desc, asc, gte, lte, like, or, sql, count } from 'drizzle-orm';
 import {
   sqliteComplaints,
@@ -92,7 +92,7 @@ export async function generateComplaintNumber(): Promise<string> {
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const prefix = `COMP-${year}${month}-`;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     const result = await (await getDb())
       .select({ complaintNumber: sqliteComplaints.complaintNumber })
       .from(sqliteComplaints)
@@ -126,7 +126,7 @@ export async function listComplaints(
   const { status, category, severity, productId, fromDate, toDate, page = 1, limit = 20 } = params;
   const offset = (page - 1) * limit;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Build query conditions
     const conditions = [];
     if (status) conditions.push(eq(sqliteComplaints.status, status));
@@ -201,7 +201,7 @@ export async function listComplaints(
  * Get complaint by ID with basic info
  */
 export async function getComplaintById(id: number): Promise<Complaint | null> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const result = await (await getDb())
       .select({
         id: sqliteComplaints.id,
@@ -259,7 +259,7 @@ export async function getComplaintDetails(id: number): Promise<ComplaintDetails 
   const complaint = await getComplaintById(id);
   if (!complaint) return null;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Get investigation
     const investigationResult = await (await getDb())
       .select({
@@ -328,7 +328,7 @@ export async function createComplaint(
   data: ComplaintCreate,
   userId: number
 ): Promise<Complaint> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const complaintNumber = await generateComplaintNumber();
     const now = new Date().toISOString();
 
@@ -380,7 +380,7 @@ export async function updateComplaint(
   data: ComplaintUpdate,
   userId: number
 ): Promise<Complaint> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const existing = await getComplaintById(id);
     if (!existing) {
       throw new Error('Complaint not found');
@@ -424,7 +424,7 @@ export async function routeToQC(
   investigatorId: number,
   userId: number
 ): Promise<ComplaintInvestigation> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const complaint = await getComplaintById(complaintId);
     if (!complaint) {
       throw new Error('Complaint not found');
@@ -497,7 +497,7 @@ export async function recordInvestigation(
   data: ComplaintInvestigationCreate,
   userId: number
 ): Promise<ComplaintInvestigation> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Get existing investigation
     const existingInv = await (await getDb())
       .select()
@@ -580,7 +580,7 @@ export async function closeComplaint(
   closureNotes: string | null,
   userId: number
 ): Promise<Complaint> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const complaint = await getComplaintDetails(id);
     if (!complaint) {
       throw new Error('Complaint not found');
@@ -631,7 +631,7 @@ export async function linkCapa(
   capaId: number,
   userId: number
 ): Promise<Complaint> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const now = new Date().toISOString();
 
     await (await getDb())
@@ -670,7 +670,7 @@ export async function getComplaintTrends(
 ): Promise<ComplaintTrends> {
   const { period = 'month', groupBy = 'category' } = params;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     const now = new Date();
     let startDate: Date;
     let dateFormat: string;
@@ -781,7 +781,7 @@ export async function getComplaintDashboard(): Promise<{
   resolvedThisMonth: number;
   criticalCount: number;
 }> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthStartStr = monthStart.toISOString().split('T')[0];

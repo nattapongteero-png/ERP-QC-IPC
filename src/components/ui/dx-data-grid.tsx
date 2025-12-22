@@ -102,8 +102,9 @@ export interface DxDataGridColumn {
   hideOnTablet?: boolean;
 }
 
-export interface DxDataGridProps<T = Record<string, unknown>> {
-  /** Data source */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface DxDataGridProps<T = any> {
+  /** Data source - accepts any array of objects */
   dataSource: T[];
   /** Column definitions */
   columns: DxDataGridColumn[];

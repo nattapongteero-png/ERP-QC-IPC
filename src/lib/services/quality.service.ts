@@ -3,7 +3,7 @@
  * Real-world quality control with specifications, testing, deviations, and COA generation
  */
 
-import { db, useSqlite } from '../db';
+import { db, isSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteQualityTests,
@@ -85,7 +85,7 @@ export interface SamplingPlan {
 
 // Get table references based on database type
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       tests: sqliteQualityTests,
       specs: sqliteQualitySpecs,

@@ -72,7 +72,7 @@ export async function POST(
 
     let item;
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (useSqlite()) {
+    if (isSqlite()) {
       const { itemsTable } = await import('@/lib/db/sqlite/schema');
       const items = await sqliteDb
         .select()
@@ -99,7 +99,7 @@ export async function POST(
 
     // Update the line with the matched item
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (useSqlite()) {
+    if (isSqlite()) {
       const { vmiSalesOrderLinesTable } = await import('@/lib/db/sqlite/schema');
       await sqliteDb
         .update(vmiSalesOrderLinesTable)

@@ -3,7 +3,7 @@
  * Real-world inventory management with FEFO algorithm and lot traceability
  */
 
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, gte, lte, desc, asc, sql, or } from 'drizzle-orm';
 import {
   sqliteInventoryLots,
@@ -53,7 +53,7 @@ export interface TraceabilityResult {
 
 // Get table references based on database type
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       lots: sqliteInventoryLots,
       transactions: sqliteInventoryTransactions,
@@ -76,7 +76,7 @@ function getTables() {
 export async function recalculateItemOnHand(itemId: number): Promise<number> {
   const { lots, items } = getTables();
   const database = await getDb();
-  const isSqlite = useSqlite();
+  const isSqlite = isSqlite();
 
   // Sum quantities from released lots for this item
   const [result] = await (database as any)

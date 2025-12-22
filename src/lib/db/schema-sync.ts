@@ -9,7 +9,7 @@ import { getTableName, getTableColumns, sql } from 'drizzle-orm';
 import { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { MySqlColumn, MySqlTable } from 'drizzle-orm/mysql-core';
 import * as schema from './schema';
-import { useSqlite, getSqliteDb, getMysqlDb, markSchemaSynced } from './index';
+import { isSqlite, getSqliteDb, getMysqlDb, markSchemaSynced } from './index';
 import Database from 'better-sqlite3';
 
 // Type definitions for column info from Drizzle
@@ -84,7 +84,7 @@ function mapDrizzleTypeToMysql(column: MySqlColumn): string {
 }
 
 // Extract column information from Drizzle schema table
-function extractColumnsFromTable(table: any, isSqlite: boolean): ColumnInfo[] {
+function extractColumnsFromTable(table: any, usingSqlite: boolean): ColumnInfo[] {
   const columns: ColumnInfo[] = [];
   const tableColumns = getTableColumns(table);
 
@@ -92,7 +92,7 @@ function extractColumnsFromTable(table: any, isSqlite: boolean): ColumnInfo[] {
     const col = column as any;
     columns.push({
       name: col.name,
-      dataType: isSqlite
+      dataType: usingSqlite
         ? mapDrizzleTypeToSqlite(col as SQLiteColumn)
         : mapDrizzleTypeToMysql(col as MySqlColumn),
       isNotNull: col.notNull ?? false,
@@ -108,7 +108,7 @@ function extractColumnsFromTable(table: any, isSqlite: boolean): ColumnInfo[] {
 }
 
 // Get all tables from schema based on database type
-function getSchemaTablesForDb(isSqlite: boolean): Map<string, any> {
+function getSchemaTablesForDb(usingSqlite: boolean): Map<string, any> {
   const tables = new Map<string, any>();
 
   for (const [key, value] of Object.entries(schema)) {
@@ -116,10 +116,10 @@ function getSchemaTablesForDb(isSqlite: boolean): Map<string, any> {
     if (typeof value !== 'object' || value === null) continue;
 
     // Check if it's a Drizzle table using instanceof
-    if (isSqlite && value instanceof SQLiteTable) {
+    if (usingSqlite && value instanceof SQLiteTable) {
       const tableName = getTableName(value);
       tables.set(tableName, value);
-    } else if (!isSqlite && value instanceof MySqlTable) {
+    } else if (!usingSqlite && value instanceof MySqlTable) {
       const tableName = getTableName(value);
       tables.set(tableName, value);
     }
@@ -269,8 +269,8 @@ function generateMysqlCreateTable(tableName: string, columns: ColumnInfo[]): str
 }
 
 // Generate ALTER TABLE ADD COLUMN SQL
-function generateAddColumnSql(tableName: string, column: ColumnInfo, isSqlite: boolean): string {
-  if (isSqlite) {
+function generateAddColumnSql(tableName: string, column: ColumnInfo, usingSqlite: boolean): string {
+  if (usingSqlite) {
     let sql = `ALTER TABLE "${tableName}" ADD COLUMN "${column.name}" ${column.dataType}`;
 
     // SQLite has limited ALTER TABLE support - can't add NOT NULL without default
@@ -301,7 +301,7 @@ function generateAddColumnSql(tableName: string, column: ColumnInfo, isSqlite: b
 }
 
 // Format default value for SQL
-function formatDefaultValue(value: unknown, isSqlite: boolean): string | null {
+function formatDefaultValue(value: unknown, usingSqlite: boolean): string | null {
   if (value === undefined || value === null) return null;
 
   if (typeof value === 'function') {
@@ -319,11 +319,11 @@ function formatDefaultValue(value: unknown, isSqlite: boolean): string | null {
   }
 
   if (typeof value === 'boolean') {
-    return isSqlite ? (value ? '1' : '0') : (value ? 'TRUE' : 'FALSE');
+    return usingSqlite ? (value ? '1' : '0') : (value ? 'TRUE' : 'FALSE');
   }
 
   if (value instanceof Date) {
-    if (isSqlite) {
+    if (usingSqlite) {
       return 'CURRENT_TIMESTAMP';
     }
     return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`;
@@ -338,23 +338,23 @@ export async function syncDatabaseSchema(): Promise<{
   columnsAdded: { table: string; column: string }[];
   errors: string[];
 }> {
-  const isSqlite = useSqlite();
+  const usingSqlite = isSqlite();
   const result = {
     tablesCreated: [] as string[],
     columnsAdded: [] as { table: string; column: string }[],
     errors: [] as string[],
   };
 
-  console.log(`[Schema Sync] Starting schema synchronization for ${isSqlite ? 'SQLite' : 'MySQL'}...`);
+  console.log(`[Schema Sync] Starting schema synchronization for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 
   try {
-    const db = isSqlite ? getSqliteDb() : await getMysqlDb();
-    const schemaTables = getSchemaTablesForDb(isSqlite);
+    const db = usingSqlite ? getSqliteDb() : await getMysqlDb();
+    const schemaTables = getSchemaTablesForDb(usingSqlite);
 
     console.log(`[Schema Sync] Found ${schemaTables.size} tables in ORM schema`);
 
     // Get existing tables from database
-    const existingTables = isSqlite
+    const existingTables = usingSqlite
       ? await getSqliteExistingTables(db)
       : await getMysqlExistingTables(db);
 
@@ -362,22 +362,22 @@ export async function syncDatabaseSchema(): Promise<{
 
     // Process each table in schema
     for (const [tableName, table] of schemaTables) {
-      const schemaColumns = extractColumnsFromTable(table, isSqlite);
+      const schemaColumns = extractColumnsFromTable(table, usingSqlite);
 
       if (!existingTables.has(tableName)) {
         // Table doesn't exist - create it
         console.log(`[Schema Sync] Creating missing table: ${tableName}`);
 
         try {
-          const createSql = isSqlite
+          const createSql = usingSqlite
             ? generateSqliteCreateTable(tableName, schemaColumns)
             : generateMysqlCreateTable(tableName, schemaColumns);
 
-          if (isSqlite) {
+          if (usingSqlite) {
             const sqlite = (db as any).session?.client as Database.Database;
             sqlite.exec(createSql);
           } else {
-            await db.execute(sql.raw(createSql));
+            await (db as any).execute(sql.raw(createSql));
           }
 
           result.tablesCreated.push(tableName);
@@ -389,7 +389,7 @@ export async function syncDatabaseSchema(): Promise<{
         }
       } else {
         // Table exists - check for missing columns
-        const dbColumns = isSqlite
+        const dbColumns = usingSqlite
           ? getSqliteTableColumns(db, tableName)
           : await getMysqlTableColumns(db, tableName);
 
@@ -401,13 +401,13 @@ export async function syncDatabaseSchema(): Promise<{
             console.log(`[Schema Sync] Adding missing column: ${tableName}.${schemaCol.name}`);
 
             try {
-              const alterSql = generateAddColumnSql(tableName, schemaCol, isSqlite);
+              const alterSql = generateAddColumnSql(tableName, schemaCol, usingSqlite);
 
-              if (isSqlite) {
+              if (usingSqlite) {
                 const sqlite = (db as any).session?.client as Database.Database;
                 sqlite.exec(alterSql);
               } else {
-                await db.execute(sql.raw(alterSql));
+                await (db as any).execute(sql.raw(alterSql));
               }
 
               result.columnsAdded.push({ table: tableName, column: schemaCol.name });

@@ -8,7 +8,7 @@
  */
 
 import { eq } from 'drizzle-orm';
-import { useSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
+import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
 import {
   sqliteVmiPortalConfig,
   mysqlVmiPortalConfig,
@@ -72,7 +72,7 @@ export class VmiPortalConfigService {
   private readonly isSqlite: boolean;
 
   constructor() {
-    this.isSqlite = useSqlite();
+    this.isSqlite = isSqlite();
   }
 
   /**

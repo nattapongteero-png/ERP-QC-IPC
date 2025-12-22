@@ -97,7 +97,7 @@ export async function PUT(
     const { eq } = await import('drizzle-orm');
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (useSqlite()) {
+    if (isSqlite()) {
       const { vmiSalesOrdersTable } = await import('@/lib/db/sqlite/schema');
       await sqliteDb
         .update(vmiSalesOrdersTable)

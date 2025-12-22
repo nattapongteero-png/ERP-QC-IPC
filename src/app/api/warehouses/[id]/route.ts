@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { sqliteWarehouses, mysqlWarehouses } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { withAuth } from '@/lib/api-utils';
@@ -13,7 +13,7 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
+      const warehouses = isSqlite() ? sqliteWarehouses : mysqlWarehouses;
 
       const [warehouse] = await db
         .select()
@@ -41,7 +41,7 @@ export async function PUT(
       const { id } = await params;
       const db = await getDb();
       const body = await request.json();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
       const warehouseId = parseInt(id);
 
@@ -101,7 +101,7 @@ export async function DELETE(
     try {
       const { id } = await params;
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const warehouses = isSqlite ? sqliteWarehouses : mysqlWarehouses;
       const warehouseId = parseInt(id);
 

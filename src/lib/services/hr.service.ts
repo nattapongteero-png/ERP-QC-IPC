@@ -4,7 +4,7 @@
 import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
 import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
 import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { createAuditLog } from '../audit';
 import {
   sqliteHROrgUnits,
@@ -106,7 +106,7 @@ import type {
 
 function getHRTables() {
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const isSqlite = useSqlite();
+  const isSqlite = isSqlite();
   return {
     orgUnits: isSqlite ? sqliteHROrgUnits : mysqlHROrgUnits,
     positions: isSqlite ? sqliteHRPositions : mysqlHRPositions,
@@ -1583,7 +1583,7 @@ export async function createTrainingCourse(
   };
 
   const result = await db.insert(tables.trainingCourses).values(insertData);
-  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+  const id = isSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
 
   // Audit log
   await createAuditLog({
@@ -1806,7 +1806,7 @@ export async function createTrainingSession(
   };
 
   const result = await db.insert(tables.trainingSessions).values(insertData);
-  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+  const id = isSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
 
   // Audit log
   await createAuditLog({
@@ -2026,7 +2026,7 @@ export async function createTrainingRecord(
   };
 
   const result = await db.insert(tables.trainingRecords).values(insertData);
-  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+  const id = isSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
 
   // Audit log
   await createAuditLog({
@@ -4312,7 +4312,7 @@ export async function createNotification(
   });
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const insertedId = useSqlite()
+  const insertedId = isSqlite()
     ? Number(result.lastInsertRowid)
     : Number((result as unknown as { insertId: number }).insertId);
 
@@ -4477,7 +4477,7 @@ export async function checkTrainingExpirations(
   const tables = getHRTables();
   const db = await getDb();
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const isSqlite = useSqlite();
+  const isSqlite = isSqlite();
 
   const today = new Date();
   const futureDate = new Date(today.getTime() + withinDays * 24 * 60 * 60 * 1000);

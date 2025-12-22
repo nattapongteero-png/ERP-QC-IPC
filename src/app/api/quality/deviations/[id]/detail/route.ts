@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { 
   sqliteDeviations, sqliteItems, sqliteInventoryLots, sqliteWorkOrders, sqliteUsers,
   mysqlDeviations, mysqlItems, mysqlInventoryLots, mysqlWorkOrders, mysqlUsers
@@ -15,11 +15,11 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const deviations = useSqlite() ? sqliteDeviations : mysqlDeviations;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const workOrders = useSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
-      const users = useSqlite() ? sqliteUsers : mysqlUsers;
+      const deviations = isSqlite() ? sqliteDeviations : mysqlDeviations;
+      const items = isSqlite() ? sqliteItems : mysqlItems;
+      const inventoryLots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const workOrders = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+      const users = isSqlite() ? sqliteUsers : mysqlUsers;
 
       // Get deviation details
       const deviationResult = await db

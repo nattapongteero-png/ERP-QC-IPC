@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq, like, or, sql, and, desc } from 'drizzle-orm';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteBatchRecords,
   sqliteWorkOrders,
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       const workOrderId = searchParams.get('workOrderId');
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
       const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
       const operations = isSqlite ? sqliteOperations : mysqlOperations;
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
       }
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
       const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
 

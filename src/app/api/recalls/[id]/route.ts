@@ -19,7 +19,7 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -54,7 +54,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -72,7 +72,7 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = recallUpdateSchema.parse(body);
 
-    const recall = await updateRecall(recallId, validatedData, session.id);
+    const recall = await updateRecall(recallId, validatedData, session.userId);
 
     if (!recall) {
       return NextResponse.json({ success: false, error: 'Recall not found' }, { status: 404 });

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteQualitySpecs,
   sqliteQualityTests,
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
       const testsTable = isSqlite ? sqliteQualityTests : mysqlQualityTests;
       const itemsTable = isSqlite ? sqliteItems : mysqlItems;
@@ -134,7 +134,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       } = body;
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
 
       // Check if spec exists
@@ -198,7 +198,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const specsTable = isSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
       const testsTable = isSqlite ? sqliteQualityTests : mysqlQualityTests;
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { 
   sqliteItems, sqliteInventoryLots, sqliteWarehouses, sqliteBOM, sqliteBOMLines, sqliteWorkOrders,
   mysqlItems, mysqlInventoryLots, mysqlWarehouses, mysqlBOM, mysqlBOMLines, mysqlWorkOrders
@@ -15,12 +15,12 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
-      const bom = useSqlite() ? sqliteBOM : mysqlBOM;
-      const bomLines = useSqlite() ? sqliteBOMLines : mysqlBOMLines;
-      const workOrders = useSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+      const items = isSqlite() ? sqliteItems : mysqlItems;
+      const inventoryLots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const warehouses = isSqlite() ? sqliteWarehouses : mysqlWarehouses;
+      const bom = isSqlite() ? sqliteBOM : mysqlBOM;
+      const bomLines = isSqlite() ? sqliteBOMLines : mysqlBOMLines;
+      const workOrders = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
 
       // Get item details
       const itemResult = await db.select().from(items).where(eq(items.id, parseInt(id)));

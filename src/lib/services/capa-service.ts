@@ -6,7 +6,7 @@
  * effectiveness verification, and audit trail.
  */
 
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, desc, asc, gte, lte, like, or, isNull, sql, count } from 'drizzle-orm';
 import {
   sqliteCapa,
@@ -23,7 +23,7 @@ import {
 
 // Get table references based on database type
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       capa: sqliteCapa,
       actions: sqliteCapaActions,
@@ -164,7 +164,7 @@ export async function listCapas(
   const { status, type, priority, sourceType, ownerId, overdue, page = 1, limit = 20 } = params;
   const offset = (page - 1) * limit;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Build query conditions
     const conditions = [];
     if (status) conditions.push(eq(sqliteCapa.status, status));
@@ -264,7 +264,7 @@ export async function listCapas(
  * Get CAPA by ID with basic info
  */
 export async function getCapaById(id: number): Promise<Capa | null> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const result = await (await getDb())
       .select({
         id: sqliteCapa.id,
@@ -320,7 +320,7 @@ export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
   const capa = await getCapaById(id);
   if (!capa) return null;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Get actions
     const actionsResult = await (await getDb())
       .select({
@@ -429,7 +429,7 @@ export async function createCapa(
   data: CapaCreate,
   userId: number
 ): Promise<Capa> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const capaNumber = await generateCapaNumber();
     const now = new Date().toISOString();
 
@@ -501,7 +501,7 @@ export async function createFromDeviation(
   capaData: Omit<CapaCreate, 'sourceType' | 'sourceId'>,
   userId: number
 ): Promise<Capa> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Verify deviation exists
     const deviation = await (await getDb())
       .select()
@@ -546,7 +546,7 @@ export async function updateCapa(
   data: CapaUpdate,
   userId: number
 ): Promise<Capa> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const existing = await getCapaById(id);
     if (!existing) {
       throw new Error('CAPA not found');
@@ -593,7 +593,7 @@ export async function closeCapa(
   closureNotes: string | null,
   userId: number
 ): Promise<Capa> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const existing = await getCapaDetails(id);
     if (!existing) {
       throw new Error('CAPA not found');
@@ -654,7 +654,7 @@ export async function addAction(
   data: CapaActionCreate,
   userId: number
 ): Promise<CapaAction> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Verify CAPA exists
     const capa = await getCapaById(capaId);
     if (!capa) {
@@ -747,7 +747,7 @@ export async function updateAction(
   data: CapaActionUpdate,
   userId: number
 ): Promise<CapaAction> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Get existing action
     const existing = await (await getDb())
       .select()
@@ -825,7 +825,7 @@ export async function verifyAction(
   actionId: number,
   userId: number
 ): Promise<CapaAction> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const existing = await (await getDb())
       .select()
       .from(sqliteCapaActions)
@@ -937,7 +937,7 @@ export async function recordEffectiveness(
   data: CapaEffectivenessCreate,
   userId: number
 ): Promise<CapaEffectiveness> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Verify CAPA exists
     const capa = await getCapaById(capaId);
     if (!capa) {
@@ -1025,7 +1025,7 @@ export async function recordEffectiveness(
  * Get CAPA dashboard statistics
  */
 export async function getCapaDashboard(): Promise<CapaDashboard> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const today = new Date().toISOString().split('T')[0];
     const monthStart = new Date();
     monthStart.setDate(1);

@@ -17,7 +17,7 @@ export async function POST(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -32,7 +32,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Invalid recall ID' }, { status: 400 });
     }
 
-    const recall = await startRecall(recallId, session.id);
+    const recall = await startRecall(recallId, session.userId);
 
     if (!recall) {
       return NextResponse.json({ success: false, error: 'Recall not found' }, { status: 404 });

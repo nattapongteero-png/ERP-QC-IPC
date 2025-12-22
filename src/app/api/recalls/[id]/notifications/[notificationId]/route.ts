@@ -18,7 +18,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -36,7 +36,7 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = recallNotificationUpdateSchema.parse(body);
 
-    const notification = await updateNotification(notifId, validatedData, session.id);
+    const notification = await updateNotification(notifId, validatedData, session.userId);
 
     if (!notification) {
       return NextResponse.json({ success: false, error: 'Notification not found' }, { status: 404 });

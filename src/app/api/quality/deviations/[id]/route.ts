@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteDeviations,
   sqliteUsers,
@@ -30,9 +30,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
 
       const db = await getDb();
-      const isSqlite = useSqlite();
-      const deviationsTable = isSqlite ? sqliteDeviations : mysqlDeviations;
-      const usersTable = isSqlite ? sqliteUsers : mysqlUsers;
+      const usingSqlite = isSqlite();
+      const deviationsTable = usingSqlite ? sqliteDeviations : mysqlDeviations;
+      const usersTable = usingSqlite ? sqliteUsers : mysqlUsers;
 
       // Get deviation
       const deviationResult = await (db as any)
@@ -140,8 +140,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       } = body;
 
       const db = await getDb();
-      const isSqlite = useSqlite();
-      const deviationsTable = isSqlite ? sqliteDeviations : mysqlDeviations;
+      const usingSqlite = isSqlite();
+      const deviationsTable = usingSqlite ? sqliteDeviations : mysqlDeviations;
 
       // Check if deviation exists
       const existing = await (db as any)
@@ -212,8 +212,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
 
       const db = await getDb();
-      const isSqlite = useSqlite();
-      const deviationsTable = isSqlite ? sqliteDeviations : mysqlDeviations;
+      const usingSqlite = isSqlite();
+      const deviationsTable = usingSqlite ? sqliteDeviations : mysqlDeviations;
 
       // Check if deviation exists
       const existing = await (db as any)

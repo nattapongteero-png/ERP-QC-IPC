@@ -1,4 +1,4 @@
-import { getDb, useSqlite, initializeDatabase } from './index';
+import { getDb, isSqlite, initializeDatabase } from './index';
 import { hashPassword } from '../auth';
 import * as schema from './schema';
 
@@ -16,7 +16,7 @@ export async function seedDatabase() {
   await initializeDatabase();
 
   const db = await getDb();
-  const isSqlite = useSqlite();
+  const isSqlite = isSqlite();
 
   console.log(`Seeding database (${isSqlite ? 'SQLite' : 'MySQL'})...`);
 

@@ -3,7 +3,7 @@
  * Real-world reporting with traceability, analytics, and GMP compliance reports
  */
 
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteItems,
@@ -35,7 +35,7 @@ import { generateCOA, getDeviationStatistics } from './quality.service';
 
 // Get table references
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       items: sqliteItems,
       lots: sqliteInventoryLots,

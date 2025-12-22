@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqlitePurchaseOrders, sqlitePurchaseOrderLines, sqliteInventoryLots, sqliteItems, sqliteWarehouses,
   mysqlPurchaseOrders, mysqlPurchaseOrderLines, mysqlInventoryLots, mysqlItems, mysqlWarehouses
@@ -28,7 +28,7 @@ export async function POST(
       }
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const purchaseOrders = isSqlite ? sqlitePurchaseOrders : mysqlPurchaseOrders;
       const purchaseOrderLines = isSqlite ? sqlitePurchaseOrderLines : mysqlPurchaseOrderLines;
       const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;

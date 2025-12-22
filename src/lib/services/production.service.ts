@@ -3,7 +3,7 @@
  * Real-world production management with eBMR, work order workflows, and yield calculation
  */
 
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
 import {
   sqliteWorkOrders,
@@ -67,7 +67,7 @@ export interface WorkOrderStatus {
 
 // Get table references based on database type
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       workOrders: sqliteWorkOrders,
       workOrderLines: sqliteWorkOrderMaterials,

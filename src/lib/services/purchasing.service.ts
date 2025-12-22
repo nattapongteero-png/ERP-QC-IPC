@@ -3,7 +3,7 @@
  * Real-world purchasing with VMI integration, vendor management, and AVL
  */
 
-import { db, useSqlite } from '../db';
+import { db, isSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqlitePurchaseOrders,
@@ -73,7 +73,7 @@ export interface VendorEvaluation {
 
 // Get table references based on database type
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       purchaseOrders: sqlitePurchaseOrders,
       purchaseOrderLines: sqlitePurchaseOrderLines,

@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = recallCreateSchema.parse(body);
 
-    const recall = await createRecall(validatedData, sessionId);
+    const recall = await createRecall(validatedData, session.userId);
 
     return NextResponse.json({ success: true, data: recall }, { status: 201 });
   } catch (error) {

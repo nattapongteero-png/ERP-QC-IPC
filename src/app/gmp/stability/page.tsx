@@ -13,7 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import { StabilityStudyList } from '@/components/stability';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
+import { DxTabs } from '@/components/ui/dx-tabs';
+import type { DxTabItem } from '@/components/ui/dx-tabs';
 import {
   FlaskConical,
   AlertTriangle,
@@ -217,14 +218,13 @@ export default function StabilityDashboardPage() {
       {/* Main Content Tabs */}
       <div className="bg-card border rounded-lg shadow-sm">
         <DxTabs
+          items={[
+            { id: 0, text: 'Active Studies', icon: 'activefolder' },
+            { id: 1, text: 'By Product', icon: 'group' },
+          ] as DxTabItem[]}
           selectedIndex={activeTab}
-          onOptionChanged={(e) => {
-            if (e.name === 'selectedIndex') setActiveTab(e.value);
-          }}
-        >
-          <DxTabItem title="Active Studies" icon="activefolder" />
-          <DxTabItem title="By Product" icon="group" />
-        </DxTabs>
+          onSelectedIndexChange={setActiveTab}
+        />
 
         <div className="p-6">
           {activeTab === 0 && (

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteWorkOrders,
   sqliteQualityTests,
@@ -37,7 +37,7 @@ export async function GET(
       const { id } = await params;
       const workOrderId = parseInt(id);
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
       const qualityTests = isSqlite ? sqliteQualityTests : mysqlQualityTests;
       const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
@@ -96,7 +96,7 @@ export async function POST(
       }
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
       const qualityTests = isSqlite ? sqliteQualityTests : mysqlQualityTests;
       const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { 
   sqliteWorkOrders, sqliteWorkOrderMaterials, sqliteItems, sqliteInventoryLots, sqliteUsers, sqliteQualityTests,
   mysqlWorkOrders, mysqlWorkOrderMaterials, mysqlItems, mysqlInventoryLots, mysqlUsers, mysqlQualityTests
@@ -15,12 +15,12 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const workOrders = useSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
-      const workOrderMaterials = useSqlite() ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const users = useSqlite() ? sqliteUsers : mysqlUsers;
-      const qualityTests = useSqlite() ? sqliteQualityTests : mysqlQualityTests;
+      const workOrders = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+      const workOrderMaterials = isSqlite() ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
+      const items = isSqlite() ? sqliteItems : mysqlItems;
+      const inventoryLots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const users = isSqlite() ? sqliteUsers : mysqlUsers;
+      const qualityTests = isSqlite() ? sqliteQualityTests : mysqlQualityTests;
 
       // Get work order details
       const woResult = await db

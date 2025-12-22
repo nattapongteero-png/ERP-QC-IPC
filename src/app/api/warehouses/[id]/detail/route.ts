@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { 
   sqliteWarehouses, sqliteInventoryLots, sqliteItems, sqliteInventoryTransactions,
   mysqlWarehouses, mysqlInventoryLots, mysqlItems, mysqlInventoryTransactions
@@ -15,10 +15,10 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const transactions = useSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
+      const warehouses = isSqlite() ? sqliteWarehouses : mysqlWarehouses;
+      const inventoryLots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const items = isSqlite() ? sqliteItems : mysqlItems;
+      const transactions = isSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
 
       // Get warehouse details
       const warehouseResult = await db.select().from(warehouses).where(eq(warehouses.id, parseInt(id)));

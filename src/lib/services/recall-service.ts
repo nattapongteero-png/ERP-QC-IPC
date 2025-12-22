@@ -6,7 +6,7 @@
  * and reconciliation workflow.
  */
 
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, desc, like, or, sql, count, inArray } from 'drizzle-orm';
 import {
   sqliteRecalls,
@@ -114,7 +114,7 @@ export async function generateRecallNumber(): Promise<string> {
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const prefix = `RCL-${year}${month}-`;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     const result = await (await getDb())
       .select({ recallNumber: sqliteRecalls.recallNumber })
       .from(sqliteRecalls)
@@ -149,7 +149,7 @@ export async function createRecall(
   const recallNumber = await generateRecallNumber();
   const now = new Date().toISOString().split('T')[0];
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     const [result] = await (await getDb())
       .insert(sqliteRecalls)
       .values({
@@ -186,7 +186,7 @@ export async function createRecall(
  * Get recall by ID
  */
 export async function getRecallById(id: number): Promise<Recall | null> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const result = await (await getDb())
       .select({
         id: sqliteRecalls.id,
@@ -241,7 +241,7 @@ export async function getRecallDetails(id: number): Promise<RecallDetails | null
   let complaint = null;
   if (recall.complaintId) {
     // Get basic complaint info
-    if (useSqlite()) {
+    if (isSqlite()) {
       const result = await (await getDb())
         .select({
           id: sqliteComplaints.id,
@@ -277,7 +277,7 @@ export async function updateRecall(
   const existing = await getRecallById(id);
   if (!existing) return null;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     await (await getDb())
       .update(sqliteRecalls)
       .set({
@@ -310,7 +310,7 @@ export async function listRecalls(
   const { status, recallClass, productId, page = 1, limit = 20 } = params;
   const offset = (page - 1) * limit;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Build conditions array
     const conditions = [];
     if (status) conditions.push(eq(sqliteRecalls.status, status));
@@ -387,7 +387,7 @@ export async function getDistributionData(
   const lotIds = recall.affectedLots;
   if (!lotIds || lotIds.length === 0) return [];
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Get sales orders that shipped these lots
     const result = await (await getDb())
       .select({
@@ -435,7 +435,7 @@ export async function calculateDistributedQuantity(
 ): Promise<number> {
   if (lotIds.length === 0) return 0;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     const result = await (await getDb())
       .select({
         total: sql<number>`SUM(${sqliteSalesOrderLines.shippedQuantity})`,
@@ -465,7 +465,7 @@ export async function calculateDistributedQuantity(
 export async function getRecallNotifications(
   recallId: number
 ): Promise<RecallNotification[]> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const result = await (await getDb())
       .select({
         id: sqliteRecallNotifications.id,
@@ -504,7 +504,7 @@ export async function createNotification(
   let contactInfo = '';
   let quantityDistributed = 0;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     const customer = await (await getDb())
       .select({
         name: sqliteCustomers.name,
@@ -569,7 +569,7 @@ export async function updateNotification(
   data: RecallNotificationUpdate,
   userId: number
 ): Promise<RecallNotification | null> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const existing = await (await getDb())
       .select()
       .from(sqliteRecallNotifications)
@@ -622,7 +622,7 @@ export async function updateNotification(
 export async function getRecallReconciliation(
   recallId: number
 ): Promise<RecallReconciliation[]> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     const result = await (await getDb())
       .select({
         id: sqliteRecallReconciliation.id,
@@ -658,7 +658,7 @@ export async function recordReconciliation(
   data: RecallReconciliationCreate,
   userId: number
 ): Promise<RecallReconciliation> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Check if reconciliation exists for this lot
     const existing = await (await getDb())
       .select()
@@ -764,7 +764,7 @@ export async function startRecall(
   // Calculate initial distributed quantity
   const distributedQty = await calculateDistributedQuantity(recall.affectedLots);
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     await (await getDb())
       .update(sqliteRecalls)
       .set({
@@ -803,7 +803,7 @@ export async function completeRecall(
     throw new Error('Can only complete recalls in in_progress status');
   }
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     await (await getDb())
       .update(sqliteRecalls)
       .set({
@@ -842,7 +842,7 @@ export async function closeRecall(
     throw new Error('Can only close recalls in completed status');
   }
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     await (await getDb())
       .update(sqliteRecalls)
       .set({
@@ -874,7 +874,7 @@ export async function closeRecall(
  * Update recall totals (returned quantity, reconciled quantity, effectiveness rate)
  */
 async function updateRecallTotals(recallId: number): Promise<void> {
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Sum returned quantities from notifications
     const notificationResult = await (await getDb())
       .select({
@@ -930,7 +930,7 @@ export async function executeMockDrill(
   const startTime = Date.now();
   const drillId = `DRILL-${Date.now()}`;
 
-  if (useSqlite()) {
+  if (isSqlite()) {
     // Get lot information
     const lot = await (await getDb())
       .select({

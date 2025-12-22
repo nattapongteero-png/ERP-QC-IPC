@@ -18,7 +18,7 @@ export async function POST(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -36,7 +36,7 @@ export async function POST(
     const body = await request.json();
     const validatedData = recallCloseSchema.parse(body);
 
-    const recall = await closeRecall(recallId, validatedData, session.id);
+    const recall = await closeRecall(recallId, validatedData, session.userId);
 
     if (!recall) {
       return NextResponse.json({ success: false, error: 'Recall not found' }, { status: 404 });

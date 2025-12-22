@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { 
   sqlitePurchaseOrders, sqlitePurchaseOrderLines, sqliteItems, sqliteVendors, sqliteInventoryLots,
   mysqlPurchaseOrders, mysqlPurchaseOrderLines, mysqlItems, mysqlVendors, mysqlInventoryLots
@@ -15,11 +15,11 @@ export async function GET(
     try {
       const { id } = await params;
       const db = await getDb();
-      const purchaseOrders = useSqlite() ? sqlitePurchaseOrders : mysqlPurchaseOrders;
-      const purchaseOrderLines = useSqlite() ? sqlitePurchaseOrderLines : mysqlPurchaseOrderLines;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const vendors = useSqlite() ? sqliteVendors : mysqlVendors;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const purchaseOrders = isSqlite() ? sqlitePurchaseOrders : mysqlPurchaseOrders;
+      const purchaseOrderLines = isSqlite() ? sqlitePurchaseOrderLines : mysqlPurchaseOrderLines;
+      const items = isSqlite() ? sqliteItems : mysqlItems;
+      const vendors = isSqlite() ? sqliteVendors : mysqlVendors;
+      const inventoryLots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
 
       // Get PO details
       const poResult = await db

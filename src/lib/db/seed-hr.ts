@@ -7,7 +7,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { useSqlite, getSqliteDb, getMysqlDb } from './index';
+import { isSqlite, getSqliteDb, getMysqlDb } from './index';
 import * as schema from './schema';
 
 /**
@@ -1296,7 +1296,7 @@ export async function seedHRTables(): Promise<{
   appPermissionsSeeded: number;
 }> {
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const isSqlite = useSqlite();
+  const isSqlite = isSqlite();
   console.log(`[HR Seed] Starting HR tables seeding for ${isSqlite ? 'SQLite' : 'MySQL'}...`);
 
   const orgUnitsSeeded = await seedOrgUnits(isSqlite);

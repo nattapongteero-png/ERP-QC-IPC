@@ -7,7 +7,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { useSqlite, getSqliteDb, getMysqlDb } from './index';
+import { isSqlite, getSqliteDb, getMysqlDb } from './index';
 import * as schema from './schema';
 
 // Default document types for Document Control (หมวด 5)
@@ -173,7 +173,7 @@ async function seedDocumentTypes(isSqlite: boolean): Promise<number> {
 export async function seedGmpTables(): Promise<{
   documentTypesSeeded: number;
 }> {
-  const isSqlite = useSqlite();
+  const isSqlite = isSqlite();
   console.log(`[GMP Seed] Starting GMP tables seeding for ${isSqlite ? 'SQLite' : 'MySQL'}...`);
 
   const documentTypesSeeded = await seedDocumentTypes(isSqlite);

@@ -29,50 +29,105 @@ const mockFrom = vi.fn(() => ({
   }))
 }));
 
-vi.mock('@/lib/db', () => ({
-  db: vi.fn(() => ({
-    select: vi.fn(() => ({
-      from: vi.fn((table: unknown) => {
-        // Return array for dashboard queries (no where clause needed)
-        return {
-          where: vi.fn(() => ({
-            orderBy: vi.fn(() => ({
-              limit: vi.fn(() => Promise.resolve([]))
-            })),
-            limit: vi.fn(() => Promise.resolve([]))
-          })),
-          leftJoin: vi.fn(() => ({
+vi.mock('@/lib/db', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    getDb: vi.fn(() => Promise.resolve({
+      select: vi.fn(() => ({
+        from: vi.fn((table: unknown) => {
+          // Return array for dashboard queries (no where clause needed)
+          if (table === 'capa') {
+            return Promise.resolve([
+              { id: 1, status: 'open', priority: 'high', createdAt: new Date() },
+              { id: 2, status: 'closed', priority: 'medium', createdAt: new Date() },
+              { id: 3, status: 'open', priority: 'low', createdAt: new Date() }
+            ]);
+          }
+          return {
             where: vi.fn(() => ({
               orderBy: vi.fn(() => ({
-                limit: vi.fn(() => ({
-                  offset: vi.fn(() => Promise.resolve([]))
-                }))
+                limit: vi.fn(() => Promise.resolve([]))
               })),
               limit: vi.fn(() => Promise.resolve([]))
             })),
-            orderBy: vi.fn(() => Promise.resolve([]))
-          })),
-          orderBy: vi.fn(() => ({
-            limit: vi.fn(() => Promise.resolve([]))
-          })),
-          // Direct call to from() returns an array (for dashboard queries)
-          then: (resolve: (value: unknown[]) => void) => resolve([])
-        };
-      })
-    })),
-    insert: vi.fn(() => ({
-      values: vi.fn(() => ({
-        returning: vi.fn(() => Promise.resolve([{ id: 1 }]))
+            leftJoin: vi.fn(() => ({
+              where: vi.fn(() => ({
+                orderBy: vi.fn(() => ({
+                  limit: vi.fn(() => ({
+                    offset: vi.fn(() => Promise.resolve([]))
+                  }))
+                })),
+                limit: vi.fn(() => Promise.resolve([]))
+              })),
+              orderBy: vi.fn(() => Promise.resolve([]))
+            })),
+            orderBy: vi.fn(() => ({
+              limit: vi.fn(() => Promise.resolve([]))
+            }))
+          };
+        })
+      })),
+      insert: vi.fn(() => ({
+        values: vi.fn(() => Promise.resolve([{ id: 1 }]))
+      })),
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(() => Promise.resolve([{ id: 1 }]))
+        }))
+      })),
+      delete: vi.fn(() => ({
+        where: vi.fn(() => Promise.resolve([{ id: 1 }]))
       }))
     })),
-    update: vi.fn(() => ({
-      set: vi.fn(() => ({
-        where: vi.fn(() => Promise.resolve([]))
+    db: vi.fn(() => ({
+      select: vi.fn(() => ({
+        from: vi.fn((table: unknown) => {
+          // Return array for dashboard queries (no where clause needed)
+          return {
+            where: vi.fn(() => ({
+              orderBy: vi.fn(() => ({
+                limit: vi.fn(() => Promise.resolve([]))
+              })),
+              limit: vi.fn(() => Promise.resolve([]))
+            })),
+            leftJoin: vi.fn(() => ({
+              where: vi.fn(() => ({
+                orderBy: vi.fn(() => ({
+                  limit: vi.fn(() => ({
+                    offset: vi.fn(() => Promise.resolve([]))
+                  }))
+                })),
+                limit: vi.fn(() => Promise.resolve([]))
+              })),
+              orderBy: vi.fn(() => Promise.resolve([]))
+            })),
+            orderBy: vi.fn(() => ({
+              limit: vi.fn(() => Promise.resolve([]))
+            }))
+          };
+        })
+      })),
+      insert: vi.fn(() => ({
+        values: vi.fn(() => Promise.resolve([{ id: 1 }]))
+      })),
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(() => Promise.resolve([{ id: 1 }]))
+        }))
+      })),
+      delete: vi.fn(() => ({
+        where: vi.fn(() => Promise.resolve([{ id: 1 }]))
       }))
-    }))
-  })),
-  useSqlite: vi.fn(() => true)
-}));
+    })),
+    schema: {
+      sqliteCapa: {},
+      sqliteUsers: {},
+      sqliteCapaActions: {},
+      sqliteCapaEffectiveness: {}
+    }
+  };
+});
 
 vi.mock('@/lib/audit', () => ({
   createAuditLog: vi.fn(() => Promise.resolve())

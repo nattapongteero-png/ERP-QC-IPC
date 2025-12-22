@@ -15,7 +15,7 @@ import { mockDrillRequestSchema } from '@/lib/validation/recalls';
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = mockDrillRequestSchema.parse(body);
 
-    const result = await executeMockDrill(validatedData, session.id);
+    const result = await executeMockDrill(validatedData, session.userId);
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {

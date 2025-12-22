@@ -23,7 +23,7 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -59,7 +59,7 @@ export async function POST(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -82,7 +82,7 @@ export async function POST(
     const body = await request.json();
     const validatedData = recallNotificationCreateSchema.parse(body);
 
-    const notification = await createNotification(recallId, validatedData, session.id);
+    const notification = await createNotification(recallId, validatedData, session.userId);
 
     return NextResponse.json({ success: true, data: notification }, { status: 201 });
   } catch (error) {

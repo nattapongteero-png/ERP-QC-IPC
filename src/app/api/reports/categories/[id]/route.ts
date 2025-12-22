@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+    const isSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
 
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+    const isSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
     const body = await request.json();
@@ -146,7 +146,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const db = await getDb();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+    const isSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
 

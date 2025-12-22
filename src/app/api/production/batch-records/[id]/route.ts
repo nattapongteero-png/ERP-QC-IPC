@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteBatchRecords,
   sqliteWorkOrders,
@@ -36,7 +36,7 @@ export async function GET(
       const recordId = parseInt(id);
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
       const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
       const operations = isSqlite ? sqliteOperations : mysqlOperations;
@@ -189,7 +189,7 @@ export async function PUT(
       } = body;
 
       const db = await getDb();
-      const isSqlite = useSqlite();
+      const isSqlite = isSqlite();
       const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
 
       // Check if record exists
