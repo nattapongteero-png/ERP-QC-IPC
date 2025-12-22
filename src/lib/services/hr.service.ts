@@ -330,8 +330,8 @@ export async function createOrgUnit(data: OrgUnitCreate): Promise<OrgUnit> {
     parentId: data.parentId || null,
     siteId: data.siteId || null,
     isGmpCritical: data.isGmpCritical ?? false,
-    effectiveFrom: data.effectiveFrom,
-    effectiveTo: data.effectiveTo || null,
+    effectiveFrom: new Date(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
     isActive: true,
   };
 
@@ -724,7 +724,7 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
     positionId: data.positionId || null,
     orgUnitId: data.orgUnitId || null,
     siteId: data.siteId || null,
-    hireDate: data.hireDate,
+    hireDate: new Date(data.hireDate),
     status: 'active',
   };
 
@@ -771,7 +771,7 @@ export async function updateEmployee(
   if (data.siteId !== undefined) updateData.siteId = data.siteId;
   if (data.status !== undefined) updateData.status = data.status;
   if (data.terminationDate !== undefined)
-    updateData.terminationDate = data.terminationDate;
+    updateData.terminationDate = new Date(data.terminationDate);
 
   if (Object.keys(updateData).length > 0) {
     await db
@@ -938,7 +938,7 @@ export async function createEmployeeAssignment(data: {
     positionId: data.positionId || null,
     orgUnitId: data.orgUnitId || null,
     isPrimary: data.isPrimary ?? true,
-    effectiveFrom: data.effectiveFrom,
+    effectiveFrom: new Date(data.effectiveFrom),
     reason: data.reason || null,
   };
 
@@ -1542,7 +1542,7 @@ export async function createTrainingSession(
 
   const insertData = {
     courseId: data.courseId,
-    sessionDate: data.sessionDate,
+    sessionDate: new Date(data.sessionDate),
     startTime: data.startTime || null,
     endTime: data.endTime || null,
     location: data.location || null,
@@ -1764,8 +1764,8 @@ export async function createTrainingRecord(
     employeeId: data.employeeId,
     sessionId: data.sessionId || null,
     courseId: data.courseId,
-    completionDate: data.completionDate,
-    expiryDate,
+    completionDate: new Date(data.completionDate),
+    expiryDate: expiryDate ? new Date(expiryDate) : null,
     result: data.result,
     score: data.score || null,
     assessedBy: data.assessedBy || null,
@@ -2206,7 +2206,7 @@ export async function createAuthorization(
   const tables = getHRTables();
   const db = await getDb();
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
   const insertData = {
     employeeId: data.employeeId,
@@ -2214,8 +2214,8 @@ export async function createAuthorization(
     scopeSiteId: data.scopeSiteId || null,
     scopeOrgUnitId: data.scopeOrgUnitId || null,
     scopeProductLines: data.scopeProductLines ? JSON.stringify(data.scopeProductLines) : null,
-    effectiveFrom: data.effectiveFrom,
-    effectiveTo: data.effectiveTo || null,
+    effectiveFrom: new Date(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
     grantedBy,
     grantedAt: now,
     isActive: true,
@@ -2301,7 +2301,7 @@ export async function revokeAuthorization(
     throw new Error('Authorization not found');
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
   const [result] = await db
     .update(tables.authorizations)
@@ -2678,15 +2678,15 @@ export async function createDelegation(
     throw new Error('Cannot delegate to yourself');
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
   const insertData = {
     authorizationId: data.authorizationId,
     delegatorId,
     delegateId: data.delegateId,
     reason: data.reason || null,
-    effectiveFrom: data.effectiveFrom,
-    effectiveTo: data.effectiveTo,
+    effectiveFrom: new Date(data.effectiveFrom),
+    effectiveTo: new Date(data.effectiveTo),
     createdAt: now,
     updatedAt: now,
   };
@@ -2917,13 +2917,13 @@ export async function createHealthRecord(
     throw new Error('Employee not found');
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
   const insertData = {
     employeeId: data.employeeId,
     examinationType: data.examinationType,
-    examinationDate: data.examinationDate,
-    nextExamDue: data.nextExamDue || null,
+    examinationDate: new Date(data.examinationDate),
+    nextExamDue: data.nextExamDue ? new Date(data.nextExamDue) : null,
     fitnessStatus: data.fitnessStatus,
     restrictions: data.restrictions || null,
     affectedAreas: data.affectedAreas ? JSON.stringify(data.affectedAreas) : null,
@@ -3315,7 +3315,7 @@ export async function createAppRole(data: AppRoleCreate): Promise<AppRole> {
     throw new Error('Role code already exists');
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
   const insertData = {
     code: data.code,
@@ -3461,7 +3461,7 @@ export async function updateRolePermissions(
 
   // Insert new permissions
   if (permissionIds.length > 0) {
-    const now = new Date().toISOString();
+    const now = new Date();
     const inserts = permissionIds.map((permissionId) => ({
       roleId,
       permissionId,
@@ -3562,15 +3562,15 @@ export async function assignEmployeeRole(
     throw new Error('Cannot assign inactive role');
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
   const insertData = {
     employeeId: data.employeeId,
     roleId: data.roleId,
     scopeSiteId: data.scopeSiteId || null,
     scopeOrgUnitId: data.scopeOrgUnitId || null,
-    effectiveFrom: data.effectiveFrom,
-    effectiveTo: data.effectiveTo || null,
+    effectiveFrom: new Date(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
     assignedBy,
     createdAt: now,
     updatedAt: now,
