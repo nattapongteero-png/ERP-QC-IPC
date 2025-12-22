@@ -23,6 +23,9 @@ import {
   User,
   Building,
   Calendar,
+  Upload,
+  Download,
+  X,
 } from 'lucide-react';
 import type {
   DocumentDetails,
@@ -74,6 +77,8 @@ export default function DocumentDetailPage() {
   const [newVersionContent, setNewVersionContent] = useState('');
   const [newVersionDescription, setNewVersionDescription] = useState('');
   const [isMajorRevision, setIsMajorRevision] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch document
   const {
@@ -89,13 +94,14 @@ export default function DocumentDetailPage() {
 
   // Create version mutation
   const createVersionMutation = useMutation({
-    mutationFn: (data: { content?: string; changeDescription?: string; isMajorRevision?: boolean }) =>
+    mutationFn: (data: { content?: string; changeDescription?: string; isMajorRevision?: boolean; filePath?: string }) =>
       createVersion(documentId, data),
     onSuccess: () => {
       setShowNewVersionDialog(false);
       setNewVersionContent('');
       setNewVersionDescription('');
       setIsMajorRevision(false);
+      setSelectedFile(null);
       refetch();
     },
   });
@@ -107,11 +113,40 @@ export default function DocumentDetailPage() {
   };
 
   // Handle new version creation
-  const handleCreateVersion = () => {
+  const handleCreateVersion = async () => {
+    let filePath: string | undefined;
+
+    // Upload file if selected
+    if (selectedFile) {
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('documentId', String(documentId));
+
+        const response = await fetch('/api/documents/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to upload file');
+        }
+        filePath = result.data.filePath;
+      } catch (error) {
+        console.error('File upload failed:', error);
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
+
     createVersionMutation.mutate({
       content: newVersionContent || undefined,
       changeDescription: newVersionDescription || undefined,
       isMajorRevision,
+      filePath,
     });
   };
 
@@ -256,6 +291,37 @@ export default function DocumentDetailPage() {
             </div>
           )}
 
+          {/* Attached File */}
+          {document.currentVersion?.filePath && (
+            <div className="bg-card border rounded-lg shadow-sm p-6">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+                Attached File
+              </h3>
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="font-medium">
+                      {document.currentVersion.filePath.split('/').pop()}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Version {document.currentVersion.versionNumber}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={`/api/documents/download/${document.currentVersion.filePath.replace('data/', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* Current Version Approvals */}
           {document.currentVersion?.approvals &&
             document.currentVersion.approvals.length > 0 && (
@@ -329,6 +395,56 @@ export default function DocumentDetailPage() {
             />
           </div>
 
+          {/* File Upload */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Attach File (Optional)</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+              {selectedFile ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <span className="text-sm">{selectedFile.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFile(null)}
+                    className="p-1 hover:bg-muted rounded"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center gap-2 cursor-pointer">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Click to upload or drag and drop
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    PDF, DOC, DOCX, XLS, XLSX (max 10MB)
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          alert('File size must be less than 10MB');
+                          return;
+                        }
+                        setSelectedFile(file);
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -345,15 +461,19 @@ export default function DocumentDetailPage() {
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
               text="Cancel"
-              onClick={() => setShowNewVersionDialog(false)}
+              onClick={() => {
+                setShowNewVersionDialog(false);
+                setSelectedFile(null);
+              }}
               stylingMode="outlined"
+              disabled={isUploading || createVersionMutation.isPending}
             />
             <DxButton
-              text="Create Version"
-              icon="add"
+              text={isUploading ? 'Uploading...' : 'Create Version'}
+              icon={isUploading ? undefined : 'add'}
               onClick={handleCreateVersion}
               type="success"
-              disabled={createVersionMutation.isPending}
+              disabled={isUploading || createVersionMutation.isPending}
             />
           </div>
         </div>
