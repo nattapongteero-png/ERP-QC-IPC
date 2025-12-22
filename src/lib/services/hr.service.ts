@@ -50,6 +50,7 @@ import type {
   PositionUpdate,
   PositionWithDetails,
   Employee,
+  EmployeeWithDetails,
   EmployeeCreate,
   EmployeeUpdate,
   EmployeeSummary,
@@ -606,7 +607,7 @@ export async function getEmployees(filters?: {
   search?: string;
   skip?: number;
   take?: number;
-}): Promise<Employee[]> {
+}): Promise<EmployeeWithDetails[]> {
   const tables = getHRTables();
   const db = await getDb();
 
@@ -635,7 +636,35 @@ export async function getEmployees(filters?: {
     );
   }
 
-  let query = db.select().from(tables.employees);
+  // Join with org units and positions for additional details
+  let query = db
+    .select({
+      id: tables.employees.id,
+      userId: tables.employees.userId,
+      employeeCode: tables.employees.employeeCode,
+      firstName: tables.employees.firstName,
+      lastName: tables.employees.lastName,
+      firstNameEn: tables.employees.firstNameEn,
+      lastNameEn: tables.employees.lastNameEn,
+      email: tables.employees.email,
+      phone: tables.employees.phone,
+      positionId: tables.employees.positionId,
+      orgUnitId: tables.employees.orgUnitId,
+      siteId: tables.employees.siteId,
+      hireDate: tables.employees.hireDate,
+      terminationDate: tables.employees.terminationDate,
+      status: tables.employees.status,
+      createdAt: tables.employees.createdAt,
+      updatedAt: tables.employees.updatedAt,
+      orgUnitName: tables.orgUnits.name,
+      orgUnitCode: tables.orgUnits.code,
+      positionTitle: tables.positions.title,
+      positionCode: tables.positions.code,
+    })
+    .from(tables.employees)
+    .leftJoin(tables.orgUnits, eq(tables.employees.orgUnitId, tables.orgUnits.id))
+    .leftJoin(tables.positions, eq(tables.employees.positionId, tables.positions.id));
+
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
   }
@@ -646,7 +675,7 @@ export async function getEmployees(filters?: {
   query = query.limit(take).offset(skip) as typeof query;
 
   const results = await query;
-  return results as unknown as Employee[];
+  return results as unknown as EmployeeWithDetails[];
 }
 
 export async function getEmployeeById(id: number): Promise<Employee | null> {

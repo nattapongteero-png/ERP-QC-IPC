@@ -27,12 +27,12 @@ import {
   UserPlus,
   UserCheck,
   Clock,
-  Mail,
   Phone,
   Calendar,
   ChevronRight,
+  Building2,
 } from 'lucide-react';
-import type { Employee } from '@/types/hr';
+import type { EmployeeWithDetails } from '@/types/hr';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'ใช้งาน' },
@@ -80,7 +80,7 @@ async function fetchEmployees(filters: {
   orgUnitId?: number;
   status?: string;
   search?: string;
-}): Promise<Employee[]> {
+}): Promise<EmployeeWithDetails[]> {
   const url = new URL('/api/hr/employees', window.location.origin);
   if (filters.orgUnitId) url.searchParams.set('orgUnitId', String(filters.orgUnitId));
   if (filters.status) url.searchParams.set('status', filters.status);
@@ -129,7 +129,7 @@ export default function EmployeesPage() {
   });
 
   const handleRowClick = useCallback(
-    (e: { data: Employee }) => {
+    (e: { data: EmployeeWithDetails }) => {
       router.push(`/hr/employees/${e.data.id}`);
     },
     [router]
@@ -164,7 +164,7 @@ export default function EmployeesPage() {
   };
 
   // Professional employee cell with gradient avatar and enhanced typography
-  const renderEmployeeCell = (cellData: { data: Employee }) => {
+  const renderEmployeeCell = (cellData: { data: EmployeeWithDetails }) => {
     const emp = cellData.data;
     const fullName = `${emp.firstName} ${emp.lastName}`;
     const gradient = getAvatarGradient(fullName);
@@ -203,20 +203,23 @@ export default function EmployeesPage() {
     );
   };
 
-  // Professional contact cell with icon
-  const renderEmailCell = (cellData: { value: string; data: Employee }) => {
-    const email = cellData.value;
-    if (!email) {
+  // Organization unit cell with icon
+  const renderOrgUnitCell = (cellData: { data: EmployeeWithDetails }) => {
+    const emp = cellData.data;
+    if (!emp.orgUnitName) {
       return <span className="text-slate-300 text-sm italic">-</span>;
     }
     return (
       <div className="flex items-center gap-2 py-1">
-        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-          <Mail className="w-3.5 h-3.5 text-blue-500" />
+        <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+          <Building2 className="w-3.5 h-3.5 text-amber-600" />
         </div>
-        <span className="text-slate-600 text-sm truncate hover:text-blue-600 transition-colors">
-          {email}
-        </span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-slate-700 text-sm truncate">{emp.orgUnitName}</span>
+          {emp.positionTitle && (
+            <span className="text-xs text-slate-400 truncate">{emp.positionTitle}</span>
+          )}
+        </div>
       </div>
     );
   };
@@ -437,14 +440,14 @@ export default function EmployeesPage() {
             caption="พนักงาน"
             cellRender={renderEmployeeCell}
             minWidth={220}
-            calculateSortValue={(data: Employee) => `${data.firstName} ${data.lastName}`}
+            calculateSortValue={(data: EmployeeWithDetails) => `${data.firstName} ${data.lastName}`}
             hidingPriority={0}
           />
           <Column
-            dataField="email"
-            caption="อีเมล"
-            cellRender={renderEmailCell}
-            minWidth={240}
+            caption="หน่วยงาน / ตำแหน่ง"
+            cellRender={renderOrgUnitCell}
+            minWidth={200}
+            calculateSortValue={(data: EmployeeWithDetails) => data.orgUnitName || ''}
             hidingPriority={2}
           />
           <Column
@@ -452,7 +455,7 @@ export default function EmployeesPage() {
             caption="เบอร์โทร"
             cellRender={renderPhoneCell}
             width={160}
-            hidingPriority={3}
+            hidingPriority={4}
           />
           <Column
             dataField="status"
@@ -474,7 +477,7 @@ export default function EmployeesPage() {
             caption="วันเริ่มงาน"
             cellRender={renderHireDateCell}
             minWidth={160}
-            hidingPriority={4}
+            hidingPriority={3}
           />
         </DataGrid>
       </div>

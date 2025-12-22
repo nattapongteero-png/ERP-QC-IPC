@@ -176,6 +176,14 @@ export interface Employee {
   updatedAt: string;
 }
 
+// Extended Employee with joined details for list views
+export interface EmployeeWithDetails extends Employee {
+  orgUnitName?: string | null;
+  orgUnitCode?: string | null;
+  positionTitle?: string | null;
+  positionCode?: string | null;
+}
+
 export interface EmployeeCreate {
   userId?: number;
   employeeCode: string;
