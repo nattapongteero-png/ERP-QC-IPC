@@ -5,6 +5,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -32,6 +33,7 @@ import {
   ClipboardList,
   ShieldCheck,
   Barcode,
+  RefreshCw,
 } from 'lucide-react';
 import { TppSearchDialog, TppItem } from '@/components/ui/tpp-search-dialog';
 import { TtmtSearchDialog, TtmtItem } from '@/components/ui/ttmt-search-dialog';
@@ -64,6 +66,7 @@ export interface Item {
   tppName: string | null;
   ttmtCode: string | null;
   ttmtName: string | null;
+  vmiSyncEnabled: boolean;
 }
 
 export interface ItemFormData {
@@ -86,6 +89,7 @@ export interface ItemFormData {
   tppName: string;
   ttmtCode: string;
   ttmtName: string;
+  vmiSyncEnabled: boolean;
 }
 
 export interface ItemEditFormProps {
@@ -134,6 +138,7 @@ export const getDefaultFormData = (): ItemFormData => ({
   tppName: '',
   ttmtCode: '',
   ttmtName: '',
+  vmiSyncEnabled: false,
 });
 
 export const itemToFormData = (item: Item): ItemFormData => ({
@@ -155,6 +160,7 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   tppName: item.tppName || '',
   ttmtCode: item.ttmtCode || '',
   ttmtName: item.ttmtName || '',
+  vmiSyncEnabled: item.vmiSyncEnabled || false,
 });
 
 export const getTypeConfig = (type: string) => {
@@ -561,6 +567,25 @@ export function ItemEditForm({
                 title="VMI Standard Codes"
                 description="Thai pharmaceutical and traditional medicine codes for VMI Portal integration"
               >
+                {/* VMI Sync Enable Toggle */}
+                <div className="mb-5 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${formData.vmiSyncEnabled ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                        <RefreshCw className={`h-5 w-5 ${formData.vmiSyncEnabled ? 'text-blue-600' : 'text-gray-400'}`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Enable VMI Sync</p>
+                        <p className="text-xs text-gray-500">Include this item in VMI Portal synchronization</p>
+                      </div>
+                    </div>
+                    <DxCheckBox
+                      value={formData.vmiSyncEnabled}
+                      onValueChange={(value) => updateFormData('vmiSyncEnabled', value)}
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-5">
                   {/* TPP Code */}
                   <div className="col-span-1">
@@ -624,13 +649,23 @@ export function ItemEditForm({
                     <p className="text-xs text-gray-500 mt-1">Thai Traditional Medicine Terminology code</p>
                   </div>
                 </div>
-                {(formData.tppCode || formData.ttmtCode) && (
+                {formData.vmiSyncEnabled && (formData.tppCode || formData.ttmtCode) && (
                   <div className="mt-4 bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
                     <div className="p-2 bg-emerald-100 rounded-lg">
                       <CheckCircle className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div className="text-sm text-emerald-700">
-                      <span className="font-semibold">VMI Ready:</span> This item can be synced to VMI Portal
+                      <span className="font-semibold">VMI Ready:</span> This item will be synced to VMI Portal
+                    </div>
+                  </div>
+                )}
+                {formData.vmiSyncEnabled && !formData.tppCode && !formData.ttmtCode && (
+                  <div className="mt-4 bg-amber-50 rounded-xl p-4 flex items-center gap-3 border border-amber-100">
+                    <div className="p-2 bg-amber-100 rounded-lg">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div className="text-sm text-amber-700">
+                      <span className="font-semibold">Add Standard Codes:</span> TPP or TTMT code recommended for proper VMI Portal identification
                     </div>
                   </div>
                 )}
