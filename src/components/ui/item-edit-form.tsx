@@ -554,7 +554,8 @@ export function ItemEditForm({
                 </div>
               </SectionCard>
 
-              {/* VMI Standard Codes */}
+              {/* VMI Standard Codes - Only for Finished Goods */}
+              {formData.type === 'finished_goods' && (
               <SectionCard
                 icon={<Barcode className="h-5 w-5 text-gray-600" />}
                 title="VMI Standard Codes"
@@ -634,6 +635,7 @@ export function ItemEditForm({
                   </div>
                 )}
               </SectionCard>
+              )}
 
               {/* TPP/TTMT Search Dialogs */}
               <TppSearchDialog
