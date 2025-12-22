@@ -129,12 +129,14 @@ function getFileTypeLabel(extension: string): string {
 // ============================================
 
 function DocumentPreview({
+  versionId,
   filePath,
   fileName,
   versionNumber,
   isFullscreen,
   onToggleFullscreen,
 }: {
+  versionId: number;
   filePath: string;
   fileName: string;
   versionNumber: string;
@@ -145,7 +147,7 @@ function DocumentPreview({
   const [hasError, setHasError] = useState(false);
 
   const extension = getFileExtension(filePath);
-  const basePath = `/api/documents/download/${filePath.replace('data/', '')}`;
+  const basePath = `/api/documents/versions/${versionId}/file`;
   const downloadUrl = basePath;
   const viewUrl = `${basePath}?inline=true`;
   const isPdf = extension === 'pdf';
@@ -615,6 +617,7 @@ export default function DocumentDetailPage() {
         <main className="flex-1 flex flex-col border-r overflow-hidden">
           {selectedVersion?.filePath ? (
             <DocumentPreview
+              versionId={selectedVersion.id}
               filePath={selectedVersion.filePath}
               fileName={fileName}
               versionNumber={selectedVersion.versionNumber}
