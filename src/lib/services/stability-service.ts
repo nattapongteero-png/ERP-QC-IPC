@@ -6,6 +6,7 @@
  */
 
 import { getDb } from '../db';
+import { toDateSafe } from '../db/date-utils';
 import { eq, and, desc, like, or, sql, count, lte, gte, isNull } from 'drizzle-orm';
 import {
   sqliteStabilityProtocols,
@@ -587,7 +588,7 @@ export async function listStudies(
         pendingSamples.length > 0
           ? pendingSamples.sort(
               (a, b) =>
-                new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()
+                toDateSafe(a.scheduledDate).getTime() - toDateSafe(b.scheduledDate).getTime()
             )[0].scheduledDate
           : null;
 
