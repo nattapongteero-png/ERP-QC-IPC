@@ -44,4 +44,32 @@ TypeScript 5.x (Next.js 15 project): Follow standard conventions
 
 
 <!-- MANUAL ADDITIONS START -->
+
+## MySQL/SQLite Date Handling
+
+When writing service code that uses datetime fields with the dual-database pattern (MySQL production, SQLite testing):
+
+```typescript
+// Add these helpers to your service file:
+function getNow(): Date | string {
+  return isSqlite() ? new Date().toISOString() : new Date();
+}
+
+function toDbDate(dateStr: string): Date | string {
+  return isSqlite() ? dateStr : new Date(dateStr);
+}
+
+function getTodayStr(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Usage:
+createdAt: getNow(),           // For datetime fields
+updatedAt: getNow(),
+dueDate: toDbDate(data.dueDate),  // For date strings from user input
+closedDate: toDbDate(getTodayStr()),  // For today's date
+```
+
+**Why:** MySQL datetime columns reject ISO 8601 format (`2024-12-23T10:30:00.000Z`). Use `Date` objects for MySQL and ISO strings for SQLite.
+
 <!-- MANUAL ADDITIONS END -->
