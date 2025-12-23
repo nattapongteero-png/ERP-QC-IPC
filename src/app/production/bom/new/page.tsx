@@ -123,7 +123,7 @@ export default function NewBOMPage() {
   const loadRecentProducts = async () => {
     setProductsLoading(true);
     try {
-      const response = await fetch(`/api/items?type=finished_product&limit=20`);
+      const response = await fetch(`/api/items?type=finished_goods&limit=20`);
       const result = await response.json();
       if (result.success) {
         setProducts(result.data.items || []);
@@ -138,7 +138,7 @@ export default function NewBOMPage() {
   const searchProducts = async () => {
     setProductsLoading(true);
     try {
-      const response = await fetch(`/api/items?search=${encodeURIComponent(productSearch)}&type=finished_product&limit=20`);
+      const response = await fetch(`/api/items?search=${encodeURIComponent(productSearch)}&type=finished_goods&limit=20`);
       const result = await response.json();
       if (result.success) {
         setProducts(result.data.items || []);
@@ -156,8 +156,8 @@ export default function NewBOMPage() {
       const response = await fetch(`/api/items?limit=20`);
       const result = await response.json();
       if (result.success) {
-        // Filter out finished products (they shouldn't be BOM ingredients)
-        const filteredItems = (result.data.items || []).filter((item: Item) => item.type !== 'finished_product');
+        // Filter out finished goods (they shouldn't be BOM ingredients)
+        const filteredItems = (result.data.items || []).filter((item: Item) => item.type !== 'finished_goods');
         setItems(filteredItems);
       }
     } catch (error) {
@@ -173,8 +173,8 @@ export default function NewBOMPage() {
       const response = await fetch(`/api/items?search=${encodeURIComponent(itemSearch)}&limit=20`);
       const result = await response.json();
       if (result.success) {
-        // Filter out finished products (they shouldn't be BOM ingredients)
-        const filteredItems = (result.data.items || []).filter((item: Item) => item.type !== 'finished_product');
+        // Filter out finished goods (they shouldn't be BOM ingredients)
+        const filteredItems = (result.data.items || []).filter((item: Item) => item.type !== 'finished_goods');
         setItems(filteredItems);
       }
     } catch (error) {
