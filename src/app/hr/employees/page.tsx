@@ -1,9 +1,9 @@
 'use client';
 
-// HR Employee Directory Page
+// HR Employee Directory Page - Professional Dashboard Design
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -17,7 +17,21 @@ import DataGrid, {
   Export,
   Toolbar,
   Item,
+  Grouping,
+  GroupPanel,
+  ColumnChooser,
+  StateStoring,
+  Summary,
+  GroupItem,
 } from 'devextreme-react/data-grid';
+import PieChart, {
+  Series as PieSeries,
+  Label,
+  Connector,
+  Legend as PieLegend,
+  Tooltip as PieTooltip,
+  Size,
+} from 'devextreme-react/pie-chart';
 import { useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +45,15 @@ import {
   Calendar,
   ChevronRight,
   Building2,
+  Mail,
+  BarChart3,
+  List,
+  Grid3X3,
+  UserX,
+  Award,
+  Briefcase,
+  Filter,
+  Eye,
 } from 'lucide-react';
 import type { EmployeeWithDetails } from '@/types/hr';
 
@@ -52,28 +75,30 @@ const AVATAR_GRADIENTS = [
   'from-fuchsia-500 to-pink-600',
 ];
 
+// Status colors for pie chart
+const STATUS_COLORS: Record<string, string> = {
+  active: '#10b981',    // emerald-500
+  inactive: '#f59e0b',  // amber-500
+  terminated: '#ef4444', // red-500
+};
+
 function getAvatarGradient(name: string): string {
   const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 }
 
-function formatRelativeDate(dateStr: string | Date | null): string {
+function formatTenure(dateStr: string | Date | null): string {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 30) return `${diffDays} วันที่แล้ว`;
-  if (diffDays < 365) {
-    const months = Math.floor(diffDays / 30);
-    return `${months} เดือนที่แล้ว`;
-  }
   const years = Math.floor(diffDays / 365);
-  const remainingMonths = Math.floor((diffDays % 365) / 30);
-  if (remainingMonths > 0) {
-    return `${years} ปี ${remainingMonths} เดือน`;
-  }
-  return `${years} ปี`;
+  const months = Math.floor((diffDays % 365) / 30);
+
+  if (years === 0 && months === 0) return 'ใหม่';
+  if (years === 0) return `${months} เดือน`;
+  if (months === 0) return `${years} ปี`;
+  return `${years} ปี ${months} เดือน`;
 }
 
 async function fetchEmployees(filters: {
@@ -92,6 +117,8 @@ async function fetchEmployees(filters: {
   return result.data || [];
 }
 
+type ViewMode = 'grid' | 'cards' | 'analytics';
+
 export default function EmployeesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -103,12 +130,13 @@ export default function EmployeesPage() {
     searchParams.get('status') || null
   );
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [gridHeight, setGridHeight] = useState(600);
 
-  // T015: Responsive height calculation for DataGrid
+  // Responsive height calculation for DataGrid
   useEffect(() => {
     const calculateHeight = () => {
-      const headerHeight = 200;
+      const headerHeight = 320;
       const padding = 100;
       const minHeight = 400;
       const availableHeight = window.innerHeight - headerHeight - padding;
@@ -128,6 +156,64 @@ export default function EmployeesPage() {
     }),
   });
 
+  // Compute analytics data
+  const employeeList = useMemo(() => Array.isArray(employees) ? employees : [], [employees]);
+
+  const analytics = useMemo(() => {
+    const activeCount = employeeList.filter((e) => e.status === 'active').length;
+    const inactiveCount = employeeList.filter((e) => e.status === 'inactive').length;
+    const terminatedCount = employeeList.filter((e) => e.status === 'terminated').length;
+
+    const thisMonth = new Date();
+    const newThisMonth = employeeList.filter((e) => {
+      if (!e.hireDate) return false;
+      const hireDate = new Date(e.hireDate);
+      return hireDate.getMonth() === thisMonth.getMonth() &&
+             hireDate.getFullYear() === thisMonth.getFullYear();
+    }).length;
+
+    // Get department distribution
+    const deptMap = new Map<string, number>();
+    employeeList.forEach((e) => {
+      const dept = e.orgUnitName || 'ไม่ระบุ';
+      deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
+    });
+    const deptDistribution = Array.from(deptMap.entries())
+      .map(([name, count]) => ({ department: name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // Status distribution for pie chart
+    const statusDistribution = [
+      { status: 'ใช้งาน', count: activeCount, color: STATUS_COLORS.active },
+      { status: 'พักงาน', count: inactiveCount, color: STATUS_COLORS.inactive },
+      { status: 'พ้นสภาพ', count: terminatedCount, color: STATUS_COLORS.terminated },
+    ].filter(s => s.count > 0);
+
+    // Calculate average tenure using a stable reference date
+    const referenceDate = new Date().getTime();
+    const activeTenures = employeeList
+      .filter(e => e.status === 'active' && e.hireDate)
+      .map(e => {
+        const hireDate = new Date(e.hireDate!);
+        return Math.floor((referenceDate - hireDate.getTime()) / (1000 * 60 * 60 * 24 * 365));
+      });
+    const avgTenure = activeTenures.length > 0
+      ? (activeTenures.reduce((a, b) => a + b, 0) / activeTenures.length).toFixed(1)
+      : 0;
+
+    return {
+      total: employeeList.length,
+      active: activeCount,
+      inactive: inactiveCount,
+      terminated: terminatedCount,
+      newThisMonth,
+      deptDistribution,
+      statusDistribution,
+      avgTenure,
+    };
+  }, [employeeList]);
+
   const handleRowClick = useCallback(
     (e: { data: EmployeeWithDetails }) => {
       router.push(`/hr/employees/${e.data.id}`);
@@ -144,13 +230,13 @@ export default function EmployeesPage() {
     setStatusFilter(null);
   }, []);
 
-  // Enhanced status cell with dot indicator and refined styling
+  // Enhanced status cell with modern styling
   const renderStatusCell = (cellData: { value: string }) => {
     const status = cellData.value;
     const statusConfig = {
-      active: { variant: 'success' as const, label: 'ใช้งาน' },
-      inactive: { variant: 'warning' as const, label: 'พักงาน' },
-      terminated: { variant: 'danger' as const, label: 'พ้นสภาพ' },
+      active: { variant: 'success' as const, label: 'ใช้งาน', icon: UserCheck },
+      inactive: { variant: 'warning' as const, label: 'พักงาน', icon: Clock },
+      terminated: { variant: 'danger' as const, label: 'พ้นสภาพ', icon: UserX },
     };
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
 
@@ -163,7 +249,7 @@ export default function EmployeesPage() {
     );
   };
 
-  // Professional employee cell with gradient avatar and enhanced typography
+  // Professional employee cell with gradient avatar
   const renderEmployeeCell = (cellData: { data: EmployeeWithDetails }) => {
     const emp = cellData.data;
     const fullName = `${emp.firstName} ${emp.lastName}`;
@@ -173,51 +259,60 @@ export default function EmployeesPage() {
       <div className="flex items-center gap-3.5 py-2 group">
         {/* Gradient Avatar */}
         <div className={`
-          relative w-10 h-10 rounded-full bg-gradient-to-br ${gradient}
+          relative w-11 h-11 rounded-full bg-gradient-to-br ${gradient}
           flex items-center justify-center text-white font-semibold text-sm
-          shadow-sm ring-2 ring-white
-          transition-transform duration-200 group-hover:scale-105
+          shadow-md ring-2 ring-white
+          transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg
         `}>
           {emp.firstName?.charAt(0)}{emp.lastName?.charAt(0)}
           {/* Online indicator for active employees */}
           {emp.status === 'active' && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white shadow-sm" />
           )}
         </div>
 
         {/* Employee Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-800 truncate">
+            <span className="font-semibold text-slate-800 truncate text-base">
               {fullName}
             </span>
             <ChevronRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+          <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+            <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
               {emp.employeeCode}
             </span>
+            {emp.email && (
+              <span className="flex items-center gap-1 text-slate-400">
+                <Mail className="w-3 h-3" />
+                <span className="truncate max-w-[150px]">{emp.email}</span>
+              </span>
+            )}
           </div>
         </div>
       </div>
     );
   };
 
-  // Organization unit cell with icon
+  // Organization unit cell with icon and position
   const renderOrgUnitCell = (cellData: { data: EmployeeWithDetails }) => {
     const emp = cellData.data;
     if (!emp.orgUnitName) {
       return <span className="text-slate-300 text-sm italic">-</span>;
     }
     return (
-      <div className="flex items-center gap-2 py-1">
-        <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-          <Building2 className="w-3.5 h-3.5 text-amber-600" />
+      <div className="flex items-center gap-2.5 py-1">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+          <Building2 className="w-4 h-4 text-amber-600" />
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-slate-700 text-sm truncate">{emp.orgUnitName}</span>
+          <span className="text-slate-700 text-sm font-medium truncate">{emp.orgUnitName}</span>
           {emp.positionTitle && (
-            <span className="text-xs text-slate-400 truncate">{emp.positionTitle}</span>
+            <span className="text-xs text-slate-400 truncate flex items-center gap-1">
+              <Briefcase className="w-3 h-3" />
+              {emp.positionTitle}
+            </span>
           )}
         </div>
       </div>
@@ -232,8 +327,8 @@ export default function EmployeesPage() {
     }
     return (
       <div className="flex items-center gap-2 py-1">
-        <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-          <Phone className="w-3.5 h-3.5 text-emerald-500" />
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center flex-shrink-0">
+          <Phone className="w-3.5 h-3.5 text-emerald-600" />
         </div>
         <span className="text-slate-600 text-sm font-mono">
           {phone}
@@ -242,7 +337,7 @@ export default function EmployeesPage() {
     );
   };
 
-  // Enhanced date cell with relative time
+  // Enhanced hire date cell with tenure badge
   const renderHireDateCell = (cellData: { value: string | Date }) => {
     const dateValue = cellData.value;
     if (!dateValue) {
@@ -255,39 +350,42 @@ export default function EmployeesPage() {
       month: 'short',
       day: 'numeric',
     });
-    const tenure = formatRelativeDate(dateValue);
+    const tenure = formatTenure(dateValue);
 
     return (
       <div className="flex items-center gap-2 py-1">
-        <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
-          <Calendar className="w-3.5 h-3.5 text-violet-500" />
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-50 to-purple-100 flex items-center justify-center flex-shrink-0">
+          <Calendar className="w-3.5 h-3.5 text-violet-600" />
         </div>
         <div className="flex flex-col">
           <span className="text-slate-700 text-sm">{formattedDate}</span>
-          <span className="text-xs text-slate-400">{tenure}</span>
+          <span className="text-xs text-slate-400 flex items-center gap-1">
+            <Award className="w-3 h-3" />
+            อายุงาน: {tenure}
+          </span>
         </div>
       </div>
     );
   };
 
-  // T014: Compute employee stats for StatCards
-  const employeeList = Array.isArray(employees) ? employees : [];
-  const activeCount = employeeList.filter((e) => e.status === 'active').length;
-  const inactiveCount = employeeList.filter((e) => e.status === 'inactive').length;
-  const thisMonth = new Date();
-  const newThisMonth = employeeList.filter((e) => {
-    if (!e.hireDate) return false;
-    const hireDate = new Date(e.hireDate);
-    return hireDate.getMonth() === thisMonth.getMonth() &&
-           hireDate.getFullYear() === thisMonth.getFullYear();
-  }).length;
+  // Pie chart tooltip
+  const customizePieTooltip = (pointInfo: { argument?: string; value?: number; percent?: number }) => {
+    return {
+      text: `${pointInfo.argument}: ${pointInfo.value} คน (${((pointInfo.percent || 0) * 100).toFixed(1)}%)`,
+    };
+  };
+
+  // Pie chart point customization
+  const customizePiePoint = (pointInfo: { data?: { color?: string } }) => {
+    return pointInfo.data?.color || '#6366f1';
+  };
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
-      {/* T012: ResponsivePageHeader */}
+    <div className="p-4 md:p-6 space-y-5 max-w-[1600px] mx-auto">
+      {/* Header Section */}
       <ResponsivePageHeader
         title="ทะเบียนพนักงาน"
-        subtitle={`Employee Directory • ${employeeList.length} รายการ`}
+        subtitle={`Employee Directory • ${analytics.total} รายการ`}
         icon={Users}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
@@ -296,7 +394,44 @@ export default function EmployeesPage() {
           { label: 'พนักงาน' },
         ]}
         actions={
-          <>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-0.5">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-md transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-white shadow-sm text-blue-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+                title="มุมมองตาราง"
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`p-2 rounded-md transition-all ${
+                  viewMode === 'cards'
+                    ? 'bg-white shadow-sm text-blue-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+                title="มุมมองการ์ด"
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('analytics')}
+                className={`p-2 rounded-md transition-all ${
+                  viewMode === 'analytics'
+                    ? 'bg-white shadow-sm text-blue-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+                title="มุมมองวิเคราะห์"
+              >
+                <BarChart3 className="w-4 h-4" />
+              </button>
+            </div>
+
             <DxButton
               icon="filter"
               text={showFilters ? 'ซ่อนตัวกรอง' : 'ตัวกรอง'}
@@ -318,15 +453,15 @@ export default function EmployeesPage() {
               stylingMode="contained"
               onClick={handleAddEmployee}
             />
-          </>
+          </div>
         }
       />
 
-      {/* T014: Stat cards for employee counts */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      {/* KPI Dashboard Section */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
         <StatCard
           label="พนักงานทั้งหมด"
-          value={employeeList.length}
+          value={analytics.total}
           icon={Users}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
@@ -334,15 +469,16 @@ export default function EmployeesPage() {
         />
         <StatCard
           label="ใช้งาน"
-          value={activeCount}
+          value={analytics.active}
           icon={UserCheck}
           iconColor="text-emerald-500"
           accentColor="border-emerald-500"
+          trend={analytics.active > 0 ? { direction: 'up', value: `${((analytics.active / analytics.total) * 100).toFixed(0)}%` } : undefined}
           isLoading={isLoading}
         />
         <StatCard
           label="พักงาน"
-          value={inactiveCount}
+          value={analytics.inactive}
           icon={Clock}
           iconColor="text-yellow-500"
           accentColor="border-yellow-500"
@@ -350,17 +486,31 @@ export default function EmployeesPage() {
         />
         <StatCard
           label="เข้าใหม่เดือนนี้"
-          value={newThisMonth}
+          value={analytics.newThisMonth}
           icon={UserPlus}
           iconColor="text-violet-500"
           accentColor="border-violet-500"
+          trend={analytics.newThisMonth > 0 ? { direction: 'up', value: 'เพิ่มขึ้น' } : undefined}
           isLoading={isLoading}
+        />
+        <StatCard
+          label="อายุงานเฉลี่ย"
+          value={`${analytics.avgTenure} ปี`}
+          icon={Award}
+          iconColor="text-orange-500"
+          accentColor="border-orange-500"
+          isLoading={isLoading}
+          className="hidden lg:block"
         />
       </div>
 
-      {/* T016: Mobile-optimized filters */}
+      {/* Filters Panel */}
       {showFilters && (
-        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="w-4 h-4 text-slate-500" />
+            <span className="font-medium text-slate-700">ตัวกรองข้อมูล</span>
+          </div>
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 md:gap-4">
             <div className="w-full sm:w-64">
               <OrgUnitPicker
@@ -372,13 +522,13 @@ export default function EmployeesPage() {
               />
             </div>
             <div className="w-full sm:w-48">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 สถานะ
               </label>
               <select
                 value={statusFilter || ''}
                 onChange={(e) => setStatusFilter(e.target.value || null)}
-                className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-full px-3 py-2 min-h-[44px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-700"
               >
                 <option value="">ทั้งหมด</option>
                 {STATUS_OPTIONS.map((opt) => (
@@ -398,89 +548,274 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* T013: DataGrid with enhanced styling */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        <DataGrid
-          dataSource={employeeList}
-          keyExpr="id"
-          showBorders={false}
-          showRowLines
-          rowAlternationEnabled={false}
-          columnAutoWidth
-          allowColumnReordering
-          allowColumnResizing
-          columnHidingEnabled
-          height={gridHeight}
-          onRowClick={handleRowClick}
-          hoverStateEnabled
-          loadPanel={{ enabled: isLoading }}
-          className="[&_.dx-datagrid-headers]:bg-slate-50/80 [&_.dx-datagrid-headers]:border-b [&_.dx-datagrid-headers]:border-slate-200 [&_.dx-header-row>td]:font-semibold [&_.dx-header-row>td]:text-slate-600 [&_.dx-header-row>td]:text-xs [&_.dx-header-row>td]:uppercase [&_.dx-header-row>td]:tracking-wider [&_.dx-header-row>td]:py-3 [&_.dx-data-row]:border-b [&_.dx-data-row]:border-slate-100 [&_.dx-data-row:hover]:bg-blue-50/50 [&_.dx-data-row]:transition-colors [&_.dx-data-row]:cursor-pointer"
-        >
-          <SearchPanel visible placeholder="ค้นหาพนักงาน..." width={280} />
-          <HeaderFilter visible />
-          <FilterRow visible={false} />
-          <Scrolling mode="virtual" />
-          <Paging defaultPageSize={20} />
-          <Pager
-            showPageSizeSelector
-            allowedPageSizes={[10, 20, 50, 100]}
-            showInfo
-            showNavigationButtons
-          />
-          <Selection mode="single" />
-          <Export enabled />
+      {/* Analytics View */}
+      {viewMode === 'analytics' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Status Distribution Pie Chart */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-blue-600" />
+              </div>
+              สถานะพนักงาน
+            </h3>
+            {analytics.statusDistribution.length > 0 ? (
+              <PieChart
+                id="status-pie"
+                dataSource={analytics.statusDistribution}
+                type="doughnut"
+                palette={analytics.statusDistribution.map(s => s.color)}
+                customizePoint={customizePiePoint}
+              >
+                <Size height={250} />
+                <PieSeries argumentField="status" valueField="count">
+                  <Label visible format="fixedPoint">
+                    <Connector visible width={1} />
+                  </Label>
+                </PieSeries>
+                <PieLegend
+                  visible
+                  horizontalAlignment="center"
+                  verticalAlignment="bottom"
+                  itemTextPosition="right"
+                  orientation="horizontal"
+                />
+                <PieTooltip enabled customizeTooltip={customizePieTooltip} />
+              </PieChart>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-slate-400">
+                ไม่มีข้อมูล
+              </div>
+            )}
+          </div>
 
-          <Toolbar>
-            <Item name="searchPanel" />
-            <Item name="exportButton" />
-          </Toolbar>
+          {/* Department Distribution */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-amber-600" />
+              </div>
+              จำนวนพนักงานตามหน่วยงาน
+            </h3>
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {analytics.deptDistribution.map((dept) => {
+                const percentage = analytics.total > 0 ? (dept.count / analytics.total) * 100 : 0;
+                return (
+                  <div key={dept.department} className="group">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-slate-600 truncate flex-1">{dept.department}</span>
+                      <span className="text-sm font-semibold text-slate-800 ml-2">{dept.count} คน</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-slate-400">{percentage.toFixed(1)}%</span>
+                  </div>
+                );
+              })}
+              {analytics.deptDistribution.length === 0 && (
+                <div className="text-center text-slate-400 py-8">ไม่มีข้อมูล</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
-          {/* Professional columns with enhanced cell renderers */}
-          <Column
-            caption="พนักงาน"
-            cellRender={renderEmployeeCell}
-            minWidth={220}
-            calculateSortValue={(data: EmployeeWithDetails) => `${data.firstName} ${data.lastName}`}
-            hidingPriority={0}
-          />
-          <Column
-            caption="หน่วยงาน / ตำแหน่ง"
-            cellRender={renderOrgUnitCell}
-            minWidth={200}
-            calculateSortValue={(data: EmployeeWithDetails) => data.orgUnitName || ''}
-            hidingPriority={2}
-          />
-          <Column
-            dataField="phone"
-            caption="เบอร์โทร"
-            cellRender={renderPhoneCell}
-            width={160}
-            hidingPriority={4}
-          />
-          <Column
-            dataField="status"
-            caption="สถานะ"
-            width={120}
-            cellRender={renderStatusCell}
-            alignment="center"
-            hidingPriority={1}
+      {/* Cards View */}
+      {viewMode === 'cards' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {employeeList.map((emp) => {
+            const fullName = `${emp.firstName} ${emp.lastName}`;
+            const gradient = getAvatarGradient(fullName);
+            const statusConfig = {
+              active: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'ใช้งาน' },
+              inactive: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'พักงาน' },
+              terminated: { bg: 'bg-red-100', text: 'text-red-700', label: 'พ้นสภาพ' },
+            };
+            const status = statusConfig[emp.status as keyof typeof statusConfig] || statusConfig.active;
+
+            return (
+              <div
+                key={emp.id}
+                onClick={() => router.push(`/hr/employees/${emp.id}`)}
+                className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group"
+              >
+                {/* Header */}
+                <div className="flex items-start gap-4 mb-4">
+                  <div className={`
+                    relative w-14 h-14 rounded-full bg-gradient-to-br ${gradient}
+                    flex items-center justify-center text-white font-bold text-lg
+                    shadow-lg ring-3 ring-white
+                    transition-transform duration-200 group-hover:scale-105
+                  `}>
+                    {emp.firstName?.charAt(0)}{emp.lastName?.charAt(0)}
+                    {emp.status === 'active' && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-800 truncate text-lg group-hover:text-blue-600 transition-colors">
+                      {fullName}
+                    </h3>
+                    <p className="text-sm text-slate-500 font-mono">{emp.employeeCode}</p>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${status.bg} ${status.text}`}>
+                      {status.label}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="space-y-2.5 text-sm">
+                  {emp.positionTitle && (
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{emp.positionTitle}</span>
+                    </div>
+                  )}
+                  {emp.orgUnitName && (
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{emp.orgUnitName}</span>
+                    </div>
+                  )}
+                  {emp.phone && (
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <span className="font-mono">{emp.phone}</span>
+                    </div>
+                  )}
+                  {emp.email && (
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{emp.email}</span>
+                    </div>
+                  )}
+                  {emp.hireDate && (
+                    <div className="flex items-center gap-2 text-slate-500 text-xs pt-2 border-t border-slate-100">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>อายุงาน: {formatTenure(emp.hireDate)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action */}
+                <div className="mt-4 pt-3 border-t border-slate-100">
+                  <button className="w-full flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                    <Eye className="w-4 h-4" />
+                    ดูรายละเอียด
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {employeeList.length === 0 && !isLoading && (
+            <div className="col-span-full text-center py-12 text-slate-400">
+              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>ไม่พบข้อมูลพนักงาน</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Grid View - DataGrid */}
+      {viewMode === 'grid' && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <DataGrid
+            dataSource={employeeList}
+            keyExpr="id"
+            showBorders={false}
+            showRowLines
+            rowAlternationEnabled={false}
+            columnAutoWidth
+            allowColumnReordering
+            allowColumnResizing
+            columnHidingEnabled
+            height={gridHeight}
+            onRowClick={handleRowClick}
+            hoverStateEnabled
+            loadPanel={{ enabled: isLoading }}
+            className="[&_.dx-datagrid-headers]:bg-slate-50/80 [&_.dx-datagrid-headers]:border-b [&_.dx-datagrid-headers]:border-slate-200 [&_.dx-header-row>td]:font-semibold [&_.dx-header-row>td]:text-slate-600 [&_.dx-header-row>td]:text-xs [&_.dx-header-row>td]:uppercase [&_.dx-header-row>td]:tracking-wider [&_.dx-header-row>td]:py-3.5 [&_.dx-data-row]:border-b [&_.dx-data-row]:border-slate-100 [&_.dx-data-row:hover]:bg-blue-50/50 [&_.dx-data-row]:transition-colors [&_.dx-data-row]:cursor-pointer"
           >
-            <HeaderFilter
-              dataSource={STATUS_OPTIONS.map((o) => ({
-                text: o.label,
-                value: o.value,
-              }))}
+            <SearchPanel visible placeholder="ค้นหาพนักงาน..." width={280} />
+            <HeaderFilter visible />
+            <FilterRow visible={false} />
+            <Scrolling mode="virtual" />
+            <Paging defaultPageSize={25} />
+            <Pager
+              showPageSizeSelector
+              allowedPageSizes={[10, 25, 50, 100]}
+              showInfo
+              showNavigationButtons
             />
-          </Column>
-          <Column
-            dataField="hireDate"
-            caption="วันเริ่มงาน"
-            cellRender={renderHireDateCell}
-            minWidth={160}
-            hidingPriority={3}
-          />
-        </DataGrid>
-      </div>
+            <Selection mode="single" />
+            <Export enabled fileName="employees" />
+            <GroupPanel visible />
+            <Grouping autoExpandAll={false} />
+            <ColumnChooser enabled mode="select" />
+            <StateStoring enabled type="localStorage" storageKey="hrEmployeesGrid" />
+
+            <Toolbar>
+              <Item name="groupPanel" />
+              <Item name="searchPanel" />
+              <Item name="columnChooserButton" />
+              <Item name="exportButton" />
+            </Toolbar>
+
+            <Summary>
+              <GroupItem column="status" summaryType="count" displayFormat="{0} คน" />
+            </Summary>
+
+            {/* Professional columns with enhanced cell renderers */}
+            <Column
+              caption="พนักงาน"
+              cellRender={renderEmployeeCell}
+              minWidth={280}
+              calculateSortValue={(data: EmployeeWithDetails) => `${data.firstName} ${data.lastName}`}
+              hidingPriority={0}
+            />
+            <Column
+              caption="หน่วยงาน / ตำแหน่ง"
+              cellRender={renderOrgUnitCell}
+              minWidth={220}
+              calculateSortValue={(data: EmployeeWithDetails) => data.orgUnitName || ''}
+              hidingPriority={2}
+            />
+            <Column
+              dataField="phone"
+              caption="เบอร์โทร"
+              cellRender={renderPhoneCell}
+              width={160}
+              hidingPriority={4}
+            />
+            <Column
+              dataField="status"
+              caption="สถานะ"
+              width={130}
+              cellRender={renderStatusCell}
+              alignment="center"
+              hidingPriority={1}
+              groupIndex={-1}
+            >
+              <HeaderFilter
+                dataSource={STATUS_OPTIONS.map((o) => ({
+                  text: o.label,
+                  value: o.value,
+                }))}
+              />
+            </Column>
+            <Column
+              dataField="hireDate"
+              caption="วันเริ่มงาน / อายุงาน"
+              cellRender={renderHireDateCell}
+              minWidth={180}
+              hidingPriority={3}
+            />
+          </DataGrid>
+        </div>
+      )}
     </div>
   );
 }
