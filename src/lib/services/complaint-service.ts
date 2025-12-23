@@ -1079,8 +1079,6 @@ export async function recordAdverseEvent(
     throw new Error('Investigation not started - route to QC first before recording adverse event');
   }
 
-  const now = getNow();
-
   // Create adverse event object to store in investigation metadata
   const adverseEvent: AdverseEvent = {
     id: Date.now(), // Generate pseudo-ID using timestamp
