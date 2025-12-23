@@ -15,6 +15,20 @@
 
 ---
 
+## Phase 0: Schema Alignment (Pre-requisite)
+
+**Purpose**: Fix service-to-schema mismatches blocking integration tests
+
+**WARNING**: These tasks MUST complete before skipped tasks can be un-skipped
+
+- [ ] T000A [P] Fix quality.service.ts column name mismatches (uses different column names than schema)
+- [ ] T000B [P] Fix sales.service.ts schema mismatch (uses vendors as customers, expects customerId but schema has customerName)
+- [ ] T000C [P] Fix hr.service.ts createOrgUnit Date object insertion (should use string dates per date-utils.ts)
+
+**Checkpoint**: All services align with Drizzle schema - skipped tasks can proceed
+
+---
+
 ## Phase 1: Setup (Shared Test Infrastructure)
 
 **Purpose**: Create reusable test utilities to reduce boilerplate across all test files
@@ -144,10 +158,10 @@
 
 - [x] T056 [P] [US9] Create tests/integration/services/quality-service-real.test.ts with schema sync for quality_tests, quality_specs, deviations tables
 - [x] T057 [US9] AQL Sampling Plan calculation tests (ISO 2859-1 compliance) - 16 tests
-- [~] T058 [US9] SKIPPED - quality.service.ts has schema mismatch (uses different column names than schema)
-- [~] T059 [US9] SKIPPED - database-dependent functions blocked by schema mismatch
+- [ ] T058 [US9] BLOCKED BY T000A - quality.service.ts schema alignment required
+- [ ] T059 [US9] BLOCKED BY T000A - database-dependent functions blocked by schema mismatch
 - [x] T060 [US9] Quality specs, test records, and deviation lifecycle tests (direct database) - 13 tests
-- [~] T061 [US9] SKIPPED - COA generation depends on mismatched schema
+- [ ] T061 [US9] BLOCKED BY T000A - COA generation depends on schema alignment
 
 ### HR Service Tests [US10]
 
@@ -156,7 +170,7 @@
 - [x] T064 [US10] Training records, competency matrix, and expiry tracking tests
 - [x] T065 [US10] Employee and position CRUD functions tests
 - [x] T066 [US10] Authorization, delegation, and health records tests
-- [~] T067 [US10] SKIPPED - createOrgUnit inserts Date objects instead of strings (service bug)
+- [ ] T067 [US10] BLOCKED BY T000C - createOrgUnit Date object fix required
 
 **Checkpoint**: P3 core business modules have comprehensive real SQLite tests
 
@@ -170,9 +184,9 @@
 
 - [x] T068 [P] [US11] Create tests/integration/services/sales-service-real.test.ts with schema sync for sales_orders, sales_order_items, customers tables
 - [x] T069 [US11] Implement real-world scenario: ATP calculation tests (5 passing) in sales-service-real.test.ts
-- [~] T070 [US11] SKIPPED - sales.service.ts has schema mismatch (uses vendors as customers, expects customerId but schema has customerName)
-- [~] T071 [US11] SKIPPED - depends on broken createSalesOrder function
-- [~] T072 [US11] SKIPPED - depends on broken createSalesOrder function
+- [ ] T070 [US11] BLOCKED BY T000B - sales.service.ts schema alignment required
+- [ ] T071 [US11] BLOCKED BY T000B - depends on createSalesOrder fix
+- [ ] T072 [US11] BLOCKED BY T000B - depends on createSalesOrder fix
 
 ### Purchasing Service Tests [US12]
 
@@ -296,16 +310,30 @@ With multiple developers after Phase 2:
 
 ## Task Summary
 
-| Phase | Description | Tasks | Priority |
-|-------|-------------|-------|----------|
-| 1 | Setup - Shared Test Infrastructure | 4 | - |
-| 2 | Foundational - Reference Validation | 3 | - |
-| 3 | P1 GMP Module Tests (Complaints, Documents, Audit) | 18 | P1 |
-| 4 | P2 GMP Module Tests (Recalls, Sanitation, Stability) | 18 | P2 |
-| 5 | P3 Business Module Tests (Inventory, Production, Quality, HR) | 24 | P3 |
-| 6 | P3 Business Module Tests (Sales, Purchasing, VMI) | 15 | P3 |
-| 7 | Polish & Verification | 6 | - |
-| **Total** | | **88** | |
+| Phase | Description | Tasks | Completed | Blocked | Pending | Priority |
+|-------|-------------|-------|-----------|---------|---------|----------|
+| 0 | Schema Alignment (Pre-requisite) | 3 | 0 | - | 3 | CRITICAL |
+| 1 | Setup - Shared Test Infrastructure | 4 | 4 | 0 | 0 | - |
+| 2 | Foundational - Reference Validation | 3 | 3 | 0 | 0 | - |
+| 3 | P1 GMP Module Tests (Complaints, Documents, Audit) | 18 | 18 | 0 | 0 | P1 |
+| 4 | P2 GMP Module Tests (Recalls, Sanitation, Stability) | 18 | 18 | 0 | 0 | P2 |
+| 5 | P3 Business Module Tests (Inventory, Production, Quality, HR) | 24 | 17 | 7 | 0 | P3 |
+| 6 | P3 Business Module Tests (Sales, Purchasing, VMI) | 15 | 2 | 0 | 13 | P3 |
+| 7 | Polish & Verification | 6 | 0 | 0 | 6 | - |
+| **Total** | | **91** | **62** | **7** | **22** | |
+
+---
+
+## Deferred Scope
+
+The following requirements are explicitly deferred to a future phase:
+
+| Requirement | Description | Reason | Target Phase |
+|-------------|-------------|--------|--------------|
+| FR-035 | Contract Repository | No contract manufacturing currently in use | Phase 2 |
+| FR-036 | Batch-Level Contractor ID | Depends on FR-035 implementation | Phase 2 |
+| FR-045 | Reference Library (Pharmacopoeia) | SHOULD requirement, lower priority | Phase 2 |
+| FR-046 | Verification Protocols | SHOULD requirement, depends on Change Control | Phase 2 |
 
 ---
 
@@ -315,6 +343,6 @@ With multiple developers after Phase 2:
 - Each test file must use real SQLite database (not mocks)
 - Schema sync from Drizzle ORM ensures test/production parity
 - Clean + seed in beforeEach prevents test pollution
-- Target: ~200 test cases across 16 modules
+- Target: ~150 test cases across 14 modules (CAPA + 13 new)
 - Performance target: All tests complete in < 60 seconds
 - Commit after each task or logical group

@@ -320,6 +320,18 @@ As an Internal Auditor, I need to schedule audits, record findings, track CAPAs,
 - **SC-009**: Training expiry alerts are generated 30 days in advance with 100% coverage
 - **SC-010**: Equipment calibration overdue rate is less than 2% at any point in time
 
+### Deviation Severity Classification
+
+Referenced by SC-003 for CAPA closure timelines:
+
+| Severity | Definition | CAPA Timeline | Examples |
+|----------|------------|---------------|----------|
+| Minor | Does not affect product quality, safety, or efficacy; documentation or procedural deviation | 30 days | Typo in batch record, minor SOP deviation with no impact |
+| Major | May affect product quality but not safety; requires investigation and corrective action | 45 days | Yield variance >5%, equipment parameter out of range but within safety margin |
+| Critical | Affects or potentially affects product safety, efficacy, or regulatory compliance | 60 days | OOS result, contamination detected, missing verification signature on critical step |
+
+**Classification Authority**: QA Manager or designee determines severity at deviation initiation. Severity may be upgraded (never downgraded) during investigation based on findings.
+
 ---
 
 ## Gap Analysis Details

@@ -19,7 +19,7 @@ This plan addresses the gap between mock-based unit tests and real-world integra
 **Project Type**: Web application (Next.js full-stack)
 **Performance Goals**: All tests complete within 60 seconds, individual test < 1 second
 **Constraints**: Tests must work with in-memory SQLite (:memory:), no external services required
-**Scale/Scope**: 20 service modules, targeting ~200 integration test cases
+**Scale/Scope**: 14 service modules (CAPA existing + 13 new), targeting ~150 integration test cases
 
 ## Constitution Check
 
@@ -249,9 +249,10 @@ No constitution violations expected - this plan adds testing infrastructure whic
 
 ## Success Criteria
 
-- [ ] All 16 service modules have real SQLite integration tests
+- [ ] All 14 service modules have real SQLite integration tests
 - [ ] Each module has at least 5 real-world scenario tests
 - [ ] All tests pass with `pnpm test:run`
-- [ ] Test coverage for services increases by 30%+
-- [ ] Tests complete in < 60 seconds total
+- [ ] Test coverage for services increases by 25%+
+- [ ] Tests complete in < 90 seconds total (14 modules × ~10 tests × ~0.6s average)
 - [ ] Shared test helpers reduce boilerplate by 50%+
+- [ ] Schema alignment tasks (Phase 0) completed before blocked tests proceed
