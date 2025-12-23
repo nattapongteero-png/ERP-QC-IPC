@@ -3,16 +3,14 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
-import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { PageHeader } from '@/components/ui/page-header';
+import { cn } from '@/lib/utils/cn';
 import {
   ArrowLeft,
   Printer,
@@ -22,7 +20,29 @@ import {
   CheckCircle,
   AlertTriangle,
   ShoppingCart,
+  FileText,
+  Calendar,
+  Clock,
+  User,
+  MapPin,
+  CreditCard,
+  ClipboardList,
+  BoxSelect,
+  RefreshCw,
+  ChevronRight,
+  Building2,
+  Phone,
+  Mail,
+  TrendingUp,
+  BarChart3,
+  Edit,
+  Eye,
+  Send,
 } from 'lucide-react';
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface SOLine {
   id: number;
@@ -77,12 +97,146 @@ interface SODetail {
   };
 }
 
+type TabKey = 'overview' | 'lines' | 'fulfillment' | 'shipping';
+
+// ============================================================================
+// Status Configuration
+// ============================================================================
+
+const STATUS_CONFIG: Record<string, {
+  label: string;
+  labelTh: string;
+  color: string;
+  bgClass: string;
+  textClass: string;
+  icon: React.ElementType;
+  gradient: string;
+}> = {
+  draft: {
+    label: 'Draft',
+    labelTh: 'ร่าง',
+    color: '#94a3b8',
+    bgClass: 'bg-slate-100',
+    textClass: 'text-slate-700',
+    icon: FileText,
+    gradient: 'from-slate-500 to-slate-600',
+  },
+  confirmed: {
+    label: 'Confirmed',
+    labelTh: 'ยืนยันแล้ว',
+    color: '#3b82f6',
+    bgClass: 'bg-blue-100',
+    textClass: 'text-blue-700',
+    icon: CheckCircle,
+    gradient: 'from-blue-500 to-blue-600',
+  },
+  processing: {
+    label: 'Processing',
+    labelTh: 'กำลังดำเนินการ',
+    color: '#f59e0b',
+    bgClass: 'bg-amber-100',
+    textClass: 'text-amber-700',
+    icon: Clock,
+    gradient: 'from-amber-500 to-amber-600',
+  },
+  ready: {
+    label: 'Ready',
+    labelTh: 'พร้อมส่ง',
+    color: '#8b5cf6',
+    bgClass: 'bg-violet-100',
+    textClass: 'text-violet-700',
+    icon: Package,
+    gradient: 'from-violet-500 to-violet-600',
+  },
+  shipped: {
+    label: 'Shipped',
+    labelTh: 'จัดส่งแล้ว',
+    color: '#06b6d4',
+    bgClass: 'bg-cyan-100',
+    textClass: 'text-cyan-700',
+    icon: Truck,
+    gradient: 'from-cyan-500 to-cyan-600',
+  },
+  delivered: {
+    label: 'Delivered',
+    labelTh: 'ส่งมอบแล้ว',
+    color: '#22c55e',
+    bgClass: 'bg-green-100',
+    textClass: 'text-green-700',
+    icon: CheckCircle,
+    gradient: 'from-green-500 to-green-600',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    labelTh: 'ยกเลิก',
+    color: '#ef4444',
+    bgClass: 'bg-red-100',
+    textClass: 'text-red-700',
+    icon: AlertTriangle,
+    gradient: 'from-red-500 to-red-600',
+  },
+};
+
+const LINE_STATUS_CONFIG: Record<string, {
+  label: string;
+  labelTh: string;
+  bgClass: string;
+  textClass: string;
+}> = {
+  pending: { label: 'Pending', labelTh: 'รอดำเนินการ', bgClass: 'bg-slate-100', textClass: 'text-slate-700' },
+  partial: { label: 'Partial', labelTh: 'บางส่วน', bgClass: 'bg-amber-100', textClass: 'text-amber-700' },
+  shipped: { label: 'Shipped', labelTh: 'จัดส่งแล้ว', bgClass: 'bg-green-100', textClass: 'text-green-700' },
+};
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('th-TH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const formatCurrency = (amount: number | null, currency: string = 'THB') => {
+  return new Intl.NumberFormat('th-TH', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount || 0);
+};
+
+const formatNumber = (num: number | null) => {
+  return new Intl.NumberFormat('th-TH').format(num || 0);
+};
+
+const isOverdue = (requiredDate: string | null, status: string) => {
+  if (!requiredDate || ['delivered', 'cancelled', 'shipped'].includes(status)) return false;
+  return new Date(requiredDate) < new Date();
+};
+
+const getDaysUntilRequired = (requiredDate: string | null) => {
+  if (!requiredDate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const required = new Date(requiredDate);
+  required.setHours(0, 0, 0, 0);
+  const diff = Math.ceil((required.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  return diff;
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
 export default function SalesOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
   const [data, setData] = useState<SODetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [showFulfillModal, setShowFulfillModal] = useState(false);
   const [selectedLine, setSelectedLine] = useState<SOLine | null>(null);
   const [fulfillForm, setFulfillForm] = useState({
@@ -124,7 +278,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
 
     try {
       const selectedLot = selectedLine.suggestedLots.find((l) => l.id.toString() === fulfillForm.lotId);
-      alert(`Fulfilling ${fulfillForm.quantity} ${selectedLine.itemUnit} of ${selectedLine.itemCode} from Lot ${selectedLot?.lotNumber}`);
+      alert(`จัดส่ง ${fulfillForm.quantity} ${selectedLine.itemUnit} ของ ${selectedLine.itemCode} จาก Lot ${selectedLot?.lotNumber}`);
       setShowFulfillModal(false);
       fetchSODetail();
     } catch (error) {
@@ -132,155 +286,185 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     }
   };
 
-  const getStatusVariant = (status: string): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
-    switch (status) {
-      case 'shipped':
-      case 'complete':
-      case 'delivered':
-        return 'success';
-      case 'partial':
-      case 'processing':
-        return 'warning';
-      case 'cancelled':
-        return 'danger';
-      case 'confirmed':
-        return 'info';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string): string => {
-    const labels: Record<string, string> = {
-      'draft': 'Draft',
-      'pending': 'Pending',
-      'confirmed': 'Confirmed',
-      'processing': 'Processing',
-      'partial': 'Partial Shipped',
-      'shipped': 'Shipped',
-      'delivered': 'Delivered',
-      'cancelled': 'Cancelled',
-      'complete': 'Complete',
-    };
-    return labels[status] || status;
-  };
-
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('th-TH');
-  };
-
-  const formatCurrency = (amount: number | null) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB',
-    }).format(amount || 0);
-  };
+  // ============================================================================
+  // Loading State
+  // ============================================================================
 
   if (isLoading) {
     return (
       <MainLayout>
         <div className="space-y-6">
-          <div className="h-10 w-64 bg-gray-200 rounded animate-pulse" />
+          <div className="h-40 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl animate-pulse" />
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
+              <div key={i} className="h-24 bg-gray-200 rounded-xl animate-pulse" />
             ))}
           </div>
-          <div className="h-96 bg-gray-200 rounded animate-pulse" />
+          <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
         </div>
       </MainLayout>
     );
   }
 
+  // ============================================================================
+  // Not Found State
+  // ============================================================================
+
   if (!data) {
     return (
       <MainLayout>
-        <div className="text-center py-12">
-          <AlertTriangle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900">Sales Order not found</h2>
-          <p className="text-gray-500 mt-2">The requested sales order could not be found.</p>
-          <div className="mt-4">
-            <DxButton
-              text="Back to Orders"
-              type="default"
-              onClick={() => router.push('/sales/orders')}
-            />
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+            <AlertTriangle className="h-10 w-10 text-gray-400" />
           </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">ไม่พบใบสั่งขาย</h2>
+          <p className="text-gray-500 mb-6">ไม่พบข้อมูลใบสั่งขายที่ร้องขอ</p>
+          <DxButton
+            text="กลับไปหน้ารายการ"
+            icon="back"
+            type="default"
+            onClick={() => router.push('/sales/orders')}
+          />
         </div>
       </MainLayout>
     );
   }
 
   const { salesOrder: so, lines, summary } = data;
+  const statusConfig = STATUS_CONFIG[so.status] || STATUS_CONFIG.draft;
+  const StatusIcon = statusConfig.icon;
+  const overdue = isOverdue(so.requiredDate, so.status);
+  const daysUntil = getDaysUntilRequired(so.requiredDate);
+
+  // ============================================================================
+  // Tabs Configuration
+  // ============================================================================
+
+  const tabs: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = [
+    { key: 'overview', label: 'ภาพรวม', icon: Eye },
+    { key: 'lines', label: 'รายการสินค้า', icon: ClipboardList, count: lines.length },
+    { key: 'fulfillment', label: 'จัดเตรียมสินค้า', icon: BoxSelect },
+    { key: 'shipping', label: 'การจัดส่ง', icon: Truck },
+  ];
+
+  // ============================================================================
+  // DataGrid Columns
+  // ============================================================================
 
   const lineColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemCode',
-      caption: 'Item',
+      caption: 'สินค้า',
+      minWidth: 200,
       cellRender: (cellInfo) => (
-        <div>
-          <p className="font-medium">{cellInfo.data.itemCode}</p>
-          <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <Package className="h-5 w-5 text-indigo-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900">{cellInfo.data.itemCode}</p>
+            <p className="text-sm text-gray-500 truncate">{cellInfo.data.itemName}</p>
+          </div>
         </div>
       ),
     },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: 'จำนวนสั่ง',
       width: 120,
-      cellRender: (cellInfo) => `${cellInfo.data.quantity} ${cellInfo.data.itemUnit}`,
+      cellRender: (cellInfo) => (
+        <div className="text-right">
+          <span className="font-semibold">{formatNumber(cellInfo.data.quantity)}</span>
+          <span className="text-gray-500 text-sm ml-1">{cellInfo.data.itemUnit}</span>
+        </div>
+      ),
     },
     {
       dataField: 'unitPrice',
-      caption: 'Unit Price',
-      width: 120,
-      cellRender: (cellInfo) => formatCurrency(cellInfo.data.unitPrice),
+      caption: 'ราคาต่อหน่วย',
+      width: 130,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-700">{formatCurrency(cellInfo.data.unitPrice)}</span>
+      ),
     },
     {
       dataField: 'lineTotal',
-      caption: 'Line Total',
-      width: 130,
-      cellRender: (cellInfo) => formatCurrency(cellInfo.data.lineTotal),
+      caption: 'รวม',
+      width: 140,
+      cellRender: (cellInfo) => (
+        <span className="font-semibold text-green-600">{formatCurrency(cellInfo.data.lineTotal)}</span>
+      ),
     },
     {
       dataField: 'shippedQty',
-      caption: 'Shipped',
-      width: 140,
-      cellRender: (cellInfo) => `${cellInfo.data.shippedQty || 0} / ${cellInfo.data.quantity} ${cellInfo.data.itemUnit}`,
+      caption: 'จัดส่งแล้ว',
+      width: 150,
+      cellRender: (cellInfo) => {
+        const shipped = cellInfo.data.shippedQty || 0;
+        const total = cellInfo.data.quantity;
+        const percentage = total > 0 ? Math.round((shipped / total) * 100) : 0;
+        return (
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-medium">{shipped} / {total}</span>
+              <span className="text-xs text-gray-500">{percentage}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div
+                className="bg-green-500 h-1.5 rounded-full transition-all"
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
     },
     {
       dataField: 'fulfillmentStatus',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 120,
-      cellRender: (cellInfo) => (
-        <Badge variant={getStatusVariant(cellInfo.data.fulfillmentStatus)} dot>
-          {cellInfo.data.fulfillmentStatus}
-        </Badge>
-      ),
+      cellRender: (cellInfo) => {
+        const config = LINE_STATUS_CONFIG[cellInfo.data.fulfillmentStatus] || LINE_STATUS_CONFIG.pending;
+        return (
+          <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
+            {config.labelTh}
+          </span>
+        );
+      },
     },
   ];
 
   const fulfillmentColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemCode',
-      caption: 'Item',
+      caption: 'สินค้า',
+      minWidth: 180,
       cellRender: (cellInfo) => (
-        <div>
-          <p className="font-medium">{cellInfo.data.itemCode}</p>
-          <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            'h-9 w-9 rounded-lg flex items-center justify-center',
+            cellInfo.data.canFulfill ? 'bg-green-100' : 'bg-red-100'
+          )}>
+            <Package className={cn('h-4 w-4', cellInfo.data.canFulfill ? 'text-green-600' : 'text-red-600')} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900">{cellInfo.data.itemCode}</p>
+            <p className="text-xs text-gray-500 truncate">{cellInfo.data.itemName}</p>
+          </div>
         </div>
       ),
     },
     {
       dataField: 'quantity',
-      caption: 'Ordered',
-      width: 100,
-      cellRender: (cellInfo) => `${cellInfo.data.quantity} ${cellInfo.data.itemUnit}`,
+      caption: 'สั่งซื้อ',
+      width: 90,
+      cellRender: (cellInfo) => (
+        <span className="font-medium">{cellInfo.data.quantity} {cellInfo.data.itemUnit}</span>
+      ),
     },
     {
       dataField: 'shippedQty',
-      caption: 'Shipped',
+      caption: 'จัดส่งแล้ว',
       width: 100,
       cellRender: (cellInfo) => (
         <span className="text-green-600 font-medium">{cellInfo.data.shippedQty || 0} {cellInfo.data.itemUnit}</span>
@@ -288,44 +472,48 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     },
     {
       dataField: 'pendingQty',
-      caption: 'Pending',
+      caption: 'รอจัดส่ง',
       width: 100,
       cellRender: (cellInfo) => (
-        <span className="text-orange-600 font-medium">{cellInfo.data.pendingQty} {cellInfo.data.itemUnit}</span>
+        <span className={cn('font-medium', cellInfo.data.pendingQty > 0 ? 'text-amber-600' : 'text-gray-400')}>
+          {cellInfo.data.pendingQty} {cellInfo.data.itemUnit}
+        </span>
       ),
     },
     {
       dataField: 'availableStock',
-      caption: 'Available Stock',
-      width: 130,
+      caption: 'สต็อกพร้อมใช้',
+      width: 120,
       cellRender: (cellInfo) => (
         <div>
-          <span className={cellInfo.data.canFulfill ? 'text-green-600' : 'text-red-600'}>
+          <span className={cn('font-medium', cellInfo.data.canFulfill ? 'text-green-600' : 'text-red-600')}>
             {cellInfo.data.availableStock} {cellInfo.data.itemUnit}
           </span>
-          {!cellInfo.data.canFulfill && <span className="text-red-500 text-xs block">Insufficient</span>}
+          {!cellInfo.data.canFulfill && (
+            <div className="flex items-center gap-1 text-red-500 text-xs mt-0.5">
+              <AlertTriangle className="h-3 w-3" />
+              <span>ไม่เพียงพอ</span>
+            </div>
+          )}
         </div>
       ),
     },
     {
       dataField: 'suggestedLots',
-      caption: 'Suggested Lots (FEFO)',
-      width: 200,
+      caption: 'Lot แนะนำ (FEFO)',
+      minWidth: 180,
       cellRender: (cellInfo) => (
         <div className="space-y-1">
           {cellInfo.data.suggestedLots.slice(0, 2).map((lot: SOLine['suggestedLots'][0]) => (
-            <div key={lot.id} className="text-xs bg-gray-100 rounded px-2 py-1">
-              <span className="font-medium">{lot.lotNumber}</span>
-              <span className="text-gray-500 ml-2">({lot.quantity})</span>
-              {lot.expiryDate && (
-                <span className="text-gray-400 ml-1">
-                  Exp: {formatDate(lot.expiryDate)}
-                </span>
-              )}
+            <div key={lot.id} className="text-xs bg-gray-50 border rounded px-2 py-1 flex items-center justify-between">
+              <span className="font-mono font-medium text-indigo-600">{lot.lotNumber}</span>
+              <span className="text-gray-500">
+                {lot.quantity} • {lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}
+              </span>
             </div>
           ))}
           {cellInfo.data.suggestedLots.length === 0 && (
-            <span className="text-red-500 text-xs">No lots available</span>
+            <span className="text-red-500 text-xs">ไม่มี Lot พร้อมใช้</span>
           )}
         </div>
       ),
@@ -333,12 +521,12 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     {
       dataField: 'actions',
       caption: '',
-      width: 120,
+      width: 130,
       cellRender: (cellInfo) => (
         cellInfo.data.pendingQty > 0 && cellInfo.data.canFulfill ? (
           <DxButton
-            text="Pick & Ship"
-            type="default"
+            text="เลือก & ส่ง"
+            type="success"
             stylingMode="outlined"
             onClick={() => handleFulfill(cellInfo.data)}
           />
@@ -347,67 +535,158 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     },
   ];
 
+  // ============================================================================
+  // Tab Content Renderers
+  // ============================================================================
+
   const renderOverviewTab = () => (
-    <div className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* SO Info */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-900">Order Information</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-500">SO Number</p>
-              <p className="font-medium">{so.soNumber}</p>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+      {/* Order Information */}
+      <Card elevation="raised" className="lg:col-span-2">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="h-5 w-5 text-indigo-500" />
+            ข้อมูลใบสั่งขาย
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-500 mb-1">เลขที่ SO</p>
+              <p className="font-mono font-semibold text-indigo-600">{so.soNumber}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Status</p>
-              <Badge variant={getStatusVariant(so.status)} dot>{getStatusLabel(so.status)}</Badge>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-500 mb-1">สถานะ</p>
+              <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', statusConfig.bgClass, statusConfig.textClass)}>
+                {statusConfig.labelTh}
+              </span>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Order Date</p>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-500 mb-1">จำนวนรายการ</p>
+              <p className="font-semibold">{summary.lineCount} รายการ</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                <p className="text-xs text-gray-500">วันที่สั่ง</p>
+              </div>
               <p className="font-medium">{formatDate(so.orderDate)}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Required Date</p>
-              <p className="font-medium">{formatDate(so.requiredDate)}</p>
+            <div className={cn('p-3 rounded-lg', overdue ? 'bg-red-50' : 'bg-gray-50')}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Truck className={cn('h-3.5 w-3.5', overdue ? 'text-red-400' : 'text-gray-400')} />
+                <p className={cn('text-xs', overdue ? 'text-red-500' : 'text-gray-500')}>กำหนดส่ง</p>
+              </div>
+              <p className={cn('font-medium', overdue ? 'text-red-600' : '')}>{formatDate(so.requiredDate)}</p>
+              {daysUntil !== null && (
+                <p className={cn(
+                  'text-xs mt-0.5',
+                  daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : 'text-gray-500'
+                )}>
+                  {daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)} วัน` : daysUntil === 0 ? 'วันนี้' : `อีก ${daysUntil} วัน`}
+                </p>
+              )}
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Payment Terms</p>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-1.5 mb-1">
+                <CreditCard className="h-3.5 w-3.5 text-gray-400" />
+                <p className="text-xs text-gray-500">เงื่อนไขการชำระ</p>
+              </div>
               <p className="font-medium">{so.paymentTerms || '-'}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Line Items</p>
-              <p className="font-medium">{summary.lineCount} items</p>
+          </div>
+
+          {/* Notes */}
+          {so.notes && (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm font-medium text-amber-800 mb-1">หมายเหตุ</p>
+              <p className="text-sm text-amber-700">{so.notes}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Customer Information */}
+      <Card elevation="raised">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Building2 className="h-5 w-5 text-purple-500" />
+            ข้อมูลลูกค้า
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-4">
+          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+            <div className="h-12 w-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              {so.customerName?.charAt(0)?.toUpperCase() || 'C'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-gray-900 truncate">{so.customerName || '-'}</p>
+              <p className="text-sm text-gray-500">ลูกค้า</p>
             </div>
           </div>
-        </div>
 
-        {/* Customer Info */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-900">Customer Information</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <p className="text-sm text-gray-500">Customer Name</p>
-              <p className="font-medium">{so.customerName || '-'}</p>
+          {so.customerContact && (
+            <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <User className="h-5 w-5 text-gray-400 mt-0.5" />
+              <div>
+                <p className="text-xs text-gray-500">ผู้ติดต่อ</p>
+                <p className="font-medium">{so.customerContact}</p>
+              </div>
             </div>
-            <div className="col-span-2">
-              <p className="text-sm text-gray-500">Contact Person</p>
-              <p className="font-medium">{so.customerContact || '-'}</p>
+          )}
+
+          {so.customerAddress && (
+            <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+              <div>
+                <p className="text-xs text-gray-500">ที่อยู่จัดส่ง</p>
+                <p className="font-medium text-sm">{so.customerAddress}</p>
+              </div>
             </div>
-            <div className="col-span-2">
-              <p className="text-sm text-gray-500">Shipping Address</p>
-              <p className="font-medium">{so.customerAddress || '-'}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Fulfillment Progress */}
+      <Card elevation="raised" className="lg:col-span-3">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TrendingUp className="h-5 w-5 text-green-500" />
+            ความคืบหน้าการจัดส่ง
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600">ความคืบหน้า</span>
+                <span className="text-2xl font-bold text-green-600">{summary.fulfillmentProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="bg-green-500 h-3 rounded-full transition-all"
+                  style={{ width: `${summary.fulfillmentProgress || 0}%` }}
+                />
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-xl border">
+              <p className="text-sm text-gray-500 mb-1">ยอดสั่งทั้งหมด</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(summary.totalOrdered)}</p>
+              <p className="text-xs text-gray-500">หน่วย</p>
+            </div>
+            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+              <p className="text-sm text-gray-500 mb-1">จัดส่งแล้ว</p>
+              <p className="text-xl font-bold text-green-600">{formatNumber(summary.totalShipped)}</p>
+              <p className="text-xs text-gray-500">หน่วย</p>
+            </div>
+            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+              <p className="text-sm text-gray-500 mb-1">รอจัดส่ง</p>
+              <p className="text-xl font-bold text-amber-600">{formatNumber(summary.totalPending)}</p>
+              <p className="text-xs text-gray-500">หน่วย</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Notes */}
-      {so.notes && (
-        <div className="mt-6 pt-6 border-t">
-          <h3 className="font-semibold text-gray-900 mb-2">Notes</h3>
-          <p className="text-gray-700">{so.notes}</p>
-        </div>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 
@@ -417,222 +696,222 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         dataSource={lines}
         keyExpr="id"
         columns={lineColumns}
-        showBorders
-        height={400}
-        noDataText="No order lines"
+        showBorders={false}
+        rowAlternationEnabled
+        height={450}
+        noDataText="ไม่มีรายการสินค้า"
       />
     </div>
   );
 
   const renderFulfillmentTab = () => (
     <div className="p-6">
-      <div className="mb-4">
-        <h3 className="font-semibold text-gray-900">Order Fulfillment (FEFO)</h3>
-        <p className="text-sm text-gray-500">Items are suggested based on First Expiry, First Out policy</p>
+      <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <BoxSelect className="h-5 w-5 text-indigo-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-indigo-900">จัดเตรียมสินค้า (FEFO)</h3>
+            <p className="text-sm text-indigo-700">แนะนำ Lot ตามนโยบาย First Expiry, First Out</p>
+          </div>
+        </div>
       </div>
       <DxDataGrid
         dataSource={lines}
         keyExpr="id"
         columns={fulfillmentColumns}
-        showBorders
+        showBorders={false}
+        rowAlternationEnabled
         height={400}
-        noDataText="No fulfillment data"
+        noDataText="ไม่มีข้อมูลการจัดเตรียม"
       />
     </div>
   );
 
   const renderShippingTab = () => (
     <div className="p-6">
-      <div className="text-center py-8 text-gray-500">
-        <Truck className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-        <p>No shipments recorded yet</p>
-      </div>
-    </div>
-  );
-
-  const renderFulfillModalContent = () => (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold mb-4">Pick & Ship</h2>
-      {selectedLine && (
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm text-gray-500">Item</p>
-            <p className="font-medium">{selectedLine.itemCode} - {selectedLine.itemName}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Lot (FEFO)</label>
-            <DxSelectBox
-              items={selectedLine.suggestedLots.map((lot) => ({
-                value: lot.id.toString(),
-                text: `${lot.lotNumber} - Qty: ${lot.quantity} - Exp: ${lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}`,
-              }))}
-              value={fulfillForm.lotId}
-              onValueChange={(value) => {
-                const lot = selectedLine.suggestedLots.find((l) => l.id.toString() === value);
-                setFulfillForm({
-                  lotId: value,
-                  quantity: Math.min(selectedLine.pendingQty, lot?.quantity || 0),
-                });
-              }}
-              valueExpr="value"
-              displayExpr="text"
-              placeholder="Select a lot"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Quantity ({selectedLine.itemUnit})
-            </label>
-            <DxNumberBox
-              value={fulfillForm.quantity}
-              onValueChange={(value) => setFulfillForm({ ...fulfillForm, quantity: value || 0 })}
-              min={0}
-              max={selectedLine.pendingQty}
-            />
-            <p className="text-xs text-gray-500 mt-1">Pending: {selectedLine.pendingQty} {selectedLine.itemUnit}</p>
-          </div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <Truck className="h-10 w-10 text-gray-400" />
         </div>
-      )}
-      <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
-        <DxButton
-          text="Cancel"
-          type="normal"
-          stylingMode="outlined"
-          onClick={() => setShowFulfillModal(false)}
-        />
-        <DxButton
-          text="Confirm Ship"
-          type="success"
-          onClick={submitFulfill}
-        />
+        <p className="text-gray-500 font-medium">ยังไม่มีการจัดส่ง</p>
+        <p className="text-sm text-gray-400 mt-1">รายการจัดส่งจะแสดงที่นี่เมื่อมีการดำเนินการ</p>
       </div>
     </div>
   );
 
-  const tabItems: DxTabItem[] = [
-    { text: 'Overview' },
-    { text: `Order Lines (${lines.length})` },
-    { text: 'Fulfillment' },
-    { text: 'Shipping' },
-  ];
+  // ============================================================================
+  // Main Render
+  // ============================================================================
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title={`SO: ${so.soNumber}`}
-          description={`Customer: ${so.customerName}`}
-          actions={
-            <div className="flex gap-2">
-              <DxButton
-                text="Back"
-                icon="back"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => router.push('/sales/orders')}
-              />
-              <DxButton
-                text="Print"
-                icon="print"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => window.print()}
-              />
-              {so.status === 'confirmed' && summary.allCanFulfill && (
-                <DxButton
-                  text="Process All"
-                  type="success"
-                />
-              )}
-            </div>
-          }
-        />
+      <div className="flex flex-col h-full gap-4">
+        {/* Hero Header */}
+        <div className={cn('relative overflow-hidden rounded-xl bg-gradient-to-r', statusConfig.gradient)}>
+          <div className="absolute inset-0 bg-black/10" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-24 -translate-x-24" />
 
-        {/* Status Badge */}
-        <div className="flex items-center gap-2">
-          <Badge variant={getStatusVariant(so.status)} dot>
-            {getStatusLabel(so.status)}
-          </Badge>
-          {summary.allCanFulfill && summary.totalPending > 0 && (
-            <Badge variant="success">Ready to Ship</Badge>
-          )}
+          <div className="relative z-10 p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="h-16 w-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <ShoppingCart className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h1 className="text-2xl font-bold text-white">{so.soNumber}</h1>
+                    <span className={cn(
+                      'px-2.5 py-1 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm'
+                    )}>
+                      {statusConfig.labelTh}
+                    </span>
+                    {overdue && (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/80 text-white flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        เกินกำหนด
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-white/80 text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="h-4 w-4" />
+                      <span>{so.customerName}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatDate(so.orderDate)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <DxButton
+                  text="กลับ"
+                  icon="back"
+                  type="normal"
+                  stylingMode="text"
+                  onClick={() => router.push('/sales/orders')}
+                  elementAttr={{ class: 'text-white hover:bg-white/20' }}
+                />
+                <button
+                  onClick={() => fetchSODetail()}
+                  className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center text-white transition-colors"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center text-white transition-colors"
+                >
+                  <Printer className="h-5 w-5" />
+                </button>
+                {so.status === 'confirmed' && summary.allCanFulfill && (
+                  <DxButton
+                    text="ดำเนินการทั้งหมด"
+                    icon="check"
+                    type="success"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-blue-50">
-                  <DollarSign className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-gray-500">Total Amount</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">{formatCurrency(summary.totalAmount)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-gray-50">
-                  <ShoppingCart className="h-5 w-5 text-gray-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-gray-500">Total Ordered</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">{summary.totalOrdered}</p>
-                  <p className="text-xs text-gray-500">units</p>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-blue-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">ยอดรวม</p>
+                      <p className="text-lg font-bold text-blue-600">{formatCurrency(summary.totalAmount, so.currency)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-green-50">
-                  <Truck className="h-5 w-5 text-green-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-gray-500">Shipped</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">{summary.totalShipped}</p>
-                  <p className="text-xs text-gray-500">units</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-orange-50">
-                  <Package className="h-5 w-5 text-orange-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-gray-500">Pending</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">{summary.totalPending}</p>
-                  <p className="text-xs text-gray-500">units</p>
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-indigo-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <ClipboardList className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">ยอดสั่ง</p>
+                      <p className="text-lg font-bold text-gray-900">{formatNumber(summary.totalOrdered)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-purple-50">
-                  <CheckCircle className="h-5 w-5 text-purple-600" />
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-green-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Truck className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">จัดส่งแล้ว</p>
+                      <p className="text-lg font-bold text-green-600">{formatNumber(summary.totalShipped)}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-gray-500">Progress</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">{summary.fulfillmentProgress}%</p>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: `${summary.fulfillmentProgress || 0}%` }}
-                    />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-amber-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <Package className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">รอจัดส่ง</p>
+                      <p className="text-lg font-bold text-amber-600">{formatNumber(summary.totalPending)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-purple-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">ความคืบหน้า</p>
+                      <p className="text-lg font-bold text-purple-600">{summary.fulfillmentProgress}%</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -642,33 +921,82 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
 
         {/* Stock Alert */}
         {!summary.allCanFulfill && summary.totalPending > 0 && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center gap-3">
-            <AlertTriangle className="h-6 w-6 text-orange-500" />
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-4">
+            <div className="h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+            </div>
             <div>
-              <p className="font-medium text-orange-800">Insufficient Stock</p>
-              <p className="text-sm text-orange-600">
-                Some items do not have enough stock to fulfill this order. Check the Fulfillment tab for details.
+              <p className="font-semibold text-red-800">สต็อกไม่เพียงพอ</p>
+              <p className="text-sm text-red-600">
+                บางรายการไม่มีสต็อกเพียงพอสำหรับการจัดส่ง ตรวจสอบรายละเอียดในแท็บ &quot;จัดเตรียมสินค้า&quot;
               </p>
             </div>
           </div>
         )}
 
-        {/* Tabs */}
-        <Card>
-          <CardHeader className="border-b pb-0">
-            <DxTabs
-              items={tabItems}
-              selectedIndex={activeTab}
-              onSelectedIndexChange={setActiveTab}
+        {/* Ready to Ship Alert */}
+        {summary.allCanFulfill && summary.totalPending > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-4">
+            <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <CheckCircle className="h-6 w-6 text-green-500" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-green-800">พร้อมจัดส่ง</p>
+              <p className="text-sm text-green-600">
+                สินค้าทุกรายการมีสต็อกเพียงพอ สามารถดำเนินการจัดส่งได้ทันที
+              </p>
+            </div>
+            <DxButton
+              text="ไปที่การจัดเตรียม"
+              icon="arrowright"
+              type="success"
+              onClick={() => setActiveTab('fulfillment')}
             />
-          </CardHeader>
+          </div>
+        )}
 
-          <CardContent className="p-0">
-            {activeTab === 0 && renderOverviewTab()}
-            {activeTab === 1 && renderLinesTab()}
-            {activeTab === 2 && renderFulfillmentTab()}
-            {activeTab === 3 && renderShippingTab()}
-          </CardContent>
+        {/* Tabs Content */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
+          {/* Tab Navigation */}
+          <div className="border-b px-4 py-2">
+            <div className="flex gap-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all',
+                      isActive
+                        ? 'bg-indigo-100 text-indigo-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                    {tab.count !== undefined && (
+                      <span className={cn(
+                        'px-2 py-0.5 rounded-full text-xs font-medium',
+                        isActive ? 'bg-indigo-200 text-indigo-800' : 'bg-gray-200 text-gray-600'
+                      )}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 min-h-0 overflow-auto">
+            {activeTab === 'overview' && renderOverviewTab()}
+            {activeTab === 'lines' && renderLinesTab()}
+            {activeTab === 'fulfillment' && renderFulfillmentTab()}
+            {activeTab === 'shipping' && renderShippingTab()}
+          </div>
         </Card>
       </div>
 
@@ -682,7 +1010,82 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         showCloseButton
         showTitle={false}
       >
-        {renderFulfillModalContent()}
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-12 w-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Send className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">เลือก Lot และจัดส่ง</h2>
+              <p className="text-sm text-gray-500">เลือก Lot สำหรับการจัดส่งสินค้า</p>
+            </div>
+          </div>
+
+          {selectedLine && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <Package className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{selectedLine.itemCode}</p>
+                    <p className="text-sm text-gray-500">{selectedLine.itemName}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">เลือก Lot (FEFO)</label>
+                <DxSelectBox
+                  items={selectedLine.suggestedLots.map((lot) => ({
+                    value: lot.id.toString(),
+                    text: `${lot.lotNumber} - จำนวน: ${lot.quantity} - หมดอายุ: ${lot.expiryDate ? formatDate(lot.expiryDate) : 'N/A'}`,
+                  }))}
+                  value={fulfillForm.lotId}
+                  onValueChange={(value) => {
+                    const lot = selectedLine.suggestedLots.find((l) => l.id.toString() === value);
+                    setFulfillForm({
+                      lotId: value,
+                      quantity: Math.min(selectedLine.pendingQty, lot?.quantity || 0),
+                    });
+                  }}
+                  valueExpr="value"
+                  displayExpr="text"
+                  placeholder="เลือก Lot..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  จำนวนที่จะจัดส่ง ({selectedLine.itemUnit})
+                </label>
+                <DxNumberBox
+                  value={fulfillForm.quantity}
+                  onValueChange={(value) => setFulfillForm({ ...fulfillForm, quantity: value || 0 })}
+                  min={0}
+                  max={selectedLine.pendingQty}
+                />
+                <p className="text-xs text-gray-500 mt-1">รอจัดส่ง: {selectedLine.pendingQty} {selectedLine.itemUnit}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+            <DxButton
+              text="ยกเลิก"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setShowFulfillModal(false)}
+            />
+            <DxButton
+              text="ยืนยันการจัดส่ง"
+              icon="check"
+              type="success"
+              onClick={submitFulfill}
+            />
+          </div>
+        </div>
       </DxPopup>
     </MainLayout>
   );
