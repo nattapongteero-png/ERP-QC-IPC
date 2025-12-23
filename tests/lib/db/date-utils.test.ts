@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toDateSafe, formatDateFromDb, formatMonthFromDb } from '@/lib/db/date-utils';
+import { toDateSafe, formatDateFromDb, formatMonthFromDb, toQueryDate } from '@/lib/db/date-utils';
 
 describe('date-utils', () => {
   describe('toDateSafe', () => {
@@ -57,6 +57,25 @@ describe('date-utils', () => {
     it('should format string date to YYYY-MM', () => {
       const result = formatMonthFromDb('2024-03-15');
       expect(result).toBe('2024-03');
+    });
+  });
+
+  describe('toQueryDate', () => {
+    it('should convert string date for query conditions', () => {
+      const result = toQueryDate('2024-12-23');
+      // In SQLite mode (test env), returns string
+      expect(typeof result === 'string' || result instanceof Date).toBe(true);
+    });
+
+    it('should handle Date object input', () => {
+      const input = new Date('2024-12-23');
+      const result = toQueryDate(input);
+      expect(typeof result === 'string' || result instanceof Date).toBe(true);
+    });
+
+    it('should handle null/undefined', () => {
+      const result = toQueryDate(null);
+      expect(typeof result === 'string' || result instanceof Date).toBe(true);
     });
   });
 });

@@ -134,3 +134,35 @@ export function formatMonthFromDb(value: Date | string): string {
   const date = toDateSafe(value);
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
 }
+
+/**
+ * Convert a date value to the correct format for Drizzle query conditions.
+ * Use this when passing dates to gte(), lte(), eq(), etc. operators.
+ *
+ * MySQL: Returns Date object (Drizzle calls toISOString internally)
+ * SQLite: Returns string (text comparison)
+ *
+ * @param value - Date object, date string, or null/undefined
+ * @returns Date object for MySQL, string for SQLite
+ */
+export function toQueryDate(value: Date | string | null | undefined): Date | string {
+  if (!value) {
+    return isSqlite() ? getTodayStr() : new Date();
+  }
+
+  if (value instanceof Date) {
+    return isSqlite() ? value.toISOString().split('T')[0] : value;
+  }
+
+  // String input
+  if (isSqlite()) {
+    // For SQLite, ensure YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+    return new Date(value).toISOString().split('T')[0];
+  }
+
+  // For MySQL, convert string to Date
+  return new Date(value);
+}
