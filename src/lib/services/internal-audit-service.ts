@@ -6,14 +6,41 @@
  */
 
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
-import { getDb } from '../db';
+import { getDb, isSqlite } from '../db';
 import {
   sqliteAuditPlans,
   sqliteAudits,
   sqliteAuditFindings,
   sqliteUsers,
   sqliteCapa,
+  mysqlAuditPlans,
+  mysqlAudits,
+  mysqlAuditFindings,
+  mysqlUsers,
+  mysqlCapa,
 } from '../db/schema';
+
+/**
+ * Get database-specific table references
+ */
+function getTables() {
+  if (isSqlite()) {
+    return {
+      auditPlans: sqliteAuditPlans,
+      audits: sqliteAudits,
+      findings: sqliteAuditFindings,
+      users: sqliteUsers,
+      capa: sqliteCapa,
+    };
+  }
+  return {
+    auditPlans: mysqlAuditPlans,
+    audits: mysqlAudits,
+    findings: mysqlAuditFindings,
+    users: mysqlUsers,
+    capa: mysqlCapa,
+  };
+}
 import { createAuditLog } from '../audit';
 import type {
   AuditPlan,
@@ -53,43 +80,44 @@ export async function getAuditPlans(
 ): Promise<AuditPlan[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { auditPlans, audits, users } = getTables();
   const conditions = [];
 
   if (params.year) {
-    conditions.push(eq(sqliteAuditPlans.planYear, params.year));
+    conditions.push(eq(auditPlans.planYear, params.year));
   }
   if (params.status) {
-    conditions.push(eq(sqliteAuditPlans.status, params.status));
+    conditions.push(eq(auditPlans.status, params.status));
   }
 
   const plans = await database
     .select({
-      plan: sqliteAuditPlans,
-      approver: sqliteUsers,
-      creator: sqliteUsers,
+      plan: auditPlans,
+      approver: users,
+      creator: users,
     })
-    .from(sqliteAuditPlans)
-    .leftJoin(sqliteUsers, eq(sqliteAuditPlans.approvedBy, sqliteUsers.id))
+    .from(auditPlans)
+    .leftJoin(users, eq(auditPlans.approvedBy, users.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(sqliteAuditPlans.planYear));
+    .orderBy(desc(auditPlans.planYear));
 
   // Enrich with audit counts
   return Promise.all(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     plans.map(async (row: any) => {
-      const audits = await database
+      const auditList = await database
         .select()
-        .from(sqliteAudits)
-        .where(eq(sqliteAudits.planId, row.plan.id));
+        .from(audits)
+        .where(eq(audits.planId, row.plan.id));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const completedCount = audits.filter((a: any) => a.status === 'completed').length;
+      const completedCount = auditList.filter((a: any) => a.status === 'completed').length;
 
       // Get creator name (second join)
       const creator = await database
         .select()
-        .from(sqliteUsers)
-        .where(eq(sqliteUsers.id, row.plan.createdBy || 0))
+        .from(users)
+        .where(eq(users.id, row.plan.createdBy || 0))
         .limit(1);
 
       return {
@@ -97,7 +125,7 @@ export async function getAuditPlans(
         planYear: row.plan.planYear,
         name: row.plan.name || `Audit Plan ${row.plan.planYear}`,
         status: row.plan.status as AuditPlanStatus,
-        totalAudits: audits.length,
+        totalAudits: auditList.length,
         completedAudits: completedCount,
         approvedBy: row.plan.approvedBy,
         approvedByName: row.approver?.name,
@@ -116,32 +144,33 @@ export async function getAuditPlans(
 export async function getAuditPlanById(id: number): Promise<AuditPlan | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { auditPlans, audits, users } = getTables();
 
   const plans = await database
     .select({
-      plan: sqliteAuditPlans,
-      approver: sqliteUsers,
+      plan: auditPlans,
+      approver: users,
     })
-    .from(sqliteAuditPlans)
-    .leftJoin(sqliteUsers, eq(sqliteAuditPlans.approvedBy, sqliteUsers.id))
-    .where(eq(sqliteAuditPlans.id, id))
+    .from(auditPlans)
+    .leftJoin(users, eq(auditPlans.approvedBy, users.id))
+    .where(eq(auditPlans.id, id))
     .limit(1);
 
   if (!plans[0]) return null;
 
   const row = plans[0];
 
-  const audits = await database
+  const auditList = await database
     .select()
-    .from(sqliteAudits)
-    .where(eq(sqliteAudits.planId, id));
+    .from(audits)
+    .where(eq(audits.planId, id));
 
-  const completedCount = audits.filter((a: any) => a.status === 'completed').length;
+  const completedCount = auditList.filter((a: any) => a.status === 'completed').length;
 
   const creator = await database
     .select()
-    .from(sqliteUsers)
-    .where(eq(sqliteUsers.id, row.plan.createdBy || 0))
+    .from(users)
+    .where(eq(users.id, row.plan.createdBy || 0))
     .limit(1);
 
   return {
@@ -149,7 +178,7 @@ export async function getAuditPlanById(id: number): Promise<AuditPlan | null> {
     planYear: row.plan.planYear,
     name: row.plan.name || `Audit Plan ${row.plan.planYear}`,
     status: row.plan.status as AuditPlanStatus,
-    totalAudits: audits.length,
+    totalAudits: auditList.length,
     completedAudits: completedCount,
     approvedBy: row.plan.approvedBy,
     approvedByName: row.approver?.name,
@@ -169,27 +198,46 @@ export async function createAuditPlan(
 ): Promise<AuditPlan> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { auditPlans } = getTables();
 
-  const result = await database
-    .insert(sqliteAuditPlans)
-    .values({
-      planYear: data.planYear,
-      name: data.name,
-      status: 'draft',
-      createdBy: userId,
-      createdAt: new Date().toISOString(),
-    })
-    .returning();
+  const values = {
+    planYear: data.planYear,
+    name: data.name,
+    status: 'draft',
+    createdBy: userId,
+    createdAt: new Date().toISOString(),
+  };
+
+  let planId: number;
+
+  if (isSqlite()) {
+    const result = await database.insert(auditPlans).values(values).returning();
+    planId = result[0].id;
+  } else {
+    await database.insert(auditPlans).values(values);
+    const inserted = await database
+      .select({ id: auditPlans.id })
+      .from(auditPlans)
+      .where(
+        and(
+          eq(auditPlans.planYear, data.planYear),
+          eq(auditPlans.createdBy, userId)
+        )
+      )
+      .orderBy(desc(auditPlans.id))
+      .limit(1);
+    planId = inserted[0].id;
+  }
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'audit_plan',
-    recordId: result[0].id,
-    newValue: result[0],
+    recordId: planId,
+    newValue: values,
   });
 
-  return getAuditPlanById(result[0].id) as Promise<AuditPlan>;
+  return getAuditPlanById(planId) as Promise<AuditPlan>;
 }
 
 /**
@@ -202,6 +250,7 @@ export async function updateAuditPlan(
 ): Promise<AuditPlan | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { auditPlans } = getTables();
 
   const existing = await getAuditPlanById(id);
   if (!existing) return null;
@@ -212,9 +261,9 @@ export async function updateAuditPlan(
 
   if (Object.keys(updateData).length > 0) {
     await database
-      .update(sqliteAuditPlans)
+      .update(auditPlans)
       .set(updateData)
-      .where(eq(sqliteAuditPlans.id, id));
+      .where(eq(auditPlans.id, id));
   }
 
   await createAuditLog({
@@ -238,19 +287,20 @@ export async function approveAuditPlan(
 ): Promise<AuditPlan | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { auditPlans } = getTables();
 
   const existing = await getAuditPlanById(id);
   if (!existing) return null;
   if (existing.status !== 'draft') return null;
 
   await database
-    .update(sqliteAuditPlans)
+    .update(auditPlans)
     .set({
       status: 'approved',
       approvedBy: userId,
       approvedAt: new Date().toISOString(),
     })
-    .where(eq(sqliteAuditPlans.id, id));
+    .where(eq(auditPlans.id, id));
 
   await createAuditLog({
     userId,
@@ -273,15 +323,16 @@ export async function approveAuditPlan(
 export async function generateAuditNumber(): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits } = getTables();
   const now = new Date();
   const yearMonth = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
   const prefix = `AUD-${yearMonth}-`;
 
   const existing = await database
     .select()
-    .from(sqliteAudits)
-    .where(sql`${sqliteAudits.auditNumber} LIKE ${prefix + '%'}`)
-    .orderBy(desc(sqliteAudits.auditNumber))
+    .from(audits)
+    .where(sql`${audits.auditNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(audits.auditNumber))
     .limit(1);
 
   if (existing[0]) {
@@ -300,6 +351,7 @@ export async function getAudits(
 ): Promise<AuditListResponse> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits, users, findings } = getTables();
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
@@ -307,38 +359,38 @@ export async function getAudits(
   const conditions = [];
 
   if (params.planId) {
-    conditions.push(eq(sqliteAudits.planId, params.planId));
+    conditions.push(eq(audits.planId, params.planId));
   }
   if (params.auditType) {
-    conditions.push(eq(sqliteAudits.auditType, params.auditType));
+    conditions.push(eq(audits.auditType, params.auditType));
   }
   if (params.status) {
-    conditions.push(eq(sqliteAudits.status, params.status));
+    conditions.push(eq(audits.status, params.status));
   }
   if (params.fromDate) {
-    conditions.push(gte(sqliteAudits.scheduledDate, params.fromDate));
+    conditions.push(gte(audits.scheduledDate, params.fromDate));
   }
   if (params.toDate) {
-    conditions.push(lte(sqliteAudits.scheduledDate, params.toDate));
+    conditions.push(lte(audits.scheduledDate, params.toDate));
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  let audits = await database
+  let auditList = await database
     .select({
-      audit: sqliteAudits,
-      leadAuditor: sqliteUsers,
+      audit: audits,
+      leadAuditor: users,
     })
-    .from(sqliteAudits)
-    .leftJoin(sqliteUsers, eq(sqliteAudits.leadAuditorId, sqliteUsers.id))
+    .from(audits)
+    .leftJoin(users, eq(audits.leadAuditorId, users.id))
     .where(whereClause)
-    .orderBy(desc(sqliteAudits.scheduledDate))
+    .orderBy(desc(audits.scheduledDate))
     .limit(limit)
     .offset(offset);
 
   // Filter by GMP chapter if specified
   if (params.gmpChapter) {
-    audits = audits.filter((a: any) => {
+    auditList = auditList.filter((a: any) => {
       const chapters = a.audit.gmpChapters ? JSON.parse(a.audit.gmpChapters) : [];
       return chapters.includes(params.gmpChapter);
     });
@@ -346,18 +398,18 @@ export async function getAudits(
 
   const countResult = await database
     .select({ count: sql<number>`count(*)` })
-    .from(sqliteAudits)
+    .from(audits)
     .where(whereClause);
 
   // Enrich with findings counts
   const enrichedAudits = await Promise.all(
-    audits.map(async (row: any) => {
-      const findings = await database
+    auditList.map(async (row: any) => {
+      const findingsList = await database
         .select()
-        .from(sqliteAuditFindings)
-        .where(eq(sqliteAuditFindings.auditId, row.audit.id));
+        .from(findings)
+        .where(eq(findings.auditId, row.audit.id));
 
-      const openCount = findings.filter((f: any) => f.status !== 'closed').length;
+      const openCount = findingsList.filter((f: any) => f.status !== 'closed').length;
 
       return {
         id: row.audit.id,
@@ -372,7 +424,7 @@ export async function getAudits(
         leadAuditorName: row.leadAuditor?.name,
         auditTeam: row.audit.auditTeam ? JSON.parse(row.audit.auditTeam) : [],
         status: row.audit.status as AuditStatus,
-        findingsCount: findings.length,
+        findingsCount: findingsList.length,
         openFindingsCount: openCount,
         summary: row.audit.summary,
         reportPath: row.audit.reportPath,
@@ -394,35 +446,36 @@ export async function getAudits(
 export async function getAuditById(id: number): Promise<AuditDetails | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits, users, findings, capa } = getTables();
 
-  const audits = await database
+  const auditList = await database
     .select({
-      audit: sqliteAudits,
-      leadAuditor: sqliteUsers,
+      audit: audits,
+      leadAuditor: users,
     })
-    .from(sqliteAudits)
-    .leftJoin(sqliteUsers, eq(sqliteAudits.leadAuditorId, sqliteUsers.id))
-    .where(eq(sqliteAudits.id, id))
+    .from(audits)
+    .leftJoin(users, eq(audits.leadAuditorId, users.id))
+    .where(eq(audits.id, id))
     .limit(1);
 
-  if (!audits[0]) return null;
+  if (!auditList[0]) return null;
 
-  const row = audits[0];
+  const row = auditList[0];
 
   // Get findings
   const findingsRows = await database
     .select({
-      finding: sqliteAuditFindings,
-      owner: sqliteUsers,
-      capa: sqliteCapa,
+      finding: findings,
+      owner: users,
+      capa: capa,
     })
-    .from(sqliteAuditFindings)
-    .leftJoin(sqliteUsers, eq(sqliteAuditFindings.areaOwner, sqliteUsers.id))
-    .leftJoin(sqliteCapa, eq(sqliteAuditFindings.capaId, sqliteCapa.id))
-    .where(eq(sqliteAuditFindings.auditId, id))
-    .orderBy(sqliteAuditFindings.findingNumber);
+    .from(findings)
+    .leftJoin(users, eq(findings.areaOwner, users.id))
+    .leftJoin(capa, eq(findings.capaId, capa.id))
+    .where(eq(findings.auditId, id))
+    .orderBy(findings.findingNumber);
 
-  const findings: AuditFinding[] = findingsRows.map((fr: any) => ({
+  const findingsList: AuditFinding[] = findingsRows.map((fr: any) => ({
     id: fr.finding.id,
     auditId: fr.finding.auditId,
     findingNumber: fr.finding.findingNumber || '',
@@ -448,7 +501,7 @@ export async function getAuditById(id: number): Promise<AuditDetails | null> {
     plan = await getAuditPlanById(row.audit.planId);
   }
 
-  const openCount = findings.filter((f: any) => f.status !== 'closed').length;
+  const openCount = findingsList.filter((f: any) => f.status !== 'closed').length;
 
   return {
     id: row.audit.id,
@@ -463,13 +516,13 @@ export async function getAuditById(id: number): Promise<AuditDetails | null> {
     leadAuditorName: row.leadAuditor?.name,
     auditTeam: row.audit.auditTeam ? JSON.parse(row.audit.auditTeam) : [],
     status: row.audit.status as AuditStatus,
-    findingsCount: findings.length,
+    findingsCount: findingsList.length,
     openFindingsCount: openCount,
     summary: row.audit.summary,
     reportPath: row.audit.reportPath,
     closedDate: row.audit.closedDate,
     createdAt: row.audit.createdAt,
-    findings,
+    findings: findingsList,
     plan,
   };
 }
@@ -483,34 +536,47 @@ export async function createAudit(
 ): Promise<Audit> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits } = getTables();
 
   const auditNumber = await generateAuditNumber();
 
-  const result = await database
-    .insert(sqliteAudits)
-    .values({
-      auditNumber,
-      planId: data.planId || null,
-      auditType: data.auditType,
-      scope: data.scope,
-      gmpChapters: JSON.stringify(data.gmpChapters),
-      scheduledDate: data.scheduledDate,
-      leadAuditorId: data.leadAuditorId,
-      auditTeam: data.auditTeam ? JSON.stringify(data.auditTeam) : null,
-      status: 'scheduled',
-      createdAt: new Date().toISOString(),
-    })
-    .returning();
+  const values = {
+    auditNumber,
+    planId: data.planId || null,
+    auditType: data.auditType,
+    scope: data.scope,
+    gmpChapters: JSON.stringify(data.gmpChapters),
+    scheduledDate: data.scheduledDate,
+    leadAuditorId: data.leadAuditorId,
+    auditTeam: data.auditTeam ? JSON.stringify(data.auditTeam) : null,
+    status: 'scheduled',
+    createdAt: new Date().toISOString(),
+  };
+
+  let auditId: number;
+
+  if (isSqlite()) {
+    const result = await database.insert(audits).values(values).returning();
+    auditId = result[0].id;
+  } else {
+    await database.insert(audits).values(values);
+    const inserted = await database
+      .select({ id: audits.id })
+      .from(audits)
+      .where(eq(audits.auditNumber, auditNumber))
+      .limit(1);
+    auditId = inserted[0].id;
+  }
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'audit',
-    recordId: result[0].id,
-    newValue: result[0],
+    recordId: auditId,
+    newValue: values,
   });
 
-  const audit = await getAuditById(result[0].id);
+  const audit = await getAuditById(auditId);
   return audit as Audit;
 }
 
@@ -524,6 +590,7 @@ export async function updateAudit(
 ): Promise<Audit | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits } = getTables();
 
   const existing = await getAuditById(id);
   if (!existing) return null;
@@ -537,9 +604,9 @@ export async function updateAudit(
 
   if (Object.keys(updateData).length > 0) {
     await database
-      .update(sqliteAudits)
+      .update(audits)
       .set(updateData)
-      .where(eq(sqliteAudits.id, id));
+      .where(eq(audits.id, id));
   }
 
   await createAuditLog({
@@ -563,27 +630,28 @@ export async function startAudit(
 ): Promise<Audit | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits, auditPlans } = getTables();
 
   const existing = await getAuditById(id);
   if (!existing) return null;
   if (existing.status !== 'scheduled') return null;
 
   await database
-    .update(sqliteAudits)
+    .update(audits)
     .set({
       status: 'in_progress',
       actualDate: new Date().toISOString().split('T')[0],
     })
-    .where(eq(sqliteAudits.id, id));
+    .where(eq(audits.id, id));
 
   // If part of a plan, update plan status
   if (existing.planId) {
     const plan = await getAuditPlanById(existing.planId);
     if (plan && plan.status === 'approved') {
       await database
-        .update(sqliteAuditPlans)
+        .update(auditPlans)
         .set({ status: 'in_progress' })
-        .where(eq(sqliteAuditPlans.id, existing.planId));
+        .where(eq(auditPlans.id, existing.planId));
     }
   }
 
@@ -608,20 +676,21 @@ export async function completeAudit(
 ): Promise<Audit | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits } = getTables();
 
   const existing = await getAuditById(id);
   if (!existing) return null;
   if (existing.status !== 'in_progress') return null;
 
   await database
-    .update(sqliteAudits)
+    .update(audits)
     .set({
       status: 'completed',
       summary: data.summary || null,
       reportPath: data.reportPath || null,
       closedDate: new Date().toISOString().split('T')[0],
     })
-    .where(eq(sqliteAudits.id, id));
+    .where(eq(audits.id, id));
 
   await createAuditLog({
     userId,
@@ -644,12 +713,13 @@ export async function completeAudit(
 async function generateFindingNumber(auditId: number): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { findings } = getTables();
 
   const existing = await database
     .select()
-    .from(sqliteAuditFindings)
-    .where(eq(sqliteAuditFindings.auditId, auditId))
-    .orderBy(desc(sqliteAuditFindings.findingNumber));
+    .from(findings)
+    .where(eq(findings.auditId, auditId))
+    .orderBy(desc(findings.findingNumber));
 
   if (existing.length > 0 && existing[0].findingNumber) {
     const lastNum = parseInt(existing[0].findingNumber.split('-')[1] || '0', 10);
@@ -667,6 +737,7 @@ export async function getAuditFindings(
 ): Promise<AuditFindingListResponse> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits, users, findings, capa } = getTables();
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
@@ -674,43 +745,43 @@ export async function getAuditFindings(
   const conditions = [];
 
   if (params.auditId) {
-    conditions.push(eq(sqliteAuditFindings.auditId, params.auditId));
+    conditions.push(eq(findings.auditId, params.auditId));
   }
   if (params.category) {
-    conditions.push(eq(sqliteAuditFindings.category, params.category));
+    conditions.push(eq(findings.category, params.category));
   }
   if (params.gmpChapter) {
-    conditions.push(eq(sqliteAuditFindings.gmpChapter, params.gmpChapter));
+    conditions.push(eq(findings.gmpChapter, params.gmpChapter));
   }
   if (params.status) {
-    conditions.push(eq(sqliteAuditFindings.status, params.status));
+    conditions.push(eq(findings.status, params.status));
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const findings = await database
+  const findingsList = await database
     .select({
-      finding: sqliteAuditFindings,
-      audit: sqliteAudits,
-      owner: sqliteUsers,
-      capa: sqliteCapa,
+      finding: findings,
+      audit: audits,
+      owner: users,
+      capa: capa,
     })
-    .from(sqliteAuditFindings)
-    .leftJoin(sqliteAudits, eq(sqliteAuditFindings.auditId, sqliteAudits.id))
-    .leftJoin(sqliteUsers, eq(sqliteAuditFindings.areaOwner, sqliteUsers.id))
-    .leftJoin(sqliteCapa, eq(sqliteAuditFindings.capaId, sqliteCapa.id))
+    .from(findings)
+    .leftJoin(audits, eq(findings.auditId, audits.id))
+    .leftJoin(users, eq(findings.areaOwner, users.id))
+    .leftJoin(capa, eq(findings.capaId, capa.id))
     .where(whereClause)
-    .orderBy(desc(sqliteAuditFindings.createdAt))
+    .orderBy(desc(findings.createdAt))
     .limit(limit)
     .offset(offset);
 
   const countResult = await database
     .select({ count: sql<number>`count(*)` })
-    .from(sqliteAuditFindings)
+    .from(findings)
     .where(whereClause);
 
   return {
-    findings: findings.map((row: any) => ({
+    findings: findingsList.map((row: any) => ({
       id: row.finding.id,
       auditId: row.finding.auditId,
       auditNumber: row.audit?.auditNumber,
@@ -740,24 +811,25 @@ export async function getAuditFindings(
 export async function getAuditFindingById(id: number): Promise<AuditFinding | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits, users, findings, capa } = getTables();
 
-  const findings = await database
+  const findingsList = await database
     .select({
-      finding: sqliteAuditFindings,
-      audit: sqliteAudits,
-      owner: sqliteUsers,
-      capa: sqliteCapa,
+      finding: findings,
+      audit: audits,
+      owner: users,
+      capa: capa,
     })
-    .from(sqliteAuditFindings)
-    .leftJoin(sqliteAudits, eq(sqliteAuditFindings.auditId, sqliteAudits.id))
-    .leftJoin(sqliteUsers, eq(sqliteAuditFindings.areaOwner, sqliteUsers.id))
-    .leftJoin(sqliteCapa, eq(sqliteAuditFindings.capaId, sqliteCapa.id))
-    .where(eq(sqliteAuditFindings.id, id))
+    .from(findings)
+    .leftJoin(audits, eq(findings.auditId, audits.id))
+    .leftJoin(users, eq(findings.areaOwner, users.id))
+    .leftJoin(capa, eq(findings.capaId, capa.id))
+    .where(eq(findings.id, id))
     .limit(1);
 
-  if (!findings[0]) return null;
+  if (!findingsList[0]) return null;
 
-  const row = findings[0];
+  const row = findingsList[0];
   return {
     id: row.finding.id,
     auditId: row.finding.auditId,
@@ -789,35 +861,53 @@ export async function createAuditFinding(
 ): Promise<AuditFinding> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { findings } = getTables();
 
   const findingNumber = await generateFindingNumber(data.auditId);
 
-  const result = await database
-    .insert(sqliteAuditFindings)
-    .values({
-      auditId: data.auditId,
-      findingNumber,
-      category: data.category,
-      gmpChapter: data.gmpChapter,
-      gmpRequirement: data.gmpRequirement || null,
-      description: data.description,
-      evidence: data.evidence || null,
-      areaOwner: data.areaOwner || null,
-      capaRequired: data.capaRequired ?? false,
-      status: 'open',
-      createdAt: new Date().toISOString(),
-    })
-    .returning();
+  const values = {
+    auditId: data.auditId,
+    findingNumber,
+    category: data.category,
+    gmpChapter: data.gmpChapter,
+    gmpRequirement: data.gmpRequirement || null,
+    description: data.description,
+    evidence: data.evidence || null,
+    areaOwner: data.areaOwner || null,
+    capaRequired: data.capaRequired ?? false,
+    status: 'open',
+    createdAt: new Date().toISOString(),
+  };
+
+  let findingId: number;
+
+  if (isSqlite()) {
+    const result = await database.insert(findings).values(values).returning();
+    findingId = result[0].id;
+  } else {
+    await database.insert(findings).values(values);
+    const inserted = await database
+      .select({ id: findings.id })
+      .from(findings)
+      .where(
+        and(
+          eq(findings.auditId, data.auditId),
+          eq(findings.findingNumber, findingNumber)
+        )
+      )
+      .limit(1);
+    findingId = inserted[0].id;
+  }
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'audit_finding',
-    recordId: result[0].id,
-    newValue: result[0],
+    recordId: findingId,
+    newValue: values,
   });
 
-  return getAuditFindingById(result[0].id) as Promise<AuditFinding>;
+  return getAuditFindingById(findingId) as Promise<AuditFinding>;
 }
 
 /**
@@ -830,6 +920,7 @@ export async function updateAuditFinding(
 ): Promise<AuditFinding | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { findings } = getTables();
 
   const existing = await getAuditFindingById(id);
   if (!existing) return null;
@@ -843,9 +934,9 @@ export async function updateAuditFinding(
 
   if (Object.keys(updateData).length > 0) {
     await database
-      .update(sqliteAuditFindings)
+      .update(findings)
       .set(updateData)
-      .where(eq(sqliteAuditFindings.id, id));
+      .where(eq(findings.id, id));
   }
 
   await createAuditLog({
@@ -870,17 +961,18 @@ export async function assignCapaToFinding(
 ): Promise<AuditFinding | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { findings } = getTables();
 
   const existing = await getAuditFindingById(findingId);
   if (!existing) return null;
 
   await database
-    .update(sqliteAuditFindings)
+    .update(findings)
     .set({
       capaId,
       status: 'capa_assigned',
     })
-    .where(eq(sqliteAuditFindings.id, findingId));
+    .where(eq(findings.id, findingId));
 
   await createAuditLog({
     userId,
@@ -903,6 +995,7 @@ export async function closeAuditFinding(
 ): Promise<AuditFinding | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { findings } = getTables();
 
   const existing = await getAuditFindingById(id);
   if (!existing) return null;
@@ -913,13 +1006,13 @@ export async function closeAuditFinding(
   }
 
   await database
-    .update(sqliteAuditFindings)
+    .update(findings)
     .set({
       status: 'closed',
       closedDate: new Date().toISOString().split('T')[0],
       closedBy: userId,
     })
-    .where(eq(sqliteAuditFindings.id, id));
+    .where(eq(findings.id, id));
 
   await createAuditLog({
     userId,
@@ -942,47 +1035,48 @@ export async function closeAuditFinding(
 export async function getAuditStatistics(year: number): Promise<AuditStatistics> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits, findings } = getTables();
 
   const startOfYear = `${year}-01-01`;
   const endOfYear = `${year}-12-31`;
 
   // Get audits in the year
-  const audits = await database
+  const auditList = await database
     .select()
-    .from(sqliteAudits)
+    .from(audits)
     .where(
       and(
-        gte(sqliteAudits.scheduledDate, startOfYear),
-        lte(sqliteAudits.scheduledDate, endOfYear)
+        gte(audits.scheduledDate, startOfYear),
+        lte(audits.scheduledDate, endOfYear)
       )
     );
 
-  const completedAudits = audits.filter((a: any) => a.status === 'completed');
+  const completedAudits = auditList.filter((a: any) => a.status === 'completed');
 
   // Get all findings from these audits
-  const auditIds = audits.map((a: any) => a.id);
-  let findings: (typeof sqliteAuditFindings.$inferSelect)[] = [];
+  const auditIds = auditList.map((a: any) => a.id);
+  let findingsList: any[] = [];
   if (auditIds.length > 0) {
-    findings = await database
+    findingsList = await database
       .select()
-      .from(sqliteAuditFindings)
-      .where(sql`${sqliteAuditFindings.auditId} IN (${sql.join(auditIds.map((id: any) => sql`${id}`), sql`, `)})`);
+      .from(findings)
+      .where(sql`${findings.auditId} IN (${sql.join(auditIds.map((id: any) => sql`${id}`), sql`, `)})`);
   }
 
   const findingsByCategory = {
-    observation: findings.filter((f: any) => f.category === 'observation').length,
-    minor: findings.filter((f: any) => f.category === 'minor').length,
-    major: findings.filter((f: any) => f.category === 'major').length,
-    critical: findings.filter((f: any) => f.category === 'critical').length,
+    observation: findingsList.filter((f: any) => f.category === 'observation').length,
+    minor: findingsList.filter((f: any) => f.category === 'minor').length,
+    major: findingsList.filter((f: any) => f.category === 'major').length,
+    critical: findingsList.filter((f: any) => f.category === 'critical').length,
   };
 
-  const openFindings = findings.filter((f: any) => f.status !== 'closed').length;
+  const openFindings = findingsList.filter((f: any) => f.status !== 'closed').length;
 
   // Calculate average closure time
-  const closedFindings = findings.filter((f: any) => f.status === 'closed' && f.closedDate);
+  const closedFindings = findingsList.filter((f: any) => f.status === 'closed' && f.closedDate);
   let avgCapaClosureTime = 0;
   if (closedFindings.length > 0) {
-    const totalDays = closedFindings.reduce((sum, f) => {
+    const totalDays = closedFindings.reduce((sum: number, f: any) => {
       const created = new Date(f.createdAt);
       const closed = new Date(f.closedDate!);
       return sum + Math.floor((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
@@ -992,10 +1086,10 @@ export async function getAuditStatistics(year: number): Promise<AuditStatistics>
 
   return {
     year,
-    totalPlanned: audits.length,
+    totalPlanned: auditList.length,
     totalCompleted: completedAudits.length,
-    completionRate: audits.length > 0 ? (completedAudits.length / audits.length) * 100 : 0,
-    totalFindings: findings.length,
+    completionRate: auditList.length > 0 ? (completedAudits.length / auditList.length) * 100 : 0,
+    totalFindings: findingsList.length,
     findingsByCategory,
     openFindings,
     avgCapaClosureTime,
@@ -1008,29 +1102,30 @@ export async function getAuditStatistics(year: number): Promise<AuditStatistics>
 export async function getChapterCoverage(year: number): Promise<ChapterCoverage> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
+  const { audits, findings } = getTables();
 
   const startOfYear = `${year}-01-01`;
   const endOfYear = `${year}-12-31`;
 
   // Get audits in the year
-  const audits = await database
+  const auditList = await database
     .select()
-    .from(sqliteAudits)
+    .from(audits)
     .where(
       and(
-        gte(sqliteAudits.scheduledDate, startOfYear),
-        lte(sqliteAudits.scheduledDate, endOfYear)
+        gte(audits.scheduledDate, startOfYear),
+        lte(audits.scheduledDate, endOfYear)
       )
     );
 
   // Get all findings
-  const auditIds = audits.map((a: any) => a.id);
-  let findings: (typeof sqliteAuditFindings.$inferSelect)[] = [];
+  const auditIds = auditList.map((a: any) => a.id);
+  let findingsList: any[] = [];
   if (auditIds.length > 0) {
-    findings = await database
+    findingsList = await database
       .select()
-      .from(sqliteAuditFindings)
-      .where(sql`${sqliteAuditFindings.auditId} IN (${sql.join(auditIds.map((id: any) => sql`${id}`), sql`, `)})`);
+      .from(findings)
+      .where(sql`${findings.auditId} IN (${sql.join(auditIds.map((id: any) => sql`${id}`), sql`, `)})`);
   }
 
   const chapters = [];
@@ -1049,7 +1144,7 @@ export async function getChapterCoverage(year: number): Promise<ChapterCoverage>
 
   for (let chapter = 1; chapter <= 10; chapter++) {
     // Audits covering this chapter
-    const chapterAudits = audits.filter((a: any) => {
+    const chapterAudits = auditList.filter((a: any) => {
       const chs = a.gmpChapters ? JSON.parse(a.gmpChapters) : [];
       return chs.includes(chapter);
     });
@@ -1057,7 +1152,7 @@ export async function getChapterCoverage(year: number): Promise<ChapterCoverage>
     const completedChapterAudits = chapterAudits.filter((a: any) => a.status === 'completed');
 
     // Findings for this chapter
-    const chapterFindings = findings.filter((f: any) => f.gmpChapter === chapter);
+    const chapterFindings = findingsList.filter((f: any) => f.gmpChapter === chapter);
 
     // Last audit date for this chapter
     const lastAudit = completedChapterAudits

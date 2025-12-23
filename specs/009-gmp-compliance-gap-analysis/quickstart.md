@@ -604,3 +604,403 @@ After implementing each module:
 3. Run `pnpm test` - Run unit tests
 4. Commit changes - `git add . && git commit -m "feat(module): description"`
 5. Update this quickstart with any new patterns discovered
+
+---
+
+## Part 2: Integration Testing with Real SQLite (2025-12-23)
+
+### Overview
+
+All service modules MUST have comprehensive integration tests using real SQLite database. The existing CAPA service tests (`tests/integration/services/capa-service-real.test.ts`) serve as the reference implementation.
+
+### Test File Structure
+
+```
+tests/
+├── helpers/                    # Shared test utilities
+│   ├── test-db.ts              # Database setup helper
+│   ├── schema-sync.ts          # Drizzle schema → SQLite DDL
+│   └── seed-data.ts            # Common test data seeding
+├── unit/                       # Mocked unit tests (existing)
+│   └── services/
+└── integration/
+    ├── services/               # Real SQLite integration tests
+    │   ├── capa-service-real.test.ts           # ✅ Reference implementation
+    │   ├── complaint-service-real.test.ts      # To implement
+    │   ├── document-service-real.test.ts       # To implement
+    │   └── ...
+    └── api/                    # API integration tests
+```
+
+### Standard Integration Test Template
+
+```typescript
+/**
+ * [ModuleName] Service Real Integration Tests
+ * Feature: 009-gmp-compliance-gap-analysis
+ *
+ * Tests call actual service functions with real SQLite database
+ * to verify complete module functionality with real-world scenarios.
+ */
+
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { getTableName, getTableColumns } from 'drizzle-orm';
+import { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import * as schema from '@/lib/db/schema';
+
+// Test database instance
+let sqlite: Database.Database;
+let testDb: ReturnType<typeof drizzle>;
+
+// Mock database module BEFORE service imports
+vi.mock('@/lib/db', async () => {
+  return {
+    isSqlite: () => true,
+    getDb: async () => testDb,
+    getSqliteDb: () => testDb,
+    markSchemaSynced: () => {},
+    schema,
+  };
+});
+
+// Mock audit to avoid side effects
+vi.mock('@/lib/audit', () => ({
+  createAuditLog: vi.fn(() => Promise.resolve()),
+}));
+
+// Import service AFTER mocking
+import {
+  listRecords,
+  getRecordById,
+  createRecord,
+  updateRecord,
+  deleteRecord,
+} from '@/lib/services/[module]-service';
+
+// Schema sync helper
+function generateCreateTableSql(table: SQLiteTable): string {
+  const tableName = getTableName(table);
+  const columns = getTableColumns(table);
+  const columnDefs: string[] = [];
+
+  for (const [key, column] of Object.entries(columns)) {
+    const col = column as any;
+    let def = `"${col.name}" `;
+
+    switch (col.dataType) {
+      case 'string': def += 'TEXT'; break;
+      case 'number': def += 'INTEGER'; break;
+      case 'boolean': def += 'INTEGER'; break;
+      default: def += 'TEXT';
+    }
+
+    if (col.primary) {
+      def += ' PRIMARY KEY';
+      if (col.autoIncrement) def += ' AUTOINCREMENT';
+    }
+    if (col.notNull && !col.primary) def += ' NOT NULL';
+    if (col.hasDefault && col.default !== undefined) {
+      const defaultVal = typeof col.default === 'string' ? `'${col.default}'` : col.default;
+      def += ` DEFAULT ${defaultVal}`;
+    }
+    if (col.isUnique && !col.primary) def += ' UNIQUE';
+
+    columnDefs.push(def);
+  }
+
+  return `CREATE TABLE IF NOT EXISTS "${tableName}" (\n  ${columnDefs.join(',\n  ')}\n)`;
+}
+
+function syncSchemaFromDrizzle() {
+  const tablesToCreate = [
+    schema.sqliteUsers,
+    // Add module-specific tables here
+    schema.sqlite[ModuleName],
+    schema.sqlite[ModuleName]Actions,
+  ];
+
+  for (const table of tablesToCreate) {
+    try {
+      sqlite.exec(generateCreateTableSql(table));
+    } catch (err) {
+      console.log(`Table creation note: ${err}`);
+    }
+  }
+}
+
+describe('[ModuleName] Service Real Integration Tests', () => {
+  beforeAll(async () => {
+    sqlite = new Database(':memory:');
+    sqlite.pragma('journal_mode = WAL');
+    testDb = drizzle(sqlite, { schema });
+    syncSchemaFromDrizzle();
+    seedTestData();
+  });
+
+  afterAll(() => {
+    sqlite.close();
+  });
+
+  beforeEach(() => {
+    cleanModuleTables();
+    seedTestData();
+  });
+
+  function cleanModuleTables() {
+    // Clean in FK dependency order (children first)
+    sqlite.exec('DELETE FROM [module]_actions');
+    sqlite.exec('DELETE FROM [module]');
+    sqlite.exec('DELETE FROM users');
+  }
+
+  function seedTestData() {
+    sqlite.exec(`
+      INSERT OR IGNORE INTO users (id, name, email, password, role, is_active)
+      VALUES
+        (1, 'QA Manager', 'qa@test.com', 'hash123', 'qa_manager', 1),
+        (2, 'Production Supervisor', 'prod@test.com', 'hash123', 'supervisor', 1),
+        (3, 'QC Analyst', 'qc@test.com', 'hash123', 'analyst', 1)
+    `);
+
+    // Add module-specific seed data
+  }
+
+  // ============================================
+  // Real-World Scenario Tests
+  // ============================================
+
+  describe('Scenario 1: Complete Workflow', () => {
+    it('should handle full lifecycle from creation to closure', async () => {
+      // Step 1: Create record
+      const record = await createRecord({
+        title: 'Test Record',
+        // ... required fields
+      }, 1);
+
+      expect(record.id).toBeDefined();
+      expect(record.status).toBe('open');
+
+      // Step 2: Perform workflow operations
+      // ...
+
+      // Step 3: Complete/Close
+      // ...
+    });
+  });
+
+  // ============================================
+  // Service Function Tests
+  // ============================================
+
+  describe('listRecords()', () => {
+    beforeEach(async () => {
+      // Create test data
+      await createRecord({ title: 'Record 1', /* ... */ }, 1);
+      await createRecord({ title: 'Record 2', /* ... */ }, 1);
+    });
+
+    it('should list all records with pagination', async () => {
+      const result = await listRecords({ page: 1, limit: 10 });
+      expect(result.records.length).toBeGreaterThanOrEqual(2);
+      expect(result.total).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should filter by status', async () => {
+      const result = await listRecords({ status: 'open' });
+      expect(result.records.every(r => r.status === 'open')).toBe(true);
+    });
+  });
+
+  describe('createRecord()', () => {
+    it('should create record with valid data', async () => {
+      const record = await createRecord({
+        title: 'New Record',
+        // ... required fields
+      }, 1);
+
+      expect(record.id).toBeDefined();
+      expect(record.title).toBe('New Record');
+    });
+
+    it('should reject invalid input', async () => {
+      await expect(createRecord({
+        // Missing required fields
+      }, 1)).rejects.toThrow();
+    });
+  });
+
+  // ============================================
+  // Edge Cases
+  // ============================================
+
+  describe('Edge Cases', () => {
+    it('should handle empty lists', async () => {
+      const result = await listRecords({});
+      expect(result.records).toBeDefined();
+    });
+
+    it('should return null for non-existent record', async () => {
+      const record = await getRecordById(99999);
+      expect(record).toBeNull();
+    });
+  });
+});
+```
+
+### Real-World Scenario Examples by Module
+
+#### Complaints Module
+```typescript
+describe('Scenario 1: Customer Complaint Lifecycle', () => {
+  it('should complete complaint from receipt to closure', async () => {
+    // 1. Receive complaint
+    const complaint = await createComplaint({
+      source: 'customer',
+      customerName: 'Test Customer',
+      productId: 1,
+      category: 'quality',
+      severity: 'major',
+      description: 'Product discoloration observed',
+    }, 1);
+
+    // 2. Assign for investigation
+    await assignInvestigator(complaint.id, 2, 1);
+
+    // 3. Record investigation findings
+    await recordInvestigation(complaint.id, {
+      batchRecordReview: 'BMR reviewed - no deviations found',
+      retainSampleTest: 'Retention sample tested - meets specs',
+      rootCause: 'Storage condition at customer site',
+      conclusion: 'Complaint not quality-related',
+    }, 2);
+
+    // 4. Close complaint
+    const closed = await closeComplaint(complaint.id, 'Closed - customer education provided', 1);
+    expect(closed.status).toBe('closed');
+  });
+});
+```
+
+#### Documents Module
+```typescript
+describe('Scenario 1: Document Approval Workflow', () => {
+  it('should complete document from draft to active', async () => {
+    // 1. Create draft document
+    const doc = await createDocument({
+      title: 'SOP for CAPA Process',
+      typeId: 1, // SOP type
+      departmentId: 1,
+    }, 1);
+
+    // 2. Create first version
+    const version = await createVersion(doc.id, {
+      versionNumber: '1.0',
+      content: 'Document content...',
+      changeDescription: 'Initial version',
+    }, 1);
+
+    // 3. Submit for approval
+    await submitForApproval(version.id, 1);
+
+    // 4. Approve by reviewer
+    await approveVersion(version.id, 2, 'Reviewed and approved');
+
+    // 5. Approve by approver
+    await approveVersion(version.id, 3, 'Final approval');
+
+    // 6. Publish document
+    const published = await publishDocument(doc.id, 1);
+    expect(published.status).toBe('active');
+  });
+});
+```
+
+#### Internal Audit Module
+```typescript
+describe('Scenario 1: Complete Audit Cycle', () => {
+  it('should complete audit from schedule to closure', async () => {
+    // 1. Create audit
+    const audit = await createAudit({
+      auditType: 'internal',
+      scope: 'QMS processes',
+      gmpChapters: [1, 5, 10],
+      scheduledDate: '2025-02-15',
+      leadAuditorId: 1,
+    }, 1);
+
+    // 2. Conduct audit
+    await startAudit(audit.id, 1);
+
+    // 3. Record finding
+    const finding = await recordFinding(audit.id, {
+      category: 'minor',
+      gmpChapter: 5,
+      description: 'Document not updated within review period',
+      evidence: 'SOP-QC-003 last reviewed 2023-01-15',
+      areaOwner: 2,
+      capaRequired: true,
+    }, 1);
+
+    // 4. Create CAPA from finding
+    await createCapaFromFinding(finding.id, {
+      title: 'CAPA for document review gap',
+      priority: 'medium',
+      ownerId: 2,
+      dueDate: '2025-03-15',
+    }, 1);
+
+    // 5. Complete audit
+    const completed = await completeAudit(audit.id, 'Audit completed with 1 minor finding', 1);
+    expect(completed.status).toBe('completed');
+  });
+});
+```
+
+### Running Integration Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run only integration tests
+pnpm test tests/integration/
+
+# Run specific service integration test
+pnpm test tests/integration/services/capa-service-real.test.ts
+
+# Run with coverage
+pnpm test:coverage
+
+# Watch mode for development
+pnpm test --watch tests/integration/services/
+```
+
+### Test Coverage Targets
+
+| Module | Minimum Scenarios | Minimum Functions | Target Coverage |
+|--------|-------------------|-------------------|-----------------|
+| CAPA | 5 | 15 | 85% |
+| Complaints | 3 | 10 | 80% |
+| Documents | 3 | 12 | 80% |
+| Internal Audit | 3 | 10 | 80% |
+| Recalls | 3 | 10 | 80% |
+| Sanitation | 2 | 8 | 75% |
+| Stability | 3 | 10 | 80% |
+| Inventory | 3 | 12 | 80% |
+| Production | 3 | 10 | 80% |
+| Quality | 3 | 10 | 80% |
+
+### Verification Checklist
+
+Before marking integration tests complete for a module:
+
+- [ ] Tests use real SQLite database (not mocks)
+- [ ] Schema sync creates all required tables from Drizzle schema
+- [ ] Each test cleans and seeds data in beforeEach
+- [ ] At least 3 real-world scenario tests
+- [ ] All exported service functions tested
+- [ ] Edge cases covered (empty lists, not found, validation errors)
+- [ ] Tests pass with `pnpm test:run`
+- [ ] No console errors or warnings

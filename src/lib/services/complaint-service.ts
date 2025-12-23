@@ -7,7 +7,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
-import { eq, and, desc, asc, gte, lte, like, or, sql, count } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, like, count } from 'drizzle-orm';
 import {
   sqliteComplaints,
   sqliteComplaintInvestigations,
@@ -15,8 +15,36 @@ import {
   sqliteInventoryLots,
   sqliteUsers,
   sqliteCapa,
+  mysqlComplaints,
+  mysqlComplaintInvestigations,
+  mysqlItems,
+  mysqlInventoryLots,
+  mysqlUsers,
+  mysqlCapa,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
+
+// Get table references based on database type
+function getTables() {
+  if (isSqlite()) {
+    return {
+      complaints: sqliteComplaints,
+      investigations: sqliteComplaintInvestigations,
+      items: sqliteItems,
+      lots: sqliteInventoryLots,
+      users: sqliteUsers,
+      capa: sqliteCapa,
+    };
+  }
+  return {
+    complaints: mysqlComplaints,
+    investigations: mysqlComplaintInvestigations,
+    items: mysqlItems,
+    lots: mysqlInventoryLots,
+    users: mysqlUsers,
+    capa: mysqlCapa,
+  };
+}
 import type {
   ComplaintSource,
   ComplaintCategory,
@@ -87,30 +115,28 @@ interface DbInvestigationRow {
  * Generate next complaint number (COMP-YYMM-####)
  */
 export async function generateComplaintNumber(): Promise<string> {
+  const { complaints } = getTables();
   const now = new Date();
   const year = now.getFullYear().toString().slice(-2);
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const prefix = `COMP-${year}${month}-`;
 
-  if (isSqlite()) {
-    const result = await ((await getDb()) as any)
-      .select({ complaintNumber: sqliteComplaints.complaintNumber })
-      .from(sqliteComplaints)
-      .where(like(sqliteComplaints.complaintNumber, `${prefix}%`))
-      .orderBy(desc(sqliteComplaints.complaintNumber))
-      .limit(1);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await ((await getDb()) as any)
+    .select({ complaintNumber: complaints.complaintNumber })
+    .from(complaints)
+    .where(like(complaints.complaintNumber, `${prefix}%`))
+    .orderBy(desc(complaints.complaintNumber))
+    .limit(1);
 
-    let nextNumber = 1;
-    if (result.length > 0) {
-      const lastNumber = result[0].complaintNumber;
-      const numPart = parseInt(lastNumber.split('-')[2], 10);
-      nextNumber = numPart + 1;
-    }
-
-    return `${prefix}${nextNumber.toString().padStart(4, '0')}`;
+  let nextNumber = 1;
+  if (result.length > 0) {
+    const lastNumber = result[0].complaintNumber;
+    const numPart = parseInt(lastNumber.split('-')[2], 10);
+    nextNumber = numPart + 1;
   }
 
-  throw new Error('MySQL not implemented for Complaints');
+  return `${prefix}${nextNumber.toString().padStart(4, '0')}`;
 }
 
 // ============================================
@@ -125,131 +151,131 @@ export async function listComplaints(
 ): Promise<ComplaintListResponse> {
   const { status, category, severity, productId, fromDate, toDate, page = 1, limit = 20 } = params;
   const offset = (page - 1) * limit;
+  const { complaints: complaintsTable, items, lots } = getTables();
+  const db = await getDb();
 
-  if (isSqlite()) {
-    // Build query conditions
-    const conditions = [];
-    if (status) conditions.push(eq(sqliteComplaints.status, status));
-    if (category) conditions.push(eq(sqliteComplaints.category, category));
-    if (severity) conditions.push(eq(sqliteComplaints.severity, severity));
-    if (productId) conditions.push(eq(sqliteComplaints.productId, productId));
-    if (fromDate) conditions.push(gte(sqliteComplaints.receivedDate, fromDate));
-    if (toDate) conditions.push(lte(sqliteComplaints.receivedDate, toDate));
+  // Build query conditions
+  const conditions = [];
+  if (status) conditions.push(eq(complaintsTable.status, status));
+  if (category) conditions.push(eq(complaintsTable.category, category));
+  if (severity) conditions.push(eq(complaintsTable.severity, severity));
+  if (productId) conditions.push(eq(complaintsTable.productId, productId));
+  if (fromDate) conditions.push(gte(complaintsTable.receivedDate, fromDate));
+  if (toDate) conditions.push(lte(complaintsTable.receivedDate, toDate));
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Get total count
-    const countResult = await ((await getDb()) as any)
-      .select({ count: count() })
-      .from(sqliteComplaints)
-      .where(whereClause);
-    const total = countResult[0]?.count || 0;
+  // Get total count
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const countResult = await (db as any)
+    .select({ count: count() })
+    .from(complaintsTable)
+    .where(whereClause);
+  const total = countResult[0]?.count || 0;
 
-    // Get complaints with related data
-    const complaints = await ((await getDb()) as any)
-      .select({
-        id: sqliteComplaints.id,
-        complaintNumber: sqliteComplaints.complaintNumber,
-        receivedDate: sqliteComplaints.receivedDate,
-        source: sqliteComplaints.source,
-        customerName: sqliteComplaints.customerName,
-        customerContact: sqliteComplaints.customerContact,
-        productId: sqliteComplaints.productId,
-        productName: sqliteItems.nameTh,
-        lotId: sqliteComplaints.lotId,
-        lotNumber: sqliteInventoryLots.lotNumber,
-        category: sqliteComplaints.category,
-        severity: sqliteComplaints.severity,
-        description: sqliteComplaints.description,
-        status: sqliteComplaints.status,
-        regulatoryReportRequired: sqliteComplaints.regulatoryReportRequired,
-        regulatoryReportDate: sqliteComplaints.regulatoryReportDate,
-        capaId: sqliteComplaints.capaId,
-        recallRequired: sqliteComplaints.recallRequired,
-        recallId: sqliteComplaints.recallId,
-        closedDate: sqliteComplaints.closedDate,
-        closedBy: sqliteComplaints.closedBy,
-        createdBy: sqliteComplaints.createdBy,
-        createdAt: sqliteComplaints.createdAt,
-        updatedAt: sqliteComplaints.updatedAt,
-      })
-      .from(sqliteComplaints)
-      .leftJoin(sqliteItems, eq(sqliteComplaints.productId, sqliteItems.id))
-      .leftJoin(sqliteInventoryLots, eq(sqliteComplaints.lotId, sqliteInventoryLots.id))
-      .where(whereClause)
-      .orderBy(desc(sqliteComplaints.createdAt))
-      .limit(limit)
-      .offset(offset);
+  // Get complaints with related data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const complaints = await (db as any)
+    .select({
+      id: complaintsTable.id,
+      complaintNumber: complaintsTable.complaintNumber,
+      receivedDate: complaintsTable.receivedDate,
+      source: complaintsTable.source,
+      customerName: complaintsTable.customerName,
+      customerContact: complaintsTable.customerContact,
+      productId: complaintsTable.productId,
+      productName: items.nameTh,
+      lotId: complaintsTable.lotId,
+      lotNumber: lots.lotNumber,
+      category: complaintsTable.category,
+      severity: complaintsTable.severity,
+      description: complaintsTable.description,
+      status: complaintsTable.status,
+      regulatoryReportRequired: complaintsTable.regulatoryReportRequired,
+      regulatoryReportDate: complaintsTable.regulatoryReportDate,
+      capaId: complaintsTable.capaId,
+      recallRequired: complaintsTable.recallRequired,
+      recallId: complaintsTable.recallId,
+      closedDate: complaintsTable.closedDate,
+      closedBy: complaintsTable.closedBy,
+      createdBy: complaintsTable.createdBy,
+      createdAt: complaintsTable.createdAt,
+      updatedAt: complaintsTable.updatedAt,
+    })
+    .from(complaintsTable)
+    .leftJoin(items, eq(complaintsTable.productId, items.id))
+    .leftJoin(lots, eq(complaintsTable.lotId, lots.id))
+    .where(whereClause)
+    .orderBy(desc(complaintsTable.createdAt))
+    .limit(limit)
+    .offset(offset);
 
-    const complaintList: Complaint[] = complaints.map((c: DbComplaintRow) => ({
-      ...c,
-      source: c.source as ComplaintSource,
-      category: c.category as ComplaintCategory,
-      severity: c.severity as ComplaintSeverity,
-      status: c.status as ComplaintStatus,
-      regulatoryReportRequired: c.regulatoryReportRequired || false,
-      recallRequired: c.recallRequired || false,
-    }));
+  const complaintList: Complaint[] = complaints.map((c: DbComplaintRow) => ({
+    ...c,
+    source: c.source as ComplaintSource,
+    category: c.category as ComplaintCategory,
+    severity: c.severity as ComplaintSeverity,
+    status: c.status as ComplaintStatus,
+    regulatoryReportRequired: c.regulatoryReportRequired || false,
+    recallRequired: c.recallRequired || false,
+  }));
 
-    return { complaints: complaintList, total };
-  }
-
-  throw new Error('MySQL not implemented for Complaints');
+  return { complaints: complaintList, total };
 }
 
 /**
  * Get complaint by ID with basic info
  */
 export async function getComplaintById(id: number): Promise<Complaint | null> {
-  if (isSqlite()) {
-    const result = await ((await getDb()) as any)
-      .select({
-        id: sqliteComplaints.id,
-        complaintNumber: sqliteComplaints.complaintNumber,
-        receivedDate: sqliteComplaints.receivedDate,
-        source: sqliteComplaints.source,
-        customerName: sqliteComplaints.customerName,
-        customerContact: sqliteComplaints.customerContact,
-        productId: sqliteComplaints.productId,
-        productName: sqliteItems.nameTh,
-        lotId: sqliteComplaints.lotId,
-        lotNumber: sqliteInventoryLots.lotNumber,
-        category: sqliteComplaints.category,
-        severity: sqliteComplaints.severity,
-        description: sqliteComplaints.description,
-        status: sqliteComplaints.status,
-        regulatoryReportRequired: sqliteComplaints.regulatoryReportRequired,
-        regulatoryReportDate: sqliteComplaints.regulatoryReportDate,
-        capaId: sqliteComplaints.capaId,
-        recallRequired: sqliteComplaints.recallRequired,
-        recallId: sqliteComplaints.recallId,
-        closedDate: sqliteComplaints.closedDate,
-        closedBy: sqliteComplaints.closedBy,
-        createdBy: sqliteComplaints.createdBy,
-        createdAt: sqliteComplaints.createdAt,
-        updatedAt: sqliteComplaints.updatedAt,
-      })
-      .from(sqliteComplaints)
-      .leftJoin(sqliteItems, eq(sqliteComplaints.productId, sqliteItems.id))
-      .leftJoin(sqliteInventoryLots, eq(sqliteComplaints.lotId, sqliteInventoryLots.id))
-      .where(eq(sqliteComplaints.id, id))
-      .limit(1);
+  const { complaints: complaintsTable, items, lots } = getTables();
+  const db = await getDb();
 
-    if (result.length === 0) return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (db as any)
+    .select({
+      id: complaintsTable.id,
+      complaintNumber: complaintsTable.complaintNumber,
+      receivedDate: complaintsTable.receivedDate,
+      source: complaintsTable.source,
+      customerName: complaintsTable.customerName,
+      customerContact: complaintsTable.customerContact,
+      productId: complaintsTable.productId,
+      productName: items.nameTh,
+      lotId: complaintsTable.lotId,
+      lotNumber: lots.lotNumber,
+      category: complaintsTable.category,
+      severity: complaintsTable.severity,
+      description: complaintsTable.description,
+      status: complaintsTable.status,
+      regulatoryReportRequired: complaintsTable.regulatoryReportRequired,
+      regulatoryReportDate: complaintsTable.regulatoryReportDate,
+      capaId: complaintsTable.capaId,
+      recallRequired: complaintsTable.recallRequired,
+      recallId: complaintsTable.recallId,
+      closedDate: complaintsTable.closedDate,
+      closedBy: complaintsTable.closedBy,
+      createdBy: complaintsTable.createdBy,
+      createdAt: complaintsTable.createdAt,
+      updatedAt: complaintsTable.updatedAt,
+    })
+    .from(complaintsTable)
+    .leftJoin(items, eq(complaintsTable.productId, items.id))
+    .leftJoin(lots, eq(complaintsTable.lotId, lots.id))
+    .where(eq(complaintsTable.id, id))
+    .limit(1);
 
-    const c = result[0] as DbComplaintRow;
-    return {
-      ...c,
-      source: c.source as ComplaintSource,
-      category: c.category as ComplaintCategory,
-      severity: c.severity as ComplaintSeverity,
-      status: c.status as ComplaintStatus,
-      regulatoryReportRequired: c.regulatoryReportRequired || false,
-      recallRequired: c.recallRequired || false,
-    } as Complaint;
-  }
+  if (result.length === 0) return null;
 
-  throw new Error('MySQL not implemented for Complaints');
+  const c = result[0] as DbComplaintRow;
+  return {
+    ...c,
+    source: c.source as ComplaintSource,
+    category: c.category as ComplaintCategory,
+    severity: c.severity as ComplaintSeverity,
+    status: c.status as ComplaintStatus,
+    regulatoryReportRequired: c.regulatoryReportRequired || false,
+    recallRequired: c.recallRequired || false,
+  } as Complaint;
 }
 
 /**
@@ -259,66 +285,67 @@ export async function getComplaintDetails(id: number): Promise<ComplaintDetails 
   const complaint = await getComplaintById(id);
   if (!complaint) return null;
 
-  if (isSqlite()) {
-    // Get investigation
-    const investigationResult = await ((await getDb()) as any)
-      .select({
-        id: sqliteComplaintInvestigations.id,
-        complaintId: sqliteComplaintInvestigations.complaintId,
-        investigatorId: sqliteComplaintInvestigations.investigatorId,
-        investigatorName: sqliteUsers.name,
-        startDate: sqliteComplaintInvestigations.startDate,
-        completionDate: sqliteComplaintInvestigations.completionDate,
-        batchRecordReview: sqliteComplaintInvestigations.batchRecordReview,
-        retainSampleTest: sqliteComplaintInvestigations.retainSampleTest,
-        rootCause: sqliteComplaintInvestigations.rootCause,
-        conclusion: sqliteComplaintInvestigations.conclusion,
-        recommendation: sqliteComplaintInvestigations.recommendation,
-      })
-      .from(sqliteComplaintInvestigations)
-      .leftJoin(sqliteUsers, eq(sqliteComplaintInvestigations.investigatorId, sqliteUsers.id))
-      .where(eq(sqliteComplaintInvestigations.complaintId, id))
-      .limit(1);
+  const { investigations, users, capa: capaTable } = getTables();
+  const db = await getDb();
 
-    let investigation: ComplaintInvestigation | null = null;
-    if (investigationResult.length > 0) {
-      const inv = investigationResult[0] as DbInvestigationRow;
-      investigation = {
-        ...inv,
-        investigatorId: inv.investigatorId || 0,
-        investigatorName: inv.investigatorName || undefined,
-        startDate: inv.startDate || '',
-        rootCause: inv.rootCause || '',
-        conclusion: inv.conclusion || '',
-      };
-    }
+  // Get investigation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const investigationResult = await (db as any)
+    .select({
+      id: investigations.id,
+      complaintId: investigations.complaintId,
+      investigatorId: investigations.investigatorId,
+      investigatorName: users.name,
+      startDate: investigations.startDate,
+      completionDate: investigations.completionDate,
+      batchRecordReview: investigations.batchRecordReview,
+      retainSampleTest: investigations.retainSampleTest,
+      rootCause: investigations.rootCause,
+      conclusion: investigations.conclusion,
+      recommendation: investigations.recommendation,
+    })
+    .from(investigations)
+    .leftJoin(users, eq(investigations.investigatorId, users.id))
+    .where(eq(investigations.complaintId, id))
+    .limit(1);
 
-    // Get linked CAPA if exists
-    let capa: object | undefined;
-    if (complaint.capaId) {
-      const capaResult = await ((await getDb()) as any)
-        .select({
-          id: sqliteCapa.id,
-          capaNumber: sqliteCapa.capaNumber,
-          title: sqliteCapa.title,
-          status: sqliteCapa.status,
-        })
-        .from(sqliteCapa)
-        .where(eq(sqliteCapa.id, complaint.capaId))
-        .limit(1);
-      if (capaResult.length > 0) {
-        capa = capaResult[0];
-      }
-    }
-
-    return {
-      ...complaint,
-      investigation,
-      capa,
+  let investigation: ComplaintInvestigation | null = null;
+  if (investigationResult.length > 0) {
+    const inv = investigationResult[0] as DbInvestigationRow;
+    investigation = {
+      ...inv,
+      investigatorId: inv.investigatorId || 0,
+      investigatorName: inv.investigatorName || undefined,
+      startDate: inv.startDate || '',
+      rootCause: inv.rootCause || '',
+      conclusion: inv.conclusion || '',
     };
   }
 
-  throw new Error('MySQL not implemented for Complaints');
+  // Get linked CAPA if exists
+  let capa: object | undefined;
+  if (complaint.capaId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const capaResult = await (db as any)
+      .select({
+        id: capaTable.id,
+        capaNumber: capaTable.capaNumber,
+        title: capaTable.title,
+        status: capaTable.status,
+      })
+      .from(capaTable)
+      .where(eq(capaTable.id, complaint.capaId))
+      .limit(1);
+    if (capaResult.length > 0) {
+      capa = capaResult[0];
+    }
+  }
+
+  return {
+    ...complaint,
+    investigation,
+    capa,
+  };
 }
 
 /**
@@ -328,12 +355,17 @@ export async function createComplaint(
   data: ComplaintCreate,
   userId: number
 ): Promise<Complaint> {
-  if (isSqlite()) {
-    const complaintNumber = await generateComplaintNumber();
-    const now = new Date().toISOString();
+  const { complaints: complaintsTable } = getTables();
+  const db = await getDb();
+  const complaintNumber = await generateComplaintNumber();
+  const now = new Date().toISOString();
 
-    const result = await ((await getDb()) as any)
-      .insert(sqliteComplaints)
+  let complaintId: number;
+
+  if (isSqlite()) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (db as any)
+      .insert(complaintsTable)
       .values({
         complaintNumber,
         receivedDate: data.receivedDate,
@@ -352,24 +384,51 @@ export async function createComplaint(
         createdAt: now,
         updatedAt: now,
       })
-      .returning({ id: sqliteComplaints.id });
-
-    const complaintId = result[0].id;
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'CREATE',
-      tableName: 'complaints',
-      recordId: complaintId,
-      newValue: { complaintNumber, category: data.category, severity: data.severity },
-    });
-
-    const complaint = await getComplaintById(complaintId);
-    return complaint!;
+      .returning({ id: complaintsTable.id });
+    complaintId = result[0].id;
+  } else {
+    // MySQL - insert and get by complaintNumber
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any)
+      .insert(complaintsTable)
+      .values({
+        complaintNumber,
+        receivedDate: data.receivedDate,
+        source: data.source,
+        customerName: data.customerName || null,
+        customerContact: data.customerContact || null,
+        productId: data.productId,
+        lotId: data.lotId || null,
+        category: data.category,
+        severity: data.severity,
+        description: data.description,
+        status: 'received',
+        regulatoryReportRequired: false,
+        recallRequired: false,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inserted = await (db as any)
+      .select({ id: complaintsTable.id })
+      .from(complaintsTable)
+      .where(eq(complaintsTable.complaintNumber, complaintNumber))
+      .limit(1);
+    complaintId = inserted[0].id;
   }
 
-  throw new Error('MySQL not implemented for Complaints');
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'CREATE',
+    tableName: 'complaints',
+    recordId: complaintId,
+    newValue: { complaintNumber, category: data.category, severity: data.severity },
+  });
+
+  const complaint = await getComplaintById(complaintId);
+  return complaint!;
 }
 
 /**
@@ -380,40 +439,40 @@ export async function updateComplaint(
   data: ComplaintUpdate,
   userId: number
 ): Promise<Complaint> {
-  if (isSqlite()) {
-    const existing = await getComplaintById(id);
-    if (!existing) {
-      throw new Error('Complaint not found');
-    }
+  const { complaints: complaintsTable } = getTables();
+  const db = await getDb();
 
-    const now = new Date().toISOString();
-    const updateData: Record<string, unknown> = { updatedAt: now };
-
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.severity !== undefined) updateData.severity = data.severity;
-    if (data.regulatoryReportRequired !== undefined) updateData.regulatoryReportRequired = data.regulatoryReportRequired;
-    if (data.regulatoryReportDate !== undefined) updateData.regulatoryReportDate = data.regulatoryReportDate;
-
-    await ((await getDb()) as any)
-      .update(sqliteComplaints)
-      .set(updateData)
-      .where(eq(sqliteComplaints.id, id));
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'complaints',
-      recordId: id,
-      oldValue: { status: existing.status, severity: existing.severity },
-      newValue: updateData,
-    });
-
-    const updated = await getComplaintById(id);
-    return updated!;
+  const existing = await getComplaintById(id);
+  if (!existing) {
+    throw new Error('Complaint not found');
   }
 
-  throw new Error('MySQL not implemented for Complaints');
+  const now = new Date().toISOString();
+  const updateData: Record<string, unknown> = { updatedAt: now };
+
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.severity !== undefined) updateData.severity = data.severity;
+  if (data.regulatoryReportRequired !== undefined) updateData.regulatoryReportRequired = data.regulatoryReportRequired;
+  if (data.regulatoryReportDate !== undefined) updateData.regulatoryReportDate = data.regulatoryReportDate;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(complaintsTable)
+    .set(updateData)
+    .where(eq(complaintsTable.id, id));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'complaints',
+    recordId: id,
+    oldValue: { status: existing.status, severity: existing.severity },
+    newValue: updateData,
+  });
+
+  const updated = await getComplaintById(id);
+  return updated!;
 }
 
 /**
@@ -424,69 +483,90 @@ export async function routeToQC(
   investigatorId: number,
   userId: number
 ): Promise<ComplaintInvestigation> {
+  const { complaints: complaintsTable, investigations, users } = getTables();
+  const db = await getDb();
+
+  const complaint = await getComplaintById(complaintId);
+  if (!complaint) {
+    throw new Error('Complaint not found');
+  }
+
+  if (complaint.status !== 'received') {
+    throw new Error('Complaint is already under investigation or closed');
+  }
+
+  const now = new Date().toISOString();
+  let investigationId: number;
+
   if (isSqlite()) {
-    const complaint = await getComplaintById(complaintId);
-    if (!complaint) {
-      throw new Error('Complaint not found');
-    }
-
-    if (complaint.status !== 'received') {
-      throw new Error('Complaint is already under investigation or closed');
-    }
-
-    const now = new Date().toISOString();
-
-    // Create investigation record
-    const result = await ((await getDb()) as any)
-      .insert(sqliteComplaintInvestigations)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (db as any)
+      .insert(investigations)
       .values({
         complaintId,
         investigatorId,
         startDate: now.split('T')[0],
         createdAt: now,
       })
-      .returning({ id: sqliteComplaintInvestigations.id });
-
-    const investigationId = result[0].id;
-
-    // Update complaint status
-    await ((await getDb()) as any)
-      .update(sqliteComplaints)
-      .set({ status: 'under_investigation', updatedAt: now })
-      .where(eq(sqliteComplaints.id, complaintId));
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'complaint_investigations',
-      recordId: investigationId,
-      newValue: { complaintId, investigatorId },
-    });
-
-    // Get investigator name
-    const investigator = await ((await getDb()) as any)
-      .select({ displayName: sqliteUsers.name })
-      .from(sqliteUsers)
-      .where(eq(sqliteUsers.id, investigatorId))
+      .returning({ id: investigations.id });
+    investigationId = result[0].id;
+  } else {
+    // MySQL - insert and get by complaintId
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any)
+      .insert(investigations)
+      .values({
+        complaintId,
+        investigatorId,
+        startDate: now.split('T')[0],
+        createdAt: now,
+      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inserted = await (db as any)
+      .select({ id: investigations.id })
+      .from(investigations)
+      .where(eq(investigations.complaintId, complaintId))
       .limit(1);
-
-    return {
-      id: investigationId,
-      complaintId,
-      investigatorId,
-      investigatorName: investigator[0]?.displayName || undefined,
-      startDate: now.split('T')[0],
-      completionDate: null,
-      batchRecordReview: null,
-      retainSampleTest: null,
-      rootCause: '',
-      conclusion: '',
-      recommendation: null,
-    };
+    investigationId = inserted[0].id;
   }
 
-  throw new Error('MySQL not implemented for Complaints');
+  // Update complaint status
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(complaintsTable)
+    .set({ status: 'under_investigation', updatedAt: now })
+    .where(eq(complaintsTable.id, complaintId));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'complaint_investigations',
+    recordId: investigationId,
+    newValue: { complaintId, investigatorId },
+  });
+
+  // Get investigator name
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const investigator = await (db as any)
+    .select({ displayName: users.name })
+    .from(users)
+    .where(eq(users.id, investigatorId))
+    .limit(1);
+
+  return {
+    id: investigationId,
+    complaintId,
+    investigatorId,
+    investigatorName: investigator[0]?.displayName || undefined,
+    startDate: now.split('T')[0],
+    completionDate: null,
+    batchRecordReview: null,
+    retainSampleTest: null,
+    rootCause: '',
+    conclusion: '',
+    recommendation: null,
+  };
 }
 
 /**
@@ -497,79 +577,82 @@ export async function recordInvestigation(
   data: ComplaintInvestigationCreate,
   userId: number
 ): Promise<ComplaintInvestigation> {
-  if (isSqlite()) {
-    // Get existing investigation
-    const existingInv = await ((await getDb()) as any)
-      .select()
-      .from(sqliteComplaintInvestigations)
-      .where(eq(sqliteComplaintInvestigations.complaintId, complaintId))
-      .limit(1);
+  const { complaints: complaintsTable, investigations, users } = getTables();
+  const db = await getDb();
 
-    if (existingInv.length === 0) {
-      throw new Error('Investigation not started - route to QC first');
-    }
+  // Get existing investigation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existingInv = await (db as any)
+    .select()
+    .from(investigations)
+    .where(eq(investigations.complaintId, complaintId))
+    .limit(1);
 
-    const now = new Date().toISOString();
-
-    await ((await getDb()) as any)
-      .update(sqliteComplaintInvestigations)
-      .set({
-        batchRecordReview: data.batchRecordReview || null,
-        retainSampleTest: data.retainSampleTest || null,
-        rootCause: data.rootCause,
-        conclusion: data.conclusion,
-        recommendation: data.recommendation || null,
-        completionDate: now.split('T')[0],
-      })
-      .where(eq(sqliteComplaintInvestigations.complaintId, complaintId));
-
-    // Update complaint status to resolved
-    await ((await getDb()) as any)
-      .update(sqliteComplaints)
-      .set({ status: 'resolved', updatedAt: now })
-      .where(eq(sqliteComplaints.id, complaintId));
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'complaint_investigations',
-      recordId: existingInv[0].id,
-      newValue: { rootCause: data.rootCause, conclusion: data.conclusion },
-    });
-
-    // Get updated investigation with investigator name
-    const investigationResult = await ((await getDb()) as any)
-      .select({
-        id: sqliteComplaintInvestigations.id,
-        complaintId: sqliteComplaintInvestigations.complaintId,
-        investigatorId: sqliteComplaintInvestigations.investigatorId,
-        investigatorName: sqliteUsers.name,
-        startDate: sqliteComplaintInvestigations.startDate,
-        completionDate: sqliteComplaintInvestigations.completionDate,
-        batchRecordReview: sqliteComplaintInvestigations.batchRecordReview,
-        retainSampleTest: sqliteComplaintInvestigations.retainSampleTest,
-        rootCause: sqliteComplaintInvestigations.rootCause,
-        conclusion: sqliteComplaintInvestigations.conclusion,
-        recommendation: sqliteComplaintInvestigations.recommendation,
-      })
-      .from(sqliteComplaintInvestigations)
-      .leftJoin(sqliteUsers, eq(sqliteComplaintInvestigations.investigatorId, sqliteUsers.id))
-      .where(eq(sqliteComplaintInvestigations.complaintId, complaintId))
-      .limit(1);
-
-    const inv = investigationResult[0] as DbInvestigationRow;
-    return {
-      ...inv,
-      investigatorId: inv.investigatorId || 0,
-      investigatorName: inv.investigatorName || undefined,
-      startDate: inv.startDate || '',
-      rootCause: inv.rootCause || '',
-      conclusion: inv.conclusion || '',
-    };
+  if (existingInv.length === 0) {
+    throw new Error('Investigation not started - route to QC first');
   }
 
-  throw new Error('MySQL not implemented for Complaints');
+  const now = new Date().toISOString();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(investigations)
+    .set({
+      batchRecordReview: data.batchRecordReview || null,
+      retainSampleTest: data.retainSampleTest || null,
+      rootCause: data.rootCause,
+      conclusion: data.conclusion,
+      recommendation: data.recommendation || null,
+      completionDate: now.split('T')[0],
+    })
+    .where(eq(investigations.complaintId, complaintId));
+
+  // Update complaint status to resolved
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(complaintsTable)
+    .set({ status: 'resolved', updatedAt: now })
+    .where(eq(complaintsTable.id, complaintId));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'complaint_investigations',
+    recordId: existingInv[0].id,
+    newValue: { rootCause: data.rootCause, conclusion: data.conclusion },
+  });
+
+  // Get updated investigation with investigator name
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const investigationResult = await (db as any)
+    .select({
+      id: investigations.id,
+      complaintId: investigations.complaintId,
+      investigatorId: investigations.investigatorId,
+      investigatorName: users.name,
+      startDate: investigations.startDate,
+      completionDate: investigations.completionDate,
+      batchRecordReview: investigations.batchRecordReview,
+      retainSampleTest: investigations.retainSampleTest,
+      rootCause: investigations.rootCause,
+      conclusion: investigations.conclusion,
+      recommendation: investigations.recommendation,
+    })
+    .from(investigations)
+    .leftJoin(users, eq(investigations.investigatorId, users.id))
+    .where(eq(investigations.complaintId, complaintId))
+    .limit(1);
+
+  const inv = investigationResult[0] as DbInvestigationRow;
+  return {
+    ...inv,
+    investigatorId: inv.investigatorId || 0,
+    investigatorName: inv.investigatorName || undefined,
+    startDate: inv.startDate || '',
+    rootCause: inv.rootCause || '',
+    conclusion: inv.conclusion || '',
+  };
 }
 
 /**
@@ -580,47 +663,47 @@ export async function closeComplaint(
   closureNotes: string | null,
   userId: number
 ): Promise<Complaint> {
-  if (isSqlite()) {
-    const complaint = await getComplaintDetails(id);
-    if (!complaint) {
-      throw new Error('Complaint not found');
-    }
+  const { complaints: complaintsTable } = getTables();
+  const db = await getDb();
 
-    if (complaint.status === 'closed') {
-      throw new Error('Complaint is already closed');
-    }
-
-    // Verify investigation is complete
-    if (!complaint.investigation || !complaint.investigation.conclusion) {
-      throw new Error('Cannot close complaint: Investigation not complete');
-    }
-
-    const now = new Date().toISOString();
-
-    await ((await getDb()) as any)
-      .update(sqliteComplaints)
-      .set({
-        status: 'closed',
-        closedDate: now,
-        closedBy: userId,
-        updatedAt: now,
-      })
-      .where(eq(sqliteComplaints.id, id));
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'complaints',
-      recordId: id,
-      newValue: { closedDate: now, closureNotes },
-    });
-
-    const closed = await getComplaintById(id);
-    return closed!;
+  const complaint = await getComplaintDetails(id);
+  if (!complaint) {
+    throw new Error('Complaint not found');
   }
 
-  throw new Error('MySQL not implemented for Complaints');
+  if (complaint.status === 'closed') {
+    throw new Error('Complaint is already closed');
+  }
+
+  // Verify investigation is complete
+  if (!complaint.investigation || !complaint.investigation.conclusion) {
+    throw new Error('Cannot close complaint: Investigation not complete');
+  }
+
+  const now = new Date().toISOString();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(complaintsTable)
+    .set({
+      status: 'closed',
+      closedDate: now,
+      closedBy: userId,
+      updatedAt: now,
+    })
+    .where(eq(complaintsTable.id, id));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'complaints',
+    recordId: id,
+    newValue: { closedDate: now, closureNotes },
+  });
+
+  const closed = await getComplaintById(id);
+  return closed!;
 }
 
 /**
@@ -631,31 +714,30 @@ export async function linkCapa(
   capaId: number,
   userId: number
 ): Promise<Complaint> {
-  if (isSqlite()) {
-    const now = new Date().toISOString();
+  const { complaints: complaintsTable } = getTables();
+  const db = await getDb();
+  const now = new Date().toISOString();
 
-    await ((await getDb()) as any)
-      .update(sqliteComplaints)
-      .set({
-        capaId,
-        updatedAt: now,
-      })
-      .where(eq(sqliteComplaints.id, complaintId));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(complaintsTable)
+    .set({
+      capaId,
+      updatedAt: now,
+    })
+    .where(eq(complaintsTable.id, complaintId));
 
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'complaints',
-      recordId: complaintId,
-      newValue: { capaId },
-    });
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'complaints',
+    recordId: complaintId,
+    newValue: { capaId },
+  });
 
-    const updated = await getComplaintById(complaintId);
-    return updated!;
-  }
-
-  throw new Error('MySQL not implemented for Complaints');
+  const updated = await getComplaintById(complaintId);
+  return updated!;
 }
 
 // ============================================
@@ -668,106 +750,105 @@ export async function linkCapa(
 export async function getComplaintTrends(
   params: ComplaintTrendsParams = {}
 ): Promise<ComplaintTrends> {
-  const { period = 'month', groupBy = 'category' } = params;
+  const { period = 'month' } = params;
+  const { complaints: complaintsTable, items } = getTables();
+  const db = await getDb();
 
-  if (isSqlite()) {
-    const now = new Date();
-    let startDate: Date;
-    let dateFormat: string;
+  const now = new Date();
+  let startDate: Date;
+  let dateFormat: string;
 
-    switch (period) {
-      case 'quarter':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        dateFormat = 'month';
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
-        dateFormat = 'month';
-        break;
-      default: // month
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        dateFormat = 'day';
-    }
-
-    const startDateStr = startDate.toISOString().split('T')[0];
-
-    // Get all complaints in period
-    const complaints = await ((await getDb()) as any)
-      .select({
-        receivedDate: sqliteComplaints.receivedDate,
-        category: sqliteComplaints.category,
-        productId: sqliteComplaints.productId,
-        productName: sqliteItems.nameTh,
-      })
-      .from(sqliteComplaints)
-      .leftJoin(sqliteItems, eq(sqliteComplaints.productId, sqliteItems.id))
-      .where(gte(sqliteComplaints.receivedDate, startDateStr));
-
-    // Calculate by category
-    const byCategory: Record<ComplaintCategory, number> = {
-      quality: 0,
-      efficacy: 0,
-      safety: 0,
-      packaging: 0,
-      labeling: 0,
-      other: 0,
-    };
-
-    complaints.forEach((c: { category: string }) => {
-      byCategory[c.category as ComplaintCategory]++;
-    });
-
-    // Calculate by product
-    const productCounts = new Map<number, { productName: string; count: number }>();
-    complaints.forEach((c: { productId: number | null; productName: string | null }) => {
-      if (c.productId) {
-        const existing = productCounts.get(c.productId);
-        if (existing) {
-          existing.count++;
-        } else {
-          productCounts.set(c.productId, {
-            productName: c.productName || 'Unknown',
-            count: 1,
-          });
-        }
-      }
-    });
-
-    const byProduct = Array.from(productCounts.entries())
-      .map(([productId, data]) => ({
-        productId,
-        productName: data.productName,
-        count: data.count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Calculate data points based on date grouping
-    const dateCounts = new Map<string, number>();
-    complaints.forEach((c: { receivedDate: string }) => {
-      let label: string;
-      const date = new Date(c.receivedDate);
-      if (dateFormat === 'day') {
-        label = c.receivedDate;
-      } else {
-        label = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-      }
-      dateCounts.set(label, (dateCounts.get(label) || 0) + 1);
-    });
-
-    const dataPoints = Array.from(dateCounts.entries())
-      .map(([label, count]) => ({ label, count }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-
-    return {
-      period,
-      dataPoints,
-      byCategory,
-      byProduct,
-    };
+  switch (period) {
+    case 'quarter':
+      startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+      dateFormat = 'month';
+      break;
+    case 'year':
+      startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+      dateFormat = 'month';
+      break;
+    default: // month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      dateFormat = 'day';
   }
 
-  throw new Error('MySQL not implemented for Complaints');
+  const startDateStr = startDate.toISOString().split('T')[0];
+
+  // Get all complaints in period
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const complaints = await (db as any)
+    .select({
+      receivedDate: complaintsTable.receivedDate,
+      category: complaintsTable.category,
+      productId: complaintsTable.productId,
+      productName: items.nameTh,
+    })
+    .from(complaintsTable)
+    .leftJoin(items, eq(complaintsTable.productId, items.id))
+    .where(gte(complaintsTable.receivedDate, startDateStr));
+
+  // Calculate by category
+  const byCategory: Record<ComplaintCategory, number> = {
+    quality: 0,
+    efficacy: 0,
+    safety: 0,
+    packaging: 0,
+    labeling: 0,
+    other: 0,
+  };
+
+  complaints.forEach((c: { category: string }) => {
+    byCategory[c.category as ComplaintCategory]++;
+  });
+
+  // Calculate by product
+  const productCounts = new Map<number, { productName: string; count: number }>();
+  complaints.forEach((c: { productId: number | null; productName: string | null }) => {
+    if (c.productId) {
+      const existing = productCounts.get(c.productId);
+      if (existing) {
+        existing.count++;
+      } else {
+        productCounts.set(c.productId, {
+          productName: c.productName || 'Unknown',
+          count: 1,
+        });
+      }
+    }
+  });
+
+  const byProduct = Array.from(productCounts.entries())
+    .map(([productId, data]) => ({
+      productId,
+      productName: data.productName,
+      count: data.count,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  // Calculate data points based on date grouping
+  const dateCounts = new Map<string, number>();
+  complaints.forEach((c: { receivedDate: string }) => {
+    let label: string;
+    const date = new Date(c.receivedDate);
+    if (dateFormat === 'day') {
+      label = c.receivedDate;
+    } else {
+      label = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    }
+    dateCounts.set(label, (dateCounts.get(label) || 0) + 1);
+  });
+
+  const dataPoints = Array.from(dateCounts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  return {
+    period,
+    dataPoints,
+    byCategory,
+    byProduct,
+  };
 }
 
 /**
@@ -781,68 +862,68 @@ export async function getComplaintDashboard(): Promise<{
   resolvedThisMonth: number;
   criticalCount: number;
 }> {
-  if (isSqlite()) {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthStartStr = monthStart.toISOString().split('T')[0];
+  const { complaints: complaintsTable } = getTables();
+  const db = await getDb();
 
-    // Get all complaints
-    const allComplaints = await ((await getDb()) as any)
-      .select({
-        status: sqliteComplaints.status,
-        severity: sqliteComplaints.severity,
-        closedDate: sqliteComplaints.closedDate,
-      })
-      .from(sqliteComplaints);
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStartStr = monthStart.toISOString().split('T')[0];
 
-    const byStatus: Record<ComplaintStatus, number> = {
-      received: 0,
-      under_investigation: 0,
-      resolved: 0,
-      closed: 0,
-    };
+  // Get all complaints
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allComplaints = await (db as any)
+    .select({
+      status: complaintsTable.status,
+      severity: complaintsTable.severity,
+      closedDate: complaintsTable.closedDate,
+    })
+    .from(complaintsTable);
 
-    const bySeverity: Record<ComplaintSeverity, number> = {
-      minor: 0,
-      major: 0,
-      critical: 0,
-    };
+  const byStatus: Record<ComplaintStatus, number> = {
+    received: 0,
+    under_investigation: 0,
+    resolved: 0,
+    closed: 0,
+  };
 
-    let totalOpen = 0;
-    let pendingInvestigation = 0;
-    let resolvedThisMonth = 0;
-    let criticalCount = 0;
+  const bySeverity: Record<ComplaintSeverity, number> = {
+    minor: 0,
+    major: 0,
+    critical: 0,
+  };
 
-    allComplaints.forEach((c: { status: string; severity: string; closedDate: string | null }) => {
-      byStatus[c.status as ComplaintStatus]++;
-      bySeverity[c.severity as ComplaintSeverity]++;
+  let totalOpen = 0;
+  let pendingInvestigation = 0;
+  let resolvedThisMonth = 0;
+  let criticalCount = 0;
 
-      if (c.status !== 'closed') {
-        totalOpen++;
-      }
+  allComplaints.forEach((c: { status: string; severity: string; closedDate: string | null }) => {
+    byStatus[c.status as ComplaintStatus]++;
+    bySeverity[c.severity as ComplaintSeverity]++;
 
-      if (c.status === 'received') {
-        pendingInvestigation++;
-      }
+    if (c.status !== 'closed') {
+      totalOpen++;
+    }
 
-      if (c.closedDate && c.closedDate >= monthStartStr) {
-        resolvedThisMonth++;
-      }
+    if (c.status === 'received') {
+      pendingInvestigation++;
+    }
 
-      if (c.severity === 'critical' && c.status !== 'closed') {
-        criticalCount++;
-      }
-    });
+    if (c.closedDate && c.closedDate >= monthStartStr) {
+      resolvedThisMonth++;
+    }
 
-    return {
-      totalOpen,
-      byStatus,
-      bySeverity,
-      pendingInvestigation,
-      resolvedThisMonth,
-      criticalCount,
-    };
-  }
+    if (c.severity === 'critical' && c.status !== 'closed') {
+      criticalCount++;
+    }
+  });
 
-  throw new Error('MySQL not implemented for Complaints');
+  return {
+    totalOpen,
+    byStatus,
+    bySeverity,
+    pendingInvestigation,
+    resolvedThisMonth,
+    criticalCount,
+  };
 }

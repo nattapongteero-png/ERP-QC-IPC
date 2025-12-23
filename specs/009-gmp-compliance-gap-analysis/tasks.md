@@ -1,434 +1,211 @@
-# Tasks: GMP Compliance Gap Analysis
+# Tasks: GMP Compliance Gap Analysis - Integration Tests
 
 **Input**: Design documents from `/specs/009-gmp-compliance-gap-analysis/`
-**Prerequisites**: plan.md, spec.md, data-model.md, contracts/, quickstart.md
+**Prerequisites**: plan.md (required), research.md, quickstart.md
+**Branch**: `009-gmp-compliance-gap-analysis`
+**Date**: 2025-12-23
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and testing.
+**Scope**: Comprehensive integration tests using real SQLite for all service modules. CAPA service already has tests - 15 additional modules need coverage.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2)
+- **[Story]**: Which user story/module group this task belongs to
 - Include exact file paths in descriptions
 
 ---
 
-## Phase 1: Setup (Shared Infrastructure)
+## Phase 1: Setup (Shared Test Infrastructure)
 
-**Purpose**: Project initialization and basic structure
+**Purpose**: Create reusable test utilities to reduce boilerplate across all test files
 
-- [x] T001 Create feature branch `009-gmp-compliance-gap-analysis` and verify clean state
-- [x] T002 [P] Create shared type definitions in `src/types/documents.ts`
-- [x] T003 [P] Create shared type definitions in `src/types/capa.ts`
-- [x] T004 [P] Create shared type definitions in `src/types/complaints.ts`
-- [x] T005 [P] Create shared type definitions in `src/types/recalls.ts`
-- [x] T006 [P] Create shared type definitions in `src/types/sanitation.ts`
-- [x] T007 [P] Create shared type definitions in `src/types/stability.ts`
-- [x] T008 [P] Create shared type definitions in `src/types/audits.ts`
+- [x] T001 Create database setup helper in tests/helpers/test-db.ts with setupTestDatabase() and cleanTables() functions
+- [x] T002 Create schema sync utility in tests/helpers/schema-sync.ts with generateCreateTableSql() using Drizzle ORM metadata
+- [x] T003 [P] Create seed data factory in tests/helpers/seed-data.ts with seedTestUsers() and module-specific seed functions
+- [x] T004 [P] Create test constants in tests/helpers/test-constants.ts for shared test user IDs, statuses, and dates
+
+**Checkpoint**: Shared test infrastructure ready - module tests can now be implemented in parallel
 
 ---
 
-## Phase 2: Foundational (Blocking Prerequisites)
+## Phase 2: Foundational (Reference Implementation Validation)
 
-**Purpose**: Database schema and core infrastructure that MUST be complete before ANY user story
+**Purpose**: Verify existing CAPA tests work with shared helpers and establish baseline
 
-**CRITICAL**: No user story work can begin until this phase is complete
+**WARNING**: This phase MUST complete before module test implementation begins
 
-### Database Schema (SQLite + MySQL dual-schema)
+- [x] T005 Refactor tests/integration/services/capa-service-real.test.ts to use shared helpers from tests/helpers/
+- [x] T006 Run capa-service-real.test.ts and verify all tests pass with refactored helpers
+- [x] T007 Document test patterns in tests/helpers/README.md for contributor reference
 
-- [x] T009 Create `documents` table in `src/lib/db/schema.ts` and `src/lib/db/schema-mysql.ts`
-- [x] T010 Create `document_versions` table with FK to documents
-- [x] T011 Create `document_approvals` table with FK to document_versions
-- [x] T012 Create `document_types` table (master data)
-- [x] T013 Create `capa` table in schema (FK to existing deviations)
-- [x] T014 Create `capa_actions` table with FK to capa
-- [x] T015 Create `capa_effectiveness` table with FK to capa
-- [x] T016 Create `complaints` table (FK to items, inventory_lots)
-- [x] T017 Create `complaint_investigations` table with FK to complaints
-- [x] T018 Create `recalls` table (FK to items)
-- [x] T019 Create `recall_notifications` table with FK to recalls
-- [x] T020 Create `recall_reconciliation` table with FK to recalls
-- [x] T021 Create `sanitation_schedules` table
-- [x] T022 Create `sanitation_logs` table with FK to sanitation_schedules
-- [x] T023 Create `pest_control_logs` table
-- [x] T024 Create `stability_protocols` table (FK to items)
-- [x] T025 Create `stability_studies` table with FK to protocols, inventory_lots
-- [x] T026 Create `stability_samples` table with FK to studies, quality_tests
-- [x] T027 Create `stability_trends` table with FK to studies
-- [x] T028 Create `audit_plans` table
-- [x] T029 Create `audits` table with FK to audit_plans
-- [x] T030 Create `audit_findings` table with FK to audits, capa
-- [x] T031 Create `manufacturing_contracts` table
-- [x] T032 Create `contract_batches` table with FK to contracts, inventory_lots
-- [x] T033 Create `change_requests` table
-- [x] T034 Create `change_approvals` table with FK to change_requests
-- [x] T035 Create `pqr_reports` table (FK to items)
-- [x] T036 Create `pqr_metrics` table with FK to pqr_reports
-- [x] T037 Generate and run Drizzle migrations
-
-### Shared Components
-
-- [x] T038 [P] Create `WorkflowStatusBadge.tsx` in `src/components/shared/` for document/CAPA/complaint status
-- [x] T039 [P] Create `ApprovalChain.tsx` in `src/components/shared/` for approval workflow UI
-- [x] T040 [P] Create `AuditTrailViewer.tsx` in `src/components/shared/` for audit log display
-- [x] T041 [P] Create `TrendChart.tsx` in `src/components/shared/` using DevExtreme dxChart
-
-### Seed Data
-
-- [x] T042 Seed `document_types` with SOP, POL, FORM, WI, SPEC records
-- [x] T043 Add navigation menu entries for new modules in layout
-
-**Checkpoint**: Foundation ready - user story implementation can now begin
+**Checkpoint**: Baseline validated - module test implementation can now begin in parallel
 
 ---
 
-## Phase 3: User Story 2 - Document Control Officer Manages SOPs (Priority: P1)
+## Phase 3: GMP Compliance Module Tests - Priority 1 (P1)
 
-**Goal**: Implement document control system with version management, approval workflow, and audit trail
+**Goal**: Integration tests for critical GMP compliance modules: Complaints, Documents, Internal Audit
 
-**Independent Test**: Create document, submit for approval, approve, verify version history accessible
+**Independent Test**: Each test file can run independently with `pnpm test tests/integration/services/[module]-service-real.test.ts`
 
-### Tests for User Story 2
+### Complaint Service Tests [US1]
 
-- [ ] T044 [P] [US2] Unit test for document-service in `tests/unit/services/document-service.test.ts`
-- [ ] T045 [P] [US2] Integration test for documents API in `tests/integration/api/documents.test.ts`
+- [x] T008 [P] [US1] Create tests/integration/services/complaint-service-real.test.ts with schema sync for complaints and complaint_investigations tables
+- [x] T009 [US1] Implement real-world scenario: Customer complaint lifecycle (receive -> investigate -> close) in complaint-service-real.test.ts
+- [x] T010 [US1] Implement real-world scenario: Complaint escalation to regulatory notification in complaint-service-real.test.ts
+- [x] T011 [US1] Test complaint service CRUD functions: listComplaints, getComplaintById, createComplaint, updateComplaint in complaint-service-real.test.ts
+- [x] T012 [US1] Test complaint investigation functions: assignInvestigator, recordInvestigation, closeComplaint in complaint-service-real.test.ts
+- [x] T013 [US1] Test edge cases: empty list, not found, validation errors, severity escalation in complaint-service-real.test.ts
 
-### Implementation for User Story 2
+### Document Service Tests [US2]
 
-- [ ] T046 [US2] Create document-service in `src/lib/services/document-service.ts`
-  - generateDocumentNumber(), createDocument(), createVersion(), getVersionHistory()
-- [ ] T047 [US2] Implement GET/POST `/api/documents` route in `src/app/api/documents/route.ts`
-- [ ] T048 [US2] Implement GET/PATCH `/api/documents/[id]` route in `src/app/api/documents/[id]/route.ts`
-- [ ] T049 [US2] Implement GET/POST `/api/documents/[id]/versions` in `src/app/api/documents/[id]/versions/route.ts`
-- [ ] T050 [US2] Implement POST `/api/documents/[id]/approve` in `src/app/api/documents/[id]/approve/route.ts`
-- [ ] T051 [US2] Implement GET `/api/documents/approvals` (pending approvals list)
-- [ ] T052 [US2] Implement POST `/api/documents/approvals/[id]` (approve/reject)
-- [ ] T053 [US2] Implement GET `/api/documents/types` route
-- [ ] T054 [P] [US2] Create DocumentList.tsx in `src/components/documents/` with DevExtreme DataGrid
-- [ ] T055 [P] [US2] Create DocumentForm.tsx in `src/components/documents/` with DevExtreme Form
-- [ ] T056 [P] [US2] Create DocumentVersionHistory.tsx in `src/components/documents/`
-- [ ] T057 [P] [US2] Create DocumentApprovalDialog.tsx in `src/components/documents/`
-- [ ] T058 [US2] Create documents list page in `src/app/documents/page.tsx`
-- [ ] T059 [US2] Create new document page in `src/app/documents/new/page.tsx`
-- [ ] T060 [US2] Create document detail page in `src/app/documents/[id]/page.tsx`
+- [ ] T014 [P] [US2] Create tests/integration/services/document-service-real.test.ts with schema sync for documents, document_versions, document_approvals, document_types tables
+- [ ] T015 [US2] Implement real-world scenario: Document approval workflow (draft -> review -> approve -> publish) in document-service-real.test.ts
+- [ ] T016 [US2] Implement real-world scenario: Document version control (new version supersedes old) in document-service-real.test.ts
+- [ ] T017 [US2] Test document service CRUD functions: listDocuments, getDocumentById, createDocument, updateDocument in document-service-real.test.ts
+- [ ] T018 [US2] Test version functions: createVersion, submitForApproval, approveVersion, publishDocument in document-service-real.test.ts
+- [ ] T019 [US2] Test edge cases: concurrent edit prevention, obsolete document access, approval chain delegation in document-service-real.test.ts
 
-**Checkpoint**: Document control module fully functional
+### Internal Audit Service Tests [US3]
 
----
+- [ ] T020 [P] [US3] Create tests/integration/services/internal-audit-service-real.test.ts with schema sync for audit_plans, audits, audit_findings, audit_checklists tables
+- [ ] T021 [US3] Implement real-world scenario: Complete audit cycle (schedule -> conduct -> findings -> CAPA -> close) in internal-audit-service-real.test.ts
+- [ ] T022 [US3] Implement real-world scenario: Finding classification and CAPA linkage in internal-audit-service-real.test.ts
+- [ ] T023 [US3] Test audit service CRUD functions: listAudits, getAuditById, createAudit, updateAudit in internal-audit-service-real.test.ts
+- [ ] T024 [US3] Test finding functions: recordFinding, createCapaFromFinding, completeAudit in internal-audit-service-real.test.ts
+- [ ] T025 [US3] Test edge cases: audit plan coverage validation, finding severity tracking, GMP chapter mapping in internal-audit-service-real.test.ts
 
-## Phase 4: User Story 3 - Quality Manager Handles CAPA Workflow (Priority: P1)
-
-**Goal**: Implement CAPA management with action tracking, effectiveness verification, and source linking
-
-**Independent Test**: Create CAPA from deviation, assign actions, complete actions, verify effectiveness, close CAPA
-
-### Tests for User Story 3
-
-- [ ] T061 [P] [US3] Unit test for capa-service in `tests/unit/services/capa-service.test.ts`
-- [ ] T062 [P] [US3] Integration test for CAPA API in `tests/integration/api/capa.test.ts`
-- [ ] T063 [P] [US3] Workflow test for deviation-to-capa in `tests/integration/workflows/deviation-to-capa.test.ts`
-
-### Implementation for User Story 3
-
-- [ ] T064 [US3] Create capa-service in `src/lib/services/capa-service.ts`
-  - generateCapaNumber(), createFromDeviation(), addAction(), recordEffectiveness(), closeCapa()
-- [ ] T065 [US3] Implement GET/POST `/api/capa` route in `src/app/api/capa/route.ts`
-- [ ] T066 [US3] Implement GET/PATCH `/api/capa/[id]` route in `src/app/api/capa/[id]/route.ts`
-- [ ] T067 [US3] Implement GET/POST `/api/capa/[id]/actions` in `src/app/api/capa/[id]/actions/route.ts`
-- [ ] T068 [US3] Implement PATCH `/api/capa/[id]/actions/[actionId]` for action updates
-- [ ] T069 [US3] Implement GET/POST `/api/capa/[id]/effectiveness` route
-- [ ] T070 [US3] Implement POST `/api/capa/[id]/close` route with validation
-- [ ] T071 [US3] Implement GET `/api/capa/dashboard` for metrics
-- [ ] T072 [P] [US3] Create CapaList.tsx in `src/components/capa/` with DevExtreme DataGrid
-- [ ] T073 [P] [US3] Create CapaForm.tsx in `src/components/capa/` with root cause fields
-- [ ] T074 [P] [US3] Create CapaActionList.tsx in `src/components/capa/` for action management
-- [ ] T075 [P] [US3] Create CapaEffectivenessForm.tsx in `src/components/capa/`
-- [ ] T076 [P] [US3] Create CapaDashboard.tsx in `src/components/capa/` with DevExtreme dxChart
-- [ ] T077 [US3] Create CAPA list page in `src/app/capa/page.tsx`
-- [ ] T078 [US3] Create new CAPA page in `src/app/capa/new/page.tsx`
-- [ ] T079 [US3] Create CAPA detail page in `src/app/capa/[id]/page.tsx`
-- [ ] T080 [US3] Add "Create CAPA" button to existing deviation detail page
-
-**Checkpoint**: CAPA management module fully functional
+**Checkpoint**: P1 GMP compliance modules have comprehensive real SQLite tests - run `pnpm test tests/integration/services/complaint-service-real.test.ts tests/integration/services/document-service-real.test.ts tests/integration/services/internal-audit-service-real.test.ts`
 
 ---
 
-## Phase 5: User Story 7 - Customer Service Handles Complaints (Priority: P2)
+## Phase 4: GMP Compliance Module Tests - Priority 2 (P2)
 
-**Goal**: Implement complaint recording, QC routing, investigation workflow, and trend analysis
+**Goal**: Integration tests for secondary GMP compliance modules: Recalls, Sanitation, Stability
 
-**Independent Test**: Record complaint, route to QC, conduct investigation, close with findings
+**Independent Test**: Each test file can run independently
 
-### Tests for User Story 7
+### Recall Service Tests [US4]
 
-- [ ] T081 [P] [US7] Unit test for complaint-service in `tests/unit/services/complaint-service.test.ts`
-- [ ] T082 [P] [US7] Integration test for complaints API in `tests/integration/api/complaints.test.ts`
+- [ ] T026 [P] [US4] Create tests/integration/services/recall-service-real.test.ts with schema sync for recalls, recall_notifications, recall_reconciliation tables
+- [ ] T027 [US4] Implement real-world scenario: Product recall execution (initiate -> notify -> reconcile -> close) in recall-service-real.test.ts
+- [ ] T028 [US4] Implement real-world scenario: Distribution tracking and customer notification in recall-service-real.test.ts
+- [ ] T029 [US4] Test recall service CRUD functions: listRecalls, getRecallById, createRecall, updateRecall in recall-service-real.test.ts
+- [ ] T030 [US4] Test notification functions: getDistributionByLot, sendNotifications, trackReturns, reconcileRecall in recall-service-real.test.ts
+- [ ] T031 [US4] Test edge cases: multi-batch recalls, effectiveness rate calculation, regulatory reporting in recall-service-real.test.ts
 
-### Implementation for User Story 7
+### Sanitation Service Tests [US5]
 
-- [ ] T083 [US7] Create complaint-service in `src/lib/services/complaint-service.ts`
-  - generateComplaintNumber(), createComplaint(), routeToQC(), recordInvestigation(), closeComplaint()
-- [ ] T084 [US7] Implement GET/POST `/api/complaints` route in `src/app/api/complaints/route.ts`
-- [ ] T085 [US7] Implement GET/PATCH `/api/complaints/[id]` route in `src/app/api/complaints/[id]/route.ts`
-- [ ] T086 [US7] Implement POST `/api/complaints/[id]/investigation` route
-- [ ] T087 [US7] Implement POST `/api/complaints/[id]/close` route
-- [ ] T088 [US7] Implement GET `/api/complaints/trends` route with aggregation
-- [ ] T089 [P] [US7] Create ComplaintList.tsx in `src/components/complaints/` with DevExtreme DataGrid
-- [ ] T090 [P] [US7] Create ComplaintForm.tsx in `src/components/complaints/`
-- [ ] T091 [P] [US7] Create ComplaintInvestigationForm.tsx in `src/components/complaints/`
-- [ ] T092 [P] [US7] Create ComplaintTrendsChart.tsx in `src/components/complaints/`
-- [ ] T093 [US7] Create complaints list page in `src/app/complaints/page.tsx`
-- [ ] T094 [US7] Create complaint detail page in `src/app/complaints/[id]/page.tsx`
+- [ ] T032 [P] [US5] Create tests/integration/services/sanitation-service-real.test.ts with schema sync for sanitation_schedules, sanitation_logs, pest_control_logs tables
+- [ ] T033 [US5] Implement real-world scenario: Sanitation schedule execution (schedule -> perform -> verify) in sanitation-service-real.test.ts
+- [ ] T034 [US5] Implement real-world scenario: Pest control activity logging and trend analysis in sanitation-service-real.test.ts
+- [ ] T035 [US5] Test sanitation service CRUD functions: listSchedules, createSchedule, logCleaning, verifyCompletion in sanitation-service-real.test.ts
+- [ ] T036 [US5] Test pest control functions: logPestControl, getTrendAnalysis, getComplianceRate in sanitation-service-real.test.ts
+- [ ] T037 [US5] Test edge cases: missed cleaning, deviation linking, frequency calculations in sanitation-service-real.test.ts
 
-**Checkpoint**: Complaint handling module fully functional
+### Stability Service Tests [US6]
 
----
+- [ ] T038 [P] [US6] Create tests/integration/services/stability-service-real.test.ts with schema sync for stability_protocols, stability_studies, stability_samples, stability_trends tables
+- [ ] T039 [US6] Implement real-world scenario: Stability study lifecycle (enroll -> schedule -> test -> trend) in stability-service-real.test.ts
+- [ ] T040 [US6] Implement real-world scenario: OOS detection and investigation workflow in stability-service-real.test.ts
+- [ ] T041 [US6] Test stability service CRUD functions: listStudies, getStudyById, createStudy, enrollBatch in stability-service-real.test.ts
+- [ ] T042 [US6] Test sampling functions: scheduleSamples, recordSample, linkQualityTest, calculateTrend in stability-service-real.test.ts
+- [ ] T043 [US6] Test edge cases: timepoint alerts, OOS flagging, trend slope calculation, spec limit comparison in stability-service-real.test.ts
 
-## Phase 6: User Story 8 - Recall Coordinator Executes Product Recall (Priority: P2)
-
-**Goal**: Implement recall initiation, distribution tracking, customer notification, and reconciliation
-
-**Independent Test**: Initiate mock recall, identify customers, record notifications, reconcile quantities
-
-### Tests for User Story 8
-
-- [ ] T095 [P] [US8] Unit test for recall-service in `tests/unit/services/recall-service.test.ts`
-- [ ] T096 [P] [US8] Integration test for recalls API in `tests/integration/api/recalls.test.ts`
-- [ ] T097 [P] [US8] Workflow test for complaint-to-recall in `tests/integration/workflows/complaint-to-recall.test.ts`
-
-### Implementation for User Story 8
-
-- [ ] T098 [US8] Create recall-service in `src/lib/services/recall-service.ts`
-  - generateRecallNumber(), initiateRecall(), getDistributionData(), recordNotification(), reconcile()
-- [ ] T099 [US8] Implement GET/POST `/api/recalls` route in `src/app/api/recalls/route.ts`
-- [ ] T100 [US8] Implement GET/PATCH `/api/recalls/[id]` route in `src/app/api/recalls/[id]/route.ts`
-- [ ] T101 [US8] Implement GET `/api/recalls/[id]/distribution` route (aggregates inventory_transactions)
-- [ ] T102 [US8] Implement GET/POST `/api/recalls/[id]/notifications` route
-- [ ] T103 [US8] Implement PATCH `/api/recalls/[id]/notifications/[notificationId]` route
-- [ ] T104 [US8] Implement GET/POST `/api/recalls/[id]/reconciliation` route
-- [ ] T105 [US8] Implement POST `/api/recalls/[id]/close` route
-- [ ] T106 [US8] Implement POST `/api/recalls/mock-drill` route for recall simulation
-- [ ] T107 [P] [US8] Create RecallList.tsx in `src/components/recalls/` with DevExtreme DataGrid
-- [ ] T108 [P] [US8] Create RecallForm.tsx in `src/components/recalls/`
-- [ ] T109 [P] [US8] Create RecallDistributionTable.tsx in `src/components/recalls/`
-- [ ] T110 [P] [US8] Create RecallNotificationTracker.tsx in `src/components/recalls/`
-- [ ] T111 [P] [US8] Create RecallReconciliationForm.tsx in `src/components/recalls/`
-- [ ] T112 [US8] Create recalls list page in `src/app/recalls/page.tsx`
-- [ ] T113 [US8] Create recall detail page in `src/app/recalls/[id]/page.tsx`
-
-**Checkpoint**: Recall management module fully functional
+**Checkpoint**: P2 GMP compliance modules have comprehensive real SQLite tests
 
 ---
 
-## Phase 7: User Story 6 - Quality Manager Runs Stability Program (Priority: P2)
+## Phase 5: Business Module Tests - Priority 3 (P3)
 
-**Goal**: Implement stability protocols, study enrollment, sample scheduling, and trend analysis
+**Goal**: Integration tests for core business modules: Inventory, Production, Quality, HR
 
-**Independent Test**: Create protocol, enroll batch, schedule tests, record results, view trends
+**Independent Test**: Each test file can run independently
 
-### Tests for User Story 6
+### Inventory Service Tests [US7]
 
-- [ ] T114 [P] [US6] Unit test for stability-service in `tests/unit/services/stability-service.test.ts`
-- [ ] T115 [P] [US6] Integration test for stability API in `tests/integration/api/stability.test.ts`
+- [ ] T044 [P] [US7] Create tests/integration/services/inventory-service-real.test.ts with schema sync for inventory_items, inventory_lots, inventory_transactions tables
+- [ ] T045 [US7] Implement real-world scenario: Material receipt with quarantine -> QC release workflow in inventory-service-real.test.ts
+- [ ] T046 [US7] Implement real-world scenario: Stock transactions (issue, transfer, adjust) in inventory-service-real.test.ts
+- [ ] T047 [US7] Test inventory service CRUD functions: listItems, getLotById, createTransaction, getStockBalance in inventory-service-real.test.ts
+- [ ] T048 [US7] Test lot status functions: quarantineLot, releaseLot, rejectLot, getAvailableStock in inventory-service-real.test.ts
+- [ ] T049 [US7] Test edge cases: negative stock prevention, lot expiry handling, status blocking in inventory-service-real.test.ts
 
-### Implementation for User Story 6
+### Production Service Tests [US8]
 
-- [ ] T116 [US6] Create stability-service in `src/lib/services/stability-service.ts`
-  - createProtocol(), enrollBatch(), generateSampleSchedule(), recordTestResult(), calculateTrends()
-- [ ] T117 [US6] Implement GET/POST `/api/stability/protocols` route
-- [ ] T118 [US6] Implement GET/PATCH `/api/stability/protocols/[id]` route
-- [ ] T119 [US6] Implement POST `/api/stability/protocols/[id]/approve` route
-- [ ] T120 [US6] Implement GET/POST `/api/stability/studies` route
-- [ ] T121 [US6] Implement GET/PATCH `/api/stability/studies/[id]` route
-- [ ] T122 [US6] Implement GET `/api/stability/samples` route with filters
-- [ ] T123 [US6] Implement GET/PATCH `/api/stability/samples/[id]` route
-- [ ] T124 [US6] Implement POST `/api/stability/samples/[id]/test` route (link to quality_tests)
-- [ ] T125 [US6] Implement GET `/api/stability/samples/alerts` route (due/overdue samples)
-- [ ] T126 [US6] Implement GET `/api/stability/trends` route
-- [ ] T127 [US6] Implement GET `/api/stability/trends/[studyId]` route with projections
-- [ ] T128 [P] [US6] Create StabilityProtocolList.tsx in `src/components/stability/`
-- [ ] T129 [P] [US6] Create StabilityStudyList.tsx in `src/components/stability/`
-- [ ] T130 [P] [US6] Create StabilitySampleSchedule.tsx in `src/components/stability/`
-- [ ] T131 [P] [US6] Create StabilityTrendChart.tsx in `src/components/stability/` with DevExtreme dxChart
-- [ ] T132 [US6] Create stability dashboard page in `src/app/stability/page.tsx`
-- [ ] T133 [US6] Create studies list page in `src/app/stability/studies/page.tsx`
-- [ ] T134 [US6] Create trends page in `src/app/stability/trends/page.tsx`
+- [ ] T050 [P] [US8] Create tests/integration/services/production-service-real.test.ts with schema sync for work_orders, batch_records, bill_of_materials tables
+- [ ] T051 [US8] Implement real-world scenario: Work order execution (release -> material issue -> production -> yield reconciliation) in production-service-real.test.ts
+- [ ] T052 [US8] Implement real-world scenario: Line clearance and dual verification workflow in production-service-real.test.ts
+- [ ] T053 [US8] Test production service CRUD functions: listWorkOrders, getWorkOrderById, createWorkOrder, updateStatus in production-service-real.test.ts
+- [ ] T054 [US8] Test batch record functions: startProduction, recordStep, verifyMaterial, calculateYield in production-service-real.test.ts
+- [ ] T055 [US8] Test edge cases: yield variance deviation, material substitution, batch record completion in production-service-real.test.ts
 
-**Checkpoint**: Stability program module fully functional
+### Quality Service Tests [US9]
 
----
+- [ ] T056 [P] [US9] Create tests/integration/services/quality-service-real.test.ts with schema sync for quality_tests, test_results, specifications tables
+- [ ] T057 [US9] Implement real-world scenario: Sample testing workflow (sample -> test -> approve/reject) in quality-service-real.test.ts
+- [ ] T058 [US9] Implement real-world scenario: OOS investigation and retest workflow in quality-service-real.test.ts
+- [ ] T059 [US9] Test quality service CRUD functions: listTests, getTestById, createTest, recordResult in quality-service-real.test.ts
+- [ ] T060 [US9] Test specification functions: compareToSpec, flagOOS, approveResult, rejectBatch in quality-service-real.test.ts
+- [ ] T061 [US9] Test edge cases: spec limit validation, multi-parameter tests, COA generation data in quality-service-real.test.ts
 
-## Phase 8: User Story 9 - Facilities Manager Manages Sanitation (Priority: P3)
+### HR Service Tests [US10]
 
-**Goal**: Implement sanitation schedules, cleaning logs, pest control tracking, and trend analysis
+- [ ] T062 [P] [US10] Create tests/integration/services/hr-service-real.test.ts with schema sync for hr_employees, hr_training_records, hr_authorizations tables
+- [ ] T063 [US10] Implement real-world scenario: Employee onboarding with training assignment in hr-service-real.test.ts
+- [ ] T064 [US10] Implement real-world scenario: Training completion and re-training triggers in hr-service-real.test.ts
+- [ ] T065 [US10] Test HR service CRUD functions: listEmployees, getEmployeeById, createEmployee, updateEmployee in hr-service-real.test.ts
+- [ ] T066 [US10] Test training functions: assignTraining, recordCompletion, checkExpiry, getTrainingMatrix in hr-service-real.test.ts
+- [ ] T067 [US10] Test edge cases: delegation handling, authorization expiry, training overdue alerts in hr-service-real.test.ts
 
-**Independent Test**: Create schedule, log completion, record pest control, view trends
-
-### Tests for User Story 9
-
-- [ ] T135 [P] [US9] Unit test for sanitation-service in `tests/unit/services/sanitation-service.test.ts`
-- [ ] T136 [P] [US9] Integration test for sanitation API in `tests/integration/api/sanitation.test.ts`
-
-### Implementation for User Story 9
-
-- [ ] T137 [US9] Create sanitation-service in `src/lib/services/sanitation-service.ts`
-  - createSchedule(), logCompletion(), logPestControl(), getPendingTasks(), getTrends()
-- [ ] T138 [US9] Implement GET/POST `/api/sanitation/schedules` route
-- [ ] T139 [US9] Implement GET/PATCH/DELETE `/api/sanitation/schedules/[id]` route
-- [ ] T140 [US9] Implement GET/POST `/api/sanitation/logs` route
-- [ ] T141 [US9] Implement GET/PATCH `/api/sanitation/logs/[id]` route
-- [ ] T142 [US9] Implement GET `/api/sanitation/logs/pending` route
-- [ ] T143 [US9] Implement GET/POST `/api/sanitation/pest-control` route
-- [ ] T144 [US9] Implement GET/PATCH `/api/sanitation/pest-control/[id]` route
-- [ ] T145 [US9] Implement GET `/api/sanitation/trends` route
-- [ ] T146 [P] [US9] Create SanitationScheduleList.tsx in `src/components/sanitation/`
-- [ ] T147 [P] [US9] Create SanitationLogForm.tsx in `src/components/sanitation/`
-- [ ] T148 [P] [US9] Create PestControlLogForm.tsx in `src/components/sanitation/`
-- [ ] T149 [P] [US9] Create SanitationTrends.tsx in `src/components/sanitation/`
-- [ ] T150 [US9] Create sanitation dashboard page in `src/app/sanitation/page.tsx`
-- [ ] T151 [US9] Create schedules page in `src/app/sanitation/schedules/page.tsx`
-- [ ] T152 [US9] Create logs page in `src/app/sanitation/logs/page.tsx`
-- [ ] T153 [US9] Create pest control page in `src/app/sanitation/pest-control/page.tsx`
-
-**Checkpoint**: Sanitation program module fully functional
+**Checkpoint**: P3 core business modules have comprehensive real SQLite tests
 
 ---
 
-## Phase 9: User Story 10 - Internal Auditor Conducts Self-Inspection (Priority: P3)
+## Phase 6: Business Module Tests - Priority 3 Continued (P3)
 
-**Goal**: Implement audit planning, execution, findings recording, and CAPA linkage
+**Goal**: Integration tests for remaining business modules: Sales, Purchasing, VMI Portal
 
-**Independent Test**: Create audit plan, schedule audit, record findings, create CAPA from finding, close
+### Sales Service Tests [US11]
 
-### Tests for User Story 10
+- [ ] T068 [P] [US11] Create tests/integration/services/sales-service-real.test.ts with schema sync for sales_orders, sales_order_items, customers tables
+- [ ] T069 [US11] Implement real-world scenario: Sales order lifecycle (create -> fulfill -> ship -> invoice) in sales-service-real.test.ts
+- [ ] T070 [US11] Test sales service CRUD functions: listOrders, getOrderById, createOrder, updateOrderStatus in sales-service-real.test.ts
+- [ ] T071 [US11] Test fulfillment functions: reserveInventory, shipOrder, generateInvoice in sales-service-real.test.ts
+- [ ] T072 [US11] Test edge cases: insufficient stock, partial shipment, order cancellation in sales-service-real.test.ts
 
-- [ ] T154 [P] [US10] Unit test for audit-service in `tests/unit/services/audit-service.test.ts`
-- [ ] T155 [P] [US10] Integration test for audits API in `tests/integration/api/audits.test.ts`
-- [ ] T156 [P] [US10] Workflow test for audit-to-capa in `tests/integration/workflows/audit-to-capa.test.ts`
+### Purchasing Service Tests [US12]
 
-### Implementation for User Story 10
+- [ ] T073 [P] [US12] Create tests/integration/services/purchasing-service-real.test.ts with schema sync for purchase_orders, po_items, vendors tables
+- [ ] T074 [US12] Implement real-world scenario: Purchase order lifecycle (create -> approve -> receive -> close) in purchasing-service-real.test.ts
+- [ ] T075 [US12] Test purchasing service CRUD functions: listPOs, getPOById, createPO, updatePOStatus in purchasing-service-real.test.ts
+- [ ] T076 [US12] Test receiving functions: receiveGoods, partialReceipt, linkToLot in purchasing-service-real.test.ts
+- [ ] T077 [US12] Test edge cases: approved vendor validation, over-receipt prevention, PO closure with variances in purchasing-service-real.test.ts
 
-- [ ] T157 [US10] Create audit-service in `src/lib/services/audit-service.ts`
-  - createPlan(), scheduleAudit(), recordFinding(), createCapaFromFinding(), closeFinding()
-- [ ] T158 [US10] Implement GET/POST `/api/audits/plans` route
-- [ ] T159 [US10] Implement GET/PATCH `/api/audits/plans/[id]` route
-- [ ] T160 [US10] Implement POST `/api/audits/plans/[id]/approve` route
-- [ ] T161 [US10] Implement GET/POST `/api/audits` route
-- [ ] T162 [US10] Implement GET/PATCH `/api/audits/[id]` route
-- [ ] T163 [US10] Implement POST `/api/audits/[id]/start` route
-- [ ] T164 [US10] Implement POST `/api/audits/[id]/complete` route
-- [ ] T165 [US10] Implement GET/POST `/api/audits/findings` route
-- [ ] T166 [US10] Implement GET/PATCH `/api/audits/findings/[id]` route
-- [ ] T167 [US10] Implement POST `/api/audits/findings/[id]/capa` route
-- [ ] T168 [US10] Implement POST `/api/audits/findings/[id]/close` route
-- [ ] T169 [US10] Implement GET `/api/audits/reports` route (statistics)
-- [ ] T170 [US10] Implement GET `/api/audits/reports/coverage` route (GMP chapter coverage)
-- [ ] T171 [P] [US10] Create AuditPlanList.tsx in `src/components/audits/`
-- [ ] T172 [P] [US10] Create AuditScheduleCalendar.tsx in `src/components/audits/`
-- [ ] T173 [P] [US10] Create AuditFindingForm.tsx in `src/components/audits/`
-- [ ] T174 [P] [US10] Create AuditCoverageChart.tsx in `src/components/audits/`
-- [ ] T175 [US10] Create audits dashboard page in `src/app/audits/page.tsx`
-- [ ] T176 [US10] Create plans page in `src/app/audits/plans/page.tsx`
-- [ ] T177 [US10] Create audit detail page in `src/app/audits/[id]/page.tsx`
+### VMI Portal Service Tests [US13]
 
-**Checkpoint**: Internal audit module fully functional
+- [ ] T078 [P] [US13] Create tests/integration/services/vmi-portal-service-real.test.ts with schema sync for vmi_vendors, vmi_inventory, vmi_orders tables
+- [ ] T079 [US13] Implement real-world scenario: VMI vendor sync and replenishment workflow in vmi-portal-service-real.test.ts
+- [ ] T080 [US13] Test VMI service CRUD functions: listVMIVendors, getInventoryLevels, createReplenishmentOrder in vmi-portal-service-real.test.ts
+- [ ] T081 [US13] Test sync functions: syncVendorInventory, calculateReorderPoint, processVMIOrder in vmi-portal-service-real.test.ts
+- [ ] T082 [US13] Test edge cases: sync failures, inventory discrepancies, vendor configuration changes in vmi-portal-service-real.test.ts
+
+**Checkpoint**: All P3 business modules have comprehensive real SQLite tests
 
 ---
 
-## Phase 10: User Story 1 - QA Manager Reviews Compliance Dashboard (Priority: P1)
+## Phase 7: Polish & Verification
 
-**Goal**: Implement compliance dashboard showing GMP chapter status with drill-down to gaps
+**Purpose**: Final validation and documentation
 
-**Independent Test**: View dashboard, verify all chapters shown, drill-down to specific gaps
+- [ ] T083 Run all integration tests with `pnpm test tests/integration/` and verify 100% pass rate
+- [ ] T084 Generate test coverage report with `pnpm test:coverage` and verify service coverage > 80%
+- [ ] T085 [P] Update quickstart.md with final test patterns and module-specific examples
+- [ ] T086 [P] Update research.md with any new patterns discovered during implementation
+- [ ] T087 Create test summary report documenting scenarios covered per module
+- [ ] T088 Run `pnpm tsc --noEmit` and `pnpm lint` to verify no type/lint errors
 
-**Note**: This user story depends on other modules being implemented to show meaningful data
-
-### Implementation for User Story 1
-
-- [ ] T178 [US1] Create compliance-service in `src/lib/services/compliance-service.ts`
-  - calculateChapterCoverage(), getGapDetails(), getModuleStatus()
-- [ ] T179 [US1] Implement GET `/api/compliance/dashboard` route
-- [ ] T180 [US1] Implement GET `/api/compliance/gaps` route with chapter filter
-- [ ] T181 [P] [US1] Create ComplianceDashboard.tsx in `src/components/compliance/`
-- [ ] T182 [P] [US1] Create ChapterStatusCard.tsx in `src/components/compliance/`
-- [ ] T183 [P] [US1] Create GapAnalysisTable.tsx in `src/components/compliance/`
-- [ ] T184 [US1] Create compliance dashboard page in `src/app/compliance/page.tsx`
-
-**Checkpoint**: Compliance dashboard fully functional
-
----
-
-## Phase 11: Supporting Modules (P1.3, P1.4, P3.4)
-
-**Purpose**: Change Control, PQR Generation, Contract Repository
-
-### Change Control (P1.3)
-
-- [ ] T185 [P] Create change-service in `src/lib/services/change-service.ts`
-- [ ] T186 Implement GET/POST `/api/changes` route
-- [ ] T187 Implement GET/PATCH `/api/changes/[id]` route
-- [ ] T188 Implement POST `/api/changes/[id]/approve` route
-- [ ] T189 [P] Create ChangeRequestList.tsx in `src/components/changes/`
-- [ ] T190 [P] Create ChangeRequestForm.tsx in `src/components/changes/`
-
-### PQR Generation (P1.4)
-
-- [ ] T191 [P] Create pqr-service in `src/lib/services/pqr-service.ts`
-  - generateReport(), calculateMetrics(), aggregateData()
-- [ ] T192 Implement POST `/api/pqr/generate` route (aggregates data from all modules)
-- [ ] T193 Implement GET `/api/pqr` route (list reports)
-- [ ] T194 Implement GET `/api/pqr/[id]` route (report details)
-- [ ] T195 [P] Create PqrReportList.tsx in `src/components/pqr/`
-- [ ] T196 [P] Create PqrReportViewer.tsx in `src/components/pqr/`
-
-### Contract Repository (P3.4)
-
-- [ ] T197 [P] Create contract-service in `src/lib/services/contract-service.ts`
-- [ ] T198 Implement GET/POST `/api/contracts` route
-- [ ] T199 Implement GET/PATCH `/api/contracts/[id]` route
-- [ ] T200 [P] Create ContractList.tsx in `src/components/contracts/`
-- [ ] T201 [P] Create ContractForm.tsx in `src/components/contracts/`
-
----
-
-## Phase 12: User Story 4 & 5 - eBMR and Material Status Enhancements (Priority: P2)
-
-**Goal**: Enhance existing work order and inventory modules for GMP compliance
-
-**Note**: These stories enhance existing modules rather than creating new ones
-
-### User Story 4 - eBMR Enhancements
-
-- [ ] T202 [US4] Add line_clearance_verified field to existing work_orders table
-- [ ] T203 [US4] Add ipc_checkpoints JSON field to existing work_order_operations table
-- [ ] T204 [US4] Add dual_verification fields to existing weighing/dispensing records
-- [ ] T205 [US4] Implement line clearance verification UI in existing work order page
-- [ ] T206 [US4] Implement IPC checkpoint recording UI
-- [ ] T207 [US4] Implement dual verification UI for critical operations
-
-### User Story 5 - Material Status Enhancements
-
-- [ ] T208 [US5] Add rejection_reason, rejection_date fields to inventory_lots table
-- [ ] T209 [US5] Add blocked_for_qa field to inventory_lots table
-- [ ] T210 [US5] Update inventory issuance logic to block rejected/quarantine lots
-- [ ] T211 [US5] Add material status dashboard to inventory module
-
----
-
-## Phase 13: Polish & Cross-Cutting Concerns
-
-**Purpose**: Improvements that affect multiple user stories
-
-- [ ] T212 [P] Add audit trail logging to all new API routes
-- [ ] T213 [P] Add permission checks for all new API routes based on hr_authorizations
-- [ ] T214 [P] Add email notification triggers for approvals, due dates, overdue items
-- [ ] T215 Code cleanup and refactoring across all new modules
-- [ ] T216 Performance optimization: add database indexes per data-model.md
-- [ ] T217 [P] Add unit tests for remaining untested services
-- [ ] T218 Security hardening: input validation, SQL injection prevention review
-- [ ] T219 Run quickstart.md validation for all implemented patterns
-- [ ] T220 Update navigation menu with proper grouping and permissions
-- [ ] T221 Final integration test: complete workflow from deviation to CAPA to closure
+**Checkpoint**: All 16 service modules have comprehensive real SQLite integration tests
 
 ---
 
@@ -437,141 +214,107 @@
 ### Phase Dependencies
 
 - **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup - BLOCKS all user stories
-- **User Stories (Phases 3-12)**: All depend on Foundational phase completion
-- **Polish (Phase 13)**: Depends on all desired user stories being complete
+- **Foundational (Phase 2)**: Depends on Setup (Phase 1) - validates shared helpers work
+- **P1 Module Tests (Phase 3)**: Depends on Foundational (Phase 2) - [US1], [US2], [US3] can run in parallel
+- **P2 Module Tests (Phase 4)**: Depends on Foundational (Phase 2) - [US4], [US5], [US6] can run in parallel
+- **P3 Module Tests (Phase 5-6)**: Depends on Foundational (Phase 2) - [US7]-[US13] can run in parallel
+- **Polish (Phase 7)**: Depends on all test implementation phases
 
-### User Story Dependencies
+### User Story Independence
 
-```
-Foundation (Phase 2) ─┬─→ US2 Document Control (Phase 3) ─→ Change Control (Phase 11)
-                      │
-                      ├─→ US3 CAPA (Phase 4) ─┬─→ US7 Complaints (Phase 5)
-                      │                       │
-                      │                       ├─→ US10 Internal Audit (Phase 9)
-                      │                       │
-                      │                       └─→ PQR (Phase 11) requires US3
-                      │
-                      ├─→ US6 Stability (Phase 7) - Independent
-                      │
-                      ├─→ US8 Recalls (Phase 6) ←─ US7 Complaints
-                      │
-                      ├─→ US9 Sanitation (Phase 8) - Independent
-                      │
-                      └─→ US1 Compliance Dashboard (Phase 10) - Depends on all modules
-```
+Each user story represents a service module that can be tested independently:
+
+| Story | Module | Dependencies |
+|-------|--------|--------------|
+| US1 | Complaints | Phase 2 only |
+| US2 | Documents | Phase 2 only |
+| US3 | Internal Audit | Phase 2 only, links to CAPA |
+| US4 | Recalls | Phase 2 only |
+| US5 | Sanitation | Phase 2 only |
+| US6 | Stability | Phase 2 only, links to quality_tests |
+| US7 | Inventory | Phase 2 only |
+| US8 | Production | Phase 2 only |
+| US9 | Quality | Phase 2 only |
+| US10 | HR | Phase 2 only |
+| US11 | Sales | Phase 2 only |
+| US12 | Purchasing | Phase 2 only |
+| US13 | VMI Portal | Phase 2 only |
 
 ### Parallel Opportunities
 
-**After Phase 2 (Foundation), these can run in parallel:**
-- US2 Document Control (Phase 3)
-- US6 Stability (Phase 7)
-- US9 Sanitation (Phase 8)
+**Phase 1 (Setup)**: T003, T004 can run in parallel after T001, T002
 
-**After US3 CAPA (Phase 4), these can run in parallel:**
-- US7 Complaints (Phase 5)
-- US10 Internal Audit (Phase 9)
+**Phase 3-6 (Module Tests)**: All modules with [P] marker can start simultaneously:
+- T008, T014, T020 (P1 modules)
+- T026, T032, T038 (P2 modules)
+- T044, T050, T056, T062, T068, T073, T078 (P3 modules)
 
-**US8 Recalls requires US7 Complaints first due to complaint-to-recall workflow**
-
-**US1 Compliance Dashboard should be implemented last as it aggregates all module data**
+**Within Each Module**: Test file creation [P] can run in parallel, scenarios are sequential
 
 ---
 
-## Parallel Example: Phase 2 Foundation
+## Parallel Example: P1 Module Tests
 
 ```bash
-# Launch all schema tasks together (different tables):
-Task: "Create documents table in schema.ts"
-Task: "Create capa table in schema.ts"
-Task: "Create complaints table in schema.ts"
-Task: "Create recalls table in schema.ts"
-# ... (all T009-T036 can run in parallel)
+# Launch all P1 module test files together (Phase 3):
+Task: "Create tests/integration/services/complaint-service-real.test.ts" [US1]
+Task: "Create tests/integration/services/document-service-real.test.ts" [US2]
+Task: "Create tests/integration/services/internal-audit-service-real.test.ts" [US3]
 
-# Launch all shared components together (different files):
-Task: "Create WorkflowStatusBadge.tsx"
-Task: "Create ApprovalChain.tsx"
-Task: "Create AuditTrailViewer.tsx"
-Task: "Create TrendChart.tsx"
-```
-
----
-
-## Parallel Example: Independent User Stories
-
-```bash
-# After Foundation complete, launch these in parallel:
-
-# Developer A: Document Control
-Task: "Create document-service in src/lib/services/document-service.ts"
-Task: "Implement GET/POST /api/documents route"
-# ...
-
-# Developer B: Stability Program
-Task: "Create stability-service in src/lib/services/stability-service.ts"
-Task: "Implement GET/POST /api/stability/protocols route"
-# ...
-
-# Developer C: Sanitation
-Task: "Create sanitation-service in src/lib/services/sanitation-service.ts"
-Task: "Implement GET/POST /api/sanitation/schedules route"
-# ...
+# Then implement scenarios sequentially within each module
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (Core P1 Stories)
+### MVP First (Phase 1-3 Only)
 
-1. Complete Phase 1: Setup
-2. Complete Phase 2: Foundation (CRITICAL - blocks all stories)
-3. Complete Phase 3: US2 Document Control
-4. Complete Phase 4: US3 CAPA
-5. **STOP and VALIDATE**: Test document and CAPA workflows
-6. Deploy/demo - This is the P1 MVP!
+1. Complete Phase 1: Setup (shared helpers)
+2. Complete Phase 2: Foundational (validate with CAPA tests)
+3. Complete Phase 3: P1 GMP Modules (Complaints, Documents, Internal Audit)
+4. **STOP and VALIDATE**: Run `pnpm test tests/integration/` - all P1 tests pass
+5. Commit and verify: 4 modules with real SQLite tests (including existing CAPA)
 
 ### Incremental Delivery
 
-1. Setup + Foundation → Foundation ready
-2. Add US2 Document Control → Test → Deploy (Document MVP)
-3. Add US3 CAPA → Test → Deploy (QMS MVP)
-4. Add US7 Complaints → Test → Deploy
-5. Add US8 Recalls → Test → Deploy (Complaint/Recall MVP)
-6. Add US6 Stability → Test → Deploy
-7. Add US9 Sanitation → Test → Deploy
-8. Add US10 Internal Audit → Test → Deploy
-9. Add US1 Compliance Dashboard → Test → Deploy (Full Feature)
+1. Phase 1-2 complete → Shared infrastructure ready
+2. Add Phase 3 (P1 modules) → 4 modules tested (CAPA + 3 new)
+3. Add Phase 4 (P2 modules) → 7 modules tested
+4. Add Phase 5-6 (P3 modules) → 14 modules tested
+5. Add Phase 7 (Polish) → All 16 modules with documentation
+
+### Parallel Team Strategy
+
+With multiple developers after Phase 2:
+- Developer A: Complaints, Recalls, Sales (US1, US4, US11)
+- Developer B: Documents, Sanitation, Purchasing (US2, US5, US12)
+- Developer C: Internal Audit, Stability, VMI (US3, US6, US13)
+- Developer D: Inventory, Production, Quality, HR (US7, US8, US9, US10)
 
 ---
 
 ## Task Summary
 
-| Phase | User Story | Tasks | Priority |
-|-------|------------|-------|----------|
-| 1 | Setup | 8 | - |
-| 2 | Foundation | 35 | - |
-| 3 | US2 Document Control | 17 | P1 |
-| 4 | US3 CAPA | 20 | P1 |
-| 5 | US7 Complaints | 14 | P2 |
-| 6 | US8 Recalls | 19 | P2 |
-| 7 | US6 Stability | 21 | P2 |
-| 8 | US9 Sanitation | 19 | P3 |
-| 9 | US10 Internal Audit | 24 | P3 |
-| 10 | US1 Compliance Dashboard | 7 | P1 |
-| 11 | Supporting Modules | 17 | P1/P3 |
-| 12 | US4/US5 Enhancements | 10 | P2 |
-| 13 | Polish | 10 | - |
-| **Total** | | **221** | |
+| Phase | Description | Tasks | Priority |
+|-------|-------------|-------|----------|
+| 1 | Setup - Shared Test Infrastructure | 4 | - |
+| 2 | Foundational - Reference Validation | 3 | - |
+| 3 | P1 GMP Module Tests (Complaints, Documents, Audit) | 18 | P1 |
+| 4 | P2 GMP Module Tests (Recalls, Sanitation, Stability) | 18 | P2 |
+| 5 | P3 Business Module Tests (Inventory, Production, Quality, HR) | 24 | P3 |
+| 6 | P3 Business Module Tests (Sales, Purchasing, VMI) | 15 | P3 |
+| 7 | Polish & Verification | 6 | - |
+| **Total** | | **88** | |
 
 ---
 
 ## Notes
 
-- [P] tasks = different files, no dependencies
-- [Story] label maps task to specific user story for traceability
-- Each user story should be independently completable and testable
+- CAPA service tests already exist - use as reference implementation
+- Each test file must use real SQLite database (not mocks)
+- Schema sync from Drizzle ORM ensures test/production parity
+- Clean + seed in beforeEach prevents test pollution
+- Target: ~200 test cases across 16 modules
+- Performance target: All tests complete in < 60 seconds
 - Commit after each task or logical group
-- All API routes must include audit trail logging
-- All UI must use DevExtreme components exclusively
-- All services must support SQLite (test) and MySQL (production)
