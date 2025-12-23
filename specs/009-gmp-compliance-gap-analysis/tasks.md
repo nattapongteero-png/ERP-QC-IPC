@@ -68,12 +68,12 @@
 
 ### Internal Audit Service Tests [US3]
 
-- [ ] T020 [P] [US3] Create tests/integration/services/internal-audit-service-real.test.ts with schema sync for audit_plans, audits, audit_findings, audit_checklists tables
-- [ ] T021 [US3] Implement real-world scenario: Complete audit cycle (schedule -> conduct -> findings -> CAPA -> close) in internal-audit-service-real.test.ts
-- [ ] T022 [US3] Implement real-world scenario: Finding classification and CAPA linkage in internal-audit-service-real.test.ts
-- [ ] T023 [US3] Test audit service CRUD functions: listAudits, getAuditById, createAudit, updateAudit in internal-audit-service-real.test.ts
-- [ ] T024 [US3] Test finding functions: recordFinding, createCapaFromFinding, completeAudit in internal-audit-service-real.test.ts
-- [ ] T025 [US3] Test edge cases: audit plan coverage validation, finding severity tracking, GMP chapter mapping in internal-audit-service-real.test.ts
+- [x] T020 [P] [US3] Create tests/integration/services/internal-audit-service-real.test.ts with schema sync for audit_plans, audits, audit_findings, audit_checklists tables
+- [x] T021 [US3] Implement real-world scenario: Complete audit cycle (schedule -> conduct -> findings -> CAPA -> close) in internal-audit-service-real.test.ts
+- [x] T022 [US3] Implement real-world scenario: Finding classification and CAPA linkage in internal-audit-service-real.test.ts
+- [x] T023 [US3] Test audit service CRUD functions: listAudits, getAuditById, createAudit, updateAudit in internal-audit-service-real.test.ts
+- [x] T024 [US3] Test finding functions: recordFinding, createCapaFromFinding, completeAudit in internal-audit-service-real.test.ts
+- [x] T025 [US3] Test edge cases: audit plan coverage validation, finding severity tracking, GMP chapter mapping in internal-audit-service-real.test.ts
 
 **Checkpoint**: P1 GMP compliance modules have comprehensive real SQLite tests - run `pnpm test tests/integration/services/complaint-service-real.test.ts tests/integration/services/document-service-real.test.ts tests/integration/services/internal-audit-service-real.test.ts`
 
