@@ -4,6 +4,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
+import { toDateSafe } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteItems,
@@ -191,7 +192,7 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
   for (const lot of lotsData) {
     if (!lot.expiryDate) continue;
 
-    const expiryDate = new Date(lot.expiryDate);
+    const expiryDate = toDateSafe(lot.expiryDate);
     const diffDays = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     const qty = Number(lot.quantity) || 0;
 
