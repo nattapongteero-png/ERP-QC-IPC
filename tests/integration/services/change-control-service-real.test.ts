@@ -15,6 +15,16 @@ import { getTableName, getTableColumns } from 'drizzle-orm';
 import { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import * as schema from '@/lib/db/schema';
 
+// Type for column properties
+interface ColumnDefinition {
+  name: string;
+  getSQLType(): string;
+  notNull?: boolean;
+  primary?: boolean;
+  autoIncrement?: boolean;
+  default?: string | number | boolean;
+}
+
 // Create test database
 let sqlite: Database.Database;
 let testDb: ReturnType<typeof drizzle>;
@@ -54,13 +64,13 @@ function createTableFromSchema(db: Database.Database, table: SQLiteTable) {
   const columns = getTableColumns(table);
 
   const columnDefs = Object.entries(columns).map(([, col]) => {
-    const colDef = (col as any).getSQLType();
-    const notNull = (col as any).notNull ? 'NOT NULL' : '';
-    const primaryKey = (col as any).primary ? 'PRIMARY KEY' : '';
-    const autoIncrement = (col as any).autoIncrement ? 'AUTOINCREMENT' : '';
-    const defaultVal = (col as any).default !== undefined ? `DEFAULT ${(col as any).default}` : '';
+    const colDef = (col as ColumnDefinition).getSQLType();
+    const notNull = (col as ColumnDefinition).notNull ? 'NOT NULL' : '';
+    const primaryKey = (col as ColumnDefinition).primary ? 'PRIMARY KEY' : '';
+    const autoIncrement = (col as ColumnDefinition).autoIncrement ? 'AUTOINCREMENT' : '';
+    const defaultVal = (col as ColumnDefinition).default !== undefined ? `DEFAULT ${(col as ColumnDefinition).default}` : '';
 
-    return `${(col as any).name} ${colDef} ${primaryKey} ${autoIncrement} ${notNull} ${defaultVal}`.trim();
+    return `${(col as ColumnDefinition).name} ${colDef} ${primaryKey} ${autoIncrement} ${notNull} ${defaultVal}`.trim();
   });
 
   const sql = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnDefs.join(', ')})`;
