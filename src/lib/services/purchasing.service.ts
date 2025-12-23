@@ -4,7 +4,7 @@
  */
 
 import { db, isSqlite } from '../db';
-import { toQueryDate } from '../db/date-utils';
+import { toQueryDate, getTodayStr } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqlitePurchaseOrders,
@@ -174,7 +174,7 @@ export async function getPreferredVendor(itemId: number): Promise<number | null>
   const { avl, vendors } = getTables();
   const database = db();
 
-  const today = new Date().toISOString().split('T')[0];
+  const todayForQuery = toQueryDate(getTodayStr());
 
   // Find preferred vendor from AVL
   const [preferred] = await database
@@ -189,7 +189,7 @@ export async function getPreferredVendor(itemId: number): Promise<number | null>
         eq(vendors.isApproved, true),
         or(
           sql`${avl.expiryDate} IS NULL`,
-          gte(avl.expiryDate, today)
+          gte(avl.expiryDate, todayForQuery)
         )
       )
     );
@@ -210,7 +210,7 @@ export async function getPreferredVendor(itemId: number): Promise<number | null>
         eq(vendors.isApproved, true),
         or(
           sql`${avl.expiryDate} IS NULL`,
-          gte(avl.expiryDate, today)
+          gte(avl.expiryDate, todayForQuery)
         )
       )
     )

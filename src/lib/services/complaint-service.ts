@@ -7,7 +7,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
-import { getNow, toDbDate, getTodayStr, formatDateFromDb, formatMonthFromDb } from '../db/date-utils';
+import { getNow, toDbDate, getTodayStr, formatDateFromDb, formatMonthFromDb, toQueryDate } from '../db/date-utils';
 import { eq, and, desc, gte, lte, like, count } from 'drizzle-orm';
 import {
   sqliteComplaints,
@@ -161,8 +161,8 @@ export async function listComplaints(
   if (category) conditions.push(eq(complaintsTable.category, category));
   if (severity) conditions.push(eq(complaintsTable.severity, severity));
   if (productId) conditions.push(eq(complaintsTable.productId, productId));
-  if (fromDate) conditions.push(gte(complaintsTable.receivedDate, fromDate));
-  if (toDate) conditions.push(lte(complaintsTable.receivedDate, toDate));
+  if (fromDate) conditions.push(gte(complaintsTable.receivedDate, toQueryDate(fromDate)));
+  if (toDate) conditions.push(lte(complaintsTable.receivedDate, toQueryDate(toDate)));
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 

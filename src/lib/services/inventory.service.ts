@@ -4,6 +4,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
+import { toQueryDate, getTodayStr } from '../db/date-utils';
 import { eq, and, gte, lte, desc, asc, sql, or } from 'drizzle-orm';
 import {
   sqliteInventoryLots,
@@ -472,10 +473,11 @@ export async function checkExpiryAlerts(daysThreshold: number = 30): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
 
-  const today = new Date().toISOString().split('T')[0];
+  const todayStr = getTodayStr();
+  const todayForQuery = toQueryDate(todayStr);
   const thresholdDate = new Date();
   thresholdDate.setDate(thresholdDate.getDate() + daysThreshold);
-  const thresholdDateStr = thresholdDate.toISOString().split('T')[0];
+  const thresholdDateForQuery = toQueryDate(thresholdDate.toISOString().split('T')[0]);
 
   // Get near expiry lots
   const nearExpiryLots = await database
@@ -490,8 +492,8 @@ export async function checkExpiryAlerts(daysThreshold: number = 30): Promise<{
     .where(
       and(
         eq(lots.status, 'released'),
-        gte(lots.expiryDate, today),
-        lte(lots.expiryDate, thresholdDateStr)
+        gte(lots.expiryDate, todayForQuery),
+        lte(lots.expiryDate, thresholdDateForQuery)
       )
     )
     .orderBy(asc(lots.expiryDate));
@@ -509,7 +511,7 @@ export async function checkExpiryAlerts(daysThreshold: number = 30): Promise<{
     .where(
       and(
         or(eq(lots.status, 'released'), eq(lots.status, 'quarantine')),
-        sql`${lots.expiryDate} < ${today}`
+        sql`${lots.expiryDate} < ${todayStr}`
       )
     );
 
@@ -519,7 +521,7 @@ export async function checkExpiryAlerts(daysThreshold: number = 30): Promise<{
       itemName: lot.itemName || '',
       expiryDate: lot.expiryDate || '',
       daysToExpiry: Math.ceil(
-        (new Date(lot.expiryDate || '').getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
+        (new Date(lot.expiryDate || '').getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24)
       ),
     })),
     expired: expiredLots.map((lot: any) => ({

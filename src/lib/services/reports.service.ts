@@ -249,8 +249,8 @@ export async function getProductionYieldReport(
   const conditions = [
     or(eq(workOrders.status, 'completed'), eq(workOrders.status, 'closed')),
   ];
-  if (dateFrom) conditions.push(gte(workOrders.actualEndDate, dateFrom));
-  if (dateTo) conditions.push(lte(workOrders.actualEndDate, dateTo));
+  if (dateFrom) conditions.push(gte(workOrders.actualEndDate, toQueryDate(dateFrom)));
+  if (dateTo) conditions.push(lte(workOrders.actualEndDate, toQueryDate(dateTo)));
 
   const woData = await database
     .select({
