@@ -7,6 +7,7 @@
 
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 import { getDb } from '../db';
+import { toDateSafe } from '../db/date-utils';
 import {
   sqliteSanitationSchedules,
   sqliteSanitationLogs,
@@ -793,7 +794,7 @@ export async function getPendingTasks(daysAhead: number = 7): Promise<PendingTas
   // Sort by due date (overdue first)
   return pendingTasks.sort((a, b) => {
     if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    return toDateSafe(a.dueDate).getTime() - toDateSafe(b.dueDate).getTime();
   });
 }
 
