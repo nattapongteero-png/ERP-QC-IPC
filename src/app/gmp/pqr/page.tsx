@@ -11,7 +11,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
   Paging,
@@ -473,7 +472,7 @@ export default function PqrDashboardPage() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col h-full gap-6 -m-4 md:-m-6">
         {/* Professional Header */}
         <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 p-6 text-white">
@@ -986,6 +985,6 @@ export default function PqrDashboardPage() {
           </div>
         </div>
       </DxPopup>
-    </MainLayout>
+    </>
   );
 }
