@@ -9,13 +9,9 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteHREmployees,
-  mysqlHREmployees,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import { eq } from 'drizzle-orm';
-import { writeFile, mkdir, unlink } from 'fs/promises';
+import { mkdir, unlink } from 'fs/promises';
 import path from 'path';
 import sharp from 'sharp';
 
@@ -27,10 +23,6 @@ const PHOTO_SIZE = 400;
 
 interface RouteParams {
   params: Promise<{ id: string }>;
-}
-
-function getEmployeesTable() {
-  return isSqlite() ? sqliteHREmployees : mysqlHREmployees;
 }
 
 // POST /api/hr/employees/[id]/photo - Upload employee photo
@@ -45,18 +37,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           return errorResponse('Invalid employee ID');
         }
 
-        // Get database connection
-        const db = await getDb();
-
         // Verify employee exists
-        const hrEmployees = getEmployeesTable();
-        const [employee] = await (db as any)
-          .select({ id: hrEmployees.id })
-          .from(hrEmployees)
-          .where(eq(hrEmployees.id, employeeId))
-          .limit(1);
+        const hrEmployees = getTableRef('hrEmployees');
+        const existing = await executeDbOperation(async (db) => {
+          return db
+            .select({ id: hrEmployees.id })
+            .from(hrEmployees)
+            .where(eq(hrEmployees.id, employeeId))
+            .limit(1);
+        });
 
-        if (!employee) {
+        if (existing.length === 0) {
           return notFoundResponse('Employee not found');
         }
 
@@ -107,14 +98,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         const photoThumbnailUrl = `/uploads/employees/${employeeId}/${thumbnailFileName}`;
 
         // Update employee record
-        await (db as any)
-          .update(hrEmployees)
-          .set({
-            photoUrl,
-            photoThumbnailUrl,
-            updatedAt: isSqlite() ? new Date().toISOString() : new Date(),
-          })
-          .where(eq(hrEmployees.id, employeeId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(hrEmployees)
+            .set({
+              photoUrl,
+              photoThumbnailUrl,
+              updatedAt: dbDate(),
+            })
+            .where(eq(hrEmployees.id, employeeId));
+        });
 
         return successResponse({
           photoUrl,
@@ -141,23 +134,24 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
           return errorResponse('Invalid employee ID');
         }
 
-        // Get database connection
-        const db = await getDb();
+        const hrEmployees = getTableRef('hrEmployees');
+        const existing = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: hrEmployees.id,
+              photoUrl: hrEmployees.photoUrl,
+              photoThumbnailUrl: hrEmployees.photoThumbnailUrl,
+            })
+            .from(hrEmployees)
+            .where(eq(hrEmployees.id, employeeId))
+            .limit(1);
+        });
 
-        const hrEmployees = getEmployeesTable();
-        const [employee] = await (db as any)
-          .select({
-            id: hrEmployees.id,
-            photoUrl: hrEmployees.photoUrl,
-            photoThumbnailUrl: hrEmployees.photoThumbnailUrl,
-          })
-          .from(hrEmployees)
-          .where(eq(hrEmployees.id, employeeId))
-          .limit(1);
-
-        if (!employee) {
+        if (existing.length === 0) {
           return notFoundResponse('Employee not found');
         }
+
+        const employee = existing[0];
 
         // Delete photo files
         if (employee.photoUrl) {
@@ -179,14 +173,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         }
 
         // Clear URLs in database
-        await (db as any)
-          .update(hrEmployees)
-          .set({
-            photoUrl: null,
-            photoThumbnailUrl: null,
-            updatedAt: isSqlite() ? new Date().toISOString() : new Date(),
-          })
-          .where(eq(hrEmployees.id, employeeId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(hrEmployees)
+            .set({
+              photoUrl: null,
+              photoThumbnailUrl: null,
+              updatedAt: dbDate(),
+            })
+            .where(eq(hrEmployees.id, employeeId));
+        });
 
         return successResponse({ message: 'Photo deleted' });
       } catch (error) {
