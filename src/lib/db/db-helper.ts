@@ -35,6 +35,17 @@ export function dbDate(date: Date = new Date()): string | Date {
 }
 
 /**
+ * Extract the inserted ID from an insert result
+ * Handles the difference between SQLite (lastInsertRowid) and MySQL (insertId)
+ */
+export function getInsertId(result: unknown): number {
+  if (isSqlite()) {
+    return Number((result as { lastInsertRowid: number | bigint }).lastInsertRowid);
+  }
+  return Number((result as unknown as [{ insertId: number }])[0].insertId);
+}
+
+/**
  * Execute a database operation with proper type handling
  */
 export async function executeDbOperation<T = any>(
