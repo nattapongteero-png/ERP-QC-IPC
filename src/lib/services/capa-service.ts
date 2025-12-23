@@ -7,7 +7,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
-import { getNow, toDbDate, getTodayStr } from '../db/date-utils';
+import { getNow, toDbDate, getTodayStr, toDateSafe } from '../db/date-utils';
 import { eq, and, desc, asc, lte, like, or, count } from 'drizzle-orm';
 import {
   sqliteCapa,
@@ -1277,8 +1277,8 @@ export async function getCapaDashboard(): Promise<CapaDashboard> {
 
     // Calculate closure time
     if (capa.closedDate) {
-      const created = new Date(capa.createdAt);
-      const closed = new Date(capa.closedDate);
+      const created = toDateSafe(capa.createdAt);
+      const closed = toDateSafe(capa.closedDate);
       const days = Math.ceil((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
       totalClosureTime += days;
       closedCount++;
