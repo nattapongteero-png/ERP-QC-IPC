@@ -10,11 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VmiSalesOrderService } from '@/lib/services/vmi-sales-order.service';
 import { z } from 'zod';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteVmiSalesOrders,
-  mysqlVmiSalesOrders,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import { eq } from 'drizzle-orm';
 
 const updateOrderSchema = z.object({
@@ -85,7 +81,8 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const data = updateOrderSchema.parse(body);
+    // Validate request body (schema includes notes and priority fields)
+    updateOrderSchema.parse(body);
 
     const service = new VmiSalesOrderService();
 
@@ -98,19 +95,18 @@ export async function PUT(
       }, { status: 404 });
     }
 
-    // Get database and schema tables
-    const db = await getDb();
-    const usingSqlite = isSqlite();
-    const vmiSalesOrders = usingSqlite ? sqliteVmiSalesOrders : mysqlVmiSalesOrders;
+    // Get table reference
+    const vmiSalesOrders = getTableRef('vmiSalesOrders');
 
     // Update order
-    const now = new Date();
-    await (db as any)
-      .update(vmiSalesOrders)
-      .set({
-        updatedAt: usingSqlite ? now.toISOString() : now,
-      })
-      .where(eq(vmiSalesOrders.id, id));
+    await executeDbOperation(async (db) => {
+      return db
+        .update(vmiSalesOrders)
+        .set({
+          updatedAt: dbDate(),
+        })
+        .where(eq(vmiSalesOrders.id, id));
+    });
 
     // Get updated order
     const updatedOrder = await service.getOrderById(id);

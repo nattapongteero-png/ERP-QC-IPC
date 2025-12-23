@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, like, sql, and } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { eq, like, and, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -10,6 +10,7 @@ import {
   createPaginatedResponse,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { sql } from 'drizzle-orm';
 
 // Generate SO number
 function generateSONumber(): string {
@@ -23,43 +24,45 @@ function generateSONumber(): string {
 
 // GET /api/sales/orders - List sales orders
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (session) => {
+  return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
       const search = searchParams.get('search') || '';
       const status = searchParams.get('status') || '';
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const soTable = useSqlite ? schema.sqliteSalesOrders : schema.mysqlSalesOrders;
-      
-      const conditions = [];
+
+      const soTable = getTableRef('salesOrders');
+
+      const conditions: (SQL | undefined)[] = [];
       if (search) {
-        conditions.push(
-          like(soTable.soNumber, `%${search}%`)
-        );
+        conditions.push(like(soTable.soNumber, `%${search}%`));
       }
       if (status) {
         conditions.push(eq(soTable.status, status));
       }
-      
-      let countQuery = (db as any).select({ count: sql`count(*)` }).from(soTable);
-      if (conditions.length > 0) {
-        countQuery = countQuery.where(and(...conditions));
-      }
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
-      
-      let query = (db as any).select().from(soTable);
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-      
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      // Get total count
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db.select({ count: sql`count(*)` }).from(soTable);
+        if (whereClause) {
+          countQuery = countQuery.where(whereClause);
+        }
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
+
+      // Get paginated results
       const offset = (pagination.page - 1) * pagination.limit;
-      const orders = await query.limit(pagination.limit).offset(offset);
-      
+      const orders = await executeDbOperation(async (db) => {
+        let query = db.select().from(soTable);
+        if (whereClause) {
+          query = query.where(whereClause);
+        }
+        return query.limit(pagination.limit).offset(offset);
+      });
+
       return successResponse(createPaginatedResponse(orders, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);
@@ -81,68 +84,67 @@ export async function POST(request: NextRequest) {
         notes,
         lines,
       } = body;
-      
+
       if (!customerName) {
         return errorResponse('Customer name is required');
       }
-      
+
       if (!lines || !Array.isArray(lines) || lines.length === 0) {
         return errorResponse('At least one line item is required');
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const soTable = useSqlite ? schema.sqliteSalesOrders : schema.mysqlSalesOrders;
-      const soLinesTable = useSqlite ? schema.sqliteSalesOrderLines : schema.mysqlSalesOrderLines;
-      
+
+      const soTable = getTableRef('salesOrders');
+      const soLinesTable = getTableRef('salesOrderLines');
+
       const soNumber = generateSONumber();
 
       // Calculate total
-      const totalAmount = lines.reduce((sum: number, line: any) => {
+      const totalAmount = lines.reduce((sum: number, line: { quantity: number; unitPrice: number }) => {
         return sum + (line.quantity * line.unitPrice);
       }, 0);
 
-      // Parse dates for MySQL (needs Date objects) vs SQLite (needs strings)
-      const now = new Date();
-      const parsedRequiredDate = requiredDate
-        ? (useSqlite ? requiredDate : new Date(requiredDate))
-        : null;
+      // Parse dates
+      const parsedRequiredDate = requiredDate ? dbDate(new Date(requiredDate)) : null;
 
       // Create SO
-      const result = await (db as any).insert(soTable).values({
-        soNumber,
-        customerName,
-        customerContact,
-        customerAddress,
-        status: 'draft',
-        orderDate: useSqlite ? now.toISOString() : now,
-        requiredDate: parsedRequiredDate,
-        totalAmount,
-        currency: 'THB',
-        paymentTerms,
-        notes,
-        createdBy: session.userId,
-        createdAt: useSqlite ? now.toISOString() : now,
-        updatedAt: useSqlite ? now.toISOString() : now,
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(soTable).values({
+          soNumber,
+          customerName,
+          customerContact,
+          customerAddress,
+          status: 'draft',
+          orderDate: dbDate(),
+          requiredDate: parsedRequiredDate,
+          totalAmount,
+          currency: 'THB',
+          paymentTerms,
+          notes,
+          createdBy: session.userId,
+          createdAt: dbDate(),
+          updatedAt: dbDate(),
+        });
       });
-      
-      const soId = useSqlite ? result.lastInsertRowid : result[0].insertId;
-      
+
+      const soId = getInsertId(result);
+
       // Create SO lines
       for (const line of lines) {
-        await (db as any).insert(soLinesTable).values({
-          soId: Number(soId),
-          itemId: line.itemId,
-          lotId: line.lotId,
-          quantity: line.quantity,
-          shippedQuantity: 0,
-          unit: line.unit,
-          unitPrice: line.unitPrice,
-          totalPrice: line.quantity * line.unitPrice,
-          notes: line.notes,
+        await executeDbOperation(async (db) => {
+          return db.insert(soLinesTable).values({
+            soId: Number(soId),
+            itemId: line.itemId,
+            lotId: line.lotId,
+            quantity: line.quantity,
+            shippedQuantity: 0,
+            unit: line.unit,
+            unitPrice: line.unitPrice,
+            totalPrice: line.quantity * line.unitPrice,
+            notes: line.notes,
+          });
         });
       }
-      
+
       await createAuditLog({
         userId: session.userId,
         action: 'CREATE',
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
         newValue: { soNumber, customerName, totalAmount, linesCount: lines.length },
         ipAddress: getClientIP(request),
       });
-      
+
       return successResponse({ id: Number(soId), soNumber }, 'Sales order created successfully');
     } catch (error) {
       return serverErrorResponse(error);

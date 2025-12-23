@@ -9,13 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VmiSalesOrderService } from '@/lib/services/vmi-sales-order.service';
 import { z } from 'zod';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteItems,
-  mysqlItems,
-  sqliteVmiSalesOrderLines,
-  mysqlVmiSalesOrderLines,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { eq } from 'drizzle-orm';
 
 const matchLineSchema = z.object({
@@ -74,19 +68,20 @@ export async function POST(
       }, { status: 404 });
     }
 
-    // Get database and schema tables
-    const db = await getDb();
-    const usingSqlite = isSqlite();
-    const items = usingSqlite ? sqliteItems : mysqlItems;
-    const vmiSalesOrderLines = usingSqlite ? sqliteVmiSalesOrderLines : mysqlVmiSalesOrderLines;
+    // Get table references
+    const items = getTableRef('items');
+    const vmiSalesOrderLines = getTableRef('vmiSalesOrderLines');
 
     // Verify item exists
-    const [item] = await (db as any)
-      .select()
-      .from(items)
-      .where(eq(items.id, data.itemId))
-      .limit(1);
+    const itemResult = await executeDbOperation(async (db) => {
+      return db
+        .select()
+        .from(items)
+        .where(eq(items.id, data.itemId))
+        .limit(1);
+    });
 
+    const item = itemResult[0];
     if (!item) {
       return NextResponse.json({
         success: false,
@@ -95,13 +90,15 @@ export async function POST(
     }
 
     // Update the line with the matched item
-    await (db as any)
-      .update(vmiSalesOrderLines)
-      .set({
-        itemId: data.itemId,
-        matchStatus: 'matched',
-      })
-      .where(eq(vmiSalesOrderLines.id, lineIdNum));
+    await executeDbOperation(async (db) => {
+      return db
+        .update(vmiSalesOrderLines)
+        .set({
+          itemId: data.itemId,
+          matchStatus: 'matched',
+        })
+        .where(eq(vmiSalesOrderLines.id, lineIdNum));
+    });
 
     // Get updated order
     const updatedOrder = await service.getOrderById(orderIdNum);
