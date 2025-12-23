@@ -16,6 +16,8 @@ import {
   sqliteCapaAttachments,
   sqliteCapaApprovals,
   sqliteDeviations,
+  sqliteComplaints,
+  sqliteAuditFindings,
   sqliteUsers,
   mysqlCapa,
   mysqlCapaActions,
@@ -23,6 +25,8 @@ import {
   mysqlCapaAttachments,
   mysqlCapaApprovals,
   mysqlDeviations,
+  mysqlComplaints,
+  mysqlAuditFindings,
   mysqlUsers,
 } from '../db/schema';
 import crypto from 'crypto';
@@ -37,6 +41,8 @@ function getTables() {
       attachments: sqliteCapaAttachments,
       approvals: sqliteCapaApprovals,
       deviations: sqliteDeviations,
+      complaints: sqliteComplaints,
+      auditFindings: sqliteAuditFindings,
       users: sqliteUsers,
     };
   }
@@ -47,6 +53,8 @@ function getTables() {
     attachments: mysqlCapaAttachments,
     approvals: mysqlCapaApprovals,
     deviations: mysqlDeviations,
+    complaints: mysqlComplaints,
+    auditFindings: mysqlAuditFindings,
     users: mysqlUsers,
   };
 }
@@ -654,6 +662,96 @@ export async function createFromDeviation(
     tableName: 'capa',
     recordId: capa.id,
     newValue: { deviationId, deviationNumber: deviation[0].deviationNumber },
+  });
+
+  return capa;
+}
+
+/**
+ * Create CAPA from a complaint
+ */
+export async function createFromComplaint(
+  complaintId: number,
+  capaData: Omit<CapaCreate, 'sourceType' | 'sourceId'>,
+  userId: number
+): Promise<Capa> {
+  const { complaints } = getTables();
+  const db = await getDb();
+
+  // Verify complaint exists
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const complaint = await (db as any)
+    .select()
+    .from(complaints)
+    .where(eq(complaints.id, complaintId))
+    .limit(1);
+
+  if (complaint.length === 0) {
+    throw new Error('Complaint not found');
+  }
+
+  // Create CAPA linked to complaint
+  const capa = await createCapa(
+    {
+      ...capaData,
+      sourceType: 'complaint',
+      sourceId: complaintId,
+    },
+    userId
+  );
+
+  // Create audit log for complaint link
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'capa',
+    recordId: capa.id,
+    newValue: { complaintId, complaintNumber: complaint[0].complaintNumber },
+  });
+
+  return capa;
+}
+
+/**
+ * Create CAPA from an audit finding
+ */
+export async function createFromAuditFinding(
+  auditFindingId: number,
+  capaData: Omit<CapaCreate, 'sourceType' | 'sourceId'>,
+  userId: number
+): Promise<Capa> {
+  const { auditFindings } = getTables();
+  const db = await getDb();
+
+  // Verify audit finding exists
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const auditFinding = await (db as any)
+    .select()
+    .from(auditFindings)
+    .where(eq(auditFindings.id, auditFindingId))
+    .limit(1);
+
+  if (auditFinding.length === 0) {
+    throw new Error('Audit finding not found');
+  }
+
+  // Create CAPA linked to audit finding
+  const capa = await createCapa(
+    {
+      ...capaData,
+      sourceType: 'audit_finding',
+      sourceId: auditFindingId,
+    },
+    userId
+  );
+
+  // Create audit log for audit finding link
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'capa',
+    recordId: capa.id,
+    newValue: { auditFindingId, findingNumber: auditFinding[0].findingNumber },
   });
 
   return capa;
