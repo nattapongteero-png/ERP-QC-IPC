@@ -84,6 +84,7 @@ import type {
   RecallListParams,
   RecallListResponse,
   RecallCloseRequest,
+  RecallReport,
 } from '@/types/recalls';
 
 // Type for database query result rows
@@ -1104,6 +1105,248 @@ export async function executeMockDrill(
     timeToIdentify,
     passedTarget,
     distributionReport,
+  };
+}
+
+// ============================================
+// Recall Report Generation
+// ============================================
+
+/**
+ * Generate a comprehensive recall report for regulatory submission
+ * Compiles all recall data including distribution, notifications, and reconciliation
+ */
+export async function generateRecallReport(recallId: number): Promise<RecallReport> {
+  // Get full recall details
+  const recallDetails = await getRecallDetails(recallId);
+  if (!recallDetails) {
+    throw new Error(`Recall ID ${recallId} not found`);
+  }
+
+  const db = await getDb();
+  const { lots, items } = getTables();
+
+  // Get product details with code
+  let productCode = '';
+  if (recallDetails.productId) {
+    const productResult = await (db as any)
+      .select({
+        code: items.code,
+      })
+      .from(items)
+      .where(eq(items.id, recallDetails.productId))
+      .limit(1);
+
+    productCode = productResult[0]?.code || '';
+  }
+
+  // Get affected lot details
+  const affectedLotDetails = [];
+  if (recallDetails.affectedLots.length > 0) {
+    const lotResults = await (db as any)
+      .select({
+        id: lots.id,
+        lotNumber: lots.lotNumber,
+        quantity: lots.quantity,
+        expiryDate: lots.expiryDate,
+      })
+      .from(lots)
+      .where(inArray(lots.id, recallDetails.affectedLots));
+
+    for (const lot of lotResults) {
+      affectedLotDetails.push({
+        lotNumber: lot.lotNumber || '',
+        quantity: lot.quantity || 0,
+        expiryDate: lot.expiryDate || '',
+      });
+    }
+  }
+
+  // Get distribution data
+  const distributionData = await getDistributionData(recallId);
+
+  // Group distribution by customer
+  const customerMap = new Map<number, { name: string; contact: string; quantity: number; shipDate: string }>();
+  for (const dist of distributionData) {
+    const existing = customerMap.get(dist.customerId);
+    if (existing) {
+      existing.quantity += dist.quantityDistributed;
+      // Keep earliest ship date
+      if (dist.shipDate < existing.shipDate) {
+        existing.shipDate = dist.shipDate;
+      }
+    } else {
+      customerMap.set(dist.customerId, {
+        name: dist.customerName,
+        contact: dist.contactInfo,
+        quantity: dist.quantityDistributed,
+        shipDate: dist.shipDate,
+      });
+    }
+  }
+
+  const customerList = Array.from(customerMap.values());
+
+  // Process notifications
+  const notifications = recallDetails.notifications;
+  const notificationStats = {
+    totalSent: notifications.length,
+    acknowledged: notifications.filter(n => n.responseStatus === 'acknowledged' || n.responseStatus === 'returning' || n.responseStatus === 'returned').length,
+    pending: notifications.filter(n => n.responseStatus === 'pending').length,
+    unresponsive: notifications.filter(n => n.responseStatus === 'unresponsive').length,
+  };
+
+  const notificationTimeline = notifications.map(n => {
+    let action = 'Notified';
+    if (n.responseStatus === 'acknowledged') action = 'Acknowledged';
+    if (n.responseStatus === 'returning') action = 'Returning product';
+    if (n.responseStatus === 'returned') action = 'Returned product';
+    if (n.responseStatus === 'unresponsive') action = 'No response';
+
+    return {
+      date: n.notifiedAt || '',
+      action,
+      customer: n.customerName,
+    };
+  }).sort((a, b) => a.date.localeCompare(b.date));
+
+  // Process reconciliation
+  const reconciliation = recallDetails.reconciliation;
+  const reconciliationTotals = {
+    totalDistributed: recallDetails.distributedQuantity,
+    returned: reconciliation.reduce((sum, r) => sum + r.returnedQty, 0),
+    destroyed: reconciliation.reduce((sum, r) => sum + r.destroyedQty, 0),
+    accounted: reconciliation.reduce((sum, r) => sum + r.accountedQty, 0),
+    unaccounted: reconciliation.reduce((sum, r) => sum + r.unaccountedQty, 0),
+    effectivenessRate: recallDetails.effectivenessRate,
+  };
+
+  // Build timeline of key events
+  const timeline = [];
+
+  // Recall initiated
+  timeline.push({
+    date: recallDetails.initiatedDate,
+    event: 'Recall Initiated',
+    details: `${recallDetails.recallClass.replace('_', ' ').toUpperCase()} - ${recallDetails.reason}`,
+  });
+
+  // Status changes
+  if (recallDetails.status === 'in_progress' || recallDetails.status === 'completed' || recallDetails.status === 'closed') {
+    timeline.push({
+      date: recallDetails.updatedAt,
+      event: 'Recall Execution Started',
+      details: `Distributed quantity calculated: ${recallDetails.distributedQuantity} units`,
+    });
+  }
+
+  // Notifications sent
+  if (notifications.length > 0) {
+    const firstNotification = notifications.reduce((earliest, n) => {
+      return (n.notifiedAt || '') < (earliest.notifiedAt || '') ? n : earliest;
+    });
+    timeline.push({
+      date: firstNotification.notifiedAt || '',
+      event: 'Customer Notifications Began',
+      details: `${notifications.length} customers notified`,
+    });
+  }
+
+  // Reconciliation started
+  if (reconciliation.length > 0) {
+    const firstReconciliation = reconciliation.reduce((earliest, r) => {
+      return (r.verifiedAt || '') < (earliest.verifiedAt || '') ? r : earliest;
+    });
+    timeline.push({
+      date: firstReconciliation.verifiedAt || '',
+      event: 'Reconciliation Started',
+      details: `Lot-by-lot reconciliation initiated`,
+    });
+  }
+
+  // Recall completed
+  if (recallDetails.status === 'completed' || recallDetails.status === 'closed') {
+    timeline.push({
+      date: recallDetails.updatedAt,
+      event: 'Recall Completed',
+      details: `Effectiveness rate: ${recallDetails.effectivenessRate.toFixed(1)}%`,
+    });
+  }
+
+  // Recall closed
+  if (recallDetails.closureDate) {
+    timeline.push({
+      date: recallDetails.closureDate,
+      event: 'Recall Closed',
+      details: `Final effectiveness: ${recallDetails.effectivenessRate.toFixed(1)}%`,
+    });
+  }
+
+  // Sort timeline
+  timeline.sort((a, b) => a.date.localeCompare(b.date));
+
+  // Generate regulatory notes
+  let regulatoryNotes = '';
+
+  if (recallDetails.recallClass === 'class_i') {
+    regulatoryNotes += 'CLASS I RECALL: This recall involves a product that may cause serious adverse health consequences or death. ';
+  } else if (recallDetails.recallClass === 'class_ii') {
+    regulatoryNotes += 'CLASS II RECALL: This recall involves a product that may cause temporary or medically reversible adverse health consequences. ';
+  } else {
+    regulatoryNotes += 'CLASS III RECALL: This recall involves a product that is not likely to cause adverse health consequences. ';
+  }
+
+  if (recallDetails.complaintNumber) {
+    regulatoryNotes += `This recall was initiated in response to complaint ${recallDetails.complaintNumber}. `;
+  }
+
+  regulatoryNotes += `\n\nDistribution: ${recallDetails.distributedQuantity} units distributed to ${customerList.length} customers. `;
+  regulatoryNotes += `Notifications sent to all affected customers via multiple methods. `;
+  regulatoryNotes += `\n\nReconciliation: ${reconciliationTotals.returned} units returned, `;
+  regulatoryNotes += `${reconciliationTotals.destroyed} units destroyed, `;
+  regulatoryNotes += `${reconciliationTotals.accounted} units accounted for in stock. `;
+  regulatoryNotes += `Total accounted: ${reconciliationTotals.returned + reconciliationTotals.destroyed + reconciliationTotals.accounted} units. `;
+  regulatoryNotes += `Unaccounted: ${reconciliationTotals.unaccounted} units. `;
+  regulatoryNotes += `\n\nEffectiveness Rate: ${recallDetails.effectivenessRate.toFixed(1)}% - `;
+
+  if (recallDetails.effectivenessRate >= 95) {
+    regulatoryNotes += 'Excellent recall effectiveness.';
+  } else if (recallDetails.effectivenessRate >= 90) {
+    regulatoryNotes += 'Good recall effectiveness.';
+  } else if (recallDetails.effectivenessRate >= 75) {
+    regulatoryNotes += 'Acceptable recall effectiveness.';
+  } else {
+    regulatoryNotes += 'Below target recall effectiveness. Additional follow-up actions may be required.';
+  }
+
+  // Build and return report
+  return {
+    generatedAt: new Date().toISOString(),
+    recall: {
+      recallNumber: recallDetails.recallNumber,
+      recallClass: recallDetails.recallClass.replace('_', ' ').toUpperCase(),
+      initiatedDate: recallDetails.initiatedDate,
+      reason: recallDetails.reason,
+      status: recallDetails.status,
+      coordinatorName: recallDetails.coordinatorName || 'Unassigned',
+    },
+    product: {
+      name: recallDetails.productName || 'Unknown',
+      code: productCode,
+      affectedLots: affectedLotDetails,
+    },
+    distribution: {
+      totalDistributed: recallDetails.distributedQuantity,
+      customerCount: customerList.length,
+      customers: customerList,
+    },
+    notifications: {
+      ...notificationStats,
+      timeline: notificationTimeline,
+    },
+    reconciliation: reconciliationTotals,
+    timeline,
+    regulatoryNotes,
   };
 }
 

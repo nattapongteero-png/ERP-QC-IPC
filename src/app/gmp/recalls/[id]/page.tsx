@@ -29,6 +29,7 @@ import {
   Users,
   CheckCircle,
   Link2,
+  FileText,
 } from 'lucide-react';
 import type { RecallDetails, RecallClass } from '@/types/recalls';
 
@@ -65,6 +66,13 @@ async function closeRecall(id: number, assessment?: string): Promise<void> {
   if (!result.success) throw new Error(result.error);
 }
 
+async function generateReport(id: number): Promise<any> {
+  const response = await fetch(`/api/recalls/${id}/report`);
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error);
+  return result.data;
+}
+
 // ============================================
 // Component
 // ============================================
@@ -97,6 +105,7 @@ export default function RecallDetailPage() {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [closureAssessment, setClosureAssessment] = useState('');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Fetch recall details
   const {
@@ -137,6 +146,32 @@ export default function RecallDetailPage() {
     },
   });
 
+  // Handle report generation
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const report = await generateReport(recallId);
+
+      // Download as JSON
+      const dataStr = JSON.stringify(report, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `recall-report-${recall?.recallNumber || recallId}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error generating report:', error);
+      alert('Failed to generate report: ' + errorMessage);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-6">
@@ -175,6 +210,13 @@ export default function RecallDetailPage() {
         onBack={() => router.push('/gmp/recalls')}
         actions={
           <div className="flex items-center gap-2">
+            <DxButton
+              text="Generate Report"
+              icon="export"
+              onClick={handleGenerateReport}
+              stylingMode="outlined"
+              disabled={isGeneratingReport}
+            />
             {canEdit && (
               <DxButton
                 text="Edit"

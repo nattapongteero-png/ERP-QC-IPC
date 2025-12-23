@@ -137,6 +137,7 @@ import {
   updateNotification,
   getRecallReconciliation,
   recordReconciliation,
+  generateRecallReport,
 } from '@/lib/services/recall-service';
 
 // Create tables from Drizzle schema
@@ -625,6 +626,171 @@ describe('Recall Service Real Integration Tests', () => {
       // Should still be just one record
       const records = await getRecallReconciliation(recallId);
       expect(records.length).toBe(1);
+    });
+  });
+
+  // ============================================
+  // Recall Report Generation
+  // ============================================
+
+  describe('Recall Report Generation', () => {
+    let recallId: number;
+
+    beforeEach(async () => {
+      // Create a comprehensive recall with all data
+      const recall = await createRecall({
+        recallClass: 'class_i',
+        reason: 'Critical contamination detected in product',
+        productId: 1,
+        affectedLots: [1, 2],
+        coordinatorId: TEST_USER_IDS.RECALL_COORDINATOR,
+      }, TEST_USER_IDS.QA_MANAGER);
+
+      await startRecall(recall.id, TEST_USER_IDS.RECALL_COORDINATOR);
+
+      // Add notifications
+      await createNotification(recall.id, {
+        customerId: 1,
+        notificationMethod: 'phone',
+        notes: 'Customer notified by phone',
+      }, TEST_USER_IDS.CUSTOMER_SERVICE);
+
+      await createNotification(recall.id, {
+        customerId: 2,
+        notificationMethod: 'email',
+      }, TEST_USER_IDS.CUSTOMER_SERVICE);
+
+      // Update one notification as acknowledged
+      const notifications = await getRecallNotifications(recall.id);
+      await updateNotification(notifications[0].id, {
+        responseStatus: 'acknowledged',
+        quantityReturned: 50,
+      }, TEST_USER_IDS.CUSTOMER_SERVICE);
+
+      // Add reconciliation
+      await recordReconciliation(recall.id, {
+        lotId: 1,
+        returnedQty: 100,
+        destroyedQty: 50,
+        accountedQty: 25,
+        reconciliationNotes: 'Lot 1 reconciled',
+      }, TEST_USER_IDS.RECALL_COORDINATOR);
+
+      await recordReconciliation(recall.id, {
+        lotId: 2,
+        returnedQty: 75,
+        destroyedQty: 25,
+        reconciliationNotes: 'Lot 2 reconciled',
+      }, TEST_USER_IDS.RECALL_COORDINATOR);
+
+      recallId = recall.id;
+    });
+
+    it('should generate comprehensive recall report', async () => {
+      const report = await generateRecallReport(recallId);
+
+      // Check report structure
+      expect(report).toBeDefined();
+      expect(report.generatedAt).toBeDefined();
+
+      // Check recall info
+      expect(report.recall.recallNumber).toMatch(/^RCL-\d{4}-\d{4}$/);
+      expect(report.recall.recallClass).toBe('CLASS I');
+      expect(report.recall.reason).toBe('Critical contamination detected in product');
+      expect(report.recall.status).toBe('in_progress');
+      expect(report.recall.coordinatorName).toBe('Recall Coordinator');
+
+      // Check product info
+      expect(report.product.name).toBe('ยาสมุนไพรหมายเลข 1');
+      expect(report.product.code).toBe('HRB-001');
+      expect(report.product.affectedLots).toHaveLength(2);
+
+      // Check notifications
+      expect(report.notifications.totalSent).toBe(2);
+      expect(report.notifications.acknowledged).toBe(1);
+      expect(report.notifications.pending).toBe(1);
+      expect(report.notifications.timeline.length).toBeGreaterThanOrEqual(2);
+
+      // Check reconciliation
+      expect(report.reconciliation.returned).toBe(175); // 100 + 75
+      expect(report.reconciliation.destroyed).toBe(75); // 50 + 25
+      expect(report.reconciliation.accounted).toBe(25);
+
+      // Check timeline
+      expect(report.timeline.length).toBeGreaterThan(0);
+      expect(report.timeline[0].event).toBe('Recall Initiated');
+
+      // Check regulatory notes
+      expect(report.regulatoryNotes).toContain('CLASS I RECALL');
+      expect(report.regulatoryNotes).toContain('serious adverse health consequences');
+    });
+
+    it('should calculate effectiveness rate in report', async () => {
+      await completeRecall(recallId, TEST_USER_IDS.RECALL_COORDINATOR);
+      const report = await generateRecallReport(recallId);
+
+      // Effectiveness rate should be defined and be a number
+      expect(report.reconciliation.effectivenessRate).toBeGreaterThanOrEqual(0);
+      expect(typeof report.reconciliation.effectivenessRate).toBe('number');
+      expect(report.regulatoryNotes).toContain('Effectiveness Rate');
+    });
+
+    it('should include timeline events in chronological order', async () => {
+      const report = await generateRecallReport(recallId);
+
+      expect(report.timeline.length).toBeGreaterThan(0);
+
+      // Check chronological order
+      for (let i = 1; i < report.timeline.length; i++) {
+        expect(report.timeline[i].date >= report.timeline[i - 1].date).toBe(true);
+      }
+    });
+
+    it('should throw error for non-existent recall', async () => {
+      await expect(generateRecallReport(99999)).rejects.toThrow('Recall ID 99999 not found');
+    });
+
+    it('should handle recall with no notifications', async () => {
+      const recall = await createRecall({
+        recallClass: 'class_iii',
+        reason: 'Minor issue',
+        productId: 1,
+        affectedLots: [1],
+        coordinatorId: TEST_USER_IDS.RECALL_COORDINATOR,
+      }, TEST_USER_IDS.QA_MANAGER);
+
+      await startRecall(recall.id, TEST_USER_IDS.RECALL_COORDINATOR);
+
+      const report = await generateRecallReport(recall.id);
+
+      expect(report.notifications.totalSent).toBe(0);
+      expect(report.notifications.timeline).toHaveLength(0);
+    });
+
+    it('should handle recall with no reconciliation', async () => {
+      const recall = await createRecall({
+        recallClass: 'class_iii',
+        reason: 'Minor issue',
+        productId: 1,
+        affectedLots: [1],
+        coordinatorId: TEST_USER_IDS.RECALL_COORDINATOR,
+      }, TEST_USER_IDS.QA_MANAGER);
+
+      await startRecall(recall.id, TEST_USER_IDS.RECALL_COORDINATOR);
+
+      const report = await generateRecallReport(recall.id);
+
+      expect(report.reconciliation.returned).toBe(0);
+      expect(report.reconciliation.destroyed).toBe(0);
+      expect(report.reconciliation.accounted).toBe(0);
+    });
+
+    it('should group distribution by customer', async () => {
+      const report = await generateRecallReport(recallId);
+
+      // Distribution should be grouped by customer
+      const customerIds = new Set(report.distribution.customers.map(c => c.name));
+      expect(customerIds.size).toBeLessThanOrEqual(report.distribution.customers.length);
     });
   });
 
