@@ -1,14 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteQualitySpecs,
-  sqliteQualityTests,
-  sqliteItems,
-  mysqlQualitySpecs,
-  mysqlQualityTests,
-  mysqlItems,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -31,34 +23,34 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return errorResponse('Invalid specification ID');
       }
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const specsTable = usingSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
-      const testsTable = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
-      const itemsTable = usingSqlite ? sqliteItems : mysqlItems;
+      const specsTable = getTableRef('qualitySpecs');
+      const testsTable = getTableRef('qualityTests');
+      const itemsTable = getTableRef('items');
 
       // Get spec with item info
-      const specResult = await (db as any)
-        .select({
-          id: specsTable.id,
-          itemId: specsTable.itemId,
-          itemCode: itemsTable.code,
-          itemName: itemsTable.nameTh,
-          itemType: itemsTable.type,
-          testName: specsTable.testName,
-          testMethod: specsTable.testMethod,
-          specification: specsTable.specification,
-          minValue: specsTable.minValue,
-          maxValue: specsTable.maxValue,
-          unit: specsTable.unit,
-          isCritical: specsTable.isCritical,
-          isActive: specsTable.isActive,
-          createdAt: specsTable.createdAt,
-          updatedAt: specsTable.updatedAt,
-        })
-        .from(specsTable)
-        .leftJoin(itemsTable, eq(specsTable.itemId, itemsTable.id))
-        .where(eq(specsTable.id, specId));
+      const specResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: specsTable.id,
+            itemId: specsTable.itemId,
+            itemCode: itemsTable.code,
+            itemName: itemsTable.nameTh,
+            itemType: itemsTable.type,
+            testName: specsTable.testName,
+            testMethod: specsTable.testMethod,
+            specification: specsTable.specification,
+            minValue: specsTable.minValue,
+            maxValue: specsTable.maxValue,
+            unit: specsTable.unit,
+            isCritical: specsTable.isCritical,
+            isActive: specsTable.isActive,
+            createdAt: specsTable.createdAt,
+            updatedAt: specsTable.updatedAt,
+          })
+          .from(specsTable)
+          .leftJoin(itemsTable, eq(specsTable.itemId, itemsTable.id))
+          .where(eq(specsTable.id, specId));
+      });
 
       if (specResult.length === 0) {
         return notFoundResponse('Quality specification not found');
@@ -67,29 +59,33 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const spec = specResult[0];
 
       // Get recent tests using this spec
-      const recentTests = await (db as any)
-        .select({
-          id: testsTable.id,
-          testType: testsTable.testType,
-          sampleNumber: testsTable.sampleNumber,
-          testDate: testsTable.testDate,
-          result: testsTable.result,
-          numericResult: testsTable.numericResult,
-          status: testsTable.status,
-          createdAt: testsTable.createdAt,
-        })
-        .from(testsTable)
-        .where(eq(testsTable.specId, specId))
-        .orderBy(testsTable.createdAt)
-        .limit(10);
+      const recentTests = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: testsTable.id,
+            testType: testsTable.testType,
+            sampleNumber: testsTable.sampleNumber,
+            testDate: testsTable.testDate,
+            result: testsTable.result,
+            numericResult: testsTable.numericResult,
+            status: testsTable.status,
+            createdAt: testsTable.createdAt,
+          })
+          .from(testsTable)
+          .where(eq(testsTable.specId, specId))
+          .orderBy(testsTable.createdAt)
+          .limit(10);
+      });
 
       // Calculate test statistics
-      const allTests = await (db as any)
-        .select({
-          status: testsTable.status,
-        })
-        .from(testsTable)
-        .where(eq(testsTable.specId, specId));
+      const allTests = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            status: testsTable.status,
+          })
+          .from(testsTable)
+          .where(eq(testsTable.specId, specId));
+      });
 
       const stats = {
         totalTests: allTests.length,
@@ -133,15 +129,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         isActive,
       } = body;
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const specsTable = usingSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
+      const specsTable = getTableRef('qualitySpecs');
 
       // Check if spec exists
-      const existing = await (db as any)
-        .select()
-        .from(specsTable)
-        .where(eq(specsTable.id, specId));
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(specsTable)
+          .where(eq(specsTable.id, specId));
+      });
 
       if (existing.length === 0) {
         return notFoundResponse('Quality specification not found');
@@ -150,8 +146,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       const oldSpec = existing[0];
 
       // Build update object
-      const updateData: Record<string, any> = {
-        updatedAt: usingSqlite ? new Date().toISOString() : new Date(),
+      const updateData: Record<string, unknown> = {
+        updatedAt: dbDate(),
       };
 
       if (testName !== undefined) updateData.testName = testName;
@@ -164,10 +160,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (isActive !== undefined) updateData.isActive = isActive;
 
       // Update spec
-      await (db as any)
-        .update(specsTable)
-        .set(updateData)
-        .where(eq(specsTable.id, specId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(specsTable)
+          .set(updateData)
+          .where(eq(specsTable.id, specId));
+      });
 
       await createAuditLog({
         userId: session.userId,
@@ -197,26 +195,28 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         return errorResponse('Invalid specification ID');
       }
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const specsTable = usingSqlite ? sqliteQualitySpecs : mysqlQualitySpecs;
-      const testsTable = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
+      const specsTable = getTableRef('qualitySpecs');
+      const testsTable = getTableRef('qualityTests');
 
       // Check if spec exists
-      const existing = await (db as any)
-        .select()
-        .from(specsTable)
-        .where(eq(specsTable.id, specId));
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(specsTable)
+          .where(eq(specsTable.id, specId));
+      });
 
       if (existing.length === 0) {
         return notFoundResponse('Quality specification not found');
       }
 
       // Check if there are any tests using this spec
-      const testsCount = await (db as any)
-        .select({ count: testsTable.id })
-        .from(testsTable)
-        .where(eq(testsTable.specId, specId));
+      const testsCount = await executeDbOperation(async (db) => {
+        return db
+          .select({ count: testsTable.id })
+          .from(testsTable)
+          .where(eq(testsTable.specId, specId));
+      });
 
       if (testsCount.length > 0 && testsCount[0].count > 0) {
         return errorResponse(
@@ -226,7 +226,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
 
       // Delete spec
-      await (db as any).delete(specsTable).where(eq(specsTable.id, specId));
+      await executeDbOperation(async (db) => {
+        return db.delete(specsTable).where(eq(specsTable.id, specId));
+      });
 
       await createAuditLog({
         userId: session.userId,

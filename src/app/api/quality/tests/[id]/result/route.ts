@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -29,29 +29,29 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (result === undefined && numericResult === undefined) {
         return errorResponse('Result or numeric result is required');
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const testsTable = useSqlite ? schema.sqliteQualityTests : schema.mysqlQualityTests;
-      const specsTable = useSqlite ? schema.sqliteQualitySpecs : schema.mysqlQualitySpecs;
-      
+
+      const testsTable = getTableRef('qualityTests');
+      const specsTable = getTableRef('qualitySpecs');
+
       // Get existing test with spec
-      const existing = await (db as any)
-        .select({
-          test: testsTable,
-          spec: specsTable,
-        })
-        .from(testsTable)
-        .leftJoin(specsTable, eq(testsTable.specId, specsTable.id))
-        .where(eq(testsTable.id, testId))
-        .limit(1);
-      
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            test: testsTable,
+            spec: specsTable,
+          })
+          .from(testsTable)
+          .leftJoin(specsTable, eq(testsTable.specId, specsTable.id))
+          .where(eq(testsTable.id, testId))
+          .limit(1);
+      });
+
       if (existing.length === 0) {
         return notFoundResponse('Test not found');
       }
-      
+
       const { test: oldTest, spec } = existing[0];
-      
+
       // Determine pass/fail status
       let status = 'pass';
       if (numericResult !== undefined && spec) {
@@ -62,20 +62,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           status = 'fail';
         }
       }
-      
+
       // Update test
-      await (db as any)
-        .update(testsTable)
-        .set({
-          result,
-          numericResult,
-          status,
-          testDate: useSqlite ? new Date().toISOString() : new Date(),
-          testedBy: session.userId,
-          notes,
-          updatedAt: useSqlite ? new Date().toISOString() : new Date(),
-        })
-        .where(eq(testsTable.id, testId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(testsTable)
+          .set({
+            result,
+            numericResult,
+            status,
+            testDate: dbDate(),
+            testedBy: session.userId,
+            notes,
+            updatedAt: dbDate(),
+          })
+          .where(eq(testsTable.id, testId));
+      });
       
       // Audit log
       await createAuditLog({
