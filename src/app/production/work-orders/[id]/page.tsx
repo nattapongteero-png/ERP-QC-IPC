@@ -4,15 +4,16 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
+import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 
 interface WorkOrderDetail {
   workOrder: {
@@ -85,13 +86,6 @@ interface WorkOrderDetail {
   };
 }
 
-interface Item {
-  id: number;
-  code: string;
-  nameTh: string;
-  primaryUnit: string;
-}
-
 interface Lot {
   id: number;
   lotNumber: string;
@@ -126,10 +120,9 @@ export default function WorkOrderDetailPage() {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   // Add Material Dialog State
-  const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
-  const [items, setItems] = useState<Item[]>([]);
+  const [itemSearchDialogOpen, setItemSearchDialogOpen] = useState(false);
+  const [materialDetailsDialogOpen, setMaterialDetailsDialogOpen] = useState(false);
   const [lots, setLots] = useState<Lot[]>([]);
-  const [itemSearch, setItemSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
   const [plannedQuantity, setPlannedQuantity] = useState(0);
@@ -155,12 +148,6 @@ export default function WorkOrderDetailPage() {
   }, [params.id]);
 
   useEffect(() => {
-    if (materialDialogOpen && itemSearch.length >= 2) {
-      searchItems();
-    }
-  }, [itemSearch, materialDialogOpen]);
-
-  useEffect(() => {
     if (selectedItem) {
       fetchLots(selectedItem.id);
     } else {
@@ -182,18 +169,6 @@ export default function WorkOrderDetailPage() {
     }
   };
 
-  const searchItems = async () => {
-    try {
-      const response = await fetch(`/api/items?search=${encodeURIComponent(itemSearch)}&limit=20`);
-      const result = await response.json();
-      if (result.success) {
-        setItems(result.data.data || []);
-      }
-    } catch (error) {
-      console.error('Failed to search items:', error);
-    }
-  };
-
   const fetchLots = async (itemId: number) => {
     try {
       const response = await fetch(`/api/inventory/lots?itemId=${itemId}&status=released&limit=50`);
@@ -204,6 +179,12 @@ export default function WorkOrderDetailPage() {
     } catch (error) {
       console.error('Failed to fetch lots:', error);
     }
+  };
+
+  const handleSelectItem = (item: Item) => {
+    setSelectedItem(item);
+    setItemSearchDialogOpen(false);
+    setMaterialDetailsDialogOpen(true);
   };
 
   const handleAddMaterial = async () => {
@@ -224,7 +205,7 @@ export default function WorkOrderDetailPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setMaterialDialogOpen(false);
+        setMaterialDetailsDialogOpen(false);
         resetMaterialForm();
         fetchWorkOrderDetail();
       }
@@ -240,8 +221,6 @@ export default function WorkOrderDetailPage() {
     setSelectedLot(null);
     setPlannedQuantity(0);
     setActualQuantity(0);
-    setItemSearch('');
-    setItems([]);
     setLots([]);
   };
 
@@ -628,7 +607,7 @@ export default function WorkOrderDetailPage() {
                   icon="plus"
                   type="normal"
                   stylingMode="outlined"
-                  onClick={() => setMaterialDialogOpen(true)}
+                  onClick={() => setItemSearchDialogOpen(true)}
                 />
               </div>
             </CardHeader>
@@ -851,65 +830,43 @@ export default function WorkOrderDetailPage() {
           </div>
         )}
 
-      {/* Add Material Dialog */}
+      {/* Item Search Dialog */}
+      <ItemSearchDialog
+        open={itemSearchDialogOpen}
+        onOpenChange={setItemSearchDialogOpen}
+        onSelect={handleSelectItem}
+        title="Select Material"
+        excludeType="finished_goods"
+      />
+
+      {/* Material Details Dialog */}
       <DxPopup
-        visible={materialDialogOpen}
-        onHiding={() => { setMaterialDialogOpen(false); resetMaterialForm(); }}
-        title="Add Material"
-        width={500}
+        visible={materialDetailsDialogOpen}
+        onHiding={() => { setMaterialDetailsDialogOpen(false); resetMaterialForm(); }}
+        title="Material Details"
+        width={450}
         height="auto"
         showCloseButton
       >
         <div className="space-y-4 p-4">
-          <p className="text-sm text-gray-500">
-            Add a material to this work order. Search for an item and optionally select a lot.
-          </p>
-          {/* Item Search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Item <span className="text-red-500">*</span>
-            </label>
-            {selectedItem ? (
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                <div>
-                  <p className="font-medium">{selectedItem.code}</p>
-                  <p className="text-sm text-gray-500">{selectedItem.nameTh}</p>
-                </div>
-                <DxButton
-                  text="Change"
-                  type="normal"
-                  stylingMode="outlined"
-                  onClick={() => setSelectedItem(null)}
-                />
-              </div>
-            ) : (
+          {/* Selected Item Display */}
+          {selectedItem && (
+            <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
               <div>
-                <DxTextBox
-                  placeholder="Search item code or name..."
-                  value={itemSearch}
-                  onValueChange={setItemSearch}
-                />
-                {items.length > 0 && (
-                  <div className="mt-2 max-h-40 overflow-auto border rounded-lg">
-                    {items.map((item) => (
-                      <button
-                        key={item.id}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
-                        onClick={() => {
-                          setSelectedItem(item);
-                          setItems([]);
-                          setItemSearch('');
-                        }}
-                      >
-                        <p className="font-medium">{item.code}</p>
-                        <p className="text-sm text-gray-500">{item.nameTh}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <p className="font-medium text-emerald-800">{selectedItem.code}</p>
+                <p className="text-sm text-emerald-600">{selectedItem.nameTh}</p>
               </div>
-            )}
-          </div>
+              <DxButton
+                text="Change"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => {
+                  setMaterialDetailsDialogOpen(false);
+                  setItemSearchDialogOpen(true);
+                }}
+              />
+            </div>
+          )}
 
           {/* Lot Selection */}
           {selectedItem && (
@@ -975,7 +932,7 @@ export default function WorkOrderDetailPage() {
               text="Cancel"
               type="normal"
               stylingMode="outlined"
-              onClick={() => { setMaterialDialogOpen(false); resetMaterialForm(); }}
+              onClick={() => { setMaterialDetailsDialogOpen(false); resetMaterialForm(); }}
             />
             <DxButton
               text={addingMaterial ? 'Adding...' : 'Add Material'}

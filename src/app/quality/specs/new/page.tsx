@@ -1,88 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
-import { DxPopup } from '@/components/ui/dx-popup';
-import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
-import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import {
-  Save,
-  Search,
   FileCheck,
   AlertTriangle,
   Package,
-  Check,
   ChevronRight,
   BoxSelect,
-  Leaf,
-  Box,
-  Pill,
-  PackageCheck,
-  PackageX,
-  AlertCircle,
-  TrendingUp,
-  Hash,
 } from 'lucide-react';
-
-interface Item {
-  id: number;
-  code: string;
-  nameTh: string;
-  nameEn: string | null;
-  type: string;
-  category?: string | null;
-  primaryUnit: string;
-  onHand: number | string | null;
-  minStock?: number | null;
-}
-
-const itemTypes = [
-  { value: '', label: 'All Types', icon: Package, color: 'gray' },
-  { value: 'raw_material', label: 'Raw Material', icon: Leaf, color: 'emerald' },
-  { value: 'extract', label: 'Extract', icon: FlaskConical, color: 'purple' },
-  { value: 'packaging', label: 'Packaging', icon: Box, color: 'blue' },
-  { value: 'wip', label: 'WIP', icon: Package, color: 'orange' },
-  { value: 'finished_goods', label: 'Finished Goods', icon: Pill, color: 'indigo' },
-];
-
-const getTypeConfig = (type: string) => {
-  const config: Record<string, { icon: typeof Package; bgColor: string; textColor: string; label: string }> = {
-    raw_material: { icon: Leaf, bgColor: 'bg-emerald-100', textColor: 'text-emerald-700', label: 'Raw Material' },
-    packaging: { icon: Box, bgColor: 'bg-blue-100', textColor: 'text-blue-700', label: 'Packaging' },
-    wip: { icon: Package, bgColor: 'bg-orange-100', textColor: 'text-orange-700', label: 'WIP' },
-    finished_goods: { icon: Pill, bgColor: 'bg-purple-100', textColor: 'text-purple-700', label: 'Finished Goods' },
-    consumable: { icon: Package, bgColor: 'bg-gray-100', textColor: 'text-gray-700', label: 'Consumable' },
-  };
-  return config[type] || { icon: Package, bgColor: 'bg-gray-100', textColor: 'text-gray-700', label: type };
-};
-
-const getStockStatus = (onHand: number, minStock?: number | null) => {
-  if (onHand <= 0) {
-    return { label: 'Out of Stock', color: 'text-red-600', bgColor: 'bg-red-50', icon: PackageX };
-  }
-  if (minStock && onHand <= minStock) {
-    return { label: 'Low Stock', color: 'text-amber-600', bgColor: 'bg-amber-50', icon: AlertCircle };
-  }
-  return { label: 'In Stock', color: 'text-green-600', bgColor: 'bg-green-50', icon: PackageCheck };
-};
 
 export default function NewQualitySpecPage() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
 
-  // Item dialog states
+  // Item dialog state
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
-  const [itemSearch, setItemSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [searchItems, setSearchItems] = useState<Item[]>([]);
-  const [itemsLoading, setItemsLoading] = useState(false);
-  const [selectedItemTemp, setSelectedItemTemp] = useState<Item | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
   // Form states
@@ -96,66 +36,9 @@ export default function NewQualitySpecPage() {
     isCritical: false,
   });
 
-  // Debounced item search for dialog
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (itemDialogOpen) {
-        fetchItems();
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [itemSearch, typeFilter, itemDialogOpen]);
-
-  // Load items when dialog opens
-  useEffect(() => {
-    if (itemDialogOpen) {
-      fetchItems();
-    }
-  }, [itemDialogOpen]);
-
-  const fetchItems = async () => {
-    setItemsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (itemSearch.trim()) {
-        params.append('search', itemSearch);
-      }
-      if (typeFilter) {
-        params.append('type', typeFilter);
-      }
-      params.append('limit', '20');
-
-      const response = await fetch(`/api/items?${params.toString()}`);
-      const result = await response.json();
-      if (result.success) {
-        setSearchItems(result.data?.items || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch items:', error);
-    } finally {
-      setItemsLoading(false);
-    }
-  };
-
-  const handleSelectItemTemp = (item: Item) => {
-    setSelectedItemTemp(item);
-  };
-
-  const handleConfirmItem = () => {
-    if (selectedItemTemp) {
-      setSelectedItem(selectedItemTemp);
-      setItemDialogOpen(false);
-      setItemSearch('');
-      setSelectedItemTemp(null);
-    }
-  };
-
-  const handleOpenItemDialog = () => {
-    setSelectedItemTemp(selectedItem);
-    setTypeFilter('');
-    setItemSearch('');
-    setSearchItems([]);
-    setItemDialogOpen(true);
+  const handleSelectItem = (item: Item) => {
+    setSelectedItem(item);
+    setItemDialogOpen(false);
   };
 
   const handleSubmit = async () => {
@@ -199,254 +82,6 @@ export default function NewQualitySpecPage() {
     }
   };
 
-  const renderItemDialogContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-4 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <Package className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">Select Item</h2>
-              <p className="text-emerald-100 text-sm">Choose an item to create quality specification</p>
-            </div>
-          </div>
-          {searchItems.length > 0 && (
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">
-                <Hash className="h-4 w-4" />
-                <span>{searchItems.length} items</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">
-                <TrendingUp className="h-4 w-4" />
-                <span>{searchItems.filter(i => Number(i.onHand) > 0).length} in stock</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="px-6 py-4 bg-gray-50 border-b space-y-3">
-        {/* Search Input */}
-        <div className="relative">
-          <DxTextBox
-            placeholder="Search by item code, name, or category..."
-            value={itemSearch}
-            onValueChange={setItemSearch}
-            mode="search"
-            showClearButton
-          />
-        </div>
-
-        {/* Type Filter */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mr-1">Type:</span>
-          {itemTypes.map((type) => {
-            const Icon = type.icon;
-            const isActive = typeFilter === type.value;
-            return (
-              <button
-                key={type.value}
-                type="button"
-                onClick={() => setTypeFilter(type.value)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  isActive
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {type.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Table Header */}
-      <div className="bg-gray-100 border-b px-6 py-2.5 grid grid-cols-12 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-        <div className="col-span-5">Item Details</div>
-        <div className="col-span-2 text-center">Category</div>
-        <div className="col-span-2 text-center">Type</div>
-        <div className="col-span-2 text-right">Stock Status</div>
-        <div className="col-span-1"></div>
-      </div>
-
-      {/* Item List */}
-      <div className="flex-1 overflow-auto min-h-[300px]">
-        {itemsLoading && searchItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
-            <DxLoadIndicator />
-            <p className="font-medium mt-4">Loading items...</p>
-            <p className="text-sm text-gray-400">Please wait while we fetch the data</p>
-          </div>
-        ) : searchItems.length > 0 ? (
-          <div className="divide-y divide-gray-100">
-            {searchItems.map((item) => {
-              const onHandValue = Number(item.onHand) || 0;
-              const typeConfig = getTypeConfig(item.type);
-              const stockStatus = getStockStatus(onHandValue, item.minStock);
-              const TypeIcon = typeConfig.icon;
-              const StockIcon = stockStatus.icon;
-              const isSelected = selectedItemTemp?.id === item.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleSelectItemTemp(item)}
-                  className={`w-full px-6 py-4 text-left transition-all grid grid-cols-12 gap-4 items-center ${
-                    isSelected
-                      ? 'bg-emerald-50 border-l-4 border-emerald-500'
-                      : 'hover:bg-gray-50 border-l-4 border-transparent'
-                  }`}
-                >
-                  {/* Item Details */}
-                  <div className="col-span-5 flex items-center gap-3 min-w-0">
-                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-emerald-100' : typeConfig.bgColor
-                    }`}>
-                      <TypeIcon className={`h-6 w-6 ${isSelected ? 'text-emerald-600' : typeConfig.textColor}`} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold text-sm ${isSelected ? 'text-emerald-700' : 'text-gray-900'}`}>
-                          {item.code}
-                        </span>
-                      </div>
-                      <p className={`text-sm truncate ${isSelected ? 'text-emerald-600' : 'text-gray-700'}`}>
-                        {item.nameTh}
-                      </p>
-                      {item.nameEn && (
-                        <p className="text-xs text-gray-400 truncate">{item.nameEn}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Category */}
-                  <div className="col-span-2 text-center">
-                    {item.category ? (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 text-xs font-medium">
-                        {item.category}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-xs">-</span>
-                    )}
-                  </div>
-
-                  {/* Type */}
-                  <div className="col-span-2 text-center">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${typeConfig.bgColor} ${typeConfig.textColor}`}>
-                      <TypeIcon className="h-3.5 w-3.5" />
-                      {typeConfig.label}
-                    </span>
-                  </div>
-
-                  {/* Stock Status */}
-                  <div className="col-span-2 text-right">
-                    <div className="inline-flex flex-col items-end">
-                      <span className={`text-base font-bold ${stockStatus.color}`}>
-                        {onHandValue.toLocaleString()}
-                      </span>
-                      <span className="text-xs text-gray-500">{item.primaryUnit}</span>
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium mt-0.5 ${stockStatus.color}`}>
-                        <StockIcon className="h-3 w-3" />
-                        {stockStatus.label}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Selection Indicator */}
-                  <div className="col-span-1 flex justify-center">
-                    {isSelected ? (
-                      <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center">
-                        <Check className="h-5 w-5 text-white" />
-                      </div>
-                    ) : (
-                      <div className="h-8 w-8 rounded-full border-2 border-gray-200 flex items-center justify-center">
-                        <div className="h-3 w-3 rounded-full bg-gray-200" />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : itemSearch.length > 0 || typeFilter ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
-            <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <Search className="h-8 w-8 text-gray-400" />
-            </div>
-            <p className="font-semibold text-gray-700">No items found</p>
-            <p className="text-sm text-gray-500 mt-1 max-w-md text-center">
-              No items match your search criteria. Try adjusting your search term or filter.
-            </p>
-            <button
-              type="button"
-              onClick={() => { setItemSearch(''); setTypeFilter(''); }}
-              className="mt-4 text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-            >
-              Clear filters
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
-            <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <Package className="h-8 w-8 text-gray-400" />
-            </div>
-            <p className="font-semibold text-gray-700">No items available</p>
-            <p className="text-sm text-gray-500 mt-1 max-w-md text-center">
-              There are no items in the system. Please create items in the Inventory module first.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="border-t bg-gray-50 px-6 py-4">
-        <div className="flex items-center justify-between">
-          {selectedItemTemp ? (
-            <div className="flex items-center gap-3">
-              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${getTypeConfig(selectedItemTemp.type).bgColor}`}>
-                {(() => { const Icon = getTypeConfig(selectedItemTemp.type).icon; return <Icon className={`h-5 w-5 ${getTypeConfig(selectedItemTemp.type).textColor}`} />; })()}
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Selected item:</p>
-                <p className="font-semibold text-gray-900">{selectedItemTemp.code} - {selectedItemTemp.nameTh}</p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Click on an item row to select it
-            </p>
-          )}
-          <div className="flex gap-3">
-            <DxButton
-              text="Cancel"
-              type="normal"
-              stylingMode="outlined"
-              onClick={() => {
-                setItemDialogOpen(false);
-                setItemSearch('');
-                setTypeFilter('');
-                setSelectedItemTemp(null);
-              }}
-            />
-            <DxButton
-              text="Confirm Selection"
-              type="success"
-              onClick={handleConfirmItem}
-              disabled={!selectedItemTemp}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -489,13 +124,13 @@ export default function NewQualitySpecPage() {
                       text="Change"
                       type="normal"
                       stylingMode="outlined"
-                      onClick={handleOpenItemDialog}
+                      onClick={() => setItemDialogOpen(true)}
                     />
                   </div>
                 ) : (
                   <button
                     type="button"
-                    onClick={handleOpenItemDialog}
+                    onClick={() => setItemDialogOpen(true)}
                     className="w-full flex items-center justify-between p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors group"
                   >
                     <div className="flex items-center gap-3 text-gray-500 group-hover:text-green-600">
@@ -729,17 +364,13 @@ export default function NewQualitySpecPage() {
       </div>
 
       {/* Item Selection Dialog */}
-      <DxPopup
-        visible={itemDialogOpen}
-        onHiding={() => setItemDialogOpen(false)}
-        title=""
-        width={1000}
-        height={700}
-        showCloseButton
-        showTitle={false}
-      >
-        {renderItemDialogContent()}
-      </DxPopup>
+      <ItemSearchDialog
+        open={itemDialogOpen}
+        onOpenChange={setItemDialogOpen}
+        onSelect={handleSelectItem}
+        title="Select Item"
+        showStock
+      />
     </MainLayout>
   );
 }
