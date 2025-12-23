@@ -2110,7 +2110,7 @@ export const mysqlCapa = mysqlTable('capa', {
   auditFindingId: int('audit_finding_id'), // Will reference audit_findings table
   type: varchar('type', { length: 20 }).notNull(), // corrective, preventive, both
   priority: varchar('priority', { length: 20 }).notNull().default('medium'), // low, medium, high, critical
-  status: varchar('status', { length: 30 }).notNull().default('open'), // open, investigation, action_pending, verification, closed, cancelled
+  status: varchar('status', { length: 30 }).notNull().default('open'), // open, investigation, action_pending, verification, pending_approval, closed, cancelled
   rootCauseAnalysis: mysqlText('root_cause_analysis'),
   rootCauseCategory: varchar('root_cause_category', { length: 100 }), // 5-why category
   dueDate: datetime('due_date'),
@@ -2119,6 +2119,29 @@ export const mysqlCapa = mysqlTable('capa', {
   createdBy: int('created_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
+
+  // Phase 1 Critical: Risk Assessment (ICH Q9)
+  riskSeverity: varchar('risk_severity', { length: 20 }), // negligible, minor, moderate, major, critical
+  riskProbability: varchar('risk_probability', { length: 20 }), // rare, unlikely, possible, likely, certain
+  riskScore: int('risk_score'), // Calculated: severity (1-5) × probability (1-5) = 1-25
+  riskJustification: mysqlText('risk_justification'),
+
+  // Phase 1 Critical: Impact Assessment
+  impactScope: varchar('impact_scope', { length: 30 }), // single_batch, multiple_batches, product_line, facility, multi_site
+  affectedProducts: mysqlText('affected_products'), // JSON array of product codes
+  affectedBatches: mysqlText('affected_batches'), // JSON array of batch numbers
+  affectedProcesses: mysqlText('affected_processes'), // JSON array of process names
+  patientImpact: mysqlBoolean('patient_impact').default(false),
+  regulatoryNotificationRequired: mysqlBoolean('regulatory_notification_required').default(false),
+  regulatoryNotificationDate: datetime('regulatory_notification_date'),
+  regulatoryReferenceNumber: varchar('regulatory_reference_number', { length: 100 }),
+
+  // Phase 1 Critical: Approval Workflow
+  approvalStatus: varchar('approval_status', { length: 30 }), // pending, approved, rejected, revision_required
+  submittedForApprovalAt: datetime('submitted_for_approval_at'),
+  submittedForApprovalBy: int('submitted_for_approval_by').references(() => mysqlUsers.id),
+  currentApprovalStep: varchar('current_approval_step', { length: 30 }), // owner, qa_reviewer, qa_manager, plant_manager
+  closureNotes: mysqlText('closure_notes'),
 });
 
 // CAPA Actions
@@ -2151,6 +2174,34 @@ export const mysqlCapaEffectiveness = mysqlTable('capa_effectiveness', {
   followUpRequired: mysqlBoolean('follow_up_required').default(false),
   notes: mysqlText('notes'),
   createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Phase 1 Critical: CAPA Attachments (Document Control)
+export const mysqlCapaAttachments = mysqlTable('capa_attachments', {
+  id: int('id').primaryKey().autoincrement(),
+  capaId: int('capa_id').notNull().references(() => mysqlCapa.id),
+  fileName: varchar('file_name', { length: 255 }).notNull(), // Stored filename (UUID-based)
+  originalName: varchar('original_name', { length: 255 }).notNull(), // Original uploaded filename
+  fileSize: int('file_size').notNull(), // Size in bytes
+  mimeType: varchar('mime_type', { length: 100 }).notNull(),
+  attachmentType: varchar('attachment_type', { length: 30 }).notNull(), // evidence, root_cause_report, investigation_report, sop_revision, training_record, photo, lab_result, other
+  description: mysqlText('description'),
+  uploadedBy: int('uploaded_by').notNull().references(() => mysqlUsers.id),
+  uploadedAt: datetime('uploaded_at').notNull().default(new Date()),
+});
+
+// Phase 1 Critical: CAPA Approvals (Electronic Signature Workflow)
+export const mysqlCapaApprovals = mysqlTable('capa_approvals', {
+  id: int('id').primaryKey().autoincrement(),
+  capaId: int('capa_id').notNull().references(() => mysqlCapa.id),
+  approverRole: varchar('approver_role', { length: 30 }).notNull(), // owner, qa_reviewer, qa_manager, plant_manager
+  approverId: int('approver_id').references(() => mysqlUsers.id),
+  status: varchar('status', { length: 30 }).notNull().default('pending'), // pending, approved, rejected, revision_required
+  comments: mysqlText('comments'),
+  signedAt: datetime('signed_at'),
+  signatureHash: varchar('signature_hash', { length: 255 }), // Electronic signature hash (21 CFR Part 11)
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
 
 // ============================================
@@ -2775,7 +2826,7 @@ export const sqliteCapa = sqliteTable('capa', {
   auditFindingId: integer('audit_finding_id'), // Will reference audit_findings table
   type: text('type').notNull(), // corrective, preventive, both
   priority: text('priority').notNull().default('medium'), // low, medium, high, critical
-  status: text('status').notNull().default('open'), // open, investigation, action_pending, verification, closed, cancelled
+  status: text('status').notNull().default('open'), // open, investigation, action_pending, verification, pending_approval, closed, cancelled
   rootCauseAnalysis: text('root_cause_analysis'),
   rootCauseCategory: text('root_cause_category'), // 5-why category
   dueDate: text('due_date'),
@@ -2784,6 +2835,29 @@ export const sqliteCapa = sqliteTable('capa', {
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+
+  // Phase 1 Critical: Risk Assessment (ICH Q9)
+  riskSeverity: text('risk_severity'), // negligible, minor, moderate, major, critical
+  riskProbability: text('risk_probability'), // rare, unlikely, possible, likely, certain
+  riskScore: integer('risk_score'), // Calculated: severity (1-5) × probability (1-5) = 1-25
+  riskJustification: text('risk_justification'),
+
+  // Phase 1 Critical: Impact Assessment
+  impactScope: text('impact_scope'), // single_batch, multiple_batches, product_line, facility, multi_site
+  affectedProducts: text('affected_products'), // JSON array of product codes
+  affectedBatches: text('affected_batches'), // JSON array of batch numbers
+  affectedProcesses: text('affected_processes'), // JSON array of process names
+  patientImpact: integer('patient_impact', { mode: 'boolean' }).default(false),
+  regulatoryNotificationRequired: integer('regulatory_notification_required', { mode: 'boolean' }).default(false),
+  regulatoryNotificationDate: text('regulatory_notification_date'),
+  regulatoryReferenceNumber: text('regulatory_reference_number'),
+
+  // Phase 1 Critical: Approval Workflow
+  approvalStatus: text('approval_status'), // pending, approved, rejected, revision_required
+  submittedForApprovalAt: text('submitted_for_approval_at'),
+  submittedForApprovalBy: integer('submitted_for_approval_by').references(() => sqliteUsers.id),
+  currentApprovalStep: text('current_approval_step'), // owner, qa_reviewer, qa_manager, plant_manager
+  closureNotes: text('closure_notes'),
 });
 
 // CAPA Actions
@@ -2816,6 +2890,34 @@ export const sqliteCapaEffectiveness = sqliteTable('capa_effectiveness', {
   followUpRequired: integer('follow_up_required', { mode: 'boolean' }).default(false),
   notes: text('notes'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Phase 1 Critical: CAPA Attachments (Document Control)
+export const sqliteCapaAttachments = sqliteTable('capa_attachments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  capaId: integer('capa_id').notNull().references(() => sqliteCapa.id),
+  fileName: text('file_name').notNull(), // Stored filename (UUID-based)
+  originalName: text('original_name').notNull(), // Original uploaded filename
+  fileSize: integer('file_size').notNull(), // Size in bytes
+  mimeType: text('mime_type').notNull(),
+  attachmentType: text('attachment_type').notNull(), // evidence, root_cause_report, investigation_report, sop_revision, training_record, photo, lab_result, other
+  description: text('description'),
+  uploadedBy: integer('uploaded_by').notNull().references(() => sqliteUsers.id),
+  uploadedAt: text('uploaded_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Phase 1 Critical: CAPA Approvals (Electronic Signature Workflow)
+export const sqliteCapaApprovals = sqliteTable('capa_approvals', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  capaId: integer('capa_id').notNull().references(() => sqliteCapa.id),
+  approverRole: text('approver_role').notNull(), // owner, qa_reviewer, qa_manager, plant_manager
+  approverId: integer('approver_id').references(() => sqliteUsers.id),
+  status: text('status').notNull().default('pending'), // pending, approved, rejected, revision_required
+  comments: text('comments'),
+  signedAt: text('signed_at'),
+  signatureHash: text('signature_hash'), // Electronic signature hash (21 CFR Part 11)
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
 // ============================================

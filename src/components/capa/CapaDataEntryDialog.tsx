@@ -346,7 +346,7 @@ export function CapaDataEntryDialog({
       key={dialogKey}
       visible={visible}
       onHiding={onClose}
-      onShowing={resetForm}
+      onShown={resetForm}
       title={dialogTitle}
       width={600}
       height="auto"
