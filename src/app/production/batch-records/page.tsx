@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -200,12 +199,11 @@ export default function BatchRecordsPage() {
   ];
 
   return (
-    <MainLayout>
-      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
-        <PageHeader
-          title="บันทึกการผลิต (eBMR)"
-          description="Electronic Batch Manufacturing Records"
-        />
+    <div className="p-4 md:p-6 flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
+      <PageHeader
+        title="บันทึกการผลิต (eBMR)"
+        description="Electronic Batch Manufacturing Records"
+      />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
@@ -320,6 +318,6 @@ export default function BatchRecordsPage() {
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
+    </div>
   );
 }

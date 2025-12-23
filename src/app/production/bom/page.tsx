@@ -11,7 +11,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -128,8 +127,7 @@ export default function BOMDashboardPage() {
   }) || [];
 
   return (
-    <MainLayout>
-      <div className="flex flex-col gap-6 p-1">
+    <div className="flex flex-col gap-6 p-4 md:p-6">
         {/* Header */}
         <ResponsivePageHeader
           title="Bill of Materials (BOM)"
@@ -535,6 +533,6 @@ export default function BOMDashboardPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 }

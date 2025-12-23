@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -280,29 +279,25 @@ export default function BatchRecordDetailPage() {
 
   if (isLoading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <DxLoadIndicator />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <DxLoadIndicator />
+      </div>
     );
   }
 
   if (!record) {
     return (
-      <MainLayout>
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold text-gray-900">Batch record not found</h2>
-          <p className="text-gray-500 mt-2">The batch record you are looking for does not exist.</p>
-          <DxButton
-            text="Back to Batch Records"
-            type="normal"
-            stylingMode="outlined"
-            className="mt-4"
-            onClick={() => router.push('/production/batch-records')}
-          />
-        </div>
-      </MainLayout>
+      <div className="text-center py-12">
+        <h2 className="text-xl font-semibold text-gray-900">Batch record not found</h2>
+        <p className="text-gray-500 mt-2">The batch record you are looking for does not exist.</p>
+        <DxButton
+          text="Back to Batch Records"
+          type="normal"
+          stylingMode="outlined"
+          className="mt-4"
+          onClick={() => router.push('/production/batch-records')}
+        />
+      </div>
     );
   }
 
@@ -310,8 +305,7 @@ export default function BatchRecordDetailPage() {
   const nextStep = getNextStep();
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <PageHeader
           title={`Step ${record.sequence}: ${record.stepName}`}
           description={`${record.woNumber} - ${record.batchNumber}`}
@@ -703,6 +697,6 @@ export default function BatchRecordDetailPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 }

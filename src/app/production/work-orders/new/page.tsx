@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -277,20 +276,19 @@ function NewWorkOrderContent() {
   ];
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title="Create Work Order"
-          description="สร้างใบสั่งผลิตใหม่"
-          backButton={
-            <DxButton
-              icon="back"
-              type="normal"
-              stylingMode="text"
-              onClick={() => router.push('/production/work-orders')}
-            />
-          }
-        />
+    <div className="p-4 md:p-6 space-y-6">
+      <PageHeader
+        title="Create Work Order"
+        description="สร้างใบสั่งผลิตใหม่"
+        backButton={
+          <DxButton
+            icon="back"
+            type="normal"
+            stylingMode="text"
+            onClick={() => router.push('/production/work-orders')}
+          />
+        }
+      />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
@@ -654,18 +652,16 @@ function NewWorkOrderContent() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 }
 
 export default function NewWorkOrderPage() {
   return (
     <Suspense fallback={
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
     }>
       <NewWorkOrderContent />
     </Suspense>

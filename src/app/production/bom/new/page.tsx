@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -527,8 +526,7 @@ export default function NewBOMPage() {
   );
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <PageHeader
           title="Create New BOM"
           description="Define a new Bill of Materials / Recipe"
@@ -834,6 +832,6 @@ export default function NewBOMPage() {
       >
         {renderMaterialDialogContent()}
       </DxPopup>
-    </MainLayout>
+    </div>
   );
 }
