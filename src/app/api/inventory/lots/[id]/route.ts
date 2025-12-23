@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { withAuth } from '@/lib/api-utils';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteInventoryLots, mysqlInventoryLots,
-  sqliteItems, mysqlItems,
-  sqliteWarehouses, mysqlWarehouses,
-  sqliteVendors, mysqlVendors,
-  sqliteInventoryTransactions, mysqlInventoryTransactions,
-  sqliteQualityTests, mysqlQualityTests,
-  sqliteQualitySpecs, mysqlQualitySpecs,
-  sqliteUsers, mysqlUsers,
-  sqliteWorkOrders, mysqlWorkOrders,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import { createAuditLog, getClientIP } from '@/lib/audit';
 
 // GET - Get lot detail with all related information
@@ -20,56 +9,57 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (user) => {
+  return withAuth(request, async () => {
     try {
       const { id } = await params;
-      const db = await getDb();
-      const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const items = isSqlite() ? sqliteItems : mysqlItems;
-      const warehouses = isSqlite() ? sqliteWarehouses : mysqlWarehouses;
-      const vendors = isSqlite() ? sqliteVendors : mysqlVendors;
-      const transactions = isSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
-      const qualityTests = isSqlite() ? sqliteQualityTests : mysqlQualityTests;
-      const qualitySpecs = isSqlite() ? sqliteQualitySpecs : mysqlQualitySpecs;
-      const users = isSqlite() ? sqliteUsers : mysqlUsers;
-      const workOrders = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+      const lots = getTableRef('inventoryLots');
+      const items = getTableRef('items');
+      const warehouses = getTableRef('warehouses');
+      const vendors = getTableRef('vendors');
+      const transactions = getTableRef('inventoryTransactions');
+      const qualityTests = getTableRef('qualityTests');
+      const users = getTableRef('users');
+      const workOrders = getTableRef('workOrders');
 
       // Get lot with item and warehouse info
-      const [lot] = await (db as any)
-        .select({
-          id: lots.id,
-          lotNumber: lots.lotNumber,
-          batchNumber: lots.batchNumber,
-          itemId: lots.itemId,
-          warehouseId: lots.warehouseId,
-          locationId: lots.locationId,
-          quantity: lots.quantity,
-          reservedQuantity: lots.reservedQuantity,
-          unit: lots.unit,
-          status: lots.status,
-          manufacturingDate: lots.manufacturingDate,
-          expiryDate: lots.expiryDate,
-          receivedDate: lots.receivedDate,
-          vendorId: lots.vendorId,
-          poNumber: lots.poNumber,
-          coaNumber: lots.coaNumber,
-          createdAt: lots.createdAt,
-          updatedAt: lots.updatedAt,
-          // Item info
-          itemCode: items.code,
-          itemNameTh: items.nameTh,
-          itemNameEn: items.nameEn,
-          itemType: items.type,
-          itemCategory: items.category,
-          // Warehouse info
-          warehouseName: warehouses.name,
-          warehouseCode: warehouses.code,
-        })
-        .from(lots)
-        .leftJoin(items, eq(lots.itemId, items.id))
-        .leftJoin(warehouses, eq(lots.warehouseId, warehouses.id))
-        .where(eq(lots.id, parseInt(id)));
+      const lotResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: lots.id,
+            lotNumber: lots.lotNumber,
+            batchNumber: lots.batchNumber,
+            itemId: lots.itemId,
+            warehouseId: lots.warehouseId,
+            locationId: lots.locationId,
+            quantity: lots.quantity,
+            reservedQuantity: lots.reservedQuantity,
+            unit: lots.unit,
+            status: lots.status,
+            manufacturingDate: lots.manufacturingDate,
+            expiryDate: lots.expiryDate,
+            receivedDate: lots.receivedDate,
+            vendorId: lots.vendorId,
+            poNumber: lots.poNumber,
+            coaNumber: lots.coaNumber,
+            createdAt: lots.createdAt,
+            updatedAt: lots.updatedAt,
+            // Item info
+            itemCode: items.code,
+            itemNameTh: items.nameTh,
+            itemNameEn: items.nameEn,
+            itemType: items.type,
+            itemCategory: items.category,
+            // Warehouse info
+            warehouseName: warehouses.name,
+            warehouseCode: warehouses.code,
+          })
+          .from(lots)
+          .leftJoin(items, eq(lots.itemId, items.id))
+          .leftJoin(warehouses, eq(lots.warehouseId, warehouses.id))
+          .where(eq(lots.id, parseInt(id)));
+      });
 
+      const lot = lotResult[0];
       if (!lot) {
         return NextResponse.json({ success: false, error: 'Lot not found' }, { status: 404 });
       }
@@ -77,95 +67,107 @@ export async function GET(
       // Get vendor info if exists
       let vendorInfo = null;
       if (lot.vendorId) {
-        const [vendor] = await (db as any)
-          .select({
-            id: vendors.id,
-            code: vendors.code,
-            name: vendors.name,
-            contactPerson: vendors.contactPerson,
-            phone: vendors.phone,
-            email: vendors.email,
-          })
-          .from(vendors)
-          .where(eq(vendors.id, lot.vendorId));
-        vendorInfo = vendor;
+        const vendorResult = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: vendors.id,
+              code: vendors.code,
+              name: vendors.name,
+              contactPerson: vendors.contactPerson,
+              phone: vendors.phone,
+              email: vendors.email,
+            })
+            .from(vendors)
+            .where(eq(vendors.id, lot.vendorId));
+        });
+        vendorInfo = vendorResult[0] || null;
       }
 
       // Get transaction history
-      const transactionHistory = await (db as any)
-        .select({
-          id: transactions.id,
-          transactionType: transactions.transactionType,
-          quantity: transactions.quantity,
-          unit: transactions.unit,
-          referenceType: transactions.referenceType,
-          referenceNumber: transactions.referenceNumber,
-          reason: transactions.reason,
-          performedBy: transactions.performedBy,
-          createdAt: transactions.createdAt,
-        })
-        .from(transactions)
-        .where(eq(transactions.lotId, parseInt(id)))
-        .orderBy(desc(transactions.createdAt));
+      const transactionHistory = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: transactions.id,
+            transactionType: transactions.transactionType,
+            quantity: transactions.quantity,
+            unit: transactions.unit,
+            referenceType: transactions.referenceType,
+            referenceNumber: transactions.referenceNumber,
+            reason: transactions.reason,
+            performedBy: transactions.performedBy,
+            createdAt: transactions.createdAt,
+          })
+          .from(transactions)
+          .where(eq(transactions.lotId, parseInt(id)))
+          .orderBy(desc(transactions.createdAt));
+      });
 
       // Get user names for transactions
-      const userIds = [...new Set(transactionHistory.map((t: any) => t.performedBy).filter(Boolean))];
+      const userIds = [...new Set(transactionHistory.map((t: { performedBy: number | null }) => t.performedBy).filter(Boolean))] as number[];
       let userMap: Map<number, string> = new Map();
       if (userIds.length > 0) {
-        const userList = await (db as any).select({ id: users.id, name: users.name }).from(users);
-        userMap = new Map(userList.map((u: any) => [u.id, u.name]));
+        const userList = await executeDbOperation(async (db) => {
+          return db.select({ id: users.id, name: users.name }).from(users);
+        });
+        userMap = new Map(userList.map((u: { id: number; name: string }) => [u.id, u.name]));
       }
 
-      const enrichedTransactions = transactionHistory.map((t: any) => ({
+      const enrichedTransactions = transactionHistory.map((t: { performedBy: number | null; [key: string]: unknown }) => ({
         ...t,
         performedByName: t.performedBy ? userMap.get(t.performedBy) || 'Unknown' : null,
       }));
 
       // Get QC tests for this lot
-      const qcTests = await (db as any)
-        .select({
-          id: qualityTests.id,
-          sampleNumber: qualityTests.sampleNumber,
-          testType: qualityTests.testType,
-          status: qualityTests.status,
-          result: qualityTests.result,
-          testedBy: qualityTests.testedBy,
-          testDate: qualityTests.testDate,
-          createdAt: qualityTests.createdAt,
-        })
-        .from(qualityTests)
-        .where(eq(qualityTests.lotId, parseInt(id)))
-        .orderBy(desc(qualityTests.createdAt));
+      const qcTests = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: qualityTests.id,
+            sampleNumber: qualityTests.sampleNumber,
+            testType: qualityTests.testType,
+            status: qualityTests.status,
+            result: qualityTests.result,
+            testedBy: qualityTests.testedBy,
+            testDate: qualityTests.testDate,
+            createdAt: qualityTests.createdAt,
+          })
+          .from(qualityTests)
+          .where(eq(qualityTests.lotId, parseInt(id)))
+          .orderBy(desc(qualityTests.createdAt));
+      });
 
       // Get tester names
-      const testerIds = [...new Set(qcTests.map((t: any) => t.testedBy).filter(Boolean))];
+      const testerIds = [...new Set(qcTests.map((t: { testedBy: number | null }) => t.testedBy).filter(Boolean))] as number[];
       let testerMap: Map<number, string> = new Map();
       if (testerIds.length > 0) {
-        const testerList = await (db as any).select({ id: users.id, name: users.name }).from(users);
-        testerMap = new Map(testerList.map((u: any) => [u.id, u.name]));
+        const testerList = await executeDbOperation(async (db) => {
+          return db.select({ id: users.id, name: users.name }).from(users);
+        });
+        testerMap = new Map(testerList.map((u: { id: number; name: string }) => [u.id, u.name]));
       }
 
-      const enrichedQcTests = qcTests.map((t: any) => ({
+      const enrichedQcTests = qcTests.map((t: { testedBy: number | null; [key: string]: unknown }) => ({
         ...t,
         testedByName: t.testedBy ? testerMap.get(t.testedBy) || 'Unknown' : null,
       }));
 
       // Get work orders that used this lot (traceability)
-      const relatedWorkOrders = await (db as any)
-        .select({
-          id: workOrders.id,
-          woNumber: workOrders.woNumber,
-          productId: workOrders.productId,
-          status: workOrders.status,
-          plannedQuantity: workOrders.plannedQuantity,
-          actualQuantity: workOrders.actualQuantity,
-          plannedStartDate: workOrders.plannedStartDate,
-          actualStartDate: workOrders.actualStartDate,
-          actualEndDate: workOrders.actualEndDate,
-        })
-        .from(workOrders)
-        .orderBy(desc(workOrders.createdAt))
-        .limit(10);
+      const relatedWorkOrders = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: workOrders.id,
+            woNumber: workOrders.woNumber,
+            productId: workOrders.productId,
+            status: workOrders.status,
+            plannedQuantity: workOrders.plannedQuantity,
+            actualQuantity: workOrders.actualQuantity,
+            plannedStartDate: workOrders.plannedStartDate,
+            actualStartDate: workOrders.actualStartDate,
+            actualEndDate: workOrders.actualEndDate,
+          })
+          .from(workOrders)
+          .orderBy(desc(workOrders.createdAt))
+          .limit(10);
+      });
 
       // Calculate days until expiry
       let daysUntilExpiry = null;
@@ -174,7 +176,7 @@ export async function GET(
         const today = new Date();
         const expiry = new Date(lot.expiryDate);
         daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
+
         if (daysUntilExpiry < 0) {
           expiryStatus = 'expired';
         } else if (daysUntilExpiry <= 7) {
@@ -217,19 +219,22 @@ export async function PUT(
   return withAuth(request, async (user) => {
     try {
       const { id } = await params;
-      const db = await getDb();
-      const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const lots = getTableRef('inventoryLots');
       const body = await request.json();
 
       // Get current lot for audit
-      const [currentLot] = await (db as any).select().from(lots).where(eq(lots.id, parseInt(id)));
+      const currentLotResult = await executeDbOperation(async (db) => {
+        return db.select().from(lots).where(eq(lots.id, parseInt(id)));
+      });
+
+      const currentLot = currentLotResult[0];
       if (!currentLot) {
         return NextResponse.json({ success: false, error: 'Lot not found' }, { status: 404 });
       }
 
       // Update lot
-      const updateData: any = {
-        updatedAt: new Date().toISOString(),
+      const updateData: Record<string, unknown> = {
+        updatedAt: dbDate(),
       };
 
       // Only update fields that are provided
@@ -240,7 +245,9 @@ export async function PUT(
       if (body.expiryDate !== undefined) updateData.expiryDate = body.expiryDate;
       if (body.coaNumber !== undefined) updateData.coaNumber = body.coaNumber;
 
-      await (db as any).update(lots).set(updateData).where(eq(lots.id, parseInt(id)));
+      await executeDbOperation(async (db) => {
+        return db.update(lots).set(updateData).where(eq(lots.id, parseInt(id)));
+      });
 
       // Log audit
       await createAuditLog({
@@ -254,9 +261,11 @@ export async function PUT(
       });
 
       // Get updated lot
-      const [updatedLot] = await (db as any).select().from(lots).where(eq(lots.id, parseInt(id)));
+      const updatedLotResult = await executeDbOperation(async (db) => {
+        return db.select().from(lots).where(eq(lots.id, parseInt(id)));
+      });
 
-      return NextResponse.json({ success: true, data: updatedLot, message: 'Lot updated successfully' });
+      return NextResponse.json({ success: true, data: updatedLotResult[0], message: 'Lot updated successfully' });
     } catch (error) {
       console.error('Failed to update lot:', error);
       return NextResponse.json({ success: false, error: 'Failed to update lot' }, { status: 500 });
@@ -272,25 +281,30 @@ export async function DELETE(
   return withAuth(request, async (user) => {
     try {
       const { id } = await params;
-      const db = await getDb();
-      const lots = isSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const lots = getTableRef('inventoryLots');
 
       // Get current lot
-      const [currentLot] = await (db as any).select().from(lots).where(eq(lots.id, parseInt(id)));
+      const currentLotResult = await executeDbOperation(async (db) => {
+        return db.select().from(lots).where(eq(lots.id, parseInt(id)));
+      });
+
+      const currentLot = currentLotResult[0];
       if (!currentLot) {
         return NextResponse.json({ success: false, error: 'Lot not found' }, { status: 404 });
       }
 
       // Check if lot has quantity
       if (currentLot.quantity > 0) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Cannot delete lot with remaining quantity. Please issue or scrap the inventory first.' 
+        return NextResponse.json({
+          success: false,
+          error: 'Cannot delete lot with remaining quantity. Please issue or scrap the inventory first.'
         }, { status: 400 });
       }
 
       // Delete lot
-      await (db as any).delete(lots).where(eq(lots.id, parseInt(id)));
+      await executeDbOperation(async (db) => {
+        return db.delete(lots).where(eq(lots.id, parseInt(id)));
+      });
 
       // Log audit
       await createAuditLog({

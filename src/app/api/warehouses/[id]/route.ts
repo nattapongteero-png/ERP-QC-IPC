@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, isSqlite } from '@/lib/db';
-import { sqliteWarehouses, mysqlWarehouses } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import { withAuth } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
 
@@ -9,17 +8,19 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (user) => {
+  return withAuth(request, async () => {
     try {
       const { id } = await params;
-      const db = await getDb();
-      const warehouses = isSqlite() ? sqliteWarehouses : mysqlWarehouses;
+      const warehouses = getTableRef('warehouses');
 
-      const [warehouse] = await (db as any)
-        .select()
-        .from(warehouses)
-        .where(eq(warehouses.id, parseInt(id)));
+      const result = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(warehouses)
+          .where(eq(warehouses.id, parseInt(id)));
+      });
 
+      const warehouse = result[0];
       if (!warehouse) {
         return NextResponse.json({ success: false, error: 'Warehouse not found' }, { status: 404 });
       }
@@ -39,41 +40,45 @@ export async function PUT(
   return withAuth(request, async (user) => {
     try {
       const { id } = await params;
-      const db = await getDb();
       const body = await request.json();
-      const usingSqlite = isSqlite();
-      const warehouses = usingSqlite ? sqliteWarehouses : mysqlWarehouses;
+      const warehouses = getTableRef('warehouses');
       const warehouseId = parseInt(id);
 
-      const [existing] = await (db as any)
-        .select()
-        .from(warehouses)
-        .where(eq(warehouses.id, warehouseId));
+      const existingResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(warehouses)
+          .where(eq(warehouses.id, warehouseId));
+      });
 
+      const existing = existingResult[0];
       if (!existing) {
         return NextResponse.json({ success: false, error: 'Warehouse not found' }, { status: 404 });
       }
 
-      const now = new Date();
       const updateData = {
         code: body.code,
         name: body.name,
         location: body.location || null,
         type: body.type || 'general',
         isActive: body.isActive ?? true,
-        updatedAt: usingSqlite ? now.toISOString() : now,
+        updatedAt: dbDate(),
       };
 
-      await (db as any)
-        .update(warehouses)
-        .set(updateData)
-        .where(eq(warehouses.id, warehouseId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(warehouses)
+          .set(updateData)
+          .where(eq(warehouses.id, warehouseId));
+      });
 
       // Fetch updated record
-      const [updated] = await (db as any)
-        .select()
-        .from(warehouses)
-        .where(eq(warehouses.id, warehouseId));
+      const updatedResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(warehouses)
+          .where(eq(warehouses.id, warehouseId));
+      });
 
       await createAuditLog({
         userId: user.userId,
@@ -81,11 +86,11 @@ export async function PUT(
         tableName: 'warehouses',
         recordId: warehouseId,
         oldValue: existing,
-        newValue: updated,
+        newValue: updatedResult[0],
         ipAddress: getClientIP(request),
       });
 
-      return NextResponse.json({ success: true, data: updated, message: 'Warehouse updated successfully' });
+      return NextResponse.json({ success: true, data: updatedResult[0], message: 'Warehouse updated successfully' });
     } catch (error) {
       console.error('Failed to update warehouse:', error);
       return NextResponse.json({ success: false, error: 'Failed to update warehouse' }, { status: 500 });
@@ -100,27 +105,28 @@ export async function DELETE(
   return withAuth(request, async (user) => {
     try {
       const { id } = await params;
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const warehouses = usingSqlite ? sqliteWarehouses : mysqlWarehouses;
+      const warehouses = getTableRef('warehouses');
       const warehouseId = parseInt(id);
 
-      const [existing] = await (db as any)
-        .select()
-        .from(warehouses)
-        .where(eq(warehouses.id, warehouseId));
+      const existingResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(warehouses)
+          .where(eq(warehouses.id, warehouseId));
+      });
 
+      const existing = existingResult[0];
       if (!existing) {
         return NextResponse.json({ success: false, error: 'Warehouse not found' }, { status: 404 });
       }
 
-      const now = new Date();
-
       // Soft delete by setting isActive to false
-      await (db as any)
-        .update(warehouses)
-        .set({ isActive: false, updatedAt: usingSqlite ? now.toISOString() : now })
-        .where(eq(warehouses.id, warehouseId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(warehouses)
+          .set({ isActive: false, updatedAt: dbDate() })
+          .where(eq(warehouses.id, warehouseId));
+      });
 
       await createAuditLog({
         userId: user.userId,

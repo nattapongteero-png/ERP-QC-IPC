@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, like, or, sql, and } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { eq, like, or, sql, and, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -13,7 +13,7 @@ import { createAuditLog, getClientIP } from '@/lib/audit';
 
 // GET /api/inventory/lots - List inventory lots
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (session) => {
+  return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
@@ -21,15 +21,13 @@ export async function GET(request: NextRequest) {
       const status = searchParams.get('status') || '';
       const itemId = searchParams.get('itemId') || '';
       const warehouseId = searchParams.get('warehouseId') || '';
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const lotsTable = useSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
-      const itemsTable = useSqlite ? schema.sqliteItems : schema.mysqlItems;
-      const warehousesTable = useSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
-      
+
+      const lotsTable = getTableRef('inventoryLots');
+      const itemsTable = getTableRef('items');
+      const warehousesTable = getTableRef('warehouses');
+
       // Build conditions
-      const conditions = [];
+      const conditions: (SQL | undefined)[] = [];
       if (search) {
         conditions.push(
           or(
@@ -47,46 +45,52 @@ export async function GET(request: NextRequest) {
       if (warehouseId) {
         conditions.push(eq(lotsTable.warehouseId, parseInt(warehouseId)));
       }
-      
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
       // Get total count
-      let countQuery = (db as any).select({ count: sql`count(*)` }).from(lotsTable);
-      if (conditions.length > 0) {
-        countQuery = countQuery.where(and(...conditions));
-      }
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
-      
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db.select({ count: sql`count(*)` }).from(lotsTable);
+        if (whereClause) {
+          countQuery = countQuery.where(whereClause);
+        }
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
+
       // Get lots with item and warehouse info
-      let query = (db as any)
-        .select({
-          id: lotsTable.id,
-          lotNumber: lotsTable.lotNumber,
-          batchNumber: lotsTable.batchNumber,
-          quantity: lotsTable.quantity,
-          reservedQuantity: lotsTable.reservedQuantity,
-          unit: lotsTable.unit,
-          status: lotsTable.status,
-          manufacturingDate: lotsTable.manufacturingDate,
-          expiryDate: lotsTable.expiryDate,
-          receivedDate: lotsTable.receivedDate,
-          itemId: lotsTable.itemId,
-          itemCode: itemsTable.code,
-          itemName: itemsTable.nameTh,
-          warehouseId: lotsTable.warehouseId,
-          warehouseName: warehousesTable.name,
-          createdAt: lotsTable.createdAt,
-        })
-        .from(lotsTable)
-        .leftJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
-        .leftJoin(warehousesTable, eq(lotsTable.warehouseId, warehousesTable.id));
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-      
       const offset = (pagination.page - 1) * pagination.limit;
-      const lots = await query.limit(pagination.limit).offset(offset);
-      
+      const lots = await executeDbOperation(async (db) => {
+        let query = db
+          .select({
+            id: lotsTable.id,
+            lotNumber: lotsTable.lotNumber,
+            batchNumber: lotsTable.batchNumber,
+            quantity: lotsTable.quantity,
+            reservedQuantity: lotsTable.reservedQuantity,
+            unit: lotsTable.unit,
+            status: lotsTable.status,
+            manufacturingDate: lotsTable.manufacturingDate,
+            expiryDate: lotsTable.expiryDate,
+            receivedDate: lotsTable.receivedDate,
+            itemId: lotsTable.itemId,
+            itemCode: itemsTable.code,
+            itemName: itemsTable.nameTh,
+            warehouseId: lotsTable.warehouseId,
+            warehouseName: warehousesTable.name,
+            createdAt: lotsTable.createdAt,
+          })
+          .from(lotsTable)
+          .leftJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
+          .leftJoin(warehousesTable, eq(lotsTable.warehouseId, warehousesTable.id));
+
+        if (whereClause) {
+          query = query.where(whereClause);
+        }
+
+        return query.limit(pagination.limit).offset(offset);
+      });
+
       return successResponse(createPaginatedResponse(lots, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);
@@ -118,60 +122,55 @@ export async function POST(request: NextRequest) {
         return errorResponse('Item ID, lot number, warehouse ID, quantity, and unit are required');
       }
 
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const lotsTable = useSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
-      const transactionsTable = useSqlite ? schema.sqliteInventoryTransactions : schema.mysqlInventoryTransactions;
-
-      const now = new Date();
-      const nowStr = now.toISOString();
+      const lotsTable = getTableRef('inventoryLots');
+      const transactionsTable = getTableRef('inventoryTransactions');
 
       // Parse dates properly
-      const parsedMfgDate = manufacturingDate
-        ? (useSqlite ? manufacturingDate : new Date(manufacturingDate))
-        : null;
-      const parsedExpDate = expiryDate
-        ? (useSqlite ? expiryDate : new Date(expiryDate))
-        : null;
+      const parsedMfgDate = manufacturingDate ? dbDate(new Date(manufacturingDate)) : null;
+      const parsedExpDate = expiryDate ? dbDate(new Date(expiryDate)) : null;
 
       // Create lot with quarantine status
-      const result = await (db as any).insert(lotsTable).values({
-        itemId,
-        lotNumber,
-        batchNumber: batchNumber || null,
-        warehouseId,
-        locationId: locationId || null,
-        quantity,
-        reservedQuantity: 0,
-        unit,
-        status: 'quarantine', // Always start in quarantine
-        manufacturingDate: parsedMfgDate,
-        expiryDate: parsedExpDate,
-        receivedDate: useSqlite ? nowStr : now,
-        vendorId: vendorId || null,
-        poNumber: poNumber || null,
-        coaNumber: coaNumber || null,
-        createdAt: useSqlite ? nowStr : now,
-        updatedAt: useSqlite ? nowStr : now,
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(lotsTable).values({
+          itemId,
+          lotNumber,
+          batchNumber: batchNumber || null,
+          warehouseId,
+          locationId: locationId || null,
+          quantity,
+          reservedQuantity: 0,
+          unit,
+          status: 'quarantine', // Always start in quarantine
+          manufacturingDate: parsedMfgDate,
+          expiryDate: parsedExpDate,
+          receivedDate: dbDate(),
+          vendorId: vendorId || null,
+          poNumber: poNumber || null,
+          coaNumber: coaNumber || null,
+          createdAt: dbDate(),
+          updatedAt: dbDate(),
+        });
       });
 
-      const lotId = useSqlite ? result.lastInsertRowid : result[0].insertId;
+      const lotId = getInsertId(result);
 
       // Create receive transaction
-      await (db as any).insert(transactionsTable).values({
-        lotId: Number(lotId),
-        transactionType: 'receive',
-        quantity,
-        unit,
-        referenceType: poNumber ? 'PO' : null,
-        referenceId: null,
-        referenceNumber: poNumber || null,
-        fromWarehouseId: null,
-        toWarehouseId: warehouseId,
-        reason: null,
-        performedBy: session.userId,
-        approvedBy: null,
-        createdAt: useSqlite ? nowStr : now,
+      await executeDbOperation(async (db) => {
+        return db.insert(transactionsTable).values({
+          lotId: Number(lotId),
+          transactionType: 'receive',
+          quantity,
+          unit,
+          referenceType: poNumber ? 'PO' : null,
+          referenceId: null,
+          referenceNumber: poNumber || null,
+          fromWarehouseId: null,
+          toWarehouseId: warehouseId,
+          reason: null,
+          performedBy: session.userId,
+          approvedBy: null,
+          createdAt: dbDate(),
+        });
       });
 
       // Audit log

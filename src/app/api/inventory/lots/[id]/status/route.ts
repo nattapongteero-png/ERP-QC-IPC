@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -19,45 +19,47 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
       const { id } = await params;
       const lotId = parseInt(id);
-      
+
       if (isNaN(lotId)) {
         return errorResponse('Invalid lot ID');
       }
-      
+
       const body = await request.json();
       const { status, reason } = body;
-      
+
       const validStatuses = ['quarantine', 'under_test', 'released', 'rejected', 'blocked'];
       if (!status || !validStatuses.includes(status)) {
         return errorResponse(`Status must be one of: ${validStatuses.join(', ')}`);
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const lotsTable = useSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
-      
+
+      const lotsTable = getTableRef('inventoryLots');
+
       // Get existing lot
-      const existing = await (db as any)
-        .select()
-        .from(lotsTable)
-        .where(eq(lotsTable.id, lotId))
-        .limit(1);
-      
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(lotsTable)
+          .where(eq(lotsTable.id, lotId))
+          .limit(1);
+      });
+
       if (existing.length === 0) {
         return notFoundResponse('Lot not found');
       }
-      
+
       const oldLot = existing[0];
-      
+
       // Update status
-      await (db as any)
-        .update(lotsTable)
-        .set({
-          status,
-          updatedAt: useSqlite ? new Date().toISOString() : new Date(),
-        })
-        .where(eq(lotsTable.id, lotId));
-      
+      await executeDbOperation(async (db) => {
+        return db
+          .update(lotsTable)
+          .set({
+            status,
+            updatedAt: dbDate(),
+          })
+          .where(eq(lotsTable.id, lotId));
+      });
+
       // Audit log
       await createAuditLog({
         userId: session.userId,
