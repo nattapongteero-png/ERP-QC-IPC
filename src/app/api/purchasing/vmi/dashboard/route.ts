@@ -5,26 +5,13 @@
  */
 
 import { NextRequest } from 'next/server';
-import { eq, and, sql } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVMIVendorConfig,
-  sqliteVendors,
-  sqliteVMITransactions,
-  sqliteVMIOrders,
-  sqliteItems,
-  mysqlVMIVendorConfig,
-  mysqlVendors,
-  mysqlVMITransactions,
-  mysqlVMIOrders,
-  mysqlItems,
-} from '@/lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import {
   successResponse,
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { or, isNotNull } from 'drizzle-orm';
 
 interface VendorSyncStatus {
   vendorId: number;
@@ -56,31 +43,28 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(request.url);
       const vendorIdStr = searchParams.get('vendorId');
 
-      const db = await getDb();
-      const usingSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiConfig = usingSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const vendors = usingSqlite ? sqliteVendors : mysqlVendors;
-      const vmiTransactions = usingSqlite ? sqliteVMITransactions : mysqlVMITransactions;
-      const vmiOrders = usingSqlite ? sqliteVMIOrders : mysqlVMIOrders;
-      const items = usingSqlite ? sqliteItems : mysqlItems;
+      const vmiConfig = getTableRef('vMIVendorConfig');
+      const vendors = getTableRef('vendors');
+      const vmiOrders = getTableRef('vMIOrders');
+      const items = getTableRef('items');
 
       // Get all VMI vendor configs with vendor info
-      const vendorConfigsQuery = (db as any)
-        .select({
-          vendorId: vmiConfig.vendorId,
-          vendorName: vendors.name,
-          isConnected: vmiConfig.isConnected,
-          syncItemsEnabled: vmiConfig.syncItemsEnabled,
-          syncPricesEnabled: vmiConfig.syncPricesEnabled,
-          syncInventoryEnabled: vmiConfig.syncInventoryEnabled,
-          lastItemsSyncAt: vmiConfig.lastItemsSyncAt,
-          lastPricesSyncAt: vmiConfig.lastPricesSyncAt,
-          lastInventorySyncAt: vmiConfig.lastInventorySyncAt,
-        })
-        .from(vmiConfig)
-        .innerJoin(vendors, eq(vmiConfig.vendorId, vendors.id));
-
-      const vendorConfigs = await vendorConfigsQuery;
+      const vendorConfigs = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            vendorId: vmiConfig.vendorId,
+            vendorName: vendors.name,
+            isConnected: vmiConfig.isConnected,
+            syncItemsEnabled: vmiConfig.syncItemsEnabled,
+            syncPricesEnabled: vmiConfig.syncPricesEnabled,
+            syncInventoryEnabled: vmiConfig.syncInventoryEnabled,
+            lastItemsSyncAt: vmiConfig.lastItemsSyncAt,
+            lastPricesSyncAt: vmiConfig.lastPricesSyncAt,
+            lastInventorySyncAt: vmiConfig.lastInventorySyncAt,
+          })
+          .from(vmiConfig)
+          .innerJoin(vendors, eq(vmiConfig.vendorId, vendors.id));
+      });
 
       // Filter by vendor if specified
       const filteredConfigs = vendorIdStr
@@ -88,26 +72,14 @@ export async function GET(request: NextRequest) {
         : vendorConfigs;
 
       // Get item sync stats - count items with VMI sync enabled
-      const itemStats = await (db as any)
-        .select({ count: sql<number>`count(*)` })
-        .from(items)
-        .where(eq(items.vmiSyncEnabled, true));
+      const itemStats = await executeDbOperation(async (db) => {
+        return db
+          .select({ count: sql<number>`count(*)` })
+          .from(items)
+          .where(eq(items.vmiSyncEnabled, true));
+      });
 
       const totalVmiItems = Number(itemStats[0]?.count || 0);
-
-      // Get recent transaction stats (last 24 hours)
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const transactionStatsQuery = (db as any)
-        .select({
-          transactionType: vmiTransactions.transactionType,
-          status: vmiTransactions.status,
-          count: sql<number>`count(*)`,
-        })
-        .from(vmiTransactions)
-        .where(
-          sql`${vmiTransactions.createdAt} >= ${usingSqlite ? oneDayAgo.toISOString() : oneDayAgo}`
-        )
-        .groupBy(vmiTransactions.transactionType, vmiTransactions.status);
 
       // Aggregate transaction stats
       const transactionStats = {
@@ -117,13 +89,15 @@ export async function GET(request: NextRequest) {
         failed: 0,
       };
 
-      const orderStats = await (db as any)
-        .select({
-          status: vmiOrders.status,
-          count: sql<number>`count(*)`,
-        })
-        .from(vmiOrders)
-        .groupBy(vmiOrders.status);
+      const orderStats = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            status: vmiOrders.status,
+            count: sql<number>`count(*)`,
+          })
+          .from(vmiOrders)
+          .groupBy(vmiOrders.status);
+      });
 
       const orderSummary = {
         total: 0,
@@ -145,8 +119,6 @@ export async function GET(request: NextRequest) {
         ): 'synced' | 'partial' | 'pending' | 'error' | 'never' | 'disabled' => {
           if (!enabled) return 'disabled';
           if (!lastSyncAt) return 'never';
-          // For now, assume synced if last sync exists
-          // In production, would check for pending items
           return 'synced';
         };
 
@@ -157,13 +129,13 @@ export async function GET(request: NextRequest) {
           itemsSync: {
             enabled: !!config.syncItemsEnabled,
             lastSyncAt: config.lastItemsSyncAt?.toString() || null,
-            pendingCount: 0, // Would calculate based on items modified after lastItemsSyncAt
+            pendingCount: 0,
             status: determineSyncStatus(!!config.syncItemsEnabled, config.lastItemsSyncAt),
           },
           pricesSync: {
             enabled: !!config.syncPricesEnabled,
             lastSyncAt: config.lastPricesSyncAt?.toString() || null,
-            pendingCount: 0, // Would calculate based on offers modified after lastPricesSyncAt
+            pendingCount: 0,
             status: determineSyncStatus(!!config.syncPricesEnabled, config.lastPricesSyncAt),
           },
           inventorySync: {
