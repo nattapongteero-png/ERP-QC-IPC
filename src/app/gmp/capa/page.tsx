@@ -14,18 +14,26 @@ import { CapaList } from '@/components/capa';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { FileCheck, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { FileCheck, Clock, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Capa, CapaStatus, CapaPriority, CapaDashboard } from '@/types/capa';
 
 // ============================================
 // API Functions
 // ============================================
 
+interface ApiError extends Error {
+  details?: string;
+  stack?: string;
+}
+
 async function fetchDashboard(): Promise<CapaDashboard> {
   const response = await fetch('/api/capa/dashboard');
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to fetch dashboard');
+    const error = new Error(result.error || 'Failed to fetch dashboard') as ApiError;
+    error.details = result.details;
+    error.stack = result.stack || error.stack;
+    throw error;
   }
   return result.data;
 }
@@ -38,12 +46,15 @@ export default function CapaListPage() {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<CapaStatus | undefined>(undefined);
   const [priorityFilter, setPriorityFilter] = useState<CapaPriority | undefined>(undefined);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
 
   // Fetch dashboard statistics
-  const { data: dashboard } = useQuery({
+  const { data: dashboard, error: dashboardError, isError } = useQuery({
     queryKey: ['capa-dashboard'],
     queryFn: fetchDashboard,
   });
+
+  const apiError = dashboardError as ApiError | null;
 
   // Handlers
   const handleCapaSelect = (capa: Capa) => {
@@ -89,6 +100,41 @@ export default function CapaListPage() {
           />
         }
       />
+
+      {/* Error Display */}
+      {isError && apiError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-red-800 dark:text-red-200">
+                Error: {apiError.message}
+              </h3>
+              {apiError.details && (
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  {apiError.details}
+                </p>
+              )}
+              {apiError.stack && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => setShowErrorDetails(!showErrorDetails)}
+                    className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400 hover:underline"
+                  >
+                    {showErrorDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {showErrorDetails ? 'Hide' : 'Show'} Stack Trace
+                  </button>
+                  {showErrorDetails && (
+                    <pre className="mt-2 p-3 bg-red-100 dark:bg-red-900/40 rounded text-xs overflow-x-auto text-red-800 dark:text-red-200 font-mono">
+                      {apiError.stack}
+                    </pre>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
