@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import {
   sqliteBatchRecords,
   sqliteWorkOrders,
@@ -15,6 +15,7 @@ import {
   sqliteOperations,
 } from '@/lib/db/schema';
 import { eq, count, sql, gte, lte, and } from 'drizzle-orm';
+import { toQueryDate, getTodayStr } from '@/lib/db/date-utils';
 
 export interface BatchRecordsDashboard {
   totalRecords: number;
@@ -68,7 +69,7 @@ export async function GET() {
     const database = (await getDb()) as any;
 
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getTodayStr();
 
     // Get record counts by status
     const statusResult = await database
@@ -107,15 +108,20 @@ export async function GET() {
       .where(
         and(
           eq(sqliteBatchRecords.status, 'completed'),
-          gte(sqliteBatchRecords.endTime, todayStr)
+          gte(sqliteBatchRecords.endTime, isSqlite() ? todayStr : new Date(todayStr))
         )
       );
     const completedToday = completedTodayResult[0]?.count || 0;
 
     // Get average completion time (in minutes)
+    // SQLite uses julianday, MySQL uses TIMESTAMPDIFF
+    const avgTimeSql = isSqlite()
+      ? sql`AVG((julianday(${sqliteBatchRecords.endTime}) - julianday(${sqliteBatchRecords.startTime})) * 24 * 60)`
+      : sql`AVG(TIMESTAMPDIFF(MINUTE, ${sqliteBatchRecords.startTime}, ${sqliteBatchRecords.endTime}))`;
+
     const avgTimeResult = await database
       .select({
-        avgTime: sql`AVG((julianday(${sqliteBatchRecords.endTime}) - julianday(${sqliteBatchRecords.startTime})) * 24 * 60)`,
+        avgTime: avgTimeSql,
       })
       .from(sqliteBatchRecords)
       .where(
@@ -236,8 +242,8 @@ export async function GET() {
         .where(
           and(
             eq(sqliteBatchRecords.status, 'completed'),
-            gte(sqliteBatchRecords.endTime, dateStr),
-            lte(sqliteBatchRecords.endTime, nextDateStr)
+            gte(sqliteBatchRecords.endTime, toQueryDate(dateStr)),
+            lte(sqliteBatchRecords.endTime, toQueryDate(nextDateStr))
           )
         );
 
@@ -247,8 +253,8 @@ export async function GET() {
         .where(
           and(
             eq(sqliteBatchRecords.status, 'deviation'),
-            gte(sqliteBatchRecords.updatedAt, dateStr),
-            lte(sqliteBatchRecords.updatedAt, nextDateStr)
+            gte(sqliteBatchRecords.updatedAt, toQueryDate(dateStr)),
+            lte(sqliteBatchRecords.updatedAt, toQueryDate(nextDateStr))
           )
         );
 
