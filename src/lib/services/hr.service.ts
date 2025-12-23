@@ -5,6 +5,7 @@ import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
 import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
 import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
 import { getDb, isSqlite } from '../db';
+import { getNow, toDbDate, getTodayStr } from '../db/date-utils';
 import { createAuditLog } from '../audit';
 import {
   sqliteHROrgUnits,
@@ -338,8 +339,8 @@ export async function createOrgUnit(data: OrgUnitCreate): Promise<OrgUnit> {
     parentId: data.parentId || null,
     siteId: data.siteId || null,
     isGmpCritical: data.isGmpCritical ?? false,
-    effectiveFrom: new Date(data.effectiveFrom),
-    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
+    effectiveFrom: toDbDate(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? toDbDate(data.effectiveTo) : null,
     isActive: true,
   };
 
@@ -826,7 +827,7 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
     // Personal Identification (encrypted)
     thaiCid: thaiCidEncrypted,
     thaiCidHash: thaiCidHash,
-    dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+    dateOfBirth: data.dateOfBirth ? toDbDate(data.dateOfBirth) : null,
     gender: data.gender || null,
     bloodType: data.bloodType || null,
     religion: data.religion || null,
@@ -883,7 +884,7 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
     positionId: data.positionId || null,
     orgUnitId: data.orgUnitId || null,
     siteId: data.siteId || null,
-    hireDate: new Date(data.hireDate),
+    hireDate: toDbDate(data.hireDate),
     status: 'active',
   };
 
@@ -965,7 +966,7 @@ export async function updateEmployee(
 
   // Personal identification
   if (data.dateOfBirth !== undefined)
-    updateData.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+    updateData.dateOfBirth = data.dateOfBirth ? toDbDate(data.dateOfBirth) : null;
   if (data.gender !== undefined) updateData.gender = data.gender;
   if (data.bloodType !== undefined) updateData.bloodType = data.bloodType;
   if (data.religion !== undefined) updateData.religion = data.religion;
@@ -1039,7 +1040,7 @@ export async function updateEmployee(
   if (data.siteId !== undefined) updateData.siteId = data.siteId;
   if (data.status !== undefined) updateData.status = data.status;
   if (data.terminationDate !== undefined)
-    updateData.terminationDate = new Date(data.terminationDate);
+    updateData.terminationDate = toDbDate(data.terminationDate);
 
   if (Object.keys(updateData).length > 0) {
     await db
@@ -1210,7 +1211,7 @@ export async function createEmployeeAssignment(data: {
     positionId: data.positionId || null,
     orgUnitId: data.orgUnitId || null,
     isPrimary: data.isPrimary ?? true,
-    effectiveFrom: new Date(data.effectiveFrom),
+    effectiveFrom: toDbDate(data.effectiveFrom),
     reason: data.reason || null,
   };
 
@@ -1831,7 +1832,7 @@ export async function createTrainingSession(
 
   const insertData = {
     courseId: data.courseId,
-    sessionDate: new Date(data.sessionDate),
+    sessionDate: toDbDate(data.sessionDate),
     startTime: data.startTime || null,
     endTime: data.endTime || null,
     location: data.location || null,
@@ -2057,8 +2058,8 @@ export async function createTrainingRecord(
     employeeId: data.employeeId,
     sessionId: data.sessionId || null,
     courseId: data.courseId,
-    completionDate: new Date(data.completionDate),
-    expiryDate: expiryDate ? new Date(expiryDate) : null,
+    completionDate: toDbDate(data.completionDate),
+    expiryDate: expiryDate ? toDbDate(expiryDate) : null,
     result: data.result,
     score: data.score || null,
     assessedBy: data.assessedBy || null,
@@ -2515,8 +2516,8 @@ export async function createAuthorization(
     scopeSiteId: data.scopeSiteId || null,
     scopeOrgUnitId: data.scopeOrgUnitId || null,
     scopeProductLines: data.scopeProductLines ? JSON.stringify(data.scopeProductLines) : null,
-    effectiveFrom: new Date(data.effectiveFrom),
-    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
+    effectiveFrom: toDbDate(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? toDbDate(data.effectiveTo) : null,
     grantedBy,
     grantedAt: now,
     isActive: true,
@@ -2993,8 +2994,8 @@ export async function createDelegation(
     delegatorId,
     delegateId: data.delegateId,
     reason: data.reason || null,
-    effectiveFrom: new Date(data.effectiveFrom),
-    effectiveTo: new Date(data.effectiveTo),
+    effectiveFrom: toDbDate(data.effectiveFrom),
+    effectiveTo: toDbDate(data.effectiveTo),
     createdAt: now,
     updatedAt: now,
   };
@@ -3895,8 +3896,8 @@ export async function assignEmployeeRole(
     roleId: data.roleId,
     scopeSiteId: data.scopeSiteId || null,
     scopeOrgUnitId: data.scopeOrgUnitId || null,
-    effectiveFrom: new Date(data.effectiveFrom),
-    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
+    effectiveFrom: toDbDate(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? toDbDate(data.effectiveTo) : null,
     assignedBy,
     createdAt: now,
     updatedAt: now,
