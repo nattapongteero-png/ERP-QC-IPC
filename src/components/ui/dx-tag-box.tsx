@@ -87,7 +87,7 @@ export const DxTagBox = forwardRef(
       showClearButton = true,
       searchEnabled = true,
       searchExpr,
-      searchMode,
+      searchMode = 'contains',  // Default to prevent toLowerCase on undefined
       searchTimeout,
       acceptCustomValue,
       maxDisplayedTags,
@@ -109,8 +109,8 @@ export const DxTagBox = forwardRef(
       validationStatus,
     } = props;
 
-    // SANITIZE data instead of removing rows
-    // Ensure the display field is never null/undefined to prevent toLowerCase() errors
+    // Sanitize DataSource - ensure display field is never null/undefined
+    // This prevents toLowerCase() errors in DevExtreme's internal code
     const safeDataSource = useMemo(() => {
       const source = dataSource || items;
       if (!source || !Array.isArray(source)) return [];
@@ -122,10 +122,9 @@ export const DxTagBox = forwardRef(
       return source.map((item) => {
         if (!item || typeof item !== 'object') return item;
 
-        // Check if the display value is unsafe (null/undefined)
         const val = (item as Record<string, unknown>)[fieldName];
+        // If null/undefined, force it to empty string so .toLowerCase() won't crash
         if (val === null || val === undefined) {
-          // Clone and ensure the field is an empty string so .toLowerCase() won't crash
           return { ...item, [fieldName]: '' };
         }
         // Ensure it's a string
@@ -136,14 +135,13 @@ export const DxTagBox = forwardRef(
       });
     }, [dataSource, items, displayExpr]);
 
-    // Only filter out null/undefined from value array
-    // DO NOT filter based on dataSource - this breaks acceptCustomValue and pagination
+    // Sanitize Value - filter out null/undefined values
     const safeValue = useMemo(() => {
       if (!Array.isArray(value)) return value;
       return value.filter((v) => v !== null && v !== undefined);
     }, [value]);
 
-    // Simplify search expr logic - don't disable search unnecessarily
+    // Compute searchExpr - use displayExpr if not explicitly provided
     const finalSearchExpr = searchExpr || (typeof displayExpr === 'string' ? displayExpr : undefined);
 
     return (
