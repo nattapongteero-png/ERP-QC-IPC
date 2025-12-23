@@ -1152,7 +1152,7 @@ export async function getProductsWithoutPqr(year: number): Promise<
       .from(itemsTable)
       .where(
         and(
-          eq(itemsTable.category, 'finished_goods'),
+          eq(itemsTable.type, 'finished_goods'),
           sql`${itemsTable.id} NOT IN (${existingPqrProducts})`
         )
       )
