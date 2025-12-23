@@ -4,7 +4,7 @@
  * GMP Document Detail Page
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 5)
  *
- * Page for viewing and managing a specific GMP document.
+ * Modern redesigned page for viewing and managing a specific GMP document.
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,7 +13,6 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
-import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -26,6 +25,19 @@ import {
   Upload,
   Download,
   X,
+  ChevronLeft,
+  Maximize2,
+  Minimize2,
+  History,
+  Edit3,
+  Plus,
+  Send,
+  Eye,
+  ExternalLink,
+  Info,
+  CheckCircle2,
+  AlertCircle,
+  FileIcon,
 } from 'lucide-react';
 import type {
   DocumentDetails,
@@ -78,6 +90,17 @@ async function updateDocumentStatus(
 }
 
 // ============================================
+// Status Color Mapping
+// ============================================
+
+const statusConfig: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
+  draft: { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300', icon: <Edit3 className="h-3.5 w-3.5" /> },
+  active: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  obsolete: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', icon: <AlertCircle className="h-3.5 w-3.5" /> },
+  archived: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: <FileIcon className="h-3.5 w-3.5" /> },
+};
+
+// ============================================
 // Component
 // ============================================
 
@@ -98,6 +121,8 @@ export default function DocumentDetailPage() {
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<DocumentStatus | null>(null);
+  const [showVersionPanel, setShowVersionPanel] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Fetch document
   const {
@@ -141,7 +166,6 @@ export default function DocumentDetailPage() {
   // Set default selected version to latest when document loads
   useEffect(() => {
     if (document?.versions && document.versions.length > 0 && selectedVersionId === null) {
-      // Default to the latest version (first in sorted list, or currentVersion)
       const latestVersion = document.versions[0];
       setSelectedVersionId(latestVersion.id);
     }
@@ -168,7 +192,6 @@ export default function DocumentDetailPage() {
   const handleCreateVersion = async () => {
     let filePath: string | undefined;
 
-    // Upload file if selected
     if (selectedFile) {
       setIsUploading(true);
       try {
@@ -202,28 +225,42 @@ export default function DocumentDetailPage() {
     });
   };
 
-  // Loading and error states
+  // Get file URL
+  const getFileUrl = (filePath: string, inline = false) => {
+    const path = filePath.replace('data/', '');
+    return `/api/documents/download/${path}${inline ? '?inline=1' : ''}`;
+  };
+
+  // Loading state
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4" />
-          <div className="h-64 bg-muted rounded" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="container mx-auto py-8 px-4">
+          <div className="animate-pulse space-y-6">
+            <div className="h-12 bg-white/50 dark:bg-slate-800/50 rounded-xl w-1/3" />
+            <div className="h-[600px] bg-white/50 dark:bg-slate-800/50 rounded-2xl" />
+          </div>
         </div>
       </div>
     );
   }
 
+  // Error state
   if (error || !document) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="text-center py-12">
-          <p className="text-destructive">Failed to load document</p>
-          <DxButton
-            text="Go Back"
-            onClick={() => router.back()}
-            stylingMode="outlined"
-          />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Failed to Load Document</h2>
+          <p className="text-muted-foreground mb-6">The document could not be found or an error occurred.</p>
+          <button
+            onClick={() => router.push('/gmp/documents')}
+            className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
+          >
+            Back to Documents
+          </button>
         </div>
       </div>
     );
@@ -232,227 +269,290 @@ export default function DocumentDetailPage() {
   const canEdit = document.status === 'draft';
   const canCreateVersion = document.status === 'active' || document.status === 'draft';
   const hasDraftVersion = document.currentVersion?.status === 'draft';
+  const isPdf = selectedVersion?.filePath?.toLowerCase().endsWith('.pdf');
+  const config = statusConfig[document.status] || statusConfig.draft;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Page Header */}
-      <ResponsivePageHeader
-        title={document.title}
-        subtitle={document.documentNumber}
-        onBack={() => router.push('/gmp/documents')}
-        actions={
-          <div className="flex items-center gap-2">
-            {canEdit && (
-              <DxButton
-                text="Edit"
-                icon="edit"
-                onClick={() => setShowEditForm(true)}
-                stylingMode="outlined"
-              />
-            )}
-            {canCreateVersion && (
-              <DxButton
-                text="New Version"
-                icon="add"
-                onClick={() => setShowNewVersionDialog(true)}
-                type="default"
-              />
-            )}
-            {hasDraftVersion && (
-              <DxButton
-                text="Submit for Approval"
-                icon="upload"
-                onClick={() => setShowSubmitDialog(true)}
-                type="success"
-              />
-            )}
-          </div>
-        }
-      />
-
-      {/* Document Info and Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Document Details Card */}
-          <div className="bg-card border rounded-lg shadow-sm p-6">
-            <div className="flex items-start justify-between mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      {/* Top Navigation Bar */}
+      <div className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Left: Back & Title */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/gmp/documents')}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <FileText className="h-6 w-6 text-primary" />
+                <div className="hidden sm:flex h-10 w-10 items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20">
+                  <FileText className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">{document.title}</h2>
-                  <p className="text-sm text-muted-foreground font-mono">
-                    {document.documentNumber}
-                  </p>
+                  <h1 className="font-semibold text-lg leading-tight truncate max-w-[300px] lg:max-w-[500px]">
+                    {document.title}
+                  </h1>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="font-mono">{document.documentNumber}</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+                      {config.icon}
+                      {document.status.charAt(0).toUpperCase() + document.status.slice(1)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <WorkflowStatusBadge status={document.status} />
-                <button
-                  onClick={() => setShowStatusDialog(true)}
-                  className="text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
-                  title="Change Status"
-                >
-                  Change
-                </button>
               </div>
             </div>
 
-            {/* Metadata Grid */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Building className="h-4 w-4" />
-                <span>Type: {document.typeName}</span>
-              </div>
-              {document.departmentName && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Building className="h-4 w-4" />
-                  <span>Department: {document.departmentName}</span>
-                </div>
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowVersionPanel(!showVersionPanel)}
+                className={`p-2.5 rounded-lg transition-all ${showVersionPanel ? 'bg-primary text-primary-foreground' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                title="Toggle Version History"
+              >
+                <History className="h-4 w-4" />
+              </button>
+              {canEdit && (
+                <button
+                  onClick={() => setShowEditForm(true)}
+                  className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  Edit
+                </button>
               )}
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <User className="h-4 w-4" />
-                <span>Created by: {document.createdByName}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>
-                  Created: {new Date(document.createdAt).toLocaleDateString('th-TH')}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>Retention: {document.retentionYears} years</span>
-              </div>
-              {selectedVersion && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  <span>
-                    Viewing: Version {selectedVersion.versionNumber} ({selectedVersion.status})
-                    {!isViewingLatest && ' - Historical'}
-                  </span>
-                </div>
+              {canCreateVersion && (
+                <button
+                  onClick={() => setShowNewVersionDialog(true)}
+                  className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Version
+                </button>
+              )}
+              {hasDraftVersion && (
+                <button
+                  onClick={() => setShowSubmitDialog(true)}
+                  className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
+                >
+                  <Send className="h-4 w-4" />
+                  Submit
+                </button>
               )}
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Version Preview Header */}
-          {selectedVersion && (
-            <div className={`bg-card border rounded-lg shadow-sm p-4 ${!isViewingLatest ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-900/10' : ''}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${!isViewingLatest ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-primary/10'}`}>
-                    <FileText className={`h-5 w-5 ${!isViewingLatest ? 'text-amber-600' : 'text-primary'}`} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">
-                      Version {selectedVersion.versionNumber}
-                      {!isViewingLatest && (
-                        <span className="ml-2 text-xs px-2 py-0.5 bg-amber-200 text-amber-800 rounded-full">
-                          Historical Version
-                        </span>
-                      )}
-                      {isViewingLatest && selectedVersion.id === document.currentVersionId && (
-                        <span className="ml-2 text-xs px-2 py-0.5 bg-primary text-primary-foreground rounded-full">
-                          Current
-                        </span>
-                      )}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Created by {selectedVersion.createdByName || 'Unknown'} on{' '}
-                      {new Date(selectedVersion.createdAt).toLocaleDateString('th-TH', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
+      {/* Main Content Area */}
+      <div className="container mx-auto px-4 py-6">
+        <div className={`flex gap-6 ${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-slate-900 p-4' : ''}`}>
+          {/* Main Content */}
+          <div className={`flex-1 space-y-6 ${showVersionPanel && !isFullscreen ? 'lg:pr-80' : ''}`}>
+            {/* Document Info Cards */}
+            {!isFullscreen && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Document Type</p>
+                      <p className="font-medium text-sm">{document.typeName}</p>
+                    </div>
                   </div>
                 </div>
-                <WorkflowStatusBadge status={selectedVersion.status} />
-              </div>
-              {selectedVersion.changeDescription && (
-                <p className="mt-3 text-sm text-muted-foreground border-t pt-3">
-                  <span className="font-medium">Change Notes:</span> {selectedVersion.changeDescription}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Selected Version Content */}
-          {selectedVersion?.content && (
-            <div className="bg-card border rounded-lg shadow-sm p-6">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-                Document Content
-              </h3>
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <pre className="whitespace-pre-wrap text-sm bg-muted/50 p-4 rounded-lg">
-                  {selectedVersion.content}
-                </pre>
-              </div>
-            </div>
-          )}
-
-          {/* Attached File with Inline Preview */}
-          {selectedVersion?.filePath && (
-            <div className="bg-card border rounded-lg shadow-sm p-6">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-                Attached File
-              </h3>
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg mb-4">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-8 w-8 text-primary" />
-                  <div>
-                    <p className="font-medium">
-                      {selectedVersion.filePath.split('/').pop()}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Version {selectedVersion.versionNumber}
-                    </p>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                      <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Created By</p>
+                      <p className="font-medium text-sm">{document.createdByName}</p>
+                    </div>
                   </div>
                 </div>
-                <a
-                  href={`/api/documents/download/${selectedVersion.filePath.replace('data/', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  <Download className="h-4 w-4" />
-                  Download
-                </a>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                      <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Created Date</p>
+                      <p className="font-medium text-sm">
+                        {new Date(document.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                      <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Retention</p>
+                      <p className="font-medium text-sm">{document.retentionYears} years</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Version Info Banner */}
+            {selectedVersion && !isFullscreen && (
+              <div className={`rounded-xl p-4 border ${!isViewingLatest ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${!isViewingLatest ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                      <Eye className={`h-5 w-5 ${!isViewingLatest ? 'text-amber-600' : 'text-blue-600'}`} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">Version {selectedVersion.versionNumber}</span>
+                        {isViewingLatest && selectedVersion.id === document.currentVersionId && (
+                          <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full">
+                            Current
+                          </span>
+                        )}
+                        {!isViewingLatest && (
+                          <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-full">
+                            Historical
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedVersion.createdByName || 'Unknown'} • {new Date(selectedVersion.createdAt).toLocaleDateString('th-TH')}
+                      </p>
+                    </div>
+                  </div>
+                  <WorkflowStatusBadge status={selectedVersion.status} />
+                </div>
+                {selectedVersion.changeDescription && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-sm">
+                      <span className="font-medium">Changes:</span> {selectedVersion.changeDescription}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PDF Viewer / Document Content */}
+            <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden ${isFullscreen ? 'h-full flex flex-col' : ''}`}>
+              {/* Viewer Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <span className="font-medium">
+                    {selectedVersion?.filePath ? selectedVersion.filePath.split('/').pop() : 'Document Content'}
+                  </span>
+                  {selectedVersion?.filePath && (
+                    <span className="text-xs text-muted-foreground px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded">
+                      {selectedVersion.filePath.split('.').pop()?.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedVersion?.filePath && (
+                    <>
+                      <a
+                        href={getFileUrl(selectedVersion.filePath)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </a>
+                      {isPdf && (
+                        <a
+                          href={getFileUrl(selectedVersion.filePath, true)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          title="Open in new tab"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </>
+                  )}
+                  <button
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                  >
+                    {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
-              {/* Inline PDF Preview */}
-              {selectedVersion.filePath.toLowerCase().endsWith('.pdf') && (
-                <div className="border rounded-lg overflow-hidden">
+              {/* Content Area */}
+              <div className={`${isFullscreen ? 'flex-1' : ''}`}>
+                {/* PDF Preview */}
+                {isPdf && selectedVersion?.filePath && (
                   <iframe
-                    src={`/api/documents/download/${selectedVersion.filePath.replace('data/', '')}?inline=1`}
-                    className="w-full h-[600px] bg-gray-100"
+                    src={getFileUrl(selectedVersion.filePath, true)}
+                    className={`w-full bg-slate-100 dark:bg-slate-900 ${isFullscreen ? 'h-full' : 'h-[calc(100vh-320px)] min-h-[600px]'}`}
                     title={`Preview: ${selectedVersion.filePath.split('/').pop()}`}
                   />
-                </div>
-              )}
+                )}
 
-              {/* Non-PDF file notice */}
-              {!selectedVersion.filePath.toLowerCase().endsWith('.pdf') && (
-                <div className="p-4 bg-muted/30 border border-dashed rounded-lg text-center">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Preview not available for this file type.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Please download the file to view its contents.
-                  </p>
-                </div>
-              )}
+                {/* Non-PDF File */}
+                {selectedVersion?.filePath && !isPdf && (
+                  <div className="flex flex-col items-center justify-center py-20 px-8">
+                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mb-6">
+                      <FileIcon className="h-10 w-10 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Preview Not Available</h3>
+                    <p className="text-muted-foreground text-center max-w-md mb-6">
+                      This file type cannot be previewed in the browser. Please download the file to view its contents.
+                    </p>
+                    <a
+                      href={getFileUrl(selectedVersion.filePath)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                    >
+                      <Download className="h-5 w-5" />
+                      Download File
+                    </a>
+                  </div>
+                )}
+
+                {/* Text Content */}
+                {!selectedVersion?.filePath && selectedVersion?.content && (
+                  <div className="p-6">
+                    <pre className="whitespace-pre-wrap text-sm font-mono bg-slate-50 dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                      {selectedVersion.content}
+                    </pre>
+                  </div>
+                )}
+
+                {/* No Content */}
+                {!selectedVersion?.filePath && !selectedVersion?.content && (
+                  <div className="flex flex-col items-center justify-center py-20 px-8">
+                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mb-6">
+                      <Info className="h-10 w-10 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">No Content Available</h3>
+                    <p className="text-muted-foreground text-center max-w-md">
+                      This version does not have any content or attached files.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
 
-          {/* Selected Version Approvals */}
-          {selectedVersion?.approvals &&
-            selectedVersion.approvals.length > 0 && (
-              <div className="bg-card border rounded-lg shadow-sm p-6">
+            {/* Approval Chain */}
+            {selectedVersion?.approvals && selectedVersion.approvals.length > 0 && !isFullscreen && (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
                   Approval Status
                 </h3>
@@ -468,19 +568,48 @@ export default function DocumentDetailPage() {
                 />
               </div>
             )}
-        </div>
-
-        {/* Sidebar - Version History */}
-        <div className="lg:col-span-1">
-          <div className="bg-card border rounded-lg shadow-sm p-6 sticky top-6">
-            <DocumentVersionHistory
-              documentId={documentId}
-              currentVersionId={document.currentVersionId || undefined}
-              selectedVersionId={selectedVersionId || undefined}
-              onVersionSelect={handleVersionSelect}
-            />
           </div>
+
+          {/* Version History Sidebar */}
+          {showVersionPanel && !isFullscreen && (
+            <div className="hidden lg:block fixed right-4 top-24 w-72 max-h-[calc(100vh-120px)] overflow-auto bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    Version History
+                  </h3>
+                  <button
+                    onClick={() => setShowVersionPanel(false)}
+                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-4">
+                <DocumentVersionHistory
+                  documentId={documentId}
+                  currentVersionId={document.currentVersionId || undefined}
+                  selectedVersionId={selectedVersionId || undefined}
+                  onVersionSelect={handleVersionSelect}
+                />
+              </div>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Mobile Actions FAB */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden z-40">
+        {canCreateVersion && (
+          <button
+            onClick={() => setShowNewVersionDialog(true)}
+            className="w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/30 flex items-center justify-center"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Edit Document Dialog */}
@@ -526,7 +655,7 @@ export default function DocumentDetailPage() {
           {/* File Upload */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Attach File (Optional)</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 hover:border-primary/50 transition-colors">
               {selectedFile ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -635,7 +764,6 @@ export default function DocumentDetailPage() {
               text="Submit"
               icon="upload"
               onClick={() => {
-                // Would call submitForApproval API
                 setShowSubmitDialog(false);
                 refetch();
               }}
@@ -670,10 +798,10 @@ export default function DocumentDetailPage() {
                   <button
                     key={status}
                     onClick={() => setPendingStatus(status)}
-                    className={`p-3 border rounded-lg text-sm font-medium transition-colors ${
+                    className={`p-3 border rounded-xl text-sm font-medium transition-all ${
                       pendingStatus === status
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-gray-200 hover:border-primary/50'
+                        ? 'border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
                     }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -682,7 +810,7 @@ export default function DocumentDetailPage() {
             </div>
           </div>
           {pendingStatus && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
               <p className="text-sm text-amber-800 dark:text-amber-200">
                 {pendingStatus === 'active' && 'This will mark the document as active and make the current version effective.'}
                 {pendingStatus === 'draft' && 'This will revert the document to draft status.'}
