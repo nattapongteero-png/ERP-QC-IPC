@@ -132,24 +132,6 @@ const ITEM_TYPE_CONFIG: Record<ItemType, {
 // Helper Components
 // ============================================
 
-function MetricCard({
-  value,
-  label,
-  loading = false,
-}: {
-  value: string | number;
-  label: string;
-  loading?: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center px-3 py-1 border-r border-white/20 last:border-r-0">
-      <p className={`text-sm font-bold ${loading ? 'animate-pulse' : ''}`}>
-        {loading ? '...' : value}
-      </p>
-      <p className="text-xs text-white/70">{label}</p>
-    </div>
-  );
-}
 
 function TypeCard({
   count,
@@ -518,54 +500,72 @@ export default function ItemsPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-4 -m-4 md:-m-6">
-        {/* Compact Header */}
-        <div className="bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 px-4 py-3 text-white">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/10 rounded-lg">
-                <Boxes className="h-5 w-5" />
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold">Inventory Items</h1>
-                <p className="text-slate-300 text-xs">รายการสินค้าและวัตถุดิบ</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Inline Stats */}
-              <div className="hidden md:flex items-center bg-white/10 rounded-lg px-1">
-                <MetricCard value={totalItems} label="Total" loading={isLoading} />
-                <MetricCard value={statistics.activeItems} label="Active" loading={isLoading} />
-                <MetricCard value={statistics.lowStockItems} label="Low Stock" loading={isLoading} />
-                <MetricCard value={typeCounts.raw_material} label="Raw Mat." loading={isLoading} />
-              </div>
-              <button
-                onClick={handleRefresh}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm"
-              >
-                <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
-                <span>Refresh</span>
-              </button>
-              <button
-                onClick={() => router.push('/inventory/lots')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm"
-              >
-                <Warehouse className="h-3.5 w-3.5" />
-                <span>Lots</span>
-              </button>
-              <button
-                onClick={handleOpenCreate}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add Item</span>
-              </button>
-            </div>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Inventory Items</h1>
+            <p className="text-sm text-gray-500 mt-1">รายการสินค้าและวัตถุดิบ</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+              Refresh
+            </button>
+            <button
+              onClick={() => router.push('/inventory/lots')}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Warehouse className="h-4 w-4" />
+              View Lots
+            </button>
+            <button
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              <Plus className="h-4 w-4" />
+              Add Item
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div className="bg-white rounded-lg border border-gray-200 p-3">
+            <p className="text-xs text-gray-500">Total Items</p>
+            <p className="text-xl font-semibold text-gray-900">{isLoading ? '...' : totalItems}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-3">
+            <p className="text-xs text-gray-500">Active</p>
+            <p className="text-xl font-semibold text-green-600">{isLoading ? '...' : statistics.activeItems}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-3">
+            <p className="text-xs text-gray-500">Low Stock</p>
+            <p className="text-xl font-semibold text-amber-600">{isLoading ? '...' : statistics.lowStockItems}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-3">
+            <p className="text-xs text-gray-500">Raw Materials</p>
+            <p className="text-xl font-semibold text-gray-900">{isLoading ? '...' : typeCounts.raw_material}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-3">
+            <p className="text-xs text-gray-500">Packaging</p>
+            <p className="text-xl font-semibold text-gray-900">{isLoading ? '...' : typeCounts.packaging}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-3">
+            <p className="text-xs text-gray-500">Finished Goods</p>
+            <p className="text-xl font-semibold text-gray-900">{isLoading ? '...' : typeCounts.finished_goods}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-3">
+            <p className="text-xs text-gray-500">VMI Ready</p>
+            <p className="text-xl font-semibold text-blue-600">{isLoading ? '...' : statistics.vmiReadyItems}</p>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="px-4 md:px-6 pb-4 space-y-4">
+        <div>
           {/* Dashboard Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
             {/* Left Column - Main Content */}
