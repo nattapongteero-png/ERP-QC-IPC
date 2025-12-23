@@ -3,7 +3,7 @@
 import * as React from 'react';
 import TagBox from 'devextreme-react/tag-box';
 import type { TagBoxTypes } from 'devextreme-react/tag-box';
-import { forwardRef, type ForwardedRef } from 'react';
+import { forwardRef, useMemo, type ForwardedRef } from 'react';
 
 export interface DxTagBoxProps {
   /** Data source for the tag box */
@@ -109,12 +109,29 @@ export const DxTagBox = forwardRef(
       validationStatus,
     } = props;
 
+    // Filter out items with null/undefined display values to prevent DevExtreme errors
+    // when searchEnabled is true (it calls toLowerCase() on displayExpr field)
+    const safeDataSource = useMemo(() => {
+      const source = dataSource || items;
+      if (!source || !Array.isArray(source)) {
+        return source;
+      }
+      if (!displayExpr || typeof displayExpr !== 'string') {
+        // Still filter out null/undefined items
+        return source.filter((item) => item != null);
+      }
+      return source.filter((item) => {
+        if (!item || typeof item !== 'object') return false;
+        const value = (item as Record<string, unknown>)[displayExpr];
+        return value != null && value !== '';
+      });
+    }, [dataSource, items, displayExpr]);
+
     return (
       <TagBox
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ref={ref as any}
-        dataSource={dataSource}
-        items={items}
+        dataSource={safeDataSource}
         displayExpr={displayExpr}
         valueExpr={valueExpr}
         value={value}
