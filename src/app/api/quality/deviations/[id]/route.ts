@@ -1,12 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteDeviations,
-  sqliteUsers,
-  mysqlDeviations,
-  mysqlUsers,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -29,16 +23,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return errorResponse('Invalid deviation ID');
       }
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const deviationsTable = usingSqlite ? sqliteDeviations : mysqlDeviations;
-      const usersTable = usingSqlite ? sqliteUsers : mysqlUsers;
+      const deviationsTable = getTableRef('deviations');
+      const usersTable = getTableRef('users');
 
       // Get deviation
-      const deviationResult = await (db as any)
-        .select()
-        .from(deviationsTable)
-        .where(eq(deviationsTable.id, deviationId));
+      const deviationResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(deviationsTable)
+          .where(eq(deviationsTable.id, deviationId));
+      });
 
       if (deviationResult.length === 0) {
         return notFoundResponse('Deviation not found');
@@ -49,42 +43,48 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       // Get reporter info
       let reporter = null;
       if (deviation.reportedBy) {
-        const reporterResult = await (db as any)
-          .select({
-            id: usersTable.id,
-            name: usersTable.name,
-            email: usersTable.email,
-          })
-          .from(usersTable)
-          .where(eq(usersTable.id, deviation.reportedBy));
+        const reporterResult = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: usersTable.id,
+              name: usersTable.name,
+              email: usersTable.email,
+            })
+            .from(usersTable)
+            .where(eq(usersTable.id, deviation.reportedBy));
+        });
         reporter = reporterResult[0] || null;
       }
 
       // Get assignee info
       let assignee = null;
       if (deviation.assignedTo) {
-        const assigneeResult = await (db as any)
-          .select({
-            id: usersTable.id,
-            name: usersTable.name,
-            email: usersTable.email,
-          })
-          .from(usersTable)
-          .where(eq(usersTable.id, deviation.assignedTo));
+        const assigneeResult = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: usersTable.id,
+              name: usersTable.name,
+              email: usersTable.email,
+            })
+            .from(usersTable)
+            .where(eq(usersTable.id, deviation.assignedTo));
+        });
         assignee = assigneeResult[0] || null;
       }
 
       // Get closer info
       let closer = null;
       if (deviation.closedBy) {
-        const closerResult = await (db as any)
-          .select({
-            id: usersTable.id,
-            name: usersTable.name,
-            email: usersTable.email,
-          })
-          .from(usersTable)
-          .where(eq(usersTable.id, deviation.closedBy));
+        const closerResult = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: usersTable.id,
+              name: usersTable.name,
+              email: usersTable.email,
+            })
+            .from(usersTable)
+            .where(eq(usersTable.id, deviation.closedBy));
+        });
         closer = closerResult[0] || null;
       }
 
@@ -139,15 +139,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         dueDate,
       } = body;
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const deviationsTable = usingSqlite ? sqliteDeviations : mysqlDeviations;
+      const deviationsTable = getTableRef('deviations');
 
       // Check if deviation exists
-      const existing = await (db as any)
-        .select()
-        .from(deviationsTable)
-        .where(eq(deviationsTable.id, deviationId));
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(deviationsTable)
+          .where(eq(deviationsTable.id, deviationId));
+      });
 
       if (existing.length === 0) {
         return notFoundResponse('Deviation not found');
@@ -157,7 +157,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       // Build update object
       const updateData: Record<string, any> = {
-        updatedAt: usingSqlite ? new Date().toISOString() : new Date(),
+        updatedAt: dbDate(),
       };
 
       if (title !== undefined) updateData.title = title;
@@ -174,14 +174,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       // Auto-set closed fields if status is closed
       if (status === 'closed' && oldDeviation.status !== 'closed') {
         updateData.closedBy = session.userId;
-        updateData.closedAt = usingSqlite ? new Date().toISOString() : new Date();
+        updateData.closedAt = dbDate();
       }
 
       // Update deviation
-      await (db as any)
-        .update(deviationsTable)
-        .set(updateData)
-        .where(eq(deviationsTable.id, deviationId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(deviationsTable)
+          .set(updateData)
+          .where(eq(deviationsTable.id, deviationId));
+      });
 
       await createAuditLog({
         userId: session.userId,
@@ -211,15 +213,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         return errorResponse('Invalid deviation ID');
       }
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const deviationsTable = usingSqlite ? sqliteDeviations : mysqlDeviations;
+      const deviationsTable = getTableRef('deviations');
 
       // Check if deviation exists
-      const existing = await (db as any)
-        .select()
-        .from(deviationsTable)
-        .where(eq(deviationsTable.id, deviationId));
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(deviationsTable)
+          .where(eq(deviationsTable.id, deviationId));
+      });
 
       if (existing.length === 0) {
         return notFoundResponse('Deviation not found');
@@ -236,7 +238,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
 
       // Delete deviation
-      await (db as any).delete(deviationsTable).where(eq(deviationsTable.id, deviationId));
+      await executeDbOperation(async (db) => {
+        return db.delete(deviationsTable).where(eq(deviationsTable.id, deviationId));
+      });
 
       await createAuditLog({
         userId: session.userId,
