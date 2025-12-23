@@ -1,0 +1,65 @@
+/**
+ * Implement Change Request API
+ * Feature: 009-gmp-compliance-gap-analysis (หมวด 8)
+ *
+ * POST /api/changes/[id]/implement - Mark change request as implemented
+ */
+
+import { NextRequest } from 'next/server';
+import {
+  successResponse,
+  errorResponse,
+  serverErrorResponse,
+  notFoundResponse,
+  withAuth,
+} from '@/lib/api-utils';
+import { implementChange } from '@/lib/services/change-control-service';
+import { changeImplementSchema } from '@/lib/validation/change-control';
+
+// POST /api/changes/[id]/implement - Mark change request as implemented
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const { id } = await params;
+        const changeId = parseInt(id, 10);
+
+        if (isNaN(changeId)) {
+          return errorResponse('Invalid change request ID', 400);
+        }
+
+        const body = await request.json();
+
+        // Validate input
+        const parseResult = changeImplementSchema.safeParse(body);
+        if (!parseResult.success) {
+          const errors = parseResult.error.issues.map((issue) => ({
+            field: issue.path.join('.'),
+            message: issue.message,
+          }));
+          return errorResponse('Validation failed', 400, { errors });
+        }
+
+        const { implementationNotes } = parseResult.data;
+
+        const change = await implementChange(changeId, session.userId, implementationNotes);
+        return successResponse(change, 'Change request marked as implemented successfully');
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('not found')) {
+            return notFoundResponse(error.message);
+          }
+          if (error.message.includes('Only approved')) {
+            return errorResponse(error.message, 400);
+          }
+        }
+        return serverErrorResponse(error);
+      }
+    },
+    ['change_control:write']
+  );
+}
