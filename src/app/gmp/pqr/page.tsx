@@ -34,8 +34,11 @@ import { saveAs } from 'file-saver';
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxButton } from '@/components/ui/dx-button';
+import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
+import type { Item } from '@/components/ui/item-search-dialog';
 import PieChart, {
   Series as PieSeries,
   Label as PieLabel,
@@ -72,6 +75,12 @@ import {
   FileBarChart,
   Target,
   Percent,
+  PackageCheck,
+  ChevronRight,
+  Info,
+  Sparkles,
+  CalendarRange,
+  Hash,
 } from 'lucide-react';
 import type {
   PqrReport,
@@ -240,16 +249,6 @@ async function fetchPqrList(params: {
   return result.data;
 }
 
-async function fetchProducts(): Promise<{ id: number; name: string; code: string }[]> {
-  const response = await fetch('/api/items?category=finished_goods&limit=100');
-  const result = await response.json();
-  if (!result.success) return [];
-  return (result.data?.items || []).map((item: { id: number; nameTh: string; code: string }) => ({
-    id: item.id,
-    name: item.nameTh,
-    code: item.code,
-  }));
-}
 
 async function createPqrReport(data: PqrCreate): Promise<PqrReport> {
   const response = await fetch('/api/pqr', {
@@ -273,6 +272,8 @@ export default function PqrDashboardPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>('all');
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showProductDialog, setShowProductDialog] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
   const [newReportData, setNewReportData] = useState<Partial<PqrCreate>>({
     reviewYear: new Date().getFullYear(),
   });
@@ -289,13 +290,6 @@ export default function PqrDashboardPage() {
     queryFn: () => fetchPqrList({ limit: 100 }),
   });
 
-  // Fetch products for new report dialog
-  const { data: products } = useQuery({
-    queryKey: ['products-finished'],
-    queryFn: fetchProducts,
-    enabled: showNewDialog,
-  });
-
   // Create mutation
   const createMutation = useMutation({
     mutationFn: createPqrReport,
@@ -303,10 +297,25 @@ export default function PqrDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ['pqr-list'] });
       queryClient.invalidateQueries({ queryKey: ['pqr-dashboard'] });
       setShowNewDialog(false);
+      setSelectedProduct(null);
       setNewReportData({ reviewYear: new Date().getFullYear() });
       router.push(`/gmp/pqr/${report.id}`);
     },
   });
+
+  // Handle product selection from ItemSearchDialog
+  const handleProductSelect = (item: Item) => {
+    setSelectedProduct(item);
+    setNewReportData((prev) => ({ ...prev, productId: item.id }));
+    setShowProductDialog(false);
+  };
+
+  // Close new dialog and reset state
+  const handleCloseNewDialog = () => {
+    setShowNewDialog(false);
+    setSelectedProduct(null);
+    setNewReportData({ reviewYear: new Date().getFullYear() });
+  };
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -465,8 +474,11 @@ export default function PqrDashboardPage() {
 
   // Handle create new report
   const handleCreateReport = () => {
-    if (!newReportData.productId || !newReportData.reviewYear) return;
-    createMutation.mutate(newReportData as PqrCreate);
+    if (!selectedProduct || !newReportData.reviewYear) return;
+    createMutation.mutate({
+      ...newReportData,
+      productId: selectedProduct.id,
+    } as PqrCreate);
   };
 
   const currentYear = new Date().getFullYear();
@@ -907,84 +919,191 @@ export default function PqrDashboardPage() {
         </div>
       </div>
 
-      {/* New PQR Report Dialog */}
+      {/* New PQR Report Dialog - Professional Redesign */}
       <DxPopup
         visible={showNewDialog}
-        onHiding={() => setShowNewDialog(false)}
-        title="Create New PQR Report"
-        showCloseButton={true}
-        width={500}
+        onHiding={handleCloseNewDialog}
+        title=""
+        showCloseButton
+        showTitle={false}
+        width={680}
         height="auto"
       >
-        <div className="p-4 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Product *</label>
-            <DxSelectBox
-              items={(products || []).map((p) => ({ value: p.id, label: `${p.code} - ${p.name}` }))}
-              value={newReportData.productId}
-              valueExpr="value"
-              displayExpr="label"
-              onValueChange={(value) => setNewReportData((prev) => ({ ...prev, productId: value }))}
-              placeholder="Select product..."
-              searchEnabled
-              showClearButton
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Review Year *</label>
-            <DxNumberBox
-              value={newReportData.reviewYear}
-              onValueChange={(value) => setNewReportData((prev) => ({ ...prev, reviewYear: value ?? undefined }))}
-              min={2020}
-              max={currentYear + 1}
-              showSpinButtons
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Period Start</label>
-              <input
-                type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                value={newReportData.periodStart || ''}
-                onChange={(e) =>
-                  setNewReportData((prev) => ({ ...prev, periodStart: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Period End</label>
-              <input
-                type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                value={newReportData.periodEnd || ''}
-                onChange={(e) =>
-                  setNewReportData((prev) => ({ ...prev, periodEnd: e.target.value }))
-                }
-              />
+        <div className="flex flex-col">
+          {/* Professional Header */}
+          <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 px-6 py-5 text-white">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <FileBarChart className="h-7 w-7" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">สร้างรายงาน PQR ใหม่</h2>
+                <p className="text-indigo-100 text-sm">Product Quality Review - รายงานทบทวนคุณภาพผลิตภัณฑ์ประจำปี</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <button
-              onClick={() => setShowNewDialog(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreateReport}
-              disabled={!newReportData.productId || !newReportData.reviewYear || createMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Create Report
-            </button>
+          {/* Form Content */}
+          <div className="p-6 space-y-6">
+            {/* Product Selection Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <PackageCheck className="h-5 w-5 text-indigo-600" />
+                <label className="text-sm font-semibold text-gray-800">เลือกผลิตภัณฑ์ *</label>
+              </div>
+
+              {selectedProduct ? (
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                      <PackageCheck className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-emerald-800">{selectedProduct.code}</p>
+                      <p className="text-sm text-emerald-600">{selectedProduct.nameTh}</p>
+                      {selectedProduct.nameEn && (
+                        <p className="text-xs text-emerald-500">{selectedProduct.nameEn}</p>
+                      )}
+                    </div>
+                  </div>
+                  <DxButton
+                    text="เปลี่ยน"
+                    type="normal"
+                    stylingMode="outlined"
+                    icon="edit"
+                    onClick={() => setShowProductDialog(true)}
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowProductDialog(true)}
+                  className="w-full flex items-center justify-between p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
+                >
+                  <div className="flex items-center gap-3 text-gray-500 group-hover:text-indigo-600">
+                    <div className="p-2 bg-gray-100 group-hover:bg-indigo-100 rounded-lg transition-colors">
+                      <Package className="h-5 w-5" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block font-medium">คลิกเพื่อเลือกผลิตภัณฑ์...</span>
+                      <span className="text-xs text-gray-400 group-hover:text-indigo-400">เฉพาะผลิตภัณฑ์สำเร็จรูป (Finished Goods)</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-indigo-500" />
+                </button>
+              )}
+            </div>
+
+            {/* Review Year Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Hash className="h-5 w-5 text-indigo-600" />
+                <label className="text-sm font-semibold text-gray-800">ปีที่ทบทวน (Review Year) *</label>
+              </div>
+              <div className="max-w-[200px]">
+                <DxNumberBox
+                  value={newReportData.reviewYear}
+                  onValueChange={(value) => setNewReportData((prev) => ({ ...prev, reviewYear: value ?? undefined }))}
+                  min={2020}
+                  max={currentYear + 1}
+                  showSpinButtons
+                  height={42}
+                />
+              </div>
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <Info className="h-3.5 w-3.5" />
+                เลือกปีที่ต้องการทบทวนคุณภาพผลิตภัณฑ์ (ค.ศ.)
+              </p>
+            </div>
+
+            {/* Review Period Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <CalendarRange className="h-5 w-5 text-indigo-600" />
+                <label className="text-sm font-semibold text-gray-800">ช่วงเวลาที่ทบทวน (Review Period)</label>
+                <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded">ไม่บังคับ</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-gray-500">วันที่เริ่มต้น</label>
+                  <DxDateBox
+                    value={newReportData.periodStart || ''}
+                    onValueChange={(value) => setNewReportData((prev) => ({ ...prev, periodStart: value }))}
+                    placeholder="เลือกวันที่เริ่มต้น..."
+                    showClearButton
+                    height={42}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-gray-500">วันที่สิ้นสุด</label>
+                  <DxDateBox
+                    value={newReportData.periodEnd || ''}
+                    onValueChange={(value) => setNewReportData((prev) => ({ ...prev, periodEnd: value }))}
+                    placeholder="เลือกวันที่สิ้นสุด..."
+                    showClearButton
+                    height={42}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <Info className="h-3.5 w-3.5" />
+                ระบุช่วงเวลาที่จะรวบรวมข้อมูลสำหรับการทบทวน (โดยปกติ 1 ม.ค. - 31 ธ.ค.)
+              </p>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                  <Sparkles className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-blue-800">ข้อมูลที่จะรวบรวมอัตโนมัติ</p>
+                  <ul className="text-sm text-blue-600 space-y-0.5">
+                    <li>• จำนวน Batch ที่ผลิตในช่วงเวลา</li>
+                    <li>• ข้อมูล Deviation, CAPA, OOS, Complaints</li>
+                    <li>• ผลการทดสอบคุณภาพและ Stability</li>
+                    <li>• ข้อมูลการ Recall และ Market Returns</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              <span className="text-red-500">*</span> จำเป็นต้องกรอก
+            </p>
+            <div className="flex items-center gap-3">
+              <DxButton
+                text="ยกเลิก"
+                type="normal"
+                stylingMode="outlined"
+                onClick={handleCloseNewDialog}
+              />
+              <DxButton
+                text={createMutation.isPending ? 'กำลังสร้าง...' : 'สร้างรายงาน PQR'}
+                type="success"
+                icon="check"
+                onClick={handleCreateReport}
+                disabled={!selectedProduct || !newReportData.reviewYear || createMutation.isPending}
+              />
+            </div>
           </div>
         </div>
       </DxPopup>
+
+      {/* Item Search Dialog for Product Selection */}
+      <ItemSearchDialog
+        open={showProductDialog}
+        onOpenChange={setShowProductDialog}
+        onSelect={handleProductSelect}
+        title="เลือกผลิตภัณฑ์สำหรับ PQR"
+        filterType="finished_goods"
+        showPrice="none"
+        showStock={false}
+      />
     </>
   );
 }
