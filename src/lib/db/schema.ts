@@ -523,6 +523,7 @@ export const sqliteEquipment = sqliteTable('equipment', {
   nextMaintenanceDate: text('next_maintenance_date'),
   lastCalibrationDate: text('last_calibration_date'),
   nextCalibrationDate: text('next_calibration_date'),
+  cleaningStatus: text('cleaning_status').default('clean'), // clean, dirty, in_use, out_of_service
   status: text('status').notNull().default('active'), // active, maintenance, calibration, inactive
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -1487,6 +1488,7 @@ export const mysqlEquipment = mysqlTable('equipment', {
   nextMaintenanceDate: datetime('next_maintenance_date'),
   lastCalibrationDate: datetime('last_calibration_date'),
   nextCalibrationDate: datetime('next_calibration_date'),
+  cleaningStatus: varchar('cleaning_status', { length: 50 }).default('clean'),
   status: varchar('status', { length: 50 }).notNull().default('active'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   createdAt: datetime('created_at').notNull().default(new Date()),
@@ -2664,6 +2666,26 @@ export const mysqlPqrMetrics = mysqlTable('pqr_metrics', {
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
+// ============================================================================
+// Reusable Attachment System (Polymorphic)
+// ============================================================================
+
+// MySQL Attachments Table
+export const mysqlAttachments = mysqlTable('attachments', {
+  id: int('id').primaryKey().autoincrement(),
+  moduleName: varchar('module_name', { length: 50 }).notNull(), // e.g., 'capa', 'deviation', 'complaint'
+  entityId: int('entity_id').notNull(), // ID of the linked record
+  fileName: varchar('file_name', { length: 255 }).notNull(), // Original file name
+  fileSize: int('file_size').notNull(), // Size in bytes
+  mimeType: varchar('mime_type', { length: 100 }).notNull(), // MIME type
+  fileData: longblob('file_data').notNull(), // Binary content (LONGBLOB)
+  description: varchar('description', { length: 500 }), // Optional description
+  category: varchar('category', { length: 50 }), // Optional: evidence, report, photo, etc.
+  uploadedBy: int('uploaded_by').references(() => mysqlUsers.id),
+  uploadedAt: datetime('uploaded_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
 // ============================================
 // Report Categories (SQLite - for testing)
 // ============================================
@@ -3385,6 +3407,41 @@ export const sqlitePqrMetrics = sqliteTable('pqr_metrics', {
   calculatedAt: text('calculated_at').default('CURRENT_TIMESTAMP'),
 });
 
+// ============================================================================
+// Reusable Attachment System (Polymorphic)
+// ============================================================================
+
+// SQLite Attachments Table
+export const sqliteAttachments = sqliteTable('attachments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  moduleName: text('module_name').notNull(),
+  entityId: integer('entity_id').notNull(),
+  fileName: text('file_name').notNull(),
+  fileSize: integer('file_size').notNull(),
+  mimeType: text('mime_type').notNull(),
+  fileData: blob('file_data').notNull(), // SQLite blob for binary data
+  description: text('description'),
+  category: text('category'),
+  uploadedBy: integer('uploaded_by').references(() => sqliteUsers.id),
+  uploadedAt: text('uploaded_at').notNull().default(new Date().toISOString()),
+  updatedAt: text('updated_at').notNull().default(new Date().toISOString()),
+});
+
+// Attachment Relations
+export const mysqlAttachmentsRelations = relations(mysqlAttachments, ({ one }) => ({
+  uploader: one(mysqlUsers, {
+    fields: [mysqlAttachments.uploadedBy],
+    references: [mysqlUsers.id],
+  }),
+}));
+
+export const sqliteAttachmentsRelations = relations(sqliteAttachments, ({ one }) => ({
+  uploader: one(sqliteUsers, {
+    fields: [sqliteAttachments.uploadedBy],
+    references: [sqliteUsers.id],
+  }),
+}));
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -3547,3 +3604,7 @@ export type PqrReport = typeof sqlitePqrReports.$inferSelect;
 export type NewPqrReport = typeof sqlitePqrReports.$inferInsert;
 export type PqrMetric = typeof sqlitePqrMetrics.$inferSelect;
 export type NewPqrMetric = typeof sqlitePqrMetrics.$inferInsert;
+
+// Reusable Attachment System
+export type Attachment = typeof sqliteAttachments.$inferSelect;
+export type NewAttachment = typeof sqliteAttachments.$inferInsert;
