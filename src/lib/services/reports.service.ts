@@ -4,7 +4,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
-import { toDateSafe } from '../db/date-utils';
+import { toDateSafe, toQueryDate } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteItems,
@@ -408,8 +408,8 @@ export async function getQualitySummaryReport(
 
   // Get test statistics
   const testConditions = [];
-  if (dateFrom) testConditions.push(gte(tests.createdAt, dateFrom));
-  if (dateTo) testConditions.push(lte(tests.createdAt, dateTo));
+  if (dateFrom) testConditions.push(gte(tests.createdAt, toQueryDate(dateFrom)));
+  if (dateTo) testConditions.push(lte(tests.createdAt, toQueryDate(dateTo)));
 
   const testData = await database
     .select({
@@ -494,8 +494,8 @@ export async function getStockMovementReport(
   const database = (await getDb()) as any;
 
   const conditions = [];
-  if (dateFrom) conditions.push(gte(transactions.createdAt, dateFrom));
-  if (dateTo) conditions.push(lte(transactions.createdAt, dateTo));
+  if (dateFrom) conditions.push(gte(transactions.createdAt, toQueryDate(dateFrom)));
+  if (dateTo) conditions.push(lte(transactions.createdAt, toQueryDate(dateTo)));
 
   let query = database
     .select({
