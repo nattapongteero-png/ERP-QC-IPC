@@ -5,17 +5,10 @@
  */
 
 import { NextRequest } from 'next/server';
-import { eq, and, sql, desc, gte, lte } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVendors,
-  sqliteVMITransactions,
-  mysqlVendors,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { eq, and, sql, desc, gte, lte, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, isSqlite } from '@/lib/db/db-helper';
 import {
   successResponse,
-  errorResponse,
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
@@ -33,13 +26,13 @@ export async function GET(request: NextRequest) {
       const limit = parseInt(searchParams.get('limit') || '50');
       const offset = parseInt(searchParams.get('offset') || '0');
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
+      const vmiTransactions = getTableRef('vMITransactions');
+      const vendors = getTableRef('vendors');
+
+      const usingSqlite = isSqlite();
 
       // Build query conditions
-      const conditions: ReturnType<typeof eq>[] = [];
+      const conditions: (SQL | undefined)[] = [];
 
       if (vendorIdStr) {
         const vendorId = parseInt(vendorIdStr);
@@ -60,7 +53,7 @@ export async function GET(request: NextRequest) {
         const from = new Date(fromDate);
         if (!isNaN(from.getTime())) {
           conditions.push(
-            gte(vmiTransactions.createdAt, isSqlite ? from.toISOString() : from)
+            gte(vmiTransactions.createdAt, usingSqlite ? from.toISOString() : from)
           );
         }
       }
@@ -70,51 +63,55 @@ export async function GET(request: NextRequest) {
         to.setHours(23, 59, 59, 999);
         if (!isNaN(to.getTime())) {
           conditions.push(
-            lte(vmiTransactions.createdAt, isSqlite ? to.toISOString() : to)
+            lte(vmiTransactions.createdAt, usingSqlite ? to.toISOString() : to)
           );
         }
       }
 
       // Get total count
-      const countQuery = (db as any)
-        .select({ count: sql<number>`count(*)` })
-        .from(vmiTransactions);
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db
+          .select({ count: sql<number>`count(*)` })
+          .from(vmiTransactions);
 
-      if (conditions.length > 0) {
-        countQuery.where(and(...conditions));
-      }
+        if (conditions.length > 0) {
+          countQuery = countQuery.where(and(...conditions));
+        }
 
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
 
       // Get transactions with vendor info
-      let transactionsQuery = (db as any)
-        .select({
-          id: vmiTransactions.id,
-          vendorId: vmiTransactions.vendorId,
-          vendorName: vendors.name,
-          transactionType: vmiTransactions.transactionType,
-          endpoint: vmiTransactions.endpoint,
-          method: vmiTransactions.method,
-          httpStatus: vmiTransactions.httpStatus,
-          durationMs: vmiTransactions.durationMs,
-          status: vmiTransactions.status,
-          errorMessage: vmiTransactions.errorMessage,
-          requestPayload: vmiTransactions.requestPayload,
-          responsePayload: vmiTransactions.responsePayload,
-          createdAt: vmiTransactions.createdAt,
-        })
-        .from(vmiTransactions)
-        .leftJoin(vendors, eq(vmiTransactions.vendorId, vendors.id))
-        .orderBy(desc(vmiTransactions.createdAt))
-        .limit(Math.min(limit, 100))
-        .offset(offset);
+      const transactions = await executeDbOperation(async (db) => {
+        let query = db
+          .select({
+            id: vmiTransactions.id,
+            vendorId: vmiTransactions.vendorId,
+            vendorName: vendors.name,
+            transactionType: vmiTransactions.transactionType,
+            endpoint: vmiTransactions.endpoint,
+            method: vmiTransactions.method,
+            httpStatus: vmiTransactions.httpStatus,
+            durationMs: vmiTransactions.durationMs,
+            status: vmiTransactions.status,
+            errorMessage: vmiTransactions.errorMessage,
+            requestPayload: vmiTransactions.requestPayload,
+            responsePayload: vmiTransactions.responsePayload,
+            createdAt: vmiTransactions.createdAt,
+          })
+          .from(vmiTransactions)
+          .leftJoin(vendors, eq(vmiTransactions.vendorId, vendors.id))
+          .orderBy(desc(vmiTransactions.createdAt))
+          .limit(Math.min(limit, 100))
+          .offset(offset);
 
-      if (conditions.length > 0) {
-        transactionsQuery.where(and(...conditions));
-      }
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
 
-      const transactions = await transactionsQuery;
+        return query;
+      });
 
       // Format transactions
       type TransactionType = typeof transactions[number];
@@ -135,13 +132,15 @@ export async function GET(request: NextRequest) {
       }));
 
       // Get transaction type stats
-      const typeStats = await (db as any)
-        .select({
-          transactionType: vmiTransactions.transactionType,
-          count: sql<number>`count(*)`,
-        })
-        .from(vmiTransactions)
-        .groupBy(vmiTransactions.transactionType);
+      const typeStats = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            transactionType: vmiTransactions.transactionType,
+            count: sql<number>`count(*)`,
+          })
+          .from(vmiTransactions)
+          .groupBy(vmiTransactions.transactionType);
+      });
 
       const transactionTypes = typeStats.map((t: { transactionType: string; count: number }) => ({
         type: t.transactionType,

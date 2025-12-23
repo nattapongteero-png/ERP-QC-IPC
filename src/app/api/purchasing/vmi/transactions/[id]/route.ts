@@ -6,13 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVendors,
-  sqliteVMITransactions,
-  mysqlVendors,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -35,31 +29,31 @@ export async function GET(request: NextRequest, context: RouteContext) {
         return errorResponse('Invalid transaction ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
+      const vmiTransactions = getTableRef('vMITransactions');
+      const vendors = getTableRef('vendors');
 
       // Get transaction with vendor info
-      const result = await (db as any)
-        .select({
-          id: vmiTransactions.id,
-          vendorId: vmiTransactions.vendorId,
-          vendorName: vendors.name,
-          transactionType: vmiTransactions.transactionType,
-          endpoint: vmiTransactions.endpoint,
-          method: vmiTransactions.method,
-          httpStatus: vmiTransactions.httpStatus,
-          durationMs: vmiTransactions.durationMs,
-          status: vmiTransactions.status,
-          errorMessage: vmiTransactions.errorMessage,
-          requestPayload: vmiTransactions.requestPayload,
-          responsePayload: vmiTransactions.responsePayload,
-          createdAt: vmiTransactions.createdAt,
-        })
-        .from(vmiTransactions)
-        .leftJoin(vendors, eq(vmiTransactions.vendorId, vendors.id))
-        .where(eq(vmiTransactions.id, id));
+      const result = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: vmiTransactions.id,
+            vendorId: vmiTransactions.vendorId,
+            vendorName: vendors.name,
+            transactionType: vmiTransactions.transactionType,
+            endpoint: vmiTransactions.endpoint,
+            method: vmiTransactions.method,
+            httpStatus: vmiTransactions.httpStatus,
+            durationMs: vmiTransactions.durationMs,
+            status: vmiTransactions.status,
+            errorMessage: vmiTransactions.errorMessage,
+            requestPayload: vmiTransactions.requestPayload,
+            responsePayload: vmiTransactions.responsePayload,
+            createdAt: vmiTransactions.createdAt,
+          })
+          .from(vmiTransactions)
+          .leftJoin(vendors, eq(vmiTransactions.vendorId, vendors.id))
+          .where(eq(vmiTransactions.id, id));
+      });
 
       if (result.length === 0) {
         return errorResponse('Transaction not found', 404);
@@ -73,18 +67,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
       try {
         if (transaction.requestPayload) {
-          requestPayload = JSON.parse(transaction.requestPayload);
+          requestPayload = JSON.parse(transaction.requestPayload as string);
         }
       } catch {
-        requestPayload = transaction.requestPayload; // Return as string if parse fails
+        requestPayload = transaction.requestPayload;
       }
 
       try {
         if (transaction.responsePayload) {
-          responsePayload = JSON.parse(transaction.responsePayload);
+          responsePayload = JSON.parse(transaction.responsePayload as string);
         }
       } catch {
-        responsePayload = transaction.responsePayload; // Return as string if parse fails
+        responsePayload = transaction.responsePayload;
       }
 
       return successResponse({
