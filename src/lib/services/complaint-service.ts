@@ -775,7 +775,10 @@ export async function getComplaintTrends(
       dateFormat = 'day';
   }
 
-  const startDateStr = startDate.toISOString().split('T')[0];
+  // For MySQL, pass Date object; for SQLite, pass string
+  const startDateValue = isSqlite()
+    ? startDate.toISOString().split('T')[0]
+    : startDate;
 
   // Get all complaints in period
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -788,7 +791,15 @@ export async function getComplaintTrends(
     })
     .from(complaintsTable)
     .leftJoin(items, eq(complaintsTable.productId, items.id))
-    .where(gte(complaintsTable.receivedDate, startDateStr));
+    .where(gte(complaintsTable.receivedDate, startDateValue));
+
+  console.log('[DEBUG] Complaints count:', complaints.length);
+  if (complaints.length > 0) {
+    console.log('[DEBUG] First complaint receivedDate:', complaints[0].receivedDate);
+    console.log('[DEBUG] Type of receivedDate:', typeof complaints[0].receivedDate);
+    console.log('[DEBUG] Is Date:', complaints[0].receivedDate instanceof Date);
+    console.log('[DEBUG] Constructor:', complaints[0].receivedDate?.constructor?.name);
+  }
 
   // Calculate by category
   const byCategory: Record<ComplaintCategory, number> = {
