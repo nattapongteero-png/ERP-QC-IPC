@@ -59,10 +59,25 @@ export function toDateSafe(value: Date | string | null | undefined): Date {
   if (!value) {
     return new Date();
   }
-  if (value instanceof Date) {
-    return value;
+
+  // Handle Date objects (including cross-realm Date objects)
+  if (value instanceof Date || (typeof value === 'object' && value.constructor?.name === 'Date')) {
+    try {
+      const time = (value as Date).getTime();
+      if (!isNaN(time)) {
+        return new Date(time);
+      }
+    } catch {
+      // Fall through to string handling
+    }
   }
-  return new Date(value);
+
+  // Parse string
+  const parsed = new Date(String(value));
+  if (isNaN(parsed.getTime())) {
+    return new Date();
+  }
+  return parsed;
 }
 
 /**
@@ -72,16 +87,40 @@ export function toDateSafe(value: Date | string | null | undefined): Date {
  * @param value - Date object or string from database
  * @returns YYYY-MM-DD formatted string
  */
-export function formatDateFromDb(value: Date | string): string {
-  if (value instanceof Date) {
-    return value.toISOString().split('T')[0];
+export function formatDateFromDb(value: Date | string | null | undefined): string {
+  // Handle null/undefined
+  if (!value) {
+    return new Date().toISOString().split('T')[0];
   }
+
+  // Handle Date objects (including cross-realm Date objects)
+  if (value instanceof Date || (typeof value === 'object' && value.constructor?.name === 'Date')) {
+    try {
+      // Try to get time value first to check if it's a valid date
+      const time = (value as Date).getTime();
+      if (!isNaN(time)) {
+        return new Date(time).toISOString().split('T')[0];
+      }
+    } catch {
+      // Fall through to string handling
+    }
+  }
+
+  // Convert to string if not already
+  const strValue = String(value);
+
   // If it's already YYYY-MM-DD, return as-is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return value;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(strValue)) {
+    return strValue;
   }
+
   // Parse and format ISO string or other formats
-  return new Date(value).toISOString().split('T')[0];
+  const parsed = new Date(strValue);
+  if (isNaN(parsed.getTime())) {
+    // Invalid date, return today
+    return new Date().toISOString().split('T')[0];
+  }
+  return parsed.toISOString().split('T')[0];
 }
 
 /**
