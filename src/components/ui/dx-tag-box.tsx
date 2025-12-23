@@ -3,7 +3,7 @@
 import * as React from 'react';
 import TagBox from 'devextreme-react/tag-box';
 import type { TagBoxTypes } from 'devextreme-react/tag-box';
-import { forwardRef, useMemo, type ForwardedRef } from 'react';
+import { forwardRef, useMemo, useCallback, useRef, type ForwardedRef } from 'react';
 
 export interface DxTagBoxProps {
   /** Data source for the tag box */
@@ -144,6 +144,38 @@ export const DxTagBox = forwardRef(
     // Compute searchExpr - use displayExpr if not explicitly provided
     const finalSearchExpr = searchExpr || (typeof displayExpr === 'string' ? displayExpr : undefined);
 
+    // Use refs to store latest callbacks to avoid infinite re-renders
+    // DevExtreme-React can trigger re-renders when callback references change
+    const onValueChangedRef = useRef(onValueChanged);
+    const onSelectionChangedRef = useRef(onSelectionChanged);
+    onValueChangedRef.current = onValueChanged;
+    onSelectionChangedRef.current = onSelectionChanged;
+
+    // Helper to compare arrays for equality
+    const arraysEqual = useCallback((a: unknown[] | undefined, b: unknown[] | undefined): boolean => {
+      if (a === b) return true;
+      if (!a || !b) return false;
+      if (a.length !== b.length) return false;
+      return a.every((val, idx) => val === b[idx]);
+    }, []);
+
+    // Stable callback that never changes reference
+    // Only trigger if value actually changed to prevent infinite loops
+    const handleValueChanged = useCallback((e: TagBoxTypes.ValueChangedEvent) => {
+      // Compare arrays to prevent unnecessary updates
+      if (arraysEqual(e.previousValue as unknown[], e.value as unknown[])) return;
+      if (onValueChangedRef.current) {
+        onValueChangedRef.current(e);
+      }
+    }, [arraysEqual]);
+
+    // Stable callback for selection changed
+    const handleSelectionChanged = useCallback((e: TagBoxTypes.SelectionChangedEvent) => {
+      if (onSelectionChangedRef.current) {
+        onSelectionChangedRef.current(e);
+      }
+    }, []);
+
     return (
       <TagBox
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -166,8 +198,8 @@ export const DxTagBox = forwardRef(
         showMultiTagOnly={showMultiTagOnly}
         showSelectionControls={showSelectionControls}
         applyValueMode={applyValueMode}
-        onValueChanged={onValueChanged}
-        onSelectionChanged={onSelectionChanged}
+        onValueChanged={handleValueChanged}
+        onSelectionChanged={handleSelectionChanged}
         itemRender={itemRender}
         tagRender={tagRender}
         className={className}

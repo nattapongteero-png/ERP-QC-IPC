@@ -217,6 +217,29 @@ export function RecallDataEntryDialog({
     enabled: visible,
   });
 
+  // Memoize items arrays to prevent infinite re-renders in DevExtreme
+  const productItems = useMemo(
+    () =>
+      (products || []).map((p) => ({
+        value: p.id,
+        label: `${p.nameTh} (${p.code})`,
+      })),
+    [products]
+  );
+
+  const lotItems = useMemo(
+    () =>
+      (lots || [])
+        .filter((l) => l && l.id && l.lotNumber)
+        .map((l) => ({ id: l.id, lotNumber: l.lotNumber })),
+    [lots]
+  );
+
+  const userItems = useMemo(
+    () => (users || []).map((u) => ({ value: u.id, label: u.name })),
+    [users]
+  );
+
   // Create mutation
   const createMutation = useMutation({
     mutationFn: () =>
@@ -304,16 +327,20 @@ export function RecallDataEntryDialog({
   };
 
   // Handle product change - clears affected lots when product changes
-  const handleProductChange = (productId: number | null) => {
-    setFormData((prev) => ({ ...prev, productId, affectedLots: [] }));
-    if (errors.productId) {
+  const handleProductChange = useCallback(
+    (productId: number | null) => {
+      setFormData((prev) => ({ ...prev, productId, affectedLots: [] }));
       setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.productId;
-        return newErrors;
+        if (prev.productId) {
+          const newErrors = { ...prev };
+          delete newErrors.productId;
+          return newErrors;
+        }
+        return prev;
       });
-    }
-  };
+    },
+    []
+  );
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
@@ -432,14 +459,11 @@ export function RecallDataEntryDialog({
               Product <span className="text-destructive">*</span>
             </label>
             <DxSelectBox
-              items={(products || []).map((p) => ({
-                value: p.id,
-                label: `${p.nameTh} (${p.code})`,
-              }))}
+              items={productItems}
               value={formData.productId}
               valueExpr="value"
               displayExpr="label"
-              onValueChange={(value) => handleProductChange(value)}
+              onValueChange={handleProductChange}
               placeholder="Select product..."
               searchEnabled
               showClearButton
@@ -455,9 +479,7 @@ export function RecallDataEntryDialog({
               Affected Lots <span className="text-destructive">*</span>
             </label>
             <DxTagBox
-              dataSource={(lots || [])
-                .filter((l) => l && l.id && l.lotNumber)
-                .map((l) => ({ id: l.id, lotNumber: l.lotNumber })) as unknown as Record<string, unknown>[]}
+              dataSource={lotItems as unknown as Record<string, unknown>[]}
               valueExpr="id"
               displayExpr="lotNumber"
               value={formData.affectedLots}
@@ -496,7 +518,7 @@ export function RecallDataEntryDialog({
               Recall Coordinator <span className="text-destructive">*</span>
             </label>
             <DxSelectBox
-              items={(users || []).map((u) => ({ value: u.id, label: u.name }))}
+              items={userItems}
               value={formData.coordinatorId}
               valueExpr="value"
               displayExpr="label"
