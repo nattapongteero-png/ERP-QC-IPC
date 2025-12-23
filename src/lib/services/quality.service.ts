@@ -267,7 +267,7 @@ export async function recordTestResult(
   resultText: string | null,
   userId: number
 ): Promise<{ status: 'pass' | 'fail'; deviationId?: number }> {
-  const { tests, specs, lots, deviations } = getTables();
+  const { tests, specs, deviations } = getTables();
   const database = db();
 
   // Get test with specification
@@ -300,15 +300,22 @@ export async function recordTestResult(
       testStatus = evaluateTestResult(resultValue, resultText, spec);
 
       if (testStatus === 'fail') {
+        // Generate deviation number
+        const today = new Date();
+        const prefix = `DEV-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        const deviationNumber = `${prefix}-${random}`;
+
         // Create OOS deviation
         const [deviation] = await database
           .insert(deviations)
           .values({
+            deviationNumber,
+            description: `Out of Specification: ${test.testType}. Expected: ${formatSpec(spec)}, Actual: ${resultValue ?? resultText}`,
             lotId: test.lotId,
             type: 'OOS',
             severity: 'major',
             status: 'open',
-            description: `Out of Specification: ${test.testType}. Expected: ${formatSpec(spec)}, Actual: ${resultValue ?? resultText}`,
             reportedBy: userId,
             reportedAt: new Date().toISOString(),
           })
@@ -319,12 +326,12 @@ export async function recordTestResult(
     }
   }
 
-  // Update test record
+  // Update test record - map to schema column names
   await database
     .update(tests)
     .set({
-      resultValue,
-      resultText,
+      numericResult: resultValue,
+      result: resultText,
       status: testStatus === 'pass' ? 'passed' : 'failed',
       testedBy: userId,
       testedAt: new Date().toISOString(),
@@ -338,8 +345,8 @@ export async function recordTestResult(
     tableName: 'quality_tests',
     recordId: testId,
     newValue: {
-      resultValue,
-      resultText,
+      numericResult: resultValue,
+      result: resultText,
       status: testStatus,
     },
   });

@@ -20,14 +20,25 @@ export function getNow(): Date | string {
 }
 
 /**
- * Convert a date string to the correct format for the database.
- * SQLite: Returns the string as-is
+ * Convert a date value to the correct format for the database.
+ * SQLite: Returns ISO string format (YYYY-MM-DDTHH:mm:ss.sssZ or YYYY-MM-DD)
  * MySQL: Converts to Date object
  *
- * @param dateStr - Date string in any format parseable by Date constructor
+ * @param value - Date object or date string in any format parseable by Date constructor
  */
-export function toDbDate(dateStr: string): Date | string {
-  return isSqlite() ? dateStr : new Date(dateStr);
+export function toDbDate(value: Date | string): Date | string {
+  if (isSqlite()) {
+    // For SQLite, ensure we return a string
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    return value;
+  }
+  // For MySQL, ensure we return a Date object
+  if (value instanceof Date) {
+    return value;
+  }
+  return new Date(value);
 }
 
 /**
