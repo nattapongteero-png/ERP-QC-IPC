@@ -61,6 +61,9 @@ import type {
   ComplaintListParams,
   ComplaintListResponse,
   ComplaintTrendsParams,
+  AdverseEvent,
+  AdverseEventCreate,
+  RegulatoryReportingEvaluation,
 } from '@/types/complaints';
 
 // Type for database query result rows
@@ -939,4 +942,236 @@ export async function getComplaintDashboard(): Promise<{
     resolvedThisMonth,
     criticalCount,
   };
+}
+
+// ============================================
+// Regulatory Reporting & Adverse Events
+// ============================================
+
+/**
+ * Evaluate if a complaint requires FDA/regulatory reporting
+ * T504: Evaluates based on severity, category, and adverse event status
+ */
+export async function evaluateRegulatoryReporting(
+  complaintId: number,
+  userId: number
+): Promise<RegulatoryReportingEvaluation> {
+  const complaint = await getComplaintDetails(complaintId);
+  if (!complaint) {
+    throw new Error('Complaint not found');
+  }
+
+  const reasons: string[] = [];
+  let requiresReporting = false;
+
+  // Check severity - critical/serious triggers consideration
+  if (complaint.severity === 'critical') {
+    reasons.push('Critical severity level requires regulatory review');
+    requiresReporting = true;
+  }
+
+  // Check category - safety-related triggers consideration
+  if (complaint.category === 'safety') {
+    reasons.push('Safety-related complaint may require reporting');
+    requiresReporting = true;
+  }
+
+  if (complaint.category === 'efficacy') {
+    reasons.push('Efficacy issue may require regulatory notification');
+    // Don't automatically require reporting for efficacy alone
+  }
+
+  // Check for linked adverse event (stored in investigation metadata or separate check)
+  const { complaints: complaintsTable } = getTables();
+  const db = await getDb();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const complaintData = await (db as any)
+    .select({
+      description: complaintsTable.description,
+    })
+    .from(complaintsTable)
+    .where(eq(complaintsTable.id, complaintId))
+    .limit(1);
+
+  if (complaintData.length > 0) {
+    const description = complaintData[0].description.toLowerCase();
+    // Simple keyword detection for adverse events
+    const adverseKeywords = ['injury', 'hospital', 'emergency', 'allergic', 'reaction', 'adverse', 'death', 'serious'];
+    const hasAdverseIndicator = adverseKeywords.some(keyword => description.includes(keyword));
+
+    if (hasAdverseIndicator) {
+      reasons.push('Complaint description indicates potential adverse event');
+      requiresReporting = true;
+    }
+  }
+
+  // Generate recommendation based on evaluation
+  let recommendation: string;
+  if (requiresReporting) {
+    recommendation = 'Immediate regulatory reporting required. Contact regulatory affairs department to file FDA MedWatch (Form 3500A) within 15 calendar days. Document all investigation findings and corrective actions.';
+  } else if (reasons.length > 0) {
+    recommendation = 'Monitor complaint closely. Consult with regulatory affairs if additional evidence emerges. Document decision rationale in investigation notes.';
+  } else {
+    recommendation = 'No immediate regulatory reporting required. Continue standard complaint investigation process. Update evaluation if new information emerges.';
+  }
+
+  // Update complaint's regulatoryReportRequired flag
+  const now = getNow();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(complaintsTable)
+    .set({
+      regulatoryReportRequired: requiresReporting,
+      updatedAt: now,
+    })
+    .where(eq(complaintsTable.id, complaintId));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'complaints',
+    recordId: complaintId,
+    newValue: {
+      regulatoryReportRequired: requiresReporting,
+      evaluationReasons: reasons,
+    },
+  });
+
+  return {
+    requiresReporting,
+    reasons,
+    recommendation,
+  };
+}
+
+/**
+ * Record an adverse event linked to a complaint
+ * T505: Creates/updates adverse event record
+ * Note: Stores in complaint investigation metadata since no separate adverse_events table exists
+ */
+export async function recordAdverseEvent(
+  complaintId: number,
+  adverseEventData: AdverseEventCreate,
+  userId: number
+): Promise<AdverseEvent> {
+  const complaint = await getComplaintById(complaintId);
+  if (!complaint) {
+    throw new Error('Complaint not found');
+  }
+
+  const { investigations } = getTables();
+  const db = await getDb();
+
+  // Check if investigation exists
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existingInv = await (db as any)
+    .select({
+      id: investigations.id,
+      recommendation: investigations.recommendation,
+    })
+    .from(investigations)
+    .where(eq(investigations.complaintId, complaintId))
+    .limit(1);
+
+  if (existingInv.length === 0) {
+    throw new Error('Investigation not started - route to QC first before recording adverse event');
+  }
+
+  const now = getNow();
+
+  // Create adverse event object to store in investigation metadata
+  const adverseEvent: AdverseEvent = {
+    id: Date.now(), // Generate pseudo-ID using timestamp
+    complaintId,
+    eventType: adverseEventData.eventType,
+    eventDate: adverseEventData.eventDate,
+    severity: adverseEventData.severity,
+    description: adverseEventData.description,
+    patientOutcome: adverseEventData.patientOutcome || null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Store adverse event details in investigation recommendation field
+  // Format: "ADVERSE_EVENT: {json}" for easy parsing
+  const adverseEventJson = JSON.stringify(adverseEvent);
+  const recommendationPrefix = 'ADVERSE_EVENT_RECORDED: ';
+  const existingRecommendation = existingInv[0].recommendation || '';
+
+  // Preserve any existing recommendation that's not an adverse event
+  let updatedRecommendation: string;
+  if (existingRecommendation.startsWith(recommendationPrefix)) {
+    // Replace existing adverse event
+    updatedRecommendation = recommendationPrefix + adverseEventJson;
+  } else if (existingRecommendation) {
+    // Append adverse event to existing recommendation
+    updatedRecommendation = `${recommendationPrefix}${adverseEventJson}\n\nPrevious Recommendation: ${existingRecommendation}`;
+  } else {
+    updatedRecommendation = recommendationPrefix + adverseEventJson;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(investigations)
+    .set({
+      recommendation: updatedRecommendation,
+    })
+    .where(eq(investigations.complaintId, complaintId));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'complaint_investigations',
+    recordId: existingInv[0].id,
+    newValue: {
+      adverseEvent: {
+        eventType: adverseEventData.eventType,
+        severity: adverseEventData.severity,
+        eventDate: adverseEventData.eventDate,
+      },
+    },
+  });
+
+  return adverseEvent;
+}
+
+/**
+ * Get adverse event for a complaint
+ * Helper function to retrieve adverse event from investigation metadata
+ */
+export async function getAdverseEvent(complaintId: number): Promise<AdverseEvent | null> {
+  const { investigations } = getTables();
+  const db = await getDb();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const investigation = await (db as any)
+    .select({
+      recommendation: investigations.recommendation,
+    })
+    .from(investigations)
+    .where(eq(investigations.complaintId, complaintId))
+    .limit(1);
+
+  if (investigation.length === 0 || !investigation[0].recommendation) {
+    return null;
+  }
+
+  const recommendation = investigation[0].recommendation;
+  const prefix = 'ADVERSE_EVENT_RECORDED: ';
+
+  if (!recommendation.startsWith(prefix)) {
+    return null;
+  }
+
+  try {
+    // Extract JSON from recommendation
+    const jsonStr = recommendation.split('\n')[0].substring(prefix.length);
+    const adverseEvent = JSON.parse(jsonStr) as AdverseEvent;
+    return adverseEvent;
+  } catch {
+    return null;
+  }
 }
