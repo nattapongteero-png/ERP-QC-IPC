@@ -1,18 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, like, or, sql, and, desc } from 'drizzle-orm';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteBatchRecords,
-  sqliteWorkOrders,
-  sqliteOperations,
-  sqliteItems,
-  sqliteUsers,
-  mysqlBatchRecords,
-  mysqlWorkOrders,
-  mysqlOperations,
-  mysqlItems,
-  mysqlUsers,
-} from '@/lib/db/schema';
+import { eq, like, or, sql, and, desc, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -33,15 +21,13 @@ export async function GET(request: NextRequest) {
       const status = searchParams.get('status') || '';
       const workOrderId = searchParams.get('workOrderId');
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const batchRecords = usingSqlite ? sqliteBatchRecords : mysqlBatchRecords;
-      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const operations = usingSqlite ? sqliteOperations : mysqlOperations;
-      const items = usingSqlite ? sqliteItems : mysqlItems;
-      const users = usingSqlite ? sqliteUsers : mysqlUsers;
+      const batchRecords = getTableRef('batchRecords');
+      const workOrders = getTableRef('workOrders');
+      const operations = getTableRef('operations');
+      const items = getTableRef('items');
+      const users = getTableRef('users');
 
-      const conditions = [];
+      const conditions: (SQL | undefined)[] = [];
       if (search) {
         conditions.push(
           or(
@@ -59,75 +45,83 @@ export async function GET(request: NextRequest) {
       }
 
       // Count query
-      let countQuery = (db as any)
-        .select({ count: sql`count(*)` })
-        .from(batchRecords)
-        .leftJoin(workOrders, eq(batchRecords.workOrderId, workOrders.id));
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db
+          .select({ count: sql`count(*)` })
+          .from(batchRecords)
+          .leftJoin(workOrders, eq(batchRecords.workOrderId, workOrders.id));
 
-      if (conditions.length > 0) {
-        countQuery = countQuery.where(and(...conditions));
-      }
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
+        if (conditions.length > 0) {
+          countQuery = countQuery.where(and(...conditions));
+        }
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
 
       // Data query with joins
-      let query = (db as any)
-        .select({
-          id: batchRecords.id,
-          workOrderId: batchRecords.workOrderId,
-          woNumber: workOrders.woNumber,
-          batchNumber: workOrders.batchNumber,
-          productId: workOrders.productId,
-          productCode: items.code,
-          productName: items.nameTh,
-          operationId: batchRecords.operationId,
-          operationName: operations.name,
-          sequence: batchRecords.sequence,
-          stepName: batchRecords.stepName,
-          instructions: batchRecords.instructions,
-          status: batchRecords.status,
-          startTime: batchRecords.startTime,
-          endTime: batchRecords.endTime,
-          performedBy: batchRecords.performedBy,
-          verifiedBy: batchRecords.verifiedBy,
-          verifiedAt: batchRecords.verifiedAt,
-          createdAt: batchRecords.createdAt,
-        })
-        .from(batchRecords)
-        .leftJoin(workOrders, eq(batchRecords.workOrderId, workOrders.id))
-        .leftJoin(items, eq(workOrders.productId, items.id))
-        .leftJoin(operations, eq(batchRecords.operationId, operations.id));
-
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-
       const offset = (pagination.page - 1) * pagination.limit;
-      const records = await query
-        .orderBy(desc(batchRecords.createdAt))
-        .limit(pagination.limit)
-        .offset(offset);
+      const records = await executeDbOperation(async (db) => {
+        let query = db
+          .select({
+            id: batchRecords.id,
+            workOrderId: batchRecords.workOrderId,
+            woNumber: workOrders.woNumber,
+            batchNumber: workOrders.batchNumber,
+            productId: workOrders.productId,
+            productCode: items.code,
+            productName: items.nameTh,
+            operationId: batchRecords.operationId,
+            operationName: operations.name,
+            sequence: batchRecords.sequence,
+            stepName: batchRecords.stepName,
+            instructions: batchRecords.instructions,
+            status: batchRecords.status,
+            startTime: batchRecords.startTime,
+            endTime: batchRecords.endTime,
+            performedBy: batchRecords.performedBy,
+            verifiedBy: batchRecords.verifiedBy,
+            verifiedAt: batchRecords.verifiedAt,
+            createdAt: batchRecords.createdAt,
+          })
+          .from(batchRecords)
+          .leftJoin(workOrders, eq(batchRecords.workOrderId, workOrders.id))
+          .leftJoin(items, eq(workOrders.productId, items.id))
+          .leftJoin(operations, eq(batchRecords.operationId, operations.id));
+
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
+
+        return query
+          .orderBy(desc(batchRecords.createdAt))
+          .limit(pagination.limit)
+          .offset(offset);
+      });
 
       // Get performer and verifier names
       const recordsWithUsers = await Promise.all(
-        records.map(async (record: any) => {
+        records.map(async (record: Record<string, unknown>) => {
           let performerName = null;
           let verifierName = null;
 
           if (record.performedBy) {
-            const [performer] = await (db as any)
-              .select({ name: users.name })
-              .from(users)
-              .where(eq(users.id, record.performedBy));
-            performerName = performer?.name;
+            const performer = await executeDbOperation(async (db) => {
+              return db
+                .select({ name: users.name })
+                .from(users)
+                .where(eq(users.id, record.performedBy as number));
+            });
+            performerName = performer[0]?.name;
           }
 
           if (record.verifiedBy) {
-            const [verifier] = await (db as any)
-              .select({ name: users.name })
-              .from(users)
-              .where(eq(users.id, record.verifiedBy));
-            verifierName = verifier?.name;
+            const verifier = await executeDbOperation(async (db) => {
+              return db
+                .select({ name: users.name })
+                .from(users)
+                .where(eq(users.id, record.verifiedBy as number));
+            });
+            verifierName = verifier[0]?.name;
           }
 
           return {
@@ -163,43 +157,47 @@ export async function POST(request: NextRequest) {
         return errorResponse('Work order ID, operation ID, and step name are required');
       }
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const batchRecords = usingSqlite ? sqliteBatchRecords : mysqlBatchRecords;
-      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
+      const batchRecords = getTableRef('batchRecords');
+      const workOrders = getTableRef('workOrders');
 
       // Verify work order exists
-      const [wo] = await (db as any)
-        .select()
-        .from(workOrders)
-        .where(eq(workOrders.id, workOrderId));
+      const woResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(workOrders)
+          .where(eq(workOrders.id, workOrderId));
+      });
 
-      if (!wo) {
+      if (woResult.length === 0) {
         return errorResponse('Work order not found', 404);
       }
 
       // Get max sequence if not provided
       let recordSequence = sequence;
       if (!recordSequence) {
-        const [maxSeq] = await (db as any)
-          .select({ maxSeq: sql`MAX(${batchRecords.sequence})` })
-          .from(batchRecords)
-          .where(eq(batchRecords.workOrderId, workOrderId));
-        recordSequence = (maxSeq?.maxSeq || 0) + 1;
+        const maxSeqResult = await executeDbOperation(async (db) => {
+          return db
+            .select({ maxSeq: sql`MAX(${batchRecords.sequence})` })
+            .from(batchRecords)
+            .where(eq(batchRecords.workOrderId, workOrderId));
+        });
+        recordSequence = (maxSeqResult[0]?.maxSeq || 0) + 1;
       }
 
       // Create batch record
-      const result = await (db as any).insert(batchRecords).values({
-        workOrderId,
-        operationId,
-        sequence: recordSequence,
-        stepName,
-        instructions: instructions || null,
-        parameters: parameters ? JSON.stringify(parameters) : null,
-        status: 'pending',
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(batchRecords).values({
+          workOrderId,
+          operationId,
+          sequence: recordSequence,
+          stepName,
+          instructions: instructions || null,
+          parameters: parameters ? JSON.stringify(parameters) : null,
+          status: 'pending',
+        });
       });
 
-      const recordId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
+      const recordId = getInsertId(result);
 
       // Audit log
       await createAuditLog({

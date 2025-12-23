@@ -1,14 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteWorkOrders,
-  sqliteQualityTests,
-  sqliteInventoryLots,
-  mysqlWorkOrders,
-  mysqlQualityTests,
-  mysqlInventoryLots,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -32,43 +24,50 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (session) => {
+  return withAuth(request, async () => {
     try {
       const { id } = await params;
       const workOrderId = parseInt(id);
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const qualityTests = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
-      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+
+      const workOrders = getTableRef('workOrders');
+      const qualityTests = getTableRef('qualityTests');
+      const inventoryLots = getTableRef('inventoryLots');
 
       // Get work order to find the batch number
-      const [workOrder] = await (db as any)
-        .select()
-        .from(workOrders)
-        .where(eq(workOrders.id, workOrderId));
+      const workOrderResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(workOrders)
+          .where(eq(workOrders.id, workOrderId));
+      });
 
-      if (!workOrder) {
+      if (workOrderResult.length === 0) {
         return errorResponse('Work order not found', 404);
       }
 
+      const workOrder = workOrderResult[0];
+
       // Find lot by batch number (the produced lot)
-      const lots = await (db as any)
-        .select()
-        .from(inventoryLots)
-        .where(eq(inventoryLots.batchNumber, workOrder.batchNumber));
+      const lots = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(inventoryLots)
+          .where(eq(inventoryLots.batchNumber, workOrder.batchNumber));
+      });
 
       if (lots.length === 0) {
         return successResponse([]);
       }
 
       // Get QC tests for these lots
-      const allTests: any[] = [];
+      const allTests: Record<string, unknown>[] = [];
       for (const lot of lots) {
-        const tests = await (db as any)
-          .select()
-          .from(qualityTests)
-          .where(eq(qualityTests.lotId, lot.id));
+        const tests = await executeDbOperation(async (db) => {
+          return db
+            .select()
+            .from(qualityTests)
+            .where(eq(qualityTests.lotId, lot.id));
+        });
         allTests.push(...tests);
       }
 
@@ -95,33 +94,37 @@ export async function POST(
         return errorResponse('Test type is required');
       }
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const qualityTests = usingSqlite ? sqliteQualityTests : mysqlQualityTests;
-      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+      const workOrders = getTableRef('workOrders');
+      const qualityTests = getTableRef('qualityTests');
+      const inventoryLots = getTableRef('inventoryLots');
 
       // Check work order exists
-      const [workOrder] = await (db as any)
-        .select()
-        .from(workOrders)
-        .where(eq(workOrders.id, workOrderId));
+      const workOrderResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(workOrders)
+          .where(eq(workOrders.id, workOrderId));
+      });
 
-      if (!workOrder) {
+      if (workOrderResult.length === 0) {
         return errorResponse('Work order not found', 404);
       }
+
+      const workOrder = workOrderResult[0];
 
       // Determine which lot to use
       let targetLotId = lotId;
       if (!targetLotId) {
         // Find lot by batch number
-        const [lot] = await (db as any)
-          .select()
-          .from(inventoryLots)
-          .where(eq(inventoryLots.batchNumber, workOrder.batchNumber));
+        const lotResult = await executeDbOperation(async (db) => {
+          return db
+            .select()
+            .from(inventoryLots)
+            .where(eq(inventoryLots.batchNumber, workOrder.batchNumber));
+        });
 
-        if (lot) {
-          targetLotId = lot.id;
+        if (lotResult.length > 0) {
+          targetLotId = lotResult[0].id;
         }
       }
 
@@ -132,19 +135,21 @@ export async function POST(
       const testCode = generateTestCode();
 
       // Create QC test
-      const result = await (db as any).insert(qualityTests).values({
-        lotId: targetLotId,
-        testType,
-        testMethod: testMethod || null,
-        parameters: parameters ? JSON.stringify(parameters) : null,
-        status: 'pending',
-        result: null,
-        notes: notes || null,
-        createdBy: session.userId,
-        createdAt: usingSqlite ? new Date().toISOString() : new Date(),
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(qualityTests).values({
+          lotId: targetLotId,
+          testType,
+          testMethod: testMethod || null,
+          parameters: parameters ? JSON.stringify(parameters) : null,
+          status: 'pending',
+          result: null,
+          notes: notes || null,
+          createdBy: session.userId,
+          createdAt: dbDate(),
+        });
       });
 
-      const testId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
+      const testId = getInsertId(result);
 
       // Audit log
       await createAuditLog({

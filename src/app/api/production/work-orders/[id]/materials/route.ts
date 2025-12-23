@@ -1,18 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, and, sql } from 'drizzle-orm';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteWorkOrders,
-  sqliteWorkOrderMaterials,
-  sqliteItems,
-  sqliteInventoryLots,
-  sqliteInventoryTransactions,
-  mysqlWorkOrders,
-  mysqlWorkOrderMaterials,
-  mysqlItems,
-  mysqlInventoryLots,
-  mysqlInventoryTransactions,
-} from '@/lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -26,33 +14,34 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (session) => {
+  return withAuth(request, async () => {
     try {
       const { id } = await params;
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const workOrderMaterials = usingSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
-      const items = usingSqlite ? sqliteItems : mysqlItems;
-      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
 
-      const materials = await (db as any)
-        .select({
-          id: workOrderMaterials.id,
-          itemId: workOrderMaterials.itemId,
-          itemCode: items.code,
-          itemName: items.nameTh,
-          itemUnit: items.primaryUnit,
-          lotId: workOrderMaterials.lotId,
-          lotNumber: inventoryLots.lotNumber,
-          plannedQuantity: workOrderMaterials.plannedQuantity,
-          actualQuantity: workOrderMaterials.actualQuantity,
-          unit: workOrderMaterials.unit,
-          status: workOrderMaterials.status,
-        })
-        .from(workOrderMaterials)
-        .leftJoin(items, eq(workOrderMaterials.itemId, items.id))
-        .leftJoin(inventoryLots, eq(workOrderMaterials.lotId, inventoryLots.id))
-        .where(eq(workOrderMaterials.workOrderId, parseInt(id)));
+      const workOrderMaterials = getTableRef('workOrderMaterials');
+      const items = getTableRef('items');
+      const inventoryLots = getTableRef('inventoryLots');
+
+      const materials = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: workOrderMaterials.id,
+            itemId: workOrderMaterials.itemId,
+            itemCode: items.code,
+            itemName: items.nameTh,
+            itemUnit: items.primaryUnit,
+            lotId: workOrderMaterials.lotId,
+            lotNumber: inventoryLots.lotNumber,
+            plannedQuantity: workOrderMaterials.plannedQuantity,
+            actualQuantity: workOrderMaterials.actualQuantity,
+            unit: workOrderMaterials.unit,
+            status: workOrderMaterials.status,
+          })
+          .from(workOrderMaterials)
+          .leftJoin(items, eq(workOrderMaterials.itemId, items.id))
+          .leftJoin(inventoryLots, eq(workOrderMaterials.lotId, inventoryLots.id))
+          .where(eq(workOrderMaterials.workOrderId, parseInt(id)));
+      });
 
       return successResponse(materials);
     } catch (error) {
@@ -77,23 +66,24 @@ export async function POST(
         return errorResponse('Item ID, planned quantity, and unit are required');
       }
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const workOrders = usingSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const workOrderMaterials = usingSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
-      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
-      const inventoryTransactions = usingSqlite ? sqliteInventoryTransactions : mysqlInventoryTransactions;
+      const workOrders = getTableRef('workOrders');
+      const workOrderMaterials = getTableRef('workOrderMaterials');
+      const inventoryLots = getTableRef('inventoryLots');
+      const inventoryTransactions = getTableRef('inventoryTransactions');
 
       // Check work order exists and is in valid status
-      const [workOrder] = await (db as any)
-        .select()
-        .from(workOrders)
-        .where(eq(workOrders.id, workOrderId));
+      const workOrderResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(workOrders)
+          .where(eq(workOrders.id, workOrderId));
+      });
 
-      if (!workOrder) {
+      if (workOrderResult.length === 0) {
         return errorResponse('Work order not found', 404);
       }
 
+      const workOrder = workOrderResult[0];
       const allowedStatuses = ['draft', 'planned', 'released', 'in_progress'];
       if (!allowedStatuses.includes(workOrder.status)) {
         return errorResponse(`Cannot add materials to work order with status: ${workOrder.status}`);
@@ -101,15 +91,18 @@ export async function POST(
 
       // If lotId is provided, validate lot availability
       if (lotId) {
-        const [lot] = await (db as any)
-          .select()
-          .from(inventoryLots)
-          .where(eq(inventoryLots.id, lotId));
+        const lotResult = await executeDbOperation(async (db) => {
+          return db
+            .select()
+            .from(inventoryLots)
+            .where(eq(inventoryLots.id, lotId));
+        });
 
-        if (!lot) {
+        if (lotResult.length === 0) {
           return errorResponse('Lot not found', 404);
         }
 
+        const lot = lotResult[0];
         if (lot.status !== 'released') {
           return errorResponse(`Lot status must be 'released', current status: ${lot.status}`);
         }
@@ -121,41 +114,47 @@ export async function POST(
         }
 
         // Reserve quantity in lot
-        await (db as any)
-          .update(inventoryLots)
-          .set({
-            reservedQuantity: sql`${inventoryLots.reservedQuantity} + ${qtyToUse}`,
-          })
-          .where(eq(inventoryLots.id, lotId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(inventoryLots)
+            .set({
+              reservedQuantity: sql`${inventoryLots.reservedQuantity} + ${qtyToUse}`,
+            })
+            .where(eq(inventoryLots.id, lotId));
+        });
       }
 
       // Add material to work order
-      const result = await (db as any).insert(workOrderMaterials).values({
-        workOrderId,
-        itemId,
-        lotId: lotId || null,
-        plannedQuantity,
-        actualQuantity: actualQuantity || null,
-        unit,
-        status: lotId ? 'issued' : 'pending',
-        issuedBy: lotId ? session.userId : null,
-        issuedAt: lotId ? (usingSqlite ? new Date().toISOString() : new Date()) : null,
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(workOrderMaterials).values({
+          workOrderId,
+          itemId,
+          lotId: lotId || null,
+          plannedQuantity,
+          actualQuantity: actualQuantity || null,
+          unit,
+          status: lotId ? 'issued' : 'pending',
+          issuedBy: lotId ? session.userId : null,
+          issuedAt: lotId ? dbDate() : null,
+        });
       });
 
-      const materialId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
+      const materialId = getInsertId(result);
 
       // If lot is provided and actualQuantity, create inventory transaction
       if (lotId && actualQuantity) {
-        await (db as any).insert(inventoryTransactions).values({
-          lotId,
-          transactionType: 'issue',
-          quantity: actualQuantity,
-          unit,
-          referenceType: 'WO',
-          referenceId: workOrderId,
-          referenceNumber: workOrder.woNumber,
-          reason: 'Material issued to work order',
-          performedBy: session.userId,
+        await executeDbOperation(async (db) => {
+          return db.insert(inventoryTransactions).values({
+            lotId,
+            transactionType: 'issue',
+            quantity: actualQuantity,
+            unit,
+            referenceType: 'WO',
+            referenceId: workOrderId,
+            referenceNumber: workOrder.woNumber,
+            reason: 'Material issued to work order',
+            performedBy: session.userId,
+          });
         });
       }
 
