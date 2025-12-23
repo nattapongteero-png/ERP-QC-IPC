@@ -21,11 +21,11 @@
 
 **WARNING**: These tasks MUST complete before skipped tasks can be un-skipped
 
-- [ ] T000A [P] Fix quality.service.ts column name mismatches (uses different column names than schema)
-- [ ] T000B [P] Fix sales.service.ts schema mismatch (uses vendors as customers, expects customerId but schema has customerName)
-- [ ] T000C [P] Fix hr.service.ts createOrgUnit Date object insertion (should use string dates per date-utils.ts)
+- [x] T000A [P] Fix quality.service.ts column name mismatches (uses different column names than schema)
+- [x] T000B [P] Fix sales.service.ts schema mismatch (uses vendors as customers, expects customerId but schema has customerName)
+- [x] T000C [P] Fix hr.service.ts createOrgUnit Date object insertion (should use string dates per date-utils.ts)
 
-**Checkpoint**: All services align with Drizzle schema - skipped tasks can proceed
+**Checkpoint**: All services align with Drizzle schema - skipped tasks can proceed ✅ COMPLETE
 
 ---
 
@@ -312,7 +312,7 @@ With multiple developers after Phase 2:
 
 | Phase | Description | Tasks | Completed | Blocked | Pending | Priority |
 |-------|-------------|-------|-----------|---------|---------|----------|
-| 0 | Schema Alignment (Pre-requisite) | 3 | 0 | - | 3 | CRITICAL |
+| 0 | Schema Alignment (Pre-requisite) | 3 | 3 | - | 0 | DONE |
 | 1 | Setup - Shared Test Infrastructure | 4 | 4 | 0 | 0 | - |
 | 2 | Foundational - Reference Validation | 3 | 3 | 0 | 0 | - |
 | 3 | P1 GMP Module Tests (Complaints, Documents, Audit) | 18 | 18 | 0 | 0 | P1 |
