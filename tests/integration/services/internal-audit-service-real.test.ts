@@ -152,6 +152,9 @@ import {
   closeAuditFinding,
   getAuditStatistics,
   getChapterCoverage,
+  generateAuditSchedule,
+  createCapaFromFinding,
+  verifyFindingClosure,
 } from '@/lib/services/internal-audit-service';
 
 // Create tables from Drizzle schema
@@ -702,6 +705,293 @@ describe('Internal Audit Service Real Integration Tests', () => {
       expect(coverage.year).toBe(year);
       expect(coverage.chapters).toBeDefined();
       expect(coverage.chapters.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ============================================
+  // T902: Generate Audit Schedule
+  // ============================================
+
+  describe('T902: generateAuditSchedule', () => {
+    it('should generate audits covering all 10 GMP chapters', async () => {
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
+
+      await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
+
+      const audits = await generateAuditSchedule(plan.id, {
+        auditorId: TEST_USER_IDS.LEAD_AUDITOR,
+      });
+
+      // Should create multiple audits
+      expect(audits.length).toBeGreaterThan(0);
+
+      // Collect all chapters covered
+      const allChapters = new Set<number>();
+      audits.forEach(audit => {
+        audit.gmpChapters.forEach(ch => allChapters.add(ch));
+      });
+
+      // All 10 GMP chapters should be covered (1-10)
+      expect(allChapters.size).toBe(10);
+      for (let i = 1; i <= 10; i++) {
+        expect(allChapters.has(i)).toBe(true);
+      }
+
+      // All audits should be linked to the plan
+      audits.forEach(audit => {
+        expect(audit.planId).toBe(plan.id);
+        expect(audit.status).toBe('scheduled');
+        expect(audit.leadAuditorId).toBe(TEST_USER_IDS.LEAD_AUDITOR);
+      });
+
+      // Each audit should cover 1-2 GMP chapters
+      audits.forEach(audit => {
+        expect(audit.gmpChapters.length).toBeGreaterThanOrEqual(1);
+        expect(audit.gmpChapters.length).toBeLessThanOrEqual(2);
+      });
+    });
+
+    it('should distribute audits throughout the year', async () => {
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
+
+      await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
+
+      const audits = await generateAuditSchedule(plan.id);
+
+      // Check that audits are scheduled throughout the year
+      const months = new Set<string>();
+      audits.forEach(audit => {
+        const month = audit.scheduledDate.substring(0, 7); // YYYY-MM
+        months.add(month);
+      });
+
+      // Should have audits in multiple months
+      expect(months.size).toBeGreaterThan(1);
+    });
+
+    it('should use default auditor if not provided', async () => {
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
+
+      await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
+
+      const audits = await generateAuditSchedule(plan.id);
+
+      // All audits should have a lead auditor assigned
+      audits.forEach(audit => {
+        expect(audit.leadAuditorId).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  // ============================================
+  // T905: Create CAPA from Finding
+  // ============================================
+
+  describe('T905: createCapaFromFinding', () => {
+    let auditId: number;
+    let findingId: number;
+
+    beforeEach(async () => {
+      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
+
+      const audit = await createAudit({
+        planId: plan.id,
+        auditType: 'internal',
+        scope: 'Test Audit',
+        gmpChapters: [7],
+        scheduledDate: TEST_DATES.TODAY,
+        leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
+      }, TEST_USER_IDS.QA_MANAGER);
+
+      await startAudit(audit.id, TEST_USER_IDS.LEAD_AUDITOR);
+      auditId = audit.id;
+
+      const finding = await createAuditFinding({
+        auditId,
+        category: 'major',
+        gmpChapter: 7,
+        gmpRequirement: 'Line clearance documentation required',
+        description: 'Missing line clearance records',
+        capaRequired: true,
+      }, TEST_USER_IDS.LEAD_AUDITOR);
+
+      findingId = finding.id;
+    });
+
+    it('should create CAPA from finding and link them', async () => {
+      const result = await createCapaFromFinding(
+        findingId,
+        TEST_USER_IDS.QA_MANAGER,
+        {
+          assignedTo: TEST_USER_IDS.QA_MANAGER,
+          dueDate: TEST_DATES.FUTURE_DATE,
+        }
+      );
+
+      // Should return the updated finding
+      expect(result).not.toBeNull();
+      expect(result.capaId).toBeDefined();
+      expect(result.capaId).toBeGreaterThan(0);
+      expect(result.status).toBe('capa_assigned');
+
+      // Verify CAPA was created using direct import
+      const capaService = await import('@/lib/services/capa-service');
+      const capa = await capaService.getCapaById(result.capaId!);
+
+      expect(capa).not.toBeNull();
+      expect(capa!.sourceType).toBe('audit_finding');
+      expect(capa!.auditFindingId).toBe(findingId);
+      expect(capa!.ownerId).toBe(TEST_USER_IDS.QA_MANAGER);
+      expect(capa!.status).toBe('open');
+    });
+
+    it('should use default values if capaData not provided', async () => {
+      const result = await createCapaFromFinding(
+        findingId,
+        TEST_USER_IDS.QA_MANAGER
+      );
+
+      expect(result.capaId).toBeDefined();
+      expect(result.status).toBe('capa_assigned');
+
+      // Verify CAPA exists
+      const capaService = await import('@/lib/services/capa-service');
+      const capa = await capaService.getCapaById(result.capaId!);
+
+      expect(capa).not.toBeNull();
+      expect(capa!.auditFindingId).toBe(findingId);
+    });
+  });
+
+  // ============================================
+  // T906: Verify Finding Closure
+  // ============================================
+
+  describe('T906: verifyFindingClosure', () => {
+    let auditId: number;
+
+    beforeEach(async () => {
+      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
+
+      const audit = await createAudit({
+        planId: plan.id,
+        auditType: 'internal',
+        scope: 'Test Audit',
+        gmpChapters: [8],
+        scheduledDate: TEST_DATES.TODAY,
+        leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
+      }, TEST_USER_IDS.QA_MANAGER);
+
+      await startAudit(audit.id, TEST_USER_IDS.LEAD_AUDITOR);
+      auditId = audit.id;
+    });
+
+    it('should allow closure if CAPA not required', async () => {
+      const finding = await createAuditFinding({
+        auditId,
+        category: 'observation',
+        gmpChapter: 8,
+        gmpRequirement: 'Labels should be current',
+        description: 'Some labels need updating',
+        capaRequired: false,
+      }, TEST_USER_IDS.LEAD_AUDITOR);
+
+      const result = await verifyFindingClosure(finding.id);
+
+      expect(result.canClose).toBe(true);
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('should prevent closure if CAPA required but not assigned', async () => {
+      const finding = await createAuditFinding({
+        auditId,
+        category: 'major',
+        gmpChapter: 8,
+        gmpRequirement: 'OOS investigation required',
+        description: 'OOS not investigated on time',
+        capaRequired: true,
+      }, TEST_USER_IDS.LEAD_AUDITOR);
+
+      const result = await verifyFindingClosure(finding.id);
+
+      expect(result.canClose).toBe(false);
+      expect(result.reason).toContain('CAPA');
+      expect(result.reason).toContain('not assigned');
+    });
+
+    it('should prevent closure if CAPA assigned but not closed', async () => {
+      const finding = await createAuditFinding({
+        auditId,
+        category: 'major',
+        gmpChapter: 8,
+        gmpRequirement: 'Stability testing required',
+        description: 'Stability testing not performed',
+        capaRequired: true,
+      }, TEST_USER_IDS.LEAD_AUDITOR);
+
+      // Create and assign CAPA
+      const linkedFinding = await createCapaFromFinding(finding.id, TEST_USER_IDS.QA_MANAGER);
+
+      const result = await verifyFindingClosure(linkedFinding.id);
+
+      expect(result.canClose).toBe(false);
+      expect(result.reason).toContain('CAPA');
+      expect(result.capaStatus).toBe('open');
+    });
+
+    it('should allow closure if CAPA is closed', async () => {
+      const finding = await createAuditFinding({
+        auditId,
+        category: 'major',
+        gmpChapter: 8,
+        gmpRequirement: 'Documentation required',
+        description: 'Missing documentation',
+        capaRequired: true,
+      }, TEST_USER_IDS.LEAD_AUDITOR);
+
+      // Create and assign CAPA
+      const linkedFinding = await createCapaFromFinding(finding.id, TEST_USER_IDS.QA_MANAGER);
+
+      // Close the CAPA
+      sqlite.exec(`UPDATE capa SET status = 'closed' WHERE id = ${linkedFinding.capaId}`);
+
+      const result = await verifyFindingClosure(linkedFinding.id);
+
+      expect(result.canClose).toBe(true);
+      expect(result.capaStatus).toBe('closed');
+    });
+
+    it('should allow closure if CAPA is effective', async () => {
+      const finding = await createAuditFinding({
+        auditId,
+        category: 'major',
+        gmpChapter: 8,
+        gmpRequirement: 'Procedure compliance',
+        description: 'Procedure not followed',
+        capaRequired: true,
+      }, TEST_USER_IDS.LEAD_AUDITOR);
+
+      // Create and assign CAPA
+      const linkedFinding = await createCapaFromFinding(finding.id, TEST_USER_IDS.QA_MANAGER);
+
+      // Mark CAPA as effective
+      sqlite.exec(`UPDATE capa SET status = 'effective' WHERE id = ${linkedFinding.capaId}`);
+
+      const result = await verifyFindingClosure(linkedFinding.id);
+
+      expect(result.canClose).toBe(true);
+      expect(result.capaStatus).toBe('effective');
     });
   });
 

@@ -67,7 +67,11 @@ import type {
   AuditStatus,
   AuditFindingCategory,
   AuditFindingStatus,
+  GenerateAuditScheduleOptions,
+  CreateCapaFromFindingOptions,
+  FindingClosureVerification,
 } from '@/types/audits';
+import { createCapa, getCapaById } from './capa-service';
 
 // ============================================
 // Audit Plans
@@ -1173,5 +1177,199 @@ export async function getChapterCoverage(year: number): Promise<ChapterCoverage>
   return {
     year,
     chapters,
+  };
+}
+
+// ============================================
+// T902: Generate Audit Schedule
+// ============================================
+
+/**
+ * Generate audit schedule covering all 10 GMP chapters
+ * Creates audits distributed across the year, each covering 1-2 chapters
+ */
+export async function generateAuditSchedule(
+  planId: number,
+  options: GenerateAuditScheduleOptions = {}
+): Promise<Audit[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+  const { auditPlans, users } = getTables();
+
+  // Verify plan exists
+  const plan = await getAuditPlanById(planId);
+  if (!plan) {
+    throw new Error(`Audit plan ${planId} not found`);
+  }
+
+  // Get default auditor (first available user if not provided)
+  let leadAuditorId = options.auditorId;
+  if (!leadAuditorId) {
+    const userList = await database.select().from(users).where(eq(users.isActive, 1)).limit(1);
+    if (userList.length === 0) {
+      throw new Error('No active users found to assign as auditor');
+    }
+    leadAuditorId = userList[0].id;
+  }
+
+  const createdAudits: Audit[] = [];
+
+  // Define audit schedule: Each audit covers 1-2 GMP chapters
+  // Distribute across 12 months (monthly audits)
+  const auditGroups: Array<{ chapters: number[]; month: number }> = [
+    { chapters: [1], month: 1 },      // หมวด 1 - ระบบบริหารคุณภาพ
+    { chapters: [2], month: 2 },      // หมวด 2 - บุคลากร
+    { chapters: [3], month: 3 },      // หมวด 3 - อาคารสถานที่
+    { chapters: [4], month: 4 },      // หมวด 4 - สุขาภิบาล
+    { chapters: [5], month: 5 },      // หมวด 5 - เอกสารและข้อมูล
+    { chapters: [6], month: 6 },      // หมวด 6 - การดำเนินการผลิต
+    { chapters: [7], month: 7 },      // หมวด 7 - การควบคุมคุณภาพ
+    { chapters: [8], month: 8 },      // หมวด 8 - การจ้างผลิต
+    { chapters: [9], month: 9 },      // หมวด 9 - ข้อร้องเรียน
+    { chapters: [10], month: 10 },    // หมวด 10 - การตรวจสอบตนเอง
+  ];
+
+  const GMP_CHAPTER_NAMES: Record<number, string> = {
+    1: 'หมวด 1 - ระบบบริหารคุณภาพ',
+    2: 'หมวด 2 - บุคลากร',
+    3: 'หมวด 3 - อาคารสถานที่และเครื่องมือ',
+    4: 'หมวด 4 - การสุขาภิบาลและสุขอนามัย',
+    5: 'หมวด 5 - เอกสารและข้อมูล',
+    6: 'หมวด 6 - การดำเนินการผลิต',
+    7: 'หมวด 7 - การควบคุมคุณภาพ',
+    8: 'หมวด 8 - การจ้างผลิตและจ้างตรวจวิเคราะห์',
+    9: 'หมวด 9 - ข้อร้องเรียนและการเรียกคืน',
+    10: 'หมวด 10 - การตรวจสอบตนเอง',
+  };
+
+  // Create audits for each group
+  for (const group of auditGroups) {
+    const scheduledDate = `${plan.planYear}-${String(group.month).padStart(2, '0')}-15`;
+
+    const scope = group.chapters.map(ch => GMP_CHAPTER_NAMES[ch]).join(', ');
+
+    const audit = await createAudit(
+      {
+        planId,
+        auditType: 'internal',
+        scope,
+        gmpChapters: group.chapters,
+        scheduledDate,
+        leadAuditorId,
+      },
+      leadAuditorId
+    );
+
+    createdAudits.push(audit);
+  }
+
+  return createdAudits;
+}
+
+// ============================================
+// T905: Create CAPA from Finding
+// ============================================
+
+/**
+ * Create a new CAPA record from an audit finding
+ * Links the CAPA back to the finding via assignCapaToFinding()
+ */
+export async function createCapaFromFinding(
+  findingId: number,
+  userId: number,
+  capaData?: CreateCapaFromFindingOptions
+): Promise<AuditFinding> {
+  // Get the finding
+  const finding = await getAuditFindingById(findingId);
+  if (!finding) {
+    throw new Error(`Finding ${findingId} not found`);
+  }
+
+  // Determine CAPA owner
+  const ownerId = capaData?.assignedTo || userId;
+
+  // Determine due date (default to 30 days from now)
+  let dueDate = capaData?.dueDate;
+  if (!dueDate) {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30);
+    dueDate = futureDate.toISOString().split('T')[0];
+  }
+
+  // Create CAPA title from finding
+  const title = `CAPA for Audit Finding ${finding.findingNumber}: ${finding.description.substring(0, 50)}${finding.description.length > 50 ? '...' : ''}`;
+
+  // Create the CAPA
+  const capa = await createCapa(
+    {
+      title,
+      sourceType: 'audit_finding',
+      sourceId: findingId,
+      type: finding.category === 'observation' ? 'preventive' : 'corrective',
+      priority: finding.category === 'critical' ? 'critical' : finding.category === 'major' ? 'high' : 'medium',
+      ownerId,
+      dueDate,
+      rootCauseAnalysis: finding.description,
+    },
+    userId
+  );
+
+  // Link CAPA to finding
+  const linkedFinding = await assignCapaToFinding(findingId, capa.id, userId);
+
+  return linkedFinding as AuditFinding;
+}
+
+// ============================================
+// T906: Verify Finding Closure
+// ============================================
+
+/**
+ * Verify if an audit finding can be closed
+ * Checks CAPA requirements and status
+ */
+export async function verifyFindingClosure(
+  findingId: number
+): Promise<FindingClosureVerification> {
+  // Get the finding
+  const finding = await getAuditFindingById(findingId);
+  if (!finding) {
+    throw new Error(`Finding ${findingId} not found`);
+  }
+
+  // If CAPA not required, can close immediately
+  if (!finding.capaRequired) {
+    return { canClose: true };
+  }
+
+  // If CAPA required, check if assigned
+  if (!finding.capaId) {
+    return {
+      canClose: false,
+      reason: 'CAPA is required but not assigned to this finding',
+    };
+  }
+
+  // Check CAPA status
+  const capa = await getCapaById(finding.capaId);
+  if (!capa) {
+    return {
+      canClose: false,
+      reason: 'Linked CAPA not found',
+    };
+  }
+
+  // CAPA must be 'closed' or 'effective' to allow finding closure
+  if (capa.status === 'closed' || capa.status === 'effective') {
+    return {
+      canClose: true,
+      capaStatus: capa.status,
+    };
+  }
+
+  return {
+    canClose: false,
+    reason: `CAPA status is '${capa.status}' - must be 'closed' or 'effective'`,
+    capaStatus: capa.status,
   };
 }

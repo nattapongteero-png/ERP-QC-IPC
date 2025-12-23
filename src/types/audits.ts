@@ -245,3 +245,30 @@ export interface AuditFindingListResponse {
 export interface AuditReportsParams {
   year?: number;
 }
+
+// ============================================
+// T902: Audit Schedule Generation
+// ============================================
+
+export interface GenerateAuditScheduleOptions {
+  auditorId?: number;
+}
+
+// ============================================
+// T905: CAPA from Finding
+// ============================================
+
+export interface CreateCapaFromFindingOptions {
+  assignedTo?: number;
+  dueDate?: string;
+}
+
+// ============================================
+// T906: Verify Finding Closure
+// ============================================
+
+export interface FindingClosureVerification {
+  canClose: boolean;
+  reason?: string;
+  capaStatus?: string;
+}
