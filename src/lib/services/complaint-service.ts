@@ -454,7 +454,7 @@ export async function updateComplaint(
   if (data.status !== undefined) updateData.status = data.status;
   if (data.severity !== undefined) updateData.severity = data.severity;
   if (data.regulatoryReportRequired !== undefined) updateData.regulatoryReportRequired = data.regulatoryReportRequired;
-  if (data.regulatoryReportDate !== undefined) updateData.regulatoryReportDate = toDbDate(data.regulatoryReportDate);
+  if (data.regulatoryReportDate !== undefined) updateData.regulatoryReportDate = data.regulatoryReportDate ? toDbDate(data.regulatoryReportDate) : null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db as any)

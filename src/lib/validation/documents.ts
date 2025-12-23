@@ -78,7 +78,7 @@ export const documentListQuerySchema = z.object({
   departmentId: z.coerce.number().int().positive().optional(),
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(10),
+  limit: z.coerce.number().int().positive().max(1000).default(10),
 });
 
 // Export types

@@ -1098,7 +1098,7 @@ export async function executeMockDrill(
     drillId,
     lotId: data.lotId,
     lotNumber: lot[0].lotNumber,
-    executedAt: getNow(),
+    executedAt: new Date().toISOString(),
     customersIdentified: uniqueCustomers,
     totalDistributed,
     timeToIdentify,
