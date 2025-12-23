@@ -1,24 +1,32 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
-import { Badge } from '@/components/ui/badge';
 import {
-  Search,
+  DxDataGrid,
+  DxColumn,
+  DxScrolling,
+  DxSelection,
+  DxPaging,
+} from '@/components/ui/dx-data-grid';
+import type { DataGridTypes } from 'devextreme-react/data-grid';
+import { DxTabs } from '@/components/ui/dx-tabs';
+import {
   Package,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Keyboard,
-  ArrowUp,
-  ArrowDown,
-  CornerDownLeft,
+  Leaf,
   Box,
-  Tag,
-  TrendingUp
+  Beaker,
+  PackageCheck,
+  Wrench,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  BarChart3,
+  Layers,
+  Search,
 } from 'lucide-react';
 
 export interface Item {
@@ -30,8 +38,8 @@ export interface Item {
   sellingPrice?: number;
   costPrice?: number;
   category?: string;
-  type?: string; // Database field name
-  itemType?: string; // Alias for backward compatibility
+  type?: string;
+  itemType?: string;
   isActive?: boolean;
   onHand?: number;
   minStock?: number;
@@ -50,28 +58,29 @@ interface ItemSearchDialogProps {
   showStock?: boolean;
 }
 
-// Item type color mapping
-const itemTypeColors: Record<string, { bg: string; text: string; label: string }> = {
-  raw_material: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Raw Material' },
-  packaging: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Packaging' },
-  wip: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Work in Progress' },
-  finished_goods: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Finished Goods' },
-  consumable: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Consumable' },
+// Item type configuration with icons and colors
+const itemTypeConfig: Record<string, { icon: typeof Package; color: string; bgColor: string; label: string }> = {
+  raw_material: { icon: Leaf, color: 'text-emerald-600', bgColor: 'bg-emerald-50', label: 'Raw Material' },
+  packaging: { icon: Box, color: 'text-blue-600', bgColor: 'bg-blue-50', label: 'Packaging' },
+  wip: { icon: Wrench, color: 'text-orange-600', bgColor: 'bg-orange-50', label: 'Work in Progress' },
+  finished_goods: { icon: PackageCheck, color: 'text-purple-600', bgColor: 'bg-purple-50', label: 'Finished Goods' },
+  consumable: { icon: Package, color: 'text-gray-600', bgColor: 'bg-gray-50', label: 'Consumable' },
+  extract: { icon: Beaker, color: 'text-indigo-600', bgColor: 'bg-indigo-50', label: 'Extract' },
 };
 
 // Stock status helper
-function getStockStatus(item: Item): { status: 'in_stock' | 'low_stock' | 'out_of_stock'; color: string } {
+function getStockStatus(item: Item): { status: 'in_stock' | 'low_stock' | 'out_of_stock'; color: string; icon: typeof CheckCircle2 } {
   const onHand = Number(item.onHand) || 0;
   const minStock = Number(item.minStock) || 0;
   const reorderPoint = Number(item.reorderPoint) || minStock;
 
   if (onHand <= 0) {
-    return { status: 'out_of_stock', color: 'text-red-600' };
+    return { status: 'out_of_stock', color: 'text-red-600', icon: XCircle };
   }
   if (onHand <= reorderPoint) {
-    return { status: 'low_stock', color: 'text-amber-600' };
+    return { status: 'low_stock', color: 'text-amber-600', icon: AlertTriangle };
   }
-  return { status: 'in_stock', color: 'text-green-600' };
+  return { status: 'in_stock', color: 'text-green-600', icon: CheckCircle2 };
 }
 
 export function ItemSearchDialog({
@@ -86,15 +95,65 @@ export function ItemSearchDialog({
   showStock = true,
 }: ItemSearchDialogProps) {
   const [search, setSearch] = useState('');
-  const [results, setResults] = useState<Item[]>([]);
+  const [allResults, setAllResults] = useState<Item[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
-  const [hasSearched, setHasSearched] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
+  const [selectedTypeTab, setSelectedTypeTab] = useState(0);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
   // Use ref to avoid infinite loop from excludeIds array reference changes
   const excludeIdsRef = useRef(excludeIds);
   excludeIdsRef.current = excludeIds;
+
+  // Type tabs configuration - dynamically built from results
+  const typeTabs = useMemo(() => {
+    const types = new Map<string, number>();
+    allResults.forEach(item => {
+      const type = item.type || 'unknown';
+      types.set(type, (types.get(type) || 0) + 1);
+    });
+
+    const tabs = [{ text: `All (${allResults.length})`, value: '' }];
+
+    // Add type tabs in specific order
+    const orderedTypes = ['raw_material', 'packaging', 'wip', 'finished_goods', 'extract', 'consumable'];
+    orderedTypes.forEach(type => {
+      const count = types.get(type);
+      if (count) {
+        const config = itemTypeConfig[type] || { label: type };
+        tabs.push({ text: `${config.label} (${count})`, value: type });
+      }
+    });
+
+    // Add any remaining types
+    types.forEach((count, type) => {
+      if (!orderedTypes.includes(type) && type !== 'unknown') {
+        tabs.push({ text: `${type} (${count})`, value: type });
+      }
+    });
+
+    return tabs;
+  }, [allResults]);
+
+  // Filtered results based on selected tab
+  const filteredResults = useMemo(() => {
+    const selectedType = typeTabs[selectedTypeTab]?.value || '';
+    if (!selectedType) return allResults;
+    return allResults.filter(item => item.type === selectedType);
+  }, [allResults, selectedTypeTab, typeTabs]);
+
+  // Statistics
+  const stats = useMemo(() => {
+    const inStock = allResults.filter(item => (Number(item.onHand) || 0) > 0).length;
+    const lowStock = allResults.filter(item => {
+      const onHand = Number(item.onHand) || 0;
+      const minStock = Number(item.minStock) || 0;
+      return onHand > 0 && onHand <= minStock;
+    }).length;
+    const outOfStock = allResults.filter(item => (Number(item.onHand) || 0) <= 0).length;
+    const totalValue = allResults.reduce((sum, item) => sum + (Number(item.onHand) || 0) * (Number(item.costPrice) || 0), 0);
+
+    return { inStock, lowStock, outOfStock, totalValue, total: allResults.length };
+  }, [allResults]);
 
   const handleSelect = useCallback((item: Item) => {
     onSelect(item);
@@ -103,12 +162,8 @@ export function ItemSearchDialog({
 
   const searchItems = useCallback(async (query: string) => {
     setIsSearching(true);
-    setHasSearched(true);
     try {
-      const params = new URLSearchParams({
-        limit: '50',
-      });
-      // Only add search param if there's a query
+      const params = new URLSearchParams({ limit: '100' });
       if (query && query.trim()) {
         params.set('search', query.trim());
       }
@@ -121,21 +176,19 @@ export function ItemSearchDialog({
 
       if (data.success) {
         let items = data.data?.items || [];
-        // Use ref to get current excludeIds without adding to dependencies
         const currentExcludeIds = excludeIdsRef.current;
         if (currentExcludeIds.length > 0) {
           items = items.filter((item: Item) => !currentExcludeIds.includes(item.id));
         }
-        // Filter out excluded type
         if (excludeType) {
           items = items.filter((item: Item) => item.type !== excludeType);
         }
-        setResults(items);
-        setHighlightedIndex(0);
+        setAllResults(items);
+        setSelectedTypeTab(0);
       }
     } catch (error) {
       console.error('Failed to search items:', error);
-      setResults([]);
+      setAllResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -146,71 +199,30 @@ export function ItemSearchDialog({
     if (open) {
       searchItems('');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, searchItems]);
 
   // Debounced search when typing
   useEffect(() => {
     if (!open) return;
-
     const timer = setTimeout(() => {
       searchItems(search);
     }, 300);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, open]);
+  }, [search, open, searchItems]);
 
   // Reset when dialog closes
   useEffect(() => {
     if (!open) {
       setSearch('');
-      setResults([]);
-      setHighlightedIndex(0);
-      setHasSearched(false);
+      setAllResults([]);
+      setSelectedTypeTab(0);
+      setSelectedItem(null);
     }
   }, [open]);
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open || results.length === 0) return;
-
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          setHighlightedIndex((prev) => (prev + 1) % results.length);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setHighlightedIndex((prev) => (prev - 1 + results.length) % results.length);
-          break;
-        case 'Enter':
-          e.preventDefault();
-          if (results[highlightedIndex]) {
-            handleSelect(results[highlightedIndex]);
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, results, highlightedIndex, handleSelect]);
-
-  // Scroll highlighted item into view
-  useEffect(() => {
-    if (listRef.current && results.length > 0) {
-      const highlightedElement = listRef.current.querySelector(`[data-index="${highlightedIndex}"]`);
-      highlightedElement?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }, [highlightedIndex, results.length]);
-
   const formatCurrency = (amount: number | undefined) => {
     if (amount === undefined || amount === null) return '-';
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB',
-    }).format(amount);
+    return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(amount);
   };
 
   const formatNumber = (num: number | undefined) => {
@@ -218,181 +230,287 @@ export function ItemSearchDialog({
     return new Intl.NumberFormat('th-TH').format(num);
   };
 
-  const getItemType = (item: Item) => {
-    return item.type || item.itemType || '';
-  };
+  // Grid row double-click handler
+  const onRowDblClick = useCallback((e: DataGridTypes.RowDblClickEvent) => {
+    if (e.data) {
+      handleSelect(e.data as Item);
+    }
+  }, [handleSelect]);
 
-  const getItemTypeStyle = (type: string | undefined) => {
-    if (!type) return { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Unknown' };
-    return itemTypeColors[type] || { bg: 'bg-gray-100', text: 'text-gray-600', label: type.replace(/_/g, ' ') };
-  };
+  // Grid selection changed handler
+  const onSelectionChanged = useCallback((e: DataGridTypes.SelectionChangedEvent) => {
+    const selected = e.selectedRowsData?.[0];
+    setSelectedItem((selected as Item) || null);
+  }, []);
 
-  const StockIndicator = ({ item }: { item: Item }) => {
-    const stockStatus = getStockStatus(item);
-    const onHand = Number(item.onHand) || 0;
+  // Cell render type
+  interface CellRenderInfo {
+    data: Item;
+    value: unknown;
+  }
+
+  // Cell renderers
+  const renderItemCode = (cellInfo: CellRenderInfo) => {
+    const item = cellInfo.data;
+    const typeConfig = itemTypeConfig[item.type || ''] || { icon: Package, color: 'text-gray-600', bgColor: 'bg-gray-50' };
+    const TypeIcon = typeConfig.icon;
 
     return (
-      <div className={`flex items-center gap-1.5 text-sm ${stockStatus.color}`}>
-        {stockStatus.status === 'in_stock' && <CheckCircle2 className="h-4 w-4" />}
-        {stockStatus.status === 'low_stock' && <AlertTriangle className="h-4 w-4" />}
-        {stockStatus.status === 'out_of_stock' && <XCircle className="h-4 w-4" />}
-        <span className="font-medium">{formatNumber(onHand)} {item.primaryUnit}</span>
+      <div className="flex items-center gap-2">
+        <div className={`p-1.5 rounded-lg ${typeConfig.bgColor}`}>
+          <TypeIcon className={`h-4 w-4 ${typeConfig.color}`} />
+        </div>
+        <span className="font-bold text-blue-600">{item.code}</span>
       </div>
     );
   };
 
-  const renderDialogContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="pb-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 -mx-4 -mt-4 px-4 pt-4 rounded-t-lg">
-        <div className="flex items-center gap-2 text-xl font-semibold">
-          <Package className="h-5 w-5 text-blue-600" />
-          {title}
+  const renderItemName = (cellInfo: CellRenderInfo) => {
+    const item = cellInfo.data;
+    return (
+      <div>
+        <p className="font-medium text-gray-900">{item.nameTh}</p>
+        {item.nameEn && <p className="text-xs text-gray-500">{item.nameEn}</p>}
+      </div>
+    );
+  };
+
+  const renderItemType = (cellInfo: CellRenderInfo) => {
+    const item = cellInfo.data;
+    const typeConfig = itemTypeConfig[item.type || ''] || { label: item.type || '-', color: 'text-gray-600', bgColor: 'bg-gray-100' };
+
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${typeConfig.bgColor} ${typeConfig.color}`}>
+        {typeConfig.label}
+      </span>
+    );
+  };
+
+  const renderStock = (cellInfo: CellRenderInfo) => {
+    const item = cellInfo.data;
+    const stockStatus = getStockStatus(item);
+    const StatusIcon = stockStatus.icon;
+    const onHand = Number(item.onHand) || 0;
+
+    return (
+      <div className={`flex items-center gap-1.5 ${stockStatus.color}`}>
+        <StatusIcon className="h-4 w-4" />
+        <span className="font-medium">{formatNumber(onHand)}</span>
+        <span className="text-gray-500 text-xs">{item.primaryUnit}</span>
+      </div>
+    );
+  };
+
+  const renderPrice = (cellInfo: CellRenderInfo) => {
+    const item = cellInfo.data;
+
+    if (showPrice === 'none') return null;
+
+    if (showPrice === 'both') {
+      return (
+        <div className="text-right">
+          <p className="font-medium text-green-600">{formatCurrency(item.sellingPrice)}</p>
+          <p className="text-xs text-gray-500">Cost: {formatCurrency(item.costPrice)}</p>
         </div>
-        <p className="text-sm text-gray-500 mt-1">
-          Search by item code, Thai name, or English name
-        </p>
+      );
+    }
+
+    const price = showPrice === 'cost' ? item.costPrice : item.sellingPrice;
+    return (
+      <span className={`font-medium ${showPrice === 'cost' ? 'text-gray-700' : 'text-green-600'}`}>
+        {formatCurrency(price)}
+      </span>
+    );
+  };
+
+  const renderActions = (cellInfo: CellRenderInfo) => {
+    const item = cellInfo.data;
+    return (
+      <DxButton
+        text="Select"
+        type="default"
+        stylingMode="contained"
+        onClick={() => handleSelect(item)}
+      />
+    );
+  };
+
+  const renderDialogContent = () => (
+    <div className="flex flex-col h-full bg-gray-50">
+      {/* Header with Title and Stats */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <Package className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">{title}</h2>
+              <p className="text-blue-100 text-sm">Double-click or select and confirm to choose an item</p>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          {stats.total > 0 && (
+            <div className="flex items-center gap-4">
+              <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-blue-100">Total Items</p>
+              </div>
+              <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
+                <p className="text-2xl font-bold text-green-300">{stats.inStock}</p>
+                <p className="text-xs text-blue-100">In Stock</p>
+              </div>
+              {stats.lowStock > 0 && (
+                <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
+                  <p className="text-2xl font-bold text-amber-300">{stats.lowStock}</p>
+                  <p className="text-xs text-blue-100">Low Stock</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Search Input */}
-      <div className="py-4 border-b -mx-4 px-4 bg-white">
-        <DxTextBox
-          placeholder="Search items by code or name..."
-          value={search}
-          onValueChange={setSearch}
-          mode="search"
-          showClearButton
-        />
+      {/* Search and Filters Bar */}
+      <div className="bg-white border-b px-6 py-4 space-y-3">
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <DxTextBox
+              placeholder="Search by item code, Thai name, or English name..."
+              value={search}
+              onValueChange={setSearch}
+              mode="search"
+              showClearButton
+              height={42}
+            />
+          </div>
+          {selectedItem && (
+            <DxButton
+              text="Confirm Selection"
+              type="success"
+              icon="check"
+              onClick={() => handleSelect(selectedItem)}
+            />
+          )}
+        </div>
 
+        {/* Type Filter Tabs */}
+        {typeTabs.length > 1 && !filterType && (
+          <DxTabs
+            items={typeTabs.map(tab => ({ text: tab.text }))}
+            selectedIndex={selectedTypeTab}
+            onItemClick={(e) => setSelectedTypeTab(e.itemIndex || 0)}
+          />
+        )}
+
+        {/* Filter indicator */}
         {filterType && (
-          <div className="flex items-center gap-2 mt-3">
-            <span className="text-xs text-gray-500">Filtering:</span>
-            <Badge variant="default" className={`${getItemTypeStyle(filterType).bg} ${getItemTypeStyle(filterType).text}`}>
-              {getItemTypeStyle(filterType).label}
-            </Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">Filtering by:</span>
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${itemTypeConfig[filterType]?.bgColor || 'bg-gray-100'} ${itemTypeConfig[filterType]?.color || 'text-gray-700'}`}>
+              {itemTypeConfig[filterType]?.label || filterType}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Results Area */}
-      <div ref={listRef} className="flex-1 overflow-y-auto -mx-4 px-4 py-4 min-h-[300px]">
+      {/* Data Grid */}
+      <div className="flex-1 px-6 py-4 overflow-hidden">
         {isSearching ? (
-          <div className="flex flex-col items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center h-full">
             <DxLoadIndicator />
             <p className="text-gray-500 mt-4">Searching items...</p>
           </div>
-        ) : results.length > 0 ? (
-          <div className="space-y-2">
-            {results.map((item, index) => {
-              const itemType = getItemType(item);
-              const typeStyle = getItemTypeStyle(itemType);
-              const isHighlighted = index === highlightedIndex;
+        ) : filteredResults.length > 0 ? (
+          <DxDataGrid
+            dataSource={filteredResults}
+            keyExpr="id"
+            showBorders
+            showRowLines
+            rowAlternationEnabled
+            hoverStateEnabled
+            focusedRowEnabled
+            onRowDblClick={onRowDblClick}
+            onSelectionChanged={onSelectionChanged}
+            height="100%"
+            columnAutoWidth
+            wordWrapEnabled
+          >
+            <DxSelection mode="single" />
+            <DxScrolling mode="virtual" />
+            <DxPaging enabled={false} />
 
-              return (
-                <div
-                  key={item.id}
-                  data-index={index}
-                  onClick={() => handleSelect(item)}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all duration-150 ${
-                    isHighlighted
-                      ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200 shadow-md'
-                      : 'bg-white hover:bg-gray-50 border-gray-200 hover:shadow-md'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    {/* Left: Item Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-bold text-blue-600 text-lg">{item.code}</span>
-                        {itemType && (
-                          <Badge className={`${typeStyle.bg} ${typeStyle.text} text-xs`}>
-                            {typeStyle.label}
-                          </Badge>
-                        )}
-                        {item.category && (
-                          <Badge variant="outline" className="text-xs text-gray-500">
-                            <Tag className="h-3 w-3 mr-1" />
-                            {item.category}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="mb-2">
-                        <p className="font-medium text-gray-900">
-                          {item.nameTh || '-'}
-                        </p>
-                        {item.nameEn && (
-                          <p className="text-sm text-gray-500">{item.nameEn}</p>
-                        )}
-                      </div>
-
-                      {/* Item details row */}
-                      <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
-                        <div className="flex items-center gap-1">
-                          <Box className="h-3.5 w-3.5" />
-                          <span>{item.primaryUnit || 'unit'}</span>
-                        </div>
-
-                        {showStock && (
-                          <StockIndicator item={item} />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Right: Price & Action */}
-                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      {showPrice !== 'none' && (
-                        <div className="text-right">
-                          {showPrice === 'both' ? (
-                            <>
-                              <div className="flex items-center gap-1 text-green-600">
-                                <TrendingUp className="h-3.5 w-3.5" />
-                                <span className="font-semibold">{formatCurrency(item.sellingPrice)}</span>
-                              </div>
-                              <p className="text-xs text-gray-500">
-                                Cost: {formatCurrency(item.costPrice)}
-                              </p>
-                            </>
-                          ) : showPrice === 'cost' ? (
-                            <div className="font-semibold text-gray-700">
-                              {formatCurrency(item.costPrice)}
-                            </div>
-                          ) : (
-                            <div className="font-semibold text-green-600">
-                              {formatCurrency(item.sellingPrice)}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <DxButton
-                        text="Select"
-                        type="default"
-                        onClick={(e) => { e?.event?.stopPropagation(); handleSelect(item); }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : hasSearched ? (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-            <Package className="h-16 w-16 text-gray-300 mb-4" />
-            <p className="text-lg font-medium mb-2">No items found</p>
+            <DxColumn
+              dataField="code"
+              caption="Item Code"
+              width={180}
+              cellRender={renderItemCode}
+              allowSorting
+            />
+            <DxColumn
+              dataField="nameTh"
+              caption="Item Name"
+              minWidth={200}
+              cellRender={renderItemName}
+              allowSorting
+            />
+            <DxColumn
+              dataField="type"
+              caption="Type"
+              width={140}
+              cellRender={renderItemType}
+              allowSorting
+            />
+            <DxColumn
+              dataField="category"
+              caption="Category"
+              width={120}
+              allowSorting
+            />
+            {showStock && (
+              <DxColumn
+                dataField="onHand"
+                caption="Stock"
+                width={140}
+                cellRender={renderStock}
+                allowSorting
+                alignment="right"
+              />
+            )}
+            {showPrice !== 'none' && (
+              <DxColumn
+                dataField={showPrice === 'cost' ? 'costPrice' : 'sellingPrice'}
+                caption="Price"
+                width={130}
+                cellRender={renderPrice}
+                allowSorting
+                alignment="right"
+              />
+            )}
+            <DxColumn
+              caption="Action"
+              width={100}
+              cellRender={renderActions}
+              allowSorting={false}
+              alignment="center"
+            />
+          </DxDataGrid>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500">
+            <div className="p-6 bg-gray-100 rounded-full mb-4">
+              <Search className="h-12 w-12 text-gray-400" />
+            </div>
+            <p className="text-xl font-medium text-gray-700 mb-2">No items found</p>
             {search ? (
-              <p className="text-sm text-gray-400 mb-4">
-                No results for &quot;{search}&quot;
-              </p>
+              <p className="text-gray-500 mb-4">No results for &quot;{search}&quot;</p>
             ) : (
-              <p className="text-sm text-gray-400 mb-4">
-                No items available in the system
-              </p>
+              <p className="text-gray-500 mb-4">No items available in the system</p>
             )}
             {search && (
-              <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 max-w-md">
-                <p className="font-medium mb-2">Search tips:</p>
-                <ul className="list-disc list-inside space-y-1 text-gray-400">
+              <div className="bg-white rounded-xl p-4 border max-w-md text-left">
+                <p className="font-medium text-gray-700 mb-2">Search tips:</p>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-500">
                   <li>Try searching by item code (e.g., &quot;RM001&quot;)</li>
                   <li>Search by partial name in Thai or English</li>
                   <li>Check for typos in your search</li>
@@ -400,52 +518,48 @@ export function ItemSearchDialog({
               </div>
             )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-            <Search className="h-16 w-16 text-gray-300 mb-4" />
-            <p className="text-lg font-medium mb-2">Loading items...</p>
-          </div>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="pt-3 border-t -mx-4 px-4 pb-2 bg-gray-50 flex items-center justify-between rounded-b-lg">
-        {results.length > 0 ? (
-          <>
-            <div className="text-sm text-gray-500">
-              <span className="font-medium text-gray-700">{results.length}</span> item{results.length !== 1 ? 's' : ''} found
-              {excludeIds.length > 0 && (
-                <span className="text-gray-400"> • {excludeIds.length} already selected</span>
-              )}
-            </div>
-            <div className="flex items-center gap-4 text-xs text-gray-400">
-              <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                  <ArrowUp className="h-3 w-3 inline" />
-                </kbd>
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                  <ArrowDown className="h-3 w-3 inline" />
-                </kbd>
-                <span className="ml-1">Navigate</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                  <CornerDownLeft className="h-3 w-3 inline" />
-                </kbd>
-                <span className="ml-1">Select</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Esc</kbd>
-                <span className="ml-1">Close</span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-gray-400 w-full justify-center">
-            <Keyboard className="h-4 w-4" />
-            <span>Use keyboard shortcuts for faster navigation</span>
+      {/* Footer with Summary */}
+      <div className="bg-white border-t px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6 text-sm">
+            {filteredResults.length > 0 && (
+              <>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-600">
+                    <span className="font-semibold text-gray-800">{filteredResults.length}</span> items shown
+                  </span>
+                </div>
+                {excludeIds.length > 0 && (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Layers className="h-4 w-4" />
+                    <span>{excludeIds.length} already selected</span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        )}
+
+          <div className="flex items-center gap-2">
+            {selectedItem && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200 mr-2">
+                <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-700">
+                  Selected: {selectedItem.code}
+                </span>
+              </div>
+            )}
+            <DxButton
+              text="Cancel"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => onOpenChange(false)}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -455,8 +569,10 @@ export function ItemSearchDialog({
       visible={open}
       onHiding={() => onOpenChange(false)}
       title=""
-      width={900}
-      height={700}
+      width="90%"
+      maxWidth={1200}
+      height="85%"
+      maxHeight={800}
       showCloseButton
       showTitle={false}
     >
