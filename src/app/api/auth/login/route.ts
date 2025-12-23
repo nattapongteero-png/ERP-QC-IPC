@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { verifyPassword, setSession } from '@/lib/auth';
 import { successResponse, errorResponse, serverErrorResponse } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
@@ -14,30 +14,18 @@ export async function POST(request: NextRequest) {
       return errorResponse('Email and password are required');
     }
 
-    console.log('Login attempt - DB_TYPE:', process.env.DB_TYPE);
-    const db = await getDb();
-    const isUsingSqlite = process.env.DB_TYPE === 'sqlite';
-    console.log('isUsingSqlite:', isUsingSqlite);
+    const usersTable = getTableRef('users');
 
-    // Find user - need to cast db to any due to SQLite/MySQL type differences
-    let user;
-    if (isUsingSqlite) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const users = await (db as any)
+    // Find user
+    const users = await executeDbOperation(async (db) => {
+      return db
         .select()
-        .from(schema.sqliteUsers)
-        .where(eq(schema.sqliteUsers.email, email))
+        .from(usersTable)
+        .where(eq(usersTable.email, email))
         .limit(1);
-      user = users[0];
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const users = await (db as any)
-        .select()
-        .from(schema.mysqlUsers)
-        .where(eq(schema.mysqlUsers.email, email))
-        .limit(1);
-      user = users[0];
-    }
+    });
+
+    const user = users[0];
 
     if (!user) {
       return errorResponse('Invalid email or password', 401);
