@@ -31,6 +31,31 @@ import {
   mysqlCustomers,
 } from '../db/schema';
 
+// ============================================
+// Date Helpers
+// ============================================
+
+/**
+ * Get current datetime in the correct format for the database.
+ */
+function getNow(): Date | string {
+  return isSqlite() ? new Date().toISOString() : new Date();
+}
+
+/**
+ * Convert a date string to the correct format for the database.
+ */
+function toDbDate(dateStr: string): Date | string {
+  return isSqlite() ? dateStr : new Date(dateStr);
+}
+
+/**
+ * Get today's date as YYYY-MM-DD string
+ */
+function getTodayStr(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 /**
  * Get database-specific table references
  */
@@ -187,13 +212,13 @@ export async function createRecall(
   userId: number
 ): Promise<Recall> {
   const recallNumber = await generateRecallNumber();
-  const now = new Date().toISOString().split('T')[0];
+  const todayStr = getTodayStr();
   const db = await getDb();
   const { recalls } = getTables();
 
   const values = {
     recallNumber,
-    initiatedDate: now,
+    initiatedDate: toDbDate(todayStr),
     recallClass: data.recallClass,
     reason: data.reason,
     productId: data.productId,
@@ -202,8 +227,8 @@ export async function createRecall(
     coordinatorId: data.coordinatorId,
     complaintId: data.complaintId || null,
     createdBy: userId,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: getNow(),
+    updatedAt: getNow(),
   };
 
   let recallId: number;
@@ -336,7 +361,7 @@ export async function updateRecall(
     .update(recalls)
     .set({
       ...data,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(recalls.id, id));
 
@@ -586,10 +611,10 @@ export async function createNotification(
     contactInfo,
     quantityDistributed,
     notificationMethod: data.notificationMethod,
-    notifiedAt: new Date().toISOString(),
+    notifiedAt: getNow(),
     responseStatus: 'pending',
     notes: data.notes || null,
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   };
 
   let notificationId: number;
@@ -654,7 +679,7 @@ export async function updateNotification(
   if (data.notes !== undefined) updateData.notes = data.notes;
 
   if (data.responseStatus === 'acknowledged') {
-    updateData.acknowledgedAt = new Date().toISOString();
+    updateData.acknowledgedAt = getNow();
   }
 
   await (db as any)
@@ -761,7 +786,7 @@ export async function recordReconciliation(
         unaccountedQty,
         reconciliationNotes: data.reconciliationNotes || null,
         verifiedBy: userId,
-        verifiedAt: new Date().toISOString(),
+        verifiedAt: getNow(),
       })
       .where(eq(reconciliation.id, existing[0].id));
 
@@ -785,8 +810,8 @@ export async function recordReconciliation(
       unaccountedQty,
       reconciliationNotes: data.reconciliationNotes || null,
       verifiedBy: userId,
-      verifiedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      verifiedAt: getNow(),
+      createdAt: getNow(),
     };
 
     let recordId: number;
@@ -857,7 +882,7 @@ export async function startRecall(
     .set({
       status: 'in_progress',
       distributedQuantity: distributedQty,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(recalls.id, id));
 
@@ -894,7 +919,7 @@ export async function completeRecall(
     .update(recalls)
     .set({
       status: 'completed',
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(recalls.id, id));
 
@@ -928,15 +953,16 @@ export async function closeRecall(
   const db = await getDb();
   const { recalls } = getTables();
 
+  const todayStr = getTodayStr();
   await (db as any)
     .update(recalls)
     .set({
       status: 'closed',
-      closureDate: new Date().toISOString().split('T')[0],
+      closureDate: toDbDate(todayStr),
       regulatoryReportDate: data.regulatoryReportPath
-        ? new Date().toISOString().split('T')[0]
+        ? toDbDate(todayStr)
         : null,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(recalls.id, id));
 
@@ -993,7 +1019,7 @@ async function updateRecallTotals(recallId: number): Promise<void> {
       returnedQuantity,
       reconciledQuantity,
       effectivenessRate,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(recalls.id, recallId));
 }
@@ -1096,7 +1122,7 @@ export async function executeMockDrill(
     drillId,
     lotId: data.lotId,
     lotNumber: lot[0].lotNumber,
-    executedAt: new Date().toISOString(),
+    executedAt: getNow(),
     customersIdentified: uniqueCustomers,
     totalDistributed,
     timeToIdentify,

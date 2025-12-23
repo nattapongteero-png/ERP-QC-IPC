@@ -20,6 +20,22 @@ import {
   mysqlCapa,
 } from '../db/schema';
 
+// ============================================
+// Date Helpers
+// ============================================
+
+function getNow(): Date | string {
+  return isSqlite() ? new Date().toISOString() : new Date();
+}
+
+function toDbDate(dateStr: string): Date | string {
+  return isSqlite() ? dateStr : new Date(dateStr);
+}
+
+function getTodayStr(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 /**
  * Get database-specific table references
  */
@@ -205,7 +221,7 @@ export async function createAuditPlan(
     name: data.name,
     status: 'draft',
     createdBy: userId,
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   };
 
   let planId: number;
@@ -298,7 +314,7 @@ export async function approveAuditPlan(
     .set({
       status: 'approved',
       approvedBy: userId,
-      approvedAt: new Date().toISOString(),
+      approvedAt: getNow(),
     })
     .where(eq(auditPlans.id, id));
 
@@ -550,7 +566,7 @@ export async function createAudit(
     leadAuditorId: data.leadAuditorId,
     auditTeam: data.auditTeam ? JSON.stringify(data.auditTeam) : null,
     status: 'scheduled',
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   };
 
   let auditId: number;
@@ -640,7 +656,7 @@ export async function startAudit(
     .update(audits)
     .set({
       status: 'in_progress',
-      actualDate: new Date().toISOString().split('T')[0],
+      actualDate: toDbDate(getTodayStr()),
     })
     .where(eq(audits.id, id));
 
@@ -688,7 +704,7 @@ export async function completeAudit(
       status: 'completed',
       summary: data.summary || null,
       reportPath: data.reportPath || null,
-      closedDate: new Date().toISOString().split('T')[0],
+      closedDate: toDbDate(getTodayStr()),
     })
     .where(eq(audits.id, id));
 
@@ -876,7 +892,7 @@ export async function createAuditFinding(
     areaOwner: data.areaOwner || null,
     capaRequired: data.capaRequired ?? false,
     status: 'open',
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   };
 
   let findingId: number;
@@ -1009,7 +1025,7 @@ export async function closeAuditFinding(
     .update(findings)
     .set({
       status: 'closed',
-      closedDate: new Date().toISOString().split('T')[0],
+      closedDate: toDbDate(getTodayStr()),
       closedBy: userId,
     })
     .where(eq(findings.id, id));

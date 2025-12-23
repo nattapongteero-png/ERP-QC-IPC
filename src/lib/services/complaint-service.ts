@@ -24,6 +24,35 @@ import {
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 
+// ============================================
+// Date Helpers
+// ============================================
+
+/**
+ * Get current datetime in the correct format for the database.
+ * SQLite: ISO 8601 string format
+ * MySQL: Date object (Drizzle handles conversion)
+ */
+function getNow(): Date | string {
+  return isSqlite() ? new Date().toISOString() : new Date();
+}
+
+/**
+ * Convert a date string to the correct format for the database.
+ * SQLite: ISO 8601 string format
+ * MySQL: Date object
+ */
+function toDbDate(dateStr: string): Date | string {
+  return isSqlite() ? dateStr : new Date(dateStr);
+}
+
+/**
+ * Get today's date as YYYY-MM-DD string (for date-only fields)
+ */
+function getTodayStr(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 // Get table references based on database type
 function getTables() {
   if (isSqlite()) {
@@ -358,7 +387,7 @@ export async function createComplaint(
   const { complaints: complaintsTable } = getTables();
   const db = await getDb();
   const complaintNumber = await generateComplaintNumber();
-  const now = new Date().toISOString();
+  const now = getNow();
 
   let complaintId: number;
 
@@ -368,7 +397,7 @@ export async function createComplaint(
       .insert(complaintsTable)
       .values({
         complaintNumber,
-        receivedDate: data.receivedDate,
+        receivedDate: toDbDate(data.receivedDate),
         source: data.source,
         customerName: data.customerName || null,
         customerContact: data.customerContact || null,
@@ -393,7 +422,7 @@ export async function createComplaint(
       .insert(complaintsTable)
       .values({
         complaintNumber,
-        receivedDate: data.receivedDate,
+        receivedDate: toDbDate(data.receivedDate),
         source: data.source,
         customerName: data.customerName || null,
         customerContact: data.customerContact || null,
@@ -447,13 +476,13 @@ export async function updateComplaint(
     throw new Error('Complaint not found');
   }
 
-  const now = new Date().toISOString();
+  const now = getNow();
   const updateData: Record<string, unknown> = { updatedAt: now };
 
   if (data.status !== undefined) updateData.status = data.status;
   if (data.severity !== undefined) updateData.severity = data.severity;
   if (data.regulatoryReportRequired !== undefined) updateData.regulatoryReportRequired = data.regulatoryReportRequired;
-  if (data.regulatoryReportDate !== undefined) updateData.regulatoryReportDate = data.regulatoryReportDate;
+  if (data.regulatoryReportDate !== undefined) updateData.regulatoryReportDate = toDbDate(data.regulatoryReportDate);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db as any)
@@ -495,7 +524,8 @@ export async function routeToQC(
     throw new Error('Complaint is already under investigation or closed');
   }
 
-  const now = new Date().toISOString();
+  const now = getNow();
+  const todayStr = getTodayStr();
   let investigationId: number;
 
   if (isSqlite()) {
@@ -505,7 +535,7 @@ export async function routeToQC(
       .values({
         complaintId,
         investigatorId,
-        startDate: now.split('T')[0],
+        startDate: toDbDate(todayStr),
         createdAt: now,
       })
       .returning({ id: investigations.id });
@@ -518,7 +548,7 @@ export async function routeToQC(
       .values({
         complaintId,
         investigatorId,
-        startDate: now.split('T')[0],
+        startDate: toDbDate(todayStr),
         createdAt: now,
       });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -559,7 +589,7 @@ export async function routeToQC(
     complaintId,
     investigatorId,
     investigatorName: investigator[0]?.displayName || undefined,
-    startDate: now.split('T')[0],
+    startDate: todayStr,
     completionDate: null,
     batchRecordReview: null,
     retainSampleTest: null,
@@ -592,7 +622,8 @@ export async function recordInvestigation(
     throw new Error('Investigation not started - route to QC first');
   }
 
-  const now = new Date().toISOString();
+  const now = getNow();
+  const todayStr = getTodayStr();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db as any)
@@ -603,7 +634,7 @@ export async function recordInvestigation(
       rootCause: data.rootCause,
       conclusion: data.conclusion,
       recommendation: data.recommendation || null,
-      completionDate: now.split('T')[0],
+      completionDate: toDbDate(todayStr),
     })
     .where(eq(investigations.complaintId, complaintId));
 
@@ -680,7 +711,7 @@ export async function closeComplaint(
     throw new Error('Cannot close complaint: Investigation not complete');
   }
 
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db as any)
@@ -716,7 +747,7 @@ export async function linkCapa(
 ): Promise<Complaint> {
   const { complaints: complaintsTable } = getTables();
   const db = await getDb();
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db as any)
