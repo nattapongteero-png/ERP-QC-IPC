@@ -1,103 +1,322 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+/**
+ * Inventory Items Dashboard Page
+ *
+ * Professional dashboard for viewing and managing inventory items.
+ * Redesigned with DevExtreme UI components.
+ */
+
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card, CardContent } from '@/components/ui/card';
-import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
-import { DxButton } from '@/components/ui/dx-button';
-import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/ui/page-header';
-import { EmptyState } from '@/components/ui/empty-state';
+import DataGrid, {
+  Column,
+  Paging,
+  Pager,
+  FilterRow,
+  SearchPanel,
+  HeaderFilter,
+  ColumnChooser,
+  Export,
+  Grouping,
+  GroupPanel,
+  Summary,
+  TotalItem,
+  Toolbar,
+  Item as ToolbarItem,
+  Scrolling,
+  Selection,
+} from 'devextreme-react/data-grid';
+import { Workbook } from 'exceljs';
+import { saveAs } from 'file-saver';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+import type { ExportingEvent } from 'devextreme/ui/data_grid';
+import PieChart, {
+  Series as PieSeries,
+  Label as PieLabel,
+  Legend as PieLegend,
+  Tooltip as PieTooltip,
+  Connector,
+} from 'devextreme-react/pie-chart';
+import {
+  Leaf,
+  FlaskConical,
+  Box,
+  Pill,
+  Package,
+  RefreshCw,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  BarChart3,
+  Boxes,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+  Barcode,
+  Warehouse,
+  DollarSign,
+  Activity,
+} from 'lucide-react';
 import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
 import { DxConfirmDialog } from '@/components/ui/dx-popup';
-import { Leaf, FlaskConical, Box, Pill, Package, Inbox, Barcode, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import type { DataGridTypes } from 'devextreme-react/data-grid';
 
-const itemTypes = [
-  { value: '', label: 'ทุกประเภท' },
-  { value: 'raw_material', label: 'วัตถุดิบ' },
-  { value: 'packaging', label: 'บรรจุภัณฑ์' },
-  { value: 'wip', label: 'งานระหว่างทำ' },
-  { value: 'finished_goods', label: 'สินค้าสำเร็จรูป' },
-  { value: 'consumable', label: 'วัสดุสิ้นเปลือง' },
-];
+// ============================================
+// Constants
+// ============================================
 
-const getTypeIcon = (type: string) => {
-  switch (type) {
-    case 'raw_material': return <Leaf className="h-4 w-4 text-green-600" />;
-    case 'packaging': return <Box className="h-4 w-4 text-blue-600" />;
-    case 'wip': return <FlaskConical className="h-4 w-4 text-orange-600" />;
-    case 'finished_goods': return <Pill className="h-4 w-4 text-purple-600" />;
-    default: return <Package className="h-4 w-4 text-gray-600" />;
-  }
+type ItemType = 'raw_material' | 'packaging' | 'wip' | 'finished_goods' | 'consumable';
+
+const ITEM_TYPE_CONFIG: Record<ItemType, {
+  label: string;
+  labelTh: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  chartColor: string;
+  icon: React.ReactNode;
+}> = {
+  raw_material: {
+    label: 'Raw Material',
+    labelTh: 'วัตถุดิบ',
+    bgColor: 'bg-green-50',
+    textColor: 'text-green-700',
+    borderColor: 'border-green-200',
+    chartColor: '#22c55e',
+    icon: <Leaf className="h-4 w-4" />,
+  },
+  packaging: {
+    label: 'Packaging',
+    labelTh: 'บรรจุภัณฑ์',
+    bgColor: 'bg-blue-50',
+    textColor: 'text-blue-700',
+    borderColor: 'border-blue-200',
+    chartColor: '#3b82f6',
+    icon: <Box className="h-4 w-4" />,
+  },
+  wip: {
+    label: 'Work in Progress',
+    labelTh: 'งานระหว่างทำ',
+    bgColor: 'bg-orange-50',
+    textColor: 'text-orange-700',
+    borderColor: 'border-orange-200',
+    chartColor: '#f97316',
+    icon: <FlaskConical className="h-4 w-4" />,
+  },
+  finished_goods: {
+    label: 'Finished Goods',
+    labelTh: 'สินค้าสำเร็จรูป',
+    bgColor: 'bg-purple-50',
+    textColor: 'text-purple-700',
+    borderColor: 'border-purple-200',
+    chartColor: '#a855f7',
+    icon: <Pill className="h-4 w-4" />,
+  },
+  consumable: {
+    label: 'Consumable',
+    labelTh: 'วัสดุสิ้นเปลือง',
+    bgColor: 'bg-gray-50',
+    textColor: 'text-gray-700',
+    borderColor: 'border-gray-200',
+    chartColor: '#6b7280',
+    icon: <Package className="h-4 w-4" />,
+  },
 };
 
-const getTypeVariant = (type: string): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
-  switch (type) {
-    case 'raw_material': return 'success';
-    case 'packaging': return 'info';
-    case 'wip': return 'warning';
-    case 'finished_goods': return 'default';
-    default: return 'default';
-  }
-};
+// ============================================
+// Helper Components
+// ============================================
 
-const getTypeLabel = (type: string): string => {
-  const found = itemTypes.find(t => t.value === type);
-  return found?.label || type.replace('_', ' ');
-};
+function MetricCard({
+  value,
+  label,
+  loading = false,
+}: {
+  value: string | number;
+  label: string;
+  loading?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center px-4 py-2 border-r border-white/20 last:border-r-0">
+      <p className={`text-lg font-bold ${loading ? 'animate-pulse' : ''}`}>
+        {loading ? '...' : value}
+      </p>
+      <p className="text-xs text-amber-100">{label}</p>
+    </div>
+  );
+}
+
+function TypeCard({
+  count,
+  total,
+  config,
+  isActive,
+  onClick,
+}: {
+  count: number;
+  total: number;
+  config: {
+    label: string;
+    labelTh: string;
+    bgColor: string;
+    textColor: string;
+    borderColor: string;
+    icon: React.ReactNode;
+  };
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full border rounded-xl p-4 transition-all text-left',
+        isActive
+          ? `${config.bgColor} ${config.borderColor} border-2 shadow-md`
+          : 'bg-white border-gray-200 hover:shadow-md hover:border-gray-300'
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={cn('p-2 rounded-lg', config.bgColor, config.textColor)}>
+            {config.icon}
+          </div>
+          <div>
+            <p className={cn('text-sm font-medium', isActive ? config.textColor : 'text-gray-700')}>
+              {config.labelTh}
+            </p>
+            <p className="text-xs text-gray-500">{percentage}% of total</p>
+          </div>
+        </div>
+        <p className={cn('text-2xl font-bold', isActive ? config.textColor : 'text-gray-900')}>{count}</p>
+      </div>
+    </button>
+  );
+}
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  subValue,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  subValue?: string;
+  color: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+      <div className={cn('p-2 rounded-lg', color)}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs text-gray-500">{label}</p>
+        <p className="text-lg font-bold text-gray-900">{value}</p>
+        {subValue && <p className="text-xs text-gray-500">{subValue}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// API Functions
+// ============================================
+
+async function fetchItems(): Promise<Item[]> {
+  const response = await fetch('/api/items?limit=1000');
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error);
+  return result.data?.items || [];
+}
+
+// ============================================
+// Main Component
+// ============================================
 
 export default function ItemsPage() {
   const router = useRouter();
-  const [items, setItems] = useState<Item[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | ItemType>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; item: Item | null }>({ open: false, item: null });
 
-  const fetchItems = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      // Fetch all items for client-side pagination/filtering via DevExtreme
-      params.set('limit', '1000');
-      if (typeFilter) params.set('type', typeFilter);
+  // Fetch data
+  const { data: items = [], isLoading, refetch } = useQuery({
+    queryKey: ['items-list'],
+    queryFn: fetchItems,
+  });
 
-      const res = await fetch(`/api/items?${params}`);
-      const data = await res.json();
+  // Handle refresh
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
-      if (data.success) {
-        let fetchedItems = data.data?.items || [];
-
-        // Client-side search filter (DevExtreme will handle this better with remote data source)
-        if (search) {
-          const searchLower = search.toLowerCase();
-          fetchedItems = fetchedItems.filter((item: Item) =>
-            item.code?.toLowerCase().includes(searchLower) ||
-            item.nameTh?.toLowerCase().includes(searchLower) ||
-            item.nameEn?.toLowerCase().includes(searchLower)
-          );
-        }
-
-        setItems(fetchedItems);
+  // Calculate type counts
+  const typeCounts = useMemo(() => {
+    const counts: Record<ItemType, number> = {
+      raw_material: 0,
+      packaging: 0,
+      wip: 0,
+      finished_goods: 0,
+      consumable: 0,
+    };
+    items.forEach((item) => {
+      const type = item.type as ItemType;
+      if (counts[type] !== undefined) {
+        counts[type]++;
       }
-    } catch (error) {
-      console.error('Failed to fetch items:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [typeFilter, search]);
+    });
+    return counts;
+  }, [items]);
 
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  // Calculate statistics
+  const statistics = useMemo(() => {
+    const totalValue = items.reduce((sum, item) => sum + (Number(item.onHandCost) || 0), 0);
+    const totalQuantity = items.reduce((sum, item) => sum + (Number(item.onHand) || 0), 0);
+    const lowStockItems = items.filter(
+      (item) => item.minStock && item.onHand !== undefined && item.onHand < item.minStock
+    ).length;
+    const activeItems = items.filter((item) => item.isActive).length;
+    const inactiveItems = items.filter((item) => !item.isActive).length;
+    const vmiReadyItems = items.filter((item) => item.tppCode || item.ttmtCode).length;
 
+    return {
+      totalValue,
+      totalQuantity,
+      lowStockItems,
+      activeItems,
+      inactiveItems,
+      vmiReadyItems,
+    };
+  }, [items]);
+
+  // Filter items by tab
+  const filteredItems = useMemo(() => {
+    if (activeTab === 'all') return items;
+    return items.filter((item) => item.type === activeTab);
+  }, [items, activeTab]);
+
+  // Chart data for type distribution
+  const typeChartData = useMemo(() => {
+    return Object.entries(typeCounts)
+      .filter((entry) => entry[1] > 0)
+      .map(([type, count]) => ({
+        type: ITEM_TYPE_CONFIG[type as ItemType].labelTh,
+        count,
+        color: ITEM_TYPE_CONFIG[type as ItemType].chartColor,
+      }));
+  }, [typeCounts]);
+
+  // Handlers
   const handleSave = async (formData: ItemFormData) => {
     const url = editingItem ? `/api/items/${editingItem.id}` : '/api/items';
     const method = editingItem ? 'PUT' : 'POST';
@@ -112,7 +331,7 @@ export default function ItemsPage() {
     if (data.success) {
       setDialogOpen(false);
       setEditingItem(null);
-      fetchItems();
+      refetch();
     }
   };
 
@@ -123,10 +342,8 @@ export default function ItemsPage() {
       const res = await fetch(`/api/items/${deleteConfirm.item.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        fetchItems();
+        refetch();
       }
-    } catch {
-      // Network errors handled by global error handler
     } finally {
       setDeleteConfirm({ open: false, item: null });
     }
@@ -142,279 +359,523 @@ export default function ItemsPage() {
     setDialogOpen(true);
   };
 
-  const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
-    if (e.data?.id) {
-      router.push(`/inventory/items/${e.data.id}`);
-    }
-  };
+  // Excel export handler
+  const onExporting = useCallback((e: ExportingEvent) => {
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet('Items');
 
-  // Define columns for DevExtreme DataGrid
-  // hideOnMobile: Hide on phones (<768px)
-  // hideOnTablet: Hide on tablets (768-1024px)
-  const columns: DxDataGridColumn[] = [
-    {
-      dataField: 'code',
-      caption: 'รหัส',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <div className="flex items-center gap-2">
-          {getTypeIcon(cellInfo.data.type)}
-          <span className="font-mono">{cellInfo.data.code}</span>
-        </div>
-      ),
-    },
-    {
-      dataField: 'nameTh',
-      caption: 'ชื่อสินค้า',
-      cellRender: (cellInfo) => (
-        <div>
-          <p className="font-medium">{cellInfo.data.nameTh}</p>
-          {cellInfo.data.nameEn && <p className="text-xs text-gray-500">{cellInfo.data.nameEn}</p>}
-        </div>
-      ),
-    },
-    {
-      dataField: 'type',
-      caption: 'ประเภท',
-      width: 140,
-      hideOnMobile: true, // Hide on mobile - type is shown via icon in code column
-      cellRender: (cellInfo) => (
-        <Badge variant={getTypeVariant(cellInfo.data.type)} dot>
-          {getTypeLabel(cellInfo.data.type)}
-        </Badge>
-      ),
-    },
-    {
-      dataField: 'category',
-      caption: 'หมวดหมู่',
-      width: 120,
-      hideOnMobile: true, // Less important on mobile
-      hideOnTablet: true, // Also hide on tablet
-      cellRender: (cellInfo) => cellInfo.data.category || '-',
-    },
-    {
-      dataField: 'primaryUnit',
-      caption: 'หน่วย',
-      width: 80,
-      hideOnMobile: true, // Unit shown in onHand column
-    },
-    {
-      dataField: 'onHand',
-      caption: 'คงคลัง',
-      width: 140,
-      dataType: 'number',
-      cellRender: (cellInfo) => {
-        const onHand = cellInfo.data.onHand ?? 0;
-        const onHandCost = cellInfo.data.onHandCost ?? 0;
-        const isLow = cellInfo.data.minStock && onHand < cellInfo.data.minStock;
-        return (
-          <div>
-            <div className={cn('font-medium', isLow ? 'text-red-600' : '')}>
-              {onHand.toLocaleString()} {cellInfo.data.primaryUnit}
-              {isLow && <span className="text-xs ml-1">(ต่ำ)</span>}
-            </div>
-            <div className="text-xs text-gray-500">
-              ฿{onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-        );
+    exportDataGrid({
+      component: e.component,
+      worksheet,
+      autoFilterEnabled: true,
+      customizeCell: ({ gridCell, excelCell }) => {
+        if (gridCell?.rowType === 'data') {
+          if (gridCell.column?.dataField === 'type') {
+            const type = gridCell.value as ItemType;
+            excelCell.value = ITEM_TYPE_CONFIG[type]?.labelTh || type;
+          }
+          if (gridCell.column?.dataField === 'isActive') {
+            excelCell.value = gridCell.value ? 'Active' : 'Inactive';
+          }
+        }
       },
-    },
-    {
-      dataField: 'shelfLifeDays',
-      caption: 'อายุการเก็บ',
-      width: 100,
-      dataType: 'number',
-      hideOnMobile: true, // Less important on mobile
-      hideOnTablet: true, // Also hide on tablet
-      cellRender: (cellInfo) => cellInfo.data.shelfLifeDays ? `${cellInfo.data.shelfLifeDays} วัน` : '-',
-    },
-    {
-      dataField: 'isActive',
-      caption: 'สถานะ',
-      width: 100,
-      hideOnMobile: true, // Can see in detail page
-      cellRender: (cellInfo) => (
-        <Badge variant={cellInfo.data.isActive ? 'success' : 'danger'} dot>
-          {cellInfo.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
-        </Badge>
-      ),
-    },
-    {
-      dataField: 'tppCode',
-      caption: 'VMI',
-      width: 90,
-      hideOnMobile: true,
-      hideOnTablet: true,
-      cellRender: (cellInfo) => {
-        const hasVmiCode = cellInfo.data.tppCode || cellInfo.data.ttmtCode;
-        return hasVmiCode ? (
-          <div className="flex items-center gap-1.5 text-emerald-600" title={`TPP: ${cellInfo.data.tppCode || '-'}, TTMT: ${cellInfo.data.ttmtCode || '-'}`}>
-            <CheckCircle className="h-4 w-4" />
-            <span className="text-xs font-medium">Ready</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 text-gray-400" title="No VMI codes">
-            <XCircle className="h-4 w-4" />
-            <span className="text-xs">-</span>
-          </div>
-        );
-      },
-    },
-    {
-      dataField: 'actions',
-      caption: 'จัดการ',
-      width: 120,
-      allowSorting: false,
-      allowFiltering: false,
-      cellRender: (cellInfo) => (
-        <div className="flex gap-1">
-          <DxButton
-            icon="edit"
-            stylingMode="text"
-            hint="แก้ไข"
-            onClick={(e) => {
-              e.event?.stopPropagation();
-              handleEdit(cellInfo.data);
-            }}
-          />
-          <DxButton
-            icon="trash"
-            stylingMode="text"
-            type="danger"
-            hint="ลบ"
-            onClick={(e) => {
-              e.event?.stopPropagation();
-              setDeleteConfirm({ open: true, item: cellInfo.data });
-            }}
-          />
+    }).then(() => {
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'inventory-items.xlsx');
+      });
+    });
+  }, []);
+
+  // Custom cell renderers
+  const renderCodeCell = useCallback((data: { data: Item }) => {
+    const config = ITEM_TYPE_CONFIG[data.data.type as ItemType];
+    return (
+      <div className="flex items-center gap-2">
+        <span className={cn('p-1 rounded', config?.bgColor, config?.textColor)}>
+          {config?.icon}
+        </span>
+        <button
+          onClick={() => router.push(`/inventory/items/${data.data.id}`)}
+          className="font-mono text-amber-600 hover:text-amber-800 hover:underline"
+        >
+          {data.data.code}
+        </button>
+      </div>
+    );
+  }, [router]);
+
+  const renderNameCell = useCallback((data: { data: Item }) => {
+    return (
+      <div>
+        <p className="font-medium text-gray-900">{data.data.nameTh}</p>
+        {data.data.nameEn && (
+          <p className="text-xs text-gray-500">{data.data.nameEn}</p>
+        )}
+      </div>
+    );
+  }, []);
+
+  const renderTypeCell = useCallback((data: { value: ItemType }) => {
+    const config = ITEM_TYPE_CONFIG[data.value];
+    if (!config) return data.value;
+    return (
+      <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', config.bgColor, config.textColor)}>
+        {config.icon}
+        {config.labelTh}
+      </span>
+    );
+  }, []);
+
+  const renderStockCell = useCallback((data: { data: Item }) => {
+    const onHand = data.data.onHand ?? 0;
+    const minStock = data.data.minStock ?? 0;
+    const isLow = minStock > 0 && onHand < minStock;
+
+    return (
+      <div>
+        <div className={cn('font-medium', isLow ? 'text-red-600' : 'text-gray-900')}>
+          {onHand.toLocaleString()} {data.data.primaryUnit}
+          {isLow && (
+            <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">Low</span>
+          )}
         </div>
-      ),
-    },
-  ];
+        {data.data.onHandCost !== undefined && data.data.onHandCost > 0 && (
+          <div className="text-xs text-gray-500">
+            ฿{data.data.onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </div>
+        )}
+      </div>
+    );
+  }, []);
 
-  // Calculate summary stats
-  const rawMaterialCount = items.filter(i => i.type === 'raw_material').length;
-  const finishedGoodsCount = items.filter(i => i.type === 'finished_goods').length;
-  const packagingCount = items.filter(i => i.type === 'packaging').length;
-  const vmiReadyCount = items.filter(i => (i as Item & { tppCode?: string; ttmtCode?: string }).tppCode || (i as Item & { tppCode?: string; ttmtCode?: string }).ttmtCode).length;
+  const renderStatusCell = useCallback((data: { value: boolean }) => {
+    return data.value ? (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+        <CheckCircle className="h-3 w-3" />
+        Active
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+        <XCircle className="h-3 w-3" />
+        Inactive
+      </span>
+    );
+  }, []);
 
-  const summaryCards = [
-    { label: 'วัตถุดิบ', count: rawMaterialCount, icon: Leaf, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
-    { label: 'สินค้าสำเร็จรูป', count: finishedGoodsCount, icon: Pill, bgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
-    { label: 'บรรจุภัณฑ์', count: packagingCount, icon: Box, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
-    { label: 'VMI Ready', count: vmiReadyCount, icon: Barcode, bgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
-  ];
+  const renderVmiCell = useCallback((data: { data: Item }) => {
+    const hasVmi = data.data.tppCode || data.data.ttmtCode;
+    return hasVmi ? (
+      <div className="flex items-center gap-1 text-emerald-600" title={`TPP: ${data.data.tppCode || '-'}, TTMT: ${data.data.ttmtCode || '-'}`}>
+        <CheckCircle className="h-4 w-4" />
+        <span className="text-xs font-medium">Ready</span>
+      </div>
+    ) : (
+      <div className="flex items-center gap-1 text-gray-400">
+        <XCircle className="h-4 w-4" />
+        <span className="text-xs">-</span>
+      </div>
+    );
+  }, []);
+
+  const renderActionsCell = useCallback((data: { data: Item }) => {
+    return (
+      <div className="flex items-center gap-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/inventory/items/${data.data.id}`);
+          }}
+          className="p-1 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded"
+          title="View Details"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEdit(data.data);
+          }}
+          className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+          title="Edit"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setDeleteConfirm({ open: true, item: data.data });
+          }}
+          className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+          title="Delete"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }, [router]);
+
+  const totalItems = items.length;
 
   return (
     <MainLayout>
-      {/* Flex container - fills viewport on tablet, normal flow on mobile/desktop */}
-      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
-        {/* Header - compact on tablet */}
-        <PageHeader
-          title="รายการสินค้า"
-          description="จัดการรายการสินค้าและวัตถุดิบ"
-          actions={
-            <DxButton
-              text="เพิ่มรายการ"
-              icon="plus"
-              type="success"
-              onClick={handleOpenCreate}
-            />
-          }
-        />
-
-        {/* Summary Cards - compact on tablet */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
-          {summaryCards.map((card, index) => (
-            <Card
-              key={card.label}
-              elevation="raised"
-              padding="sm"
-              className={cn(
-                'motion-safe:animate-fade-in motion-reduce:animate-none',
-                'md:py-2' // Extra compact on tablet
-              )}
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className="flex items-center gap-2 md:gap-2 lg:gap-3">
-                <div className={cn('p-1.5 md:p-1.5 lg:p-2 rounded-lg', card.bgColor)}>
-                  <card.icon className={cn('h-4 w-4 md:h-4 md:w-4 lg:h-5 lg:w-5', card.iconColor)} />
-                </div>
-                <div>
-                  <p className="text-xs md:text-xs lg:text-sm text-gray-500">{card.label}</p>
-                  <p className="text-lg md:text-lg lg:text-xl font-bold">{card.count}</p>
-                </div>
+      <div className="flex flex-col h-full gap-6 -m-4 md:-m-6">
+        {/* Professional Header */}
+        <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 p-6 text-white">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Boxes className="h-8 w-8" />
               </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Filters Card - compact on tablet */}
-        <Card elevation="raised" className="md:py-1">
-          <CardContent className="py-2 md:py-2 lg:py-4">
-            <div className="flex flex-col md:flex-row gap-2 md:gap-2 lg:gap-4">
-              <div className="flex-1">
-                <DxTextBox
-                  placeholder="ค้นหาด้วยรหัสหรือชื่อ..."
-                  value={search}
-                  onValueChange={setSearch}
-                  showClearButton
-                  mode="search"
-                  onEnterKey={() => fetchItems()}
-                />
-              </div>
-              <div className="w-full md:w-40 lg:w-48">
-                <DxSelectBox
-                  items={itemTypes}
-                  value={typeFilter}
-                  onValueChange={setTypeFilter}
-                  placeholder="เลือกประเภท"
-                  showClearButton
-                />
+              <div>
+                <h1 className="text-2xl font-bold">Inventory Items</h1>
+                <p className="text-amber-100 text-sm">รายการสินค้าและวัตถุดิบ - Inventory Management</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleRefresh}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+              >
+                <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+                <span className="text-sm font-medium">Refresh</span>
+              </button>
+              <button
+                onClick={() => router.push('/inventory/lots')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+              >
+                <Warehouse className="h-4 w-4" />
+                <span className="text-sm font-medium">View Lots</span>
+              </button>
+              <button
+                onClick={handleOpenCreate}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-amber-600 hover:bg-amber-50 rounded-lg transition-colors font-medium"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">Add Item</span>
+              </button>
+            </div>
+          </div>
 
-        {/* Table Card - fills remaining space on tablet */}
-        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
-          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
-            {items.length > 0 || isLoading ? (
-              <DxDataGrid
-                dataSource={items}
-                keyExpr="id"
-                columns={columns}
-                loading={isLoading}
-                sorting
-                filterRow
-                headerFilter
-                export
-                exportFileName="items"
-                columnChooser
-                virtualScrolling={items.length > 100}
-                height={600}
-                mobileHeight={400}
-                fillHeight
-                onRowClick={handleRowClick}
-                noDataText="ไม่พบรายการสินค้า"
+          {/* Quick Stats Bar */}
+          <div className="mt-6 flex flex-wrap items-center bg-white/10 rounded-xl backdrop-blur-sm py-2">
+            <MetricCard value={totalItems} label="Total Items" loading={isLoading} />
+            <MetricCard value={statistics.activeItems} label="Active" loading={isLoading} />
+            <MetricCard value={statistics.lowStockItems} label="Low Stock" loading={isLoading} />
+            <MetricCard
+              value={`฿${statistics.totalValue >= 1000 ? (statistics.totalValue / 1000).toFixed(1) + 'K' : statistics.totalValue.toFixed(0)}`}
+              label="Total Value"
+              loading={isLoading}
+            />
+            <MetricCard value={statistics.vmiReadyItems} label="VMI Ready" loading={isLoading} />
+            <MetricCard value={typeCounts.raw_material} label="Raw Materials" loading={isLoading} />
+            <MetricCard value={typeCounts.finished_goods} label="Finished Goods" loading={isLoading} />
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="px-4 md:px-6 pb-6 space-y-6">
+          {/* Dashboard Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            {/* Left Column - Main Content */}
+            <div className="xl:col-span-3 space-y-6">
+              {/* Item Type Cards */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Package className="h-5 w-5 text-gray-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Items by Type</h3>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                  {(Object.entries(ITEM_TYPE_CONFIG) as [ItemType, typeof ITEM_TYPE_CONFIG[ItemType]][]).map(
+                    ([type, config]) => (
+                      <TypeCard
+                        key={type}
+                        type={type}
+                        count={typeCounts[type]}
+                        total={totalItems}
+                        config={config}
+                        isActive={activeTab === type}
+                        onClick={() => setActiveTab(activeTab === type ? 'all' : type)}
+                      />
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* Type Distribution Chart */}
+              <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="h-5 w-5 text-gray-500" />
+                  <h3 className="font-semibold text-gray-900">Item Distribution by Type</h3>
+                </div>
+                {typeChartData.length > 0 ? (
+                  <PieChart
+                    dataSource={typeChartData}
+                    type="doughnut"
+                    palette={typeChartData.map((d) => d.color)}
+                    innerRadius={0.6}
+                    size={{ height: 250 }}
+                  >
+                    <PieSeries argumentField="type" valueField="count">
+                      <PieLabel visible={true} position="outside" format="fixedPoint">
+                        <Connector visible={true} width={1} />
+                      </PieLabel>
+                    </PieSeries>
+                    <PieLegend
+                      visible={true}
+                      horizontalAlignment="center"
+                      verticalAlignment="bottom"
+                      itemTextPosition="right"
+                    />
+                    <PieTooltip enabled={true} format="fixedPoint" />
+                  </PieChart>
+                ) : (
+                  <div className="h-[250px] flex flex-col items-center justify-center text-gray-400">
+                    <BarChart3 className="h-12 w-12 mb-2 opacity-50" />
+                    <p className="text-sm">No item data</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column - Sidebars */}
+            <div className="space-y-6">
+              {/* Inventory Summary */}
+              <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="h-5 w-5 text-gray-500" />
+                  <h3 className="font-semibold text-gray-900">Inventory Summary</h3>
+                </div>
+                <div className="space-y-3">
+                  <SummaryCard
+                    icon={<DollarSign className="h-4 w-4 text-emerald-600" />}
+                    label="Total Value"
+                    value={`฿${statistics.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                    color="bg-emerald-100"
+                  />
+                  <SummaryCard
+                    icon={<Boxes className="h-4 w-4 text-blue-600" />}
+                    label="Total Quantity"
+                    value={statistics.totalQuantity.toLocaleString()}
+                    subValue="units across all items"
+                    color="bg-blue-100"
+                  />
+                  <SummaryCard
+                    icon={<Barcode className="h-4 w-4 text-purple-600" />}
+                    label="VMI Ready"
+                    value={statistics.vmiReadyItems}
+                    subValue={`${totalItems > 0 ? Math.round((statistics.vmiReadyItems / totalItems) * 100) : 0}% of items`}
+                    color="bg-purple-100"
+                  />
+                </div>
+              </div>
+
+              {/* Status Overview */}
+              <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <Activity className="h-5 w-5 text-gray-500" />
+                  <h3 className="font-semibold text-gray-900">Status Overview</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-700">Active Items</span>
+                    </div>
+                    <span className="text-lg font-bold text-emerald-700">{statistics.activeItems}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-red-600" />
+                      <span className="text-sm font-medium text-red-700">Inactive Items</span>
+                    </div>
+                    <span className="text-lg font-bold text-red-700">{statistics.inactiveItems}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Low Stock Alert */}
+              {statistics.lowStockItems > 0 && (
+                <div className="bg-gradient-to-br from-red-50 to-orange-50 border border-red-200 rounded-xl p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-red-900">Low Stock Alert</h3>
+                      <p className="text-sm text-red-700 mt-1">
+                        {statistics.lowStockItems} item(s) below minimum stock level
+                      </p>
+                      <button
+                        onClick={() => {
+                          // Could filter to show only low stock items
+                        }}
+                        className="mt-3 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                      >
+                        View Low Stock Items
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Items DataGrid */}
+          <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+            {/* Tabs Header */}
+            <div className="px-5 pt-5 pb-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className={cn(
+                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                    activeTab === 'all'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  )}
+                >
+                  All Items
+                  <span className="ml-1.5 text-xs bg-gray-200 px-1.5 py-0.5 rounded-full">{totalItems}</span>
+                </button>
+                {(Object.keys(ITEM_TYPE_CONFIG) as ItemType[]).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setActiveTab(type)}
+                    className={cn(
+                      'px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                      activeTab === type
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    )}
+                  >
+                    {ITEM_TYPE_CONFIG[type].labelTh}
+                    <span className="ml-1.5 text-xs bg-gray-200 px-1.5 py-0.5 rounded-full">
+                      {typeCounts[type]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Boxes className="h-4 w-4" />
+                <span>{filteredItems.length} items</span>
+              </div>
+            </div>
+
+            {/* DataGrid */}
+            <DataGrid
+              dataSource={filteredItems}
+              keyExpr="id"
+              showBorders={false}
+              showRowLines={true}
+              showColumnLines={false}
+              rowAlternationEnabled={true}
+              allowColumnReordering={true}
+              allowColumnResizing={true}
+              columnAutoWidth={true}
+              wordWrapEnabled={true}
+              onExporting={onExporting}
+              onRowClick={(e) => {
+                if (e.data?.id) {
+                  router.push(`/inventory/items/${e.data.id}`);
+                }
+              }}
+              className="items-professional-grid"
+            >
+              <Scrolling mode="virtual" />
+              <Selection mode="multiple" showCheckBoxesMode="onClick" />
+              <SearchPanel visible={true} placeholder="Search items..." width={250} />
+              <FilterRow visible={true} />
+              <HeaderFilter visible={true} />
+              <GroupPanel visible={true} />
+              <Grouping autoExpandAll={false} />
+              <ColumnChooser enabled={true} mode="select" />
+              <Export enabled={true} allowExportSelectedData={true} />
+
+              <Column
+                dataField="code"
+                caption="Code"
+                width={150}
+                cellRender={renderCodeCell}
               />
-            ) : (
-              <EmptyState
-                icon={<Inbox className="h-8 w-8" />}
-                title="ไม่พบรายการสินค้า"
-                description="เริ่มต้นด้วยการเพิ่มรายการสินค้าใหม่"
-                action={{
-                  label: 'เพิ่มรายการ',
-                  onClick: handleOpenCreate,
-                }}
+              <Column
+                dataField="nameTh"
+                caption="Name"
+                minWidth={200}
+                cellRender={renderNameCell}
               />
-            )}
-          </CardContent>
-        </Card>
+              <Column
+                dataField="type"
+                caption="Type"
+                width={150}
+                cellRender={renderTypeCell}
+              />
+              <Column
+                dataField="category"
+                caption="Category"
+                width={120}
+              />
+              <Column
+                dataField="onHand"
+                caption="Stock"
+                width={150}
+                cellRender={renderStockCell}
+              />
+              <Column
+                dataField="primaryUnit"
+                caption="Unit"
+                width={80}
+              />
+              <Column
+                dataField="shelfLifeDays"
+                caption="Shelf Life"
+                width={100}
+                cellRender={(data) => data.value ? `${data.value} days` : '-'}
+              />
+              <Column
+                dataField="isActive"
+                caption="Status"
+                width={100}
+                cellRender={renderStatusCell}
+              />
+              <Column
+                caption="VMI"
+                width={90}
+                cellRender={renderVmiCell}
+                allowFiltering={false}
+              />
+              <Column
+                caption="Actions"
+                width={110}
+                cellRender={renderActionsCell}
+                allowFiltering={false}
+                allowSorting={false}
+              />
+
+              <Summary>
+                <TotalItem column="code" summaryType="count" displayFormat="Total: {0}" />
+              </Summary>
+
+              <Paging defaultPageSize={20} />
+              <Pager
+                visible={true}
+                showPageSizeSelector={true}
+                allowedPageSizes={[10, 20, 50, 100]}
+                showInfo={true}
+                showNavigationButtons={true}
+              />
+
+              <Toolbar>
+                <ToolbarItem name="groupPanel" />
+                <ToolbarItem name="columnChooserButton" />
+                <ToolbarItem name="exportButton" />
+                <ToolbarItem name="searchPanel" />
+              </Toolbar>
+            </DataGrid>
+          </div>
+        </div>
       </div>
 
-      {/* Reusable Item Edit Dialog */}
+      {/* Item Edit Dialog */}
       <ItemEditDialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -430,11 +891,54 @@ export default function ItemsPage() {
         visible={deleteConfirm.open}
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm({ open: false, item: null })}
-        title="ยืนยันการลบ"
-        message={`คุณต้องการลบรายการ "${deleteConfirm.item?.nameTh}" หรือไม่?`}
-        confirmText="ลบ"
+        title="Confirm Delete"
+        message={`Are you sure you want to delete "${deleteConfirm.item?.nameTh}"?`}
+        confirmText="Delete"
         confirmType="danger"
       />
+
+      {/* Custom styles */}
+      <style jsx global>{`
+        .items-professional-grid {
+          font-family: inherit;
+        }
+        .items-professional-grid .dx-datagrid-headers {
+          background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+          border-bottom: 2px solid #e2e8f0;
+        }
+        .items-professional-grid .dx-datagrid-headers .dx-header-row td {
+          font-weight: 600;
+          color: #334155;
+          padding: 12px 8px;
+        }
+        .items-professional-grid .dx-data-row td {
+          padding: 10px 8px;
+          vertical-align: middle;
+        }
+        .items-professional-grid .dx-data-row:hover {
+          background-color: #fffbeb !important;
+        }
+        .items-professional-grid .dx-data-row {
+          cursor: pointer;
+        }
+        .items-professional-grid .dx-row-alt > td {
+          background-color: #fafafa;
+        }
+        .items-professional-grid .dx-datagrid-search-panel {
+          margin-left: 0;
+        }
+        .items-professional-grid .dx-toolbar {
+          padding: 8px 16px;
+          background: transparent;
+        }
+        .items-professional-grid .dx-datagrid-group-panel {
+          padding: 8px 16px;
+        }
+        .items-professional-grid .dx-pager {
+          padding: 12px 16px;
+          border-top: 1px solid #e2e8f0;
+        }
+      `}</style>
     </MainLayout>
   );
 }
