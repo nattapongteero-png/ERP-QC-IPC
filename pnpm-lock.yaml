@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@devexpress/analytics-core':
-        specifier: 25.1.7
-        version: 25.1.7(devextreme@25.1.7)
+        specifier: 25.2.3
+        version: 25.2.3(devextreme@25.2.3)
       '@radix-ui/react-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -45,17 +45,17 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       devexpress-reporting:
-        specifier: 25.1.7
-        version: 25.1.7(@devexpress/analytics-core@25.1.7(devextreme@25.1.7))
+        specifier: 25.2.3
+        version: 25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.2.3))
       devexpress-reporting-react:
-        specifier: 25.1.7
-        version: 25.1.7(@devexpress/analytics-core@25.1.7(devextreme@25.1.7))(@types/prop-types@15.7.13)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(devexpress-reporting@25.1.7(@devexpress/analytics-core@25.1.7(devextreme@25.1.7)))(devextreme-react@25.1.7(devextreme@25.1.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        specifier: 25.2.3
+        version: 25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.2.3))(@types/prop-types@15.7.13)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(devexpress-reporting@25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.2.3)))(devextreme-react@25.2.3(devextreme@25.2.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       devextreme:
-        specifier: 25.1.7
-        version: 25.1.7
+        specifier: 25.2.3
+        version: 25.2.3
       devextreme-react:
-        specifier: 25.1.7
-        version: 25.1.7(devextreme@25.1.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+        specifier: 25.2.3
+        version: 25.2.3(devextreme@25.2.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)(mysql2@3.16.0)
@@ -124,8 +124,8 @@ importers:
         specifier: ^5.1.2
         version: 5.1.2(vite@7.3.0(@types/node@20.19.27)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
       devextreme-themebuilder:
-        specifier: 25.1.7
-        version: 25.1.7(bootstrap@5.3.8(@popperjs/core@2.11.8))
+        specifier: 25.2.3
+        version: 25.2.3(bootstrap@5.3.8(@popperjs/core@2.11.8))
       drizzle-kit:
         specifier: ^0.31.8
         version: 0.31.8
@@ -294,10 +294,10 @@ packages:
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
     engines: {node: '>=18'}
 
-  '@devexpress/analytics-core@25.1.7':
-    resolution: {integrity: sha512-3H98zZe4uylgiBdIi65z4TIJQa8owrpDVR6o6ACxjH0PtjCVgZr5MgExGEobYrjqK8GUCglUCFwsUDgRVTDlcA==}
+  '@devexpress/analytics-core@25.2.3':
+    resolution: {integrity: sha512-XR5Xvt+qYyWV5BLdLQHiFVgIP/hrg41nD4rE/wl1RhuXrbhz/RR/JxXR4rDOtLAszgp2ZPmpDAXR28ooR9S+Hw==}
     peerDependencies:
-      devextreme: 25.1.7
+      devextreme: 25.2.3
 
   '@devexpress/utils@1.4.8':
     resolution: {integrity: sha512-XVqyeYjqWjbcAUOxaUc6f93MATuVyFE2eec10Qm7X3/QLkKPBh2cJt5OOw4bkW4fC8SG8NZwjVITt08Tr+CXpQ==}
@@ -2297,40 +2297,40 @@ packages:
   devexpress-gantt@4.1.64:
     resolution: {integrity: sha512-q9+diTugmzf3YNzQ4Xutr7ndgCAdpH7IyjTzGy2SiY5I+ePf2BaAZ0R3LGADBC5TuFS2OamIhF0HOj4ALgkf+A==}
 
-  devexpress-reporting-react@25.1.7:
-    resolution: {integrity: sha512-2PbTbqsAFfZec+BgGSHqU/SBpyyXWps9qx+UD1eC09s7sIHdBvooGMwPI9Vb2+FUiqq1vcDKPxH1hLUqAJYZvg==}
+  devexpress-reporting-react@25.2.3:
+    resolution: {integrity: sha512-3O7ulViowtZxLdpbtz95qbHF8NWPntjMeV4laBjvxJd5fj+cZZVw03kJmCo4fYxu/5R6USHWM/S9PvQf1I/p+Q==}
     peerDependencies:
-      '@devexpress/analytics-core': 25.1.7
+      '@devexpress/analytics-core': 25.2.3
       '@types/prop-types': 15.7.13
       '@types/react': ^18.0.0 || ^19.0.0
       '@types/react-dom': ^18.0.0 || ^19.0.0
-      devexpress-reporting: 25.1.7
-      devextreme-react: 25.1.7
+      devexpress-reporting: 25.2.3
+      devextreme-react: 25.2.3
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
 
-  devexpress-reporting@25.1.7:
-    resolution: {integrity: sha512-4Ffvj6bgzII63hAfq3u53w0VypDd4HRJHQnQv4yqWm5VyW+7V7ztLLeNQRerbyqjzdhfkN2qyXqFV+3YxZwoEg==}
+  devexpress-reporting@25.2.3:
+    resolution: {integrity: sha512-DICg0JdkU7oXgKOyzM9RSW+4bcHezwBlzuGq4FArWLKcsu4ENkL5qdDdTwetOJIDTqireQ8mx99oIkly7gBjrw==}
     peerDependencies:
-      '@devexpress/analytics-core': 25.1.7
+      '@devexpress/analytics-core': 25.2.3
 
-  devextreme-quill@1.7.6:
-    resolution: {integrity: sha512-tIAnvHcQYarpPQwhjO9HaKmB4oDRdz/DPZ8Edo5EFeiYWcejgCl6kSeLgGoFWprPWlWkQUIZI3kBJXDRbXIOBg==}
+  devextreme-quill@1.7.7:
+    resolution: {integrity: sha512-tRAdHOxGGTb5TSX2o4v7nTsXe567tdyipbehF28h2OH6pJNNLzCjWw5JAd2UHMbh6VG0bg+3xshsn9DJwX4P0Q==}
 
-  devextreme-react@25.1.7:
-    resolution: {integrity: sha512-DnsdsFqzbQ5aUZihV/NG70CJYVRouUu567qlS5nwdWW4BraoI9rQFp/MGjr2/0a/YNLee5p2/bDnspyXygDAzw==}
+  devextreme-react@25.2.3:
+    resolution: {integrity: sha512-uHd4t81CesJiDqqTH5h5EB7JcLLgyhPgzMk4v2ecbFDtERXktQhaKFpvEJBmqLa9/MhTGqj8JmZ9ti9f9Baflw==}
     peerDependencies:
-      devextreme: 25.1.7
+      devextreme: 25.2.3
       react: ^16.2.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.2.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  devextreme-themebuilder@25.1.7:
-    resolution: {integrity: sha512-IxJ2IlGJI+VIjRDB5Z4w5JYJT9VUzjAuC3BrTWyFmMgj7zI1WIbe0UEv0Z5er4ok4BxdFxiAeKy+KooJIUb6sQ==}
+  devextreme-themebuilder@25.2.3:
+    resolution: {integrity: sha512-7anhgvZ8NMS8QtTIavXT19aq92n5qm7mAFvNH25bzoqybB+cydQr+z+xQkoTNeprdZuC5c/CBfZJppi12IuXWA==}
     peerDependencies:
-      bootstrap: ^5.3.7
+      bootstrap: ^5.3.8
 
-  devextreme@25.1.7:
-    resolution: {integrity: sha512-kItaD/eVASH7DKFjTaccgyKPTocn1euw0LH+YEo/PD9u0HRA9nGB0JIGQQpo2z2bCAV9ZV33BN67sjRzuTbmxg==}
+  devextreme@25.2.3:
+    resolution: {integrity: sha512-g4SawI5lVKnzIHmlxEUKjUmghDPloNmFFV8olq3/RJfo36YBkYixvjehbM5nwtXW6ftHlCMmjWE6eU9SNw96RA==}
     hasBin: true
 
   doctrine@2.1.0:
@@ -4426,11 +4426,11 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.4': {}
 
-  '@devexpress/analytics-core@25.1.7(devextreme@25.1.7)':
+  '@devexpress/analytics-core@25.2.3(devextreme@25.2.3)':
     dependencies:
       '@types/jquery': 3.5.33
       ace-builds: 1.43.5
-      devextreme: 25.1.7
+      devextreme: 25.2.3
       jquery: 3.7.1
       knockout: 3.5.1
 
@@ -6141,26 +6141,26 @@ snapshots:
       '@devexpress/utils': 1.4.8
       tslib: 2.3.1
 
-  devexpress-reporting-react@25.1.7(@devexpress/analytics-core@25.1.7(devextreme@25.1.7))(@types/prop-types@15.7.13)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(devexpress-reporting@25.1.7(@devexpress/analytics-core@25.1.7(devextreme@25.1.7)))(devextreme-react@25.1.7(devextreme@25.1.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+  devexpress-reporting-react@25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.2.3))(@types/prop-types@15.7.13)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(devexpress-reporting@25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.2.3)))(devextreme-react@25.2.3(devextreme@25.2.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
     dependencies:
-      '@devexpress/analytics-core': 25.1.7(devextreme@25.1.7)
+      '@devexpress/analytics-core': 25.2.3(devextreme@25.2.3)
       '@types/prop-types': 15.7.13
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
-      devexpress-reporting: 25.1.7(@devexpress/analytics-core@25.1.7(devextreme@25.1.7))
-      devextreme-react: 25.1.7(devextreme@25.1.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      devexpress-reporting: 25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.2.3))
+      devextreme-react: 25.2.3(devextreme@25.2.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       prop-types: 15.8.1
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)
 
-  devexpress-reporting@25.1.7(@devexpress/analytics-core@25.1.7(devextreme@25.1.7)):
+  devexpress-reporting@25.2.3(@devexpress/analytics-core@25.2.3(devextreme@25.2.3)):
     dependencies:
-      '@devexpress/analytics-core': 25.1.7(devextreme@25.1.7)
+      '@devexpress/analytics-core': 25.2.3(devextreme@25.2.3)
       ace-builds: 1.43.5
       jquery: 3.7.1
       knockout: 3.5.1
 
-  devextreme-quill@1.7.6:
+  devextreme-quill@1.7.7:
     dependencies:
       core-js: 3.47.0
       eventemitter3: 4.0.7
@@ -6169,14 +6169,14 @@ snapshots:
       parchment: 2.0.1
       quill-delta: 5.1.0
 
-  devextreme-react@25.1.7(devextreme@25.1.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+  devextreme-react@25.2.3(devextreme@25.2.3)(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
     dependencies:
-      devextreme: 25.1.7
+      devextreme: 25.2.3
       prop-types: 15.8.1
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)
 
-  devextreme-themebuilder@25.1.7(bootstrap@5.3.8(@popperjs/core@2.11.8)):
+  devextreme-themebuilder@25.2.3(bootstrap@5.3.8(@popperjs/core@2.11.8)):
     dependencies:
       autoprefixer: 10.4.23(postcss@8.5.6)
       bootstrap: 5.3.8(@popperjs/core@2.11.8)
@@ -6184,13 +6184,13 @@ snapshots:
       postcss: 8.5.6
       sass-embedded: 1.66.0
 
-  devextreme@25.1.7:
+  devextreme@25.2.3:
     dependencies:
       '@babel/runtime': 7.28.4
       '@preact/signals-core': 1.12.1
       devexpress-diagram: 2.2.24
       devexpress-gantt: 4.1.64
-      devextreme-quill: 1.7.6
+      devextreme-quill: 1.7.7
       inferno: 8.2.3
       inferno-create-element: 8.2.3
       inferno-hydrate: 8.2.3

@@ -1,12 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq, desc, sql } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteCustomers,
-  sqliteSalesOrders,
-  mysqlCustomers,
-  mysqlSalesOrders,
-} from '@/lib/db/schema';
+import { db, getTableRef } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
