@@ -124,21 +124,21 @@
 
 ### Inventory Service Tests [US7]
 
-- [ ] T044 [P] [US7] Create tests/integration/services/inventory-service-real.test.ts with schema sync for inventory_items, inventory_lots, inventory_transactions tables
-- [ ] T045 [US7] Implement real-world scenario: Material receipt with quarantine -> QC release workflow in inventory-service-real.test.ts
-- [ ] T046 [US7] Implement real-world scenario: Stock transactions (issue, transfer, adjust) in inventory-service-real.test.ts
-- [ ] T047 [US7] Test inventory service CRUD functions: listItems, getLotById, createTransaction, getStockBalance in inventory-service-real.test.ts
-- [ ] T048 [US7] Test lot status functions: quarantineLot, releaseLot, rejectLot, getAvailableStock in inventory-service-real.test.ts
-- [ ] T049 [US7] Test edge cases: negative stock prevention, lot expiry handling, status blocking in inventory-service-real.test.ts
+- [x] T044 [P] [US7] Create tests/integration/services/inventory-service-real.test.ts with schema sync for inventory_items, inventory_lots, inventory_transactions tables
+- [x] T045 [US7] Implement real-world scenario: Material receipt with quarantine -> QC release workflow in inventory-service-real.test.ts
+- [x] T046 [US7] Implement real-world scenario: Stock transactions (issue, transfer, adjust) in inventory-service-real.test.ts
+- [x] T047 [US7] Test inventory service CRUD functions: listItems, getLotById, createTransaction, getStockBalance in inventory-service-real.test.ts
+- [x] T048 [US7] Test lot status functions: quarantineLot, releaseLot, rejectLot, getAvailableStock in inventory-service-real.test.ts
+- [x] T049 [US7] Test edge cases: negative stock prevention, lot expiry handling, status blocking in inventory-service-real.test.ts
 
 ### Production Service Tests [US8]
 
-- [ ] T050 [P] [US8] Create tests/integration/services/production-service-real.test.ts with schema sync for work_orders, batch_records, bill_of_materials tables
-- [ ] T051 [US8] Implement real-world scenario: Work order execution (release -> material issue -> production -> yield reconciliation) in production-service-real.test.ts
-- [ ] T052 [US8] Implement real-world scenario: Line clearance and dual verification workflow in production-service-real.test.ts
-- [ ] T053 [US8] Test production service CRUD functions: listWorkOrders, getWorkOrderById, createWorkOrder, updateStatus in production-service-real.test.ts
-- [ ] T054 [US8] Test batch record functions: startProduction, recordStep, verifyMaterial, calculateYield in production-service-real.test.ts
-- [ ] T055 [US8] Test edge cases: yield variance deviation, material substitution, batch record completion in production-service-real.test.ts
+- [x] T050 [P] [US8] Create tests/integration/services/production-service-real.test.ts with schema sync for work_orders, batch_records, bill_of_materials tables
+- [x] T051 [US8] Implement real-world scenario: Work order execution (release -> material issue -> production -> yield reconciliation) in production-service-real.test.ts
+- [x] T052 [US8] Implement real-world scenario: Line clearance and dual verification workflow in production-service-real.test.ts
+- [x] T053 [US8] Test production service CRUD functions: listWorkOrders, getWorkOrderById, createWorkOrder, updateStatus in production-service-real.test.ts
+- [x] T054 [US8] Test batch record functions: startProduction, recordStep, verifyMaterial, calculateYield in production-service-real.test.ts
+- [x] T055 [US8] Test edge cases: yield variance deviation, material substitution, batch record completion in production-service-real.test.ts
 
 ### Quality Service Tests [US9]
 
