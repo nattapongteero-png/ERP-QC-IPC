@@ -63,7 +63,7 @@ interface Lot {
 // ============================================
 
 async function fetchProducts(): Promise<Product[]> {
-  const response = await fetch('/api/items?type=finished_good&limit=100');
+  const response = await fetch('/api/items?type=finished_goods&limit=100');
   const result = await response.json();
   if (!result.success) return [];
   return result.data?.items || [];
