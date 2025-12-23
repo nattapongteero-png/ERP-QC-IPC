@@ -28,12 +28,16 @@ interface RouteParams {
 }
 
 // GET /api/documents/download/[...path] - Download file
+// Query params:
+// - inline=1: Display inline (for preview) instead of forcing download
 export async function GET(request: NextRequest, { params }: RouteParams) {
   return withAuth(
     request,
     async () => {
       try {
         const { path: pathSegments } = await params;
+        const { searchParams } = new URL(request.url);
+        const isInline = searchParams.get('inline') === '1';
 
         if (!pathSegments || pathSegments.length === 0) {
           return errorResponse('File path is required', 400);
@@ -74,11 +78,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         // Extract original filename from path
         const filename = relativePath.split('/').pop() || 'document';
 
+        // Determine Content-Disposition based on inline flag and file type
+        // Only allow inline for safe file types (PDF, images)
+        const safeInlineTypes = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
+        const canInline = isInline && safeInlineTypes.includes(extension);
+        const disposition = canInline ? 'inline' : `attachment; filename="${filename}"`;
+
         // Return file with appropriate headers
         return new NextResponse(fileBuffer, {
           headers: {
             'Content-Type': mimeType,
-            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Content-Disposition': disposition,
             'Content-Length': String(fileBuffer.length),
             'Cache-Control': 'private, max-age=3600',
           },

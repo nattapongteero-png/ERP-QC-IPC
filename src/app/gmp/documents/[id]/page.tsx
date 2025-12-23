@@ -394,13 +394,13 @@ export default function DocumentDetailPage() {
             </div>
           )}
 
-          {/* Attached File */}
+          {/* Attached File with Inline Preview */}
           {selectedVersion?.filePath && (
             <div className="bg-card border rounded-lg shadow-sm p-6">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
                 Attached File
               </h3>
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg mb-4">
                 <div className="flex items-center gap-3">
                   <FileText className="h-8 w-8 text-primary" />
                   <div>
@@ -422,6 +422,30 @@ export default function DocumentDetailPage() {
                   Download
                 </a>
               </div>
+
+              {/* Inline PDF Preview */}
+              {selectedVersion.filePath.toLowerCase().endsWith('.pdf') && (
+                <div className="border rounded-lg overflow-hidden">
+                  <iframe
+                    src={`/api/documents/download/${selectedVersion.filePath.replace('data/', '')}?inline=1`}
+                    className="w-full h-[600px] bg-gray-100"
+                    title={`Preview: ${selectedVersion.filePath.split('/').pop()}`}
+                  />
+                </div>
+              )}
+
+              {/* Non-PDF file notice */}
+              {!selectedVersion.filePath.toLowerCase().endsWith('.pdf') && (
+                <div className="p-4 bg-muted/30 border border-dashed rounded-lg text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Preview not available for this file type.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Please download the file to view its contents.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
