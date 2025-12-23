@@ -7,7 +7,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
-import { getNow, toDbDate, getTodayStr, toDateSafe } from '../db/date-utils';
+import { getNow, toDbDate, getTodayStr, toDateSafe, toQueryDate } from '../db/date-utils';
 import { eq, and, desc, asc, lte, like, or, count } from 'drizzle-orm';
 import {
   sqliteCapa,
@@ -248,11 +248,11 @@ export async function listCapas(
   if (sourceType) conditions.push(eq(capa.sourceType, sourceType));
   if (ownerId) conditions.push(eq(capa.ownerId, ownerId));
 
-  const today = new Date().toISOString().split('T')[0];
+  const todayForQuery = toQueryDate(getTodayStr());
   if (overdue) {
     conditions.push(
       and(
-        lte(capa.dueDate, today),
+        lte(capa.dueDate, todayForQuery),
         or(
           eq(capa.status, 'open'),
           eq(capa.status, 'investigation'),
