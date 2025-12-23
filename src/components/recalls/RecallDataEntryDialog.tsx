@@ -51,7 +51,8 @@ interface FormData {
 
 interface Product {
   id: number;
-  name: string;
+  nameTh: string;
+  nameEn?: string | null;
   code: string;
 }
 
@@ -71,7 +72,7 @@ interface User {
 // ============================================
 
 async function fetchProducts(): Promise<Product[]> {
-  const response = await fetch('/api/items?category=finished_goods&limit=100');
+  const response = await fetch('/api/items?type=finished_goods&limit=100');
   const result = await response.json();
   if (!result.success) return [];
   return result.data?.items || [];
@@ -433,7 +434,7 @@ export function RecallDataEntryDialog({
             <DxSelectBox
               items={(products || []).map((p) => ({
                 value: p.id,
-                label: `${p.name} (${p.code})`,
+                label: `${p.nameTh} (${p.code})`,
               }))}
               value={formData.productId}
               valueExpr="value"
