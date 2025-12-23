@@ -60,7 +60,15 @@ async function fetchDocument(id: number): Promise<DocumentDetails> {
 
 async function createVersion(
   documentId: number,
-  data: { content?: string; changeDescription?: string; isMajorRevision?: boolean }
+  data: {
+    content?: string;
+    changeDescription?: string;
+    isMajorRevision?: boolean;
+    fileData?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+  }
 ): Promise<DocumentVersion> {
   const response = await fetch(`/api/documents/${documentId}/versions`, {
     method: 'POST',
@@ -138,8 +146,15 @@ export default function DocumentDetailPage() {
 
   // Create version mutation
   const createVersionMutation = useMutation({
-    mutationFn: (data: { content?: string; changeDescription?: string; isMajorRevision?: boolean; filePath?: string }) =>
-      createVersion(documentId, data),
+    mutationFn: (data: {
+      content?: string;
+      changeDescription?: string;
+      isMajorRevision?: boolean;
+      fileData?: string;
+      fileName?: string;
+      fileSize?: number;
+      mimeType?: string;
+    }) => createVersion(documentId, data),
     onSuccess: () => {
       setShowNewVersionDialog(false);
       setNewVersionContent('');
@@ -190,7 +205,10 @@ export default function DocumentDetailPage() {
 
   // Handle new version creation
   const handleCreateVersion = async () => {
-    let filePath: string | undefined;
+    let fileData: string | undefined;
+    let fileName: string | undefined;
+    let fileSize: number | undefined;
+    let mimeType: string | undefined;
 
     if (selectedFile) {
       setIsUploading(true);
@@ -208,7 +226,11 @@ export default function DocumentDetailPage() {
         if (!result.success) {
           throw new Error(result.error || 'Failed to upload file');
         }
-        filePath = result.data.filePath;
+        // Get file data for database storage
+        fileData = result.data.fileData;
+        fileName = result.data.fileName;
+        fileSize = result.data.fileSize;
+        mimeType = result.data.mimeType;
       } catch (error) {
         console.error('File upload failed:', error);
         setIsUploading(false);
@@ -221,14 +243,34 @@ export default function DocumentDetailPage() {
       content: newVersionContent || undefined,
       changeDescription: newVersionDescription || undefined,
       isMajorRevision,
-      filePath,
+      fileData,
+      fileName,
+      fileSize,
+      mimeType,
     });
   };
 
-  // Get file URL
-  const getFileUrl = (filePath: string, inline = false) => {
-    const path = filePath.replace('data/', '');
-    return `/api/documents/download/${path}${inline ? '?inline=1' : ''}`;
+  // Get file download URL (from database BLOB)
+  const getFileDownloadUrl = (versionId: number, inline = false) => {
+    return `/api/documents/versions/${versionId}/download${inline ? '?inline=1' : ''}`;
+  };
+
+  // Check if version has file (either in DB or legacy filesystem)
+  const hasFile = (version: DocumentVersion | null) => {
+    return version?.hasFileData || version?.filePath;
+  };
+
+  // Get display filename
+  const getDisplayFileName = (version: DocumentVersion | null) => {
+    if (version?.fileName) return version.fileName;
+    if (version?.filePath) return version.filePath.split('/').pop() || 'document';
+    return 'document';
+  };
+
+  // Get file extension
+  const getFileExtension = (version: DocumentVersion | null) => {
+    const fileName = getDisplayFileName(version);
+    return fileName.split('.').pop()?.toUpperCase() || '';
   };
 
   // Loading state
@@ -449,19 +491,19 @@ export default function DocumentDetailPage() {
                 <div className="flex items-center gap-3">
                   <FileText className="h-5 w-5 text-primary" />
                   <span className="font-medium">
-                    {selectedVersion?.filePath ? selectedVersion.filePath.split('/').pop() : 'Document Content'}
+                    {hasFile(selectedVersion) ? getDisplayFileName(selectedVersion) : 'Document Content'}
                   </span>
-                  {selectedVersion?.filePath && (
+                  {hasFile(selectedVersion) && (
                     <span className="text-xs text-muted-foreground px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded">
-                      {selectedVersion.filePath.split('.').pop()?.toUpperCase()}
+                      {getFileExtension(selectedVersion)}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {selectedVersion?.filePath && (
+                  {hasFile(selectedVersion) && selectedVersion && (
                     <>
                       <a
-                        href={getFileUrl(selectedVersion.filePath)}
+                        href={getFileDownloadUrl(selectedVersion.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
@@ -469,9 +511,9 @@ export default function DocumentDetailPage() {
                         <Download className="h-4 w-4" />
                         Download
                       </a>
-                      {selectedVersion.filePath.toLowerCase().endsWith('.pdf') && (
+                      {getDisplayFileName(selectedVersion).toLowerCase().endsWith('.pdf') && (
                         <a
-                          href={getFileUrl(selectedVersion.filePath, true)}
+                          href={getFileDownloadUrl(selectedVersion.id, true)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
@@ -495,16 +537,16 @@ export default function DocumentDetailPage() {
               {/* Content Area */}
               <div className={`${isFullscreen ? 'flex-1' : ''}`}>
                 {/* Document Viewer for all supported file types */}
-                {selectedVersion?.filePath && (
+                {hasFile(selectedVersion) && selectedVersion && (
                   <DocumentViewer
-                    fileUrl={getFileUrl(selectedVersion.filePath)}
-                    fileName={selectedVersion.filePath.split('/').pop() || 'document'}
+                    fileUrl={getFileDownloadUrl(selectedVersion.id)}
+                    fileName={getDisplayFileName(selectedVersion)}
                     className={isFullscreen ? 'h-full' : 'h-[calc(100vh-320px)] min-h-[600px]'}
                   />
                 )}
 
                 {/* Text Content */}
-                {!selectedVersion?.filePath && selectedVersion?.content && (
+                {!hasFile(selectedVersion) && selectedVersion?.content && (
                   <div className="p-6">
                     <pre className="whitespace-pre-wrap text-sm font-mono bg-slate-50 dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
                       {selectedVersion.content}
@@ -513,7 +555,7 @@ export default function DocumentDetailPage() {
                 )}
 
                 {/* No Content */}
-                {!selectedVersion?.filePath && !selectedVersion?.content && (
+                {!hasFile(selectedVersion) && !selectedVersion?.content && (
                   <div className="flex flex-col items-center justify-center py-20 px-8">
                     <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mb-6">
                       <Info className="h-10 w-10 text-slate-400" />

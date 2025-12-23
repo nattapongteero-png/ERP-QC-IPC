@@ -41,7 +41,12 @@ export const documentUpdateSchema = z.object({
 // Version create schema
 export const versionCreateSchema = z.object({
   content: z.string().optional(),
-  filePath: z.string().max(500).optional(),
+  filePath: z.string().max(500).optional(), // Legacy - deprecated, kept for backwards compatibility
+  // BLOB storage fields (stored in database)
+  fileData: z.string().optional(), // Base64-encoded file data
+  fileName: z.string().max(255).optional(),
+  fileSize: z.number().int().positive().max(10 * 1024 * 1024).optional(), // Max 10MB
+  mimeType: z.string().max(100).optional(),
   changeDescription: z.string().max(1000).optional(),
   isMajorRevision: z.boolean().default(false),
 });

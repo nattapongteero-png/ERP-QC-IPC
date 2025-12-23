@@ -1,6 +1,19 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText } from 'drizzle-orm/mysql-core';
+import { sqliteTable, text, integer, real, blob } from 'drizzle-orm/sqlite-core';
+import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType } from 'drizzle-orm/mysql-core';
 import { relations } from 'drizzle-orm';
+
+// Custom type for MySQL LONGBLOB (for storing large binary files)
+const longblob = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'LONGBLOB';
+  },
+  toDriver(value: Buffer): Buffer {
+    return value;
+  },
+  fromDriver(value: Buffer): Buffer {
+    return Buffer.isBuffer(value) ? value : Buffer.from(value);
+  },
+});
 
 // ============================================
 // SQLite Schema (for unit testing)
@@ -2072,7 +2085,12 @@ export const mysqlDocumentVersions = mysqlTable('document_versions', {
   documentId: int('document_id').notNull().references(() => mysqlDocuments.id),
   versionNumber: varchar('version_number', { length: 20 }).notNull(), // e.g., "1.0", "1.1", "2.0"
   content: mysqlText('content'), // Document content (markdown/HTML)
-  filePath: varchar('file_path', { length: 500 }), // Attached file path
+  filePath: varchar('file_path', { length: 500 }), // Legacy: Attached file path (deprecated)
+  // BLOB storage for document files
+  fileData: longblob('file_data'), // Binary file content stored in database
+  fileName: varchar('file_name', { length: 255 }), // Original file name
+  fileSize: int('file_size'), // File size in bytes
+  mimeType: varchar('mime_type', { length: 100 }), // MIME type (e.g., application/pdf)
   changeDescription: mysqlText('change_description'), // What changed in this version
   status: varchar('status', { length: 30 }).notNull().default('draft'), // draft, pending_approval, approved, rejected, superseded
   effectiveDate: datetime('effective_date'), // When this version becomes active
@@ -2788,7 +2806,12 @@ export const sqliteDocumentVersions = sqliteTable('document_versions', {
   documentId: integer('document_id').notNull().references(() => sqliteDocuments.id),
   versionNumber: text('version_number').notNull(), // e.g., "1.0", "1.1", "2.0"
   content: text('content'), // Document content (markdown/HTML)
-  filePath: text('file_path'), // Attached file path
+  filePath: text('file_path'), // Legacy: Attached file path (deprecated)
+  // BLOB storage for document files
+  fileData: blob('file_data'), // Binary file content stored in database
+  fileName: text('file_name'), // Original file name
+  fileSize: integer('file_size'), // File size in bytes
+  mimeType: text('mime_type'), // MIME type (e.g., application/pdf)
   changeDescription: text('change_description'), // What changed in this version
   status: text('status').notNull().default('draft'), // draft, pending_approval, approved, rejected, superseded
   effectiveDate: text('effective_date'), // When this version becomes active

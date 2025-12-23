@@ -59,6 +59,11 @@ interface DbVersionRow {
   versionNumber: string;
   content: string | null;
   filePath: string | null;
+  // BLOB storage fields
+  fileData: Buffer | Uint8Array | null;
+  fileName: string | null;
+  fileSize: number | null;
+  mimeType: string | null;
   changeDescription: string | null;
   status: string;
   effectiveDate: string | null;
@@ -292,7 +297,7 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
     return null;
   }
 
-  // Get all versions
+  // Get all versions (excluding fileData for list - fetch separately when needed)
   const docVersions = await database
     .select({
       id: versions.id,
@@ -300,6 +305,10 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
       versionNumber: versions.versionNumber,
       content: versions.content,
       filePath: versions.filePath,
+      // BLOB metadata (not the actual data)
+      fileName: versions.fileName,
+      fileSize: versions.fileSize,
+      mimeType: versions.mimeType,
       changeDescription: versions.changeDescription,
       status: versions.status,
       effectiveDate: versions.effectiveDate,
@@ -324,6 +333,11 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
         versionNumber: cv.versionNumber,
         content: cv.content,
         filePath: cv.filePath,
+        // BLOB metadata
+        fileName: cv.fileName,
+        fileSize: cv.fileSize,
+        mimeType: cv.mimeType,
+        hasFileData: !!(cv.fileName && cv.fileSize), // Indicates file data exists
         changeDescription: cv.changeDescription,
         status: cv.status as DocumentVersionStatus,
         effectiveDate: cv.effectiveDate,
@@ -359,6 +373,11 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
       versionNumber: v.versionNumber,
       content: v.content,
       filePath: v.filePath,
+      // BLOB metadata
+      fileName: v.fileName,
+      fileSize: v.fileSize,
+      mimeType: v.mimeType,
+      hasFileData: !!(v.fileName && v.fileSize), // Indicates file data exists
       changeDescription: v.changeDescription,
       status: v.status as DocumentVersionStatus,
       effectiveDate: v.effectiveDate,
@@ -567,6 +586,11 @@ export async function createVersion(
     versionNumber: newVersionNumber,
     content: data.content || null,
     filePath: data.filePath || null,
+    // BLOB storage fields
+    fileData: data.fileData || null,
+    fileName: data.fileName || null,
+    fileSize: data.fileSize || null,
+    mimeType: data.mimeType || null,
     changeDescription: data.changeDescription || null,
     status: 'draft',
     createdBy: userId,
@@ -629,6 +653,9 @@ export async function getVersionHistory(documentId: number): Promise<DocumentVer
       versionNumber: versions.versionNumber,
       content: versions.content,
       filePath: versions.filePath,
+      fileName: versions.fileName,
+      fileSize: versions.fileSize,
+      mimeType: versions.mimeType,
       changeDescription: versions.changeDescription,
       status: versions.status,
       effectiveDate: versions.effectiveDate,
@@ -669,6 +696,10 @@ export async function getVersionHistory(documentId: number): Promise<DocumentVer
       versionNumber: v.versionNumber,
       content: v.content,
       filePath: v.filePath,
+      fileName: v.fileName,
+      fileSize: v.fileSize,
+      mimeType: v.mimeType,
+      hasFileData: !!(v.fileName && v.fileSize),
       changeDescription: v.changeDescription,
       status: v.status as DocumentVersionStatus,
       effectiveDate: v.effectiveDate,
@@ -1121,4 +1152,73 @@ export async function getDocumentStatistics(): Promise<{
     pendingApprovals: pendingCount?.count || 0,
     upForReview: 0, // Placeholder
   };
+}
+
+/**
+ * Get file data (BLOB) for a specific version
+ * Returns the binary file data along with metadata
+ */
+export async function getVersionFileData(
+  versionId: number
+): Promise<{ data: Buffer | Uint8Array; fileName: string; mimeType: string; fileSize: number } | null> {
+  const { versions } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const [version] = await database
+    .select({
+      fileData: versions.fileData,
+      fileName: versions.fileName,
+      fileSize: versions.fileSize,
+      mimeType: versions.mimeType,
+    })
+    .from(versions)
+    .where(eq(versions.id, versionId));
+
+  if (!version || !version.fileData) {
+    return null;
+  }
+
+  return {
+    data: version.fileData,
+    fileName: version.fileName || 'document',
+    mimeType: version.mimeType || 'application/octet-stream',
+    fileSize: version.fileSize || 0,
+  };
+}
+
+/**
+ * Update file data for an existing version
+ */
+export async function updateVersionFileData(
+  versionId: number,
+  fileData: Buffer | Uint8Array,
+  fileName: string,
+  fileSize: number,
+  mimeType: string,
+  userId: number
+): Promise<boolean> {
+  const { versions } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  await database
+    .update(versions)
+    .set({
+      fileData,
+      fileName,
+      fileSize,
+      mimeType,
+    })
+    .where(eq(versions.id, versionId));
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'document_versions',
+    recordId: versionId,
+    newValue: { fileName, fileSize, mimeType, action: 'file_upload' },
+  });
+
+  return true;
 }
