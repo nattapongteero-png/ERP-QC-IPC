@@ -21,6 +21,28 @@ import {
   mysqlUsers,
 } from '../db/schema';
 
+// ============================================
+// Date Helpers
+// ============================================
+
+/**
+ * Get current datetime in the correct format for the database.
+ * SQLite: ISO 8601 string format
+ * MySQL: Date object (Drizzle handles conversion)
+ */
+function getNow(): Date | string {
+  return isSqlite() ? new Date().toISOString() : new Date();
+}
+
+/**
+ * Convert a date string to the correct format for the database.
+ * SQLite: ISO 8601 string format
+ * MySQL: Date object
+ */
+function toDbDate(dateStr: string): Date | string {
+  return isSqlite() ? dateStr : new Date(dateStr);
+}
+
 // Get table references based on database type
 function getTables() {
   if (isSqlite()) {
@@ -437,7 +459,7 @@ export async function createCapa(
   const { capa: capaTable } = getTables();
   const db = await getDb();
   const capaNumber = await generateCapaNumber();
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // Determine source IDs based on sourceType
   let deviationId: number | null = null;
@@ -477,7 +499,7 @@ export async function createCapa(
         status: 'open',
         rootCauseAnalysis: data.rootCauseAnalysis || null,
         rootCauseCategory: data.rootCauseCategory || null,
-        dueDate: data.dueDate,
+        dueDate: toDbDate(data.dueDate),
         ownerId: data.ownerId,
         createdBy: userId,
         createdAt: now,
@@ -503,7 +525,7 @@ export async function createCapa(
         status: 'open',
         rootCauseAnalysis: data.rootCauseAnalysis || null,
         rootCauseCategory: data.rootCauseCategory || null,
-        dueDate: data.dueDate,
+        dueDate: toDbDate(data.dueDate),
         ownerId: data.ownerId,
         createdBy: userId,
         createdAt: now,
@@ -593,7 +615,7 @@ export async function updateCapa(
     throw new Error('CAPA not found');
   }
 
-  const now = new Date().toISOString();
+  const now = getNow();
   const updateData: Record<string, unknown> = { updatedAt: now };
 
   if (data.title !== undefined) updateData.title = data.title;
@@ -601,7 +623,7 @@ export async function updateCapa(
   if (data.status !== undefined) updateData.status = data.status;
   if (data.rootCauseAnalysis !== undefined) updateData.rootCauseAnalysis = data.rootCauseAnalysis;
   if (data.rootCauseCategory !== undefined) updateData.rootCauseCategory = data.rootCauseCategory;
-  if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+  if (data.dueDate !== undefined) updateData.dueDate = toDbDate(data.dueDate);
   if (data.ownerId !== undefined) updateData.ownerId = data.ownerId;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -656,7 +678,7 @@ export async function closeCapa(
     throw new Error('Cannot close CAPA: No effective verification recorded');
   }
 
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db as any)
@@ -712,7 +734,7 @@ export async function addAction(
     .limit(1);
 
   const nextActionNumber = existingActions.length > 0 ? existingActions[0].actionNumber + 1 : 1;
-  const now = new Date().toISOString();
+  const now = getNow();
 
   let actionId: number;
 
@@ -726,7 +748,7 @@ export async function addAction(
         description: data.description,
         actionType: data.actionType,
         assigneeId: data.assigneeId,
-        dueDate: data.dueDate,
+        dueDate: toDbDate(data.dueDate),
         status: 'pending',
         createdAt: now,
       })
@@ -743,7 +765,7 @@ export async function addAction(
         description: data.description,
         actionType: data.actionType,
         assigneeId: data.assigneeId,
-        dueDate: data.dueDate,
+        dueDate: toDbDate(data.dueDate),
         status: 'pending',
         createdAt: now,
       });
@@ -832,11 +854,11 @@ export async function updateAction(
   const updateData: Record<string, unknown> = {};
   if (data.status !== undefined) updateData.status = data.status;
   if (data.completionNotes !== undefined) updateData.completionNotes = data.completionNotes;
-  if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+  if (data.dueDate !== undefined) updateData.dueDate = toDbDate(data.dueDate);
 
   // If marking as completed, set completedAt
   if (data.status === 'completed') {
-    updateData.completedAt = new Date().toISOString();
+    updateData.completedAt = getNow();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -912,7 +934,7 @@ export async function verifyAction(
     throw new Error('Can only verify completed actions');
   }
 
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db as any)
@@ -1030,7 +1052,9 @@ export async function recordEffectiveness(
     .limit(1);
 
   const nextCheckNumber = checks.length > 0 ? checks[0].checkNumber + 1 : 1;
-  const now = new Date().toISOString();
+  const now = getNow();
+  const todayStr = new Date().toISOString().split('T')[0];
+  const checkDateValue = data.checkDate ? toDbDate(data.checkDate) : toDbDate(todayStr);
 
   let checkId: number;
 
@@ -1041,7 +1065,7 @@ export async function recordEffectiveness(
       .values({
         capaId,
         checkNumber: nextCheckNumber,
-        checkDate: data.checkDate || now.split('T')[0],
+        checkDate: checkDateValue,
         verifierId: userId,
         criteria: data.criteria,
         result: data.result,
@@ -1060,7 +1084,7 @@ export async function recordEffectiveness(
       .values({
         capaId,
         checkNumber: nextCheckNumber,
-        checkDate: data.checkDate || now.split('T')[0],
+        checkDate: checkDateValue,
         verifierId: userId,
         criteria: data.criteria,
         result: data.result,
