@@ -109,72 +109,58 @@ export const DxTagBox = forwardRef(
       validationStatus,
     } = props;
 
-    // Filter out items with null/undefined display values to prevent DevExtreme errors
-    // when searchEnabled is true (it calls toLowerCase() on displayExpr field)
+    // SANITIZE data instead of removing rows
+    // Ensure the display field is never null/undefined to prevent toLowerCase() errors
     const safeDataSource = useMemo(() => {
       const source = dataSource || items;
-      // Always return an empty array instead of undefined/null to prevent DevExtreme errors
-      if (!source || !Array.isArray(source)) {
-        return [];
-      }
-      if (!displayExpr || typeof displayExpr !== 'string') {
-        // Still filter out null/undefined items
-        return source.filter((item) => item != null);
-      }
-      // Filter out items where displayExpr field is null/undefined/empty
-      // Also ensure the value is a string to prevent toLowerCase() errors
-      return source.filter((item) => {
-        if (!item || typeof item !== 'object') return false;
-        const value = (item as Record<string, unknown>)[displayExpr];
-        return value != null && value !== '' && typeof value === 'string';
+      if (!source || !Array.isArray(source)) return [];
+
+      // If displayExpr is not a string, we can't easily sanitize field values
+      if (typeof displayExpr !== 'string') return source;
+
+      const fieldName = displayExpr;
+      return source.map((item) => {
+        if (!item || typeof item !== 'object') return item;
+
+        // Check if the display value is unsafe (null/undefined)
+        const val = (item as Record<string, unknown>)[fieldName];
+        if (val === null || val === undefined) {
+          // Clone and ensure the field is an empty string so .toLowerCase() won't crash
+          return { ...item, [fieldName]: '' };
+        }
+        // Ensure it's a string
+        if (typeof val !== 'string') {
+          return { ...item, [fieldName]: String(val) };
+        }
+        return item;
       });
     }, [dataSource, items, displayExpr]);
 
-    // Create a safe displayExpr function that handles undefined values
-    // DevExtreme calls toLowerCase() on display values internally, causing errors on undefined
-    const safeDisplayExpr = useMemo(() => {
-      if (typeof displayExpr === 'function') {
-        // Wrap the function to handle undefined return values
-        return (item: unknown) => {
-          if (!item) return '';
-          const result = displayExpr(item);
-          return result ?? '';
-        };
-      }
-      if (typeof displayExpr === 'string') {
-        // Convert string displayExpr to a function that safely accesses the property
-        return (item: unknown) => {
-          if (!item || typeof item !== 'object') return '';
-          const value = (item as Record<string, unknown>)[displayExpr];
-          return typeof value === 'string' ? value : String(value ?? '');
-        };
-      }
-      // No displayExpr provided
-      return undefined;
-    }, [displayExpr]);
+    // Only filter out null/undefined from value array
+    // DO NOT filter based on dataSource - this breaks acceptCustomValue and pagination
+    const safeValue = useMemo(() => {
+      if (!Array.isArray(value)) return value;
+      return value.filter((v) => v !== null && v !== undefined);
+    }, [value]);
 
-    // Safely determine the search expression - use the field name if displayExpr is a string
-    const safeSearchExpr = useMemo(() => {
-      if (searchExpr) return searchExpr;
-      // If displayExpr is a string, use it for search; otherwise don't enable search
-      return typeof displayExpr === 'string' ? displayExpr : undefined;
-    }, [searchExpr, displayExpr]);
+    // Simplify search expr logic - don't disable search unnecessarily
+    const finalSearchExpr = searchExpr || (typeof displayExpr === 'string' ? displayExpr : undefined);
 
     return (
       <TagBox
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ref={ref as any}
         dataSource={safeDataSource}
-        displayExpr={safeDisplayExpr}
+        displayExpr={displayExpr}
         valueExpr={valueExpr}
-        value={value}
+        value={safeValue}
         defaultValue={defaultValue}
         placeholder={placeholder}
         disabled={disabled}
         readOnly={readOnly}
         showClearButton={showClearButton}
-        searchEnabled={searchEnabled && !!safeSearchExpr}
-        searchExpr={safeSearchExpr}
+        searchEnabled={searchEnabled}
+        searchExpr={finalSearchExpr}
         searchMode={searchMode}
         searchTimeout={searchTimeout}
         acceptCustomValue={acceptCustomValue}
