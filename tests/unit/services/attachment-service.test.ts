@@ -2,6 +2,7 @@
  * Attachment Service Unit Tests
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the dependencies
