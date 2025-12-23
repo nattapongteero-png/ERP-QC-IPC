@@ -1,9 +1,10 @@
 'use client';
 
-// HR Positions Management Page
+// HR Positions Management Page - Redesigned
 // Feature: 007-hr-personnel-management
+// Professional layout with KPI dashboard, multiple view modes, and analytics
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -16,7 +17,20 @@ import DataGrid, {
   Toolbar,
   Item,
   Lookup,
+  Export,
+  ColumnChooser,
+  StateStoring,
+  Grouping,
+  GroupPanel,
 } from 'devextreme-react/data-grid';
+import PieChart, {
+  Series,
+  Label,
+  Connector,
+  Legend,
+  Tooltip,
+  Size,
+} from 'devextreme-react/pie-chart';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
@@ -25,10 +39,28 @@ import CheckBox from 'devextreme-react/check-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatCard, OrgUnitPicker } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
-import { Briefcase, FileText, Check, X, Clock } from 'lucide-react';
+import {
+  Briefcase,
+  FileText,
+  Check,
+  X,
+  Clock,
+  Grid3X3,
+  List,
+  BarChart3,
+  Shield,
+  Building2,
+  Users,
+  CheckCircle,
+  AlertTriangle,
+  Filter,
+} from 'lucide-react';
 import type { Position, OrgUnit, JobDescription } from '@/types/hr';
+
+type ViewMode = 'grid' | 'cards' | 'analytics';
+type StatusFilter = 'all' | 'active' | 'inactive';
 
 interface PositionFormData {
   code: string;
@@ -37,6 +69,12 @@ interface PositionFormData {
   orgUnitId: number | null;
   jobGrade: string;
   isGmpCritical: boolean;
+}
+
+interface FilterState {
+  orgUnitId: number | null;
+  status: StatusFilter;
+  gmpOnly: boolean;
 }
 
 const emptyFormData: PositionFormData = {
@@ -54,6 +92,22 @@ const JD_STATUS_CONFIG = {
   approved: { label: 'อนุมัติ', variant: 'success' as const, icon: Check },
   obsolete: { label: 'ยกเลิก', variant: 'danger' as const, icon: X },
 };
+
+// Color palette for charts
+const CHART_COLORS = {
+  gmpCritical: '#dc2626',
+  nonGmp: '#16a34a',
+  active: '#22c55e',
+  inactive: '#94a3b8',
+  primary: '#3b82f6',
+  secondary: '#8b5cf6',
+  tertiary: '#f59e0b',
+};
+
+const DEPARTMENT_COLORS = [
+  '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+];
 
 async function fetchPositions(): Promise<Position[]> {
   const response = await fetch('/api/hr/positions');
@@ -122,12 +176,21 @@ export default function PositionsPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
 
+  // View mode state
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    orgUnitId: null,
+    status: 'all',
+    gmpOnly: false,
+  });
+
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showJDPopup, setShowJDPopup] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
-  const [gridHeight, setGridHeight] = useState(600);
+  const [gridHeight, setGridHeight] = useState(500);
   const [formData, setFormData] = useState<PositionFormData>(emptyFormData);
   const [newJD, setNewJD] = useState({
     responsibilities: '',
@@ -138,7 +201,7 @@ export default function PositionsPage() {
   // Responsive height calculation
   useEffect(() => {
     const calculateHeight = () => {
-      const headerHeight = 180;
+      const headerHeight = 280;
       const padding = 100;
       const minHeight = 400;
       const availableHeight = window.innerHeight - headerHeight - padding;
@@ -150,7 +213,7 @@ export default function PositionsPage() {
     return () => window.removeEventListener('resize', calculateHeight);
   }, []);
 
-  const { data: positions = [], isLoading } = useQuery({
+  const { data: positions = [], isLoading, refetch } = useQuery({
     queryKey: ['hr', 'positions'],
     queryFn: fetchPositions,
   });
@@ -165,6 +228,73 @@ export default function PositionsPage() {
     queryFn: () => selectedPosition ? fetchJobDescriptions(selectedPosition.id) : Promise.resolve([]),
     enabled: !!selectedPosition,
   });
+
+  // Create org unit lookup map for display
+  const orgUnitMap = useMemo(() => {
+    return new Map(orgUnits.map((ou) => [ou.id, ou]));
+  }, [orgUnits]);
+
+  // Filter positions
+  const filteredPositions = useMemo(() => {
+    return positions.filter((pos) => {
+      if (filters.orgUnitId && pos.orgUnitId !== filters.orgUnitId) return false;
+      if (filters.status === 'active' && !pos.isActive) return false;
+      if (filters.status === 'inactive' && pos.isActive) return false;
+      if (filters.gmpOnly && !pos.isGmpCritical) return false;
+      return true;
+    });
+  }, [positions, filters]);
+
+  // Calculate analytics
+  const analytics = useMemo(() => {
+    const total = positions.length;
+    const active = positions.filter((p) => p.isActive).length;
+    const inactive = total - active;
+    const gmpCritical = positions.filter((p) => p.isGmpCritical).length;
+    const nonGmpCritical = total - gmpCritical;
+
+    // Group by org unit
+    const byOrgUnit = new Map<number, { name: string; count: number }>();
+    positions.forEach((pos) => {
+      if (pos.orgUnitId) {
+        const orgUnit = orgUnitMap.get(pos.orgUnitId);
+        if (orgUnit) {
+          const existing = byOrgUnit.get(pos.orgUnitId) || { name: orgUnit.name, count: 0 };
+          existing.count++;
+          byOrgUnit.set(pos.orgUnitId, existing);
+        }
+      }
+    });
+
+    // Group by job grade
+    const byGrade = new Map<string, number>();
+    positions.forEach((pos) => {
+      const grade = pos.jobGrade || 'ไม่ระบุ';
+      byGrade.set(grade, (byGrade.get(grade) || 0) + 1);
+    });
+
+    return {
+      total,
+      active,
+      inactive,
+      gmpCritical,
+      nonGmpCritical,
+      gmpDistribution: [
+        { label: 'GMP Critical', value: gmpCritical, color: CHART_COLORS.gmpCritical },
+        { label: 'Non-GMP', value: nonGmpCritical, color: CHART_COLORS.nonGmp },
+      ],
+      statusDistribution: [
+        { label: 'ใช้งาน', value: active, color: CHART_COLORS.active },
+        { label: 'ปิดใช้งาน', value: inactive, color: CHART_COLORS.inactive },
+      ],
+      orgUnitDistribution: Array.from(byOrgUnit.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10),
+      gradeDistribution: Array.from(byGrade.entries())
+        .map(([grade, count]) => ({ grade, count }))
+        .sort((a, b) => b.count - a.count),
+    };
+  }, [positions, orgUnitMap]);
 
   const createMutation = useMutation({
     mutationFn: createPosition,
@@ -265,17 +395,44 @@ export default function PositionsPage() {
     });
   }, [selectedPosition, newJD, createJDMutation]);
 
+  // Cell renderers with icons
   const renderGmpCriticalCell = (cellData: { value: boolean }) => {
     return cellData.value ? (
-      <Badge variant="danger" className="text-xs">GMP</Badge>
-    ) : null;
+      <div className="flex items-center gap-1">
+        <Shield className="h-4 w-4 text-red-500" />
+        <Badge variant="danger" className="text-xs">GMP</Badge>
+      </div>
+    ) : (
+      <span className="text-gray-400">-</span>
+    );
   };
 
   const renderActiveCell = (cellData: { value: boolean }) => {
     return (
-      <Badge variant={cellData.value ? 'success' : 'secondary'} className="text-xs">
-        {cellData.value ? 'ใช้งาน' : 'ปิดใช้งาน'}
-      </Badge>
+      <div className="flex items-center gap-1">
+        {cellData.value ? (
+          <>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <Badge variant="success" className="text-xs">ใช้งาน</Badge>
+          </>
+        ) : (
+          <>
+            <AlertTriangle className="h-4 w-4 text-gray-400" />
+            <Badge variant="secondary" className="text-xs">ปิดใช้งาน</Badge>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderOrgUnitCell = (cellData: { value: number }) => {
+    const orgUnit = orgUnitMap.get(cellData.value);
+    if (!orgUnit) return <span className="text-gray-400">-</span>;
+    return (
+      <div className="flex items-center gap-1">
+        <Building2 className="h-4 w-4 text-blue-500" />
+        <span>{orgUnit.name}</span>
+      </div>
     );
   };
 
@@ -286,6 +443,25 @@ export default function PositionsPage() {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  // Generate gradient for position card avatar
+  const getPositionGradient = (code: string) => {
+    const gradients = [
+      'from-blue-500 to-cyan-500',
+      'from-purple-500 to-pink-500',
+      'from-green-500 to-emerald-500',
+      'from-orange-500 to-amber-500',
+      'from-red-500 to-rose-500',
+      'from-indigo-500 to-violet-500',
+      'from-teal-500 to-green-500',
+      'from-pink-500 to-rose-500',
+    ];
+    let hash = 0;
+    for (let i = 0; i < code.length; i++) {
+      hash = code.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return gradients[Math.abs(hash) % gradients.length];
   };
 
   // Form content for popup
@@ -364,12 +540,71 @@ export default function PositionsPage() {
     </div>
   );
 
+  // Render position card for cards view
+  const renderPositionCard = (position: Position) => {
+    const orgUnit = orgUnitMap.get(position.orgUnitId);
+    return (
+      <div
+        key={position.id}
+        className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-all cursor-pointer"
+        onClick={() => {
+          setSelectedPosition(position);
+          setShowDetailPanel(true);
+        }}
+      >
+        <div className="flex items-start gap-3">
+          {/* Position Avatar */}
+          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getPositionGradient(position.code)} flex items-center justify-center text-white font-bold text-lg flex-shrink-0`}>
+            {position.code.slice(0, 2).toUpperCase()}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900 truncate">{position.title}</h3>
+                <p className="text-sm text-gray-500">{position.code}</p>
+              </div>
+              <Badge variant={position.isActive ? 'success' : 'secondary'} className="text-xs flex-shrink-0">
+                {position.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+              </Badge>
+            </div>
+
+            {position.titleEn && (
+              <p className="text-xs text-gray-400 mt-1 truncate">{position.titleEn}</p>
+            )}
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {position.isGmpCritical && (
+                <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                  <Shield className="h-3 w-3" />
+                  GMP Critical
+                </div>
+              )}
+              {orgUnit && (
+                <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                  <Building2 className="h-3 w-3" />
+                  {orgUnit.name}
+                </div>
+              )}
+              {position.jobGrade && (
+                <div className="flex items-center gap-1 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                  <Users className="h-3 w-3" />
+                  {position.jobGrade}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
-      {/* T026: ResponsivePageHeader */}
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      {/* Page Header */}
       <ResponsivePageHeader
         title="ตำแหน่งงาน"
-        subtitle={`Position Management • ${positions.length} รายการ`}
+        subtitle={`Position Management • ${filteredPositions.length} รายการ`}
         icon={Briefcase}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
@@ -378,99 +613,380 @@ export default function PositionsPage() {
           { label: 'ตำแหน่งงาน' },
         ]}
         actions={
-          <DxButton
-            text="เพิ่มตำแหน่ง"
-            icon="plus"
-            type="default"
-            onClick={() => {
-              setFormData(emptyFormData);
-              setShowCreatePopup(true);
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <DxButton
+              text="รีเฟรช"
+              icon="refresh"
+              stylingMode="text"
+              onClick={() => refetch()}
+            />
+            <DxButton
+              text="เพิ่มตำแหน่ง"
+              icon="add"
+              type="default"
+              onClick={() => {
+                setFormData(emptyFormData);
+                setShowCreatePopup(true);
+              }}
+            />
+          </div>
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* T027: Positions DataGrid with columnHidingEnabled */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <DataGrid
-            dataSource={positions}
-            keyExpr="id"
-            showBorders={false}
-            showRowLines
-            rowAlternationEnabled
-            columnAutoWidth
-            allowColumnReordering
-            allowColumnResizing
-            columnHidingEnabled
-            height={gridHeight}
-            onRowClick={handleRowClick}
-            onRowDblClick={handleRowDblClick}
-            hoverStateEnabled
-            loadPanel={{ enabled: isLoading }}
-            selectedRowKeys={selectedPosition ? [selectedPosition.id] : []}
+      {/* KPI Dashboard */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          label="ตำแหน่งทั้งหมด"
+          value={analytics.total}
+          icon={Briefcase}
+          iconColor="text-blue-600"
+          accentColor="border-blue-500"
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="ใช้งาน"
+          value={analytics.active}
+          icon={CheckCircle}
+          iconColor="text-green-600"
+          accentColor="border-green-500"
+          trend={analytics.total > 0 ? { direction: 'up', value: `${Math.round((analytics.active / analytics.total) * 100)}%` } : undefined}
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="GMP Critical"
+          value={analytics.gmpCritical}
+          icon={Shield}
+          iconColor="text-red-600"
+          accentColor="border-red-500"
+          trend={analytics.total > 0 ? { direction: 'neutral', value: `${Math.round((analytics.gmpCritical / analytics.total) * 100)}%` } : undefined}
+          isLoading={isLoading}
+        />
+        <StatCard
+          label="หน่วยงาน"
+          value={analytics.orgUnitDistribution.length}
+          icon={Building2}
+          iconColor="text-purple-600"
+          accentColor="border-purple-500"
+          isLoading={isLoading}
+        />
+      </div>
+
+      {/* View Mode Toggle & Filter */}
+      <div className="flex flex-col sm:flex-row justify-between gap-3">
+        {/* View Mode Buttons */}
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="มุมมองตาราง"
           >
-            <SearchPanel visible placeholder="ค้นหา..." width={200} />
-            <HeaderFilter visible />
-            <FilterRow visible />
-            <Scrolling mode="virtual" />
-            <Paging defaultPageSize={20} />
-            <Pager
-              showPageSizeSelector
-              allowedPageSizes={[10, 20, 50]}
-              showInfo
-            />
-            <Selection mode="single" />
-
-            <Toolbar>
-              <Item name="searchPanel" />
-            </Toolbar>
-
-            <Column dataField="code" caption="รหัส" width={100} hidingPriority={1} />
-            <Column dataField="title" caption="ชื่อตำแหน่ง" minWidth={150} hidingPriority={0} />
-            <Column dataField="titleEn" caption="ชื่อภาษาอังกฤษ" width={150} hidingPriority={4} />
-            <Column
-              dataField="orgUnitId"
-              caption="หน่วยงาน"
-              width={150}
-              hidingPriority={3}
-            >
-              <Lookup
-                dataSource={orgUnits}
-                valueExpr="id"
-                displayExpr="name"
-              />
-            </Column>
-            <Column dataField="jobGrade" caption="ระดับ" width={80} hidingPriority={5} />
-            <Column
-              dataField="isGmpCritical"
-              caption="GMP"
-              width={70}
-              cellRender={renderGmpCriticalCell}
-              alignment="center"
-              hidingPriority={2}
-            />
-            <Column
-              dataField="isActive"
-              caption="สถานะ"
-              width={90}
-              cellRender={renderActiveCell}
-              alignment="center"
-              hidingPriority={6}
-            />
-          </DataGrid>
+            <List className="h-4 w-4" />
+            <span className="hidden sm:inline">ตาราง</span>
+          </button>
+          <button
+            onClick={() => setViewMode('cards')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              viewMode === 'cards' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="มุมมองการ์ด"
+          >
+            <Grid3X3 className="h-4 w-4" />
+            <span className="hidden sm:inline">การ์ด</span>
+          </button>
+          <button
+            onClick={() => setViewMode('analytics')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              viewMode === 'analytics' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="มุมมองวิเคราะห์"
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">วิเคราะห์</span>
+          </button>
         </div>
 
-        {/* T028: Position Details Panel - collapsible on mobile */}
+        {/* Filter Button */}
+        <DxButton
+          text={showFilters ? 'ซ่อนตัวกรอง' : 'ตัวกรอง'}
+          icon="filter"
+          stylingMode="outlined"
+          onClick={() => setShowFilters(!showFilters)}
+        />
+      </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="h-4 w-4 text-gray-500" />
+            <h3 className="font-medium text-gray-900">ตัวกรองข้อมูล</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">หน่วยงาน</label>
+              <OrgUnitPicker
+                value={filters.orgUnitId}
+                onValueChange={(val) => setFilters((prev) => ({ ...prev, orgUnitId: val }))}
+                label=""
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value as StatusFilter }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">ทั้งหมด</option>
+                <option value="active">ใช้งาน</option>
+                <option value="inactive">ปิดใช้งาน</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <CheckBox
+                value={filters.gmpOnly}
+                onValueChanged={(e) => setFilters((prev) => ({ ...prev, gmpOnly: e.value || false }))}
+              />
+              <label className="text-sm text-gray-700">เฉพาะ GMP Critical</label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Grid View */}
+        {viewMode === 'grid' && (
+          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <DataGrid
+              dataSource={filteredPositions}
+              keyExpr="id"
+              showBorders={false}
+              showRowLines
+              rowAlternationEnabled
+              columnAutoWidth
+              allowColumnReordering
+              allowColumnResizing
+              columnHidingEnabled
+              height={gridHeight}
+              onRowClick={handleRowClick}
+              onRowDblClick={handleRowDblClick}
+              hoverStateEnabled
+              loadPanel={{ enabled: isLoading }}
+              selectedRowKeys={selectedPosition ? [selectedPosition.id] : []}
+            >
+              <SearchPanel visible placeholder="ค้นหา..." width={200} />
+              <HeaderFilter visible />
+              <FilterRow visible />
+              <Scrolling mode="virtual" />
+              <Paging defaultPageSize={20} />
+              <Pager
+                showPageSizeSelector
+                allowedPageSizes={[10, 20, 50, 100]}
+                showInfo
+                showNavigationButtons
+              />
+              <Selection mode="single" />
+              <Grouping contextMenuEnabled />
+              <GroupPanel visible />
+              <ColumnChooser enabled />
+              <StateStoring enabled type="localStorage" storageKey="hr-positions-grid" />
+              <Export enabled />
+
+              <Toolbar>
+                <Item name="groupPanel" />
+                <Item name="searchPanel" />
+                <Item name="columnChooserButton" />
+                <Item name="exportButton" />
+              </Toolbar>
+
+              <Column dataField="code" caption="รหัส" width={100} hidingPriority={1} />
+              <Column dataField="title" caption="ชื่อตำแหน่ง" minWidth={150} hidingPriority={0} />
+              <Column dataField="titleEn" caption="ชื่อภาษาอังกฤษ" width={150} hidingPriority={4} />
+              <Column
+                dataField="orgUnitId"
+                caption="หน่วยงาน"
+                width={150}
+                hidingPriority={3}
+                cellRender={renderOrgUnitCell}
+              >
+                <Lookup
+                  dataSource={orgUnits}
+                  valueExpr="id"
+                  displayExpr="name"
+                />
+              </Column>
+              <Column dataField="jobGrade" caption="ระดับ" width={100} hidingPriority={5} />
+              <Column
+                dataField="isGmpCritical"
+                caption="GMP"
+                width={100}
+                cellRender={renderGmpCriticalCell}
+                alignment="center"
+                hidingPriority={2}
+              />
+              <Column
+                dataField="isActive"
+                caption="สถานะ"
+                width={120}
+                cellRender={renderActiveCell}
+                alignment="center"
+                hidingPriority={6}
+              />
+            </DataGrid>
+          </div>
+        )}
+
+        {/* Cards View */}
+        {viewMode === 'cards' && (
+          <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredPositions.map(renderPositionCard)}
+            </div>
+            {filteredPositions.length === 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <p className="text-gray-500">ไม่พบข้อมูลตำแหน่ง</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Analytics View */}
+        {viewMode === 'analytics' && (
+          <div className="lg:col-span-2 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* GMP Distribution Chart */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-red-500" />
+                  การกระจายตำแหน่ง GMP
+                </h3>
+                <PieChart
+                  id="gmp-distribution"
+                  dataSource={analytics.gmpDistribution}
+                  type="doughnut"
+                  palette={[CHART_COLORS.gmpCritical, CHART_COLORS.nonGmp]}
+                >
+                  <Size height={250} />
+                  <Series argumentField="label" valueField="value">
+                    <Label visible format="fixedPoint" customizeText={(point: { percentText: string }) => point.percentText}>
+                      <Connector visible />
+                    </Label>
+                  </Series>
+                  <Legend
+                    visible
+                    verticalAlignment="bottom"
+                    horizontalAlignment="center"
+                    itemTextPosition="right"
+                    orientation="horizontal"
+                  />
+                  <Tooltip enabled customizeTooltip={(point: { argumentText: string; valueText: string }) => ({
+                    text: `${point.argumentText}: ${point.valueText} ตำแหน่ง`,
+                  })} />
+                </PieChart>
+              </div>
+
+              {/* Status Distribution Chart */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  สถานะตำแหน่ง
+                </h3>
+                <PieChart
+                  id="status-distribution"
+                  dataSource={analytics.statusDistribution}
+                  type="doughnut"
+                  palette={[CHART_COLORS.active, CHART_COLORS.inactive]}
+                >
+                  <Size height={250} />
+                  <Series argumentField="label" valueField="value">
+                    <Label visible format="fixedPoint" customizeText={(point: { percentText: string }) => point.percentText}>
+                      <Connector visible />
+                    </Label>
+                  </Series>
+                  <Legend
+                    visible
+                    verticalAlignment="bottom"
+                    horizontalAlignment="center"
+                    itemTextPosition="right"
+                    orientation="horizontal"
+                  />
+                  <Tooltip enabled customizeTooltip={(point: { argumentText: string; valueText: string }) => ({
+                    text: `${point.argumentText}: ${point.valueText} ตำแหน่ง`,
+                  })} />
+                </PieChart>
+              </div>
+            </div>
+
+            {/* Org Unit Distribution */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-blue-500" />
+                จำนวนตำแหน่งตามหน่วยงาน
+              </h3>
+              <div className="space-y-3">
+                {analytics.orgUnitDistribution.map((dept, idx) => (
+                  <div key={dept.name} className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: DEPARTMENT_COLORS[idx % DEPARTMENT_COLORS.length] }}
+                    />
+                    <span className="flex-1 text-sm text-gray-700 truncate">{dept.name}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${(dept.count / analytics.total) * 100}%`,
+                            backgroundColor: DEPARTMENT_COLORS[idx % DEPARTMENT_COLORS.length],
+                          }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-gray-900 w-8 text-right">{dept.count}</span>
+                    </div>
+                  </div>
+                ))}
+                {analytics.orgUnitDistribution.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">ไม่มีข้อมูลหน่วยงาน</p>
+                )}
+              </div>
+            </div>
+
+            {/* Grade Distribution */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Users className="h-5 w-5 text-purple-500" />
+                จำนวนตำแหน่งตามระดับ
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {analytics.gradeDistribution.map((item) => (
+                  <div key={item.grade} className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">{item.count}</p>
+                    <p className="text-sm text-gray-500 truncate">{item.grade}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Position Details Panel */}
         <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${!showDetailPanel && selectedPosition ? 'hidden lg:block' : ''}`}>
           {selectedPosition ? (
             <div className="h-full flex flex-col">
               {/* Position Header */}
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{selectedPosition.title}</h3>
-                    <p className="text-sm text-gray-500">{selectedPosition.code}</p>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getPositionGradient(selectedPosition.code)} flex items-center justify-center text-white font-bold text-lg`}>
+                      {selectedPosition.code.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{selectedPosition.title}</h3>
+                      <p className="text-sm text-gray-500">{selectedPosition.code}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <DxButton
@@ -489,14 +1005,39 @@ export default function PositionsPage() {
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex flex-wrap items-center gap-2 mt-3">
                   {selectedPosition.isGmpCritical && (
-                    <Badge variant="danger" className="text-xs">GMP Critical</Badge>
+                    <Badge variant="danger" className="text-xs">
+                      <Shield className="h-3 w-3 mr-1" />
+                      GMP Critical
+                    </Badge>
                   )}
                   {selectedPosition.jobGrade && (
                     <Badge variant="info" className="text-xs">{selectedPosition.jobGrade}</Badge>
                   )}
+                  <Badge variant={selectedPosition.isActive ? 'success' : 'secondary'} className="text-xs">
+                    {selectedPosition.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                  </Badge>
                 </div>
+              </div>
+
+              {/* Position Info */}
+              <div className="p-4 border-b border-gray-200 space-y-3">
+                {selectedPosition.titleEn && (
+                  <div>
+                    <p className="text-xs text-gray-500">ชื่อภาษาอังกฤษ</p>
+                    <p className="text-sm text-gray-900">{selectedPosition.titleEn}</p>
+                  </div>
+                )}
+                {selectedPosition.orgUnitId && (
+                  <div>
+                    <p className="text-xs text-gray-500">หน่วยงาน</p>
+                    <div className="flex items-center gap-1 text-sm text-gray-900">
+                      <Building2 className="h-4 w-4 text-blue-500" />
+                      {orgUnitMap.get(selectedPosition.orgUnitId)?.name || '-'}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Job Descriptions */}
@@ -553,9 +1094,12 @@ export default function PositionsPage() {
             </div>
           ) : (
             <div className="h-full flex items-center justify-center p-8">
-              <p className="text-gray-400 text-center">
-                เลือกตำแหน่งเพื่อดูรายละเอียด
-              </p>
+              <div className="text-center">
+                <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-400">
+                  เลือกตำแหน่งเพื่อดูรายละเอียด
+                </p>
+              </div>
             </div>
           )}
         </div>
