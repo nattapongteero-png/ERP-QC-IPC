@@ -8,10 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
-import { StatCard, ResponsivePageHeader } from '@/components/shared';
+import { cn } from '@/lib/utils/cn';
 import {
   ShoppingCart,
   Package,
@@ -29,6 +27,10 @@ import {
   Calendar,
   ArrowRight,
   AlertTriangle,
+  Building2,
+  RefreshCw,
+  Plus,
+  User,
 } from 'lucide-react';
 import PieChart, { Series, Legend, Tooltip, Label } from 'devextreme-react/pie-chart';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
@@ -55,87 +57,95 @@ interface SalesOrder {
 }
 
 type ViewMode = 'grid' | 'cards' | 'analytics';
+type StatusFilter = '' | 'draft' | 'confirmed' | 'processing' | 'ready' | 'shipped' | 'delivered' | 'cancelled';
 
 // ============================================================================
 // Configuration Constants
 // ============================================================================
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG: Record<string, {
+  label: string;
+  labelTh: string;
+  color: string;
+  bgClass: string;
+  textClass: string;
+  hoverBg: string;
+  icon: React.ElementType;
+  badgeVariant: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'secondary';
+}> = {
   draft: {
     label: 'Draft',
     labelTh: 'ร่าง',
     color: '#94a3b8',
-    bgClass: 'bg-slate-50 border-slate-200',
+    bgClass: 'bg-slate-100',
     textClass: 'text-slate-700',
+    hoverBg: 'hover:bg-slate-200',
     icon: FileText,
-    badgeVariant: 'default' as const,
+    badgeVariant: 'default',
   },
   confirmed: {
     label: 'Confirmed',
     labelTh: 'ยืนยันแล้ว',
     color: '#3b82f6',
-    bgClass: 'bg-blue-50 border-blue-200',
+    bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
+    hoverBg: 'hover:bg-blue-200',
     icon: CheckCircle2,
-    badgeVariant: 'info' as const,
+    badgeVariant: 'info',
   },
   processing: {
     label: 'Processing',
     labelTh: 'กำลังดำเนินการ',
     color: '#f59e0b',
-    bgClass: 'bg-amber-50 border-amber-200',
+    bgClass: 'bg-amber-100',
     textClass: 'text-amber-700',
+    hoverBg: 'hover:bg-amber-200',
     icon: Clock,
-    badgeVariant: 'warning' as const,
+    badgeVariant: 'warning',
   },
   ready: {
     label: 'Ready',
     labelTh: 'พร้อมส่ง',
     color: '#8b5cf6',
-    bgClass: 'bg-violet-50 border-violet-200',
+    bgClass: 'bg-violet-100',
     textClass: 'text-violet-700',
+    hoverBg: 'hover:bg-violet-200',
     icon: Package,
-    badgeVariant: 'info' as const,
+    badgeVariant: 'info',
   },
   shipped: {
     label: 'Shipped',
     labelTh: 'จัดส่งแล้ว',
     color: '#06b6d4',
-    bgClass: 'bg-cyan-50 border-cyan-200',
+    bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
+    hoverBg: 'hover:bg-cyan-200',
     icon: Truck,
-    badgeVariant: 'info' as const,
+    badgeVariant: 'info',
   },
   delivered: {
     label: 'Delivered',
     labelTh: 'ส่งมอบแล้ว',
     color: '#22c55e',
-    bgClass: 'bg-green-50 border-green-200',
+    bgClass: 'bg-green-100',
     textClass: 'text-green-700',
+    hoverBg: 'hover:bg-green-200',
     icon: CheckCircle2,
-    badgeVariant: 'success' as const,
+    badgeVariant: 'success',
   },
   cancelled: {
     label: 'Cancelled',
     labelTh: 'ยกเลิก',
     color: '#ef4444',
-    bgClass: 'bg-red-50 border-red-200',
+    bgClass: 'bg-red-100',
     textClass: 'text-red-700',
+    hoverBg: 'hover:bg-red-200',
     icon: XCircle,
-    badgeVariant: 'danger' as const,
+    badgeVariant: 'danger',
   },
 };
 
-const statusOptions = [
-  { value: '', label: 'ทุกสถานะ' },
-  { value: 'draft', label: 'ร่าง' },
-  { value: 'confirmed', label: 'ยืนยันแล้ว' },
-  { value: 'processing', label: 'กำลังดำเนินการ' },
-  { value: 'ready', label: 'พร้อมส่ง' },
-  { value: 'shipped', label: 'จัดส่งแล้ว' },
-  { value: 'delivered', label: 'ส่งมอบแล้ว' },
-  { value: 'cancelled', label: 'ยกเลิก' },
-];
+const STATUS_ORDER: StatusFilter[] = ['', 'draft', 'confirmed', 'processing', 'ready', 'shipped', 'delivered', 'cancelled'];
 
 // ============================================================================
 // Helper Functions
@@ -217,7 +227,7 @@ export default function SalesOrdersPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
 
   // Data fetching with React Query
   const { data: orders = [], isLoading, refetch } = useQuery<SalesOrder[]>({
@@ -276,6 +286,18 @@ export default function SalesOrdersPage() {
       activeCount: draft + confirmed + processing + ready + shipped,
     };
   }, [orders]);
+
+  // Status counts for tabs
+  const statusCounts: Record<StatusFilter, number> = useMemo(() => ({
+    '': orders.length,
+    draft: stats.draft,
+    confirmed: stats.confirmed,
+    processing: stats.processing,
+    ready: stats.ready,
+    shipped: stats.shipped,
+    delivered: stats.delivered,
+    cancelled: stats.cancelled,
+  }), [orders.length, stats]);
 
   // Chart data for status distribution
   const statusChartData = useMemo(() => {
@@ -349,248 +371,205 @@ export default function SalesOrdersPage() {
     router.push(`/sales/orders/${id}`);
   }, [router]);
 
-  // Cell renderers
-  const renderSoNumberCell = useCallback((data: { data: SalesOrder }) => {
-    const order = data.data;
-    const overdue = isOverdue(order.requiredDate, order.status);
-    return (
-      <div>
-        <p className="font-mono font-semibold text-blue-600">{order.soNumber}</p>
-        {overdue && (
-          <Badge variant="danger" size="sm" className="mt-1">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            เกินกำหนด
-          </Badge>
-        )}
-      </div>
-    );
-  }, []);
-
-  const renderCustomerCell = useCallback((data: { data: SalesOrder }) => {
-    const order = data.data;
-    return (
-      <div className="min-w-0">
-        <p className="font-medium truncate">{order.customerName}</p>
-        {order.customerContact && (
-          <p className="text-xs text-gray-500 truncate">{order.customerContact}</p>
-        )}
-      </div>
-    );
-  }, []);
-
-  const renderDateCell = useCallback((data: { data: SalesOrder }) => {
-    return <span>{formatDate(data.data.orderDate)}</span>;
-  }, []);
-
-  const renderRequiredDateCell = useCallback((data: { data: SalesOrder }) => {
-    const order = data.data;
-    const overdue = isOverdue(order.requiredDate, order.status);
-    const daysUntil = getDaysUntilRequired(order.requiredDate, order.status);
-
-    if (!order.requiredDate) return <span className="text-gray-400">-</span>;
-
-    return (
-      <div>
-        <span className={overdue ? 'text-red-600 font-medium' : ''}>
-          {formatDate(order.requiredDate)}
-        </span>
-        {daysUntil !== null && (
-          <p className={`text-xs ${daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : 'text-gray-500'}`}>
-            {daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)} วัน` : daysUntil === 0 ? 'วันนี้' : `อีก ${daysUntil} วัน`}
-          </p>
-        )}
-      </div>
-    );
-  }, []);
-
-  const renderAmountCell = useCallback((data: { data: SalesOrder }) => {
-    return (
-      <span className="font-semibold text-green-600">
-        {formatCurrency(data.data.totalAmount, data.data.currency)}
-      </span>
-    );
-  }, []);
-
-  const renderStatusCell = useCallback((data: { data: SalesOrder }) => {
-    const config = STATUS_CONFIG[data.data.status as keyof typeof STATUS_CONFIG];
-    if (!config) return <Badge>-</Badge>;
-    return (
-      <Badge variant={config.badgeVariant} dot>
-        {config.labelTh}
-      </Badge>
-    );
-  }, []);
-
   // DataGrid columns
   const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'soNumber',
       caption: 'เลขที่ SO',
       width: 150,
-      cellRender: renderSoNumberCell,
+      cellRender: (data: { data: SalesOrder }) => {
+        const order = data.data;
+        const overdue = isOverdue(order.requiredDate, order.status);
+        return (
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              'h-8 w-8 rounded-lg flex items-center justify-center',
+              overdue ? 'bg-red-100' : 'bg-blue-100'
+            )}>
+              <FileText className={cn('h-4 w-4', overdue ? 'text-red-600' : 'text-blue-600')} />
+            </div>
+            <div>
+              <span className="font-mono font-semibold text-blue-600">{order.soNumber}</span>
+              {overdue && (
+                <div className="flex items-center gap-1 text-red-600 text-xs">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span>เกินกำหนด</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      },
     },
     {
       dataField: 'customerName',
       caption: 'ลูกค้า',
-      minWidth: 180,
-      cellRender: renderCustomerCell,
+      minWidth: 200,
+      cellRender: (data: { data: SalesOrder }) => {
+        const order = data.data;
+        return (
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-medium text-xs">
+              {order.customerName?.charAt(0)?.toUpperCase() || 'C'}
+            </div>
+            <div className="min-w-0">
+              <span className="font-medium text-gray-800 truncate block">{order.customerName}</span>
+              {order.customerContact && (
+                <span className="text-xs text-gray-500 truncate block">{order.customerContact}</span>
+              )}
+            </div>
+          </div>
+        );
+      },
     },
     {
       dataField: 'orderDate',
       caption: 'วันที่สั่ง',
-      width: 120,
+      width: 130,
       dataType: 'date',
       hideOnMobile: true,
-      cellRender: renderDateCell,
+      cellRender: (data: { data: SalesOrder }) => (
+        <div className="flex items-center gap-2 text-gray-600">
+          <Calendar className="h-3.5 w-3.5 text-gray-400" />
+          <span className="text-sm">{formatDate(data.data.orderDate)}</span>
+        </div>
+      ),
     },
     {
       dataField: 'requiredDate',
       caption: 'กำหนดส่ง',
-      width: 140,
+      width: 150,
       dataType: 'date',
       hideOnMobile: true,
-      cellRender: renderRequiredDateCell,
+      cellRender: (data: { data: SalesOrder }) => {
+        const order = data.data;
+        const overdue = isOverdue(order.requiredDate, order.status);
+        const daysUntil = getDaysUntilRequired(order.requiredDate, order.status);
+
+        if (!order.requiredDate) return <span className="text-gray-400">-</span>;
+
+        return (
+          <div>
+            <div className="flex items-center gap-2">
+              <Truck className={cn('h-3.5 w-3.5', overdue ? 'text-red-500' : 'text-gray-400')} />
+              <span className={cn('text-sm', overdue ? 'text-red-600 font-medium' : 'text-gray-600')}>
+                {formatDate(order.requiredDate)}
+              </span>
+            </div>
+            {daysUntil !== null && (
+              <span className={cn(
+                'text-xs ml-6',
+                daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : 'text-gray-500'
+              )}>
+                {daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)} วัน` : daysUntil === 0 ? 'วันนี้' : `อีก ${daysUntil} วัน`}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       dataField: 'totalAmount',
       caption: 'ยอดรวม',
       width: 140,
       dataType: 'number',
-      cellRender: renderAmountCell,
+      cellRender: (data: { data: SalesOrder }) => (
+        <span className="font-semibold text-green-600">
+          {formatCurrency(data.data.totalAmount, data.data.currency)}
+        </span>
+      ),
     },
     {
       dataField: 'status',
       caption: 'สถานะ',
-      width: 130,
-      cellRender: renderStatusCell,
+      width: 140,
+      cellRender: (data: { data: SalesOrder }) => {
+        const config = STATUS_CONFIG[data.data.status];
+        if (!config) return <Badge>-</Badge>;
+        return (
+          <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
+            {config.labelTh}
+          </span>
+        );
+      },
     },
-  ], [renderSoNumberCell, renderCustomerCell, renderDateCell, renderRequiredDateCell, renderAmountCell, renderStatusCell]);
+  ], []);
 
   // ============================================================================
   // Render Functions
   // ============================================================================
 
-  const renderStatCards = () => (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-      <StatCard
-        label="ใบสั่งขายทั้งหมด"
-        value={stats.total}
-        icon={ShoppingCart}
-        iconColor="text-indigo-500"
-        accentColor="border-indigo-500"
-        isLoading={isLoading}
-      />
-      <StatCard
-        label="กำลังดำเนินการ"
-        value={stats.activeCount}
-        icon={Clock}
-        iconColor="text-amber-500"
-        accentColor="border-amber-500"
-        trend={stats.activeCount > 0 ? { value: stats.activeCount, direction: 'neutral' } : undefined}
-        isLoading={isLoading}
-      />
-      <StatCard
-        label="พร้อมส่ง"
-        value={stats.ready}
-        icon={Package}
-        iconColor="text-violet-500"
-        accentColor="border-violet-500"
-        isLoading={isLoading}
-      />
-      <StatCard
-        label="ส่งมอบแล้ว"
-        value={stats.delivered}
-        icon={CheckCircle2}
-        iconColor="text-green-500"
-        accentColor="border-green-500"
-        trend={stats.fulfillmentRate >= 80 ? { value: stats.fulfillmentRate, direction: 'up' } : undefined}
-        isLoading={isLoading}
-      />
-      <StatCard
-        label="เกินกำหนด"
-        value={stats.overdue}
-        icon={AlertTriangle}
-        iconColor="text-red-500"
-        accentColor="border-red-500"
-        trend={stats.overdue > 0 ? { value: stats.overdue, direction: 'down' } : undefined}
-        isLoading={isLoading}
-      />
-      <StatCard
-        label="มูลค่ารอดำเนินการ"
-        value={formatCurrencyShort(stats.pendingValue)}
-        icon={DollarSign}
-        iconColor="text-emerald-500"
-        accentColor="border-emerald-500"
-        isLoading={isLoading}
-      />
-    </div>
-  );
-
-  const renderOverdueAlert = () => {
-    if (stats.overdue === 0) return null;
+  const renderOrderCard = (order: SalesOrder) => {
+    const statusConfig = STATUS_CONFIG[order.status];
+    const overdue = isOverdue(order.requiredDate, order.status);
+    const daysUntil = getDaysUntilRequired(order.requiredDate, order.status);
 
     return (
-      <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle className="h-6 w-6 text-red-600" />
+      <Card
+        key={order.id}
+        elevation="raised"
+        className="cursor-pointer transition-all hover:shadow-lg overflow-hidden"
+        onClick={() => handleOrderClick(order.id)}
+      >
+        <CardContent className="p-0">
+          <div className="flex items-stretch">
+            <div className="w-1" style={{ backgroundColor: statusConfig?.color || '#ccc' }} />
+            <div className="flex-1 p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-mono font-semibold text-blue-600">{order.soNumber}</p>
+                  <p className="font-medium mt-1">{order.customerName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-green-600">
+                    {formatCurrency(order.totalAmount, order.currency)}
+                  </p>
+                  {statusConfig && (
+                    <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium mt-1 inline-block', statusConfig.bgClass, statusConfig.textClass)}>
+                      {statusConfig.labelTh}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>{formatDateShort(order.orderDate)}</span>
+                </div>
+                {order.requiredDate && (
+                  <div className={cn('flex items-center gap-1', overdue ? 'text-red-600 font-medium' : '')}>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                    <span>{formatDateShort(order.requiredDate)}</span>
+                    {daysUntil !== null && (
+                      <span className={cn(daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : '')}>
+                        ({daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)}d` : daysUntil === 0 ? 'วันนี้' : `${daysUntil}d`})
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {overdue && (
+                <div className="mt-2 p-2 bg-red-50 rounded-md flex items-center gap-2 text-red-600 text-xs">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span>เกินกำหนดส่งแล้ว</span>
+                </div>
+              )}
             </div>
-            <div className="flex-1">
-              <p className="font-medium text-red-800">
-                {stats.overdue} ใบสั่งขายเกินกำหนดส่ง
-              </p>
-              <p className="text-sm text-red-600">
-                กรุณาตรวจสอบและดำเนินการโดยเร็ว
-              </p>
-            </div>
-            <DxButton
-              text="ดูรายการ"
-              type="danger"
-              onClick={() => {
-                setStatusFilter('');
-                setSearch('');
-              }}
-            />
           </div>
         </CardContent>
       </Card>
     );
   };
 
-  const renderFilters = () => (
-    <Card elevation="raised">
-      <CardContent className="py-3">
-        <div className="flex flex-col md:flex-row gap-3 items-end">
-          <div className="flex-1">
-            <DxTextBox
-              placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
-              value={search}
-              onValueChange={setSearch}
-              showClearButton
-              mode="search"
-            />
-          </div>
-          <div className="w-full md:w-48">
-            <DxSelectBox
-              items={statusOptions}
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              placeholder="สถานะ"
-              showClearButton
-            />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   const renderCharts = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Status Distribution */}
       <Card elevation="raised">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
             การกระจายตามสถานะ
           </CardTitle>
         </CardHeader>
@@ -627,7 +606,8 @@ export default function SalesOrdersPage() {
       {/* Value Distribution */}
       <Card elevation="raised">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
             มูลค่าตามสถานะ
           </CardTitle>
         </CardHeader>
@@ -663,97 +643,26 @@ export default function SalesOrdersPage() {
     </div>
   );
 
-  const renderOrderCard = (order: SalesOrder) => {
-    const statusConfig = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG];
-    const overdue = isOverdue(order.requiredDate, order.status);
-    const daysUntil = getDaysUntilRequired(order.requiredDate, order.status);
-
-    return (
-      <Card
-        key={order.id}
-        elevation="raised"
-        className={`cursor-pointer transition-all hover:shadow-lg border-l-4`}
-        style={{ borderLeftColor: statusConfig?.color || '#ccc' }}
-        onClick={() => handleOrderClick(order.id)}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <p className="font-mono font-semibold text-blue-600">{order.soNumber}</p>
-              <p className="font-medium mt-1">{order.customerName}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-lg font-bold text-green-600">
-                {formatCurrency(order.totalAmount, order.currency)}
-              </p>
-              {statusConfig && (
-                <Badge variant={statusConfig.badgeVariant} size="sm" dot className="mt-1">
-                  {statusConfig.labelTh}
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>{formatDateShort(order.orderDate)}</span>
-            </div>
-            {order.requiredDate && (
-              <div className={`flex items-center gap-1 ${overdue ? 'text-red-600 font-medium' : ''}`}>
-                <ArrowRight className="h-3.5 w-3.5" />
-                <span>{formatDateShort(order.requiredDate)}</span>
-                {daysUntil !== null && (
-                  <span className={`${daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : ''}`}>
-                    ({daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)}d` : daysUntil === 0 ? 'วันนี้' : `${daysUntil}d`})
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {overdue && (
-            <div className="mt-2 p-2 bg-red-50 rounded-md flex items-center gap-2 text-red-600 text-xs">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              <span>เกินกำหนดส่งแล้ว</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
-
   const renderGridView = () => (
     <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
       <CardContent className="flex-1 min-h-0 flex flex-col p-0">
-        {filteredOrders.length > 0 || isLoading ? (
-          <DxDataGrid
-            dataSource={filteredOrders}
-            keyExpr="id"
-            columns={columns}
-            loading={isLoading}
-            sorting
-            filterRow
-            headerFilter
-            export
-            exportFileName="sales-orders"
-            columnChooser
-            virtualScrolling={filteredOrders.length > 100}
-            fillHeight
-            onRowClick={handleRowClick}
-            noDataText="ไม่พบใบสั่งขาย"
-          />
-        ) : (
-          <EmptyState
-            icon={<ShoppingCart className="h-8 w-8" />}
-            title="ไม่พบใบสั่งขาย"
-            description="เริ่มต้นด้วยการสร้างใบสั่งขายใหม่"
-            action={{
-              label: 'สร้างใบสั่งขาย',
-              onClick: () => router.push('/sales/orders/new'),
-            }}
-          />
-        )}
+        <DxDataGrid
+          dataSource={filteredOrders}
+          keyExpr="id"
+          columns={columns}
+          loading={isLoading}
+          sorting
+          filterRow
+          headerFilter
+          export
+          exportFileName="sales-orders"
+          columnChooser
+          virtualScrolling={filteredOrders.length > 100}
+          fillHeight
+          onRowClick={handleRowClick}
+          noDataText="ไม่พบใบสั่งขาย"
+          rowAlternationEnabled
+        />
       </CardContent>
     </Card>
   );
@@ -815,7 +724,10 @@ export default function SalesOrdersPage() {
         {/* Quick Stats */}
         <Card elevation="raised">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">สรุปรวม</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              สรุปรวม
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 space-y-3">
             <div className="flex justify-between items-center py-2 border-b">
@@ -841,17 +753,14 @@ export default function SalesOrdersPage() {
         <Card elevation="raised">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="h-4 w-4" />
+              <Users className="h-4 w-4 text-purple-500" />
               ลูกค้าหลัก
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-2">
               {topCustomers.map((customer) => (
-                <div
-                  key={customer.name}
-                  className="p-2 rounded-lg bg-gray-50"
-                >
+                <div key={customer.name} className="p-2 rounded-lg bg-gray-50">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium truncate">{customer.name}</span>
                     <span className="text-xs text-gray-500">{customer.count} รายการ</span>
@@ -869,12 +778,15 @@ export default function SalesOrdersPage() {
         {/* Recent Orders */}
         <Card elevation="raised">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">ล่าสุด</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Clock className="h-4 w-4 text-gray-500" />
+              ล่าสุด
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-2">
               {recentOrders.map((order) => {
-                const statusConfig = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG];
+                const statusConfig = STATUS_CONFIG[order.status];
                 return (
                   <div
                     key={order.id}
@@ -924,8 +836,8 @@ export default function SalesOrdersPage() {
                 const Icon = config.icon;
                 return (
                   <div key={key} className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${config.bgClass}`}>
-                      <Icon className={`h-4 w-4 ${config.textClass}`} />
+                    <div className={cn('p-2 rounded-lg', config.bgClass)}>
+                      <Icon className={cn('h-4 w-4', config.textClass)} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
@@ -998,24 +910,29 @@ export default function SalesOrdersPage() {
         <CardContent className="pt-0">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {topCustomers.map((customer, idx) => (
-              <Card key={customer.name} className="border">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">
-                      {idx + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{customer.name}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2 bg-gray-50 rounded">
-                      <span className="text-gray-500">จำนวน</span>
-                      <p className="font-semibold">{customer.count} รายการ</p>
-                    </div>
-                    <div className="p-2 bg-gray-50 rounded">
-                      <span className="text-gray-500">มูลค่า</span>
-                      <p className="font-semibold text-green-600">{formatCurrencyShort(customer.value)}</p>
+              <Card key={customer.name} className="border overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex items-stretch">
+                    <div className="w-1 bg-purple-500" />
+                    <div className="flex-1 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">
+                          {idx + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{customer.name}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 bg-gray-50 rounded">
+                          <span className="text-gray-500">จำนวน</span>
+                          <p className="font-semibold">{customer.count} รายการ</p>
+                        </div>
+                        <div className="p-2 bg-gray-50 rounded">
+                          <span className="text-gray-500">มูลค่า</span>
+                          <p className="font-semibold text-green-600">{formatCurrencyShort(customer.value)}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -1038,66 +955,288 @@ export default function SalesOrdersPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-4 max-w-[1800px] mx-auto w-full">
-        <ResponsivePageHeader
-          title="ใบสั่งขาย"
-          subtitle="จัดการใบสั่งขายและติดตามสถานะการส่งมอบ"
-          actions={
-            <div className="flex items-center gap-2">
-              {/* View Mode Toggle */}
-              <div className="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-                  title="Grid View"
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('cards')}
-                  className={`p-1.5 rounded ${viewMode === 'cards' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-                  title="Cards View"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('analytics')}
-                  className={`p-1.5 rounded ${viewMode === 'analytics' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-                  title="Analytics View"
-                >
-                  <BarChart3 className="h-4 w-4" />
-                </button>
+      <div className="flex flex-col h-full gap-4">
+        {/* Hero Header */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600">
+          <div className="absolute inset-0 bg-black/10" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-24 -translate-x-24" />
+
+          <div className="relative z-10 p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <ShoppingCart className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">ใบสั่งขาย</h1>
+                  <p className="text-white/80 text-sm">จัดการใบสั่งขายและติดตามสถานะการส่งมอบ</p>
+                </div>
               </div>
 
-              <DxButton
-                icon="refresh"
-                hint="รีเฟรช"
-                onClick={() => refetch()}
-                data-testid="dx-button-refresh"
-              />
-              <DxButton
-                text="สร้างใบสั่งขาย"
-                icon="plus"
-                type="success"
-                onClick={() => router.push('/sales/orders/new')}
-              />
-            </div>
-          }
-        />
+              <div className="flex items-center gap-2">
+                {/* View Mode Toggle */}
+                <div className="hidden md:flex items-center bg-white/20 backdrop-blur-sm rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      'p-2 rounded-lg transition-colors',
+                      viewMode === 'grid' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
+                    )}
+                    title="Grid View"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('cards')}
+                    className={cn(
+                      'p-2 rounded-lg transition-colors',
+                      viewMode === 'cards' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
+                    )}
+                    title="Cards View"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('analytics')}
+                    className={cn(
+                      'p-2 rounded-lg transition-colors',
+                      viewMode === 'analytics' ? 'bg-white/30 text-white' : 'text-white/70 hover:text-white'
+                    )}
+                    title="Analytics View"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </button>
+                </div>
 
-        {/* KPI Stats */}
-        {renderStatCards()}
+                <button
+                  onClick={() => refetch()}
+                  className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center text-white transition-colors"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+                <DxButton
+                  text="สร้างใบสั่งขาย"
+                  icon="plus"
+                  type="success"
+                  onClick={() => router.push('/sales/orders/new')}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-indigo-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <ShoppingCart className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">ทั้งหมด</p>
+                      <p className="text-lg font-bold text-gray-900">{stats.total}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-amber-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">กำลังดำเนินการ</p>
+                      <p className="text-lg font-bold text-gray-900">{stats.activeCount}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-violet-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-violet-100 rounded-lg flex items-center justify-center">
+                      <Package className="h-5 w-5 text-violet-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">พร้อมส่ง</p>
+                      <p className="text-lg font-bold text-gray-900">{stats.ready}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-green-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-green-100 rounded-lg flex items-center justify-center">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">ส่งมอบแล้ว</p>
+                      <p className="text-lg font-bold text-gray-900">{stats.delivered}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-red-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-red-100 rounded-lg flex items-center justify-center">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">เกินกำหนด</p>
+                      <p className={cn('text-lg font-bold', stats.overdue > 0 ? 'text-red-600' : 'text-gray-900')}>
+                        {stats.overdue}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-emerald-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">รอดำเนินการ</p>
+                      <p className="text-lg font-bold text-gray-900">{formatCurrencyShort(stats.pendingValue)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Overdue Alert */}
-        {renderOverdueAlert()}
+        {stats.overdue > 0 && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-red-800">
+                    {stats.overdue} ใบสั่งขายเกินกำหนดส่ง
+                  </p>
+                  <p className="text-sm text-red-600">
+                    กรุณาตรวจสอบและดำเนินการโดยเร็ว
+                  </p>
+                </div>
+                <DxButton
+                  text="ดูรายการ"
+                  type="danger"
+                  onClick={() => {
+                    setStatusFilter('');
+                    setSearch('');
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Filters */}
-        {renderFilters()}
+        {/* Main Content Card with Tabs and Search */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
+          <CardHeader className="border-b pb-0 space-y-3">
+            {/* Status Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-0 scrollbar-thin">
+              {STATUS_ORDER.map((status) => {
+                const config = status === ''
+                  ? { labelTh: 'ทั้งหมด', bgClass: 'bg-gray-100', textClass: 'text-gray-700', hoverBg: 'hover:bg-gray-200', icon: Building2 }
+                  : STATUS_CONFIG[status];
+                const count = statusCounts[status];
+                const isActive = statusFilter === status;
+                const Icon = config.icon;
 
-        {/* Content based on view mode */}
-        {viewMode === 'grid' && renderGridView()}
-        {viewMode === 'cards' && renderCardsView()}
-        {viewMode === 'analytics' && renderAnalyticsView()}
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border-b-2',
+                      isActive
+                        ? `${config.bgClass} ${config.textClass} border-current`
+                        : `text-gray-500 border-transparent ${config.hoverBg}`
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{config.labelTh}</span>
+                    <span
+                      className={cn(
+                        'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
+                        isActive ? 'bg-white/50' : 'bg-gray-200/70'
+                      )}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search */}
+            <div className="flex items-center gap-3 pb-3">
+              <div className="flex-1 max-w-md">
+                <DxTextBox
+                  placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
+                  value={search}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                />
+              </div>
+              <div className="text-sm text-gray-500">
+                แสดง <span className="font-semibold text-gray-700">{filteredOrders.length}</span> รายการ
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="flex-1 min-h-0 flex flex-col pt-4">
+            {/* Content based on view mode */}
+            {viewMode === 'grid' && renderGridView()}
+            {viewMode === 'cards' && renderCardsView()}
+            {viewMode === 'analytics' && renderAnalyticsView()}
+          </CardContent>
+        </Card>
       </div>
     </MainLayout>
   );
