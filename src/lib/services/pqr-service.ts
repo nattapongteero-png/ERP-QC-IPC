@@ -346,7 +346,7 @@ export async function getPqrDashboard(): Promise<PqrDashboard> {
     approved: 0,
   };
 
-  statusCounts.forEach((row) => {
+  statusCounts.forEach((row: typeof statusCounts[number]) => {
     if (row.status in byStatus) {
       byStatus[row.status as PqrStatus] = Number(row.count);
     }
@@ -365,7 +365,7 @@ export async function getPqrDashboard(): Promise<PqrDashboard> {
       .limit(5);
   });
 
-  const byYear = yearCounts.map((row) => ({
+  const byYear = yearCounts.map((row: typeof yearCounts[number]) => ({
     year: Number(row.year),
     count: Number(row.count),
   }));

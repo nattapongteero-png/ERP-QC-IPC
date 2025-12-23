@@ -108,7 +108,7 @@ export async function GET() {
       .where(
         and(
           eq(sqliteBatchRecords.status, 'completed'),
-          gte(sqliteBatchRecords.endTime, isSqlite() ? todayStr : new Date(todayStr))
+          gte(sqliteBatchRecords.endTime, todayStr as string)
         )
       );
     const completedToday = completedTodayResult[0]?.count || 0;
@@ -242,8 +242,8 @@ export async function GET() {
         .where(
           and(
             eq(sqliteBatchRecords.status, 'completed'),
-            gte(sqliteBatchRecords.endTime, toQueryDate(dateStr)),
-            lte(sqliteBatchRecords.endTime, toQueryDate(nextDateStr))
+            gte(sqliteBatchRecords.endTime, dateStr),
+            lte(sqliteBatchRecords.endTime, nextDateStr)
           )
         );
 
@@ -253,8 +253,8 @@ export async function GET() {
         .where(
           and(
             eq(sqliteBatchRecords.status, 'deviation'),
-            gte(sqliteBatchRecords.updatedAt, toQueryDate(dateStr)),
-            lte(sqliteBatchRecords.updatedAt, toQueryDate(nextDateStr))
+            gte(sqliteBatchRecords.updatedAt, dateStr),
+            lte(sqliteBatchRecords.updatedAt, nextDateStr)
           )
         );
 
