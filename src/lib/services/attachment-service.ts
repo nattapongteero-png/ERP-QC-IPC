@@ -96,7 +96,7 @@ export async function getAttachments(
       description: attachments.description,
       category: attachments.category,
       uploadedBy: attachments.uploadedBy,
-      uploadedByName: users.fullName,
+      uploadedByName: users.name,
       uploadedAt: attachments.uploadedAt,
       updatedAt: attachments.updatedAt,
     })
@@ -137,7 +137,7 @@ export async function getAttachmentById(id: number): Promise<Attachment | null> 
       description: attachments.description,
       category: attachments.category,
       uploadedBy: attachments.uploadedBy,
-      uploadedByName: users.fullName,
+      uploadedByName: users.name,
       uploadedAt: attachments.uploadedAt,
       updatedAt: attachments.updatedAt,
     })
@@ -231,13 +231,13 @@ export async function createAttachment(
     action: 'CREATE',
     tableName: 'attachments',
     recordId: insertId,
-    newValue: JSON.stringify({
+    newValue: {
       moduleName: data.moduleName,
       entityId: data.entityId,
       fileName: data.fileName,
       fileSize: data.fileSize,
       category: data.category,
-    }),
+    },
   });
 
   const created = await getAttachmentById(insertId);
@@ -289,11 +289,11 @@ export async function updateAttachment(
     action: 'UPDATE',
     tableName: 'attachments',
     recordId: id,
-    oldValue: JSON.stringify({
+    oldValue: {
       description: existing.description,
       category: existing.category,
-    }),
-    newValue: JSON.stringify(data),
+    },
+    newValue: data as Record<string, unknown>,
   });
 
   const updated = await getAttachmentById(id);
@@ -325,12 +325,12 @@ export async function deleteAttachment(id: number, userId: number): Promise<void
     action: 'DELETE',
     tableName: 'attachments',
     recordId: id,
-    oldValue: JSON.stringify({
+    oldValue: {
       moduleName: existing.moduleName,
       entityId: existing.entityId,
       fileName: existing.fileName,
       category: existing.category,
-    }),
+    },
   });
 }
 
@@ -369,12 +369,12 @@ export async function deleteAllAttachments(
       action: 'DELETE',
       tableName: 'attachments',
       recordId: att.id,
-      oldValue: JSON.stringify({
+      oldValue: {
         moduleName: att.moduleName,
         entityId: att.entityId,
         fileName: att.fileName,
         category: att.category,
-      }),
+      },
     });
   }
 

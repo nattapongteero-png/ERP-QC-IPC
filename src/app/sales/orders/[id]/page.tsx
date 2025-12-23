@@ -795,7 +795,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                   type="normal"
                   stylingMode="text"
                   onClick={() => router.push('/sales/orders')}
-                  elementAttr={{ class: 'text-white hover:bg-white/20' }}
+                  className="text-white hover:bg-white/20"
                 />
                 <button
                   onClick={() => fetchSODetail()}

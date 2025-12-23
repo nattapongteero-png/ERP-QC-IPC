@@ -1203,9 +1203,9 @@ export async function generateAuditSchedule(
   }
 
   // Get default auditor (first available user if not provided)
-  let leadAuditorId = options.auditorId;
-  if (!leadAuditorId) {
-    const userList = await database.select().from(users).where(eq(users.isActive, 1)).limit(1);
+  let leadAuditorId: number = options.auditorId ?? 0;
+  if (!options.auditorId) {
+    const userList = await database.select().from(users).where(eq(users.isActive, true)).limit(1);
     if (userList.length === 0) {
       throw new Error('No active users found to assign as auditor');
     }
@@ -1359,8 +1359,8 @@ export async function verifyFindingClosure(
     };
   }
 
-  // CAPA must be 'closed' or 'effective' to allow finding closure
-  if (capa.status === 'closed' || capa.status === 'effective') {
+  // CAPA must be 'closed' to allow finding closure
+  if (capa.status === 'closed') {
     return {
       canClose: true,
       capaStatus: capa.status,
@@ -1369,7 +1369,7 @@ export async function verifyFindingClosure(
 
   return {
     canClose: false,
-    reason: `CAPA status is '${capa.status}' - must be 'closed' or 'effective'`,
+    reason: `CAPA status is '${capa.status}' - must be 'closed'`,
     capaStatus: capa.status,
   };
 }

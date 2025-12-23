@@ -631,7 +631,7 @@ export default function CustomerDetailPage({
               <Legend
                 orientation="vertical"
                 horizontalAlignment="right"
-                verticalAlignment="center"
+                verticalAlignment="top"
               />
               <Tooltip enabled customizeTooltip={(arg) => ({
                 text: `${arg.argument}: ${arg.value} รายการ`,
@@ -1194,7 +1194,7 @@ export default function CustomerDetailPage({
                   type="normal"
                   stylingMode="text"
                   onClick={() => router.push('/sales/customers')}
-                  elementAttr={{ class: 'text-white hover:bg-white/20' }}
+                  className="text-white hover:bg-white/20"
                 />
                 <button
                   onClick={() => fetchCustomerDetail()}

@@ -377,7 +377,8 @@ export default function SalesOrdersPage() {
       dataField: 'soNumber',
       caption: 'เลขที่ SO',
       width: 150,
-      cellRender: (data: { data: SalesOrder }) => {
+      cellRender: (data: { data?: SalesOrder }) => {
+        if (!data.data) return null;
         const order = data.data;
         const overdue = isOverdue(order.requiredDate, order.status);
         return (
@@ -405,7 +406,8 @@ export default function SalesOrdersPage() {
       dataField: 'customerName',
       caption: 'ลูกค้า',
       minWidth: 200,
-      cellRender: (data: { data: SalesOrder }) => {
+      cellRender: (data: { data?: SalesOrder }) => {
+        if (!data.data) return null;
         const order = data.data;
         return (
           <div className="flex items-center gap-2">
@@ -428,12 +430,15 @@ export default function SalesOrdersPage() {
       width: 130,
       dataType: 'date',
       hideOnMobile: true,
-      cellRender: (data: { data: SalesOrder }) => (
-        <div className="flex items-center gap-2 text-gray-600">
-          <Calendar className="h-3.5 w-3.5 text-gray-400" />
-          <span className="text-sm">{formatDate(data.data.orderDate)}</span>
-        </div>
-      ),
+      cellRender: (data: { data?: SalesOrder }) => {
+        if (!data.data) return null;
+        return (
+          <div className="flex items-center gap-2 text-gray-600">
+            <Calendar className="h-3.5 w-3.5 text-gray-400" />
+            <span className="text-sm">{formatDate(data.data.orderDate)}</span>
+          </div>
+        );
+      },
     },
     {
       dataField: 'requiredDate',
@@ -441,7 +446,8 @@ export default function SalesOrdersPage() {
       width: 150,
       dataType: 'date',
       hideOnMobile: true,
-      cellRender: (data: { data: SalesOrder }) => {
+      cellRender: (data: { data?: SalesOrder }) => {
+        if (!data.data) return null;
         const order = data.data;
         const overdue = isOverdue(order.requiredDate, order.status);
         const daysUntil = getDaysUntilRequired(order.requiredDate, order.status);
@@ -473,17 +479,21 @@ export default function SalesOrdersPage() {
       caption: 'ยอดรวม',
       width: 140,
       dataType: 'number',
-      cellRender: (data: { data: SalesOrder }) => (
-        <span className="font-semibold text-green-600">
-          {formatCurrency(data.data.totalAmount, data.data.currency)}
-        </span>
-      ),
+      cellRender: (data: { data?: SalesOrder }) => {
+        if (!data.data) return null;
+        return (
+          <span className="font-semibold text-green-600">
+            {formatCurrency(data.data.totalAmount, data.data.currency)}
+          </span>
+        );
+      },
     },
     {
       dataField: 'status',
       caption: 'สถานะ',
       width: 140,
-      cellRender: (data: { data: SalesOrder }) => {
+      cellRender: (data: { data?: SalesOrder }) => {
+        if (!data.data) return null;
         const config = STATUS_CONFIG[data.data.status];
         if (!config) return <Badge>-</Badge>;
         return (

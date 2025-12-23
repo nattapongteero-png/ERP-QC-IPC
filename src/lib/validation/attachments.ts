@@ -84,7 +84,7 @@ export type AttachmentCategory = (typeof ATTACHMENT_CATEGORIES)[number];
 // Create attachment schema (for API)
 export const attachmentCreateSchema = z.object({
   moduleName: z.enum(VALID_MODULES, {
-    errorMap: () => ({ message: 'Invalid module name' }),
+    message: 'Invalid module name',
   }),
   entityId: z.number().int().positive('Entity ID must be a positive integer'),
   fileName: z.string().min(1, 'File name is required').max(255),

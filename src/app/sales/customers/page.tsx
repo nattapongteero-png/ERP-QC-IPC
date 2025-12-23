@@ -389,7 +389,8 @@ export default function CustomersPage() {
       dataField: 'code',
       caption: 'รหัส',
       width: 110,
-      cellRender: (data: { data: Customer }) => {
+      cellRender: (data: { data?: Customer }) => {
+        if (!data.data) return null;
         const config = getTypeConfig(data.data.customerType);
         const Icon = config.icon;
         return (
@@ -406,49 +407,58 @@ export default function CustomersPage() {
       dataField: 'name',
       caption: 'ชื่อลูกค้า',
       minWidth: 200,
-      cellRender: (data: { data: Customer }) => (
-        <div className="min-w-0">
-          <span className="font-medium text-gray-800 truncate block">{data.data.name}</span>
-          {data.data.contactPerson && (
-            <span className="text-xs text-gray-500 truncate block">{data.data.contactPerson}</span>
-          )}
-        </div>
-      ),
+      cellRender: (data: { data?: Customer }) => {
+        if (!data.data) return null;
+        return (
+          <div className="min-w-0">
+            <span className="font-medium text-gray-800 truncate block">{data.data.name}</span>
+            {data.data.contactPerson && (
+              <span className="text-xs text-gray-500 truncate block">{data.data.contactPerson}</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       dataField: 'phone',
       caption: 'โทรศัพท์',
       width: 130,
-      cellRender: (data: { data: Customer }) => (
-        <div className="flex items-center gap-2 text-gray-600">
-          {data.data.phone ? (
-            <>
-              <Phone className="h-3.5 w-3.5 text-gray-400" />
-              <span className="text-sm">{data.data.phone}</span>
-            </>
-          ) : (
-            <span className="text-gray-400">-</span>
-          )}
-        </div>
-      ),
+      cellRender: (data: { data?: Customer }) => {
+        if (!data.data) return null;
+        return (
+          <div className="flex items-center gap-2 text-gray-600">
+            {data.data.phone ? (
+              <>
+                <Phone className="h-3.5 w-3.5 text-gray-400" />
+                <span className="text-sm">{data.data.phone}</span>
+              </>
+            ) : (
+              <span className="text-gray-400">-</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       dataField: 'email',
       caption: 'อีเมล',
       width: 180,
       hideOnMobile: true,
-      cellRender: (data: { data: Customer }) => (
-        <div className="flex items-center gap-2 text-gray-600">
-          {data.data.email ? (
-            <>
-              <Mail className="h-3.5 w-3.5 text-gray-400" />
-              <span className="text-sm truncate">{data.data.email}</span>
-            </>
-          ) : (
-            <span className="text-gray-400">-</span>
-          )}
-        </div>
-      ),
+      cellRender: (data: { data?: Customer }) => {
+        if (!data.data) return null;
+        return (
+          <div className="flex items-center gap-2 text-gray-600">
+            {data.data.email ? (
+              <>
+                <Mail className="h-3.5 w-3.5 text-gray-400" />
+                <span className="text-sm truncate">{data.data.email}</span>
+              </>
+            ) : (
+              <span className="text-gray-400">-</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       dataField: 'creditLimit',
@@ -456,17 +466,21 @@ export default function CustomersPage() {
       width: 140,
       dataType: 'number',
       hideOnMobile: true,
-      cellRender: (data: { data: Customer }) => (
-        <span className="font-semibold text-green-600">
-          {formatCurrency(data.data.creditLimit)}
-        </span>
-      ),
+      cellRender: (data: { data?: Customer }) => {
+        if (!data.data) return null;
+        return (
+          <span className="font-semibold text-green-600">
+            {formatCurrency(data.data.creditLimit)}
+          </span>
+        );
+      },
     },
     {
       dataField: 'customerType',
       caption: 'ประเภท',
       width: 150,
-      cellRender: (data: { data: Customer }) => {
+      cellRender: (data: { data?: Customer }) => {
+        if (!data.data) return null;
         const config = getTypeConfig(data.data.customerType);
         return (
           <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
@@ -479,11 +493,14 @@ export default function CustomersPage() {
       dataField: 'isActive',
       caption: 'สถานะ',
       width: 100,
-      cellRender: (data: { data: Customer }) => (
-        <Badge variant={data.data.isActive ? 'success' : 'danger'} dot>
-          {data.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
-        </Badge>
-      ),
+      cellRender: (data: { data?: Customer }) => {
+        if (!data.data) return null;
+        return (
+          <Badge variant={data.data.isActive ? 'success' : 'danger'} dot>
+            {data.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+          </Badge>
+        );
+      },
     },
   ], []);
 

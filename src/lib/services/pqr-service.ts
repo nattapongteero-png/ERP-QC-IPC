@@ -16,6 +16,8 @@ import type {
   PqrUpdate,
   PqrDashboard,
   PqrStatus,
+  MetricType,
+  MetricStatus,
 } from '@/types/pqr';
 
 // ============================================
@@ -469,9 +471,10 @@ export async function aggregateBatchMetrics(
   const totalBatches = batches.length;
 
   // Calculate average yield (only for completed batches with yield data)
-  const yieldValues = batches
-    .filter((b) => b.yieldPercentage !== null && b.yieldPercentage !== undefined)
-    .map((b) => Number(b.yieldPercentage));
+  type BatchRow = { id: number; status: string | null; yieldPercentage: number | null; actualEndDate: string | Date | null };
+  const yieldValues = (batches as BatchRow[])
+    .filter((b: BatchRow) => b.yieldPercentage !== null && b.yieldPercentage !== undefined)
+    .map((b: BatchRow) => Number(b.yieldPercentage));
 
   const averageYield =
     yieldValues.length > 0
@@ -479,12 +482,12 @@ export async function aggregateBatchMetrics(
       : null;
 
   // Calculate pass rate (completed vs total)
-  const completedCount = batches.filter((b) => b.status === 'completed').length;
+  const completedCount = (batches as BatchRow[]).filter((b: BatchRow) => b.status === 'completed').length;
   const batchPassRate = totalBatches > 0 ? (completedCount / totalBatches) * 100 : null;
 
   // Count by status
   const batchesByStatus: Record<string, number> = {};
-  batches.forEach((b) => {
+  (batches as BatchRow[]).forEach((b: BatchRow) => {
     const status = b.status || 'unknown';
     batchesByStatus[status] = (batchesByStatus[status] || 0) + 1;
   });
@@ -538,21 +541,22 @@ export async function aggregateDeviationMetrics(
 
   const totalDeviations = deviations.length;
 
+  type DeviationRow = { id: number; severity: string | null; status: string | null; reportedAt: string | Date | null };
   // Count by severity
   const bySeverity: Record<string, number> = {};
-  deviations.forEach((d) => {
+  (deviations as DeviationRow[]).forEach((d: DeviationRow) => {
     const severity = d.severity || 'unknown';
     bySeverity[severity] = (bySeverity[severity] || 0) + 1;
   });
 
   // Count by status
   const byStatus: Record<string, number> = {};
-  deviations.forEach((d) => {
+  (deviations as DeviationRow[]).forEach((d: DeviationRow) => {
     const status = d.status || 'unknown';
     byStatus[status] = (byStatus[status] || 0) + 1;
   });
 
-  const closedCount = deviations.filter((d) => d.status === 'closed').length;
+  const closedCount = (deviations as DeviationRow[]).filter((d: DeviationRow) => d.status === 'closed').length;
 
   return {
     totalDeviations,
@@ -605,16 +609,17 @@ export async function aggregateCapaMetrics(
 
   const totalCapas = capas.length;
 
+  type CapaRow = { id: number; status: string | null; dueDate: string | Date | null; closedDate: string | Date | null; createdAt: string | Date | null };
   // Count by status
   const byStatus: Record<string, number> = {};
-  capas.forEach((c) => {
+  (capas as CapaRow[]).forEach((c: CapaRow) => {
     const status = c.status || 'unknown';
     byStatus[status] = (byStatus[status] || 0) + 1;
   });
 
   // Calculate on-time closure rate
-  const closedCapas = capas.filter((c) => c.status === 'closed' && c.closedDate && c.dueDate);
-  const onTimeCount = closedCapas.filter((c) => {
+  const closedCapas = (capas as CapaRow[]).filter((c: CapaRow) => c.status === 'closed' && c.closedDate && c.dueDate);
+  const onTimeCount = closedCapas.filter((c: CapaRow) => {
     const closed = new Date(c.closedDate as string | Date);
     const due = new Date(c.dueDate as string | Date);
     return closed <= due;
@@ -668,16 +673,17 @@ export async function aggregateComplaintMetrics(
 
   const totalComplaints = complaints.length;
 
+  type ComplaintRow = { id: number; category: string | null; severity: string | null; receivedDate: string | Date | null };
   // Count by category
   const byCategory: Record<string, number> = {};
-  complaints.forEach((c) => {
+  (complaints as ComplaintRow[]).forEach((c: ComplaintRow) => {
     const category = c.category || 'unknown';
     byCategory[category] = (byCategory[category] || 0) + 1;
   });
 
   // Count by severity
   const bySeverity: Record<string, number> = {};
-  complaints.forEach((c) => {
+  (complaints as ComplaintRow[]).forEach((c: ComplaintRow) => {
     const severity = c.severity || 'unknown';
     bySeverity[severity] = (bySeverity[severity] || 0) + 1;
   });
@@ -728,13 +734,14 @@ export async function aggregateOosMetrics(
       );
   });
 
+  type TestRow = { id: number; testType: string | null; status: string | null; testDate: string | Date | null };
   const totalTests = tests.length;
-  const oosCount = tests.filter((t) => t.status === 'fail').length;
+  const oosCount = (tests as TestRow[]).filter((t: TestRow) => t.status === 'fail').length;
   const oosRate = totalTests > 0 ? (oosCount / totalTests) * 100 : null;
 
   // Count by test type
   const byTestType: Record<string, { total: number; oos: number }> = {};
-  tests.forEach((t) => {
+  (tests as TestRow[]).forEach((t: TestRow) => {
     const testType = t.testType || 'unknown';
     if (!byTestType[testType]) {
       byTestType[testType] = { total: 0, oos: 0 };
@@ -794,8 +801,10 @@ export async function aggregateStabilityStatus(
 
   const studiesCount = studies.length;
 
+  type StudyRow = { id: number; status: string | null; startDate: string | Date | null };
+  type SampleRow = { studyId: number; oosDetected: boolean | null };
   // Count studies with OOS alerts
-  const studyIds = studies.map((s) => s.id);
+  const studyIds = (studies as StudyRow[]).map((s: StudyRow) => s.id);
   let alertsCount = 0;
 
   if (studyIds.length > 0) {
@@ -815,7 +824,7 @@ export async function aggregateStabilityStatus(
     });
 
     // Count unique studies with OOS
-    const studiesWithOos = new Set(samplesWithOos.map((s) => s.studyId));
+    const studiesWithOos = new Set((samplesWithOos as SampleRow[]).map((s: SampleRow) => s.studyId));
     alertsCount = studiesWithOos.size;
   }
 

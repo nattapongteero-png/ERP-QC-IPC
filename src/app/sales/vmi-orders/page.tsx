@@ -474,7 +474,8 @@ export default function VmiOrdersPage() {
   }, []);
 
   // Cell renderers
-  const renderOrderIdCell = useCallback((data: { data: VmiOrder }) => {
+  const renderOrderIdCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     const order = data.data;
     const overdue = isOverdue(order.requestedDeliveryDate || '', order.status);
     return (
@@ -490,7 +491,8 @@ export default function VmiOrdersPage() {
     );
   }, []);
 
-  const renderPortalCell = useCallback((data: { data: VmiOrder }) => {
+  const renderPortalCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     return (
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center">
@@ -501,7 +503,8 @@ export default function VmiOrdersPage() {
     );
   }, []);
 
-  const renderCustomerCell = useCallback((data: { data: VmiOrder }) => {
+  const renderCustomerCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     const order = data.data;
     return (
       <div className="min-w-0">
@@ -513,7 +516,8 @@ export default function VmiOrdersPage() {
     );
   }, []);
 
-  const renderMatchStatusCell = useCallback((data: { data: VmiOrder }) => {
+  const renderMatchStatusCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     const order = data.data;
     const allMatched = order.matchedItems === order.totalItems;
     const percentage =
@@ -549,7 +553,8 @@ export default function VmiOrdersPage() {
     );
   }, []);
 
-  const renderPriorityCell = useCallback((data: { data: VmiOrder }) => {
+  const renderPriorityCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     const config = PRIORITY_CONFIG[data.data.priority];
     return (
       <span className={cn('px-2 py-1 rounded text-xs font-medium', config.bgColor, config.color)}>
@@ -558,11 +563,13 @@ export default function VmiOrdersPage() {
     );
   }, []);
 
-  const renderDateCell = useCallback((data: { data: VmiOrder }) => {
+  const renderDateCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     return <span className="text-sm">{formatDate(data.data.orderDate)}</span>;
   }, []);
 
-  const renderDeliveryDateCell = useCallback((data: { data: VmiOrder }) => {
+  const renderDeliveryDateCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     const order = data.data;
     const overdue = isOverdue(order.requestedDeliveryDate || '', order.status);
     const daysUntil = getDaysUntilRequired(order.requestedDeliveryDate || '', order.status);
@@ -596,13 +603,15 @@ export default function VmiOrdersPage() {
     );
   }, []);
 
-  const renderAmountCell = useCallback((data: { data: VmiOrder }) => {
+  const renderAmountCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     return (
       <span className="font-semibold text-green-600">{formatCurrency(data.data.totalAmount)}</span>
     );
   }, []);
 
-  const renderStatusCell = useCallback((data: { data: VmiOrder }) => {
+  const renderStatusCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     const config = STATUS_CONFIG[data.data.status];
     if (!config) return <Badge>-</Badge>;
     const Icon = config.icon;
@@ -620,7 +629,8 @@ export default function VmiOrdersPage() {
     );
   }, []);
 
-  const renderActionsCell = useCallback((data: { data: VmiOrder }) => {
+  const renderActionsCell = useCallback((data: { data?: VmiOrder }) => {
+    if (!data.data) return null;
     return (
       <DxButton
         icon="chevronnext"
@@ -629,7 +639,7 @@ export default function VmiOrdersPage() {
         hint="ดูรายละเอียด"
         onClick={(e) => {
           e.event?.stopPropagation();
-          setSelectedOrderId(data.data.id);
+          setSelectedOrderId(data.data!.id);
         }}
       />
     );

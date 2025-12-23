@@ -295,7 +295,7 @@ export default function NewCustomerPage() {
                   type="normal"
                   stylingMode="text"
                   onClick={() => router.push('/sales/customers')}
-                  elementAttr={{ class: 'text-white hover:bg-white/20' }}
+                  className="text-white hover:bg-white/20"
                 />
                 <button
                   onClick={fetchNextCode}

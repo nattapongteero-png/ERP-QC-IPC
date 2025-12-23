@@ -429,8 +429,6 @@ export function ItemSearchDialog({
             showBorders
             showRowLines
             rowAlternationEnabled
-            hoverStateEnabled
-            focusedRowEnabled
             onRowDblClick={onRowDblClick}
             onSelectionChanged={onSelectionChanged}
             height="100%"
