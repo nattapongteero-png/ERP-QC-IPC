@@ -141,7 +141,7 @@ export const capaListParamsSchema = z.object({
   ownerId: z.coerce.number().int().positive().optional(),
   overdue: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  limit: z.coerce.number().int().positive().max(1000).optional().default(20),
 });
 
 // ============================================
