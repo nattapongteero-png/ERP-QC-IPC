@@ -11,6 +11,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
   Paging,
@@ -18,31 +19,39 @@ import DataGrid, {
   FilterRow,
   SearchPanel,
   HeaderFilter,
+  ColumnChooser,
+  Export,
+  Grouping,
+  GroupPanel,
+  Summary,
+  TotalItem,
+  Toolbar,
+  Item,
   Scrolling,
+  Selection,
 } from 'devextreme-react/data-grid';
-import { DxButton } from '@/components/ui/dx-button';
-import { DxTabs } from '@/components/ui/dx-tabs';
+import { Workbook } from 'exceljs';
+import { saveAs } from 'file-saver';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+import type { ExportingEvent } from 'devextreme/ui/data_grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import {
-  PieChart,
-  Series,
-  Label,
-  Legend,
-  Tooltip,
+import PieChart, {
+  Series as PieSeries,
+  Label as PieLabel,
+  Legend as PieLegend,
+  Tooltip as PieTooltip,
   Connector,
 } from 'devextreme-react/pie-chart';
-import {
-  Chart,
+import Chart, {
   CommonSeriesSettings,
-  Series as ChartSeries,
+  Series,
   ArgumentAxis,
   ValueAxis,
-  Legend as ChartLegend,
-  Tooltip as ChartTooltip,
-  Label as ChartLabel,
+  Legend,
+  Tooltip,
+  Label,
 } from 'devextreme-react/chart';
 import {
   BarChart3,
@@ -57,6 +66,13 @@ import {
   Search,
   FlaskConical,
   ClipboardCheck,
+  RefreshCw,
+  Plus,
+  Eye,
+  MoreHorizontal,
+  FileBarChart,
+  Target,
+  Percent,
 } from 'lucide-react';
 import type {
   PqrReport,
@@ -69,17 +85,130 @@ import type {
 // Constants
 // ============================================
 
-const STATUS_COLORS: Record<PqrStatus, string> = {
-  draft: '#6b7280',
-  under_review: '#f59e0b',
-  approved: '#22c55e',
+const STATUS_CONFIG: Record<PqrStatus, {
+  label: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  chartColor: string;
+  icon: React.ReactNode;
+}> = {
+  draft: {
+    label: 'Draft',
+    bgColor: 'bg-slate-50',
+    textColor: 'text-slate-700',
+    borderColor: 'border-slate-200',
+    chartColor: '#64748b',
+    icon: <Clock className="h-3.5 w-3.5" />,
+  },
+  under_review: {
+    label: 'Under Review',
+    bgColor: 'bg-amber-50',
+    textColor: 'text-amber-700',
+    borderColor: 'border-amber-200',
+    chartColor: '#f59e0b',
+    icon: <Search className="h-3.5 w-3.5" />,
+  },
+  approved: {
+    label: 'Approved',
+    bgColor: 'bg-emerald-50',
+    textColor: 'text-emerald-700',
+    borderColor: 'border-emerald-200',
+    chartColor: '#10b981',
+    icon: <CheckCircle className="h-3.5 w-3.5" />,
+  },
 };
 
-const STATUS_LABELS: Record<PqrStatus, string> = {
-  draft: 'Draft',
-  under_review: 'Under Review',
-  approved: 'Approved',
-};
+// ============================================
+// Helper Components
+// ============================================
+
+function MetricCard({
+  value,
+  label,
+  color = 'text-gray-900'
+}: {
+  value: number | string;
+  label: string;
+  color?: string;
+}) {
+  return (
+    <div className="text-center px-4 py-3">
+      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+    </div>
+  );
+}
+
+function StatusCard({
+  status,
+  count,
+  total,
+}: {
+  status: PqrStatus;
+  count: number;
+  total: number;
+}) {
+  const config = STATUS_CONFIG[status];
+  const percentage = total > 0 ? ((count / total) * 100).toFixed(0) : '0';
+
+  return (
+    <div className={`${config.bgColor} border ${config.borderColor} rounded-xl p-4`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`p-2.5 ${config.bgColor} border ${config.borderColor} rounded-lg`}>
+            {config.icon}
+          </div>
+          <div>
+            <p className={`font-semibold ${config.textColor}`}>{config.label}</p>
+            <p className="text-xs text-gray-500">{percentage}% of total</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className={`text-2xl font-bold ${config.textColor}`}>{count}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricIndicator({
+  label,
+  value,
+  target,
+  icon,
+  iconColor,
+  bgGradient,
+}: {
+  label: string;
+  value: number | null;
+  target?: number;
+  icon: React.ReactNode;
+  iconColor: string;
+  bgGradient: string;
+}) {
+  const displayValue = value !== null ? `${value}%` : 'N/A';
+  const isGood = target !== undefined && value !== null && value <= target;
+
+  return (
+    <div className={`flex items-center justify-between p-3 bg-gradient-to-r ${bgGradient} rounded-lg`}>
+      <div className="flex items-center gap-2">
+        <div className={iconColor}>{icon}</div>
+        <span className="text-sm text-gray-700">{label}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        {target !== undefined && value !== null && (
+          <span className={`text-xs ${isGood ? 'text-emerald-600' : 'text-red-600'}`}>
+            {isGood ? '✓' : '!'}
+          </span>
+        )}
+        <span className={`text-lg font-bold ${iconColor.replace('text-', 'text-')}`}>
+          {displayValue}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 // ============================================
 // API Functions
@@ -137,13 +266,13 @@ async function createPqrReport(data: PqrCreate): Promise<PqrReport> {
 }
 
 // ============================================
-// Component
+// Main Component
 // ============================================
 
 export default function PqrDashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<PqrStatus | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<string>('all');
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [newReportData, setNewReportData] = useState<Partial<PqrCreate>>({
     reviewYear: new Date().getFullYear(),
@@ -157,8 +286,8 @@ export default function PqrDashboardPage() {
 
   // Fetch PQR list
   const { data: pqrData } = useQuery({
-    queryKey: ['pqr-list', statusFilter],
-    queryFn: () => fetchPqrList({ status: statusFilter, limit: 100 }),
+    queryKey: ['pqr-list'],
+    queryFn: () => fetchPqrList({ limit: 100 }),
   });
 
   // Fetch products for new report dialog
@@ -180,29 +309,36 @@ export default function PqrDashboardPage() {
     },
   });
 
-  // Status tabs
-  const statusTabs = [
-    { id: 0, text: 'All', icon: 'selectall' },
-    { id: 1, text: 'Draft', icon: 'edit' },
-    { id: 2, text: 'Under Review', icon: 'find' },
-    { id: 3, text: 'Approved', icon: 'check' },
-  ];
+  // Calculate stats
+  const stats = useMemo(() => {
+    const items = pqrData?.items || [];
+    const draft = items.filter(r => r.status === 'draft').length;
+    const underReview = items.filter(r => r.status === 'under_review').length;
+    const approved = items.filter(r => r.status === 'approved').length;
+    const total = items.length;
 
-  const handleTabChange = (index: number) => {
-    const statusMap: (PqrStatus | undefined)[] = [undefined, 'draft', 'under_review', 'approved'];
-    setStatusFilter(statusMap[index]);
-  };
+    return { draft, underReview, approved, total };
+  }, [pqrData]);
 
-  // Prepare chart data
+  // Filtered data based on active tab
+  const filteredReports = useMemo(() => {
+    const items = pqrData?.items || [];
+    if (activeTab === 'all') return items;
+    if (activeTab === 'draft') return items.filter(r => r.status === 'draft');
+    if (activeTab === 'under_review') return items.filter(r => r.status === 'under_review');
+    if (activeTab === 'approved') return items.filter(r => r.status === 'approved');
+    return items;
+  }, [pqrData, activeTab]);
+
+  // Chart data
   const statusChartData = useMemo(() => {
     if (!dashboard?.byStatus) return [];
     return Object.entries(dashboard.byStatus)
       .filter(([, count]) => count > 0)
       .map(([status, count]) => ({
-        status,
-        label: STATUS_LABELS[status as PqrStatus],
-        value: count,
-        color: STATUS_COLORS[status as PqrStatus],
+        status: STATUS_CONFIG[status as PqrStatus].label,
+        count,
+        color: STATUS_CONFIG[status as PqrStatus].chartColor,
       }));
   }, [dashboard]);
 
@@ -214,59 +350,119 @@ export default function PqrDashboardPage() {
     }));
   }, [dashboard]);
 
+  // Export handler
+  const handleExporting = (e: ExportingEvent) => {
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet('PQR Reports');
+
+    exportDataGrid({
+      component: e.component,
+      worksheet,
+      autoFilterEnabled: true,
+      customizeCell: ({ gridCell, excelCell }) => {
+        if (gridCell?.rowType === 'header') {
+          excelCell.font = { bold: true };
+          excelCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE8EAF6' },
+          };
+        }
+      },
+    }).then(() => {
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        saveAs(
+          new Blob([buffer], { type: 'application/octet-stream' }),
+          `PQR_Reports_${new Date().toISOString().split('T')[0]}.xlsx`
+        );
+      });
+    });
+    e.cancel = true;
+  };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['pqr-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['pqr-list'] });
+  };
+
   // Cell renderers
-  const renderStatus = useCallback((data: { value: PqrStatus }) => {
-    const colors: Record<PqrStatus, string> = {
-      draft: 'bg-gray-100 text-gray-700',
-      under_review: 'bg-amber-100 text-amber-700',
-      approved: 'bg-green-100 text-green-700',
-    };
+  const renderReportNumber = (cellData: { data: PqrReport }) => {
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colors[data.value]}`}>
-        {STATUS_LABELS[data.value]}
+      <span className="font-mono font-semibold text-indigo-700">
+        {cellData.data.reportNumber}
       </span>
     );
-  }, []);
+  };
 
-  const renderProduct = useCallback((data: { data: PqrReport }) => {
+  const renderProduct = (cellData: { data: PqrReport }) => {
+    const report = cellData.data;
     return (
-      <div className="flex flex-col">
-        <span className="font-medium text-sm">{data.data.productName || 'N/A'}</span>
-        <span className="text-xs text-gray-500">{data.data.productCode}</span>
+      <div className="min-w-0">
+        <p className="font-medium text-gray-900 truncate">{report.productName || 'N/A'}</p>
+        <p className="text-xs text-gray-500 truncate">{report.productCode}</p>
       </div>
     );
-  }, []);
+  };
 
-  const renderMetrics = useCallback((data: { data: PqrReport }) => {
+  const renderStatus = (cellData: { data: PqrReport }) => {
+    const status = cellData.data.status;
+    const config = STATUS_CONFIG[status];
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgColor} ${config.textColor} ${config.borderColor}`}>
+        {config.icon}
+        {config.label}
+      </span>
+    );
+  };
+
+  const renderMetrics = useCallback((cellData: { data: PqrReport }) => {
+    const report = cellData.data;
     return (
       <div className="flex items-center gap-3 text-xs">
-        <span title="Batches" className="flex items-center gap-1">
-          <Package className="w-3 h-3" />
-          {data.data.batchesProduced}
+        <span title="Batches" className="flex items-center gap-1 text-gray-600">
+          <Package className="w-3.5 h-3.5" />
+          {report.batchesProduced}
         </span>
         <span title="Deviations" className="flex items-center gap-1 text-amber-600">
-          <AlertTriangle className="w-3 h-3" />
-          {data.data.deviationCount}
+          <AlertTriangle className="w-3.5 h-3.5" />
+          {report.deviationCount}
         </span>
         <span title="CAPAs" className="flex items-center gap-1 text-blue-600">
-          <ClipboardCheck className="w-3 h-3" />
-          {data.data.capaCount}
+          <ClipboardCheck className="w-3.5 h-3.5" />
+          {report.capaCount}
         </span>
         <span title="OOS" className="flex items-center gap-1 text-red-600">
-          <FlaskConical className="w-3 h-3" />
-          {data.data.oosCount}
+          <FlaskConical className="w-3.5 h-3.5" />
+          {report.oosCount}
         </span>
       </div>
     );
   }, []);
 
-  // Handle row click
-  const handleRowClick = useCallback(
-    (e: { data: PqrReport }) => {
-      router.push(`/gmp/pqr/${e.data.id}`);
-    },
-    [router]
-  );
+  const renderActions = (cellData: { data: PqrReport }) => {
+    const report = cellData.data;
+    return (
+      <div className="flex items-center gap-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/gmp/pqr/${report.id}`);
+          }}
+          className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+          title="View Details"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+          title="More Options"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  };
 
   // Handle create new report
   const handleCreateReport = () => {
@@ -274,326 +470,442 @@ export default function PqrDashboardPage() {
     createMutation.mutate(newReportData as PqrCreate);
   };
 
-  const totalAll = dashboard?.totalReports ?? 0;
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
-      {/* Page Header */}
-      <ResponsivePageHeader
-        title="Product Quality Review (PQR)"
-        subtitle="Annual Quality Review Reports (GMP หมวด 1)"
-        icon={BarChart3}
-        iconBgColor="bg-indigo-100"
-        iconColor="text-indigo-600"
-        breadcrumbs={[
-          { label: 'GMP', href: '/gmp' },
-          { label: 'PQR' },
-        ]}
-        actions={
-          <div className="flex items-center gap-2">
-            <DxButton
-              icon="refresh"
-              type="default"
-              stylingMode="outlined"
-              hint="Refresh"
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['pqr-dashboard'] });
-                queryClient.invalidateQueries({ queryKey: ['pqr-list'] });
-              }}
+    <MainLayout>
+      <div className="flex flex-col h-full gap-6 -m-4 md:-m-6">
+        {/* Professional Header */}
+        <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 p-6 text-white">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <FileBarChart className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Product Quality Review</h1>
+                <p className="text-indigo-100 text-sm">PQR - Annual Quality Review Reports (GMP หมวด 1)</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleRefresh}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+              >
+                <RefreshCw className={`h-4 w-4 ${dashboardLoading ? 'animate-spin' : ''}`} />
+                <span className="text-sm font-medium">Refresh</span>
+              </button>
+              <button
+                onClick={() => router.push('/reports')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span className="text-sm font-medium">Reports</span>
+              </button>
+              <button
+                onClick={() => setShowNewDialog(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors font-medium"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">New PQR</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Stats Bar */}
+        <div className="mx-4 md:mx-6 -mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 divide-x divide-gray-200 bg-white rounded-xl shadow-lg border border-gray-100">
+            <MetricCard value={dashboard?.totalReports ?? 0} label="Total Reports" />
+            <MetricCard value={dashboard?.byStatus?.draft ?? 0} label="Draft" color="text-slate-600" />
+            <MetricCard value={dashboard?.pendingReview ?? 0} label="Under Review" color="text-amber-600" />
+            <MetricCard value={dashboard?.byStatus?.approved ?? 0} label="Approved" color="text-emerald-600" />
+            <MetricCard value={dashboard?.approvedThisYear ?? 0} label={`${currentYear} Approved`} color="text-blue-600" />
+            <MetricCard
+              value={dashboard?.averageMetrics?.deviationRate != null ? `${dashboard.averageMetrics.deviationRate}%` : 'N/A'}
+              label="Avg Deviation"
+              color="text-red-600"
             />
-            <DxButton
-              icon="plus"
-              text="New PQR Report"
-              type="success"
-              onClick={() => setShowNewDialog(true)}
+            <MetricCard
+              value={dashboard?.averageMetrics?.oosRate != null ? `${dashboard.averageMetrics.oosRate}%` : 'N/A'}
+              label="Avg OOS"
+              color="text-purple-600"
             />
           </div>
-        }
-      />
-
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-        <StatCard
-          label="Total Reports"
-          value={dashboard?.totalReports ?? 0}
-          icon={FileText}
-          iconColor="text-indigo-500"
-          accentColor="border-indigo-500"
-          isLoading={dashboardLoading}
-        />
-        <StatCard
-          label="Draft"
-          value={dashboard?.byStatus?.draft ?? 0}
-          icon={Clock}
-          iconColor="text-gray-500"
-          accentColor="border-gray-500"
-          isLoading={dashboardLoading}
-        />
-        <StatCard
-          label="Under Review"
-          value={dashboard?.pendingReview ?? 0}
-          icon={Search}
-          iconColor="text-amber-500"
-          accentColor="border-amber-500"
-          isLoading={dashboardLoading}
-        />
-        <StatCard
-          label="Approved"
-          value={dashboard?.byStatus?.approved ?? 0}
-          icon={CheckCircle}
-          iconColor="text-green-500"
-          accentColor="border-green-500"
-          isLoading={dashboardLoading}
-        />
-        <StatCard
-          label={`Approved ${currentYear}`}
-          value={dashboard?.approvedThisYear ?? 0}
-          icon={Calendar}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
-          isLoading={dashboardLoading}
-        />
-        <StatCard
-          label="Deviation Rate"
-          value={dashboard?.averageMetrics?.deviationRate != null ? `${dashboard.averageMetrics.deviationRate}%` : 'N/A'}
-          icon={AlertTriangle}
-          iconColor="text-red-500"
-          accentColor="border-red-500"
-          isLoading={dashboardLoading}
-        />
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
-        {/* Status Pie Chart */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-indigo-500" />
-              By Status
-            </h3>
-          </div>
-          {statusChartData.length > 0 ? (
-            <PieChart
-              id="status-pie"
-              dataSource={statusChartData}
-              type="doughnut"
-              innerRadius={0.65}
-              palette={statusChartData.map((d) => d.color)}
-              size={{ height: 200 }}
-            >
-              <Series argumentField="label" valueField="value">
-                <Label visible={false} />
-                <Connector visible={false} />
-              </Series>
-              <Legend
-                visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
-                font={{ size: 11 }}
-              />
-              <Tooltip
-                enabled={true}
-                customizeTooltip={(arg: { argumentText?: string; valueText?: string; percentText?: string }) => ({
-                  text: `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`,
-                })}
-              />
-            </PieChart>
-          ) : (
-            <div className="h-[200px] flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <Activity className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No data</p>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Year Bar Chart */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-blue-500" />
-              Reports by Year
-            </h3>
-          </div>
-          {yearChartData.length > 0 ? (
-            <Chart id="year-chart" dataSource={yearChartData} size={{ height: 200 }}>
-              <CommonSeriesSettings argumentField="year" type="bar" color="#6366f1" />
-              <ChartSeries valueField="count" name="Reports" color="#6366f1" />
-              <ArgumentAxis>
-                <ChartLabel overlappingBehavior="rotate" rotationAngle={-45} />
-              </ArgumentAxis>
-              <ValueAxis />
-              <ChartLegend visible={false} />
-              <ChartTooltip
-                enabled={true}
-                customizeTooltip={(arg: { argumentText?: string; valueText?: string }) => ({
-                  text: `${arg.argumentText}: ${arg.valueText} reports`,
-                })}
-              />
-            </Chart>
-          ) : (
-            <div className="h-[200px] flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No data</p>
+        {/* Main Content */}
+        <div className="px-4 md:px-6 pb-6 flex-1 flex flex-col gap-6">
+          {/* Dashboard Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Left Column - Charts */}
+            <div className="xl:col-span-2 space-y-6">
+              {/* Status Cards */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Activity className="h-5 w-5 text-indigo-600" />
+                  <h3 className="font-semibold text-gray-900">Reports by Status</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <StatusCard status="draft" count={stats.draft} total={stats.total} />
+                  <StatusCard status="under_review" count={stats.underReview} total={stats.total} />
+                  <StatusCard status="approved" count={stats.approved} total={stats.total} />
+                </div>
+              </div>
+
+              {/* Charts Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Status Distribution */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="h-5 w-5 text-indigo-600" />
+                    <h3 className="font-semibold text-gray-900">Status Distribution</h3>
+                  </div>
+                  {statusChartData.length > 0 ? (
+                    <PieChart
+                      dataSource={statusChartData}
+                      type="doughnut"
+                      innerRadius={0.65}
+                      palette={statusChartData.map(d => d.color)}
+                      size={{ height: 220 }}
+                    >
+                      <PieSeries argumentField="status" valueField="count">
+                        <PieLabel visible format="fixedPoint" customizeText={(arg) => `${arg.percentText}`}>
+                          <Connector visible width={1} />
+                        </PieLabel>
+                      </PieSeries>
+                      <PieLegend
+                        verticalAlignment="bottom"
+                        horizontalAlignment="center"
+                        itemTextPosition="right"
+                      />
+                      <PieTooltip enabled />
+                    </PieChart>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-[220px] text-gray-400">
+                      <TrendingUp className="h-12 w-12 mb-2 opacity-50" />
+                      <p className="text-sm">No report data</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reports by Year */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Calendar className="h-5 w-5 text-indigo-600" />
+                    <h3 className="font-semibold text-gray-900">Reports by Year</h3>
+                  </div>
+                  {yearChartData.length > 0 ? (
+                    <Chart dataSource={yearChartData} size={{ height: 220 }}>
+                      <CommonSeriesSettings
+                        argumentField="year"
+                        valueField="count"
+                        type="bar"
+                        barWidth={40}
+                        color="#6366f1"
+                      />
+                      <Series />
+                      <ArgumentAxis>
+                        <Label visible />
+                      </ArgumentAxis>
+                      <ValueAxis />
+                      <Legend visible={false} />
+                      <Tooltip enabled />
+                    </Chart>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-[220px] text-gray-400">
+                      <Calendar className="h-12 w-12 mb-2 opacity-50" />
+                      <p className="text-sm">No yearly data</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          )}
+
+            {/* Right Column - Metrics Summary */}
+            <div className="space-y-6">
+              {/* Average Metrics */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Target className="h-5 w-5 text-indigo-600" />
+                  <h3 className="font-semibold text-gray-900">Average Metrics</h3>
+                </div>
+                <div className="space-y-3">
+                  <MetricIndicator
+                    label="Deviation Rate"
+                    value={dashboard?.averageMetrics?.deviationRate ?? null}
+                    target={5}
+                    icon={<AlertTriangle className="h-4 w-4" />}
+                    iconColor="text-red-600"
+                    bgGradient="from-red-50 to-rose-50"
+                  />
+                  <MetricIndicator
+                    label="OOS Rate"
+                    value={dashboard?.averageMetrics?.oosRate ?? null}
+                    target={2}
+                    icon={<FlaskConical className="h-4 w-4" />}
+                    iconColor="text-amber-600"
+                    bgGradient="from-amber-50 to-yellow-50"
+                  />
+                  <MetricIndicator
+                    label="CAPA Closure"
+                    value={dashboard?.averageMetrics?.capaClosureRate ?? null}
+                    target={95}
+                    icon={<ClipboardCheck className="h-4 w-4" />}
+                    iconColor="text-blue-600"
+                    bgGradient="from-blue-50 to-indigo-50"
+                  />
+                  <MetricIndicator
+                    label="Complaint Rate"
+                    value={dashboard?.averageMetrics?.complaintRate ?? null}
+                    target={1}
+                    icon={<Package className="h-4 w-4" />}
+                    iconColor="text-purple-600"
+                    bgGradient="from-purple-50 to-violet-50"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Percent className="h-5 w-5 text-indigo-600" />
+                  <h3 className="font-semibold text-gray-900">Quick Summary</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-indigo-600" />
+                      <span className="text-sm text-indigo-700">Total Reports</span>
+                    </div>
+                    <span className="text-lg font-bold text-indigo-700">{dashboard?.totalReports ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm text-emerald-700">Approved {currentYear}</span>
+                    </div>
+                    <span className="text-lg font-bold text-emerald-700">{dashboard?.approvedThisYear ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Search className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm text-amber-700">Pending Review</span>
+                    </div>
+                    <span className="text-lg font-bold text-amber-700">{dashboard?.pendingReview ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-slate-600" />
+                      <span className="text-sm text-slate-700">Draft</span>
+                    </div>
+                    <span className="text-lg font-bold text-slate-700">{dashboard?.byStatus?.draft ?? 0}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* DataGrid Section */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex-1">
+            {/* Tabs Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <div className="flex gap-1">
+                {[
+                  { key: 'all', label: 'All Reports', count: stats.total },
+                  { key: 'draft', label: 'Draft', count: stats.draft },
+                  { key: 'under_review', label: 'Under Review', count: stats.underReview },
+                  { key: 'approved', label: 'Approved', count: stats.approved },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === tab.key
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {tab.label}
+                    <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
+                      activeTab === tab.key
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <FileText className="h-4 w-4" />
+                <span>{filteredReports.length} reports</span>
+              </div>
+            </div>
+
+            {/* DataGrid */}
+            <div className="pqr-grid">
+              <DataGrid
+                dataSource={filteredReports}
+                showBorders={false}
+                showRowLines
+                showColumnLines={false}
+                rowAlternationEnabled
+                hoverStateEnabled
+                height={500}
+                columnAutoWidth
+                wordWrapEnabled={false}
+                onExporting={handleExporting}
+                onRowClick={(e) => {
+                  if (e.data && e.rowType === 'data') {
+                    router.push(`/gmp/pqr/${e.data.id}`);
+                  }
+                }}
+                className="dx-card"
+              >
+                {/* Toolbar */}
+                <Toolbar>
+                  <Item name="groupPanel" />
+                  <Item location="after" name="columnChooserButton" />
+                  <Item location="after" name="exportButton" />
+                  <Item location="after" name="searchPanel" />
+                </Toolbar>
+
+                {/* Features */}
+                <SearchPanel visible placeholder="Search reports..." width={250} />
+                <FilterRow visible />
+                <HeaderFilter visible />
+                <ColumnChooser enabled mode="select" />
+                <Grouping autoExpandAll={false} />
+                <GroupPanel visible />
+                <Scrolling mode="virtual" />
+                <Selection mode="single" />
+
+                {/* Export */}
+                <Export enabled allowExportSelectedData formats={['xlsx']} />
+
+                {/* Paging */}
+                <Paging defaultPageSize={15} />
+                <Pager
+                  showPageSizeSelector
+                  allowedPageSizes={[10, 15, 25, 50]}
+                  showInfo
+                  showNavigationButtons
+                  displayMode="adaptive"
+                />
+
+                {/* Columns */}
+                <Column
+                  dataField="reportNumber"
+                  caption="Report #"
+                  width={140}
+                  fixed
+                  cellRender={renderReportNumber}
+                />
+                <Column
+                  caption="Product"
+                  minWidth={200}
+                  cellRender={renderProduct}
+                  allowFiltering={false}
+                />
+                <Column
+                  dataField="reviewYear"
+                  caption="Year"
+                  width={80}
+                  alignment="center"
+                />
+                <Column
+                  dataField="status"
+                  caption="Status"
+                  width={130}
+                  cellRender={renderStatus}
+                />
+                <Column
+                  caption="Key Metrics"
+                  width={200}
+                  cellRender={renderMetrics}
+                  allowFiltering={false}
+                  allowSorting={false}
+                />
+                <Column
+                  dataField="batchesProduced"
+                  caption="Batches"
+                  width={90}
+                  alignment="center"
+                />
+                <Column
+                  dataField="approvedByName"
+                  caption="Approved By"
+                  width={150}
+                />
+                <Column
+                  dataField="createdAt"
+                  caption="Created"
+                  dataType="date"
+                  format="dd MMM yyyy"
+                  width={120}
+                />
+                <Column
+                  caption=""
+                  width={80}
+                  cellRender={renderActions}
+                  allowFiltering={false}
+                  allowSorting={false}
+                  allowGrouping={false}
+                  fixed
+                  fixedPosition="right"
+                />
+
+                {/* Summary */}
+                <Summary>
+                  <TotalItem column="reportNumber" summaryType="count" displayFormat="Total: {0}" />
+                </Summary>
+              </DataGrid>
+
+              <style jsx global>{`
+                .pqr-grid .dx-datagrid {
+                  background: transparent;
+                }
+                .pqr-grid .dx-datagrid-headers {
+                  background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+                  border-bottom: 2px solid #e5e7eb;
+                }
+                .pqr-grid .dx-datagrid-headers .dx-header-row > td {
+                  font-weight: 600;
+                  color: #374151;
+                  padding: 12px 8px;
+                }
+                .pqr-grid .dx-datagrid-rowsview .dx-row > td {
+                  padding: 10px 8px;
+                  vertical-align: middle;
+                }
+                .pqr-grid .dx-datagrid-rowsview .dx-row:hover {
+                  background-color: #eef2ff !important;
+                  cursor: pointer;
+                }
+                .pqr-grid .dx-datagrid-rowsview .dx-row-alt > td {
+                  background-color: #fafafa;
+                }
+                .pqr-grid .dx-datagrid-search-panel {
+                  margin-left: 0;
+                }
+                .pqr-grid .dx-toolbar {
+                  padding: 8px 12px;
+                  background: #f9fafb;
+                  border-bottom: 1px solid #e5e7eb;
+                }
+                .pqr-grid .dx-datagrid-group-panel {
+                  padding: 8px;
+                }
+                .pqr-grid .dx-datagrid-pager {
+                  padding: 12px;
+                  background: #f9fafb;
+                  border-top: 1px solid #e5e7eb;
+                }
+              `}</style>
+            </div>
+          </div>
         </div>
-
-        {/* Metrics Summary */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-green-500" />
-              Average Metrics
-            </h3>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-red-50 to-rose-50 rounded-lg border border-red-100">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-                <span className="text-sm text-gray-700">Deviation Rate</span>
-              </div>
-              <span className="text-lg font-bold text-red-600">
-                {dashboard?.averageMetrics?.deviationRate != null
-                  ? `${dashboard.averageMetrics.deviationRate}%`
-                  : 'N/A'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-100">
-              <div className="flex items-center gap-2">
-                <FlaskConical className="h-4 w-4 text-amber-600" />
-                <span className="text-sm text-gray-700">OOS Rate</span>
-              </div>
-              <span className="text-lg font-bold text-amber-600">
-                {dashboard?.averageMetrics?.oosRate != null
-                  ? `${dashboard.averageMetrics.oosRate}%`
-                  : 'N/A'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-              <div className="flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-gray-700">CAPA Closure</span>
-              </div>
-              <span className="text-lg font-bold text-blue-600">
-                {dashboard?.averageMetrics?.capaClosureRate != null
-                  ? `${dashboard.averageMetrics.capaClosureRate}%`
-                  : 'N/A'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg border border-purple-100">
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-purple-600" />
-                <span className="text-sm text-gray-700">Complaint Rate</span>
-              </div>
-              <span className="text-lg font-bold text-purple-600">
-                {dashboard?.averageMetrics?.complaintRate != null
-                  ? `${dashboard.averageMetrics.complaintRate}%`
-                  : 'N/A'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content - Tabs + DataGrid */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* Tabs Header */}
-        <div className="border-b border-gray-200 px-4 py-3 bg-gray-50">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <DxTabs
-              items={statusTabs}
-              selectedIndex={
-                statusFilter === undefined
-                  ? 0
-                  : statusFilter === 'draft'
-                  ? 1
-                  : statusFilter === 'under_review'
-                  ? 2
-                  : 3
-              }
-              onSelectedIndexChange={handleTabChange}
-              stylingMode="secondary"
-            />
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <FileText className="w-4 h-4" />
-                {totalAll} reports
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* DataGrid */}
-        <DataGrid
-          dataSource={pqrData?.items || []}
-          showBorders={false}
-          showRowLines={true}
-          showColumnLines={false}
-          rowAlternationEnabled={true}
-          hoverStateEnabled={true}
-          onRowClick={handleRowClick}
-          height="auto"
-          columnAutoWidth={true}
-          wordWrapEnabled={true}
-        >
-          <Scrolling mode="standard" />
-          <Paging defaultPageSize={10} />
-          <Pager
-            showPageSizeSelector={true}
-            allowedPageSizes={[10, 25, 50]}
-            showInfo={true}
-            showNavigationButtons={true}
-          />
-          <FilterRow visible={true} />
-          <SearchPanel visible={true} placeholder="Search reports..." width={200} />
-          <HeaderFilter visible={true} />
-
-          <Column
-            dataField="reportNumber"
-            caption="Report #"
-            width={140}
-            cellRender={(data: { value: string }) => (
-              <span className="font-mono text-sm text-indigo-600">{data.value}</span>
-            )}
-          />
-          <Column
-            caption="Product"
-            cellRender={renderProduct}
-            calculateCellValue={(data: PqrReport) => data.productName}
-            width={200}
-          />
-          <Column dataField="reviewYear" caption="Year" width={80} alignment="center" />
-          <Column dataField="status" caption="Status" width={120} cellRender={renderStatus} />
-          <Column caption="Key Metrics" cellRender={renderMetrics} width={200} />
-          <Column
-            dataField="batchesProduced"
-            caption="Batches"
-            width={90}
-            alignment="center"
-          />
-          <Column
-            dataField="approvedByName"
-            caption="Approved By"
-            width={150}
-          />
-          <Column
-            dataField="createdAt"
-            caption="Created"
-            dataType="date"
-            format="dd/MM/yyyy"
-            width={110}
-          />
-        </DataGrid>
       </div>
 
       {/* New PQR Report Dialog */}
@@ -657,22 +969,23 @@ export default function PqrDashboardPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton
-              text="Cancel"
-              type="default"
-              stylingMode="outlined"
+            <button
               onClick={() => setShowNewDialog(false)}
-            />
-            <DxButton
-              text="Create Report"
-              type="success"
-              icon="plus"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
               onClick={handleCreateReport}
               disabled={!newReportData.productId || !newReportData.reviewYear || createMutation.isPending}
-            />
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create Report
+            </button>
           </div>
         </div>
       </DxPopup>
-    </div>
+    </MainLayout>
   );
 }
