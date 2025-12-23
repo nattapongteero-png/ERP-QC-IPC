@@ -142,11 +142,11 @@ function MetricCard({
   loading?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-2 border-r border-white/20 last:border-r-0">
-      <p className={`text-lg font-bold ${loading ? 'animate-pulse' : ''}`}>
+    <div className="flex flex-col items-center justify-center px-3 py-1 border-r border-white/20 last:border-r-0">
+      <p className={`text-sm font-bold ${loading ? 'animate-pulse' : ''}`}>
         {loading ? '...' : value}
       </p>
-      <p className="text-xs text-amber-100">{label}</p>
+      <p className="text-xs text-white/70">{label}</p>
     </div>
   );
 }
@@ -518,64 +518,56 @@ export default function ItemsPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-6 -m-4 md:-m-6">
-        {/* Professional Header */}
-        <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 p-6 text-white">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <Boxes className="h-8 w-8" />
+      <div className="flex flex-col h-full gap-4 -m-4 md:-m-6">
+        {/* Compact Header */}
+        <div className="bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 px-4 py-3 text-white">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/10 rounded-lg">
+                <Boxes className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Inventory Items</h1>
-                <p className="text-amber-100 text-sm">รายการสินค้าและวัตถุดิบ - Inventory Management</p>
+                <h1 className="text-lg font-semibold">Inventory Items</h1>
+                <p className="text-slate-300 text-xs">รายการสินค้าและวัตถุดิบ</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Inline Stats */}
+              <div className="hidden md:flex items-center bg-white/10 rounded-lg px-1">
+                <MetricCard value={totalItems} label="Total" loading={isLoading} />
+                <MetricCard value={statistics.activeItems} label="Active" loading={isLoading} />
+                <MetricCard value={statistics.lowStockItems} label="Low Stock" loading={isLoading} />
+                <MetricCard value={typeCounts.raw_material} label="Raw Mat." loading={isLoading} />
+              </div>
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm"
               >
-                <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                <span className="text-sm font-medium">Refresh</span>
+                <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
+                <span>Refresh</span>
               </button>
               <button
                 onClick={() => router.push('/inventory/lots')}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm"
               >
-                <Warehouse className="h-4 w-4" />
-                <span className="text-sm font-medium">View Lots</span>
+                <Warehouse className="h-3.5 w-3.5" />
+                <span>Lots</span>
               </button>
               <button
                 onClick={handleOpenCreate}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-amber-600 hover:bg-amber-50 rounded-lg transition-colors font-medium"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium"
               >
-                <Plus className="h-4 w-4" />
-                <span className="text-sm">Add Item</span>
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Item</span>
               </button>
             </div>
-          </div>
-
-          {/* Quick Stats Bar */}
-          <div className="mt-6 flex flex-wrap items-center bg-white/10 rounded-xl backdrop-blur-sm py-2">
-            <MetricCard value={totalItems} label="Total Items" loading={isLoading} />
-            <MetricCard value={statistics.activeItems} label="Active" loading={isLoading} />
-            <MetricCard value={statistics.lowStockItems} label="Low Stock" loading={isLoading} />
-            <MetricCard
-              value={`฿${statistics.totalValue >= 1000 ? (statistics.totalValue / 1000).toFixed(1) + 'K' : statistics.totalValue.toFixed(0)}`}
-              label="Total Value"
-              loading={isLoading}
-            />
-            <MetricCard value={statistics.vmiReadyItems} label="VMI Ready" loading={isLoading} />
-            <MetricCard value={typeCounts.raw_material} label="Raw Materials" loading={isLoading} />
-            <MetricCard value={typeCounts.finished_goods} label="Finished Goods" loading={isLoading} />
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="px-4 md:px-6 pb-6 space-y-6">
+        <div className="px-4 md:px-6 pb-4 space-y-4">
           {/* Dashboard Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
             {/* Left Column - Main Content */}
             <div className="xl:col-span-3 space-y-6">
               {/* Item Type Cards */}
@@ -589,7 +581,6 @@ export default function ItemsPage() {
                     ([type, config]) => (
                       <TypeCard
                         key={type}
-                        type={type}
                         count={typeCounts[type]}
                         total={totalItems}
                         config={config}
