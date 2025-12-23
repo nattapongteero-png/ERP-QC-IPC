@@ -45,6 +45,7 @@ interface ItemSearchDialogProps {
   title?: string;
   showPrice?: 'selling' | 'cost' | 'both' | 'none';
   filterType?: string;
+  excludeType?: string;
   excludeIds?: number[];
   showStock?: boolean;
 }
@@ -80,6 +81,7 @@ export function ItemSearchDialog({
   title = 'Search Items',
   showPrice = 'selling',
   filterType,
+  excludeType,
   excludeIds = [],
   showStock = true,
 }: ItemSearchDialogProps) {
@@ -124,6 +126,10 @@ export function ItemSearchDialog({
         if (currentExcludeIds.length > 0) {
           items = items.filter((item: Item) => !currentExcludeIds.includes(item.id));
         }
+        // Filter out excluded type
+        if (excludeType) {
+          items = items.filter((item: Item) => item.type !== excludeType);
+        }
         setResults(items);
         setHighlightedIndex(0);
       }
@@ -133,7 +139,7 @@ export function ItemSearchDialog({
     } finally {
       setIsSearching(false);
     }
-  }, [filterType]);
+  }, [filterType, excludeType]);
 
   // Initial load when dialog opens
   useEffect(() => {

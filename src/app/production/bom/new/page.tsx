@@ -1,42 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
-import { DxPopup } from '@/components/ui/dx-popup';
-import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import {
-  Trash2,
-  Plus,
-  Search,
   Package,
   ChevronRight,
   BoxSelect,
-  Check,
 } from 'lucide-react';
-
-interface Product {
-  id: number;
-  code: string;
-  nameTh: string;
-  nameEn: string | null;
-  primaryUnit: string;
-  category: string | null;
-}
-
-interface Item {
-  id: number;
-  code: string;
-  nameTh: string;
-  primaryUnit: string;
-  type: string;
-}
 
 interface BOMLine {
   id: number;
@@ -56,7 +34,7 @@ export default function NewBOMPage() {
   // Form state
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
   const [version, setVersion] = useState('1.0');
   const [batchSize, setBatchSize] = useState('');
   const [batchUnit, setBatchUnit] = useState('');
@@ -65,152 +43,29 @@ export default function NewBOMPage() {
   const [effectiveDate, setEffectiveDate] = useState('');
   const [lines, setLines] = useState<BOMLine[]>([]);
 
-  // Product Dialog state
+  // Dialog state
   const [productDialogOpen, setProductDialogOpen] = useState(false);
-  const [productSearch, setProductSearch] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [productsLoading, setProductsLoading] = useState(false);
-  const [selectedProductTemp, setSelectedProductTemp] = useState<Product | null>(null);
-
-  // Item/Material Dialog state
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
-  const [itemSearch, setItemSearch] = useState('');
-  const [items, setItems] = useState<Item[]>([]);
-  const [itemsLoading, setItemsLoading] = useState(false);
 
   // Line counter for temporary IDs
   const [lineCounter, setLineCounter] = useState(1);
 
-  // Debounced product search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (productSearch.length >= 1 && productDialogOpen) {
-        searchProducts();
-      } else if (productSearch.length === 0 && productDialogOpen) {
-        // Load recent products when dialog opens
-        loadRecentProducts();
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [productSearch, productDialogOpen]);
-
-  // Load recent products when dialog opens
-  useEffect(() => {
-    if (productDialogOpen && products.length === 0) {
-      loadRecentProducts();
+  // Handle product selection from ItemSearchDialog
+  const handleSelectProduct = (item: Item) => {
+    setSelectedProduct(item);
+    setBatchUnit(item.primaryUnit);
+    // Auto-generate BOM code based on product code
+    if (!code) {
+      setCode(`BOM-${item.code}`);
     }
-  }, [productDialogOpen]);
-
-  // Debounced item search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (itemSearch.length >= 1 && materialDialogOpen) {
-        searchItems();
-      } else if (itemSearch.length === 0 && materialDialogOpen) {
-        loadRecentMaterials();
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [itemSearch, materialDialogOpen]);
-
-  // Load recent materials when dialog opens
-  useEffect(() => {
-    if (materialDialogOpen && items.length === 0) {
-      loadRecentMaterials();
+    if (!name) {
+      setName(`BOM for ${item.nameTh}`);
     }
-  }, [materialDialogOpen]);
-
-  const loadRecentProducts = async () => {
-    setProductsLoading(true);
-    try {
-      const response = await fetch(`/api/items?type=finished_goods&limit=20`);
-      const result = await response.json();
-      if (result.success) {
-        setProducts(result.data.items || []);
-      }
-    } catch (error) {
-      console.error('Failed to load products:', error);
-    } finally {
-      setProductsLoading(false);
-    }
+    setProductDialogOpen(false);
   };
 
-  const searchProducts = async () => {
-    setProductsLoading(true);
-    try {
-      const response = await fetch(`/api/items?search=${encodeURIComponent(productSearch)}&type=finished_goods&limit=20`);
-      const result = await response.json();
-      if (result.success) {
-        setProducts(result.data.items || []);
-      }
-    } catch (error) {
-      console.error('Failed to search products:', error);
-    } finally {
-      setProductsLoading(false);
-    }
-  };
-
-  const loadRecentMaterials = async () => {
-    setItemsLoading(true);
-    try {
-      const response = await fetch(`/api/items?limit=20`);
-      const result = await response.json();
-      if (result.success) {
-        // Filter out finished goods (they shouldn't be BOM ingredients)
-        const filteredItems = (result.data.items || []).filter((item: Item) => item.type !== 'finished_goods');
-        setItems(filteredItems);
-      }
-    } catch (error) {
-      console.error('Failed to load materials:', error);
-    } finally {
-      setItemsLoading(false);
-    }
-  };
-
-  const searchItems = async () => {
-    setItemsLoading(true);
-    try {
-      const response = await fetch(`/api/items?search=${encodeURIComponent(itemSearch)}&limit=20`);
-      const result = await response.json();
-      if (result.success) {
-        // Filter out finished goods (they shouldn't be BOM ingredients)
-        const filteredItems = (result.data.items || []).filter((item: Item) => item.type !== 'finished_goods');
-        setItems(filteredItems);
-      }
-    } catch (error) {
-      console.error('Failed to search items:', error);
-    } finally {
-      setItemsLoading(false);
-    }
-  };
-
-  const handleSelectProduct = (product: Product) => {
-    setSelectedProductTemp(product);
-  };
-
-  const handleConfirmProduct = () => {
-    if (selectedProductTemp) {
-      setSelectedProduct(selectedProductTemp);
-      setBatchUnit(selectedProductTemp.primaryUnit);
-      // Auto-generate BOM code based on product code
-      if (!code) {
-        setCode(`BOM-${selectedProductTemp.code}`);
-      }
-      if (!name) {
-        setName(`BOM for ${selectedProductTemp.nameTh}`);
-      }
-      setProductDialogOpen(false);
-      setProductSearch('');
-      setSelectedProductTemp(null);
-    }
-  };
-
-  const handleOpenProductDialog = () => {
-    setSelectedProductTemp(selectedProduct);
-    setProductDialogOpen(true);
-  };
-
-  const handleAddItem = (item: Item) => {
+  // Handle material/ingredient selection from ItemSearchDialog
+  const handleAddMaterial = (item: Item) => {
     // Check if item already exists in lines
     if (lines.some(line => line.itemId === item.id)) {
       alert('This item is already in the BOM');
@@ -230,8 +85,6 @@ export default function NewBOMPage() {
 
     setLines([...lines, newLine]);
     setLineCounter(lineCounter + 1);
-    setItemSearch('');
-    setItems([]);
     setMaterialDialogOpen(false);
   };
 
@@ -302,229 +155,6 @@ export default function NewBOMPage() {
     }
   };
 
-  const renderProductDialogContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Search Input */}
-      <div className="p-4 border-b">
-        <DxTextBox
-          placeholder="Search by product code or name..."
-          value={productSearch}
-          onValueChange={setProductSearch}
-          mode="search"
-          showClearButton
-        />
-      </div>
-
-      {/* Product List */}
-      <div className="flex-1 overflow-auto min-h-[300px]">
-        {productsLoading && products.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <DxLoadIndicator />
-            <span className="ml-2">Loading products...</span>
-          </div>
-        ) : products.length > 0 ? (
-          <div className="divide-y">
-            {products.map((product) => (
-              <button
-                key={product.id}
-                onClick={() => handleSelectProduct(product)}
-                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between ${
-                  selectedProductTemp?.id === product.id ? 'bg-emerald-50 border-l-4 border-emerald-500' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                    selectedProductTemp?.id === product.id ? 'bg-emerald-100' : 'bg-gray-100'
-                  }`}>
-                    <Package className={`h-5 w-5 ${
-                      selectedProductTemp?.id === product.id ? 'text-emerald-600' : 'text-gray-500'
-                    }`} />
-                  </div>
-                  <div>
-                    <p className={`font-semibold ${
-                      selectedProductTemp?.id === product.id ? 'text-emerald-800' : 'text-gray-900'
-                    }`}>
-                      {product.code}
-                    </p>
-                    <p className={`text-sm ${
-                      selectedProductTemp?.id === product.id ? 'text-emerald-600' : 'text-gray-500'
-                    }`}>
-                      {product.nameTh}
-                    </p>
-                    {product.nameEn && (
-                      <p className="text-xs text-gray-400">{product.nameEn}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" size="sm">{product.primaryUnit}</Badge>
-                  {selectedProductTemp?.id === product.id && (
-                    <Check className="h-5 w-5 text-emerald-600" />
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : productSearch.length > 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-            <Search className="h-12 w-12 text-gray-300 mb-3" />
-            <p className="font-medium">No products found</p>
-            <p className="text-sm text-center mt-1">
-              Try a different search term or check if the product exists in the system
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-            <Package className="h-12 w-12 text-gray-300 mb-3" />
-            <p className="font-medium">No finished products available</p>
-            <p className="text-sm text-center mt-1">
-              Create finished products in the Items module first
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between p-4 border-t">
-        <p className="text-sm text-gray-500">
-          {selectedProductTemp ? (
-            <>Selected: <span className="font-medium text-emerald-600">{selectedProductTemp.code}</span></>
-          ) : (
-            'Click on a product to select it'
-          )}
-        </p>
-        <div className="flex gap-2">
-          <DxButton
-            text="Cancel"
-            type="normal"
-            stylingMode="outlined"
-            onClick={() => {
-              setProductDialogOpen(false);
-              setProductSearch('');
-              setSelectedProductTemp(null);
-            }}
-          />
-          <DxButton
-            text="Select Product"
-            type="success"
-            onClick={handleConfirmProduct}
-            disabled={!selectedProductTemp}
-          />
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderMaterialDialogContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Search Input */}
-      <div className="p-4 border-b">
-        <DxTextBox
-          placeholder="Search by material code or name..."
-          value={itemSearch}
-          onValueChange={setItemSearch}
-          mode="search"
-          showClearButton
-        />
-      </div>
-
-      {/* Material List */}
-      <div className="flex-1 overflow-auto min-h-[300px]">
-        {itemsLoading && items.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <DxLoadIndicator />
-            <span className="ml-2">Loading materials...</span>
-          </div>
-        ) : items.length > 0 ? (
-          <div className="divide-y">
-            {items.map((item) => {
-              const isAlreadyAdded = lines.some(line => line.itemId === item.id);
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => !isAlreadyAdded && handleAddItem(item)}
-                  disabled={isAlreadyAdded}
-                  className={`w-full p-4 text-left transition-colors flex items-center justify-between ${
-                    isAlreadyAdded
-                      ? 'bg-gray-50 cursor-not-allowed opacity-60'
-                      : 'hover:bg-emerald-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                      isAlreadyAdded ? 'bg-gray-100' : 'bg-emerald-100'
-                    }`}>
-                      <BoxSelect className={`h-5 w-5 ${
-                        isAlreadyAdded ? 'text-gray-400' : 'text-emerald-600'
-                      }`} />
-                    </div>
-                    <div>
-                      <p className={`font-semibold ${
-                        isAlreadyAdded ? 'text-gray-400' : 'text-gray-900'
-                      }`}>
-                        {item.code}
-                      </p>
-                      <p className={`text-sm ${
-                        isAlreadyAdded ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                        {item.nameTh}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" size="sm">
-                      {item.type.replace('_', ' ')}
-                    </Badge>
-                    <Badge variant="outline" size="sm">{item.primaryUnit}</Badge>
-                    {isAlreadyAdded && (
-                      <Badge variant="success" size="sm">
-                        <Check className="h-3 w-3 mr-1" />
-                        Added
-                      </Badge>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : itemSearch.length > 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-            <Search className="h-12 w-12 text-gray-300 mb-3" />
-            <p className="font-medium">No materials found</p>
-            <p className="text-sm text-center mt-1">
-              Try a different search term or check if the material exists in the system
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-            <BoxSelect className="h-12 w-12 text-gray-300 mb-3" />
-            <p className="font-medium">No materials available</p>
-            <p className="text-sm text-center mt-1">
-              Create raw materials or packaging items in the Items module first
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between p-4 border-t">
-        <p className="text-sm text-gray-500">
-          Click on a material to add it to the BOM
-        </p>
-        <DxButton
-          text="Close"
-          type="normal"
-          stylingMode="outlined"
-          onClick={() => {
-            setMaterialDialogOpen(false);
-            setItemSearch('');
-            setItems([]);
-          }}
-        />
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-4 md:p-6 space-y-6">
         <PageHeader
@@ -561,13 +191,13 @@ export default function NewBOMPage() {
                         text="Change"
                         type="normal"
                         stylingMode="outlined"
-                        onClick={handleOpenProductDialog}
+                        onClick={() => setProductDialogOpen(true)}
                       />
                     </div>
                   ) : (
                     <button
                       type="button"
-                      onClick={handleOpenProductDialog}
+                      onClick={() => setProductDialogOpen(true)}
                       className="w-full flex items-center justify-between p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition-colors group"
                     >
                       <div className="flex items-center gap-3 text-gray-500 group-hover:text-emerald-600">
@@ -809,28 +439,23 @@ export default function NewBOMPage() {
         </div>
 
       {/* Product Selection Dialog */}
-      <DxPopup
-        visible={productDialogOpen}
-        onHiding={() => setProductDialogOpen(false)}
+      <ItemSearchDialog
+        open={productDialogOpen}
+        onOpenChange={setProductDialogOpen}
+        onSelect={handleSelectProduct}
         title="Select Product"
-        width={700}
-        height={600}
-        showCloseButton
-      >
-        {renderProductDialogContent()}
-      </DxPopup>
+        filterType="finished_goods"
+      />
 
       {/* Material Selection Dialog */}
-      <DxPopup
-        visible={materialDialogOpen}
-        onHiding={() => setMaterialDialogOpen(false)}
+      <ItemSearchDialog
+        open={materialDialogOpen}
+        onOpenChange={setMaterialDialogOpen}
+        onSelect={handleAddMaterial}
         title="Select Material"
-        width={700}
-        height={600}
-        showCloseButton
-      >
-        {renderMaterialDialogContent()}
-      </DxPopup>
+        excludeType="finished_goods"
+        excludeIds={lines.map(l => l.itemId)}
+      />
     </div>
   );
 }
