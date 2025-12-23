@@ -4,6 +4,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
+import { toDateSafe } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
 import {
   sqliteWorkOrders,
@@ -729,7 +730,7 @@ export async function calculateMRP(
         }
 
         // Calculate order date (required date - lead time)
-        const requiredDate = new Date(demand.requiredDate);
+        const requiredDate = toDateSafe(demand.requiredDate);
         const leadTimeDays = 7; // Default lead time, should come from vendor
         const orderDate = new Date(requiredDate);
         orderDate.setDate(orderDate.getDate() - leadTimeDays);
