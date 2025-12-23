@@ -4,6 +4,7 @@
  */
 
 import { db, isSqlite } from '../db';
+import { toQueryDate } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteQualityTests,
@@ -775,10 +776,10 @@ export async function getDeviationStatistics(
 
   const conditions = [];
   if (dateFrom) {
-    conditions.push(gte(deviations.createdAt, dateFrom));
+    conditions.push(gte(deviations.createdAt, toQueryDate(dateFrom)));
   }
   if (dateTo) {
-    conditions.push(lte(deviations.createdAt, dateTo));
+    conditions.push(lte(deviations.createdAt, toQueryDate(dateTo)));
   }
 
   const allDeviations = await database
