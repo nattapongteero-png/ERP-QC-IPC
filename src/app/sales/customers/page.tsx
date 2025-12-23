@@ -282,7 +282,7 @@ export default function CustomersPage() {
     const active = customers.filter(c => c.isActive).length;
     const inactive = customers.filter(c => !c.isActive).length;
 
-    const totalCreditLimit = customers.reduce((sum, c) => sum + (c.creditLimit || 0), 0);
+    const totalCreditLimit = customers.reduce((sum, c) => sum + (Number(c.creditLimit) || 0), 0);
     const avgCreditLimit = total > 0 ? totalCreditLimit / total : 0;
 
     const byType: Record<string, number> = {};
@@ -292,14 +292,14 @@ export default function CustomersPage() {
 
     const creditByType: Record<string, number> = {};
     customers.forEach(c => {
-      creditByType[c.customerType] = (creditByType[c.customerType] || 0) + (c.creditLimit || 0);
+      creditByType[c.customerType] = (creditByType[c.customerType] || 0) + (Number(c.creditLimit) || 0);
     });
 
     // Get top customer type
     const topType = Object.entries(byType).sort((a, b) => b[1] - a[1])[0];
 
     // Customers with high credit
-    const highCredit = customers.filter(c => (c.creditLimit || 0) >= 1000000).length;
+    const highCredit = customers.filter(c => (Number(c.creditLimit) || 0) >= 1000000).length;
 
     // Recent customers (last 30 days)
     const thirtyDaysAgo = new Date();
