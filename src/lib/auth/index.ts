@@ -174,6 +174,12 @@ export const PERMISSIONS = {
   'audit:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'audit:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'audit:approve': [ROLES.ADMIN, ROLES.MANAGER],
+
+  // PQR - Product Quality Review (หมวด 1)
+  'pqr:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
+  'pqr:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'pqr:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'pqr:delete': [ROLES.ADMIN, ROLES.MANAGER],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
