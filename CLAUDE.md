@@ -109,4 +109,22 @@ const monthStr = formatMonthFromDb(record.dateField);
 
 **Why:** SQLite returns date fields as strings, MySQL returns Date objects. These utilities handle both.
 
+### Dates in Query Conditions
+
+When using dates in Drizzle ORM comparison operators (`gte`, `lte`, `eq`, etc.), use `toQueryDate()`:
+
+```typescript
+import { toQueryDate, getTodayStr } from '../db/date-utils';
+
+// For today's date in queries
+const today = toQueryDate(getTodayStr());
+.where(lte(table.dueDate, today))
+
+// For date parameters from API
+.where(gte(table.createdAt, toQueryDate(dateFrom)))
+.where(lte(table.createdAt, toQueryDate(dateTo)))
+```
+
+**Why:** MySQL datetime columns require Date objects in query conditions. SQLite uses text comparison. `toQueryDate()` handles both.
+
 <!-- MANUAL ADDITIONS END -->
