@@ -45,6 +45,33 @@ TypeScript 5.x (Next.js 15 project): Follow standard conventions
 
 <!-- MANUAL ADDITIONS START -->
 
+## Reusable Code Policy
+
+When implementing features, follow the DRY (Don't Repeat Yourself) principle:
+
+1. **Check for existing utilities first** - Before creating new functions, search the codebase for existing implementations in:
+   - `src/lib/utils/` - General utilities
+   - `src/lib/db/` - Database utilities
+   - `src/lib/services/` - Shared service logic
+   - `src/components/` - Reusable UI components
+
+2. **Extract common patterns** - When you find yourself writing similar code in multiple places:
+   - Extract to a shared utility function
+   - Place in the appropriate `src/lib/` subdirectory
+   - Export from an index file for easy imports
+
+3. **Service layer abstraction** - Business logic should be in service files (`src/lib/services/`), not duplicated across API routes or components.
+
+4. **Component reusability** - Create reusable components for UI patterns used in 2+ places. Place in `src/components/` with clear prop interfaces.
+
+5. **Type sharing** - Define shared types in `src/types/` and import them where needed. Avoid redefining the same interfaces.
+
+**Location for new utilities:**
+- Date/time helpers → `src/lib/db/date-utils.ts`
+- Validation helpers → `src/lib/validation/`
+- API response helpers → `src/lib/utils/`
+- Database queries → `src/lib/services/`
+
 ## MySQL/SQLite Date Handling
 
 When writing service code that uses datetime fields with the dual-database pattern (MySQL production, SQLite testing), import from the shared utility:
