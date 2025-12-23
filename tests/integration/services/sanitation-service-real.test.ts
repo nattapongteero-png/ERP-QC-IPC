@@ -141,6 +141,8 @@ import {
   verifyPestControlLog,
   getPendingTasks,
   getSanitationTrends,
+  generateDueDates,
+  getPestControlTrends,
 } from '@/lib/services/sanitation-service';
 
 // Create tables from Drizzle schema
@@ -645,6 +647,274 @@ describe('Sanitation Service Real Integration Tests', () => {
 
       expect(schedule.lastCompleted).toBeNull();
       expect(schedule.complianceRate).toBe(100); // 100% assumed if no logs
+    });
+  });
+
+  // ============================================
+  // T802: generateDueDates()
+  // ============================================
+
+  describe('generateDueDates()', () => {
+    it('should generate daily due dates for a given date range', async () => {
+      // Create a daily schedule
+      const schedule = await createSanitationSchedule({
+        name: 'Daily Cleaning',
+        areaType: 'production',
+        frequency: 'daily',
+        method: 'Sweep and mop',
+      }, TEST_USER_IDS.SANITATION_SUPERVISOR);
+
+      // Generate due dates for 5 days
+      const startDate = TEST_DATES.TODAY;
+      const endDate = new Date(new Date(startDate).getTime() + 4 * 86400000).toISOString().split('T')[0];
+
+      const dueDates = await generateDueDates(schedule.id, { startDate, endDate });
+
+      expect(dueDates).toBeDefined();
+      expect(dueDates.length).toBe(5);
+      expect(dueDates[0].scheduleId).toBe(schedule.id);
+      expect(dueDates[0].scheduleName).toBe('Daily Cleaning');
+      expect(dueDates[0].areaType).toBe('production');
+      expect(dueDates[0].frequency).toBe('daily');
+      expect(dueDates[0].dueDate).toBe(startDate);
+    });
+
+    it('should generate weekly due dates based on dayOfWeek', async () => {
+      // Create a weekly schedule for Monday (dayOfWeek = 1)
+      const schedule = await createSanitationSchedule({
+        name: 'Weekly Deep Clean',
+        areaType: 'warehouse',
+        frequency: 'weekly',
+        dayOfWeek: 1, // Monday
+        method: 'Deep cleaning',
+      }, TEST_USER_IDS.SANITATION_SUPERVISOR);
+
+      // Generate due dates for next 4 weeks
+      const startDate = TEST_DATES.TODAY;
+      const endDate = new Date(new Date(startDate).getTime() + 28 * 86400000).toISOString().split('T')[0];
+
+      const dueDates = await generateDueDates(schedule.id, { startDate, endDate });
+
+      expect(dueDates).toBeDefined();
+      expect(dueDates.length).toBeGreaterThan(0);
+      expect(dueDates.length).toBeLessThanOrEqual(5); // At most 5 Mondays in 4 weeks
+
+      // Verify all due dates are Mondays
+      dueDates.forEach(dd => {
+        const date = new Date(dd.dueDate);
+        expect(date.getDay()).toBe(1); // Monday
+        expect(dd.frequency).toBe('weekly');
+      });
+    });
+
+    it('should generate monthly due dates based on dayOfMonth', async () => {
+      // Create a monthly schedule for day 15
+      const schedule = await createSanitationSchedule({
+        name: 'Monthly Inspection',
+        areaType: 'lab',
+        frequency: 'monthly',
+        dayOfMonth: 15,
+        method: 'Inspection',
+      }, TEST_USER_IDS.SANITATION_SUPERVISOR);
+
+      // Generate due dates for 6 months
+      const startDate = TEST_DATES.TODAY;
+      const endDate = new Date(new Date(startDate).getTime() + 180 * 86400000).toISOString().split('T')[0];
+
+      const dueDates = await generateDueDates(schedule.id, { startDate, endDate });
+
+      expect(dueDates).toBeDefined();
+      expect(dueDates.length).toBeGreaterThan(0);
+
+      // Verify all due dates are on day 15
+      dueDates.forEach(dd => {
+        const date = new Date(dd.dueDate);
+        expect(date.getDate()).toBe(15);
+        expect(dd.frequency).toBe('monthly');
+      });
+    });
+
+    it('should generate quarterly due dates', async () => {
+      // Create a quarterly schedule for day 1
+      const schedule = await createSanitationSchedule({
+        name: 'Quarterly Audit',
+        areaType: 'office',
+        frequency: 'quarterly',
+        dayOfMonth: 1,
+        method: 'Audit',
+      }, TEST_USER_IDS.SANITATION_SUPERVISOR);
+
+      // Generate due dates for 1 year
+      const startDate = TEST_DATES.TODAY;
+      const endDate = new Date(new Date(startDate).getTime() + 365 * 86400000).toISOString().split('T')[0];
+
+      const dueDates = await generateDueDates(schedule.id, { startDate, endDate });
+
+      expect(dueDates).toBeDefined();
+      expect(dueDates.length).toBeGreaterThan(0);
+      expect(dueDates.length).toBeLessThanOrEqual(5); // At most 5 quarters in a year
+
+      // Verify all due dates are on day 1 of quarter start months (0, 3, 6, 9)
+      dueDates.forEach(dd => {
+        const date = new Date(dd.dueDate);
+        expect(date.getDate()).toBe(1);
+        expect([0, 3, 6, 9]).toContain(date.getMonth());
+        expect(dd.frequency).toBe('quarterly');
+      });
+    });
+
+    it('should return empty array for non-existent schedule', async () => {
+      const dueDates = await generateDueDates(99999, {
+        startDate: TEST_DATES.TODAY,
+        endDate: TEST_DATES.NEXT_WEEK
+      });
+      expect(dueDates).toEqual([]);
+    });
+
+    it('should use default date range if not provided', async () => {
+      const schedule = await createSanitationSchedule({
+        name: 'Default Range Test',
+        areaType: 'production',
+        frequency: 'daily',
+        method: 'Test',
+      }, TEST_USER_IDS.SANITATION_SUPERVISOR);
+
+      const dueDates = await generateDueDates(schedule.id);
+
+      expect(dueDates).toBeDefined();
+      expect(dueDates.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ============================================
+  // T806: getPestControlTrends()
+  // ============================================
+
+  describe('getPestControlTrends()', () => {
+    beforeEach(async () => {
+      // Seed pest control logs for trend analysis
+      const baseDate = new Date();
+
+      // Create logs over the past month
+      for (let i = 0; i < 4; i++) {
+        const serviceDate = new Date(baseDate.getTime() - i * 7 * 86400000);
+        await createPestControlLog({
+          serviceDate: serviceDate.toISOString().split('T')[0],
+          contractorName: 'Pest Control Inc',
+          technicianName: 'Tech ' + i,
+          serviceType: 'routine',
+          areasServiced: ['production', 'warehouse'],
+          treatmentMethod: 'Spray',
+          findingsCount: i * 2, // Increasing findings
+          findings: `Week ${i} findings`,
+          followUpRequired: i > 2,
+        }, TEST_USER_IDS.QA_MANAGER);
+      }
+
+      // Add some emergency services
+      await createPestControlLog({
+        serviceDate: new Date(baseDate.getTime() - 3 * 86400000).toISOString().split('T')[0],
+        contractorName: 'Emergency Pest',
+        serviceType: 'emergency',
+        areasServiced: ['production'],
+        findingsCount: 10,
+        followUpRequired: true,
+      }, TEST_USER_IDS.QA_MANAGER);
+    });
+
+    it('should return pest control trends for week period', async () => {
+      const trends = await getPestControlTrends({ period: 'week' });
+
+      expect(trends).toBeDefined();
+      expect(trends.period).toBe('week');
+      expect(trends.totalServices).toBeGreaterThan(0);
+      expect(trends.averageFindingsPerService).toBeGreaterThanOrEqual(0);
+      expect(trends.followUpRate).toBeGreaterThanOrEqual(0);
+      expect(trends.followUpRate).toBeLessThanOrEqual(100);
+      expect(trends.byServiceType).toBeDefined();
+      expect(trends.dataPoints).toBeDefined();
+    });
+
+    it('should return pest control trends for month period', async () => {
+      const trends = await getPestControlTrends({ period: 'month' });
+
+      expect(trends).toBeDefined();
+      expect(trends.period).toBe('month');
+      expect(trends.totalServices).toBeGreaterThan(0);
+      expect(trends.averageFindingsPerService).toBeGreaterThanOrEqual(0);
+      expect(trends.dataPoints.length).toBeGreaterThan(0);
+    });
+
+    it('should return pest control trends for quarter period', async () => {
+      const trends = await getPestControlTrends({ period: 'quarter' });
+
+      expect(trends).toBeDefined();
+      expect(trends.period).toBe('quarter');
+      expect(trends.totalServices).toBeGreaterThan(0);
+    });
+
+    it('should return pest control trends for year period', async () => {
+      const trends = await getPestControlTrends({ period: 'year' });
+
+      expect(trends).toBeDefined();
+      expect(trends.period).toBe('year');
+    });
+
+    it('should calculate follow-up rate correctly', async () => {
+      const trends = await getPestControlTrends({ period: 'month' });
+
+      // We created 5 logs, 2 of them require follow-up
+      expect(trends.followUpRate).toBeGreaterThan(0);
+      expect(trends.followUpRate).toBe(40); // 2/5 = 40%
+    });
+
+    it('should group by service type', async () => {
+      const trends = await getPestControlTrends({ period: 'month' });
+
+      expect(trends.byServiceType).toBeDefined();
+      expect(trends.byServiceType.length).toBeGreaterThan(0);
+
+      const routineType = trends.byServiceType.find(t => t.serviceType === 'routine');
+      expect(routineType).toBeDefined();
+      expect(routineType?.serviceCount).toBe(4);
+
+      const emergencyType = trends.byServiceType.find(t => t.serviceType === 'emergency');
+      expect(emergencyType).toBeDefined();
+      expect(emergencyType?.serviceCount).toBe(1);
+    });
+
+    it('should calculate average findings per service', async () => {
+      const trends = await getPestControlTrends({ period: 'month' });
+
+      // Total findings: 0 + 2 + 4 + 6 + 10 = 22, Services: 5, Avg: 22/5 = 4.4
+      expect(trends.averageFindingsPerService).toBeCloseTo(4.4, 1);
+    });
+
+    it('should return data points in chronological order', async () => {
+      const trends = await getPestControlTrends({ period: 'month' });
+
+      expect(trends.dataPoints.length).toBeGreaterThan(0);
+
+      // Verify chronological order
+      for (let i = 1; i < trends.dataPoints.length; i++) {
+        const prev = new Date(trends.dataPoints[i - 1].date);
+        const curr = new Date(trends.dataPoints[i].date);
+        expect(curr.getTime()).toBeGreaterThanOrEqual(prev.getTime());
+      }
+    });
+
+    it('should handle empty data gracefully', async () => {
+      // Clean all pest control logs
+      sqlite.exec('DELETE FROM pest_control_logs');
+
+      const trends = await getPestControlTrends({ period: 'week' });
+
+      expect(trends).toBeDefined();
+      expect(trends.totalServices).toBe(0);
+      expect(trends.averageFindingsPerService).toBe(0);
+      expect(trends.followUpRate).toBe(0);
+      expect(trends.byServiceType.length).toBe(0);
+      expect(trends.dataPoints.length).toBe(0);
     });
   });
 });
