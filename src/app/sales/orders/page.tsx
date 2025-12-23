@@ -167,14 +167,15 @@ const formatCurrency = (amount: number, currency: string = 'THB') => {
   }).format(amount || 0);
 };
 
-const formatCurrencyShort = (amount: number) => {
-  if (amount >= 1000000) {
-    return `฿${(amount / 1000000).toFixed(1)}M`;
+const formatCurrencyShort = (amount: number | null | undefined) => {
+  const safeAmount = Number(amount) || 0;
+  if (safeAmount >= 1000000) {
+    return `฿${(safeAmount / 1000000).toFixed(1)}M`;
   }
-  if (amount >= 1000) {
-    return `฿${(amount / 1000).toFixed(0)}K`;
+  if (safeAmount >= 1000) {
+    return `฿${(safeAmount / 1000).toFixed(0)}K`;
   }
-  return `฿${amount.toFixed(0)}`;
+  return `฿${safeAmount.toFixed(0)}`;
 };
 
 const isOverdue = (requiredDate: string, status: string) => {
