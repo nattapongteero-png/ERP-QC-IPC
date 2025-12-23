@@ -348,13 +348,16 @@ export const sqliteQualitySpecs = sqliteTable('quality_specs', {
 export const sqliteQualityTests = sqliteTable('quality_tests', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   lotId: integer('lot_id').notNull().references(() => sqliteInventoryLots.id),
-  specId: integer('spec_id').notNull().references(() => sqliteQualitySpecs.id),
+  specId: integer('spec_id').references(() => sqliteQualitySpecs.id), // nullable for tests without specs
   testType: text('test_type').notNull(), // incoming, in_process, final
   sampleNumber: text('sample_number'),
+  sampleSize: integer('sample_size'), // AQL sample size
   testDate: text('test_date'),
   result: text('result'),
   numericResult: real('numeric_result'),
   status: text('status').notNull().default('pending'), // pending, pass, fail, retest
+  requestedBy: integer('requested_by').references(() => sqliteUsers.id),
+  requestedAt: text('requested_at'),
   testedBy: integer('tested_by').references(() => sqliteUsers.id),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
   approvedAt: text('approved_at'),
@@ -367,20 +370,26 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
 export const sqliteDeviations = sqliteTable('deviations', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   deviationNumber: text('deviation_number').notNull().unique(),
-  title: text('title').notNull(),
+  title: text('title'), // Made nullable for auto-generated deviations
   description: text('description').notNull(),
+  type: text('type'), // OOS, OOT, process, etc.
   sourceType: text('source_type'), // production, quality, warehouse
   sourceId: integer('source_id'),
+  lotId: integer('lot_id').references(() => sqliteInventoryLots.id),
+  workOrderId: integer('work_order_id').references(() => sqliteWorkOrders.id),
   severity: text('severity').notNull().default('minor'), // minor, major, critical
   status: text('status').notNull().default('open'), // open, investigating, resolved, closed
   rootCause: text('root_cause'),
   correctiveAction: text('corrective_action'),
   preventiveAction: text('preventive_action'),
   reportedBy: integer('reported_by').references(() => sqliteUsers.id),
+  reportedAt: text('reported_at'),
+  responsiblePerson: integer('responsible_person').references(() => sqliteUsers.id),
   assignedTo: integer('assigned_to').references(() => sqliteUsers.id),
   dueDate: text('due_date'),
   closedBy: integer('closed_by').references(() => sqliteUsers.id),
   closedAt: text('closed_at'),
+  closureNotes: text('closure_notes'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1287,13 +1296,16 @@ export const mysqlQualitySpecs = mysqlTable('quality_specs', {
 export const mysqlQualityTests = mysqlTable('quality_tests', {
   id: int('id').primaryKey().autoincrement(),
   lotId: int('lot_id').notNull().references(() => mysqlInventoryLots.id),
-  specId: int('spec_id').notNull().references(() => mysqlQualitySpecs.id),
+  specId: int('spec_id').references(() => mysqlQualitySpecs.id), // nullable for tests without specs
   testType: varchar('test_type', { length: 50 }).notNull(),
   sampleNumber: varchar('sample_number', { length: 100 }),
+  sampleSize: int('sample_size'), // AQL sample size
   testDate: datetime('test_date'),
   result: varchar('result', { length: 255 }),
   numericResult: decimal('numeric_result', { precision: 15, scale: 4 }),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
+  requestedBy: int('requested_by').references(() => mysqlUsers.id),
+  requestedAt: datetime('requested_at'),
   testedBy: int('tested_by').references(() => mysqlUsers.id),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
@@ -1306,20 +1318,26 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
 export const mysqlDeviations = mysqlTable('deviations', {
   id: int('id').primaryKey().autoincrement(),
   deviationNumber: varchar('deviation_number', { length: 50 }).notNull().unique(),
-  title: varchar('title', { length: 255 }).notNull(),
+  title: varchar('title', { length: 255 }), // Made nullable for auto-generated deviations
   description: mysqlText('description').notNull(),
+  type: varchar('type', { length: 50 }), // OOS, OOT, process, etc.
   sourceType: varchar('source_type', { length: 50 }),
   sourceId: int('source_id'),
+  lotId: int('lot_id').references(() => mysqlInventoryLots.id),
+  workOrderId: int('work_order_id').references(() => mysqlWorkOrders.id),
   severity: varchar('severity', { length: 50 }).notNull().default('minor'),
   status: varchar('status', { length: 50 }).notNull().default('open'),
   rootCause: mysqlText('root_cause'),
   correctiveAction: mysqlText('corrective_action'),
   preventiveAction: mysqlText('preventive_action'),
   reportedBy: int('reported_by').references(() => mysqlUsers.id),
+  reportedAt: datetime('reported_at'),
+  responsiblePerson: int('responsible_person').references(() => mysqlUsers.id),
   assignedTo: int('assigned_to').references(() => mysqlUsers.id),
   dueDate: datetime('due_date'),
   closedBy: int('closed_by').references(() => mysqlUsers.id),
   closedAt: datetime('closed_at'),
+  closureNotes: mysqlText('closure_notes'),
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });

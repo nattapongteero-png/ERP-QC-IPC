@@ -421,16 +421,16 @@ describe('Quality Service Real Integration Tests', () => {
         VALUES (1, 1, 'LOT-RES-001', 100, 'kg', 'quarantine', 2, date('now'), date('now', '+730 days'))
       `);
 
-      // Create spec with range
+      // Create spec with range (using actual schema columns)
       sqlite.exec(`
-        INSERT INTO quality_specs (id, item_id, test_name, spec_type, min_value, max_value, unit, is_critical, is_active)
-        VALUES (1, 1, 'Moisture Content', 'range', 0, 10, '%', 1, 1)
+        INSERT INTO quality_specs (id, item_id, test_name, test_method, specification, min_value, max_value, unit, is_critical, is_active)
+        VALUES (1, 1, 'Moisture Content', 'USP <731>', 'NMT 10%', 0, 10, '%', 1, 1)
       `);
 
-      // Create test record
+      // Create test record (using actual schema columns)
       sqlite.exec(`
-        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, status, requested_by, requested_at)
-        VALUES (1, 1, 1, 'incoming', 'pending', 1, datetime('now'))
+        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, status)
+        VALUES (1, 1, 1, 'incoming', 'pending')
       `);
       testId = 1;
     });
@@ -463,14 +463,14 @@ describe('Quality Service Real Integration Tests', () => {
     });
 
     it('should handle text-based test results', async () => {
-      // Create text-based spec
+      // Create text-based spec (using specification for expected value)
       sqlite.exec(`
-        INSERT INTO quality_specs (id, item_id, test_name, spec_type, text_value, is_critical, is_active)
-        VALUES (2, 1, 'Color Check', 'text', 'brown', 1, 1)
+        INSERT INTO quality_specs (id, item_id, test_name, test_method, specification, is_critical, is_active)
+        VALUES (2, 1, 'Color Check', 'Visual', 'brown', 1, 1)
       `);
       sqlite.exec(`
-        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, status, requested_by, requested_at)
-        VALUES (2, 1, 2, 'incoming', 'pending', 1, datetime('now'))
+        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, status)
+        VALUES (2, 1, 2, 'incoming', 'pending')
       `);
 
       const result = await recordTestResult(2, null, 'brown', TEST_USER_ID);
@@ -582,17 +582,17 @@ describe('Quality Service Real Integration Tests', () => {
         VALUES (1, 1, 'LOT-COA-001', 'BATCH-COA-001', 50, 'kg', 'released', 1, date('now', '-30 days'), date('now', '+700 days'), 'COA-2024-0001')
       `);
 
-      // Create specs
+      // Create specs (spec_type is represented by test_method and specification columns)
       sqlite.exec(`
-        INSERT INTO quality_specs (id, item_id, test_name, spec_type, min_value, max_value, unit, is_critical, is_active)
+        INSERT INTO quality_specs (id, item_id, test_name, test_method, specification, min_value, max_value, unit, is_critical, is_active)
         VALUES
-          (1, 1, 'Moisture Content', 'range', 0, 10, '%', 1, 1),
-          (2, 1, 'Andrographolide', 'min', 1, NULL, '%', 1, 1)
+          (1, 1, 'Moisture Content', 'USP <731>', 'NMT 10%', 0, 10, '%', 1, 1),
+          (2, 1, 'Andrographolide', 'HPLC', 'NLT 1%', 1, NULL, '%', 1, 1)
       `);
 
-      // Create completed tests
+      // Create completed tests (using test_date instead of tested_at)
       sqlite.exec(`
-        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, numeric_result, result, status, tested_by, tested_at)
+        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, numeric_result, result, status, tested_by, test_date)
         VALUES
           (1, 1, 1, 'incoming', 8.2, '8.2% moisture', 'passed', 2, datetime('now')),
           (2, 1, 2, 'incoming', 1.5, '1.5% andrographolide', 'passed', 2, datetime('now'))
@@ -621,7 +621,7 @@ describe('Quality Service Real Integration Tests', () => {
     it('should mark COA as FAIL if any test failed', async () => {
       // Add a failed test
       sqlite.exec(`
-        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, numeric_result, result, status, tested_by, tested_at)
+        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, numeric_result, result, status, tested_by, test_date)
         VALUES (3, 1, 1, 'stability', 12, '12% moisture - FAIL', 'failed', 2, datetime('now'))
       `);
 
@@ -638,7 +638,7 @@ describe('Quality Service Real Integration Tests', () => {
         VALUES (2, 1, 'LOT-COA-002', 25, 'kg', 'released', 1, date('now', '+365 days'))
       `);
       sqlite.exec(`
-        INSERT INTO quality_tests (lot_id, spec_id, test_type, numeric_result, status, tested_by, tested_at)
+        INSERT INTO quality_tests (lot_id, spec_id, test_type, numeric_result, status, tested_by, test_date)
         VALUES (2, 1, 'incoming', 7.0, 'passed', 2, datetime('now'))
       `);
 
