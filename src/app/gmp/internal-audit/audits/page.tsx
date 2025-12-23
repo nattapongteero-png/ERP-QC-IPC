@@ -19,7 +19,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTagBox } from '@/components/ui/dx-tag-box';
-import { toast } from 'sonner';
+import { useToast } from '@/components/ui/toast';
 import type { Audit, AuditType } from '@/types/audits';
 import { GMP_CHAPTERS } from '@/types/audits';
 
@@ -85,6 +85,7 @@ function AuditsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const planId = searchParams.get('planId') ? parseInt(searchParams.get('planId')!) : undefined;
   const showNew = searchParams.get('new') === '1';

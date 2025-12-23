@@ -19,7 +19,7 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
-import { toast } from 'sonner';
+import { useToast } from '@/components/ui/toast';
 import type { AuditDetails, AuditFinding, AuditFindingCategory } from '@/types/audits';
 import { GMP_CHAPTERS } from '@/types/audits';
 
@@ -93,6 +93,7 @@ export default function AuditDetailPage({ params }: PageProps) {
   const auditId = parseInt(id);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const [showFindingPopup, setShowFindingPopup] = useState(false);
   const [findingForm, setFindingForm] = useState({

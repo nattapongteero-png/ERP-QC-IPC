@@ -130,12 +130,12 @@ export function TrendChart({
     return Array.from(dataMap.values());
   }, [series]);
 
-  const customizeTooltip = (pointInfo: { seriesName: string; argumentText: string; valueText: string }) => {
+  const customizeTooltip = (pointInfo: { seriesName?: string; argumentText?: string; valueText?: string }) => {
     const seriesConfig = series.find((s) => s.name === pointInfo.seriesName);
-    const displayName = seriesConfig?.displayName || pointInfo.seriesName;
+    const displayName = seriesConfig?.displayName || pointInfo.seriesName || '';
 
     return {
-      text: `${displayName}\n${pointInfo.argumentText}: ${pointInfo.valueText}`,
+      text: `${displayName}\n${pointInfo.argumentText || ''}: ${pointInfo.valueText || ''}`,
     };
   };
 
