@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { DxDataGrid, type DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
-import { AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Capa, CapaListParams, CapaStatus, CapaPriority } from '@/types/capa';
 
 // ============================================
@@ -31,6 +31,11 @@ interface CapaListProps {
 // API Functions
 // ============================================
 
+interface ApiError extends Error {
+  details?: string;
+  stack?: string;
+}
+
 async function fetchCapas(params: CapaListParams): Promise<{
   capas: Capa[];
   total: number;
@@ -46,7 +51,10 @@ async function fetchCapas(params: CapaListParams): Promise<{
   const response = await fetch(`/api/capa?${searchParams.toString()}`);
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to fetch CAPAs');
+    const error = new Error(result.error || 'Failed to fetch CAPAs') as ApiError;
+    error.details = result.details;
+    error.stack = result.stack || error.stack;
+    throw error;
   }
   return result.data;
 }
@@ -64,6 +72,7 @@ export function CapaList({
 }: CapaListProps) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
 
   const {
     data,
@@ -74,6 +83,8 @@ export function CapaList({
     queryKey: ['capas', { status, priority, sourceType, page, limit: pageSize }],
     queryFn: () => fetchCapas({ status, priority, sourceType, page, limit: pageSize }),
   });
+
+  const apiError = error as ApiError | null;
 
   // Handle row click
   const handleRowClick = useCallback((e: { data: Capa }) => {
@@ -146,16 +157,46 @@ export function CapaList({
   };
 
   // Error state
-  if (error) {
+  if (error && apiError) {
     return (
       <div className="bg-card border rounded-lg shadow-sm p-6">
-        <div className="text-center py-8">
-          <p className="text-destructive mb-4">Failed to load CAPAs</p>
-          <DxButton
-            text="Retry"
-            onClick={() => refetch()}
-            stylingMode="outlined"
-          />
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-red-800 dark:text-red-200">
+                Error: {apiError.message}
+              </h3>
+              {apiError.details && (
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  {apiError.details}
+                </p>
+              )}
+              {apiError.stack && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => setShowErrorDetails(!showErrorDetails)}
+                    className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400 hover:underline"
+                  >
+                    {showErrorDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {showErrorDetails ? 'Hide' : 'Show'} Stack Trace
+                  </button>
+                  {showErrorDetails && (
+                    <pre className="mt-2 p-3 bg-red-100 dark:bg-red-900/40 rounded text-xs overflow-x-auto text-red-800 dark:text-red-200 font-mono whitespace-pre-wrap">
+                      {apiError.stack}
+                    </pre>
+                  )}
+                </div>
+              )}
+              <div className="mt-4">
+                <DxButton
+                  text="Retry"
+                  onClick={() => refetch()}
+                  stylingMode="outlined"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
