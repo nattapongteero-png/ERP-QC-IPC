@@ -1,10 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq, desc, sql } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVendors, sqlitePurchaseOrders, sqliteApprovedVendorList, sqliteItems,
-  mysqlVendors, mysqlPurchaseOrders, mysqlApprovedVendorList, mysqlItems
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -27,18 +23,15 @@ export async function GET(
         return errorResponse('Invalid vendor ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
-      const purchaseOrders = isSqlite ? sqlitePurchaseOrders : mysqlPurchaseOrders;
-      const approvedVendorList = isSqlite ? sqliteApprovedVendorList : mysqlApprovedVendorList;
-      const items = isSqlite ? sqliteItems : mysqlItems;
+      const vendorsTable = getTableRef('vendors');
+      const purchaseOrdersTable = getTableRef('purchaseOrders');
+      const approvedVendorListTable = getTableRef('approvedVendorList');
+      const itemsTable = getTableRef('items');
 
       // Get vendor details
-      const vendorResult = await (db as any)
-        .select()
-        .from(vendors)
-        .where(eq(vendors.id, vendorId));
+      const vendorResult = await executeDbOperation(async (db) => {
+        return db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      });
 
       if (vendorResult.length === 0) {
         return errorResponse('Vendor not found', 404);
@@ -47,54 +40,62 @@ export async function GET(
       const vendor = vendorResult[0];
 
       // Get recent purchase orders for this vendor
-      const recentPOs = await (db as any)
-        .select({
-          id: purchaseOrders.id,
-          poNumber: purchaseOrders.poNumber,
-          orderDate: purchaseOrders.orderDate,
-          expectedDate: purchaseOrders.expectedDate,
-          status: purchaseOrders.status,
-          totalAmount: purchaseOrders.totalAmount,
-          currency: purchaseOrders.currency,
-        })
-        .from(purchaseOrders)
-        .where(eq(purchaseOrders.vendorId, vendorId))
-        .orderBy(desc(purchaseOrders.createdAt))
-        .limit(10);
+      const recentPOs = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: purchaseOrdersTable.id,
+            poNumber: purchaseOrdersTable.poNumber,
+            orderDate: purchaseOrdersTable.orderDate,
+            expectedDate: purchaseOrdersTable.expectedDate,
+            status: purchaseOrdersTable.status,
+            totalAmount: purchaseOrdersTable.totalAmount,
+            currency: purchaseOrdersTable.currency,
+          })
+          .from(purchaseOrdersTable)
+          .where(eq(purchaseOrdersTable.vendorId, vendorId))
+          .orderBy(desc(purchaseOrdersTable.createdAt))
+          .limit(10);
+      });
 
       // Get approved items for this vendor (AVL)
-      const approvedItems = await (db as any)
-        .select({
-          id: approvedVendorList.id,
-          itemId: approvedVendorList.itemId,
-          itemCode: items.code,
-          itemName: items.nameTh,
-          itemNameEn: items.nameEn,
-          approvalDate: approvedVendorList.approvalDate,
-          expiryDate: approvedVendorList.expiryDate,
-          isPreferred: approvedVendorList.isPreferred,
-        })
-        .from(approvedVendorList)
-        .leftJoin(items, eq(approvedVendorList.itemId, items.id))
-        .where(eq(approvedVendorList.vendorId, vendorId));
+      const approvedItems = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: approvedVendorListTable.id,
+            itemId: approvedVendorListTable.itemId,
+            itemCode: itemsTable.code,
+            itemName: itemsTable.nameTh,
+            itemNameEn: itemsTable.nameEn,
+            approvalDate: approvedVendorListTable.approvalDate,
+            expiryDate: approvedVendorListTable.expiryDate,
+            isPreferred: approvedVendorListTable.isPreferred,
+          })
+          .from(approvedVendorListTable)
+          .leftJoin(itemsTable, eq(approvedVendorListTable.itemId, itemsTable.id))
+          .where(eq(approvedVendorListTable.vendorId, vendorId));
+      });
 
       // Get summary statistics
-      const poStats = await (db as any)
-        .select({
-          totalOrders: sql<number>`count(*)`,
-          totalAmount: sql<number>`sum(${purchaseOrders.totalAmount})`,
-        })
-        .from(purchaseOrders)
-        .where(eq(purchaseOrders.vendorId, vendorId));
+      const poStats = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            totalOrders: sql<number>`count(*)`,
+            totalAmount: sql<number>`sum(${purchaseOrdersTable.totalAmount})`,
+          })
+          .from(purchaseOrdersTable)
+          .where(eq(purchaseOrdersTable.vendorId, vendorId));
+      });
 
-      const statusCounts = await (db as any)
-        .select({
-          status: purchaseOrders.status,
-          count: sql<number>`count(*)`,
-        })
-        .from(purchaseOrders)
-        .where(eq(purchaseOrders.vendorId, vendorId))
-        .groupBy(purchaseOrders.status);
+      const statusCounts = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            status: purchaseOrdersTable.status,
+            count: sql<number>`count(*)`,
+          })
+          .from(purchaseOrdersTable)
+          .where(eq(purchaseOrdersTable.vendorId, vendorId))
+          .groupBy(purchaseOrdersTable.status);
+      });
 
       const summary = {
         totalOrders: Number(poStats[0]?.totalOrders) || 0,
@@ -152,49 +153,46 @@ export async function PUT(
         return errorResponse('Code and name are required');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
+      const vendorsTable = getTableRef('vendors');
 
       // Check if vendor exists
-      const existing = await (db as any)
-        .select()
-        .from(vendors)
-        .where(eq(vendors.id, vendorId));
+      const existing = await executeDbOperation(async (db) => {
+        return db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      });
 
       if (existing.length === 0) {
         return errorResponse('Vendor not found', 404);
       }
 
       // Check if code is unique (excluding current vendor)
-      const codeCheck = await (db as any)
-        .select()
-        .from(vendors)
-        .where(eq(vendors.code, code));
+      const codeCheck = await executeDbOperation(async (db) => {
+        return db.select().from(vendorsTable).where(eq(vendorsTable.code, code));
+      });
 
       if (codeCheck.length > 0 && codeCheck[0].id !== vendorId) {
         return errorResponse('Vendor code already exists');
       }
 
-      const now = new Date();
-      await (db as any)
-        .update(vendors)
-        .set({
-          code,
-          name,
-          contactPerson,
-          phone,
-          email,
-          address,
-          taxId,
-          isApproved: isApproved ?? existing[0].isApproved,
-          isVMI: isVMI ?? existing[0].isVMI,
-          leadTimeDays,
-          paymentTerms,
-          isActive: isActive ?? existing[0].isActive,
-          updatedAt: isSqlite ? now.toISOString() : now,
-        })
-        .where(eq(vendors.id, vendorId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(vendorsTable)
+          .set({
+            code,
+            name,
+            contactPerson,
+            phone,
+            email,
+            address,
+            taxId,
+            isApproved: isApproved ?? existing[0].isApproved,
+            isVMI: isVMI ?? existing[0].isVMI,
+            leadTimeDays,
+            paymentTerms,
+            isActive: isActive ?? existing[0].isActive,
+            updatedAt: dbDate(),
+          })
+          .where(eq(vendorsTable.id, vendorId));
+      });
 
       await createAuditLog({
         userId: session.userId,
@@ -227,37 +225,37 @@ export async function DELETE(
         return errorResponse('Invalid vendor ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
-      const purchaseOrders = isSqlite ? sqlitePurchaseOrders : mysqlPurchaseOrders;
+      const vendorsTable = getTableRef('vendors');
+      const purchaseOrdersTable = getTableRef('purchaseOrders');
 
       // Check if vendor exists
-      const existing = await (db as any)
-        .select()
-        .from(vendors)
-        .where(eq(vendors.id, vendorId));
+      const existing = await executeDbOperation(async (db) => {
+        return db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      });
 
       if (existing.length === 0) {
         return errorResponse('Vendor not found', 404);
       }
 
       // Check if vendor has any purchase orders
-      const poCount = await (db as any)
-        .select({ count: sql<number>`count(*)` })
-        .from(purchaseOrders)
-        .where(eq(purchaseOrders.vendorId, vendorId));
+      const poCount = await executeDbOperation(async (db) => {
+        return db
+          .select({ count: sql<number>`count(*)` })
+          .from(purchaseOrdersTable)
+          .where(eq(purchaseOrdersTable.vendorId, vendorId));
+      });
 
       if (Number(poCount[0]?.count) > 0) {
         // Soft delete - deactivate instead of hard delete
-        const now = new Date();
-        await (db as any)
-          .update(vendors)
-          .set({
-            isActive: false,
-            updatedAt: isSqlite ? now.toISOString() : now,
-          })
-          .where(eq(vendors.id, vendorId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(vendorsTable)
+            .set({
+              isActive: false,
+              updatedAt: dbDate(),
+            })
+            .where(eq(vendorsTable.id, vendorId));
+        });
 
         await createAuditLog({
           userId: session.userId,
@@ -273,8 +271,9 @@ export async function DELETE(
       }
 
       // Hard delete if no related records
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (db as any).delete(vendors).where(eq(vendors.id, vendorId));
+      await executeDbOperation(async (db) => {
+        return db.delete(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      });
 
       await createAuditLog({
         userId: session.userId,
