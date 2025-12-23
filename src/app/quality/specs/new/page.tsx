@@ -83,7 +83,7 @@ export default function NewQualitySpecPage() {
   };
 
   return (
-    
+    <>
       <div className="space-y-6">
         <PageHeader
           title="New Quality Specification"
@@ -371,6 +371,6 @@ export default function NewQualitySpecPage() {
         title="Select Item"
         showStock
       />
-    
+    </>
   );
 }

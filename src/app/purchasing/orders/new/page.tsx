@@ -892,6 +892,7 @@ export default function NewPurchaseOrderPage() {
         width={500}
         height="auto"
         showCloseButton
+        shading={false}
       >
         {selectedItem && (
           <div className="space-y-5 p-5">
