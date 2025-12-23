@@ -45,11 +45,13 @@ interface FormData {
 // API Functions
 // ============================================
 
-async function fetchUsers(): Promise<{ id: number; displayName: string }[]> {
-  const response = await fetch('/api/users');
+async function fetchUsers(): Promise<{ id: number; name: string }[]> {
+  const response = await fetch('/api/users?limit=100');
   const result = await response.json();
   if (!result.success) return [];
-  return result.data || [];
+  // API returns paginated response with items array
+  const items = result.data?.items || result.data || [];
+  return Array.isArray(items) ? items : [];
 }
 
 async function createCapa(data: CapaCreate): Promise<Capa> {
@@ -338,7 +340,7 @@ export function CapaForm({
             Owner <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
-            items={(users || []).map((u) => ({ value: u.id, label: u.displayName }))}
+            items={(users || []).map((u) => ({ value: u.id, label: u.name }))}
             value={formData.ownerId}
             valueExpr="value"
             displayExpr="label"
