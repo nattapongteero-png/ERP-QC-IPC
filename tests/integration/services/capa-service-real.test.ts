@@ -113,6 +113,8 @@ function syncSchemaFromDrizzle() {
     schema.sqliteCapa,
     schema.sqliteCapaActions,
     schema.sqliteCapaEffectiveness,
+    schema.sqliteCapaAttachments,
+    schema.sqliteCapaApprovals,
     schema.sqliteDeviations,
   ];
 
