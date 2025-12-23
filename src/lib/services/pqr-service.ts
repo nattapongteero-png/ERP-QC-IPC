@@ -5,7 +5,7 @@
  * Business logic for managing annual product quality reviews.
  */
 
-import { eq, and, desc, sql, like, gte, lte, or } from 'drizzle-orm';
+import { eq, and, desc, sql, like, gte, lte, or, inArray } from 'drizzle-orm';
 import { getTableRef, executeDbOperation, getInsertId } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb, toQueryDate } from '../db/date-utils';
 import type {
@@ -808,7 +808,7 @@ export async function aggregateStabilityStatus(
         .from(stabilitySamplesTable)
         .where(
           and(
-            sql`${stabilitySamplesTable.studyId} IN (${sql.raw(studyIds.join(','))})`,
+            inArray(stabilitySamplesTable.studyId, studyIds),
             eq(stabilitySamplesTable.oosDetected, true)
           )
         );
@@ -1103,6 +1103,13 @@ export async function approvePQR(
 ): Promise<PqrReport | null> {
   const pqrReportsTable = getTableRef('pqrReports');
 
+  // If comments provided, get current recommendations first and append
+  let updatedRecommendations: string | undefined;
+  if (comments) {
+    const currentReport = await getPqrById(pqrId);
+    updatedRecommendations = `${currentReport?.recommendations || ''}\n\nApproval Comments: ${comments}`;
+  }
+
   // Update status to approved with approver info
   await executeDbOperation(async (db) => {
     return db
@@ -1111,10 +1118,7 @@ export async function approvePQR(
         status: 'approved',
         approvedBy: approverId,
         approvedAt: getNow(),
-        // If comments provided, append to recommendations
-        ...(comments && {
-          recommendations: sql`CONCAT(COALESCE(${pqrReportsTable.recommendations}, ''), '\n\nApproval Comments: ', ${comments})`,
-        }),
+        ...(updatedRecommendations && { recommendations: updatedRecommendations }),
       })
       .where(eq(pqrReportsTable.id, pqrId));
   });
