@@ -59,12 +59,12 @@
 
 ### Document Service Tests [US2]
 
-- [ ] T014 [P] [US2] Create tests/integration/services/document-service-real.test.ts with schema sync for documents, document_versions, document_approvals, document_types tables
-- [ ] T015 [US2] Implement real-world scenario: Document approval workflow (draft -> review -> approve -> publish) in document-service-real.test.ts
-- [ ] T016 [US2] Implement real-world scenario: Document version control (new version supersedes old) in document-service-real.test.ts
-- [ ] T017 [US2] Test document service CRUD functions: listDocuments, getDocumentById, createDocument, updateDocument in document-service-real.test.ts
-- [ ] T018 [US2] Test version functions: createVersion, submitForApproval, approveVersion, publishDocument in document-service-real.test.ts
-- [ ] T019 [US2] Test edge cases: concurrent edit prevention, obsolete document access, approval chain delegation in document-service-real.test.ts
+- [x] T014 [P] [US2] Create tests/integration/services/document-service-real.test.ts with schema sync for documents, document_versions, document_approvals, document_types tables
+- [x] T015 [US2] Implement real-world scenario: Document approval workflow (draft -> review -> approve -> publish) in document-service-real.test.ts
+- [x] T016 [US2] Implement real-world scenario: Document version control (new version supersedes old) in document-service-real.test.ts
+- [x] T017 [US2] Test document service CRUD functions: listDocuments, getDocumentById, createDocument, updateDocument in document-service-real.test.ts
+- [x] T018 [US2] Test version functions: createVersion, submitForApproval, approveVersion, publishDocument in document-service-real.test.ts
+- [x] T019 [US2] Test edge cases: concurrent edit prevention, obsolete document access, approval chain delegation in document-service-real.test.ts
 
 ### Internal Audit Service Tests [US3]
 
