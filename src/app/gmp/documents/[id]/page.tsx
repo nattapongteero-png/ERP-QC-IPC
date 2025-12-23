@@ -97,6 +97,58 @@ async function updateDocumentStatus(
   }
 }
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+async function fetchApprovers(): Promise<User[]> {
+  // Fetch users who can approve (admins and managers)
+  const response = await fetch('/api/users?limit=100');
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to fetch users');
+  }
+  // Filter to only include admins and managers
+  return result.data.items.filter((u: User) =>
+    u.role === 'admin' || u.role === 'manager' || u.role === 'qc'
+  );
+}
+
+async function submitForApproval(
+  documentId: number,
+  versionId: number,
+  approvers: number[]
+): Promise<void> {
+  const response = await fetch(`/api/documents/${documentId}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ versionId, approvers }),
+  });
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to submit for approval');
+  }
+}
+
+async function processApprovalDecision(
+  approvalId: number,
+  decision: 'approved' | 'rejected',
+  comments?: string
+): Promise<void> {
+  const response = await fetch(`/api/documents/approvals/${approvalId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decision, comments }),
+  });
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to process approval');
+  }
+}
+
 // ============================================
 // Status Color Mapping
 // ============================================
@@ -132,6 +184,11 @@ export default function DocumentDetailPage() {
   const [pendingStatus, setPendingStatus] = useState<DocumentStatus | null>(null);
   const [showVersionPanel, setShowVersionPanel] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedApprovers, setSelectedApprovers] = useState<number[]>([]);
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  const [approvalDecision, setApprovalDecision] = useState<'approved' | 'rejected' | null>(null);
+  const [approvalComments, setApprovalComments] = useState('');
+  const [pendingApprovalId, setPendingApprovalId] = useState<number | null>(null);
 
   // Fetch document
   const {
@@ -178,6 +235,57 @@ export default function DocumentDetailPage() {
     },
     onError: (error) => {
       alert(error instanceof Error ? error.message : 'Failed to update status');
+    },
+  });
+
+  // Fetch approvers for submit dialog
+  const { data: approvers = [] } = useQuery({
+    queryKey: ['approvers'],
+    queryFn: fetchApprovers,
+    enabled: showSubmitDialog,
+  });
+
+  // Submit for approval mutation
+  const submitApprovalMutation = useMutation({
+    mutationFn: () => {
+      if (!document?.currentVersion?.id) {
+        throw new Error('No version to submit');
+      }
+      return submitForApproval(documentId, document.currentVersion.id, selectedApprovers);
+    },
+    onSuccess: () => {
+      setShowSubmitDialog(false);
+      setSelectedApprovers([]);
+      queryClient.invalidateQueries({ queryKey: ['document', documentId] });
+      queryClient.invalidateQueries({ queryKey: ['document-versions', documentId] });
+    },
+    onError: (error) => {
+      alert(error instanceof Error ? error.message : 'Failed to submit for approval');
+    },
+  });
+
+  // Process approval decision mutation
+  const processApprovalMutation = useMutation({
+    mutationFn: () => {
+      if (!pendingApprovalId || !approvalDecision) {
+        throw new Error('No approval to process');
+      }
+      return processApprovalDecision(
+        pendingApprovalId,
+        approvalDecision,
+        approvalComments || undefined
+      );
+    },
+    onSuccess: () => {
+      setShowApprovalDialog(false);
+      setPendingApprovalId(null);
+      setApprovalDecision(null);
+      setApprovalComments('');
+      queryClient.invalidateQueries({ queryKey: ['document', documentId] });
+      queryClient.invalidateQueries({ queryKey: ['document-versions', documentId] });
+    },
+    onError: (error) => {
+      alert(error instanceof Error ? error.message : 'Failed to process approval');
     },
   });
 
@@ -588,6 +696,44 @@ export default function DocumentDetailPage() {
                     comments: a.comments || undefined,
                   }))}
                 />
+
+                {/* Approval Actions for Pending Approvals */}
+                {selectedVersion.approvals.some(a => a.status === 'pending') && (
+                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      If you are an assigned approver, you can approve or reject this version:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedVersion.approvals
+                        .filter(a => a.status === 'pending')
+                        .map(a => (
+                          <div key={a.id} className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{a.approverName}:</span>
+                            <button
+                              onClick={() => {
+                                setPendingApprovalId(a.id);
+                                setApprovalDecision('approved');
+                                setShowApprovalDialog(true);
+                              }}
+                              className="px-3 py-1.5 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => {
+                                setPendingApprovalId(a.id);
+                                setApprovalDecision('rejected');
+                                setShowApprovalDialog(true);
+                              }}
+                              className="px-3 py-1.5 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -761,7 +907,10 @@ export default function DocumentDetailPage() {
       {/* Submit for Approval Dialog */}
       <DxPopup
         visible={showSubmitDialog}
-        onHiding={() => setShowSubmitDialog(false)}
+        onHiding={() => {
+          setShowSubmitDialog(false);
+          setSelectedApprovers([]);
+        }}
         title="Submit for Approval"
         width={500}
         height="auto"
@@ -770,26 +919,66 @@ export default function DocumentDetailPage() {
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground">
             This will submit version {document.currentVersion?.versionNumber} for
-            approval based on the document type&apos;s approval chain.
+            approval. Select at least one approver.
           </p>
-          <p className="text-sm">
-            Required approvers will be notified and the version status will change
-            to &quot;Pending Approval&quot;.
-          </p>
+
+          {/* Approvers Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Approvers</label>
+            <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+              {approvers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Loading approvers...</p>
+              ) : (
+                approvers.map((user) => (
+                  <label
+                    key={user.id}
+                    className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedApprovers.includes(user.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedApprovers([...selectedApprovers, user.id]);
+                        } else {
+                          setSelectedApprovers(selectedApprovers.filter(id => id !== user.id));
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.email} • {user.role}
+                      </p>
+                    </div>
+                  </label>
+                ))
+              )}
+            </div>
+            {selectedApprovers.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {selectedApprovers.length} approver(s) selected
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
               text="Cancel"
-              onClick={() => setShowSubmitDialog(false)}
-              stylingMode="outlined"
-            />
-            <DxButton
-              text="Submit"
-              icon="upload"
               onClick={() => {
                 setShowSubmitDialog(false);
-                refetch();
+                setSelectedApprovers([]);
               }}
+              stylingMode="outlined"
+              disabled={submitApprovalMutation.isPending}
+            />
+            <DxButton
+              text={submitApprovalMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
+              icon={submitApprovalMutation.isPending ? undefined : 'upload'}
+              onClick={() => submitApprovalMutation.mutate()}
               type="success"
+              disabled={selectedApprovers.length === 0 || submitApprovalMutation.isPending}
             />
           </div>
         </div>
@@ -860,6 +1049,66 @@ export default function DocumentDetailPage() {
               }}
               type="success"
               disabled={!pendingStatus || updateStatusMutation.isPending}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Approval Decision Dialog */}
+      <DxPopup
+        visible={showApprovalDialog}
+        onHiding={() => {
+          setShowApprovalDialog(false);
+          setPendingApprovalId(null);
+          setApprovalDecision(null);
+          setApprovalComments('');
+        }}
+        title={approvalDecision === 'approved' ? 'Approve Document' : 'Reject Document'}
+        width={500}
+        height="auto"
+        showCloseButton
+      >
+        <div className="p-4 space-y-4">
+          <div className={`p-4 rounded-lg ${approvalDecision === 'approved' ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'}`}>
+            <p className={`text-sm ${approvalDecision === 'approved' ? 'text-emerald-800 dark:text-emerald-200' : 'text-red-800 dark:text-red-200'}`}>
+              {approvalDecision === 'approved'
+                ? 'You are about to approve this document version. Once all approvers approve, the document will become active.'
+                : 'You are about to reject this document version. The author will need to make changes and resubmit.'}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Comments {approvalDecision === 'rejected' && <span className="text-red-500">*</span>}
+            </label>
+            <DxTextArea
+              value={approvalComments}
+              onValueChange={(value) => setApprovalComments(value || '')}
+              placeholder={approvalDecision === 'approved' ? 'Optional comments...' : 'Please provide a reason for rejection...'}
+              height={100}
+            />
+            {approvalDecision === 'rejected' && !approvalComments && (
+              <p className="text-xs text-red-500">Comments are required when rejecting</p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            <DxButton
+              text="Cancel"
+              onClick={() => {
+                setShowApprovalDialog(false);
+                setPendingApprovalId(null);
+                setApprovalDecision(null);
+                setApprovalComments('');
+              }}
+              stylingMode="outlined"
+              disabled={processApprovalMutation.isPending}
+            />
+            <DxButton
+              text={processApprovalMutation.isPending ? 'Processing...' : (approvalDecision === 'approved' ? 'Approve' : 'Reject')}
+              onClick={() => processApprovalMutation.mutate()}
+              type={approvalDecision === 'approved' ? 'success' : 'danger'}
+              disabled={processApprovalMutation.isPending || (approvalDecision === 'rejected' && !approvalComments)}
             />
           </div>
         </div>
