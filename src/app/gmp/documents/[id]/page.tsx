@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DocumentFormDialog, DocumentVersionHistory, DocumentViewer } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
@@ -116,6 +116,7 @@ export default function DocumentDetailPage() {
   const router = useRouter();
   const params = useParams();
   const documentId = Number(params.id);
+  const queryClient = useQueryClient();
 
   // State
   const [showEditForm, setShowEditForm] = useState(false);
@@ -161,7 +162,9 @@ export default function DocumentDetailPage() {
       setNewVersionDescription('');
       setIsMajorRevision(false);
       setSelectedFile(null);
-      refetch();
+      // Invalidate both document and version history queries
+      queryClient.invalidateQueries({ queryKey: ['document', documentId] });
+      queryClient.invalidateQueries({ queryKey: ['document-versions', documentId] });
     },
   });
 
