@@ -113,19 +113,30 @@ export const DxTagBox = forwardRef(
     // when searchEnabled is true (it calls toLowerCase() on displayExpr field)
     const safeDataSource = useMemo(() => {
       const source = dataSource || items;
+      // Always return an empty array instead of undefined/null to prevent DevExtreme errors
       if (!source || !Array.isArray(source)) {
-        return source;
+        return [];
       }
       if (!displayExpr || typeof displayExpr !== 'string') {
         // Still filter out null/undefined items
         return source.filter((item) => item != null);
       }
+      // Filter out items where displayExpr field is null/undefined/empty
+      // Also ensure the value is a string to prevent toLowerCase() errors
       return source.filter((item) => {
         if (!item || typeof item !== 'object') return false;
         const value = (item as Record<string, unknown>)[displayExpr];
-        return value != null && value !== '';
+        return value != null && value !== '' && typeof value === 'string';
       });
     }, [dataSource, items, displayExpr]);
+
+    // Safely determine the search expression
+    // DevExtreme calls toLowerCase() on search values, so we need to ensure it's valid
+    const safeSearchExpr = useMemo(() => {
+      if (searchExpr) return searchExpr;
+      // If displayExpr is a string, use it for search; otherwise don't enable search
+      return typeof displayExpr === 'string' ? displayExpr : undefined;
+    }, [searchExpr, displayExpr]);
 
     return (
       <TagBox
@@ -140,8 +151,8 @@ export const DxTagBox = forwardRef(
         disabled={disabled}
         readOnly={readOnly}
         showClearButton={showClearButton}
-        searchEnabled={searchEnabled}
-        searchExpr={searchExpr}
+        searchEnabled={searchEnabled && !!safeSearchExpr}
+        searchExpr={safeSearchExpr}
         searchMode={searchMode}
         searchTimeout={searchTimeout}
         acceptCustomValue={acceptCustomValue}

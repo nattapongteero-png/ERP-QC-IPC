@@ -454,7 +454,9 @@ export function RecallDataEntryDialog({
               Affected Lots <span className="text-destructive">*</span>
             </label>
             <DxTagBox
-              dataSource={(lots || []).map((l) => ({ id: l.id, lotNumber: l.lotNumber })) as unknown as Record<string, unknown>[]}
+              dataSource={(lots || [])
+                .filter((l) => l && l.id && l.lotNumber)
+                .map((l) => ({ id: l.id, lotNumber: l.lotNumber })) as unknown as Record<string, unknown>[]}
               valueExpr="id"
               displayExpr="lotNumber"
               value={formData.affectedLots}
