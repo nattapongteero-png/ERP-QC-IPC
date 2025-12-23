@@ -5,7 +5,7 @@ import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
 import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
 import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
 import { getDb, isSqlite } from '../db';
-import { getNow, toDbDate, getTodayStr } from '../db/date-utils';
+import { getNow, toDbDate, getTodayStr, toDateSafe } from '../db/date-utils';
 import { createAuditLog } from '../audit';
 import {
   sqliteHROrgUnits,
@@ -2286,7 +2286,7 @@ export async function getExpiringTrainingRecords(
     const course = await getTrainingCourseById(record.courseId);
 
     if (employee && course && record.expiryDate) {
-      const expiryDate = new Date(record.expiryDate);
+      const expiryDate = toDateSafe(record.expiryDate);
       const daysUntilExpiry = Math.ceil(
         (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -2338,7 +2338,7 @@ export async function getExpiredTrainingRecords(): Promise<ExpiringTrainingRecor
     const course = await getTrainingCourseById(record.courseId);
 
     if (employee && course && record.expiryDate) {
-      const expiryDate = new Date(record.expiryDate);
+      const expiryDate = toDateSafe(record.expiryDate);
       const daysUntilExpiry = Math.ceil(
         (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
       );
