@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -11,16 +11,33 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
+import { PageHeader } from '@/components/ui/page-header';
+import { cn } from '@/lib/utils/cn';
 import {
   ArrowLeft, Printer, Send, Package, DollarSign,
   Clock, CheckCircle, AlertCircle, Truck, FileText,
   Building2, User, Phone, Mail, Warehouse, Calendar,
-  Hash, Scale, Tag
+  Hash, Scale, Tag, Edit2, Save, X, Plus, Trash2,
+  RefreshCw, PackageCheck, XCircle, FileCheck,
 } from 'lucide-react';
 
 interface WarehouseItem {
+  id: number;
+  code: string;
+  name: string;
+}
+
+interface Item {
+  id: number;
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  unitName: string;
+}
+
+interface Vendor {
   id: number;
   code: string;
   name: string;
@@ -39,6 +56,8 @@ interface POLine {
   lineTotal: number;
   pendingQty: number;
   receivingStatus: string;
+  unit?: string;
+  notes?: string;
 }
 
 interface ReceivedLot {
@@ -67,6 +86,8 @@ interface PODetail {
     expectedDate: string;
     status: string;
     totalAmount: number;
+    paymentTerms: string;
+    shippingAddress: string;
     notes: string;
     createdAt: string;
     updatedAt: string;
@@ -84,12 +105,118 @@ interface PODetail {
   };
 }
 
+// Status configuration
+type POStatus = 'draft' | 'pending_approval' | 'approved' | 'sent' | 'partial' | 'received' | 'cancelled';
+
+const STATUS_CONFIG: Record<POStatus, {
+  label: string;
+  labelTh: string;
+  bgColor: string;
+  textColor: string;
+  icon: React.ReactNode;
+  badgeVariant: 'success' | 'warning' | 'danger' | 'info' | 'default';
+}> = {
+  draft: {
+    label: 'Draft',
+    labelTh: 'ร่าง',
+    bgColor: 'bg-slate-100',
+    textColor: 'text-slate-700',
+    icon: <FileText className="h-4 w-4" />,
+    badgeVariant: 'default',
+  },
+  pending_approval: {
+    label: 'Pending Approval',
+    labelTh: 'รออนุมัติ',
+    bgColor: 'bg-yellow-100',
+    textColor: 'text-yellow-700',
+    icon: <Clock className="h-4 w-4" />,
+    badgeVariant: 'warning',
+  },
+  approved: {
+    label: 'Approved',
+    labelTh: 'อนุมัติแล้ว',
+    bgColor: 'bg-green-100',
+    textColor: 'text-green-700',
+    icon: <CheckCircle className="h-4 w-4" />,
+    badgeVariant: 'success',
+  },
+  sent: {
+    label: 'Sent to Vendor',
+    labelTh: 'ส่งแล้ว',
+    bgColor: 'bg-blue-100',
+    textColor: 'text-blue-700',
+    icon: <Send className="h-4 w-4" />,
+    badgeVariant: 'info',
+  },
+  partial: {
+    label: 'Partial Received',
+    labelTh: 'รับบางส่วน',
+    bgColor: 'bg-purple-100',
+    textColor: 'text-purple-700',
+    icon: <Package className="h-4 w-4" />,
+    badgeVariant: 'info',
+  },
+  received: {
+    label: 'Received',
+    labelTh: 'รับครบแล้ว',
+    bgColor: 'bg-emerald-100',
+    textColor: 'text-emerald-700',
+    icon: <PackageCheck className="h-4 w-4" />,
+    badgeVariant: 'success',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    labelTh: 'ยกเลิก',
+    bgColor: 'bg-red-100',
+    textColor: 'text-red-700',
+    icon: <XCircle className="h-4 w-4" />,
+    badgeVariant: 'danger',
+  },
+};
+
+const STATUS_OPTIONS = [
+  { value: 'draft', label: 'ร่าง' },
+  { value: 'pending_approval', label: 'รออนุมัติ' },
+  { value: 'approved', label: 'อนุมัติแล้ว' },
+  { value: 'sent', label: 'ส่งให้ผู้ขาย' },
+  { value: 'partial', label: 'รับบางส่วน' },
+  { value: 'received', label: 'รับครบแล้ว' },
+  { value: 'cancelled', label: 'ยกเลิก' },
+];
+
 export default function PurchaseOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [data, setData] = useState<PODetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'lines' | 'receiving' | 'lots'>('overview');
+
+  // Edit states
+  const [isEditingPO, setIsEditingPO] = useState(false);
+  const [editPOForm, setEditPOForm] = useState({
+    vendorId: 0,
+    status: '',
+    orderDate: '',
+    expectedDate: '',
+    paymentTerms: '',
+    shippingAddress: '',
+    notes: '',
+  });
+  const [isSavingPO, setIsSavingPO] = useState(false);
+
+  // Line edit states
+  const [showLineModal, setShowLineModal] = useState(false);
+  const [editingLine, setEditingLine] = useState<POLine | null>(null);
+  const [lineForm, setLineForm] = useState({
+    itemId: 0,
+    quantity: 0,
+    unit: '',
+    unitPrice: 0,
+    notes: '',
+  });
+  const [isSavingLine, setIsSavingLine] = useState(false);
+
+  // Receiving states
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [selectedLine, setSelectedLine] = useState<POLine | null>(null);
   const [receiveForm, setReceiveForm] = useState({
@@ -99,30 +226,13 @@ export default function PurchaseOrderDetailPage() {
     warehouseId: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reference data
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
-  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
 
-  useEffect(() => {
-    fetchPODetail();
-    fetchWarehouses();
-  }, [params.id]);
-
-  const fetchWarehouses = async () => {
-    setLoadingWarehouses(true);
-    try {
-      const response = await fetch('/api/warehouses?status=active&limit=100');
-      const result = await response.json();
-      if (result.success) {
-        setWarehouses(result.data?.items || result.data || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch warehouses:', error);
-    } finally {
-      setLoadingWarehouses(false);
-    }
-  };
-
-  const fetchPODetail = async () => {
+  const fetchPODetail = useCallback(async () => {
     try {
       const response = await fetch(`/api/purchasing/orders/${params.id}/detail`);
       const result = await response.json();
@@ -134,8 +244,156 @@ export default function PurchaseOrderDetailPage() {
     } finally {
       setLoading(false);
     }
+  }, [params.id]);
+
+  const fetchReferenceData = useCallback(async () => {
+    try {
+      const [whRes, vendorRes, itemRes] = await Promise.all([
+        fetch('/api/warehouses?status=active&limit=100'),
+        fetch('/api/vendors?limit=100'),
+        fetch('/api/items?limit=500'),
+      ]);
+
+      const [whData, vendorData, itemData] = await Promise.all([
+        whRes.json(),
+        vendorRes.json(),
+        itemRes.json(),
+      ]);
+
+      if (whData.success) setWarehouses(whData.data?.items || whData.data || []);
+      if (vendorData.success) setVendors(vendorData.data?.items || vendorData.data || []);
+      if (itemData.success) setItems(itemData.data?.items || itemData.data || []);
+    } catch (error) {
+      console.error('Failed to fetch reference data:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPODetail();
+    fetchReferenceData();
+  }, [fetchPODetail, fetchReferenceData]);
+
+  // Start editing PO
+  const startEditPO = () => {
+    if (!data) return;
+    const po = data.purchaseOrder;
+    setEditPOForm({
+      vendorId: po.vendorId,
+      status: po.status,
+      orderDate: po.orderDate ? po.orderDate.split('T')[0] : '',
+      expectedDate: po.expectedDate ? po.expectedDate.split('T')[0] : '',
+      paymentTerms: po.paymentTerms || '',
+      shippingAddress: po.shippingAddress || '',
+      notes: po.notes || '',
+    });
+    setIsEditingPO(true);
   };
 
+  // Save PO changes
+  const savePOChanges = async () => {
+    setIsSavingPO(true);
+    try {
+      const response = await fetch(`/api/purchasing/orders/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editPOForm),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setIsEditingPO(false);
+        fetchPODetail();
+      } else {
+        alert(result.error || 'Failed to save changes');
+      }
+    } catch (error) {
+      console.error('Failed to save PO:', error);
+      alert('Failed to save changes');
+    } finally {
+      setIsSavingPO(false);
+    }
+  };
+
+  // Open line modal for add/edit
+  const openLineModal = (line?: POLine) => {
+    if (line) {
+      setEditingLine(line);
+      setLineForm({
+        itemId: line.itemId,
+        quantity: line.quantity,
+        unit: line.unit || line.itemUnit || '',
+        unitPrice: line.unitPrice,
+        notes: line.notes || '',
+      });
+    } else {
+      setEditingLine(null);
+      setLineForm({
+        itemId: 0,
+        quantity: 0,
+        unit: '',
+        unitPrice: 0,
+        notes: '',
+      });
+    }
+    setShowLineModal(true);
+  };
+
+  // Save line
+  const saveLine = async () => {
+    if (!lineForm.itemId || !lineForm.quantity || !lineForm.unitPrice) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsSavingLine(true);
+    try {
+      const url = `/api/purchasing/orders/${params.id}/lines`;
+      const method = editingLine ? 'PUT' : 'POST';
+      const body = editingLine
+        ? { lineId: editingLine.id, ...lineForm }
+        : lineForm;
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setShowLineModal(false);
+        setEditingLine(null);
+        fetchPODetail();
+      } else {
+        alert(result.error || 'Failed to save line');
+      }
+    } catch (error) {
+      console.error('Failed to save line:', error);
+      alert('Failed to save line');
+    } finally {
+      setIsSavingLine(false);
+    }
+  };
+
+  // Delete line
+  const deleteLine = async (lineId: number) => {
+    if (!confirm('Are you sure you want to delete this line?')) return;
+
+    try {
+      const response = await fetch(`/api/purchasing/orders/${params.id}/lines?lineId=${lineId}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (result.success) {
+        fetchPODetail();
+      } else {
+        alert(result.error || 'Failed to delete line');
+      }
+    } catch (error) {
+      console.error('Failed to delete line:', error);
+      alert('Failed to delete line');
+    }
+  };
+
+  // Handle receive
   const handleReceive = (line: POLine) => {
     setSelectedLine(line);
     setReceiveForm({
@@ -176,34 +434,6 @@ export default function PurchaseOrderDetailPage() {
     }
   };
 
-  const getStatusVariant = (status: string): 'success' | 'danger' | 'warning' | 'info' | 'default' => {
-    switch (status) {
-      case 'received': case 'complete': return 'success';
-      case 'partial': return 'info';
-      case 'cancelled': return 'danger';
-      case 'approved': case 'ordered': return 'success';
-      case 'pending': case 'pending_approval': return 'warning';
-      case 'released': return 'success';
-      case 'quarantine': return 'warning';
-      default: return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string): string => {
-    const labels: Record<string, string> = {
-      'draft': 'Draft',
-      'pending': 'Pending',
-      'pending_approval': 'Pending Approval',
-      'approved': 'Approved',
-      'ordered': 'Ordered',
-      'partial': 'Partial Received',
-      'received': 'Received',
-      'cancelled': 'Cancelled',
-      'complete': 'Complete',
-    };
-    return labels[status] || status;
-  };
-
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('th-TH', {
@@ -224,55 +454,124 @@ export default function PurchaseOrderDetailPage() {
     });
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('th-TH', {
+      style: 'currency',
+      currency: 'THB',
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  const getStatusConfig = (status: string) => {
+    return STATUS_CONFIG[status as POStatus] || STATUS_CONFIG.draft;
+  };
+
+  const isEditable = data?.purchaseOrder?.status === 'draft' || data?.purchaseOrder?.status === 'pending_approval';
+
   // Order Lines columns
   const linesColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemCode',
-      caption: 'Item',
+      caption: 'รายการสินค้า',
+      minWidth: 200,
       cellRender: (cellInfo) => (
-        <div>
-          <p className="font-medium">{cellInfo.data.itemCode}</p>
-          <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-blue-100 rounded">
+            <Package className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900">{cellInfo.data.itemCode}</p>
+            <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
+          </div>
         </div>
-      )
+      ),
     },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: 'จำนวน',
       width: 120,
-      cellRender: (cellInfo) => `${cellInfo.data.quantity.toLocaleString()} ${cellInfo.data.itemUnit}`
+      cellRender: (cellInfo) => (
+        <span className="font-medium">
+          {cellInfo.data.quantity.toLocaleString()} {cellInfo.data.itemUnit}
+        </span>
+      ),
     },
     {
       dataField: 'unitPrice',
-      caption: 'Unit Price',
+      caption: 'ราคา/หน่วย',
       width: 120,
-      cellRender: (cellInfo) => `฿${cellInfo.data.unitPrice?.toLocaleString() || 0}`
+      cellRender: (cellInfo) => formatCurrency(cellInfo.data.unitPrice),
     },
     {
       dataField: 'lineTotal',
-      caption: 'Line Total',
+      caption: 'รวม',
       width: 130,
-      cellRender: (cellInfo) => `฿${cellInfo.data.lineTotal?.toLocaleString() || 0}`
+      cellRender: (cellInfo) => (
+        <span className="font-semibold text-blue-600">
+          {formatCurrency(cellInfo.data.lineTotal)}
+        </span>
+      ),
     },
     {
       dataField: 'receivedQty',
-      caption: 'Received',
+      caption: 'รับแล้ว',
       width: 140,
-      cellRender: (cellInfo) => (
-        <span className={cellInfo.data.receivedQty > 0 ? 'text-green-600 font-medium' : ''}>
-          {cellInfo.data.receivedQty || 0} / {cellInfo.data.quantity} {cellInfo.data.itemUnit}
-        </span>
-      )
+      cellRender: (cellInfo) => {
+        const received = cellInfo.data.receivedQty || 0;
+        const ordered = cellInfo.data.quantity;
+        const percentage = ordered > 0 ? (received / ordered) * 100 : 0;
+        return (
+          <div>
+            <span className={cn(
+              'font-medium',
+              received >= ordered ? 'text-green-600' : received > 0 ? 'text-orange-600' : 'text-gray-500'
+            )}>
+              {received} / {ordered}
+            </span>
+            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+              <div
+                className={cn(
+                  'h-1.5 rounded-full transition-all',
+                  percentage >= 100 ? 'bg-green-500' : percentage > 0 ? 'bg-orange-500' : 'bg-gray-300'
+                )}
+                style={{ width: `${Math.min(percentage, 100)}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
     },
     {
       dataField: 'receivingStatus',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 120,
+      cellRender: (cellInfo) => {
+        const status = cellInfo.data.receivingStatus;
+        const variant = status === 'complete' ? 'success' : status === 'partial' ? 'info' : 'default';
+        return <Badge variant={variant}>{status || 'pending'}</Badge>;
+      },
+    },
+    {
+      dataField: 'actions',
+      caption: '',
+      width: 100,
+      visible: isEditable,
       cellRender: (cellInfo) => (
-        <Badge variant={getStatusVariant(cellInfo.data.receivingStatus)}>
-          {cellInfo.data.receivingStatus}
-        </Badge>
-      )
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); openLineModal(cellInfo.data); }}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); deleteLine(cellInfo.data.id); }}
+            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
     },
   ];
 
@@ -280,49 +579,40 @@ export default function PurchaseOrderDetailPage() {
   const receivingColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemCode',
-      caption: 'Item',
+      caption: 'รายการ',
+      minWidth: 180,
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium">{cellInfo.data.itemCode}</p>
           <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
         </div>
-      )
+      ),
     },
     {
       dataField: 'quantity',
-      caption: 'Ordered',
-      width: 120,
-      cellRender: (cellInfo) => `${cellInfo.data.quantity.toLocaleString()} ${cellInfo.data.itemUnit}`
+      caption: 'สั่งซื้อ',
+      width: 100,
+      cellRender: (cellInfo) => `${cellInfo.data.quantity.toLocaleString()} ${cellInfo.data.itemUnit}`,
     },
     {
       dataField: 'receivedQty',
-      caption: 'Received',
-      width: 110,
+      caption: 'รับแล้ว',
+      width: 100,
       cellRender: (cellInfo) => (
         <span className="text-green-600 font-medium">
-          {cellInfo.data.receivedQty || 0} {cellInfo.data.itemUnit}
+          {cellInfo.data.receivedQty || 0}
         </span>
-      )
+      ),
     },
     {
       dataField: 'pendingQty',
-      caption: 'Pending',
-      width: 110,
+      caption: 'คงเหลือ',
+      width: 100,
       cellRender: (cellInfo) => (
         <span className={cellInfo.data.pendingQty > 0 ? 'text-orange-600 font-medium' : ''}>
-          {cellInfo.data.pendingQty} {cellInfo.data.itemUnit}
+          {cellInfo.data.pendingQty}
         </span>
-      )
-    },
-    {
-      dataField: 'receivingStatus',
-      caption: 'Status',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <Badge variant={getStatusVariant(cellInfo.data.receivingStatus)}>
-          {cellInfo.data.receivingStatus}
-        </Badge>
-      )
+      ),
     },
     {
       dataField: 'actions',
@@ -331,16 +621,16 @@ export default function PurchaseOrderDetailPage() {
       cellRender: (cellInfo) => (
         cellInfo.data.pendingQty > 0 ? (
           <DxButton
-            text="Receive"
+            text="รับสินค้า"
             icon="box"
-            type="default"
+            type="success"
             stylingMode="outlined"
             onClick={() => handleReceive(cellInfo.data)}
           />
         ) : (
-          <span className="text-gray-400 text-sm">Complete</span>
+          <Badge variant="success">ครบแล้ว</Badge>
         )
-      )
+      ),
     },
   ];
 
@@ -348,48 +638,50 @@ export default function PurchaseOrderDetailPage() {
   const lotsColumns: DxDataGridColumn[] = [
     {
       dataField: 'lotNumber',
-      caption: 'Lot Number',
+      caption: 'เลข Lot',
       cellRender: (cellInfo) => (
-        <span className="font-medium text-blue-600 hover:underline cursor-pointer">
+        <span className="font-medium text-blue-600 cursor-pointer hover:underline">
           {cellInfo.data.lotNumber}
         </span>
-      )
+      ),
     },
     {
       dataField: 'itemCode',
-      caption: 'Item',
+      caption: 'รายการ',
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium">{cellInfo.data.itemCode}</p>
           <p className="text-sm text-gray-500">{cellInfo.data.itemName}</p>
         </div>
-      )
+      ),
     },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: 'จำนวน',
       width: 100,
-      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString()
+      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString(),
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 120,
-      cellRender: (cellInfo) => (
-        <Badge variant={getStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>
-      )
+      cellRender: (cellInfo) => {
+        const status = cellInfo.data.status;
+        const variant = status === 'released' ? 'success' : status === 'quarantine' ? 'warning' : 'default';
+        return <Badge variant={variant}>{status}</Badge>;
+      },
     },
     {
       dataField: 'expiryDate',
-      caption: 'Expiry Date',
-      width: 130,
-      cellRender: (cellInfo) => formatDate(cellInfo.data.expiryDate)
+      caption: 'วันหมดอายุ',
+      width: 120,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.expiryDate),
     },
     {
       dataField: 'receivedDate',
-      caption: 'Received Date',
-      width: 130,
-      cellRender: (cellInfo) => formatDate(cellInfo.data.receivedDate)
+      caption: 'วันที่รับ',
+      width: 120,
+      cellRender: (cellInfo) => formatDate(cellInfo.data.receivedDate),
     },
   ];
 
@@ -400,18 +692,13 @@ export default function PurchaseOrderDetailPage() {
           <div className="flex items-center gap-3">
             <div className="h-9 w-20 bg-gray-200 rounded animate-pulse" />
             <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
-            <div className="h-6 w-24 bg-gray-200 rounded animate-pulse" />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[...Array(5)].map((_, i) => (
-              <Card key={i} className="!p-3 sm:!p-4">
-                <div className="h-16 bg-gray-200 rounded animate-pulse" />
-              </Card>
+              <div key={i} className="h-20 bg-gray-200 rounded animate-pulse" />
             ))}
           </div>
-          <Card className="p-6">
-            <div className="h-64 bg-gray-200 rounded animate-pulse" />
-          </Card>
+          <div className="h-96 bg-gray-200 rounded animate-pulse" />
         </div>
       </MainLayout>
     );
@@ -428,7 +715,7 @@ export default function PurchaseOrderDetailPage() {
             icon="back"
             type="normal"
             stylingMode="outlined"
-            onClick={() => router.push('/purchasing')}
+            onClick={() => router.push('/purchasing/orders')}
           />
         </div>
       </MainLayout>
@@ -436,302 +723,112 @@ export default function PurchaseOrderDetailPage() {
   }
 
   const { purchaseOrder: po, lines, receivedLots, summary } = data;
-
-  const renderReceiveModalContent = () => (
-    <div className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Package className="h-5 w-5 text-emerald-600" />
-        <h2 className="text-lg font-semibold">Receive Goods</h2>
-      </div>
-      <p className="text-sm text-gray-500 mb-6">
-        Record received goods from purchase order {data?.purchaseOrder.poNumber}
-      </p>
-
-      {selectedLine && (
-        <div className="space-y-6">
-          {/* Item Information Card */}
-          <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200">
-            <h4 className="text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2">
-              <Tag className="h-4 w-4" />
-              Item Information
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-xs text-gray-500">Item Code</p>
-                <p className="font-semibold text-gray-900">{selectedLine.itemCode}</p>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-xs text-gray-500">Item Name</p>
-                <p className="font-medium text-gray-900">{selectedLine.itemName}</p>
-                {selectedLine.itemNameEn && (
-                  <p className="text-xs text-gray-500">{selectedLine.itemNameEn}</p>
-                )}
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Unit</p>
-                <p className="font-medium text-gray-900">{selectedLine.itemUnit}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Order & Receiving Status */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-xs text-blue-600 mb-1">Ordered Qty</p>
-              <p className="text-lg font-bold text-blue-700">
-                {selectedLine.quantity.toLocaleString()}
-              </p>
-              <p className="text-xs text-blue-500">{selectedLine.itemUnit}</p>
-            </div>
-            <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-              <p className="text-xs text-green-600 mb-1">Already Received</p>
-              <p className="text-lg font-bold text-green-700">
-                {(selectedLine.receivedQty || 0).toLocaleString()}
-              </p>
-              <p className="text-xs text-green-500">{selectedLine.itemUnit}</p>
-            </div>
-            <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-              <p className="text-xs text-orange-600 mb-1">Pending Qty</p>
-              <p className="text-lg font-bold text-orange-700">
-                {selectedLine.pendingQty.toLocaleString()}
-              </p>
-              <p className="text-xs text-orange-500">{selectedLine.itemUnit}</p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-xs text-gray-600 mb-1">Unit Price</p>
-              <p className="text-lg font-bold text-gray-700">
-                ฿{(selectedLine.unitPrice || 0).toLocaleString()}
-              </p>
-              <p className="text-xs text-gray-500">per {selectedLine.itemUnit}</p>
-            </div>
-          </div>
-
-          {/* Form Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Warehouse Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                <Warehouse className="h-4 w-4 text-gray-400" />
-                Warehouse <span className="text-red-500">*</span>
-              </label>
-              <DxSelectBox
-                items={warehouses.map((wh) => ({
-                  value: wh.id.toString(),
-                  text: `${wh.code} - ${wh.name}`,
-                }))}
-                value={receiveForm.warehouseId}
-                onValueChange={(value) => setReceiveForm({ ...receiveForm, warehouseId: value })}
-                valueExpr="value"
-                displayExpr="text"
-                placeholder="-- Select warehouse --"
-                disabled={loadingWarehouses}
-              />
-              {warehouses.length === 0 && !loadingWarehouses && (
-                <p className="text-xs text-red-500 mt-1">No active warehouses available</p>
-              )}
-            </div>
-
-            {/* Lot Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                <Hash className="h-4 w-4 text-gray-400" />
-                Lot Number <span className="text-red-500">*</span>
-              </label>
-              <DxTextBox
-                value={receiveForm.lotNumber}
-                onValueChange={(value) => setReceiveForm({ ...receiveForm, lotNumber: value })}
-                placeholder="Enter lot number"
-              />
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                <Scale className="h-4 w-4 text-gray-400" />
-                Receiving Quantity ({selectedLine.itemUnit}) <span className="text-red-500">*</span>
-              </label>
-              <DxNumberBox
-                value={receiveForm.quantity}
-                onValueChange={(value) => setReceiveForm({ ...receiveForm, quantity: value || 0 })}
-                min={0}
-                max={selectedLine.pendingQty}
-                step={0.01}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Maximum receivable: <span className="font-medium">{selectedLine.pendingQty.toLocaleString()} {selectedLine.itemUnit}</span>
-              </p>
-            </div>
-
-            {/* Expiry Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                Expiry Date <span className="text-red-500">*</span>
-              </label>
-              <DxDateBox
-                value={receiveForm.expiryDate}
-                onValueChange={(value) => setReceiveForm({ ...receiveForm, expiryDate: value || '' })}
-                min={new Date()}
-                placeholder="Select expiry date"
-              />
-            </div>
-          </div>
-
-          {/* Summary */}
-          {receiveForm.quantity && receiveForm.quantity > 0 && (
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Receiving Summary</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">This Receipt</p>
-                  <p className="font-bold text-emerald-600">
-                    {receiveForm.quantity.toLocaleString()} {selectedLine.itemUnit}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Total After Receipt</p>
-                  <p className="font-bold">
-                    {((selectedLine.receivedQty || 0) + receiveForm.quantity).toLocaleString()} / {selectedLine.quantity.toLocaleString()} {selectedLine.itemUnit}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Remaining After</p>
-                  <p className="font-bold text-orange-600">
-                    {(selectedLine.pendingQty - receiveForm.quantity).toLocaleString()} {selectedLine.itemUnit}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex gap-3 pt-4 border-t mt-6">
-        <DxButton
-          text="Cancel"
-          type="normal"
-          stylingMode="outlined"
-          onClick={() => setShowReceiveModal(false)}
-          disabled={isSubmitting}
-          width="50%"
-        />
-        <DxButton
-          text={isSubmitting ? 'Processing...' : 'Confirm Receipt'}
-          icon="check"
-          type="success"
-          onClick={submitReceive}
-          disabled={isSubmitting || !receiveForm.quantity || !receiveForm.expiryDate || !receiveForm.warehouseId || !receiveForm.lotNumber}
-          width="50%"
-        />
-      </div>
-    </div>
-  );
+  const statusConfig = getStatusConfig(po.status);
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <DxButton
-                text="Back"
-                icon="back"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => router.push('/purchasing')}
-              />
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">PO: {po.poNumber}</h1>
-              <Badge variant={getStatusVariant(po.status)} dot>
-                {getStatusLabel(po.status)}
+        <PageHeader
+          title={
+            <div className="flex items-center gap-3">
+              <span>PO: {po.poNumber}</span>
+              <Badge variant={statusConfig.badgeVariant} className="text-sm">
+                {statusConfig.icon}
+                <span className="ml-1">{statusConfig.labelTh}</span>
               </Badge>
             </div>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">
-              <span className="hidden sm:inline">Vendor: </span>{po.vendorName}
-            </p>
-          </div>
-          <div className="flex gap-2">
+          }
+          description={`ผู้ขาย: ${po.vendorName}`}
+          backButton={
             <DxButton
-              text="Print"
-              icon="print"
+              icon="back"
               type="normal"
-              stylingMode="outlined"
-              onClick={() => window.print()}
+              stylingMode="text"
+              onClick={() => router.push('/purchasing/orders')}
             />
-            {po.status === 'approved' && (
+          }
+          actions={
+            <div className="flex items-center gap-2">
               <DxButton
-                text="Send to Vendor"
-                icon="email"
-                type="success"
+                icon="refresh"
+                type="normal"
+                stylingMode="outlined"
+                hint="รีเฟรช"
+                onClick={() => fetchPODetail()}
               />
-            )}
-          </div>
-        </div>
+              <DxButton
+                text="พิมพ์"
+                icon="print"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => window.print()}
+              />
+              {po.status === 'approved' && (
+                <DxButton
+                  text="ส่งให้ผู้ขาย"
+                  icon="email"
+                  type="success"
+                />
+              )}
+            </div>
+          }
+        />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
-          <Card className="!p-3 sm:!p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
-                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Card className="!p-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <DollarSign className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-gray-500">Total Amount</p>
-                <p className="text-base sm:text-xl font-bold text-blue-600">
-                  ฿{summary.totalAmount?.toLocaleString() || 0}
-                </p>
+                <p className="text-xs text-gray-500">ยอดรวม</p>
+                <p className="text-lg font-bold text-blue-600">{formatCurrency(summary.totalAmount)}</p>
               </div>
             </div>
           </Card>
-          <Card className="!p-3 sm:!p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-gray-100 rounded-lg">
-                <Package className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+          <Card className="!p-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Package className="h-5 w-5 text-gray-600" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-gray-500">Ordered</p>
-                <p className="text-base sm:text-xl font-bold">{summary.totalOrdered?.toLocaleString() || 0}</p>
-                <p className="text-xs text-gray-400">units</p>
+                <p className="text-xs text-gray-500">สั่งซื้อ</p>
+                <p className="text-lg font-bold">{summary.totalOrdered?.toLocaleString() || 0}</p>
               </div>
             </div>
           </Card>
-          <Card className="!p-3 sm:!p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+          <Card className="!p-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-gray-500">Received</p>
-                <p className="text-base sm:text-xl font-bold text-green-600">
-                  {summary.totalReceived?.toLocaleString() || 0}
-                </p>
-                <p className="text-xs text-gray-400">units</p>
+                <p className="text-xs text-gray-500">รับแล้ว</p>
+                <p className="text-lg font-bold text-green-600">{summary.totalReceived?.toLocaleString() || 0}</p>
               </div>
             </div>
           </Card>
-          <Card className="!p-3 sm:!p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
+          <Card className="!p-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Clock className="h-5 w-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-gray-500">Pending</p>
-                <p className="text-base sm:text-xl font-bold text-orange-600">
-                  {summary.totalPending?.toLocaleString() || 0}
-                </p>
-                <p className="text-xs text-gray-400">units</p>
+                <p className="text-xs text-gray-500">คงเหลือ</p>
+                <p className="text-lg font-bold text-orange-600">{summary.totalPending?.toLocaleString() || 0}</p>
               </div>
             </div>
           </Card>
-          <Card className="!p-3 sm:!p-4 col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-emerald-100 rounded-lg">
-                <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
+          <Card className="!p-3 col-span-2 md:col-span-1">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <Truck className="h-5 w-5 text-emerald-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs sm:text-sm text-gray-500">Progress</p>
-                <p className="text-base sm:text-xl font-bold">{summary.receivingProgress || 0}%</p>
+                <p className="text-xs text-gray-500">ความคืบหน้า</p>
+                <p className="text-lg font-bold">{summary.receivingProgress || 0}%</p>
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                   <div
                     className="bg-emerald-600 h-1.5 rounded-full transition-all"
@@ -744,222 +841,482 @@ export default function PurchaseOrderDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 overflow-x-auto">
-          <nav className="flex gap-2 sm:gap-4 min-w-max">
-            {[
-              { id: 'overview', label: 'Overview', icon: FileText },
-              { id: 'lines', label: 'Order Lines', icon: Package },
-              { id: 'receiving', label: 'Receiving', icon: Truck },
-              { id: 'lots', label: 'Received Lots', icon: CheckCircle },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-emerald-500 text-emerald-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <tab.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* PO Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-gray-400" />
-                  Purchase Order Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="grid grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-sm text-gray-500">PO Number</dt>
-                    <dd className="font-medium">{po.poNumber}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Status</dt>
-                    <dd>
-                      <Badge variant={getStatusVariant(po.status)} dot>
-                        {getStatusLabel(po.status)}
-                      </Badge>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Order Date</dt>
-                    <dd className="font-medium">{formatDate(po.orderDate)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Expected Date</dt>
-                    <dd className="font-medium">{formatDate(po.expectedDate)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Total Amount</dt>
-                    <dd className="font-medium text-lg text-blue-600">
-                      ฿{summary.totalAmount?.toLocaleString() || 0}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Line Items</dt>
-                    <dd className="font-medium">{summary.lineCount} items</dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-
-            {/* Vendor Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-gray-400" />
-                  Vendor Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="grid grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-sm text-gray-500">Vendor Code</dt>
-                    <dd className="font-medium">{po.vendorCode || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Vendor Name</dt>
-                    <dd className="font-medium">{po.vendorName || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500 flex items-center gap-1">
-                      <User className="h-3.5 w-3.5" /> Contact
-                    </dt>
-                    <dd className="font-medium">{po.vendorContact || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500 flex items-center gap-1">
-                      <Phone className="h-3.5 w-3.5" /> Phone
-                    </dt>
-                    <dd className="font-medium">{po.vendorPhone || '-'}</dd>
-                  </div>
-                  <div className="col-span-2">
-                    <dt className="text-sm text-gray-500 flex items-center gap-1">
-                      <Mail className="h-3.5 w-3.5" /> Email
-                    </dt>
-                    <dd className="font-medium">{po.vendorEmail || '-'}</dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-
-            {/* Notes */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 whitespace-pre-wrap">{po.notes || 'No notes'}</p>
-              </CardContent>
-            </Card>
-
-            {/* Audit Info */}
-            <Card className="lg:col-span-2">
-              <CardContent className="!py-4">
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-sm text-gray-500">
-                  <span>Created: {formatDateTime(po.createdAt)}</span>
-                  <span>Last Updated: {formatDateTime(po.updatedAt)}</span>
-                </div>
-              </CardContent>
-            </Card>
+        <Card elevation="raised" className="overflow-hidden">
+          <div className="border-b border-gray-200 overflow-x-auto">
+            <nav className="flex gap-1 px-4 min-w-max">
+              {[
+                { id: 'overview', label: 'ข้อมูลทั่วไป', icon: FileText },
+                { id: 'lines', label: `รายการสินค้า (${lines.length})`, icon: Package },
+                { id: 'receiving', label: 'รับสินค้า', icon: Truck },
+                { id: 'lots', label: `Lot ที่รับ (${receivedLots.length})`, icon: FileCheck },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-4 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap',
+                    activeTab === tab.id
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  )}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
           </div>
-        )}
 
-        {activeTab === 'lines' && (
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gray-50 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-gray-400" />
-                Order Lines ({lines.length})
-              </CardTitle>
-            </CardHeader>
-            <div className="p-4 sm:p-6">
-              <DxDataGrid
-                dataSource={lines}
-                keyExpr="id"
-                columns={linesColumns}
-                showBorders
-                height={400}
-                noDataText="No order lines"
-              />
-            </div>
-          </Card>
-        )}
+          {/* Tab Content */}
+          <CardContent className="p-4">
+            {activeTab === 'overview' && (
+              <div className="space-y-4">
+                {/* Edit Actions */}
+                <div className="flex justify-end gap-2">
+                  {isEditingPO ? (
+                    <>
+                      <DxButton
+                        text="ยกเลิก"
+                        icon="close"
+                        type="normal"
+                        stylingMode="outlined"
+                        onClick={() => setIsEditingPO(false)}
+                        disabled={isSavingPO}
+                      />
+                      <DxButton
+                        text={isSavingPO ? 'กำลังบันทึก...' : 'บันทึก'}
+                        icon="save"
+                        type="success"
+                        onClick={savePOChanges}
+                        disabled={isSavingPO}
+                      />
+                    </>
+                  ) : isEditable ? (
+                    <DxButton
+                      text="แก้ไขข้อมูล"
+                      icon="edit"
+                      type="default"
+                      onClick={startEditPO}
+                    />
+                  ) : null}
+                </div>
 
-        {activeTab === 'receiving' && (
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gray-50 border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-gray-400" />
-                  Goods Receiving
-                </CardTitle>
-                {summary.totalPending > 0 && (
-                  <Badge variant="warning">
-                    {summary.totalPending} units pending
-                  </Badge>
-                )}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* PO Info */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-400" />
+                        ข้อมูล Purchase Order
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {isEditingPO ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                              <DxSelectBox
+                                items={STATUS_OPTIONS}
+                                value={editPOForm.status}
+                                onValueChange={(v) => setEditPOForm({ ...editPOForm, status: v })}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">ผู้ขาย</label>
+                              <DxSelectBox
+                                items={vendors.map((v) => ({ value: v.id, label: `${v.code} - ${v.name}` }))}
+                                value={editPOForm.vendorId}
+                                onValueChange={(v) => setEditPOForm({ ...editPOForm, vendorId: v })}
+                                searchEnabled
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่สั่งซื้อ</label>
+                              <DxDateBox
+                                value={editPOForm.orderDate}
+                                onValueChange={(v) => setEditPOForm({ ...editPOForm, orderDate: v || '' })}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่คาดว่าจะได้รับ</label>
+                              <DxDateBox
+                                value={editPOForm.expectedDate}
+                                onValueChange={(v) => setEditPOForm({ ...editPOForm, expectedDate: v || '' })}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">เงื่อนไขการชำระเงิน</label>
+                            <DxTextBox
+                              value={editPOForm.paymentTerms}
+                              onValueChange={(v) => setEditPOForm({ ...editPOForm, paymentTerms: v })}
+                              placeholder="เช่น Net 30, COD"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่จัดส่ง</label>
+                            <DxTextArea
+                              value={editPOForm.shippingAddress}
+                              onValueChange={(v) => setEditPOForm({ ...editPOForm, shippingAddress: v })}
+                              height={80}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
+                            <DxTextArea
+                              value={editPOForm.notes}
+                              onValueChange={(v) => setEditPOForm({ ...editPOForm, notes: v })}
+                              height={80}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                          <div>
+                            <dt className="text-gray-500">เลขที่ PO</dt>
+                            <dd className="font-semibold">{po.poNumber}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">สถานะ</dt>
+                            <dd><Badge variant={statusConfig.badgeVariant}>{statusConfig.labelTh}</Badge></dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">วันที่สั่งซื้อ</dt>
+                            <dd className="font-medium">{formatDate(po.orderDate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">วันที่คาดว่าจะได้รับ</dt>
+                            <dd className="font-medium">{formatDate(po.expectedDate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">ยอดรวม</dt>
+                            <dd className="font-bold text-blue-600">{formatCurrency(summary.totalAmount)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">จำนวนรายการ</dt>
+                            <dd className="font-medium">{summary.lineCount} รายการ</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">เงื่อนไขการชำระ</dt>
+                            <dd className="font-medium">{po.paymentTerms || '-'}</dd>
+                          </div>
+                          <div className="col-span-2">
+                            <dt className="text-gray-500">หมายเหตุ</dt>
+                            <dd className="font-medium whitespace-pre-wrap">{po.notes || '-'}</dd>
+                          </div>
+                        </dl>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Vendor Info */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-gray-400" />
+                        ข้อมูลผู้ขาย
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                        <div>
+                          <dt className="text-gray-500">รหัสผู้ขาย</dt>
+                          <dd className="font-semibold">{po.vendorCode || '-'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">ชื่อผู้ขาย</dt>
+                          <dd className="font-medium">{po.vendorName || '-'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500 flex items-center gap-1">
+                            <User className="h-3.5 w-3.5" /> ผู้ติดต่อ
+                          </dt>
+                          <dd className="font-medium">{po.vendorContact || '-'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500 flex items-center gap-1">
+                            <Phone className="h-3.5 w-3.5" /> โทรศัพท์
+                          </dt>
+                          <dd className="font-medium">{po.vendorPhone || '-'}</dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-gray-500 flex items-center gap-1">
+                            <Mail className="h-3.5 w-3.5" /> อีเมล
+                          </dt>
+                          <dd className="font-medium">{po.vendorEmail || '-'}</dd>
+                        </div>
+                      </dl>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Audit Info */}
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-500 pt-4 border-t">
+                  <span>สร้างเมื่อ: {formatDateTime(po.createdAt)}</span>
+                  <span>แก้ไขล่าสุด: {formatDateTime(po.updatedAt)}</span>
+                </div>
               </div>
-            </CardHeader>
-            <div className="p-4 sm:p-6">
-              <DxDataGrid
-                dataSource={lines}
-                keyExpr="id"
-                columns={receivingColumns}
-                showBorders
-                height={400}
-                noDataText="No items to receive"
-              />
-            </div>
-          </Card>
-        )}
+            )}
 
-        {activeTab === 'lots' && (
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gray-50 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-gray-400" />
-                Received Lots ({receivedLots.length})
-              </CardTitle>
-            </CardHeader>
-            <div className="p-4 sm:p-6">
+            {activeTab === 'lines' && (
+              <div className="space-y-4">
+                {isEditable && (
+                  <div className="flex justify-end">
+                    <DxButton
+                      text="เพิ่มรายการ"
+                      icon="plus"
+                      type="success"
+                      onClick={() => openLineModal()}
+                    />
+                  </div>
+                )}
+                <DxDataGrid
+                  dataSource={lines}
+                  keyExpr="id"
+                  columns={linesColumns}
+                  showBorders
+                  height={450}
+                  noDataText="ไม่มีรายการสินค้า"
+                  filterRow
+                  export
+                  exportFileName={`PO-${po.poNumber}-lines`}
+                />
+              </div>
+            )}
+
+            {activeTab === 'receiving' && (
+              <div className="space-y-4">
+                {summary.totalPending > 0 && (
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                    <span className="text-yellow-800">
+                      คงเหลือรอรับ <strong>{summary.totalPending.toLocaleString()}</strong> หน่วย
+                    </span>
+                  </div>
+                )}
+                <DxDataGrid
+                  dataSource={lines}
+                  keyExpr="id"
+                  columns={receivingColumns}
+                  showBorders
+                  height={450}
+                  noDataText="ไม่มีรายการรอรับ"
+                />
+              </div>
+            )}
+
+            {activeTab === 'lots' && (
               <DxDataGrid
                 dataSource={receivedLots}
                 keyExpr="id"
                 columns={lotsColumns}
                 showBorders
-                height={400}
-                noDataText="No lots received yet"
+                height={450}
+                noDataText="ยังไม่มี Lot ที่รับเข้า"
+                filterRow
+                export
+                exportFileName={`PO-${po.poNumber}-lots`}
                 onRowClick={(e) => router.push(`/inventory/lots/${e.data.id}`)}
               />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Line Modal */}
+        <DxPopup
+          visible={showLineModal}
+          onHiding={() => setShowLineModal(false)}
+          title={editingLine ? 'แก้ไขรายการสินค้า' : 'เพิ่มรายการสินค้า'}
+          width={600}
+          height="auto"
+          showCloseButton
+        >
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                สินค้า <span className="text-red-500">*</span>
+              </label>
+              <DxSelectBox
+                items={items.map((item) => ({
+                  value: item.id,
+                  label: `${item.code} - ${item.nameTh}`,
+                  unit: item.unitName,
+                }))}
+                value={lineForm.itemId}
+                onValueChange={(v) => {
+                  const item = items.find((i) => i.id === v);
+                  setLineForm({ ...lineForm, itemId: v, unit: item?.unitName || '' });
+                }}
+                searchEnabled
+                placeholder="เลือกสินค้า"
+              />
             </div>
-          </Card>
-        )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  จำนวน <span className="text-red-500">*</span>
+                </label>
+                <DxNumberBox
+                  value={lineForm.quantity}
+                  onValueChange={(v) => setLineForm({ ...lineForm, quantity: v || 0 })}
+                  min={0}
+                  step={1}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">หน่วย</label>
+                <DxTextBox value={lineForm.unit} disabled />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ราคาต่อหน่วย <span className="text-red-500">*</span>
+              </label>
+              <DxNumberBox
+                value={lineForm.unitPrice}
+                onValueChange={(v) => setLineForm({ ...lineForm, unitPrice: v || 0 })}
+                min={0}
+                step={0.01}
+                format="#,##0.00"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
+              <DxTextArea
+                value={lineForm.notes}
+                onValueChange={(v) => setLineForm({ ...lineForm, notes: v })}
+                height={60}
+              />
+            </div>
+            {lineForm.quantity > 0 && lineForm.unitPrice > 0 && (
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <span className="text-sm text-blue-700">
+                  ยอดรวม: <strong>{formatCurrency(lineForm.quantity * lineForm.unitPrice)}</strong>
+                </span>
+              </div>
+            )}
+            <div className="flex gap-3 pt-4 border-t">
+              <DxButton
+                text="ยกเลิก"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => setShowLineModal(false)}
+                disabled={isSavingLine}
+                width="50%"
+              />
+              <DxButton
+                text={isSavingLine ? 'กำลังบันทึก...' : 'บันทึก'}
+                icon="save"
+                type="success"
+                onClick={saveLine}
+                disabled={isSavingLine || !lineForm.itemId || !lineForm.quantity || !lineForm.unitPrice}
+                width="50%"
+              />
+            </div>
+          </div>
+        </DxPopup>
 
         {/* Receive Modal */}
         <DxPopup
           visible={showReceiveModal && !!selectedLine}
           onHiding={() => setShowReceiveModal(false)}
-          title=""
-          width={800}
+          title="รับสินค้าเข้าคลัง"
+          width={700}
           height="auto"
           showCloseButton
-          showTitle={false}
         >
-          {renderReceiveModalContent()}
+          <div className="p-4">
+            {selectedLine && (
+              <div className="space-y-4">
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-green-800">{selectedLine.itemCode}</span>
+                  </div>
+                  <p className="text-sm text-green-700">{selectedLine.itemName}</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 bg-blue-50 rounded-lg text-center">
+                    <p className="text-xs text-blue-600 mb-1">สั่งซื้อ</p>
+                    <p className="text-lg font-bold text-blue-700">{selectedLine.quantity}</p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg text-center">
+                    <p className="text-xs text-green-600 mb-1">รับแล้ว</p>
+                    <p className="text-lg font-bold text-green-700">{selectedLine.receivedQty || 0}</p>
+                  </div>
+                  <div className="p-3 bg-orange-50 rounded-lg text-center">
+                    <p className="text-xs text-orange-600 mb-1">คงเหลือ</p>
+                    <p className="text-lg font-bold text-orange-700">{selectedLine.pendingQty}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      คลังสินค้า <span className="text-red-500">*</span>
+                    </label>
+                    <DxSelectBox
+                      items={warehouses.map((wh) => ({ value: wh.id.toString(), label: `${wh.code} - ${wh.name}` }))}
+                      value={receiveForm.warehouseId}
+                      onValueChange={(v) => setReceiveForm({ ...receiveForm, warehouseId: v })}
+                      placeholder="เลือกคลังสินค้า"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      เลข Lot <span className="text-red-500">*</span>
+                    </label>
+                    <DxTextBox
+                      value={receiveForm.lotNumber}
+                      onValueChange={(v) => setReceiveForm({ ...receiveForm, lotNumber: v })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      จำนวนที่รับ <span className="text-red-500">*</span>
+                    </label>
+                    <DxNumberBox
+                      value={receiveForm.quantity}
+                      onValueChange={(v) => setReceiveForm({ ...receiveForm, quantity: v || 0 })}
+                      min={0}
+                      max={selectedLine.pendingQty}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      วันหมดอายุ <span className="text-red-500">*</span>
+                    </label>
+                    <DxDateBox
+                      value={receiveForm.expiryDate}
+                      onValueChange={(v) => setReceiveForm({ ...receiveForm, expiryDate: v || '' })}
+                      min={new Date()}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t">
+                  <DxButton
+                    text="ยกเลิก"
+                    type="normal"
+                    stylingMode="outlined"
+                    onClick={() => setShowReceiveModal(false)}
+                    disabled={isSubmitting}
+                    width="50%"
+                  />
+                  <DxButton
+                    text={isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันรับสินค้า'}
+                    icon="check"
+                    type="success"
+                    onClick={submitReceive}
+                    disabled={isSubmitting || !receiveForm.quantity || !receiveForm.expiryDate || !receiveForm.warehouseId}
+                    width="50%"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </DxPopup>
       </div>
     </MainLayout>
