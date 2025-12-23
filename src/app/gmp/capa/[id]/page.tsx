@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CapaForm, CapaActionList, CapaEffectivenessForm } from '@/components/capa';
+import { CapaActionList, CapaEffectivenessForm, CapaDataEntryDialog } from '@/components/capa';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -18,7 +18,6 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import {
   FileCheck,
-  Edit,
   CheckCircle,
   User,
   Calendar,
@@ -286,23 +285,15 @@ export default function CapaDetailPage() {
       </div>
 
       {/* Edit CAPA Dialog */}
-      <DxPopup
+      <CapaDataEntryDialog
         visible={showEditForm}
-        onHiding={() => setShowEditForm(false)}
-        title="Edit CAPA"
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        <CapaForm
-          capa={capa}
-          onSave={() => {
-            setShowEditForm(false);
-            refetch();
-          }}
-          onCancel={() => setShowEditForm(false)}
-        />
-      </DxPopup>
+        onClose={() => setShowEditForm(false)}
+        onSaved={() => {
+          setShowEditForm(false);
+          refetch();
+        }}
+        capa={capa}
+      />
 
       {/* Close CAPA Dialog */}
       <DxPopup
