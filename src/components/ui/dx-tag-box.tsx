@@ -130,8 +130,30 @@ export const DxTagBox = forwardRef(
       });
     }, [dataSource, items, displayExpr]);
 
-    // Safely determine the search expression
-    // DevExtreme calls toLowerCase() on search values, so we need to ensure it's valid
+    // Create a safe displayExpr function that handles undefined values
+    // DevExtreme calls toLowerCase() on display values internally, causing errors on undefined
+    const safeDisplayExpr = useMemo(() => {
+      if (typeof displayExpr === 'function') {
+        // Wrap the function to handle undefined return values
+        return (item: unknown) => {
+          if (!item) return '';
+          const result = displayExpr(item);
+          return result ?? '';
+        };
+      }
+      if (typeof displayExpr === 'string') {
+        // Convert string displayExpr to a function that safely accesses the property
+        return (item: unknown) => {
+          if (!item || typeof item !== 'object') return '';
+          const value = (item as Record<string, unknown>)[displayExpr];
+          return typeof value === 'string' ? value : String(value ?? '');
+        };
+      }
+      // No displayExpr provided
+      return undefined;
+    }, [displayExpr]);
+
+    // Safely determine the search expression - use the field name if displayExpr is a string
     const safeSearchExpr = useMemo(() => {
       if (searchExpr) return searchExpr;
       // If displayExpr is a string, use it for search; otherwise don't enable search
@@ -143,7 +165,7 @@ export const DxTagBox = forwardRef(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ref={ref as any}
         dataSource={safeDataSource}
-        displayExpr={displayExpr}
+        displayExpr={safeDisplayExpr}
         valueExpr={valueExpr}
         value={value}
         defaultValue={defaultValue}
