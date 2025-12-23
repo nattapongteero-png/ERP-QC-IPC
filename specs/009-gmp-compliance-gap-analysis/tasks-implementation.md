@@ -23,8 +23,8 @@
 
 ### Database Schema
 
-- [ ] T101 [P] [FR-001] Create SQLite schema `src/lib/db/schema/sqlite/document-control.ts` with documentTypes, documents, documentVersions, documentApprovals tables
-- [ ] T102 [P] [FR-001] Create MySQL schema `src/lib/db/schema/mysql/document-control.ts` matching SQLite schema
+- [x] T101 [P] [FR-001] Create SQLite schema - DONE: Implemented in `src/lib/db/schema.ts` lines 2798-2854 (commit 525a52a)
+- [x] T102 [P] [FR-001] Create MySQL schema - DONE: Implemented in `src/lib/db/schema.ts` lines 2077-2133 (commit 525a52a)
 - [ ] T103 [FR-001] Export document control tables from `src/lib/db/schema/sqlite/index.ts` and `src/lib/db/schema/mysql/index.ts`
 - [ ] T104 [FR-001] Run `pnpm drizzle-kit generate` and `pnpm drizzle-kit push` to apply migrations
 - [ ] T105 [FR-001] Seed document_types with standard types: SOP, POL, FORM, WI, SPEC in `src/lib/db/seed-document-types.ts`
