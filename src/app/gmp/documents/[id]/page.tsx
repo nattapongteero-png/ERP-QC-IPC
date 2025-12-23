@@ -10,7 +10,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
+import { DocumentFormDialog, DocumentVersionHistory, DocumentViewer } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
 import { DxButton } from '@/components/ui/dx-button';
@@ -269,7 +269,6 @@ export default function DocumentDetailPage() {
   const canEdit = document.status === 'draft';
   const canCreateVersion = document.status === 'active' || document.status === 'draft';
   const hasDraftVersion = document.currentVersion?.status === 'draft';
-  const isPdf = selectedVersion?.filePath?.toLowerCase().endsWith('.pdf');
   const config = statusConfig[document.status] || statusConfig.draft;
 
   return (
@@ -470,7 +469,7 @@ export default function DocumentDetailPage() {
                         <Download className="h-4 w-4" />
                         Download
                       </a>
-                      {isPdf && (
+                      {selectedVersion.filePath.toLowerCase().endsWith('.pdf') && (
                         <a
                           href={getFileUrl(selectedVersion.filePath, true)}
                           target="_blank"
@@ -495,35 +494,13 @@ export default function DocumentDetailPage() {
 
               {/* Content Area */}
               <div className={`${isFullscreen ? 'flex-1' : ''}`}>
-                {/* PDF Preview */}
-                {isPdf && selectedVersion?.filePath && (
-                  <iframe
-                    src={getFileUrl(selectedVersion.filePath, true)}
-                    className={`w-full bg-slate-100 dark:bg-slate-900 ${isFullscreen ? 'h-full' : 'h-[calc(100vh-320px)] min-h-[600px]'}`}
-                    title={`Preview: ${selectedVersion.filePath.split('/').pop()}`}
+                {/* Document Viewer for all supported file types */}
+                {selectedVersion?.filePath && (
+                  <DocumentViewer
+                    fileUrl={getFileUrl(selectedVersion.filePath)}
+                    fileName={selectedVersion.filePath.split('/').pop() || 'document'}
+                    className={isFullscreen ? 'h-full' : 'h-[calc(100vh-320px)] min-h-[600px]'}
                   />
-                )}
-
-                {/* Non-PDF File */}
-                {selectedVersion?.filePath && !isPdf && (
-                  <div className="flex flex-col items-center justify-center py-20 px-8">
-                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mb-6">
-                      <FileIcon className="h-10 w-10 text-slate-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Preview Not Available</h3>
-                    <p className="text-muted-foreground text-center max-w-md mb-6">
-                      This file type cannot be previewed in the browser. Please download the file to view its contents.
-                    </p>
-                    <a
-                      href={getFileUrl(selectedVersion.filePath)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-                    >
-                      <Download className="h-5 w-5" />
-                      Download File
-                    </a>
-                  </div>
                 )}
 
                 {/* Text Content */}

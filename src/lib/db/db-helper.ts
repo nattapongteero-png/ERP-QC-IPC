@@ -9,6 +9,9 @@ import { getDb, isSqlite } from './index';
 import * as schema from './schema';
 import type { SQL } from 'drizzle-orm';
 
+// Re-export isSqlite for convenience
+export { isSqlite };
+
 /**
  * Get table reference based on database type
  */

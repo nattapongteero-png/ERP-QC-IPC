@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, isSqlite } from '@/lib/db';
-import * as schema from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -15,26 +14,22 @@ interface RouteParams {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const usingSqlite = isSqlite();
     const { code } = await params;
 
-    const templatesTable = usingSqlite
-      ? schema.sqliteReportTemplates
-      : schema.mysqlReportTemplates;
+    const templatesTable = getTableRef('reportTemplates');
 
     // Verify template exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existing = await (db as any)
-      .select({
-        id: templatesTable.id,
-        isPublished: templatesTable.isPublished,
-        definition: templatesTable.definition,
-      })
-      .from(templatesTable)
-      .where(eq(templatesTable.code, code))
-      .limit(1);
+    const existing = await executeDbOperation(async (db) => {
+      return db
+        .select({
+          id: templatesTable.id,
+          isPublished: templatesTable.isPublished,
+          definition: templatesTable.definition,
+        })
+        .from(templatesTable)
+        .where(eq(templatesTable.code, code))
+        .limit(1);
+    });
 
     if (existing.length === 0) {
       return NextResponse.json(
@@ -59,14 +54,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Publish template
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any)
-      .update(templatesTable)
-      .set({
-        isPublished: true,
-        updatedAt: new Date(),
-      })
-      .where(eq(templatesTable.code, code));
+    await executeDbOperation(async (db) => {
+      return db
+        .update(templatesTable)
+        .set({
+          isPublished: true,
+          updatedAt: dbDate(),
+        })
+        .where(eq(templatesTable.code, code));
+    });
 
     return NextResponse.json({
       success: true,

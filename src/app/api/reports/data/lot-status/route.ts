@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, isSqlite } from '@/lib/db';
-import * as schema from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { eq, and, type SQL } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +14,6 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const usingSqlite = isSqlite();
     const { searchParams } = new URL(request.url);
 
     const status = searchParams.get('status');
@@ -25,12 +21,12 @@ export async function GET(request: NextRequest) {
     const itemType = searchParams.get('itemType');
 
     // Get the appropriate schema tables
-    const itemsTable = usingSqlite ? schema.sqliteItems : schema.mysqlItems;
-    const lotsTable = usingSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
-    const warehousesTable = usingSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
+    const itemsTable = getTableRef('items');
+    const lotsTable = getTableRef('inventoryLots');
+    const warehousesTable = getTableRef('warehouses');
 
     // Build conditions
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [];
 
     if (status) {
       conditions.push(eq(lotsTable.status, status));
@@ -45,28 +41,29 @@ export async function GET(request: NextRequest) {
     }
 
     // Query lots with item and warehouse details
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
-      .select({
-        lotNumber: lotsTable.lotNumber,
-        itemCode: itemsTable.code,
-        itemName: itemsTable.nameTh,
-        itemNameEn: itemsTable.nameEn,
-        itemType: itemsTable.type,
-        status: lotsTable.status,
-        quantity: lotsTable.quantity,
-        unit: itemsTable.primaryUnit,
-        manufacturingDate: lotsTable.manufacturingDate,
-        expiryDate: lotsTable.expiryDate,
-        warehouseCode: warehousesTable.code,
-        warehouseName: warehousesTable.name,
-        receivedDate: lotsTable.receivedDate,
-      })
-      .from(lotsTable)
-      .innerJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
-      .innerJoin(warehousesTable, eq(lotsTable.warehouseId, warehousesTable.id))
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(lotsTable.expiryDate);
+    const results = await executeDbOperation(async (db) => {
+      return db
+        .select({
+          lotNumber: lotsTable.lotNumber,
+          itemCode: itemsTable.code,
+          itemName: itemsTable.nameTh,
+          itemNameEn: itemsTable.nameEn,
+          itemType: itemsTable.type,
+          status: lotsTable.status,
+          quantity: lotsTable.quantity,
+          unit: itemsTable.primaryUnit,
+          manufacturingDate: lotsTable.manufacturingDate,
+          expiryDate: lotsTable.expiryDate,
+          warehouseCode: warehousesTable.code,
+          warehouseName: warehousesTable.name,
+          receivedDate: lotsTable.receivedDate,
+        })
+        .from(lotsTable)
+        .innerJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
+        .innerJoin(warehousesTable, eq(lotsTable.warehouseId, warehousesTable.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(lotsTable.expiryDate);
+    });
 
     // Calculate days to expiry and format data
     const today = new Date();

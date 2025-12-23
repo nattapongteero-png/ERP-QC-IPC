@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, isSqlite } from '@/lib/db';
-import * as schema from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
 import { eq, asc } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -11,27 +10,22 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const usingSqlite = isSqlite();
+    const categoriesTable = getTableRef('reportCategories');
 
-    const categoriesTable = usingSqlite
-      ? schema.sqliteReportCategories
-      : schema.mysqlReportCategories;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
-      .select({
-        id: categoriesTable.id,
-        name: categoriesTable.name,
-        description: categoriesTable.description,
-        parentId: categoriesTable.parentId,
-        sortOrder: categoriesTable.sortOrder,
-        isActive: categoriesTable.isActive,
-      })
-      .from(categoriesTable)
-      .where(eq(categoriesTable.isActive, true))
-      .orderBy(asc(categoriesTable.sortOrder), asc(categoriesTable.name));
+    const results = await executeDbOperation(async (db) => {
+      return db
+        .select({
+          id: categoriesTable.id,
+          name: categoriesTable.name,
+          description: categoriesTable.description,
+          parentId: categoriesTable.parentId,
+          sortOrder: categoriesTable.sortOrder,
+          isActive: categoriesTable.isActive,
+        })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.isActive, true))
+        .orderBy(asc(categoriesTable.sortOrder), asc(categoriesTable.name));
+    });
 
     return NextResponse.json({
       success: true,
@@ -52,14 +46,8 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const usingSqlite = isSqlite();
     const body = await request.json();
-
-    const categoriesTable = usingSqlite
-      ? schema.sqliteReportCategories
-      : schema.mysqlReportCategories;
+    const categoriesTable = getTableRef('reportCategories');
 
     // Validate required fields
     if (!body.name) {
@@ -76,17 +64,16 @@ export async function POST(request: NextRequest) {
       parentId: body.parentId || null,
       sortOrder: body.sortOrder || 0,
       isActive: body.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: dbDate(),
+      updatedAt: dbDate(),
     };
 
     // Insert category
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (db as any)
-      .insert(categoriesTable)
-      .values(insertData);
+    const result = await executeDbOperation(async (db) => {
+      return db.insert(categoriesTable).values(insertData);
+    });
 
-    const insertedId = usingSqlite ? result.lastInsertRowid : result[0].insertId;
+    const insertedId = getInsertId(result);
 
     return NextResponse.json({
       success: true,

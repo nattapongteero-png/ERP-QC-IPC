@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, isSqlite } from '@/lib/db';
-import * as schema from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -15,9 +14,6 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const usingSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
 
@@ -28,25 +24,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const categoriesTable = usingSqlite
-      ? schema.sqliteReportCategories
-      : schema.mysqlReportCategories;
+    const categoriesTable = getTableRef('reportCategories');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
-      .select({
-        id: categoriesTable.id,
-        name: categoriesTable.name,
-        description: categoriesTable.description,
-        parentId: categoriesTable.parentId,
-        sortOrder: categoriesTable.sortOrder,
-        isActive: categoriesTable.isActive,
-        createdAt: categoriesTable.createdAt,
-        updatedAt: categoriesTable.updatedAt,
-      })
-      .from(categoriesTable)
-      .where(eq(categoriesTable.id, categoryId))
-      .limit(1);
+    const results = await executeDbOperation(async (db) => {
+      return db
+        .select({
+          id: categoriesTable.id,
+          name: categoriesTable.name,
+          description: categoriesTable.description,
+          parentId: categoriesTable.parentId,
+          sortOrder: categoriesTable.sortOrder,
+          isActive: categoriesTable.isActive,
+          createdAt: categoriesTable.createdAt,
+          updatedAt: categoriesTable.updatedAt,
+        })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.id, categoryId))
+        .limit(1);
+    });
 
     if (results.length === 0) {
       return NextResponse.json(
@@ -74,9 +69,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const usingSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
     const body = await request.json();
@@ -88,17 +80,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const categoriesTable = usingSqlite
-      ? schema.sqliteReportCategories
-      : schema.mysqlReportCategories;
+    const categoriesTable = getTableRef('reportCategories');
 
     // Verify category exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existing = await (db as any)
-      .select({ id: categoriesTable.id })
-      .from(categoriesTable)
-      .where(eq(categoriesTable.id, categoryId))
-      .limit(1);
+    const existing = await executeDbOperation(async (db) => {
+      return db
+        .select({ id: categoriesTable.id })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.id, categoryId))
+        .limit(1);
+    });
 
     if (existing.length === 0) {
       return NextResponse.json(
@@ -109,7 +100,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Prepare update data
     const updateData: Record<string, unknown> = {
-      updatedAt: new Date(),
+      updatedAt: dbDate(),
     };
 
     if (body.name !== undefined) updateData.name = body.name;
@@ -119,11 +110,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (body.isActive !== undefined) updateData.isActive = body.isActive;
 
     // Update category
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any)
-      .update(categoriesTable)
-      .set(updateData)
-      .where(eq(categoriesTable.id, categoryId));
+    await executeDbOperation(async (db) => {
+      return db
+        .update(categoriesTable)
+        .set(updateData)
+        .where(eq(categoriesTable.id, categoryId));
+    });
 
     return NextResponse.json({
       success: true,
@@ -144,9 +136,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const usingSqlite = isSqlite();
     const { id } = await params;
     const categoryId = parseInt(id);
 
@@ -157,20 +146,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const categoriesTable = usingSqlite
-      ? schema.sqliteReportCategories
-      : schema.mysqlReportCategories;
-    const templatesTable = usingSqlite
-      ? schema.sqliteReportTemplates
-      : schema.mysqlReportTemplates;
+    const categoriesTable = getTableRef('reportCategories');
+    const templatesTable = getTableRef('reportTemplates');
 
     // Verify category exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existing = await (db as any)
-      .select({ id: categoriesTable.id })
-      .from(categoriesTable)
-      .where(eq(categoriesTable.id, categoryId))
-      .limit(1);
+    const existing = await executeDbOperation(async (db) => {
+      return db
+        .select({ id: categoriesTable.id })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.id, categoryId))
+        .limit(1);
+    });
 
     if (existing.length === 0) {
       return NextResponse.json(
@@ -180,20 +166,22 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if category has templates
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const templatesInCategory = await (db as any)
-      .select({ id: templatesTable.id })
-      .from(templatesTable)
-      .where(eq(templatesTable.categoryId, categoryId))
-      .limit(1);
+    const templatesInCategory = await executeDbOperation(async (db) => {
+      return db
+        .select({ id: templatesTable.id })
+        .from(templatesTable)
+        .where(eq(templatesTable.categoryId, categoryId))
+        .limit(1);
+    });
 
     if (templatesInCategory.length > 0) {
       // Soft delete - set isActive to false
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (db as any)
-        .update(categoriesTable)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(categoriesTable.id, categoryId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(categoriesTable)
+          .set({ isActive: false, updatedAt: dbDate() })
+          .where(eq(categoriesTable.id, categoryId));
+      });
 
       return NextResponse.json({
         success: true,
@@ -202,10 +190,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Hard delete if no templates
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any)
-      .delete(categoriesTable)
-      .where(eq(categoriesTable.id, categoryId));
+    await executeDbOperation(async (db) => {
+      return db.delete(categoriesTable).where(eq(categoriesTable.id, categoryId));
+    });
 
     return NextResponse.json({
       success: true,

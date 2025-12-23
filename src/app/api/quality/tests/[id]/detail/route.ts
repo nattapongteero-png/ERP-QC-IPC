@@ -47,8 +47,8 @@ export async function GET(
       const test = testResult[0];
 
       // Get lot details with item info
-      let lotInfo = null;
-      let itemInfo = null;
+      let lotInfo: Record<string, unknown> | null = null;
+      let itemInfo: Record<string, unknown> | null = null;
       if (test.lotId) {
         const lotResult = await executeDbOperation(async (db) => {
           return db
@@ -67,7 +67,8 @@ export async function GET(
         lotInfo = lotResult[0] || null;
 
         // Get item info from lot
-        if (lotInfo?.itemId) {
+        const lotItemId = lotInfo?.itemId as number | undefined;
+        if (lotItemId) {
           const itemResult = await executeDbOperation(async (db) => {
             return db
               .select({
@@ -79,7 +80,7 @@ export async function GET(
                 primaryUnit: items.primaryUnit,
               })
               .from(items)
-              .where(eq(items.id, lotInfo.itemId));
+              .where(eq(items.id, lotItemId));
           });
           itemInfo = itemResult[0] || null;
         }
