@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { TppSearchDialog, TppItem } from '@/components/ui/tpp-search-dialog';
 import { TtmtSearchDialog, TtmtItem } from '@/components/ui/ttmt-search-dialog';
+import { ItemImagesSection } from '@/components/ui/item-images-section';
 
 // ============================================================================
 // Types
@@ -824,6 +825,11 @@ export function ItemEditForm({
                 >
                   <StockStatus item={item} />
                 </SectionCard>
+              )}
+
+              {/* Item Images (only for editing) */}
+              {isEditing && item?.id && (
+                <ItemImagesSection itemId={item.id} />
               )}
 
               {/* Item Status */}
