@@ -60,16 +60,13 @@ export function toDateSafe(value: Date | string | null | undefined): Date {
     return new Date();
   }
 
-  // Handle Date objects (including cross-realm Date objects)
-  if (value instanceof Date || (typeof value === 'object' && value.constructor?.name === 'Date')) {
-    try {
-      const time = (value as Date).getTime();
-      if (!isNaN(time)) {
-        return new Date(time);
-      }
-    } catch {
-      // Fall through to string handling
+  // Handle Date objects
+  if (value instanceof Date) {
+    const time = value.getTime();
+    if (!isNaN(time)) {
+      return new Date(time);
     }
+    // Invalid date, fall through to string handling
   }
 
   // Parse string
@@ -93,17 +90,13 @@ export function formatDateFromDb(value: Date | string | null | undefined): strin
     return new Date().toISOString().split('T')[0];
   }
 
-  // Handle Date objects (including cross-realm Date objects)
-  if (value instanceof Date || (typeof value === 'object' && value.constructor?.name === 'Date')) {
-    try {
-      // Try to get time value first to check if it's a valid date
-      const time = (value as Date).getTime();
-      if (!isNaN(time)) {
-        return new Date(time).toISOString().split('T')[0];
-      }
-    } catch {
-      // Fall through to string handling
+  // Handle Date objects
+  if (value instanceof Date) {
+    const time = value.getTime();
+    if (!isNaN(time)) {
+      return new Date(time).toISOString().split('T')[0];
     }
+    // Invalid date, fall through to string handling
   }
 
   // Convert to string if not already

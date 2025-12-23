@@ -160,15 +160,16 @@ export default function SanitationDashboardPage() {
       dataField: 'areaType',
       caption: 'Area',
       width: 120,
-      cellRender: (cellData: { value: AreaType }) => {
-        const IconComp = AREA_ICONS[cellData.value] || MapPin;
+      cellRender: (cellData: { value?: AreaType }) => {
+        const areaType = cellData.value || 'production';
+        const IconComp = AREA_ICONS[areaType] || MapPin;
         return (
           <div className="flex items-center gap-2">
             <IconComp
               className="w-4 h-4"
-              style={{ color: AREA_COLORS[cellData.value] }}
+              style={{ color: AREA_COLORS[areaType] }}
             />
-            <span>{AREA_LABELS[cellData.value]}</span>
+            <span>{AREA_LABELS[areaType]}</span>
           </div>
         );
       },
@@ -177,8 +178,8 @@ export default function SanitationDashboardPage() {
       dataField: 'frequency',
       caption: 'Frequency',
       width: 100,
-      cellRender: (cellData: { value: string }) => (
-        <span className="capitalize">{cellData.value}</span>
+      cellRender: (cellData: { value?: string }) => (
+        <span className="capitalize">{cellData.value || '-'}</span>
       ),
     },
     {
@@ -191,7 +192,8 @@ export default function SanitationDashboardPage() {
       dataField: 'isOverdue',
       caption: 'Status',
       width: 120,
-      cellRender: (cellData: { data: PendingTask }) => {
+      cellRender: (cellData: { data?: PendingTask }) => {
+        if (!cellData.data) return null;
         if (cellData.data.isOverdue) {
           return (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -210,16 +212,19 @@ export default function SanitationDashboardPage() {
       dataField: 'scheduleId',
       caption: '',
       width: 100,
-      cellRender: (cellData: { data: PendingTask }) => (
-        <DxButton
-          text="Record"
-          stylingMode="text"
-          type="default"
-          onClick={() =>
-            router.push(`/gmp/sanitation/logs?scheduleId=${cellData.data.scheduleId}&new=1`)
-          }
-        />
-      ),
+      cellRender: (cellData: { data?: PendingTask }) => {
+        if (!cellData.data) return null;
+        return (
+          <DxButton
+            text="Record"
+            stylingMode="text"
+            type="default"
+            onClick={() =>
+              router.push(`/gmp/sanitation/logs?scheduleId=${cellData.data!.scheduleId}&new=1`)
+            }
+          />
+        );
+      },
     },
   ];
 

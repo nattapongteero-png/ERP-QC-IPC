@@ -14,6 +14,7 @@ import {
   RecallDistributionTable,
   RecallNotificationTracker,
   RecallReconciliationForm,
+  RecallDataEntryDialog,
 } from '@/components/recalls';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -94,6 +95,7 @@ export default function RecallDetailPage() {
 
   const [activeTab, setActiveTab] = useState(0);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [closureAssessment, setClosureAssessment] = useState('');
 
   // Fetch recall details
@@ -162,6 +164,7 @@ export default function RecallDetailPage() {
   const canComplete = recall.status === 'in_progress';
   const canClose = recall.status === 'completed';
   const isOpen = recall.status !== 'closed';
+  const canEdit = recall.status === 'initiated'; // Only allow editing before execution starts
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -172,6 +175,14 @@ export default function RecallDetailPage() {
         onBack={() => router.push('/gmp/recalls')}
         actions={
           <div className="flex items-center gap-2">
+            {canEdit && (
+              <DxButton
+                text="Edit"
+                icon="edit"
+                onClick={() => setShowEditDialog(true)}
+                stylingMode="outlined"
+              />
+            )}
             {canStart && (
               <DxButton
                 text="Start Execution"
@@ -396,6 +407,18 @@ export default function RecallDetailPage() {
           </div>
         </div>
       </DxPopup>
+
+      {/* Edit Recall Dialog */}
+      <RecallDataEntryDialog
+        visible={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onSaved={() => {
+          setShowEditDialog(false);
+          refetch();
+        }}
+        recall={recall}
+        mode="edit"
+      />
     </div>
   );
 }
