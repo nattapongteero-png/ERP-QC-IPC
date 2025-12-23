@@ -281,13 +281,7 @@ describe('HR Service Real Integration Tests', () => {
         `);
       });
 
-      it.skip('should create new org unit (SKIP - service inserts Date object instead of string)', async () => {
-        /**
-         * SERVICE BUG: hr.service.ts line 341-342 uses:
-         * effectiveFrom: new Date(data.effectiveFrom),
-         * effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
-         * But schema expects TEXT, causing SQLite binding error.
-         */
+      it('should create new org unit', async () => {
         const newUnit = await createOrgUnit({
           code: 'PROD-DIV',
           name: 'Production Division',
@@ -314,17 +308,19 @@ describe('HR Service Real Integration Tests', () => {
         expect(updated.isGmpCritical).toBe(false);
       });
 
-      it.skip('should enforce hierarchy rules (SKIP - service Date object bug)', async () => {
-        /**
-         * SERVICE BUG: Same issue - service inserts Date object instead of string
-         * The hierarchy validation works but fails before reaching it due to binding error.
-         */
+      it('should enforce hierarchy rules (child cannot be higher than parent)', async () => {
+        // Cannot create site under department
+        sqlite.exec(`
+          INSERT INTO hr_org_units (id, code, name, type, parent_id, is_gmp_critical, effective_from, is_active)
+          VALUES (3, 'DEPT-1', 'Department 1', 'department', 2, 0, '${TEST_DATES.PAST_DATE}', 1)
+        `);
+
         await expect(
           createOrgUnit({
-            code: 'BAD-DEPT',
-            name: 'Bad Department',
-            type: 'department',
-            parentId: 1, // Company (should be site or division)
+            code: 'BAD-SITE',
+            name: 'Site Under Department',
+            type: 'site', // Site is higher in hierarchy than department
+            parentId: 3, // Under department - invalid
             effectiveFrom: TEST_DATES.TODAY,
           })
         ).rejects.toThrow(/Invalid hierarchy/);
@@ -342,11 +338,8 @@ describe('HR Service Real Integration Tests', () => {
         `);
       });
 
-      it.skip('should reject QC/QA unit under Production (SKIP - service Date object bug)', async () => {
-        /**
-         * SERVICE BUG: Same Date object binding issue prevents testing.
-         * The separation of duties validation works but fails before reaching it.
-         */
+      it('should reject QC/QA unit under Production (separation of duties)', async () => {
+        // GMP requires QC/QA to be independent of Production
         await expect(
           createOrgUnit({
             code: 'QC-UNDER-PROD',
@@ -358,10 +351,7 @@ describe('HR Service Real Integration Tests', () => {
         ).rejects.toThrow(/Separation of duties/);
       });
 
-      it.skip('should allow QC/QA unit under Site directly (SKIP - service Date object bug)', async () => {
-        /**
-         * SERVICE BUG: Same Date object binding issue.
-         */
+      it('should allow QC/QA unit under Site directly', async () => {
         const qaUnit = await createOrgUnit({
           code: 'QA-INDEPENDENT',
           name: 'QA Division',
@@ -373,19 +363,6 @@ describe('HR Service Real Integration Tests', () => {
 
         expect(qaUnit.code).toBe('QA-INDEPENDENT');
         expect(qaUnit.parentId).toBe(2);
-      });
-
-      it('should have QC/QA separation logic documented', () => {
-        // Validate that QC/QA codes and Production codes are defined for checking
-        // This is a documentation test to ensure separation of duties is enforced
-        const QC_QA_CODES = ['QC', 'QA', 'QUALITY'];
-        const PRODUCTION_CODES = ['PROD', 'PRODUCTION', 'MFG', 'MANUFACTURING'];
-
-        // QC department should be identified as QC/QA
-        expect(QC_QA_CODES.some(code => 'QC-DEPT'.toUpperCase().includes(code))).toBe(true);
-
-        // Production department should be identified as Production
-        expect(PRODUCTION_CODES.some(code => 'PRODUCTION'.toUpperCase().includes(code))).toBe(true);
       });
     });
   });

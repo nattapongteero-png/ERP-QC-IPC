@@ -3230,13 +3230,13 @@ export async function createHealthRecord(
     throw new Error('Employee not found');
   }
 
-  const now = new Date();
+  const now = getNow();
 
   const insertData = {
     employeeId: data.employeeId,
     examinationType: data.examinationType,
-    examinationDate: new Date(data.examinationDate),
-    nextExamDue: data.nextExamDue ? new Date(data.nextExamDue) : null,
+    examinationDate: toDbDate(data.examinationDate),
+    nextExamDue: data.nextExamDue ? toDbDate(data.nextExamDue) : null,
     fitnessStatus: data.fitnessStatus,
     restrictions: data.restrictions || null,
     affectedAreas: data.affectedAreas ? JSON.stringify(data.affectedAreas) : null,
