@@ -882,7 +882,8 @@ export default function PositionsPage() {
                     itemTextPosition="right"
                     orientation="horizontal"
                   />
-                  <Tooltip enabled customizeTooltip={(point: { argumentText: string; valueText: string }) => ({
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  <Tooltip enabled customizeTooltip={(point: any) => ({
                     text: `${point.argumentText}: ${point.valueText} ตำแหน่ง`,
                   })} />
                 </PieChart>
@@ -913,7 +914,8 @@ export default function PositionsPage() {
                     itemTextPosition="right"
                     orientation="horizontal"
                   />
-                  <Tooltip enabled customizeTooltip={(point: { argumentText: string; valueText: string }) => ({
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  <Tooltip enabled customizeTooltip={(point: any) => ({
                     text: `${point.argumentText}: ${point.valueText} ตำแหน่ง`,
                   })} />
                 </PieChart>

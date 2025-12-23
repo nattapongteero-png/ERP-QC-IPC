@@ -655,7 +655,7 @@ export default function TrainingDashboardPage() {
               storageKey="hr_training_sessions_grid"
             />
             <Scrolling mode="virtual" />
-            <Export enabled fileName="training_sessions" />
+            <Export enabled />
 
             <Column
               dataField="courseCode"

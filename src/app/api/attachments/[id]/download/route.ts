@@ -53,7 +53,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         );
 
         // Return file with appropriate headers
-        return new NextResponse(fileData.data, {
+        // Convert Buffer to Uint8Array for NextResponse compatibility
+        const fileBuffer = new Uint8Array(fileData.data);
+        return new NextResponse(fileBuffer, {
           headers: {
             'Content-Type': fileData.mimeType,
             'Content-Disposition': disposition,

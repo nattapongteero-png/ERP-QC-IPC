@@ -934,7 +934,6 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                   valueExpr="value"
                   placeholder="เลือกเงื่อนไข"
                   searchEnabled
-                  acceptCustomValue
                 />
               </div>
             </div>

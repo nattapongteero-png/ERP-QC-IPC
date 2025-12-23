@@ -15,6 +15,7 @@ import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDataGrid } from '@/components/ui/dx-data-grid';
+import type { DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import type { StabilityProtocol, StabilityProtocolStatus } from '@/types/stability';
 import { FileText, Package, Thermometer, Calendar } from 'lucide-react';
 
@@ -62,32 +63,31 @@ export default function StabilityProtocolsPage() {
     );
   }
 
-  interface ProtocolCellData {
-    value: string | number | number[] | null;
-    data: StabilityProtocol;
-  }
-
-  const columns = [
+  // Columns use DevExtreme cellRender with optional value/data
+  const columns: DxDataGridColumn[] = [
     {
       dataField: 'protocolNumber',
       caption: 'Protocol Number',
       width: 150,
-      cellRender: (cellData: ProtocolCellData) => (
-        <button
-          onClick={() => router.push(`/gmp/stability/protocols/${cellData.data.id}`)}
-          className="text-primary hover:underline font-medium"
-        >
-          {cellData.value}
-        </button>
-      ),
+      cellRender: (cellData) => {
+        const row = cellData.data as StabilityProtocol;
+        return (
+          <button
+            onClick={() => router.push(`/gmp/stability/protocols/${row.id}`)}
+            className="text-primary hover:underline font-medium"
+          >
+            {cellData.value}
+          </button>
+        );
+      },
     },
     {
       dataField: 'name',
       caption: 'Protocol Name',
-      cellRender: (cellData: ProtocolCellData) => (
+      cellRender: (cellData) => (
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
-          <span>{cellData.value}</span>
+          <span>{String(cellData.value ?? '')}</span>
         </div>
       ),
     },
@@ -95,10 +95,10 @@ export default function StabilityProtocolsPage() {
       dataField: 'productName',
       caption: 'Product',
       width: 200,
-      cellRender: (cellData: ProtocolCellData) => (
+      cellRender: (cellData) => (
         <div className="flex items-center gap-2">
           <Package className="h-4 w-4 text-muted-foreground" />
-          <span>{cellData.value || 'N/A'}</span>
+          <span>{String(cellData.value ?? 'N/A')}</span>
         </div>
       ),
     },
@@ -106,10 +106,10 @@ export default function StabilityProtocolsPage() {
       dataField: 'storageCondition',
       caption: 'Storage Condition',
       width: 150,
-      cellRender: (cellData: ProtocolCellData) => (
+      cellRender: (cellData) => (
         <div className="flex items-center gap-2">
           <Thermometer className="h-4 w-4 text-muted-foreground" />
-          <span>{cellData.value}</span>
+          <span>{String(cellData.value ?? '')}</span>
         </div>
       ),
     },
@@ -117,9 +117,9 @@ export default function StabilityProtocolsPage() {
       dataField: 'studyType',
       caption: 'Study Type',
       width: 120,
-      cellRender: (cellData: ProtocolCellData) => (
+      cellRender: (cellData) => (
         <span className="text-sm">
-          {String(cellData.value || '').replace('_', ' ').toUpperCase()}
+          {String(cellData.value ?? '').replace('_', ' ').toUpperCase()}
         </span>
       ),
     },
@@ -127,8 +127,8 @@ export default function StabilityProtocolsPage() {
       dataField: 'timepoints',
       caption: 'Duration (months)',
       width: 150,
-      cellRender: (cellData: ProtocolCellData) => {
-        const timepoints = cellData.value as number[];
+      cellRender: (cellData) => {
+        const timepoints = (cellData.value ?? []) as number[];
         const maxTimepoint = timepoints && timepoints.length > 0
           ? Math.max(...timepoints)
           : 0;
@@ -144,15 +144,15 @@ export default function StabilityProtocolsPage() {
       dataField: 'status',
       caption: 'Status',
       width: 120,
-      cellRender: (cellData: ProtocolCellData) => <WorkflowStatusBadge status={String(cellData.value)} />,
+      cellRender: (cellData) => <WorkflowStatusBadge status={String(cellData.value ?? '')} />,
     },
     {
       dataField: 'approvedByName',
       caption: 'Approved By',
       width: 150,
-      cellRender: (cellData: ProtocolCellData) => (
+      cellRender: (cellData) => (
         <span className="text-sm text-muted-foreground">
-          {cellData.value || '-'}
+          {String(cellData.value ?? '-')}
         </span>
       ),
     },
@@ -206,7 +206,6 @@ export default function StabilityProtocolsPage() {
           showRowLines={true}
           showColumnLines={false}
           rowAlternationEnabled={true}
-          hoverStateEnabled={true}
           columnAutoWidth={false}
           wordWrapEnabled={false}
           height="calc(100vh - 300px)"

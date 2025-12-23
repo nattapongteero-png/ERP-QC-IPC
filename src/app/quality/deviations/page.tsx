@@ -339,8 +339,9 @@ export default function DeviationsPage() {
   }, [router]);
 
   // Cell renderers
-  const renderDeviationNumberCell = useCallback((data: { data: Deviation }) => {
+  const renderDeviationNumberCell = useCallback((data: { data?: Deviation }) => {
     const dev = data.data;
+    if (!dev) return null;
     const overdue = isOverdue(dev.dueDate, dev.status);
     return (
       <div>
@@ -355,8 +356,9 @@ export default function DeviationsPage() {
     );
   }, []);
 
-  const renderTitleCell = useCallback((data: { data: Deviation }) => {
+  const renderTitleCell = useCallback((data: { data?: Deviation }) => {
     const dev = data.data;
+    if (!dev) return null;
     return (
       <div className="min-w-0">
         <p className="font-medium truncate">{dev.title}</p>
@@ -367,7 +369,8 @@ export default function DeviationsPage() {
     );
   }, []);
 
-  const renderSourceCell = useCallback((data: { data: Deviation }) => {
+  const renderSourceCell = useCallback((data: { data?: Deviation }) => {
+    if (!data.data) return null;
     const config = SOURCE_CONFIG[data.data.sourceType as keyof typeof SOURCE_CONFIG];
     if (!config) return <span className="text-gray-400">-</span>;
     const Icon = config.icon;
@@ -379,7 +382,8 @@ export default function DeviationsPage() {
     );
   }, []);
 
-  const renderSeverityCell = useCallback((data: { data: Deviation }) => {
+  const renderSeverityCell = useCallback((data: { data?: Deviation }) => {
+    if (!data.data) return null;
     const config = SEVERITY_CONFIG[data.data.severity as keyof typeof SEVERITY_CONFIG];
     if (!config) return <Badge>-</Badge>;
     return (
@@ -389,8 +393,9 @@ export default function DeviationsPage() {
     );
   }, []);
 
-  const renderDueDateCell = useCallback((data: { data: Deviation }) => {
+  const renderDueDateCell = useCallback((data: { data?: Deviation }) => {
     const dev = data.data;
+    if (!dev) return null;
     const overdue = isOverdue(dev.dueDate, dev.status);
     const daysUntil = getDaysUntilDue(dev.dueDate, dev.status);
 
@@ -410,7 +415,8 @@ export default function DeviationsPage() {
     );
   }, []);
 
-  const renderStatusCell = useCallback((data: { data: Deviation }) => {
+  const renderStatusCell = useCallback((data: { data?: Deviation }) => {
+    if (!data.data) return null;
     const config = STATUS_CONFIG[data.data.status as keyof typeof STATUS_CONFIG];
     if (!config) return <Badge>-</Badge>;
     return (
@@ -483,7 +489,7 @@ export default function DeviationsPage() {
         icon={Clock}
         iconColor="text-blue-500"
         accentColor="border-blue-500"
-        trend={stats.activeTotal > 0 ? { value: stats.activeTotal, direction: 'neutral' } : undefined}
+        trend={stats.activeTotal > 0 ? { value: String(stats.activeTotal), direction: 'neutral' } : undefined}
         isLoading={isLoading}
       />
       <StatCard
@@ -500,7 +506,7 @@ export default function DeviationsPage() {
         icon={AlertOctagon}
         iconColor="text-red-500"
         accentColor="border-red-500"
-        trend={stats.critical > 0 ? { value: stats.critical, direction: 'down' } : undefined}
+        trend={stats.critical > 0 ? { value: String(stats.critical), direction: 'down' } : undefined}
         isLoading={isLoading}
       />
       <StatCard
@@ -509,7 +515,7 @@ export default function DeviationsPage() {
         icon={AlertTriangle}
         iconColor="text-orange-500"
         accentColor="border-orange-500"
-        trend={stats.overdue > 0 ? { value: stats.overdue, direction: 'down' } : undefined}
+        trend={stats.overdue > 0 ? { value: String(stats.overdue), direction: 'down' } : undefined}
         isLoading={isLoading}
       />
       <StatCard
@@ -518,7 +524,7 @@ export default function DeviationsPage() {
         icon={TrendingUp}
         iconColor="text-green-500"
         accentColor="border-green-500"
-        trend={stats.resolutionRate >= 80 ? { value: stats.resolutionRate, direction: 'up' } : undefined}
+        trend={stats.resolutionRate >= 80 ? { value: String(stats.resolutionRate), direction: 'up' } : undefined}
         isLoading={isLoading}
       />
     </div>
@@ -624,7 +630,6 @@ export default function DeviationsPage() {
                 orientation="horizontal"
                 horizontalAlignment="center"
                 verticalAlignment="bottom"
-                itemTextFormat="capitalize"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
                 text: `${arg.argumentText}: ${arg.valueText} รายการ`

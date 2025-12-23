@@ -16,6 +16,7 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxDataGrid } from '@/components/ui/dx-data-grid';
+import type { DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import type { StabilityProtocolCreate, StabilityStudyType } from '@/types/stability';
 
 // ============================================
@@ -181,40 +182,39 @@ export default function NewProtocolPage() {
     createMutation.mutate(data);
   };
 
-  interface TimepointCellData {
-    value: number;
-    data: TimepointRow;
-  }
-
-  // Timepoint grid columns
-  const timepointColumns = [
+  // Timepoint grid columns - use DxDataGridColumn type with custom cellRender
+  const timepointColumns: DxDataGridColumn[] = [
     {
       dataField: 'month',
       caption: 'Timepoint (Months)',
       width: 180,
-      cellRender: (cellData: TimepointCellData) => (
-        <DxNumberBox
-          value={cellData.value}
-          onValueChanged={(e) => updateTimepointMonth(cellData.data.id, e.value)}
-          min={0}
-          max={120}
-          showSpinButtons={true}
-          width={150}
-        />
-      ),
+      cellRender: (cellData) => {
+        const row = cellData.data as TimepointRow;
+        return (
+          <DxNumberBox
+            value={cellData.value ?? 0}
+            onValueChanged={(e) => updateTimepointMonth(row.id, e.value)}
+            min={0}
+            max={120}
+            showSpinButtons={true}
+            width={150}
+          />
+        );
+      },
     },
     {
       dataField: 'tests',
       caption: 'Tests Required',
-      cellRender: (cellData: TimepointCellData) => {
-        const selectedTests = cellData.value as unknown as number[];
+      cellRender: (cellData) => {
+        const row = cellData.data as TimepointRow;
+        const selectedTests = (cellData.value ?? []) as number[];
         return (
           <DxSelectBox
             dataSource={availableTests || []}
             valueExpr="id"
             displayExpr="testName"
             value={selectedTests}
-            onValueChanged={(e) => updateTimepointTests(cellData.data.id, e.value || [])}
+            onValueChanged={(e) => updateTimepointTests(row.id, e.value || [])}
             placeholder="Select tests..."
             disabled={testsLoading || !availableTests}
             searchEnabled={true}
@@ -231,7 +231,10 @@ export default function NewProtocolPage() {
         {
           hint: 'Remove',
           icon: 'trash',
-          onClick: (e: { row: { data: TimepointRow } }) => removeTimepoint(e.row.data.id),
+          onClick: (e: { row?: { data?: unknown } }) => {
+            const rowData = e.row?.data as TimepointRow | undefined;
+            if (rowData) removeTimepoint(rowData.id);
+          },
         },
       ],
     },
@@ -308,8 +311,8 @@ export default function NewProtocolPage() {
                 dataSource={commonConditions}
                 value={storageCondition}
                 onValueChanged={(e) => setStorageCondition(e.value)}
-                acceptCustomValue={true}
-                placeholder="Select or type condition..."
+                searchEnabled={true}
+                placeholder="Select condition..."
                 showClearButton={false}
               />
             </div>

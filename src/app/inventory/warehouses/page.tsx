@@ -655,13 +655,6 @@ export default function WarehousesPage() {
               </div>
             </div>
 
-            {/* Description */}
-            {viewingWarehouse.description && (
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs text-gray-500 mb-1">รายละเอียด</p>
-                <p className="text-gray-700">{viewingWarehouse.description}</p>
-              </div>
-            )}
           </div>
         )}
       </DxPopup>

@@ -100,6 +100,16 @@ export interface DxDataGridColumn {
   hideOnMobile?: boolean;
   /** Hide this column on tablets (768px - 1024px) */
   hideOnTablet?: boolean;
+  /** Column type (e.g., 'buttons' for action buttons) */
+  type?: 'buttons' | 'selection' | 'adaptive';
+  /** Buttons configuration for button column */
+  buttons?: Array<{
+    hint?: string;
+    icon?: string;
+    text?: string;
+    visible?: boolean | ((e: { row?: { data?: unknown } }) => boolean);
+    onClick?: (e: { row?: { data?: unknown } }) => void;
+  }>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

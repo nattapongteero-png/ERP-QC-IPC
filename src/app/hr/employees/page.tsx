@@ -369,7 +369,8 @@ export default function EmployeesPage() {
   };
 
   // Pie chart tooltip
-  const customizePieTooltip = (pointInfo: { argument?: string; value?: number; percent?: number }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const customizePieTooltip = (pointInfo: any) => {
     return {
       text: `${pointInfo.argument}: ${pointInfo.value} คน (${((pointInfo.percent || 0) * 100).toFixed(1)}%)`,
     };
@@ -377,7 +378,7 @@ export default function EmployeesPage() {
 
   // Pie chart point customization
   const customizePiePoint = (pointInfo: { data?: { color?: string } }) => {
-    return pointInfo.data?.color || '#6366f1';
+    return { color: pointInfo.data?.color || '#6366f1' };
   };
 
   return (
@@ -751,7 +752,7 @@ export default function EmployeesPage() {
               showNavigationButtons
             />
             <Selection mode="single" />
-            <Export enabled fileName="employees" />
+            <Export enabled />
             <GroupPanel visible />
             <Grouping autoExpandAll={false} />
             <ColumnChooser enabled mode="select" />

@@ -726,7 +726,7 @@ export default function AuthorizationsPage() {
             <ColumnChooser enabled mode="select" />
             <StateStoring enabled type="localStorage" storageKey="hr_authorizations_grid" />
             <Scrolling mode="virtual" />
-            <Export enabled fileName="authorizations" />
+            <Export enabled />
 
             <Column dataField="employeeName" caption="พนักงาน" minWidth={180} allowGrouping />
             <Column

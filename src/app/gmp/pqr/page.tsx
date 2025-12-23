@@ -38,7 +38,7 @@ import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
-import type { Item } from '@/components/ui/item-search-dialog';
+import type { Item as InventoryItem } from '@/components/ui/item-search-dialog';
 import PieChart, {
   Series as PieSeries,
   Label as PieLabel,
@@ -273,7 +273,7 @@ export default function PqrDashboardPage() {
   const [activeTab, setActiveTab] = useState<string>('all');
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showProductDialog, setShowProductDialog] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<InventoryItem | null>(null);
   const [newReportData, setNewReportData] = useState<Partial<PqrCreate>>({
     reviewYear: new Date().getFullYear(),
   });
@@ -304,7 +304,7 @@ export default function PqrDashboardPage() {
   });
 
   // Handle product selection from ItemSearchDialog
-  const handleProductSelect = (item: Item) => {
+  const handleProductSelect = (item: InventoryItem) => {
     setSelectedProduct(item);
     setNewReportData((prev) => ({ ...prev, productId: item.id }));
     setShowProductDialog(false);

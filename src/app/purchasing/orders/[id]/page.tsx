@@ -730,16 +730,8 @@ export default function PurchaseOrderDetailPage() {
       <div className="space-y-4">
         {/* Header */}
         <PageHeader
-          title={
-            <div className="flex items-center gap-3">
-              <span>PO: {po.poNumber}</span>
-              <Badge variant={statusConfig.badgeVariant} className="text-sm">
-                {statusConfig.icon}
-                <span className="ml-1">{statusConfig.labelTh}</span>
-              </Badge>
-            </div>
-          }
-          description={`ผู้ขาย: ${po.vendorName}`}
+          title={`PO: ${po.poNumber}`}
+          description={`ผู้ขาย: ${po.vendorName} • สถานะ: ${statusConfig.labelTh}`}
           backButton={
             <DxButton
               icon="back"
