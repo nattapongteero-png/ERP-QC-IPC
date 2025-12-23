@@ -7,7 +7,7 @@
 
 import { getDb } from '../db';
 import { toDateSafe } from '../db/date-utils';
-import { eq, and, desc, like, or, sql, count, lte, gte, isNull } from 'drizzle-orm';
+import { eq, and, desc, like, count, lte, gte } from 'drizzle-orm';
 import {
   sqliteStabilityProtocols,
   sqliteStabilityStudies,
@@ -16,7 +16,7 @@ import {
   sqliteItems,
   sqliteInventoryLots,
   sqliteUsers,
-  sqliteQualityTests,
+  sqliteDeviations,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import type {
@@ -1052,6 +1052,143 @@ export async function getStudyTrendData(studyId: number): Promise<StudyTrendData
     projections,
   };
 }
+
+// ============================================
+// OOS Detection and Investigation (T707, T708)
+// ============================================
+
+export interface OOSDetectionResult {
+  isOOS: boolean;
+  deviation?: 'below_min' | 'above_max';
+  margin?: number;
+}
+
+/**
+ * T707: Detect Out of Specification (OOS) result
+ * Compare a test result against specification limits
+ */
+export async function detectOOS(
+  sampleId: number,
+  testResult: number,
+  specMinValue: number | null,
+  specMaxValue: number | null
+): Promise<OOSDetectionResult> {
+  // If no spec limits, cannot be OOS
+  if (specMinValue === null && specMaxValue === null) {
+    return { isOOS: false };
+  }
+
+  // Check if below minimum
+  if (specMinValue !== null && testResult < specMinValue) {
+    const margin = specMinValue - testResult;
+    return {
+      isOOS: true,
+      deviation: 'below_min',
+      margin,
+    };
+  }
+
+  // Check if above maximum
+  if (specMaxValue !== null && testResult > specMaxValue) {
+    const margin = testResult - specMaxValue;
+    return {
+      isOOS: true,
+      deviation: 'above_max',
+      margin,
+    };
+  }
+
+  return { isOOS: false };
+}
+
+/**
+ * T708: Trigger OOS Investigation
+ * Create a deviation record when OOS is detected
+ */
+export async function triggerOOSInvestigation(
+  sampleId: number,
+  oosDetails: OOSDetectionResult,
+  userId: number
+): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  // Get sample and study info
+  const sample = await getSampleById(sampleId);
+  if (!sample) {
+    throw new Error(`Sample ${sampleId} not found`);
+  }
+
+  const study = await getStudyById(sample.studyId);
+  if (!study) {
+    throw new Error(`Study ${sample.studyId} not found`);
+  }
+
+  // Determine severity based on margin
+  let severity: 'critical' | 'major' | 'minor' = 'major';
+  if (oosDetails.margin) {
+    // Critical if margin > 20% of limit
+    if (oosDetails.margin > 20) {
+      severity = 'critical';
+    } else if (oosDetails.margin < 5) {
+      severity = 'minor';
+    }
+  }
+
+  // Generate deviation number
+  const today = new Date();
+  const prefix = `DEV-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  const deviationNumber = `${prefix}-${random}`;
+
+  // Build description
+  const description = `Out of Specification detected in Stability Study ${study.studyNumber}, Sample ${sample.sampleNumber} at timepoint ${sample.timepoint} months. Result is ${oosDetails.deviation === 'below_min' ? 'below minimum' : 'above maximum'} by ${oosDetails.margin?.toFixed(2) || 'unknown'} units.`;
+
+  // Create deviation
+  const [deviation] = await database
+    .insert(sqliteDeviations)
+    .values({
+      deviationNumber,
+      description,
+      type: 'OOS',
+      severity,
+      status: 'open',
+      source: 'stability_test',
+      sourceId: sampleId,
+      reportedBy: userId,
+      reportedAt: new Date().toISOString(),
+    })
+    .returning({ id: sqliteDeviations.id });
+
+  const deviationId = Number(deviation.id);
+
+  // Update sample with deviation link
+  await database
+    .update(sqliteStabilitySamples)
+    .set({
+      oosInvestigationId: deviationId,
+    })
+    .where(eq(sqliteStabilitySamples.id, sampleId));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'CREATE',
+    tableName: 'deviations',
+    recordId: deviationId,
+    newValue: {
+      deviationNumber,
+      type: 'OOS',
+      severity,
+      description,
+      source: 'stability_test',
+      sourceId: sampleId,
+    },
+  });
+
+  return deviationId;
+}
+
 
 // ============================================
 // Row Mapping Helpers

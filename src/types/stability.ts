@@ -236,3 +236,13 @@ export interface StabilityTrendsParams {
 export interface StudyTrendDataParams {
   parameter?: string; // Specific test parameter to chart
 }
+
+// ============================================
+// OOS Detection (T707)
+// ============================================
+
+export interface OOSDetectionResult {
+  isOOS: boolean;
+  deviation?: 'below_min' | 'above_max';
+  margin?: number;
+}

@@ -246,7 +246,23 @@ export default function StabilityStudyDetailPage() {
           {study.oosCount > 0 && (
             <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
               <div className="text-xl font-bold text-red-600">{study.oosCount}</div>
-              <div className="text-xs text-red-600">OOS Detected</div>
+              <div className="text-xs text-red-600 mb-2">OOS Detected</div>
+              <button
+                onClick={() => {
+                  // Filter to samples with OOS that have investigation IDs
+                  const oosInvestigations = study.samples
+                    .filter((s) => s.oosDetected && s.oosInvestigationId)
+                    .map((s) => s.oosInvestigationId);
+                  if (oosInvestigations.length > 0) {
+                    // Navigate to first deviation (or could show list)
+                    router.push(`/gmp/quality/deviations/${oosInvestigations[0]}`);
+                  }
+                }}
+                className="text-xs text-red-600 hover:underline"
+                disabled={!study.samples.some((s) => s.oosDetected && s.oosInvestigationId)}
+              >
+                View Investigations
+              </button>
             </div>
           )}
         </div>
