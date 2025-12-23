@@ -131,3 +131,7 @@ export type { TppItem } from './tpp-search-dialog';
 
 export { TtmtSearchDialog } from './ttmt-search-dialog';
 export type { TtmtItem } from './ttmt-search-dialog';
+
+// Document Attachment
+export { DocumentAttachment } from './document-attachment';
+export type { DocumentAttachmentProps, Attachment } from './document-attachment';
