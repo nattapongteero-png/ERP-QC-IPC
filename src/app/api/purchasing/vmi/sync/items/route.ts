@@ -7,17 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { eq, and, or, isNotNull } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVendors,
-  sqliteVMIVendorConfig,
-  sqliteItems,
-  sqliteVMITransactions,
-  mysqlVendors,
-  mysqlVMIVendorConfig,
-  mysqlItems,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -44,17 +34,17 @@ export async function GET(request: NextRequest) {
         return errorResponse('Invalid vendor ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
+      const vmiConfig = getTableRef('vMIVendorConfig');
+      const items = getTableRef('items');
+      const vendors = getTableRef('vendors');
 
       // Verify vendor has VMI configuration
-      const configResult = await (db as any)
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(vmiConfig)
+          .where(eq(vmiConfig.vendorId, vendorId));
+      });
 
       if (configResult.length === 0) {
         return errorResponse('VMI configuration not found for vendor');
@@ -63,33 +53,37 @@ export async function GET(request: NextRequest) {
       const config = configResult[0];
 
       // Get vendor info
-      const vendorResult = await (db as any)
-        .select({ name: vendors.name })
-        .from(vendors)
-        .where(eq(vendors.id, vendorId));
+      const vendorResult = await executeDbOperation(async (db) => {
+        return db
+          .select({ name: vendors.name })
+          .from(vendors)
+          .where(eq(vendors.id, vendorId));
+      });
 
       const vendorName = vendorResult[0]?.name || 'Unknown';
 
       // Get items with TPP or TTMT codes that belong to this vendor's approved list
       // For now, get all items with codes - can be filtered by AVL later
-      const itemsResult = await (db as any)
-        .select({
-          id: items.id,
-          code: items.code,
-          nameTh: items.nameTh,
-          nameEn: items.nameEn,
-          tppCode: items.tppCode,
-          ttmtCode: items.ttmtCode,
-          primaryUnit: items.primaryUnit,
-          updatedAt: items.updatedAt,
-        })
-        .from(items)
-        .where(
-          and(
-            eq(items.isActive, true),
-            or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
-          )
-        );
+      const itemsResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: items.id,
+            code: items.code,
+            nameTh: items.nameTh,
+            nameEn: items.nameEn,
+            tppCode: items.tppCode,
+            ttmtCode: items.ttmtCode,
+            primaryUnit: items.primaryUnit,
+            updatedAt: items.updatedAt,
+          })
+          .from(items)
+          .where(
+            and(
+              eq(items.isActive, true),
+              or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
+            )
+          );
+      });
 
       // Determine which items need sync
       // An item needs sync if:
@@ -142,17 +136,17 @@ export async function POST(request: NextRequest) {
         return errorResponse('Vendor ID is required');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
+      const vmiConfig = getTableRef('vMIVendorConfig');
+      const items = getTableRef('items');
+      const vmiTransactions = getTableRef('vMITransactions');
 
       // Get vendor config
-      const configResult = await (db as any)
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(vmiConfig)
+          .where(eq(vmiConfig.vendorId, vendorId));
+      });
 
       if (configResult.length === 0) {
         return errorResponse('VMI configuration not found for vendor');
@@ -165,10 +159,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Get items to sync
-      let itemsToSync;
-      if (itemIds && itemIds.length > 0) {
-        // Sync specific items
-        itemsToSync = await (db as any)
+      let itemsToSync = await executeDbOperation(async (db) => {
+        return db
           .select({
             id: items.id,
             code: items.code,
@@ -185,28 +177,11 @@ export async function POST(request: NextRequest) {
               or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
             )
           );
+      });
 
-        // Filter by requested IDs
+      // Filter by requested IDs if provided
+      if (itemIds && itemIds.length > 0) {
         itemsToSync = itemsToSync.filter((item: { id: number }) => itemIds.includes(item.id));
-      } else {
-        // Sync all items with codes
-        itemsToSync = await (db as any)
-          .select({
-            id: items.id,
-            code: items.code,
-            nameTh: items.nameTh,
-            nameEn: items.nameEn,
-            tppCode: items.tppCode,
-            ttmtCode: items.ttmtCode,
-            primaryUnit: items.primaryUnit,
-          })
-          .from(items)
-          .where(
-            and(
-              eq(items.isActive, true),
-              or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
-            )
-          );
       }
 
       if (itemsToSync.length === 0) {
@@ -229,19 +204,20 @@ export async function POST(request: NextRequest) {
           durationMs: number,
           error?: string
         ) {
-          const now = new Date();
-          await (db as any).insert(vmiTransactions).values({
-            vendorId: logVendorId,
-            transactionType,
-            endpoint,
-            method,
-            requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
-            responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
-            httpStatus,
-            durationMs,
-            status: error ? 'error' : 'success',
-            errorMessage: error || null,
-            createdAt: isSqlite ? now.toISOString() : now,
+          await executeDbOperation(async (db) => {
+            return db.insert(vmiTransactions).values({
+              vendorId: logVendorId,
+              transactionType,
+              endpoint,
+              method,
+              requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
+              responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
+              httpStatus,
+              durationMs,
+              status: error ? 'error' : 'success',
+              errorMessage: error || null,
+              createdAt: dbDate(),
+            });
           });
         },
       };
@@ -273,13 +249,15 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         // Update last sync time
-        await (db as any)
-          .update(vmiConfig)
-          .set({
-            lastItemsSyncAt: isSqlite ? now.toISOString() : now,
-            updatedAt: isSqlite ? now.toISOString() : now,
-          })
-          .where(eq(vmiConfig.vendorId, vendorId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(vmiConfig)
+            .set({
+              lastItemsSyncAt: dbDate(),
+              updatedAt: dbDate(),
+            })
+            .where(eq(vmiConfig.vendorId, vendorId));
+        });
 
         const syncedCount = result.summary.updated + result.summary.inserted;
         const failedCount = result.summary.failed;

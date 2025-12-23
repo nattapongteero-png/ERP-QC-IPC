@@ -7,17 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVMIVendorConfig,
-  sqliteVMIPriceOffers,
-  sqliteItems,
-  sqliteVMITransactions,
-  mysqlVMIVendorConfig,
-  mysqlVMIPriceOffers,
-  mysqlItems,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -45,17 +35,17 @@ export async function GET(request: NextRequest) {
         return errorResponse('Invalid vendor ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const priceOffers = isSqlite ? sqliteVMIPriceOffers : mysqlVMIPriceOffers;
-      const items = isSqlite ? sqliteItems : mysqlItems;
+      const vmiConfig = getTableRef('vMIVendorConfig');
+      const priceOffers = getTableRef('vMIPriceOffers');
+      const items = getTableRef('items');
 
       // Verify vendor has VMI configuration
-      const configResult = await (db as any)
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(vmiConfig)
+          .where(eq(vmiConfig.vendorId, vendorId));
+      });
 
       if (configResult.length === 0) {
         return errorResponse('VMI configuration not found for vendor');
@@ -65,33 +55,33 @@ export async function GET(request: NextRequest) {
       const today = new Date().toISOString().split('T')[0];
 
       // Get price offers with item info
-      const offersQuery = (db as any)
-        .select({
-          id: priceOffers.id,
-          vendorId: priceOffers.vendorId,
-          itemId: priceOffers.itemId,
-          itemCode: items.code,
-          itemName: items.nameTh,
-          itemNameEn: items.nameEn,
-          tppCode: items.tppCode,
-          ttmtCode: items.ttmtCode,
-          unitPrice: priceOffers.unitPrice,
-          packPrice: priceOffers.packPrice,
-          moq: priceOffers.moq,
-          leadTimeDays: priceOffers.leadTimeDays,
-          effectiveDate: priceOffers.effectiveDate,
-          expiryDate: priceOffers.expiryDate,
-          isActive: priceOffers.isActive,
-          lastSyncedAt: priceOffers.lastSyncedAt,
-          syncStatus: priceOffers.syncStatus,
-          createdAt: priceOffers.createdAt,
-          updatedAt: priceOffers.updatedAt,
-        })
-        .from(priceOffers)
-        .leftJoin(items, eq(priceOffers.itemId, items.id))
-        .where(eq(priceOffers.vendorId, vendorId));
-
-      const offersResult = await offersQuery;
+      const offersResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: priceOffers.id,
+            vendorId: priceOffers.vendorId,
+            itemId: priceOffers.itemId,
+            itemCode: items.code,
+            itemName: items.nameTh,
+            itemNameEn: items.nameEn,
+            tppCode: items.tppCode,
+            ttmtCode: items.ttmtCode,
+            unitPrice: priceOffers.unitPrice,
+            packPrice: priceOffers.packPrice,
+            moq: priceOffers.moq,
+            leadTimeDays: priceOffers.leadTimeDays,
+            effectiveDate: priceOffers.effectiveDate,
+            expiryDate: priceOffers.expiryDate,
+            isActive: priceOffers.isActive,
+            lastSyncedAt: priceOffers.lastSyncedAt,
+            syncStatus: priceOffers.syncStatus,
+            createdAt: priceOffers.createdAt,
+            updatedAt: priceOffers.updatedAt,
+          })
+          .from(priceOffers)
+          .leftJoin(items, eq(priceOffers.itemId, items.id))
+          .where(eq(priceOffers.vendorId, vendorId));
+      });
 
       // Filter and enrich offers
       type OfferResultType = typeof offersResult[number];
@@ -146,18 +136,18 @@ export async function POST(request: NextRequest) {
         return errorResponse('Vendor ID is required');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const priceOffers = isSqlite ? sqliteVMIPriceOffers : mysqlVMIPriceOffers;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
+      const vmiConfig = getTableRef('vMIVendorConfig');
+      const priceOffers = getTableRef('vMIPriceOffers');
+      const items = getTableRef('items');
+      const vmiTransactions = getTableRef('vMITransactions');
 
       // Get vendor config
-      const configResult = await (db as any)
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(vmiConfig)
+          .where(eq(vmiConfig.vendorId, vendorId));
+      });
 
       if (configResult.length === 0) {
         return errorResponse('VMI configuration not found for vendor');
@@ -171,26 +161,26 @@ export async function POST(request: NextRequest) {
 
       // Get offers to sync with item info
       const today = new Date().toISOString().split('T')[0];
-      let offersQuery = (db as any)
-        .select({
-          id: priceOffers.id,
-          itemId: priceOffers.itemId,
-          itemCode: items.code,
-          tppCode: items.tppCode,
-          ttmtCode: items.ttmtCode,
-          unitPrice: priceOffers.unitPrice,
-          packPrice: priceOffers.packPrice,
-          moq: priceOffers.moq,
-          leadTimeDays: priceOffers.leadTimeDays,
-          effectiveDate: priceOffers.effectiveDate,
-          expiryDate: priceOffers.expiryDate,
-          isActive: priceOffers.isActive,
-        })
-        .from(priceOffers)
-        .leftJoin(items, eq(priceOffers.itemId, items.id))
-        .where(eq(priceOffers.vendorId, vendorId));
-
-      let offersToSync = await offersQuery;
+      let offersToSync = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: priceOffers.id,
+            itemId: priceOffers.itemId,
+            itemCode: items.code,
+            tppCode: items.tppCode,
+            ttmtCode: items.ttmtCode,
+            unitPrice: priceOffers.unitPrice,
+            packPrice: priceOffers.packPrice,
+            moq: priceOffers.moq,
+            leadTimeDays: priceOffers.leadTimeDays,
+            effectiveDate: priceOffers.effectiveDate,
+            expiryDate: priceOffers.expiryDate,
+            isActive: priceOffers.isActive,
+          })
+          .from(priceOffers)
+          .leftJoin(items, eq(priceOffers.itemId, items.id))
+          .where(eq(priceOffers.vendorId, vendorId));
+      });
       type OfferToSyncType = typeof offersToSync[number];
 
       // Filter by requested IDs if provided
@@ -227,19 +217,20 @@ export async function POST(request: NextRequest) {
           durationMs: number,
           error?: string
         ) {
-          const now = new Date();
-          await (db as any).insert(vmiTransactions).values({
-            vendorId: logVendorId,
-            transactionType,
-            endpoint,
-            method,
-            requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
-            responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
-            httpStatus,
-            durationMs,
-            status: error ? 'error' : 'success',
-            errorMessage: error || null,
-            createdAt: isSqlite ? now.toISOString() : now,
+          await executeDbOperation(async (db) => {
+            return db.insert(vmiTransactions).values({
+              vendorId: logVendorId,
+              transactionType,
+              endpoint,
+              method,
+              requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
+              responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
+              httpStatus,
+              durationMs,
+              status: error ? 'error' : 'success',
+              errorMessage: error || null,
+              createdAt: dbDate(),
+            });
           });
         },
       };
@@ -271,23 +262,27 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         // Update last sync time
-        await (db as any)
-          .update(vmiConfig)
-          .set({
-            lastPricesSyncAt: isSqlite ? now.toISOString() : now,
-            updatedAt: isSqlite ? now.toISOString() : now,
-          })
-          .where(eq(vmiConfig.vendorId, vendorId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(vmiConfig)
+            .set({
+              lastPricesSyncAt: dbDate(),
+              updatedAt: dbDate(),
+            })
+            .where(eq(vmiConfig.vendorId, vendorId));
+        });
 
         // Update lastSyncedAt for synced offers
         for (const offer of offersToSync) {
-          await (db as any)
-            .update(priceOffers)
-            .set({
-              lastSyncedAt: isSqlite ? now.toISOString() : now,
-              updatedAt: isSqlite ? now.toISOString() : now,
-            })
-            .where(eq(priceOffers.id, offer.id));
+          await executeDbOperation(async (db) => {
+            return db
+              .update(priceOffers)
+              .set({
+                lastSyncedAt: dbDate(),
+                updatedAt: dbDate(),
+              })
+              .where(eq(priceOffers.id, offer.id));
+          });
         }
 
         const syncedCount = result.summary.updated + result.summary.inserted;
