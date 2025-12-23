@@ -225,6 +225,7 @@ function generateSqliteCreateTable(tableName: string, columns: ColumnInfo[]): st
 }
 
 // Generate CREATE TABLE SQL for MySQL
+// Note: Foreign keys are intentionally omitted for compatibility with MySQL engines that don't support them
 function generateMysqlCreateTable(tableName: string, columns: ColumnInfo[]): string {
   const columnDefs: string[] = [];
   let primaryKeyCol: string | null = null;
@@ -265,7 +266,9 @@ function generateMysqlCreateTable(tableName: string, columns: ColumnInfo[]): str
     }
   }
 
-  return `CREATE TABLE IF NOT EXISTS \`${tableName}\` (\n  ${columnDefs.join(',\n  ')}\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`;
+  // Don't specify ENGINE - use database default (RocksDB)
+  // Foreign key constraints are defined in ORM schema but not enforced at DB level
+  return `CREATE TABLE IF NOT EXISTS \`${tableName}\` (\n  ${columnDefs.join(',\n  ')}\n) DEFAULT CHARSET=utf8mb4`;
 }
 
 // Generate ALTER TABLE ADD COLUMN SQL
