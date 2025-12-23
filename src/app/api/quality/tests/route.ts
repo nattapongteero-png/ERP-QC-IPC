@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       const testsTable = getTableRef('qualityTests');
       const specsTable = getTableRef('qualitySpecs');
       const lotsTable = getTableRef('inventoryLots');
+      const itemsTable = getTableRef('items');
 
       const conditions: (SQL | undefined)[] = [];
       if (lotId) {
@@ -52,6 +53,9 @@ export async function GET(request: NextRequest) {
             id: testsTable.id,
             lotId: testsTable.lotId,
             lotNumber: lotsTable.lotNumber,
+            itemId: lotsTable.itemId,
+            itemCode: itemsTable.code,
+            itemName: itemsTable.nameTh,
             specId: testsTable.specId,
             testName: specsTable.testName,
             testMethod: specsTable.testMethod,
@@ -68,7 +72,8 @@ export async function GET(request: NextRequest) {
           })
           .from(testsTable)
           .leftJoin(specsTable, eq(testsTable.specId, specsTable.id))
-          .leftJoin(lotsTable, eq(testsTable.lotId, lotsTable.id));
+          .leftJoin(lotsTable, eq(testsTable.lotId, lotsTable.id))
+          .leftJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id));
 
         if (conditions.length > 0) {
           query = query.where(and(...conditions));

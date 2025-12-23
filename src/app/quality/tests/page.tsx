@@ -71,6 +71,9 @@ interface QualityTest {
   id: number;
   lotId: number;
   lotNumber: string;
+  itemId: number | null;
+  itemCode: string | null;
+  itemName: string | null;
   specId: number;
   testName: string;
   testMethod: string;
@@ -269,6 +272,9 @@ export default function QualityTestsPage() {
   const renderLotCell = useCallback((data: { data: QualityTest }) => (
     <div className="min-w-0">
       <p className="font-mono font-semibold text-blue-600">{data.data.lotNumber || '-'}</p>
+      {data.data.itemName && (
+        <p className="text-xs text-gray-700 truncate">{data.data.itemName}</p>
+      )}
       {data.data.sampleNumber && (
         <p className="text-xs text-gray-500">Sample: {data.data.sampleNumber}</p>
       )}
@@ -667,8 +673,8 @@ export default function QualityTestsPage() {
 
           <Column
             dataField="lotNumber"
-            caption="Lot / Sample"
-            width={160}
+            caption="Lot / Item"
+            width={220}
             cellRender={renderLotCell}
           />
           <Column
