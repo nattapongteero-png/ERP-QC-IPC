@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { getTableRef, executeDbOperation, dbDate, parseDbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -19,36 +19,36 @@ export async function GET(
       const { id } = await params;
       const bomId = parseInt(id);
 
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const bomTable = useSqlite ? schema.sqliteBOM : schema.mysqlBOM;
-      const bomLinesTable = useSqlite ? schema.sqliteBOMLines : schema.mysqlBOMLines;
-      const itemsTable = useSqlite ? schema.sqliteItems : schema.mysqlItems;
+      const bomTable = getTableRef('bOM');
+      const bomLinesTable = getTableRef('bOMLines');
+      const itemsTable = getTableRef('items');
 
       // Get BOM header with product info
-      const bomResult = await (db as any)
-        .select({
-          id: bomTable.id,
-          code: bomTable.code,
-          name: bomTable.name,
-          productId: bomTable.productId,
-          productCode: itemsTable.code,
-          productName: itemsTable.nameTh,
-          productUnit: itemsTable.primaryUnit,
-          version: bomTable.version,
-          status: bomTable.status,
-          batchSize: bomTable.batchSize,
-          batchUnit: bomTable.batchUnit,
-          yieldTarget: bomTable.yieldTarget,
-          lossAllowance: bomTable.lossAllowance,
-          effectiveDate: bomTable.effectiveDate,
-          expiryDate: bomTable.expiryDate,
-          createdAt: bomTable.createdAt,
-          updatedAt: bomTable.updatedAt,
-        })
-        .from(bomTable)
-        .leftJoin(itemsTable, eq(bomTable.productId, itemsTable.id))
-        .where(eq(bomTable.id, bomId));
+      const bomResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: bomTable.id,
+            code: bomTable.code,
+            name: bomTable.name,
+            productId: bomTable.productId,
+            productCode: itemsTable.code,
+            productName: itemsTable.nameTh,
+            productUnit: itemsTable.primaryUnit,
+            version: bomTable.version,
+            status: bomTable.status,
+            batchSize: bomTable.batchSize,
+            batchUnit: bomTable.batchUnit,
+            yieldTarget: bomTable.yieldTarget,
+            lossAllowance: bomTable.lossAllowance,
+            effectiveDate: bomTable.effectiveDate,
+            expiryDate: bomTable.expiryDate,
+            createdAt: bomTable.createdAt,
+            updatedAt: bomTable.updatedAt,
+          })
+          .from(bomTable)
+          .leftJoin(itemsTable, eq(bomTable.productId, itemsTable.id))
+          .where(eq(bomTable.id, bomId));
+      });
 
       if (bomResult.length === 0) {
         return errorResponse('BOM not found', 404);
@@ -57,25 +57,27 @@ export async function GET(
       const bom = bomResult[0];
 
       // Get BOM lines with item details
-      const linesResult = await (db as any)
-        .select({
-          id: bomLinesTable.id,
-          bomId: bomLinesTable.bomId,
-          itemId: bomLinesTable.itemId,
-          itemCode: itemsTable.code,
-          itemName: itemsTable.nameTh,
-          itemUnit: itemsTable.primaryUnit,
-          itemType: itemsTable.type,
-          quantity: bomLinesTable.quantity,
-          unit: bomLinesTable.unit,
-          sequence: bomLinesTable.sequence,
-          isOptional: bomLinesTable.isOptional,
-          notes: bomLinesTable.notes,
-        })
-        .from(bomLinesTable)
-        .leftJoin(itemsTable, eq(bomLinesTable.itemId, itemsTable.id))
-        .where(eq(bomLinesTable.bomId, bomId))
-        .orderBy(bomLinesTable.sequence);
+      const linesResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: bomLinesTable.id,
+            bomId: bomLinesTable.bomId,
+            itemId: bomLinesTable.itemId,
+            itemCode: itemsTable.code,
+            itemName: itemsTable.nameTh,
+            itemUnit: itemsTable.primaryUnit,
+            itemType: itemsTable.type,
+            quantity: bomLinesTable.quantity,
+            unit: bomLinesTable.unit,
+            sequence: bomLinesTable.sequence,
+            isOptional: bomLinesTable.isOptional,
+            notes: bomLinesTable.notes,
+          })
+          .from(bomLinesTable)
+          .leftJoin(itemsTable, eq(bomLinesTable.itemId, itemsTable.id))
+          .where(eq(bomLinesTable.bomId, bomId))
+          .orderBy(bomLinesTable.sequence);
+      });
 
       return successResponse({
         ...bom,
@@ -110,24 +112,26 @@ export async function PUT(
         lines,
       } = body;
 
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const bomTable = useSqlite ? schema.sqliteBOM : schema.mysqlBOM;
-      const bomLinesTable = useSqlite ? schema.sqliteBOMLines : schema.mysqlBOMLines;
+      const bomTable = getTableRef('bOM');
+      const bomLinesTable = getTableRef('bOMLines');
 
       // Check if BOM exists
-      const [existing] = await (db as any)
-        .select()
-        .from(bomTable)
-        .where(eq(bomTable.id, bomId));
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(bomTable)
+          .where(eq(bomTable.id, bomId));
+      });
 
-      if (!existing) {
+      if (existing.length === 0) {
         return errorResponse('BOM not found', 404);
       }
 
+      const oldBom = existing[0];
+
       // Build update object
-      const updateData: Record<string, any> = {
-        updatedAt: useSqlite ? new Date().toISOString() : new Date(),
+      const updateData: Record<string, unknown> = {
+        updatedAt: dbDate(),
       };
 
       if (name !== undefined) updateData.name = name;
@@ -138,36 +142,42 @@ export async function PUT(
       if (yieldTarget !== undefined) updateData.yieldTarget = yieldTarget;
       if (lossAllowance !== undefined) updateData.lossAllowance = lossAllowance;
       if (effectiveDate !== undefined) {
-        updateData.effectiveDate = effectiveDate ? (useSqlite ? effectiveDate : new Date(effectiveDate)) : null;
+        updateData.effectiveDate = parseDbDate(effectiveDate);
       }
       if (expiryDate !== undefined) {
-        updateData.expiryDate = expiryDate ? (useSqlite ? expiryDate : new Date(expiryDate)) : null;
+        updateData.expiryDate = parseDbDate(expiryDate);
       }
 
       // Update BOM header
-      await (db as any)
-        .update(bomTable)
-        .set(updateData)
-        .where(eq(bomTable.id, bomId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(bomTable)
+          .set(updateData)
+          .where(eq(bomTable.id, bomId));
+      });
 
       // Update lines if provided
       if (lines && Array.isArray(lines)) {
         // Delete existing lines
-        await (db as any)
-          .delete(bomLinesTable)
-          .where(eq(bomLinesTable.bomId, bomId));
+        await executeDbOperation(async (db) => {
+          return db
+            .delete(bomLinesTable)
+            .where(eq(bomLinesTable.bomId, bomId));
+        });
 
         // Insert new lines
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
-          await (db as any).insert(bomLinesTable).values({
-            bomId,
-            itemId: line.itemId,
-            quantity: line.quantity,
-            unit: line.unit,
-            sequence: line.sequence || i + 1,
-            isOptional: line.isOptional || false,
-            notes: line.notes || null,
+          await executeDbOperation(async (db) => {
+            return db.insert(bomLinesTable).values({
+              bomId,
+              itemId: line.itemId,
+              quantity: line.quantity,
+              unit: line.unit,
+              sequence: line.sequence || i + 1,
+              isOptional: line.isOptional || false,
+              notes: line.notes || null,
+            });
           });
         }
       }
@@ -178,7 +188,7 @@ export async function PUT(
         action: 'UPDATE',
         tableName: 'bom',
         recordId: bomId,
-        oldValue: existing,
+        oldValue: oldBom,
         newValue: updateData,
         ipAddress: getClientIP(request),
       });
@@ -200,35 +210,41 @@ export async function DELETE(
       const { id } = await params;
       const bomId = parseInt(id);
 
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const bomTable = useSqlite ? schema.sqliteBOM : schema.mysqlBOM;
-      const bomLinesTable = useSqlite ? schema.sqliteBOMLines : schema.mysqlBOMLines;
+      const bomTable = getTableRef('bOM');
+      const bomLinesTable = getTableRef('bOMLines');
 
       // Check if BOM exists
-      const [existing] = await (db as any)
-        .select()
-        .from(bomTable)
-        .where(eq(bomTable.id, bomId));
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(bomTable)
+          .where(eq(bomTable.id, bomId));
+      });
 
-      if (!existing) {
+      if (existing.length === 0) {
         return errorResponse('BOM not found', 404);
       }
 
+      const oldBom = existing[0];
+
       // Only allow deletion of draft BOMs
-      if (existing.status !== 'draft') {
+      if (oldBom.status !== 'draft') {
         return errorResponse('Only draft BOMs can be deleted. Change status to draft first or set to obsolete.');
       }
 
       // Delete BOM lines first
-      await (db as any)
-        .delete(bomLinesTable)
-        .where(eq(bomLinesTable.bomId, bomId));
+      await executeDbOperation(async (db) => {
+        return db
+          .delete(bomLinesTable)
+          .where(eq(bomLinesTable.bomId, bomId));
+      });
 
       // Delete BOM
-      await (db as any)
-        .delete(bomTable)
-        .where(eq(bomTable.id, bomId));
+      await executeDbOperation(async (db) => {
+        return db
+          .delete(bomTable)
+          .where(eq(bomTable.id, bomId));
+      });
 
       // Audit log
       await createAuditLog({
@@ -236,7 +252,7 @@ export async function DELETE(
         action: 'DELETE',
         tableName: 'bom',
         recordId: bomId,
-        oldValue: existing,
+        oldValue: oldBom,
         ipAddress: getClientIP(request),
       });
 

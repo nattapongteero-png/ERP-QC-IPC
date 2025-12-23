@@ -35,6 +35,15 @@ export function dbDate(date: Date = new Date()): string | Date {
 }
 
 /**
+ * Parse a date string for database storage
+ * SQLite uses ISO strings, MySQL uses Date objects
+ */
+export function parseDbDate(dateStr: string | null | undefined): string | Date | null {
+  if (!dateStr) return null;
+  return isSqlite() ? dateStr : new Date(dateStr);
+}
+
+/**
  * Extract the inserted ID from an insert result
  * Handles the difference between SQLite (lastInsertRowid) and MySQL (insertId)
  */
