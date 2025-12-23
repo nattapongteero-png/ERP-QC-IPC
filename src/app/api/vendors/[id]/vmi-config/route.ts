@@ -7,7 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -207,9 +207,7 @@ export async function PUT(
           return db.insert(vmiConfigTable).values(insertData);
         });
 
-        const insertedId = process.env.DB_TYPE === 'sqlite'
-          ? (result as { lastInsertRowid: number }).lastInsertRowid
-          : (result as unknown as [{ insertId: number }])[0].insertId;
+        const insertedId = getInsertId(result);
 
         await createAuditLog({
           userId: session.userId,

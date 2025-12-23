@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq, like, or, sql, type SQL } from 'drizzle-orm';
-import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { getTableRef, executeDbOperation, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -128,9 +128,7 @@ export async function POST(request: NextRequest) {
         });
       });
 
-      const customerId = process.env.DB_TYPE === 'sqlite'
-        ? result.lastInsertRowid
-        : result[0].insertId;
+      const customerId = getInsertId(result);
 
       await createAuditLog({
         userId: session.userId,

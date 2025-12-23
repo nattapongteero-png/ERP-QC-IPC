@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -14,29 +14,29 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 // GET /api/items/[id]
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  return withAuth(request, async (session) => {
+  return withAuth(request, async () => {
     try {
       const { id } = await params;
       const itemId = parseInt(id);
-      
+
       if (isNaN(itemId)) {
         return errorResponse('Invalid item ID');
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const itemsTable = useSqlite ? schema.sqliteItems : schema.mysqlItems;
-      
-      const items = await (db as any)
-        .select()
-        .from(itemsTable)
-        .where(eq(itemsTable.id, itemId))
-        .limit(1);
-      
+
+      const itemsTable = getTableRef('items');
+
+      const items = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(itemsTable)
+          .where(eq(itemsTable.id, itemId))
+          .limit(1);
+      });
+
       if (items.length === 0) {
         return notFoundResponse('Item not found');
       }
-      
+
       return successResponse(items[0]);
     } catch (error) {
       return serverErrorResponse(error);
@@ -50,54 +50,56 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
       const { id } = await params;
       const itemId = parseInt(id);
-      
+
       if (isNaN(itemId)) {
         return errorResponse('Invalid item ID');
       }
-      
+
       const body = await request.json();
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const itemsTable = useSqlite ? schema.sqliteItems : schema.mysqlItems;
-      
+
+      const itemsTable = getTableRef('items');
+
       // Get existing item
-      const existing = await (db as any)
-        .select()
-        .from(itemsTable)
-        .where(eq(itemsTable.id, itemId))
-        .limit(1);
-      
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(itemsTable)
+          .where(eq(itemsTable.id, itemId))
+          .limit(1);
+      });
+
       if (existing.length === 0) {
         return notFoundResponse('Item not found');
       }
-      
+
       const oldItem = existing[0];
-      
+
       // Build update object
-      const updateData: any = {
-        updatedAt: useSqlite ? new Date().toISOString() : new Date(),
+      const updateData: Record<string, unknown> = {
+        updatedAt: dbDate(),
       };
-      
+
       const allowedFields = [
         'code', 'nameTh', 'nameEn', 'type', 'category', 'primaryUnit',
         'secondaryUnit', 'conversionRate', 'shelfLifeDays', 'storageCondition',
         'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
         'tppCode', 'tppName', 'ttmtCode', 'ttmtName'
       ];
-      
+
       for (const field of allowedFields) {
         if (body[field] !== undefined) {
           updateData[field] = body[field];
         }
       }
-      
+
       // Update item
-      await (db as any)
-        .update(itemsTable)
-        .set(updateData)
-        .where(eq(itemsTable.id, itemId));
-      
+      await executeDbOperation(async (db) => {
+        return db
+          .update(itemsTable)
+          .set(updateData)
+          .where(eq(itemsTable.id, itemId));
+      });
+
       // Audit log
       await createAuditLog({
         userId: session.userId,
@@ -108,7 +110,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         newValue: updateData,
         ipAddress: getClientIP(request),
       });
-      
+
       return successResponse({ id: itemId }, 'Item updated successfully');
     } catch (error) {
       return serverErrorResponse(error);
@@ -122,32 +124,34 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
       const { id } = await params;
       const itemId = parseInt(id);
-      
+
       if (isNaN(itemId)) {
         return errorResponse('Invalid item ID');
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const itemsTable = useSqlite ? schema.sqliteItems : schema.mysqlItems;
-      
+
+      const itemsTable = getTableRef('items');
+
       // Get existing item
-      const existing = await (db as any)
-        .select()
-        .from(itemsTable)
-        .where(eq(itemsTable.id, itemId))
-        .limit(1);
-      
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(itemsTable)
+          .where(eq(itemsTable.id, itemId))
+          .limit(1);
+      });
+
       if (existing.length === 0) {
         return notFoundResponse('Item not found');
       }
-      
+
       // Soft delete
-      await (db as any)
-        .update(itemsTable)
-        .set({ isActive: false, updatedAt: useSqlite ? new Date().toISOString() : new Date() })
-        .where(eq(itemsTable.id, itemId));
-      
+      await executeDbOperation(async (db) => {
+        return db
+          .update(itemsTable)
+          .set({ isActive: false, updatedAt: dbDate() })
+          .where(eq(itemsTable.id, itemId));
+      });
+
       // Audit log
       await createAuditLog({
         userId: session.userId,
@@ -157,7 +161,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         oldValue: { code: existing[0].code, nameTh: existing[0].nameTh },
         ipAddress: getClientIP(request),
       });
-      
+
       return successResponse({ id: itemId }, 'Item deleted successfully');
     } catch (error) {
       return serverErrorResponse(error);
