@@ -4,6 +4,7 @@
  */
 
 import { db, isSqlite } from '../db';
+import { toQueryDate } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqlitePurchaseOrders,
@@ -669,10 +670,10 @@ export async function evaluateVendorPerformance(
   ];
 
   if (dateFrom) {
-    conditions.push(gte(purchaseOrders.createdAt, dateFrom));
+    conditions.push(gte(purchaseOrders.createdAt, toQueryDate(dateFrom)));
   }
   if (dateTo) {
-    conditions.push(lte(purchaseOrders.createdAt, dateTo));
+    conditions.push(lte(purchaseOrders.createdAt, toQueryDate(dateTo)));
   }
 
   const completedPOs = await database
