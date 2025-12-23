@@ -1,21 +1,23 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxPopup } from '@/components/ui/dx-popup';
+import { DxTabs } from '@/components/ui/dx-tabs';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   CheckCircle, XCircle, Clock, AlertTriangle,
-  Package, ArrowRight, BoxSelect, ChevronRight, Inbox
+  Package, ArrowRight, BoxSelect, ChevronRight, Inbox,
+  Boxes, TrendingUp, CalendarClock, Warehouse, Search,
+  DollarSign, BarChart3, RefreshCcw
 } from 'lucide-react';
 import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-search-dialog';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
@@ -56,7 +58,7 @@ interface LotFormData {
   notes: string;
 }
 
-interface Warehouse {
+interface WarehouseData {
   id: number;
   name: string;
   code?: string;
@@ -81,17 +83,17 @@ interface TraceData {
   forward?: TraceLot[];
 }
 
-const statusOptions = [
-  { value: '', label: 'ทุกสถานะ' },
-  { value: 'quarantine', label: 'กักกัน' },
-  { value: 'released', label: 'ปล่อยแล้ว' },
-  { value: 'rejected', label: 'ปฏิเสธ' },
-  { value: 'blocked', label: 'ล็อค' },
+const statusTabs = [
+  { id: '', text: 'ทั้งหมด', icon: 'selectall' },
+  { id: 'quarantine', text: 'กักกัน', icon: 'clock' },
+  { id: 'released', text: 'ปล่อยแล้ว', icon: 'check' },
+  { id: 'rejected', text: 'ปฏิเสธ', icon: 'close' },
+  { id: 'blocked', text: 'ล็อค', icon: 'lock' },
 ];
 
 const getStatusLabel = (status: string): string => {
-  const found = statusOptions.find(s => s.value === status);
-  return found ? found.label : status;
+  const found = statusTabs.find(s => s.id === status);
+  return found ? found.text : status;
 };
 
 const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
@@ -127,10 +129,19 @@ const formatDate = (dateStr: string | null) => {
   return new Date(dateStr).toLocaleDateString('th-TH');
 };
 
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('th-TH', {
+    style: 'currency',
+    currency: 'THB',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
 export default function LotsPage() {
   const router = useRouter();
   const [lots, setLots] = useState<Lot[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -371,14 +382,61 @@ export default function LotsPage() {
     }
   };
 
-  // Calculate summary stats
-  const quarantineCount = lots.filter(l => l.status === 'quarantine').length;
-  const releasedCount = lots.filter(l => l.status === 'released').length;
-  const rejectedCount = lots.filter(l => l.status === 'rejected').length;
-  const nearExpiryCount = lots.filter(l => {
-    const days = getDaysUntilExpiry(l.expiryDate);
-    return days !== null && days > 0 && days <= 30;
-  }).length;
+  // Calculate comprehensive stats
+  const stats = useMemo(() => {
+    const quarantine = lots.filter(l => l.status === 'quarantine');
+    const released = lots.filter(l => l.status === 'released');
+    const rejected = lots.filter(l => l.status === 'rejected');
+    const nearExpiry = lots.filter(l => {
+      const days = getDaysUntilExpiry(l.expiryDate);
+      return days !== null && days > 0 && days <= 30;
+    });
+    const expired = lots.filter(l => {
+      const days = getDaysUntilExpiry(l.expiryDate);
+      return days !== null && days < 0;
+    });
+
+    const totalQuantity = lots.reduce((sum, lot) => sum + (Number(lot.quantity) || 0), 0);
+    const totalValue = lots.reduce((sum, lot) => sum + ((Number(lot.quantity) || 0) * (Number(lot.cost) || 0)), 0);
+    const releasedValue = released.reduce((sum, lot) => sum + ((Number(lot.quantity) || 0) * (Number(lot.cost) || 0)), 0);
+
+    // Calculate average days to expiry for released lots
+    const releasedWithExpiry = released.filter(l => l.expiryDate);
+    const avgDaysToExpiry = releasedWithExpiry.length > 0
+      ? Math.round(releasedWithExpiry.reduce((sum, lot) => {
+          const days = getDaysUntilExpiry(lot.expiryDate);
+          return sum + (days || 0);
+        }, 0) / releasedWithExpiry.length)
+      : 0;
+
+    return {
+      quarantineCount: quarantine.length,
+      releasedCount: released.length,
+      rejectedCount: rejected.length,
+      nearExpiryCount: nearExpiry.length,
+      expiredCount: expired.length,
+      totalLots: lots.length,
+      totalQuantity,
+      totalValue,
+      releasedValue,
+      avgDaysToExpiry,
+    };
+  }, [lots]);
+
+  // Tab items with counts
+  const tabItems = useMemo(() => statusTabs.map(tab => {
+    let count = 0;
+    if (tab.id === '') count = lots.length;
+    else if (tab.id === 'quarantine') count = stats.quarantineCount;
+    else if (tab.id === 'released') count = stats.releasedCount;
+    else if (tab.id === 'rejected') count = stats.rejectedCount;
+    else count = lots.filter(l => l.status === tab.id).length;
+
+    return {
+      ...tab,
+      badge: count > 0 ? count.toString() : undefined,
+    };
+  }), [lots, stats]);
 
   // Define columns for DevExtreme DataGrid
   const columns: DxDataGridColumn[] = [
@@ -387,16 +445,22 @@ export default function LotsPage() {
       caption: 'เลขที่ Lot',
       width: 150,
       cellRender: (cellInfo) => (
-        <span className="font-mono font-medium">{cellInfo.data.lotNumber}</span>
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+            {cellInfo.data.lotNumber?.substring(0, 2) || 'LT'}
+          </div>
+          <span className="font-mono font-medium text-emerald-700">{cellInfo.data.lotNumber}</span>
+        </div>
       ),
     },
     {
       dataField: 'itemCode',
       caption: 'สินค้า',
+      minWidth: 200,
       cellRender: (cellInfo) => (
         <div>
-          <p className="font-medium">{cellInfo.data.itemCode}</p>
-          <p className="text-xs text-gray-500">{cellInfo.data.itemName}</p>
+          <p className="font-medium text-gray-900">{cellInfo.data.itemCode}</p>
+          <p className="text-xs text-gray-500 truncate max-w-[200px]">{cellInfo.data.itemName}</p>
         </div>
       ),
     },
@@ -407,26 +471,28 @@ export default function LotsPage() {
       dataType: 'number',
       cellRender: (cellInfo) => (
         <div>
-          <p className="font-medium">{cellInfo.data.quantity.toLocaleString()} {cellInfo.data.unit}</p>
+          <p className="font-semibold text-gray-900">{cellInfo.data.quantity.toLocaleString()} <span className="text-xs text-gray-500 font-normal">{cellInfo.data.unit}</span></p>
           {cellInfo.data.reservedQuantity > 0 && (
-            <p className="text-xs text-orange-500">จอง: {cellInfo.data.reservedQuantity}</p>
+            <p className="text-xs text-orange-600 flex items-center gap-1">
+              <Clock className="h-3 w-3" /> จอง: {cellInfo.data.reservedQuantity.toLocaleString()}
+            </p>
           )}
         </div>
       ),
     },
     {
       dataField: 'cost',
-      caption: 'มูลค่ารวม',
-      width: 150,
+      caption: 'มูลค่า',
+      width: 160,
       dataType: 'number',
       hideOnMobile: true,
       cellRender: (cellInfo) => {
         const totalCost = (cellInfo.data.quantity || 0) * (cellInfo.data.cost || 0);
         return (
           <div>
-            <p className="font-medium">฿{totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="font-semibold text-emerald-700">{formatCurrency(totalCost)}</p>
             {cellInfo.data.cost && cellInfo.data.cost > 0 && (
-              <p className="text-xs text-gray-500">@฿{cellInfo.data.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/{cellInfo.data.unit}</p>
+              <p className="text-xs text-gray-500">@{formatCurrency(cellInfo.data.cost)}/{cellInfo.data.unit}</p>
             )}
           </div>
         );
@@ -435,23 +501,37 @@ export default function LotsPage() {
     {
       dataField: 'warehouseName',
       caption: 'คลัง',
-      width: 120,
+      width: 130,
       hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <div className="flex items-center gap-2">
+          <Warehouse className="h-4 w-4 text-gray-400" />
+          <span>{cellInfo.data.warehouseName || '-'}</span>
+        </div>
+      ),
     },
     {
       dataField: 'expiryDate',
       caption: 'วันหมดอายุ',
-      width: 140,
+      width: 150,
       dataType: 'date',
       hideOnMobile: true,
       cellRender: (cellInfo) => {
         const days = getDaysUntilExpiry(cellInfo.data.expiryDate);
+        const variant = getExpiryVariant(days);
         return (
           <div>
-            <p>{formatDate(cellInfo.data.expiryDate)}</p>
+            <p className="text-gray-700">{formatDate(cellInfo.data.expiryDate)}</p>
             {days !== null && (
-              <Badge variant={getExpiryVariant(days)} size="sm">
-                {days < 0 ? `หมดอายุ ${Math.abs(days)} วัน` : `เหลือ ${days} วัน`}
+              <Badge variant={variant} size="sm">
+                {days < 0 ? (
+                  <span className="flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    หมดอายุ {Math.abs(days)} วัน
+                  </span>
+                ) : (
+                  <span>เหลือ {days} วัน</span>
+                )}
               </Badge>
             )}
           </div>
@@ -462,24 +542,36 @@ export default function LotsPage() {
       dataField: 'status',
       caption: 'สถานะ',
       width: 120,
-      cellRender: (cellInfo) => (
-        <Badge variant={getStatusVariant(cellInfo.data.status)} dot>
-          {getStatusLabel(cellInfo.data.status)}
-        </Badge>
-      ),
+      cellRender: (cellInfo) => {
+        const status = cellInfo.data.status;
+        const variant = getStatusVariant(status);
+        const iconMap: Record<string, React.ReactNode> = {
+          quarantine: <Clock className="h-3.5 w-3.5" />,
+          released: <CheckCircle className="h-3.5 w-3.5" />,
+          rejected: <XCircle className="h-3.5 w-3.5" />,
+          blocked: <AlertTriangle className="h-3.5 w-3.5" />,
+        };
+        return (
+          <Badge variant={variant} className="inline-flex items-center gap-1">
+            {iconMap[status]}
+            {getStatusLabel(status)}
+          </Badge>
+        );
+      },
     },
     {
-      caption: 'การดำเนินการ',
-      width: 120,
+      caption: '',
+      width: 100,
       allowSorting: false,
       allowFiltering: false,
       cellRender: (cellInfo) => (
         <div className="flex gap-1">
           {cellInfo.data.status === 'quarantine' && (
             <DxButton
-              text="QC"
+              icon="todo"
+              hint="QC Decision"
               type="default"
-              stylingMode="outlined"
+              stylingMode="text"
               onClick={(e) => {
                 e?.event?.stopPropagation();
                 setSelectedLot(cellInfo.data);
@@ -488,7 +580,8 @@ export default function LotsPage() {
             />
           )}
           <DxButton
-            icon="search"
+            icon="find"
+            hint="ดู Traceability"
             type="default"
             stylingMode="text"
             onClick={(e) => {
@@ -513,106 +606,210 @@ export default function LotsPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
-        <PageHeader
-          title="Inventory Lots"
-          description="จัดการ Lot/Batch สินค้าคงคลัง"
-          actions={
-            <DxButton
-              text="รับ Lot ใหม่"
-              icon="plus"
-              type="success"
-              onClick={() => setShowModal(true)}
-            />
-          }
-        />
+      <div className="flex flex-col h-full gap-4">
+        {/* Professional Header with Gradient */}
+        <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 rounded-xl p-6 text-white shadow-lg">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                <Boxes className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Inventory Lots</h1>
+                <p className="text-emerald-100">จัดการ Lot/Batch สินค้าคงคลัง</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <DxButton
+                icon="refresh"
+                hint="รีเฟรชข้อมูล"
+                type="normal"
+                stylingMode="text"
+                onClick={() => fetchLots()}
+                className="text-white hover:bg-white/20"
+              />
+              <DxButton
+                text="รับ Lot ใหม่"
+                icon="plus"
+                type="default"
+                onClick={() => setShowModal(true)}
+                className="bg-white text-emerald-600 hover:bg-emerald-50"
+              />
+            </div>
+          </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-2 lg:gap-4">
-          <Card elevation="raised" padding="sm" className="md:py-2">
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-6">
+            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <Boxes className="h-5 w-5 text-white/80" />
+                <span className="text-emerald-100 text-sm">Total Lots</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{stats.totalLots.toLocaleString()}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-white/80" />
+                <span className="text-emerald-100 text-sm">Total Qty</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{stats.totalQuantity.toLocaleString()}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-white/80" />
+                <span className="text-emerald-100 text-sm">Total Value</span>
+              </div>
+              <p className="text-xl font-bold mt-1">{formatCurrency(stats.totalValue)}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-white/80" />
+                <span className="text-emerald-100 text-sm">Released Value</span>
+              </div>
+              <p className="text-xl font-bold mt-1">{formatCurrency(stats.releasedValue)}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-5 w-5 text-white/80" />
+                <span className="text-emerald-100 text-sm">Avg Expiry</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{stats.avgDaysToExpiry} <span className="text-sm font-normal">วัน</span></p>
+            </div>
+            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-300" />
+                <span className="text-emerald-100 text-sm">Near Expiry</span>
+              </div>
+              <p className="text-2xl font-bold mt-1 text-orange-200">{stats.nearExpiryCount}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card
+            elevation="raised"
+            className={`cursor-pointer transition-all hover:shadow-lg ${statusFilter === 'quarantine' ? 'ring-2 ring-yellow-400' : ''}`}
+            onClick={() => setStatusFilter(statusFilter === 'quarantine' ? '' : 'quarantine')}
+          >
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Clock className="h-5 w-5 text-yellow-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-200">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">กักกัน</p>
+                    <p className="text-2xl font-bold text-yellow-600">{stats.quarantineCount}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">กักกัน</p>
-                  <p className="text-xl font-bold">{quarantineCount}</p>
-                </div>
+                {stats.quarantineCount > 0 && (
+                  <Badge variant="warning" size="sm">รอ QC</Badge>
+                )}
               </div>
             </CardContent>
           </Card>
-          <Card elevation="raised" padding="sm" className="md:py-2">
+
+          <Card
+            elevation="raised"
+            className={`cursor-pointer transition-all hover:shadow-lg ${statusFilter === 'released' ? 'ring-2 ring-green-400' : ''}`}
+            onClick={() => setStatusFilter(statusFilter === 'released' ? '' : 'released')}
+          >
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 bg-gradient-to-br from-green-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
+                    <CheckCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">ปล่อยแล้ว</p>
+                    <p className="text-2xl font-bold text-green-600">{stats.releasedCount}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">ปล่อยแล้ว</p>
-                  <p className="text-xl font-bold">{releasedCount}</p>
-                </div>
+                <Badge variant="success" size="sm">พร้อมใช้</Badge>
               </div>
             </CardContent>
           </Card>
-          <Card elevation="raised" padding="sm" className="md:py-2">
+
+          <Card
+            elevation="raised"
+            className={`cursor-pointer transition-all hover:shadow-lg ${statusFilter === 'rejected' ? 'ring-2 ring-red-400' : ''}`}
+            onClick={() => setStatusFilter(statusFilter === 'rejected' ? '' : 'rejected')}
+          >
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <XCircle className="h-5 w-5 text-red-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 bg-gradient-to-br from-red-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-200">
+                    <XCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">ปฏิเสธ</p>
+                    <p className="text-2xl font-bold text-red-600">{stats.rejectedCount}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">ปฏิเสธ</p>
-                  <p className="text-xl font-bold">{rejectedCount}</p>
-                </div>
+                {stats.rejectedCount > 0 && (
+                  <Badge variant="danger" size="sm">ไม่ผ่าน</Badge>
+                )}
               </div>
             </CardContent>
           </Card>
-          <Card elevation="raised" padding="sm" className="md:py-2">
+
+          <Card
+            elevation="raised"
+            className="cursor-pointer transition-all hover:shadow-lg"
+            onClick={() => {
+              // Could add expired filter
+            }}
+          >
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200">
+                    <AlertTriangle className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">ใกล้หมดอายุ</p>
+                    <p className="text-2xl font-bold text-orange-600">{stats.nearExpiryCount}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">ใกล้หมดอายุ (30 วัน)</p>
-                  <p className="text-xl font-bold">{nearExpiryCount}</p>
-                </div>
+                {stats.expiredCount > 0 && (
+                  <Badge variant="danger" size="sm">หมดอายุ {stats.expiredCount}</Badge>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters Card */}
-        <Card elevation="raised" className="md:py-1">
-          <CardContent className="py-2 md:py-2 lg:py-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <DxTextBox
-                  placeholder="ค้นหาด้วยเลขที่ Lot หรือสินค้า..."
-                  value={search}
-                  onValueChange={setSearch}
-                  showClearButton
-                  mode="search"
-                  onEnterKey={() => fetchLots()}
-                />
-              </div>
-              <div className="w-full md:w-48">
-                <DxSelectBox
-                  items={statusOptions}
-                  value={statusFilter}
-                  onValueChange={setStatusFilter}
-                  placeholder="สถานะ"
-                  showClearButton
+        {/* Data Grid Card */}
+        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
+          <CardHeader className="border-b">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-emerald-600" />
+                รายการ Lot
+              </CardTitle>
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="w-full md:w-72">
+                  <DxTextBox
+                    placeholder="ค้นหาด้วยเลขที่ Lot หรือสินค้า..."
+                    value={search}
+                    onValueChange={setSearch}
+                    showClearButton
+                    mode="search"
+                    onEnterKey={() => fetchLots()}
+                  />
+                </div>
+                <DxTabs
+                  items={tabItems}
+                  selectedIndex={statusTabs.findIndex(t => t.id === statusFilter)}
+                  onSelectedIndexChange={(idx) => setStatusFilter(statusTabs[idx]?.id || '')}
+                  scrollByContent
+                  showNavButtons
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Table Card */}
-        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col md:overflow-hidden">
-          <CardContent className="flex-1 min-h-0 flex flex-col py-2 md:py-2 lg:py-4">
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 flex flex-col py-4">
             {lots.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={lots}
@@ -632,9 +829,9 @@ export default function LotsPage() {
               />
             ) : (
               <EmptyState
-                icon={<Inbox className="h-8 w-8" />}
+                icon={<Inbox className="h-12 w-12" />}
                 title="ไม่พบ Lot"
-                description="เริ่มต้นด้วยการรับ Lot ใหม่เข้าคลัง"
+                description="เริ่มต้นด้วยการรับ Lot ใหม่เข้าคลัง หรือลองเปลี่ยนตัวกรอง"
                 action={{
                   label: 'รับ Lot ใหม่',
                   onClick: () => setShowModal(true),
@@ -655,7 +852,15 @@ export default function LotsPage() {
         maxHeight="90vh"
       >
         <div className="p-6 space-y-4">
-          <p className="text-gray-600 mb-4">รับสินค้าเข้าคลัง (สถานะ: กักกัน)</p>
+          <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
+            <div className="h-10 w-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+              <Package className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="font-medium text-emerald-800">รับสินค้าเข้าคลัง</p>
+              <p className="text-sm text-emerald-600">สถานะเริ่มต้น: กักกัน (รอ QC)</p>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -872,36 +1077,48 @@ export default function LotsPage() {
         visible={showQCModal && !!selectedLot}
         onVisibleChange={(v) => { if (!v) { setShowQCModal(false); setSelectedLot(null); } }}
         title="ตัดสินใจ QC"
-        width={450}
+        width={500}
         height="auto"
       >
         {selectedLot && (
           <div className="p-6">
-            <p className="text-gray-600 mb-4">Lot: {selectedLot.lotNumber}</p>
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-yellow-200 mb-6">
+              <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Clock className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div>
+                <p className="font-bold text-yellow-800">{selectedLot.lotNumber}</p>
+                <p className="text-sm text-yellow-600">รอการตัดสินใจ QC</p>
+              </div>
+            </div>
 
-            <div className="space-y-3 mb-6">
+            <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between">
                 <span className="text-gray-600">สินค้า:</span>
                 <span className="font-medium">{selectedLot.itemCode} - {selectedLot.itemName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">จำนวน:</span>
-                <span className="font-medium">{selectedLot.quantity} {selectedLot.unit}</span>
+                <span className="font-medium">{selectedLot.quantity?.toLocaleString()} {selectedLot.unit}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">วันหมดอายุ:</span>
                 <span className="font-medium">{formatDate(selectedLot.expiryDate)}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">มูลค่า:</span>
+                <span className="font-medium text-emerald-600">{formatCurrency((selectedLot.quantity || 0) * (selectedLot.cost || 0))}</span>
+              </div>
             </div>
 
-            <div className="p-4 bg-yellow-50 rounded-lg mb-6">
-              <p className="text-sm text-yellow-800">
-                <AlertTriangle className="h-4 w-4 inline mr-1" />
+            <div className="p-4 bg-amber-50 rounded-lg mb-6 border border-amber-200">
+              <p className="text-sm text-amber-800 flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 กรุณาตรวจสอบให้แน่ใจว่าได้ทำการทดสอบ QC เสร็จสิ้นแล้วก่อนตัดสินใจ
               </p>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3">
               <DxButton text="ยกเลิก" type="default" stylingMode="outlined" onClick={() => { setShowQCModal(false); setSelectedLot(null); }} />
               <DxButton text="ปฏิเสธ" icon="close" type="danger" onClick={() => handleQCAction('reject')} />
               <DxButton text="ปล่อย" icon="check" type="success" onClick={() => handleQCAction('release')} />
@@ -921,35 +1138,57 @@ export default function LotsPage() {
       >
         {selectedLot && traceData && (
           <div className="p-6">
-            <p className="text-gray-600 mb-6">Lot: {selectedLot.lotNumber}</p>
-
             {/* Current Lot Info */}
-            <div className="mb-6 p-4 bg-green-50 rounded-lg">
-              <h3 className="font-semibold text-green-800 mb-2">Lot ปัจจุบัน</h3>
+            <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-10 w-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <Boxes className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-emerald-800">{selectedLot.lotNumber}</h3>
+                  <p className="text-sm text-emerald-600">Lot ปัจจุบัน</p>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-gray-600">สินค้า:</span> {selectedLot.itemCode}</div>
-                <div><span className="text-gray-600">จำนวน:</span> {selectedLot.quantity} {selectedLot.unit}</div>
-                <div><span className="text-gray-600">สถานะ:</span> {getStatusLabel(selectedLot.status)}</div>
-                <div><span className="text-gray-600">หมดอายุ:</span> {formatDate(selectedLot.expiryDate)}</div>
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-600">สินค้า:</span>
+                  <span className="font-medium">{selectedLot.itemCode}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-600">จำนวน:</span>
+                  <span className="font-medium">{selectedLot.quantity?.toLocaleString()} {selectedLot.unit}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-600">สถานะ:</span>
+                  <Badge variant={getStatusVariant(selectedLot.status)} size="sm">{getStatusLabel(selectedLot.status)}</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-600">หมดอายุ:</span>
+                  <span className="font-medium">{formatDate(selectedLot.expiryDate)}</span>
+                </div>
               </div>
             </div>
 
             {/* Backward Trace (Source Lots) */}
             {traceData.backward && traceData.backward.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-blue-800">
                   <ArrowRight className="h-4 w-4 rotate-180" />
-                  Source Lots (Backward Trace)
+                  Source Lots (วัตถุดิบที่ใช้)
                 </h3>
                 <div className="space-y-2">
                   {traceData.backward.map((lot: TraceLot, idx: number) => (
-                    <div key={idx} className="p-3 bg-gray-50 rounded-lg text-sm">
-                      <div className="flex justify-between">
-                        <span className="font-medium">{lot.lotNumber}</span>
-                        <Badge variant={getStatusVariant(lot.status)}>{getStatusLabel(lot.status)}</Badge>
+                    <div key={idx} className="p-3 bg-blue-50 rounded-lg text-sm border border-blue-200">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-blue-800">{lot.lotNumber}</span>
+                        <Badge variant={getStatusVariant(lot.status)} size="sm">{getStatusLabel(lot.status)}</Badge>
                       </div>
-                      <div className="text-gray-600 mt-1">
-                        {lot.itemCode} - {lot.quantity} {lot.unit}
+                      <div className="text-blue-600 mt-1">
+                        {lot.itemCode} - {lot.quantity?.toLocaleString()} {lot.unit}
                       </div>
                     </div>
                   ))}
@@ -960,19 +1199,19 @@ export default function LotsPage() {
             {/* Forward Trace (Destination Lots) */}
             {traceData.forward && traceData.forward.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-purple-800">
                   <ArrowRight className="h-4 w-4" />
-                  Destination Lots (Forward Trace)
+                  Destination Lots (ผลิตภัณฑ์ที่ผลิต)
                 </h3>
                 <div className="space-y-2">
                   {traceData.forward.map((lot: TraceLot, idx: number) => (
-                    <div key={idx} className="p-3 bg-gray-50 rounded-lg text-sm">
-                      <div className="flex justify-between">
-                        <span className="font-medium">{lot.lotNumber}</span>
-                        <Badge variant={getStatusVariant(lot.status)}>{getStatusLabel(lot.status)}</Badge>
+                    <div key={idx} className="p-3 bg-purple-50 rounded-lg text-sm border border-purple-200">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-purple-800">{lot.lotNumber}</span>
+                        <Badge variant={getStatusVariant(lot.status)} size="sm">{getStatusLabel(lot.status)}</Badge>
                       </div>
-                      <div className="text-gray-600 mt-1">
-                        {lot.itemCode} - {lot.quantity} {lot.unit}
+                      <div className="text-purple-600 mt-1">
+                        {lot.itemCode} - {lot.quantity?.toLocaleString()} {lot.unit}
                       </div>
                     </div>
                   ))}
@@ -983,11 +1222,12 @@ export default function LotsPage() {
             {(!traceData.backward || traceData.backward.length === 0) &&
              (!traceData.forward || traceData.forward.length === 0) && (
               <div className="text-center text-gray-500 py-8">
-                ไม่พบข้อมูล traceability สำหรับ Lot นี้
+                <RefreshCcw className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>ไม่พบข้อมูล traceability สำหรับ Lot นี้</p>
               </div>
             )}
 
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-end mt-6 pt-4 border-t">
               <DxButton text="ปิด" type="default" stylingMode="outlined" onClick={() => { setShowTraceModal(false); setSelectedLot(null); setTraceData(null); }} />
             </div>
           </div>
