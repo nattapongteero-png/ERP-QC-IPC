@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -178,17 +178,17 @@ export default function DeviationDetailPage() {
 
   if (loading) {
     return (
-      <MainLayout>
+      
         <div className="flex items-center justify-center h-64">
           <DxLoadIndicator />
         </div>
-      </MainLayout>
+      
     );
   }
 
   if (!data) {
     return (
-      <MainLayout>
+      
         <div className="text-center py-12">
           <p className="text-gray-500">Deviation not found</p>
           <DxButton
@@ -199,14 +199,14 @@ export default function DeviationDetailPage() {
             onClick={() => router.push('/quality')}
           />
         </div>
-      </MainLayout>
+      
     );
   }
 
   const { deviation, item, lot, workOrder, reporter, assignee, metrics } = data;
 
   return (
-    <MainLayout>
+    
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -566,6 +566,6 @@ export default function DeviationDetailPage() {
           </Card>
         )}
       </div>
-    </MainLayout>
+    
   );
 }

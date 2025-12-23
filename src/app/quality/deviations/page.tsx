@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -243,8 +242,7 @@ export default function DeviationsPage() {
   ];
 
   return (
-    <MainLayout>
-      <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
+    <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
           title="ความเบี่ยงเบน"
           description="ติดตามและจัดการความเบี่ยงเบนและ CAPA"
@@ -403,6 +401,5 @@ export default function DeviationsPage() {
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
   );
 }
