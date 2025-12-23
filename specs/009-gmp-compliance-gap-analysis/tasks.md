@@ -87,30 +87,30 @@
 
 ### Recall Service Tests [US4]
 
-- [ ] T026 [P] [US4] Create tests/integration/services/recall-service-real.test.ts with schema sync for recalls, recall_notifications, recall_reconciliation tables
-- [ ] T027 [US4] Implement real-world scenario: Product recall execution (initiate -> notify -> reconcile -> close) in recall-service-real.test.ts
-- [ ] T028 [US4] Implement real-world scenario: Distribution tracking and customer notification in recall-service-real.test.ts
-- [ ] T029 [US4] Test recall service CRUD functions: listRecalls, getRecallById, createRecall, updateRecall in recall-service-real.test.ts
-- [ ] T030 [US4] Test notification functions: getDistributionByLot, sendNotifications, trackReturns, reconcileRecall in recall-service-real.test.ts
-- [ ] T031 [US4] Test edge cases: multi-batch recalls, effectiveness rate calculation, regulatory reporting in recall-service-real.test.ts
+- [x] T026 [P] [US4] Create tests/integration/services/recall-service-real.test.ts with schema sync for recalls, recall_notifications, recall_reconciliation tables
+- [x] T027 [US4] Implement real-world scenario: Product recall execution (initiate -> notify -> reconcile -> close) in recall-service-real.test.ts
+- [x] T028 [US4] Implement real-world scenario: Distribution tracking and customer notification in recall-service-real.test.ts
+- [x] T029 [US4] Test recall service CRUD functions: listRecalls, getRecallById, createRecall, updateRecall in recall-service-real.test.ts
+- [x] T030 [US4] Test notification functions: getDistributionByLot, sendNotifications, trackReturns, reconcileRecall in recall-service-real.test.ts
+- [x] T031 [US4] Test edge cases: multi-batch recalls, effectiveness rate calculation, regulatory reporting in recall-service-real.test.ts
 
 ### Sanitation Service Tests [US5]
 
-- [ ] T032 [P] [US5] Create tests/integration/services/sanitation-service-real.test.ts with schema sync for sanitation_schedules, sanitation_logs, pest_control_logs tables
-- [ ] T033 [US5] Implement real-world scenario: Sanitation schedule execution (schedule -> perform -> verify) in sanitation-service-real.test.ts
-- [ ] T034 [US5] Implement real-world scenario: Pest control activity logging and trend analysis in sanitation-service-real.test.ts
-- [ ] T035 [US5] Test sanitation service CRUD functions: listSchedules, createSchedule, logCleaning, verifyCompletion in sanitation-service-real.test.ts
-- [ ] T036 [US5] Test pest control functions: logPestControl, getTrendAnalysis, getComplianceRate in sanitation-service-real.test.ts
-- [ ] T037 [US5] Test edge cases: missed cleaning, deviation linking, frequency calculations in sanitation-service-real.test.ts
+- [x] T032 [P] [US5] Create tests/integration/services/sanitation-service-real.test.ts with schema sync for sanitation_schedules, sanitation_logs, pest_control_logs tables
+- [x] T033 [US5] Implement real-world scenario: Sanitation schedule execution (schedule -> perform -> verify) in sanitation-service-real.test.ts
+- [x] T034 [US5] Implement real-world scenario: Pest control activity logging and trend analysis in sanitation-service-real.test.ts
+- [x] T035 [US5] Test sanitation service CRUD functions: listSchedules, createSchedule, logCleaning, verifyCompletion in sanitation-service-real.test.ts
+- [x] T036 [US5] Test pest control functions: logPestControl, getTrendAnalysis, getComplianceRate in sanitation-service-real.test.ts
+- [x] T037 [US5] Test edge cases: missed cleaning, deviation linking, frequency calculations in sanitation-service-real.test.ts
 
 ### Stability Service Tests [US6]
 
-- [ ] T038 [P] [US6] Create tests/integration/services/stability-service-real.test.ts with schema sync for stability_protocols, stability_studies, stability_samples, stability_trends tables
-- [ ] T039 [US6] Implement real-world scenario: Stability study lifecycle (enroll -> schedule -> test -> trend) in stability-service-real.test.ts
-- [ ] T040 [US6] Implement real-world scenario: OOS detection and investigation workflow in stability-service-real.test.ts
-- [ ] T041 [US6] Test stability service CRUD functions: listStudies, getStudyById, createStudy, enrollBatch in stability-service-real.test.ts
-- [ ] T042 [US6] Test sampling functions: scheduleSamples, recordSample, linkQualityTest, calculateTrend in stability-service-real.test.ts
-- [ ] T043 [US6] Test edge cases: timepoint alerts, OOS flagging, trend slope calculation, spec limit comparison in stability-service-real.test.ts
+- [x] T038 [P] [US6] Create tests/integration/services/stability-service-real.test.ts with schema sync for stability_protocols, stability_studies, stability_samples, stability_trends tables
+- [x] T039 [US6] Implement real-world scenario: Stability study lifecycle (enroll -> schedule -> test -> trend) in stability-service-real.test.ts
+- [x] T040 [US6] Implement real-world scenario: OOS detection and investigation workflow in stability-service-real.test.ts
+- [x] T041 [US6] Test stability service CRUD functions: listStudies, getStudyById, createStudy, enrollBatch in stability-service-real.test.ts
+- [x] T042 [US6] Test sampling functions: scheduleSamples, recordSample, linkQualityTest, calculateTrend in stability-service-real.test.ts
+- [x] T043 [US6] Test edge cases: timepoint alerts, OOS flagging, trend slope calculation, spec limit comparison in stability-service-real.test.ts
 
 **Checkpoint**: P2 GMP compliance modules have comprehensive real SQLite tests
 
