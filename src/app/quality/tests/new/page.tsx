@@ -175,7 +175,7 @@ function NewQualityTestContent() {
   ];
 
   return (
-    
+    <>
       <div className="space-y-6">
         <PageHeader
           title="New Quality Test"
@@ -397,18 +397,16 @@ function NewQualityTestContent() {
         onSelect={handleSelectLot}
         title="Select Lot for QC Test"
       />
-    
+    </>
   );
 }
 
 export default function NewQualityTestPage() {
   return (
     <Suspense fallback={
-      
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-        </div>
-      
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
     }>
       <NewQualityTestContent />
     </Suspense>
