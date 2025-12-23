@@ -651,7 +651,6 @@ function NewWorkOrderContent() {
             </Card>
           </div>
         </div>
-      </div>
     </div>
   );
 }

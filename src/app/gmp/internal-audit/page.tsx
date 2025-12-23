@@ -600,7 +600,6 @@ export default function InternalAuditDashboardPage() {
                     ([status, config]) => (
                       <StatusCard
                         key={status}
-                        status={status}
                         count={auditStatusCounts[status]}
                         total={totalAudits}
                         config={config}
@@ -654,7 +653,15 @@ export default function InternalAuditDashboardPage() {
                     <h3 className="font-semibold text-gray-900">Findings by Category</h3>
                   </div>
                   {findingsChartData.length > 0 ? (
-                    <Chart dataSource={findingsChartData} rotated={true} size={{ height: 220 }}>
+                    <Chart
+                      dataSource={findingsChartData}
+                      rotated={true}
+                      size={{ height: 220 }}
+                      customizePoint={(pointInfo: { argument: string }) => {
+                        const item = findingsChartData.find((d) => d.category === pointInfo.argument);
+                        return { color: item?.color || '#14b8a6' };
+                      }}
+                    >
                       <CommonSeriesSettings
                         argumentField="category"
                         valueField="count"
@@ -664,10 +671,6 @@ export default function InternalAuditDashboardPage() {
                       <Series
                         name="Findings"
                         color="#14b8a6"
-                        customizePoint={(pointInfo: { argument: string }) => {
-                          const item = findingsChartData.find((d) => d.category === pointInfo.argument);
-                          return { color: item?.color || '#14b8a6' };
-                        }}
                       />
                       <ArgumentAxis>
                         <Label visible={true} />
@@ -734,7 +737,6 @@ export default function InternalAuditDashboardPage() {
                     ([category, config]) => (
                       <FindingCategoryCard
                         key={category}
-                        category={category}
                         count={statistics?.findingsByCategory[category] || 0}
                         config={config}
                       />

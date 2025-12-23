@@ -696,7 +696,6 @@ export default function BatchRecordDetailPage() {
             </Card>
           </div>
         </div>
-      </div>
     </div>
   );
 }

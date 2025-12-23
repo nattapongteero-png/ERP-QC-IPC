@@ -163,7 +163,7 @@ export function ContractDataEntryDialog({
         <FormSection title="Contract Period" columns={2}>
           <FormField label="Effective Date">
             <DxDateBox
-              value={formData.effectiveDate || null}
+              value={formData.effectiveDate || undefined}
               onValueChanged={(e) =>
                 setFormData((prev) => ({
                   ...prev,
@@ -179,7 +179,7 @@ export function ContractDataEntryDialog({
 
           <FormField label="Expiration Date">
             <DxDateBox
-              value={formData.expirationDate || null}
+              value={formData.expirationDate || undefined}
               onValueChanged={(e) =>
                 setFormData((prev) => ({
                   ...prev,

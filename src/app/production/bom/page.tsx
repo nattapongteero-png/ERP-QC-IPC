@@ -265,8 +265,8 @@ export default function BOMDashboardPage() {
             </div>
             {utilizationChartData.length > 0 ? (
               <Chart dataSource={utilizationChartData} size={{ height: 260 }}>
-                <ArgumentAxis>
-                  <Label wordWrap="none" overlappingBehavior="rotate" rotationAngle={-45} />
+                <ArgumentAxis label={{ overlappingBehavior: 'rotate', rotationAngle: -45 }}>
+                  <Label wordWrap="none" />
                 </ArgumentAxis>
                 <ValueAxis />
                 <ChartSeries
@@ -451,7 +451,6 @@ export default function BOMDashboardPage() {
               keyExpr="id"
               showBorders={false}
               rowAlternationEnabled
-              hoverStateEnabled
               loading={bomLoading}
               onRowClick={(e) => {
                 if (e.data?.id) {
@@ -533,6 +532,5 @@ export default function BOMDashboardPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

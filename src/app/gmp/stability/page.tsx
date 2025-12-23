@@ -403,7 +403,7 @@ export default function StabilityDashboardPage() {
                   stylingMode="outlined"
                   type="normal"
                   onClick={() => refetchDashboard()}
-                  elementAttr={{ class: 'bg-white/10 hover:bg-white/20 text-white border-white/30' }}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30"
                 />
                 <DxButton
                   icon="doc"
@@ -411,7 +411,7 @@ export default function StabilityDashboardPage() {
                   stylingMode="outlined"
                   type="normal"
                   onClick={() => router.push('/gmp/stability/protocols')}
-                  elementAttr={{ class: 'bg-white/10 hover:bg-white/20 text-white border-white/30' }}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30"
                 />
                 <DxButton
                   icon="chart"
@@ -419,7 +419,7 @@ export default function StabilityDashboardPage() {
                   stylingMode="outlined"
                   type="normal"
                   onClick={() => router.push('/gmp/stability/trends')}
-                  elementAttr={{ class: 'bg-white/10 hover:bg-white/20 text-white border-white/30' }}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30"
                 />
                 <DxButton
                   icon="plus"

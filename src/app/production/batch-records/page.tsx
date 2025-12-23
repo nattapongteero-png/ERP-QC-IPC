@@ -481,7 +481,6 @@ export default function BatchRecordsDashboardPage() {
             keyExpr="id"
             showBorders={false}
             rowAlternationEnabled
-            hoverStateEnabled
             loading={recordsLoading}
             onRowClick={(e) => {
               if (e.data?.id) {

@@ -141,7 +141,7 @@ export async function listPqrReports(params: PqrListParams = {}): Promise<{
   });
 
   // Format dates
-  const items = records.map((r) => ({
+  const items = records.map((r: typeof records[number]) => ({
     ...r,
     periodStart: formatDateFromDb(r.periodStart),
     periodEnd: formatDateFromDb(r.periodEnd),
@@ -240,8 +240,8 @@ export async function createPqrReport(
       reportNumber,
       productId: data.productId,
       reviewYear: data.reviewYear,
-      periodStart: toDbDate(data.periodStart),
-      periodEnd: toDbDate(data.periodEnd),
+      periodStart: data.periodStart ? toDbDate(data.periodStart) : null,
+      periodEnd: data.periodEnd ? toDbDate(data.periodEnd) : null,
       status: 'draft',
       batchesProduced: data.batchesProduced || 0,
       deviationCount: data.deviationCount || 0,

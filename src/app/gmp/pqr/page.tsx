@@ -935,7 +935,7 @@ export default function PqrDashboardPage() {
             <label className="text-sm font-medium">Review Year *</label>
             <DxNumberBox
               value={newReportData.reviewYear}
-              onValueChange={(value) => setNewReportData((prev) => ({ ...prev, reviewYear: value }))}
+              onValueChange={(value) => setNewReportData((prev) => ({ ...prev, reviewYear: value ?? undefined }))}
               min={2020}
               max={currentYear + 1}
               showSpinButtons

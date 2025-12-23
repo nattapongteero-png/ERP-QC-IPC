@@ -841,7 +841,6 @@ export default function BOMDetailPage() {
             />
           </CardContent>
         </Card>
-      </div>
 
       {/* Edit Dialog */}
       <DxPopup

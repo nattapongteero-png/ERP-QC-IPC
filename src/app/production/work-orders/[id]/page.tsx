@@ -850,7 +850,6 @@ export default function WorkOrderDetailPage() {
             </Card>
           </div>
         )}
-      </div>
 
       {/* Add Material Dialog */}
       <DxPopup

@@ -807,7 +807,6 @@ export default function NewBOMPage() {
             </Card>
           </div>
         </div>
-      </div>
 
       {/* Product Selection Dialog */}
       <DxPopup

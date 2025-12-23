@@ -10,6 +10,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { getContractById, updateContract } from '@/lib/services/contracts-service';
 import { contractUpdateSchema } from '@/lib/validation/contracts';
+import { ContractUpdate } from '@/types/contracts';
+
+// Convert null values to undefined for the service interface
+function toContractUpdate(data: Record<string, unknown>): ContractUpdate {
+  const result: ContractUpdate = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== null && value !== undefined) {
+      (result as Record<string, unknown>)[key] = value;
+    }
+  }
+  return result;
+}
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -84,7 +96,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const contract = await updateContract(contractId, validated.data, session.userId);
+    const contract = await updateContract(contractId, toContractUpdate(validated.data), session.userId);
     if (!contract) {
       return NextResponse.json(
         { success: false, error: 'Contract not found' },

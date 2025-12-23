@@ -20,6 +20,11 @@
         "ALLOW_DDL_OPERATION": "true",
         "MYSQL_DISABLE_READ_ONLY_TRANSACTIONS": "true"
       }
+    },
+
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
     }
   }
 }
