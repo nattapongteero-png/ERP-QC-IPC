@@ -73,7 +73,8 @@ async function fetchLots(productId: number): Promise<Lot[]> {
   const response = await fetch(`/api/inventory/lots?itemId=${productId}`);
   const result = await response.json();
   if (!result.success) return [];
-  return result.data || [];
+  // API returns paginated response: { items: [...], total, page, limit }
+  return result.data?.items || [];
 }
 
 async function createComplaint(data: ComplaintCreate): Promise<Complaint> {
