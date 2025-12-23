@@ -33,13 +33,6 @@ import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import type { ExportingEvent } from 'devextreme/ui/data_grid';
-import PieChart, {
-  Series as PieSeries,
-  Label as PieLabel,
-  Legend as PieLegend,
-  Tooltip as PieTooltip,
-  Connector,
-} from 'devextreme-react/pie-chart';
 import {
   Leaf,
   FlaskConical,
@@ -51,7 +44,6 @@ import {
   Eye,
   Edit,
   Trash2,
-  BarChart3,
   Boxes,
   AlertTriangle,
   CheckCircle,
@@ -286,17 +278,6 @@ export default function ItemsPage() {
     if (activeTab === 'all') return items;
     return items.filter((item) => item.type === activeTab);
   }, [items, activeTab]);
-
-  // Chart data for type distribution
-  const typeChartData = useMemo(() => {
-    return Object.entries(typeCounts)
-      .filter((entry) => entry[1] > 0)
-      .map(([type, count]) => ({
-        type: ITEM_TYPE_CONFIG[type as ItemType].labelTh,
-        count,
-        color: ITEM_TYPE_CONFIG[type as ItemType].chartColor,
-      }));
-  }, [typeCounts]);
 
   // Handlers
   const handleSave = async (formData: ItemFormData) => {
@@ -592,40 +573,6 @@ export default function ItemsPage() {
                 </div>
               </div>
 
-              {/* Type Distribution Chart */}
-              <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="h-5 w-5 text-gray-500" />
-                  <h3 className="font-semibold text-gray-900">Item Distribution by Type</h3>
-                </div>
-                {typeChartData.length > 0 ? (
-                  <PieChart
-                    dataSource={typeChartData}
-                    type="doughnut"
-                    palette={typeChartData.map((d) => d.color)}
-                    innerRadius={0.6}
-                    size={{ height: 250 }}
-                  >
-                    <PieSeries argumentField="type" valueField="count">
-                      <PieLabel visible={true} position="outside" format="fixedPoint">
-                        <Connector visible={true} width={1} />
-                      </PieLabel>
-                    </PieSeries>
-                    <PieLegend
-                      visible={true}
-                      horizontalAlignment="center"
-                      verticalAlignment="bottom"
-                      itemTextPosition="right"
-                    />
-                    <PieTooltip enabled={true} format="fixedPoint" />
-                  </PieChart>
-                ) : (
-                  <div className="h-[250px] flex flex-col items-center justify-center text-gray-400">
-                    <BarChart3 className="h-12 w-12 mb-2 opacity-50" />
-                    <p className="text-sm">No item data</p>
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Right Column - Sidebars */}
