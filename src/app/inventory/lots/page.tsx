@@ -3,24 +3,24 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxTabs } from '@/components/ui/dx-tabs';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   CheckCircle, XCircle, Clock, AlertTriangle,
   Package, ArrowRight, BoxSelect, ChevronRight, Inbox,
-  Boxes, TrendingUp, CalendarClock, Warehouse, Search,
-  DollarSign, BarChart3, RefreshCcw
+  Boxes, TrendingUp, CalendarClock, Warehouse,
+  DollarSign, RefreshCw, Plus, RefreshCcw
 } from 'lucide-react';
 import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-search-dialog';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
+import { cn } from '@/lib/utils/cn';
 
 interface Lot {
   id: number;
@@ -83,17 +83,49 @@ interface TraceData {
   forward?: TraceLot[];
 }
 
-const statusTabs = [
-  { id: '', text: 'ทั้งหมด', icon: 'selectall' },
-  { id: 'quarantine', text: 'กักกัน', icon: 'clock' },
-  { id: 'released', text: 'ปล่อยแล้ว', icon: 'check' },
-  { id: 'rejected', text: 'ปฏิเสธ', icon: 'close' },
-  { id: 'blocked', text: 'ล็อค', icon: 'lock' },
-];
+type StatusType = '' | 'quarantine' | 'released' | 'rejected' | 'blocked';
+
+const STATUS_CONFIG: Record<StatusType, {
+  label: string;
+  bgColor: string;
+  textColor: string;
+  icon: React.ReactNode;
+}> = {
+  '': {
+    label: 'All',
+    bgColor: 'bg-gray-900',
+    textColor: 'text-white',
+    icon: <Boxes className="h-4 w-4" />,
+  },
+  quarantine: {
+    label: 'กักกัน',
+    bgColor: 'bg-yellow-50',
+    textColor: 'text-yellow-700',
+    icon: <Clock className="h-4 w-4" />,
+  },
+  released: {
+    label: 'ปล่อยแล้ว',
+    bgColor: 'bg-green-50',
+    textColor: 'text-green-700',
+    icon: <CheckCircle className="h-4 w-4" />,
+  },
+  rejected: {
+    label: 'ปฏิเสธ',
+    bgColor: 'bg-red-50',
+    textColor: 'text-red-700',
+    icon: <XCircle className="h-4 w-4" />,
+  },
+  blocked: {
+    label: 'ล็อค',
+    bgColor: 'bg-gray-100',
+    textColor: 'text-gray-700',
+    icon: <AlertTriangle className="h-4 w-4" />,
+  },
+};
 
 const getStatusLabel = (status: string): string => {
-  const found = statusTabs.find(s => s.id === status);
-  return found ? found.text : status;
+  const config = STATUS_CONFIG[status as StatusType];
+  return config ? config.label : status;
 };
 
 const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
@@ -145,7 +177,7 @@ export default function LotsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusType>('');
   const [showModal, setShowModal] = useState(false);
   const [showQCModal, setShowQCModal] = useState(false);
   const [showTraceModal, setShowTraceModal] = useState(false);
@@ -423,19 +455,13 @@ export default function LotsPage() {
     };
   }, [lots]);
 
-  // Tab items with counts
-  const tabItems = useMemo(() => statusTabs.map(tab => {
-    let count = 0;
-    if (tab.id === '') count = lots.length;
-    else if (tab.id === 'quarantine') count = stats.quarantineCount;
-    else if (tab.id === 'released') count = stats.releasedCount;
-    else if (tab.id === 'rejected') count = stats.rejectedCount;
-    else count = lots.filter(l => l.status === tab.id).length;
-
-    return {
-      ...tab,
-      badge: count > 0 ? count.toString() : undefined,
-    };
+  // Status counts for tabs
+  const statusCounts = useMemo(() => ({
+    '': lots.length,
+    quarantine: stats.quarantineCount,
+    released: stats.releasedCount,
+    rejected: stats.rejectedCount,
+    blocked: lots.filter(l => l.status === 'blocked').length,
   }), [lots, stats]);
 
   // Define columns for DevExtreme DataGrid
@@ -443,13 +469,13 @@ export default function LotsPage() {
     {
       dataField: 'lotNumber',
       caption: 'เลขที่ Lot',
-      width: 150,
+      width: 160,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
-            {cellInfo.data.lotNumber?.substring(0, 2) || 'LT'}
-          </div>
-          <span className="font-mono font-medium text-emerald-700">{cellInfo.data.lotNumber}</span>
+          <span className={cn('p-1 rounded', STATUS_CONFIG[cellInfo.data.status as StatusType]?.bgColor, STATUS_CONFIG[cellInfo.data.status as StatusType]?.textColor)}>
+            {STATUS_CONFIG[cellInfo.data.status as StatusType]?.icon}
+          </span>
+          <span className="font-mono text-emerald-600 hover:text-emerald-800">{cellInfo.data.lotNumber}</span>
         </div>
       ),
     },
@@ -471,10 +497,10 @@ export default function LotsPage() {
       dataType: 'number',
       cellRender: (cellInfo) => (
         <div>
-          <p className="font-semibold text-gray-900">{cellInfo.data.quantity.toLocaleString()} <span className="text-xs text-gray-500 font-normal">{cellInfo.data.unit}</span></p>
+          <p className="font-medium text-gray-900">{Number(cellInfo.data.quantity).toLocaleString()} <span className="text-xs text-gray-500 font-normal">{cellInfo.data.unit}</span></p>
           {cellInfo.data.reservedQuantity > 0 && (
             <p className="text-xs text-orange-600 flex items-center gap-1">
-              <Clock className="h-3 w-3" /> จอง: {cellInfo.data.reservedQuantity.toLocaleString()}
+              <Clock className="h-3 w-3" /> จอง: {Number(cellInfo.data.reservedQuantity).toLocaleString()}
             </p>
           )}
         </div>
@@ -487,12 +513,12 @@ export default function LotsPage() {
       dataType: 'number',
       hideOnMobile: true,
       cellRender: (cellInfo) => {
-        const totalCost = (cellInfo.data.quantity || 0) * (cellInfo.data.cost || 0);
+        const totalCost = (Number(cellInfo.data.quantity) || 0) * (Number(cellInfo.data.cost) || 0);
         return (
           <div>
-            <p className="font-semibold text-emerald-700">{formatCurrency(totalCost)}</p>
-            {cellInfo.data.cost && cellInfo.data.cost > 0 && (
-              <p className="text-xs text-gray-500">@{formatCurrency(cellInfo.data.cost)}/{cellInfo.data.unit}</p>
+            <p className="font-medium text-gray-900">{formatCurrency(totalCost)}</p>
+            {cellInfo.data.cost && Number(cellInfo.data.cost) > 0 && (
+              <p className="text-xs text-gray-500">@{formatCurrency(Number(cellInfo.data.cost))}/{cellInfo.data.unit}</p>
             )}
           </div>
         );
@@ -545,15 +571,10 @@ export default function LotsPage() {
       cellRender: (cellInfo) => {
         const status = cellInfo.data.status;
         const variant = getStatusVariant(status);
-        const iconMap: Record<string, React.ReactNode> = {
-          quarantine: <Clock className="h-3.5 w-3.5" />,
-          released: <CheckCircle className="h-3.5 w-3.5" />,
-          rejected: <XCircle className="h-3.5 w-3.5" />,
-          blocked: <AlertTriangle className="h-3.5 w-3.5" />,
-        };
+        const config = STATUS_CONFIG[status as StatusType];
         return (
           <Badge variant={variant} className="inline-flex items-center gap-1">
-            {iconMap[status]}
+            {config?.icon}
             {getStatusLabel(status)}
           </Badge>
         );
@@ -606,210 +627,116 @@ export default function LotsPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-full gap-4">
-        {/* Professional Header with Gradient */}
-        <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 rounded-xl p-6 text-white shadow-lg">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                <Boxes className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Inventory Lots</h1>
-                <p className="text-emerald-100">จัดการ Lot/Batch สินค้าคงคลัง</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <DxButton
-                icon="refresh"
-                hint="รีเฟรชข้อมูล"
-                type="normal"
-                stylingMode="text"
+      <div className="space-y-4">
+        {/* Page Header */}
+        <PageHeader
+          title="Inventory Lots"
+          description="จัดการ Lot/Batch สินค้าคงคลัง"
+          actions={
+            <div className="flex items-center gap-2">
+              <button
                 onClick={() => fetchLots()}
-                className="text-white hover:bg-white/20"
-              />
-              <DxButton
-                text="รับ Lot ใหม่"
-                icon="plus"
-                type="default"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+                Refresh
+              </button>
+              <button
+                onClick={() => router.push('/inventory/items')}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Package className="h-4 w-4" />
+                View Items
+              </button>
+              <button
                 onClick={() => setShowModal(true)}
-                className="bg-white text-emerald-600 hover:bg-emerald-50"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+              >
+                <Plus className="h-4 w-4" />
+                รับ Lot ใหม่
+              </button>
+            </div>
+          }
+        />
+
+        {/* DataGrid Card */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          {/* Tabs + Stats Header */}
+          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              {/* Status Tabs */}
+              <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200 overflow-x-auto">
+                {(Object.keys(STATUS_CONFIG) as StatusType[]).map((status) => {
+                  const config = STATUS_CONFIG[status];
+                  const count = statusCounts[status];
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                        statusFilter === status
+                          ? status === '' ? 'bg-gray-900 text-white' : `${config.bgColor} ${config.textColor}`
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      )}
+                    >
+                      {config.icon}
+                      {config.label}
+                      <span className={cn(
+                        'text-xs px-1.5 py-0.5 rounded-full',
+                        statusFilter === status ? (status === '' ? 'bg-gray-700' : 'bg-white/50') : 'bg-gray-200'
+                      )}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Compact Stats */}
+              <div className="flex items-center gap-4 text-sm">
+                {stats.nearExpiryCount > 0 && (
+                  <div className="flex items-center gap-1.5 text-amber-600">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="font-medium">{stats.nearExpiryCount} Near Expiry</span>
+                  </div>
+                )}
+                {stats.expiredCount > 0 && (
+                  <div className="flex items-center gap-1.5 text-red-600">
+                    <XCircle className="h-4 w-4" />
+                    <span className="font-medium">{stats.expiredCount} Expired</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 text-gray-500">
+                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  <span>{stats.totalQuantity.toLocaleString()} units</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-gray-500">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  <span>{formatCurrency(stats.totalValue)}</span>
+                </div>
+                <div className="text-gray-400">|</div>
+                <span className="text-gray-500">{lots.length} lots shown</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Search Row */}
+          <div className="px-4 py-2 border-b border-gray-100">
+            <div className="w-full md:w-72">
+              <DxTextBox
+                placeholder="ค้นหาด้วยเลขที่ Lot หรือสินค้า..."
+                value={search}
+                onValueChange={setSearch}
+                showClearButton
+                mode="search"
+                onEnterKey={() => fetchLots()}
               />
             </div>
           </div>
 
-          {/* Quick Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-6">
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <Boxes className="h-5 w-5 text-white/80" />
-                <span className="text-emerald-100 text-sm">Total Lots</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">{stats.totalLots.toLocaleString()}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-white/80" />
-                <span className="text-emerald-100 text-sm">Total Qty</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">{stats.totalQuantity.toLocaleString()}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-white/80" />
-                <span className="text-emerald-100 text-sm">Total Value</span>
-              </div>
-              <p className="text-xl font-bold mt-1">{formatCurrency(stats.totalValue)}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-white/80" />
-                <span className="text-emerald-100 text-sm">Released Value</span>
-              </div>
-              <p className="text-xl font-bold mt-1">{formatCurrency(stats.releasedValue)}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-white/80" />
-                <span className="text-emerald-100 text-sm">Avg Expiry</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">{stats.avgDaysToExpiry} <span className="text-sm font-normal">วัน</span></p>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-orange-300" />
-                <span className="text-emerald-100 text-sm">Near Expiry</span>
-              </div>
-              <p className="text-2xl font-bold mt-1 text-orange-200">{stats.nearExpiryCount}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card
-            elevation="raised"
-            className={`cursor-pointer transition-all hover:shadow-lg ${statusFilter === 'quarantine' ? 'ring-2 ring-yellow-400' : ''}`}
-            onClick={() => setStatusFilter(statusFilter === 'quarantine' ? '' : 'quarantine')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-200">
-                    <Clock className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">กักกัน</p>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.quarantineCount}</p>
-                  </div>
-                </div>
-                {stats.quarantineCount > 0 && (
-                  <Badge variant="warning" size="sm">รอ QC</Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            elevation="raised"
-            className={`cursor-pointer transition-all hover:shadow-lg ${statusFilter === 'released' ? 'ring-2 ring-green-400' : ''}`}
-            onClick={() => setStatusFilter(statusFilter === 'released' ? '' : 'released')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 bg-gradient-to-br from-green-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
-                    <CheckCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">ปล่อยแล้ว</p>
-                    <p className="text-2xl font-bold text-green-600">{stats.releasedCount}</p>
-                  </div>
-                </div>
-                <Badge variant="success" size="sm">พร้อมใช้</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            elevation="raised"
-            className={`cursor-pointer transition-all hover:shadow-lg ${statusFilter === 'rejected' ? 'ring-2 ring-red-400' : ''}`}
-            onClick={() => setStatusFilter(statusFilter === 'rejected' ? '' : 'rejected')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 bg-gradient-to-br from-red-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-200">
-                    <XCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">ปฏิเสธ</p>
-                    <p className="text-2xl font-bold text-red-600">{stats.rejectedCount}</p>
-                  </div>
-                </div>
-                {stats.rejectedCount > 0 && (
-                  <Badge variant="danger" size="sm">ไม่ผ่าน</Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            elevation="raised"
-            className="cursor-pointer transition-all hover:shadow-lg"
-            onClick={() => {
-              // Could add expired filter
-            }}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200">
-                    <AlertTriangle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">ใกล้หมดอายุ</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.nearExpiryCount}</p>
-                  </div>
-                </div>
-                {stats.expiredCount > 0 && (
-                  <Badge variant="danger" size="sm">หมดอายุ {stats.expiredCount}</Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Data Grid Card */}
-        <Card elevation="raised" className="flex-1 min-h-0 flex flex-col">
-          <CardHeader className="border-b">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-emerald-600" />
-                รายการ Lot
-              </CardTitle>
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="w-full md:w-72">
-                  <DxTextBox
-                    placeholder="ค้นหาด้วยเลขที่ Lot หรือสินค้า..."
-                    value={search}
-                    onValueChange={setSearch}
-                    showClearButton
-                    mode="search"
-                    onEnterKey={() => fetchLots()}
-                  />
-                </div>
-                <DxTabs
-                  items={tabItems}
-                  selectedIndex={statusTabs.findIndex(t => t.id === statusFilter)}
-                  onSelectedIndexChange={(idx) => setStatusFilter(statusTabs[idx]?.id || '')}
-                  scrollByContent
-                  showNavButtons
-                />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 min-h-0 flex flex-col py-4">
+          {/* DataGrid */}
+          <div className="p-4">
             {lots.length > 0 || isLoading ? (
               <DxDataGrid
                 dataSource={lots}
@@ -823,7 +750,7 @@ export default function LotsPage() {
                 exportFileName="inventory-lots"
                 columnChooser
                 virtualScrolling={lots.length > 100}
-                fillHeight
+                height={600}
                 onRowClick={handleRowClick}
                 noDataText="ไม่พบ Lot"
               />
@@ -838,8 +765,8 @@ export default function LotsPage() {
                 }}
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Create Lot Modal */}
@@ -852,7 +779,7 @@ export default function LotsPage() {
         maxHeight="90vh"
       >
         <div className="p-6 space-y-4">
-          <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
             <div className="h-10 w-10 bg-emerald-100 rounded-lg flex items-center justify-center">
               <Package className="h-5 w-5 text-emerald-600" />
             </div>
@@ -1082,7 +1009,7 @@ export default function LotsPage() {
       >
         {selectedLot && (
           <div className="p-6">
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-yellow-200 mb-6">
+            <div className="flex items-center gap-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-6">
               <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
@@ -1099,7 +1026,7 @@ export default function LotsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">จำนวน:</span>
-                <span className="font-medium">{selectedLot.quantity?.toLocaleString()} {selectedLot.unit}</span>
+                <span className="font-medium">{Number(selectedLot.quantity)?.toLocaleString()} {selectedLot.unit}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">วันหมดอายุ:</span>
@@ -1107,7 +1034,7 @@ export default function LotsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">มูลค่า:</span>
-                <span className="font-medium text-emerald-600">{formatCurrency((selectedLot.quantity || 0) * (selectedLot.cost || 0))}</span>
+                <span className="font-medium text-emerald-600">{formatCurrency((Number(selectedLot.quantity) || 0) * (Number(selectedLot.cost) || 0))}</span>
               </div>
             </div>
 
@@ -1139,7 +1066,7 @@ export default function LotsPage() {
         {selectedLot && traceData && (
           <div className="p-6">
             {/* Current Lot Info */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
+            <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                   <Boxes className="h-5 w-5 text-emerald-600" />
@@ -1158,7 +1085,7 @@ export default function LotsPage() {
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">จำนวน:</span>
-                  <span className="font-medium">{selectedLot.quantity?.toLocaleString()} {selectedLot.unit}</span>
+                  <span className="font-medium">{Number(selectedLot.quantity)?.toLocaleString()} {selectedLot.unit}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-gray-400" />
