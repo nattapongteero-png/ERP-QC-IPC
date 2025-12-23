@@ -5,12 +5,13 @@
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 9)
  *
  * Page for viewing and managing a specific complaint.
+ * Uses the reusable ComplaintDataEntryDialog for editing.
  */
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ComplaintForm, ComplaintInvestigationForm } from '@/components/complaints';
+import { ComplaintDataEntryDialog, ComplaintInvestigationForm } from '@/components/complaints';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -18,15 +19,15 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import {
   MessageSquareWarning,
-  Edit,
   CheckCircle,
   User,
-  Calendar,
   AlertTriangle,
   Package,
   Phone,
   FileText,
   Link2,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import type { ComplaintDetails, ComplaintSeverity } from '@/types/complaints';
 
@@ -66,7 +67,7 @@ export default function ComplaintDetailPage() {
   const complaintId = Number(params.id);
 
   // State
-  const [showEditForm, setShowEditForm] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [closureNotes, setClosureNotes] = useState('');
 
@@ -129,7 +130,7 @@ export default function ComplaintDetailPage() {
       critical: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     };
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[severity]}`}>
+      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${colors[severity]}`}>
         {severity.toUpperCase()}
       </span>
     );
@@ -145,14 +146,22 @@ export default function ComplaintDetailPage() {
       <ResponsivePageHeader
         title={`Complaint ${complaint.complaintNumber}`}
         subtitle={complaint.productName || 'Unknown Product'}
+        icon={MessageSquareWarning}
+        iconBgColor="bg-orange-100"
+        iconColor="text-orange-600"
         onBack={() => router.push('/gmp/complaints')}
+        breadcrumbs={[
+          { label: 'GMP', href: '/gmp' },
+          { label: 'Complaints', href: '/gmp/complaints' },
+          { label: complaint.complaintNumber },
+        ]}
         actions={
           <div className="flex items-center gap-2">
             {isOpen && (
               <DxButton
                 text="Edit"
                 icon="edit"
-                onClick={() => setShowEditForm(true)}
+                onClick={() => setShowEditDialog(true)}
                 stylingMode="outlined"
               />
             )}
@@ -174,7 +183,9 @@ export default function ComplaintDetailPage() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
             <div>
-              <p className="font-medium text-orange-800 dark:text-orange-200">Regulatory Report Required</p>
+              <p className="font-medium text-orange-800 dark:text-orange-200">
+                Regulatory Report Required
+              </p>
               <p className="text-sm text-orange-700 dark:text-orange-300">
                 This complaint requires reporting to regulatory authorities.
                 {complaint.regulatoryReportDate && (
@@ -194,12 +205,13 @@ export default function ComplaintDetailPage() {
           <div className="bg-card border rounded-lg shadow-sm p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <MessageSquareWarning className="h-6 w-6 text-primary" />
+                <div className="p-2.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                  <MessageSquareWarning className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold">{complaint.complaintNumber}</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
                     Received: {complaint.receivedDate}
                   </p>
                 </div>
@@ -214,11 +226,15 @@ export default function ComplaintDetailPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <FileText className="h-4 w-4" />
-                <span>Source: <span className="capitalize">{complaint.source}</span></span>
+                <span>
+                  Source: <span className="capitalize text-foreground">{complaint.source}</span>
+                </span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <AlertTriangle className="h-4 w-4" />
-                <span>Category: <span className="capitalize">{complaint.category}</span></span>
+                <span>
+                  Category: <span className="capitalize text-foreground">{complaint.category}</span>
+                </span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Package className="h-4 w-4" />
@@ -252,7 +268,10 @@ export default function ComplaintDetailPage() {
 
             {/* Description */}
             <div className="mt-4 pt-4 border-t">
-              <h3 className="text-sm font-semibold mb-2">Description</h3>
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                Description
+              </h3>
               <div className="p-3 bg-muted rounded-lg text-sm whitespace-pre-wrap">
                 {complaint.description}
               </div>
@@ -261,18 +280,47 @@ export default function ComplaintDetailPage() {
             {/* Linked CAPA */}
             {complaint.capaId && complaint.capa && (
               <div className="mt-4 pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-2">Linked CAPA</h3>
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                  <Link2 className="h-4 w-4 text-muted-foreground" />
+                  Linked CAPA
+                </h3>
                 <button
                   onClick={() => router.push(`/gmp/capa/${complaint.capaId}`)}
-                  className="flex items-center gap-2 p-3 bg-muted rounded-lg text-sm hover:bg-muted/80 transition-colors w-full"
+                  className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors w-full"
                 >
-                  <Link2 className="h-4 w-4 text-primary" />
-                  <span className="font-mono">{(complaint.capa as { capaNumber: string }).capaNumber}</span>
+                  <Link2 className="h-4 w-4 text-blue-600" />
+                  <span className="font-mono font-medium">
+                    {(complaint.capa as { capaNumber: string }).capaNumber}
+                  </span>
                   <span className="text-muted-foreground">-</span>
                   <span className="truncate">{(complaint.capa as { title: string }).title}</span>
                 </button>
               </div>
             )}
+
+            {/* Timeline / Audit Info */}
+            <div className="mt-4 pt-4 border-t">
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Timeline
+              </h3>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center justify-between">
+                  <span>Created</span>
+                  <span>{complaint.createdAt}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Last Updated</span>
+                  <span>{complaint.updatedAt}</span>
+                </div>
+                {complaint.closedDate && (
+                  <div className="flex items-center justify-between text-green-600">
+                    <span>Closed</span>
+                    <span>{complaint.closedDate}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -288,24 +336,17 @@ export default function ComplaintDetailPage() {
         </div>
       </div>
 
-      {/* Edit Complaint Dialog */}
-      <DxPopup
-        visible={showEditForm}
-        onHiding={() => setShowEditForm(false)}
-        title="Edit Complaint"
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        <ComplaintForm
-          complaint={complaint}
-          onSave={() => {
-            setShowEditForm(false);
-            refetch();
-          }}
-          onCancel={() => setShowEditForm(false)}
-        />
-      </DxPopup>
+      {/* Edit Complaint Dialog - Using reusable component */}
+      <ComplaintDataEntryDialog
+        visible={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onSaved={() => {
+          setShowEditDialog(false);
+          refetch();
+        }}
+        complaint={complaint}
+        mode="edit"
+      />
 
       {/* Close Complaint Dialog */}
       <DxPopup
