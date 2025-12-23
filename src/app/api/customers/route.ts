@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, like, or, sql } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { eq, like, or, sql, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -21,14 +21,9 @@ export async function GET(request: NextRequest) {
       const customerType = searchParams.get('customerType');
       const isActive = searchParams.get('isActive');
 
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const customersTable = useSqlite ? schema.sqliteCustomers : schema.mysqlCustomers;
+      const customersTable = getTableRef('customers');
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let query = (db as any).select().from(customersTable);
-
-      const conditions = [];
+      const conditions: (SQL | undefined)[] = [];
       if (search) {
         conditions.push(
           or(
@@ -46,31 +41,29 @@ export async function GET(request: NextRequest) {
         conditions.push(eq(customersTable.isActive, isActive === 'true'));
       }
 
-      if (conditions.length > 0) {
-        const whereClause = conditions.reduce((acc, cond, i) =>
-          i === 0 ? cond : sql`${acc} AND ${cond}`
-        );
-        query = query.where(whereClause);
-      }
+      const whereClause = conditions.length > 0
+        ? conditions.reduce((acc, cond, i) => (i === 0 ? cond : sql`${acc} AND ${cond}`))
+        : undefined;
 
-      // Get count with same conditions
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let countQuery = (db as any)
-        .select({ count: sql`count(*)` })
-        .from(customersTable);
+      // Get count
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db.select({ count: sql`count(*)` }).from(customersTable);
+        if (whereClause) {
+          countQuery = countQuery.where(whereClause);
+        }
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
 
-      if (conditions.length > 0) {
-        const whereClause = conditions.reduce((acc, cond, i) =>
-          i === 0 ? cond : sql`${acc} AND ${cond}`
-        );
-        countQuery = countQuery.where(whereClause);
-      }
-
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
-
+      // Get paginated results
       const offset = (pagination.page - 1) * pagination.limit;
-      const customers = await query.limit(pagination.limit).offset(offset);
+      const customers = await executeDbOperation(async (db) => {
+        let query = db.select().from(customersTable);
+        if (whereClause) {
+          query = query.where(whereClause);
+        }
+        return query.limit(pagination.limit).offset(offset);
+      });
 
       return successResponse(createPaginatedResponse(customers, total, pagination));
     } catch (error) {
@@ -103,39 +96,41 @@ export async function POST(request: NextRequest) {
         return errorResponse('Code and name are required');
       }
 
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const customersTable = useSqlite ? schema.sqliteCustomers : schema.mysqlCustomers;
+      const customersTable = getTableRef('customers');
 
       // Check if code exists
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const existing = await (db as any)
-        .select()
-        .from(customersTable)
-        .where(eq(customersTable.code, code))
-        .limit(1);
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(customersTable)
+          .where(eq(customersTable.code, code))
+          .limit(1);
+      });
 
       if (existing.length > 0) {
         return errorResponse('Customer code already exists');
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await (db as any).insert(customersTable).values({
-        code,
-        name,
-        contactPerson,
-        phone,
-        email,
-        address,
-        taxId,
-        customerType: customerType || 'hospital',
-        creditLimit,
-        creditTermDays,
-        paymentTerms,
-        notes,
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(customersTable).values({
+          code,
+          name,
+          contactPerson,
+          phone,
+          email,
+          address,
+          taxId,
+          customerType: customerType || 'hospital',
+          creditLimit,
+          creditTermDays,
+          paymentTerms,
+          notes,
+        });
       });
 
-      const customerId = useSqlite ? result.lastInsertRowid : result[0].insertId;
+      const customerId = process.env.DB_TYPE === 'sqlite'
+        ? result.lastInsertRowid
+        : result[0].insertId;
 
       await createAuditLog({
         userId: session.userId,
