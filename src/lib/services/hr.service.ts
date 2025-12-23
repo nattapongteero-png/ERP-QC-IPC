@@ -106,7 +106,7 @@ import type {
 // ============================================
 
 function getHRTables() {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   const usingSqlite = isSqlite();
   return {
     orgUnits: usingSqlite ? sqliteHROrgUnits : mysqlHROrgUnits,
@@ -4392,7 +4392,7 @@ export async function createNotification(
     createdAt: new Date().toISOString(),
   });
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   const insertedId = isSqlite()
     ? Number(result.lastInsertRowid)
     : Number((result as unknown as { insertId: number }).insertId);
@@ -4564,7 +4564,7 @@ export async function checkTrainingExpirations(
   const tables = getHRTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = (await getDb()) as any;
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   const usingSqlite = isSqlite();
 
   const today = new Date();

@@ -1296,7 +1296,7 @@ export async function seedHRTables(): Promise<{
   appRolesSeeded: number;
   appPermissionsSeeded: number;
 }> {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   const usingSqlite = isSqlite();
   console.log(`[HR Seed] Starting HR tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 

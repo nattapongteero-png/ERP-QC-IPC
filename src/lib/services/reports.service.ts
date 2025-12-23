@@ -497,7 +497,7 @@ export async function getStockMovementReport(
   if (dateFrom) conditions.push(gte(transactions.createdAt, toQueryDate(dateFrom)));
   if (dateTo) conditions.push(lte(transactions.createdAt, toQueryDate(dateTo)));
 
-  let query = database
+  const query = database
     .select({
       createdAt: transactions.createdAt,
       transactionType: transactions.transactionType,

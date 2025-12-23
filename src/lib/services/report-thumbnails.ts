@@ -123,7 +123,7 @@ export async function getReportThumbnail(
 
   try {
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+     
     const usingSqlite = isSqlite();
 
     const templatesTable = usingSqlite
@@ -183,7 +183,7 @@ export async function updateReportThumbnail(
 ): Promise<boolean> {
   try {
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+     
     const usingSqlite = isSqlite();
 
     const templatesTable = usingSqlite
@@ -219,7 +219,7 @@ export async function updateReportThumbnail(
 export async function generateMissingThumbnails(): Promise<number> {
   try {
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+     
     const usingSqlite = isSqlite();
 
     const templatesTable = usingSqlite

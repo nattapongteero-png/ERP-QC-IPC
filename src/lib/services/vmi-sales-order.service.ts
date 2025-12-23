@@ -98,7 +98,7 @@ export class VmiSalesOrderService {
   private readonly isSqlite: boolean;
 
   constructor() {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+     
     this.isSqlite = isSqlite();
   }
 
@@ -181,7 +181,7 @@ export class VmiSalesOrderService {
 
     // Get line counts for each order
     const orderIds = orderRecords.map((r: any) => r.order.id);
-    let lineCounts: Record<number, { total: number; unmatched: number }> = {};
+    const lineCounts: Record<number, { total: number; unmatched: number }> = {};
 
     if (orderIds.length > 0) {
       const lineStats = await db

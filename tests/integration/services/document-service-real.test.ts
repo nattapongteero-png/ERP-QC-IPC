@@ -322,7 +322,7 @@ describe('Document Service Real Integration Tests', () => {
       await processApproval(pending[0].id, 'approved', 'Approved', TEST_USER_IDS.APPROVER);
 
       // Verify v1.0 is active
-      let docDetails = await getDocumentById(doc.id);
+      const docDetails = await getDocumentById(doc.id);
       expect(docDetails!.status).toBe('active');
       expect(docDetails!.currentVersion!.versionNumber).toBe('1.0');
 

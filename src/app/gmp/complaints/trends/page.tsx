@@ -8,7 +8,7 @@
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DxCard } from '@/components/ui/dx-card';
+import { Card } from '@/components/ui/card';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDateBox } from '@/components/ui/dx-date-box';
@@ -63,11 +63,11 @@ async function fetchDashboard() {
 export default function ComplaintTrendsPage() {
   const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
   const [customDateRange, setCustomDateRange] = useState<{
-    from: Date | null;
-    to: Date | null;
+    from: string;
+    to: string;
   }>({
-    from: null,
-    to: null,
+    from: '',
+    to: '',
   });
   const [showCustomRange, setShowCustomRange] = useState(false);
 
@@ -172,7 +172,7 @@ export default function ComplaintTrendsPage() {
       </div>
 
       {/* Period Filter */}
-      <DxCard>
+      <Card>
         <div className="p-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -218,12 +218,12 @@ export default function ComplaintTrendsPage() {
             )}
           </div>
         </div>
-      </DxCard>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Complaints */}
-        <DxCard>
+        <Card>
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-primary/10 rounded-lg">
@@ -239,10 +239,10 @@ export default function ComplaintTrendsPage() {
               </div>
             </div>
           </div>
-        </DxCard>
+        </Card>
 
         {/* Avg Resolution Time */}
-        <DxCard>
+        <Card>
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-blue-500/10 rounded-lg">
@@ -262,10 +262,10 @@ export default function ComplaintTrendsPage() {
               </div>
             </div>
           </div>
-        </DxCard>
+        </Card>
 
         {/* Top Category */}
-        <DxCard>
+        <Card>
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-green-500/10 rounded-lg">
@@ -288,10 +288,10 @@ export default function ComplaintTrendsPage() {
               </div>
             </div>
           </div>
-        </DxCard>
+        </Card>
 
         {/* Critical Count */}
-        <DxCard>
+        <Card>
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-red-500/10 rounded-lg">
@@ -307,12 +307,12 @@ export default function ComplaintTrendsPage() {
               </div>
             </div>
           </div>
-        </DxCard>
+        </Card>
       </div>
 
       {/* Trends Chart */}
       {trendsError ? (
-        <DxCard>
+        <Card>
           <div className="p-6 text-center">
             <p className="text-destructive mb-4">Failed to load trends data</p>
             <DxButton
@@ -321,7 +321,7 @@ export default function ComplaintTrendsPage() {
               stylingMode="outlined"
             />
           </div>
-        </DxCard>
+        </Card>
       ) : (
         <ComplaintTrendsChart className="w-full" />
       )}
@@ -329,7 +329,7 @@ export default function ComplaintTrendsPage() {
       {/* Additional Insights Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* By Severity */}
-        <DxCard>
+        <Card>
           <div className="p-6">
             <h3 className="text-lg font-semibold mb-4">Complaints by Severity</h3>
             {dashboardLoading ? (
@@ -340,7 +340,7 @@ export default function ComplaintTrendsPage() {
               </div>
             ) : dashboard?.bySeverity ? (
               <div className="space-y-3">
-                {Object.entries(dashboard.bySeverity).map(([severity, count]) => (
+                {Object.entries(dashboard.bySeverity as Record<string, number>).map(([severity, count]) => (
                   <div key={severity} className="flex items-center gap-3">
                     <div
                       className={`w-3 h-3 rounded-full ${
@@ -360,10 +360,10 @@ export default function ComplaintTrendsPage() {
               <p className="text-muted-foreground text-center py-4">No data available</p>
             )}
           </div>
-        </DxCard>
+        </Card>
 
         {/* By Status */}
-        <DxCard>
+        <Card>
           <div className="p-6">
             <h3 className="text-lg font-semibold mb-4">Complaints by Status</h3>
             {dashboardLoading ? (
@@ -374,7 +374,7 @@ export default function ComplaintTrendsPage() {
               </div>
             ) : dashboard?.byStatus ? (
               <div className="space-y-3">
-                {Object.entries(dashboard.byStatus).map(([status, count]) => (
+                {Object.entries(dashboard.byStatus as Record<string, number>).map(([status, count]) => (
                   <div key={status} className="flex items-center gap-3">
                     <div
                       className={`w-3 h-3 rounded-full ${
@@ -396,7 +396,7 @@ export default function ComplaintTrendsPage() {
               <p className="text-muted-foreground text-center py-4">No data available</p>
             )}
           </div>
-        </DxCard>
+        </Card>
       </div>
     </div>
   );

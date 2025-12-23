@@ -75,7 +75,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (!hasPermission(session.role as Parameters<typeof hasPermission>[0], 'complaints:view')) {
+    if (!hasPermission(session.role as Parameters<typeof hasPermission>[0], 'complaints:read')) {
       return NextResponse.json(
         { success: false, error: 'Permission denied' },
         { status: 403 }

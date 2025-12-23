@@ -152,7 +152,7 @@ export default function NewChangeRequestPage() {
   // Form items configuration
   const formItems = [
     {
-      itemType: 'group',
+      itemType: 'group' as const,
       caption: 'Basic Information',
       items: [
         {
@@ -211,7 +211,7 @@ export default function NewChangeRequestPage() {
       ],
     },
     {
-      itemType: 'group',
+      itemType: 'group' as const,
       caption: 'Change Description',
       items: [
         {
@@ -226,7 +226,7 @@ export default function NewChangeRequestPage() {
       ],
     },
     {
-      itemType: 'group',
+      itemType: 'group' as const,
       caption: 'Change Assessment',
       colCount: 1,
       items: [

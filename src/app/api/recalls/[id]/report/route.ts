@@ -8,12 +8,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateRecallReport } from '@/lib/services/recall-service';
 
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
-    const recallId = parseInt(params.id, 10);
+    const { id } = await params;
+    const recallId = parseInt(id, 10);
 
     if (isNaN(recallId)) {
       return NextResponse.json(

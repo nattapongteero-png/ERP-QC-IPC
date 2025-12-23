@@ -180,6 +180,11 @@ export const PERMISSIONS = {
   'pqr:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'pqr:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'pqr:delete': [ROLES.ADMIN, ROLES.MANAGER],
+
+  // Change Control (หมวด 8)
+  'change_control:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
+  'change_control:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+  'change_control:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

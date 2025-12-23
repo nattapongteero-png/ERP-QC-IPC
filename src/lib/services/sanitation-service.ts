@@ -1220,7 +1220,7 @@ export async function getPestControlTrends(
     });
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const byServiceType = Array.from(byServiceTypeMap.entries()).map(([type, data]) => ({
     serviceType: type as any,
     serviceCount: data.count,

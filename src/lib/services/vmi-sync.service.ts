@@ -124,7 +124,7 @@ export class VmiSyncService {
   private readonly BATCH_SIZE = 100;
 
   constructor() {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+     
     this.isSqlite = isSqlite();
   }
 

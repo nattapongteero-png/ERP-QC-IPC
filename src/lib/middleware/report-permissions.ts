@@ -32,7 +32,7 @@ export async function checkReportPermission(
     }
 
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+     
     const usingSqlite = isSqlite();
 
     const templatesTable = usingSqlite
@@ -144,7 +144,7 @@ export async function getUserTemplatePermissions(
 ): Promise<{ canView: boolean; canExport: boolean; canDesign: boolean }> {
   try {
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+     
     const usingSqlite = isSqlite();
 
     const templatesTable = usingSqlite
