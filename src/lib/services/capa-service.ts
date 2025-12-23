@@ -248,7 +248,8 @@ export async function listCapas(
   if (sourceType) conditions.push(eq(capa.sourceType, sourceType));
   if (ownerId) conditions.push(eq(capa.ownerId, ownerId));
 
-  const todayForQuery = toQueryDate(getTodayStr());
+  const todayStr = getTodayStr();
+  const todayForQuery = toQueryDate(todayStr);
   if (overdue) {
     conditions.push(
       and(
@@ -316,7 +317,7 @@ export async function listCapas(
 
       const actionCount = actionList.length;
       const actionsCompleted = actionList.filter((a: { status: string }) => a.status === 'completed').length;
-      const isOverdue = capaRow.dueDate && capaRow.dueDate < today &&
+      const isOverdue = capaRow.dueDate && capaRow.dueDate < todayStr &&
         !['closed', 'cancelled'].includes(capaRow.status);
 
       return {
