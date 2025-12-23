@@ -16,6 +16,7 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DocumentAttachment } from '@/components/ui/document-attachment';
 import {
   FileCheck,
   CheckCircle,
@@ -269,6 +270,15 @@ export default function CapaDetailPage() {
               onActionUpdated={() => refetch()}
             />
           </div>
+
+          {/* Attachments Section */}
+          <DocumentAttachment
+            moduleName="capa"
+            entityId={capaId}
+            title="เอกสารแนบ (Attachments)"
+            categories={['evidence', 'root_cause', 'investigation', 'report', 'training_record', 'other']}
+            readOnly={capa.status === 'closed'}
+          />
         </div>
 
         {/* Right Column - Effectiveness */}
