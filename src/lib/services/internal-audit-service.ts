@@ -7,6 +7,7 @@
 
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 import { getDb, isSqlite } from '../db';
+import { getNow, toDbDate, getTodayStr } from '../db/date-utils';
 import {
   sqliteAuditPlans,
   sqliteAudits,
@@ -19,22 +20,6 @@ import {
   mysqlUsers,
   mysqlCapa,
 } from '../db/schema';
-
-// ============================================
-// Date Helpers
-// ============================================
-
-function getNow(): Date | string {
-  return isSqlite() ? new Date().toISOString() : new Date();
-}
-
-function toDbDate(dateStr: string): Date | string {
-  return isSqlite() ? dateStr : new Date(dateStr);
-}
-
-function getTodayStr(): string {
-  return new Date().toISOString().split('T')[0];
-}
 
 /**
  * Get database-specific table references

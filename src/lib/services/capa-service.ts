@@ -7,6 +7,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
+import { getNow, toDbDate, getTodayStr } from '../db/date-utils';
 import { eq, and, desc, asc, lte, like, or, count } from 'drizzle-orm';
 import {
   sqliteCapa,
@@ -25,28 +26,6 @@ import {
   mysqlUsers,
 } from '../db/schema';
 import crypto from 'crypto';
-
-// ============================================
-// Date Helpers
-// ============================================
-
-/**
- * Get current datetime in the correct format for the database.
- * SQLite: ISO 8601 string format
- * MySQL: Date object (Drizzle handles conversion)
- */
-function getNow(): Date | string {
-  return isSqlite() ? new Date().toISOString() : new Date();
-}
-
-/**
- * Convert a date string to the correct format for the database.
- * SQLite: ISO 8601 string format
- * MySQL: Date object
- */
-function toDbDate(dateStr: string): Date | string {
-  return isSqlite() ? dateStr : new Date(dateStr);
-}
 
 // Get table references based on database type
 function getTables() {
