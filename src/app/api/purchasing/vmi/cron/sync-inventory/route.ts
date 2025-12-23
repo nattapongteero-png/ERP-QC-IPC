@@ -8,23 +8,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, sql } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVMIVendorConfig,
-  sqliteVendors,
-  sqliteItems,
-  sqliteInventoryLots,
-  sqliteVMITransactions,
-  mysqlVMIVendorConfig,
-  mysqlVendors,
-  mysqlItems,
-  mysqlInventoryLots,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { eq, and, sql, or, isNotNull } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import { VmiPortalService, VmiPortalError, VmiTransactionLogger } from '@/lib/services/vmi-portal.service';
 import type { VmiTransactionType, VmiInventoryItem } from '@/types/vmi';
-import { or, isNotNull } from 'drizzle-orm';
 
 interface VendorSyncResult {
   vendorId: number;
@@ -57,32 +44,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = await getDb();
-    const isSqlite = process.env.DB_TYPE === 'sqlite';
-    const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-    const vendors = isSqlite ? sqliteVendors : mysqlVendors;
-    const items = isSqlite ? sqliteItems : mysqlItems;
-    const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
-    const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
+    const vmiConfig = getTableRef('vMIVendorConfig');
+    const vendors = getTableRef('vendors');
+    const items = getTableRef('items');
+    const inventoryLots = getTableRef('inventoryLots');
+    const vmiTransactions = getTableRef('vMITransactions');
 
     // Get all vendors with inventory sync enabled
-    const enabledVendors = await (db as any)
-      .select({
-        vendorId: vmiConfig.vendorId,
-        vendorName: vendors.name,
-        apiKeyEncrypted: vmiConfig.apiKeyEncrypted,
-        baseUrl: vmiConfig.baseUrl,
-        vmiVendorId: vmiConfig.vmiVendorId,
-        isConnected: vmiConfig.isConnected,
-      })
-      .from(vmiConfig)
-      .innerJoin(vendors, eq(vmiConfig.vendorId, vendors.id))
-      .where(
-        and(
-          eq(vmiConfig.syncInventoryEnabled, true),
-          eq(vmiConfig.isConnected, true)
-        )
-      );
+    const enabledVendors = await executeDbOperation(async (db) => {
+      return db
+        .select({
+          vendorId: vmiConfig.vendorId,
+          vendorName: vendors.name,
+          apiKeyEncrypted: vmiConfig.apiKeyEncrypted,
+          baseUrl: vmiConfig.baseUrl,
+          vmiVendorId: vmiConfig.vmiVendorId,
+          isConnected: vmiConfig.isConnected,
+        })
+        .from(vmiConfig)
+        .innerJoin(vendors, eq(vmiConfig.vendorId, vendors.id))
+        .where(
+          and(
+            eq(vmiConfig.syncInventoryEnabled, true),
+            eq(vmiConfig.isConnected, true)
+          )
+        );
+    });
 
     if (enabledVendors.length === 0) {
       return NextResponse.json({
@@ -107,21 +94,23 @@ export async function POST(request: NextRequest) {
     for (const vendor of enabledVendors) {
       try {
         // Get VMI items for this vendor
-        const vmiItems = await (db as any)
-          .select({
-            id: items.id,
-            code: items.code,
-            tppCode: items.tppCode,
-            ttmtCode: items.ttmtCode,
-            primaryUnit: items.primaryUnit,
-          })
-          .from(items)
-          .where(
-            and(
-              eq(items.isActive, true),
-              or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
-            )
-          );
+        const vmiItems = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: items.id,
+              code: items.code,
+              tppCode: items.tppCode,
+              ttmtCode: items.ttmtCode,
+              primaryUnit: items.primaryUnit,
+            })
+            .from(items)
+            .where(
+              and(
+                eq(items.isActive, true),
+                or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
+              )
+            );
+        });
 
         if (vmiItems.length === 0) {
           results.push({
@@ -138,18 +127,20 @@ export async function POST(request: NextRequest) {
         // Calculate inventory for each item
         const inventoryPayloads: VmiInventoryItem[] = await Promise.all(
           vmiItems.map(async (item: { id: number; code: string; tppCode: string | null; ttmtCode: string | null; primaryUnit: string | null }) => {
-            const lotsResult = await (db as any)
-              .select({
-                totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
-                reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
-              })
-              .from(inventoryLots)
-              .where(
-                and(
-                  eq(inventoryLots.itemId, item.id),
-                  eq(inventoryLots.status, 'available')
-                )
-              );
+            const lotsResult = await executeDbOperation(async (db) => {
+              return db
+                .select({
+                  totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
+                  reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
+                })
+                .from(inventoryLots)
+                .where(
+                  and(
+                    eq(inventoryLots.itemId, item.id),
+                    eq(inventoryLots.status, 'available')
+                  )
+                );
+            });
 
             const totalQuantity = Number(lotsResult[0]?.totalQuantity || 0);
             const reservedQuantity = Number(lotsResult[0]?.reservedQuantity || 0);
@@ -176,19 +167,20 @@ export async function POST(request: NextRequest) {
             durationMs: number,
             error?: string
           ) {
-            const now = new Date();
-            await (db as any).insert(vmiTransactions).values({
-              vendorId: logVendorId,
-              transactionType,
-              endpoint,
-              method,
-              requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
-              responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
-              httpStatus,
-              durationMs,
-              status: error ? 'error' : 'success',
-              errorMessage: error || null,
-              createdAt: isSqlite ? now.toISOString() : now,
+            await executeDbOperation(async (db) => {
+              return db.insert(vmiTransactions).values({
+                vendorId: logVendorId,
+                transactionType,
+                endpoint,
+                method,
+                requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
+                responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
+                httpStatus,
+                durationMs,
+                status: error ? 'error' : 'success',
+                errorMessage: error || null,
+                createdAt: dbDate(),
+              });
             });
           },
         };
@@ -205,16 +197,16 @@ export async function POST(request: NextRequest) {
         // Sync inventory
         const syncResult = await service.syncInventory(inventoryPayloads);
 
-        const now = new Date();
-
         // Update last sync time
-        await (db as any)
-          .update(vmiConfig)
-          .set({
-            lastInventorySyncAt: isSqlite ? now.toISOString() : now,
-            updatedAt: isSqlite ? now.toISOString() : now,
-          })
-          .where(eq(vmiConfig.vendorId, vendor.vendorId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(vmiConfig)
+            .set({
+              lastInventorySyncAt: dbDate(),
+              updatedAt: dbDate(),
+            })
+            .where(eq(vmiConfig.vendorId, vendor.vendorId));
+        });
 
         results.push({
           vendorId: vendor.vendorId,

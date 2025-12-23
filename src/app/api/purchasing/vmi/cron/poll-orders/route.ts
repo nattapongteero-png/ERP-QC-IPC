@@ -10,18 +10,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, lte, and, sql } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVMIVendorConfig,
-  sqliteVMIOrders,
-  sqliteVMIOrderLines,
-  sqliteVMITransactions,
-  mysqlVMIVendorConfig,
-  mysqlVMIOrders,
-  mysqlVMIOrderLines,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
 import { VmiPortalService, VmiPortalError, VmiTransactionLogger } from '@/lib/services/vmi-portal.service';
 import type { VmiTransactionType, VmiOrderStatus } from '@/types/vmi';
 
@@ -57,19 +47,19 @@ export async function POST(request: NextRequest) {
   const results: PollResult[] = [];
 
   try {
-    const db = await getDb();
-    const isSqlite = process.env.DB_TYPE === 'sqlite';
-    const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-    const vmiOrders = isSqlite ? sqliteVMIOrders : mysqlVMIOrders;
-    const vmiOrderLines = isSqlite ? sqliteVMIOrderLines : mysqlVMIOrderLines;
-    const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
+    const vmiConfig = getTableRef('vMIVendorConfig');
+    const vmiOrders = getTableRef('vMIOrders');
+    const vmiOrderLines = getTableRef('vMIOrderLines');
+    const vmiTransactions = getTableRef('vMITransactions');
 
     // Get all connected VMI vendor configs that are due for polling
     const now = new Date();
-    const configs = await (db as any)
-      .select()
-      .from(vmiConfig)
-      .where(eq(vmiConfig.isConnected, true));
+    const configs = await executeDbOperation(async (db) => {
+      return db
+        .select()
+        .from(vmiConfig)
+        .where(eq(vmiConfig.isConnected, true));
+    });
 
     console.log(`[VMI Cron] Starting order poll for ${configs.length} vendor(s)`);
 
@@ -101,18 +91,20 @@ export async function POST(request: NextRequest) {
             durationMs: number,
             error?: string
           ) {
-            await (db as any).insert(vmiTransactions).values({
-              vendorId: logVendorId,
-              transactionType,
-              endpoint,
-              method,
-              requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
-              responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
-              httpStatus,
-              durationMs,
-              status: error ? 'error' : 'success',
-              errorMessage: error || null,
-              createdAt: isSqlite ? now.toISOString() : now,
+            await executeDbOperation(async (db) => {
+              return db.insert(vmiTransactions).values({
+                vendorId: logVendorId,
+                transactionType,
+                endpoint,
+                method,
+                requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
+                responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
+                httpStatus,
+                durationMs,
+                status: error ? 'error' : 'success',
+                errorMessage: error || null,
+                createdAt: dbDate(),
+              });
             });
           },
         };
@@ -130,10 +122,12 @@ export async function POST(request: NextRequest) {
         const ordersResponse = await service.getOrders({ status: 'submitted' });
 
         // Get existing VMI order IDs
-        const existingOrderIds = await (db as any)
-          .select({ vmiOrderId: vmiOrders.vmiOrderId })
-          .from(vmiOrders)
-          .where(eq(vmiOrders.vendorId, config.vendorId));
+        const existingOrderIds = await executeDbOperation(async (db) => {
+          return db
+            .select({ vmiOrderId: vmiOrders.vmiOrderId })
+            .from(vmiOrders)
+            .where(eq(vmiOrders.vendorId, config.vendorId));
+        });
 
         const existingIds = new Set(existingOrderIds.map((o: { vmiOrderId: number }) => o.vmiOrderId));
         const newOrders = ordersResponse.orders.filter((o) => !existingIds.has(o.id));
@@ -142,41 +136,43 @@ export async function POST(request: NextRequest) {
         let insertedCount = 0;
         for (const order of newOrders) {
           // Insert order
-          const orderInsert = await (db as any).insert(vmiOrders).values({
-            vendorId: config.vendorId,
-            vmiOrderId: order.id,
-            hospitalCode: order.hospitalCode,
-            hospitalName: order.hospitalName,
-            poNumber: order.poNumber,
-            warehouseName: order.warehouseName || null,
-            status: order.status as VmiOrderStatus,
-            orderDate: order.orderDate,
-            expectedDate: order.expectedDeliveryDate || null,
-            totalAmount: order.totalValue,
-            currency: 'THB',
-            createdAt: isSqlite ? now.toISOString() : now,
-            updatedAt: isSqlite ? now.toISOString() : now,
+          const orderInsert = await executeDbOperation(async (db) => {
+            return db.insert(vmiOrders).values({
+              vendorId: config.vendorId,
+              vmiOrderId: order.id,
+              hospitalCode: order.hospitalCode,
+              hospitalName: order.hospitalName,
+              poNumber: order.poNumber,
+              warehouseName: order.warehouseName || null,
+              status: order.status as VmiOrderStatus,
+              orderDate: order.orderDate,
+              expectedDate: order.expectedDeliveryDate || null,
+              totalAmount: order.totalValue,
+              currency: 'THB',
+              createdAt: dbDate(),
+              updatedAt: dbDate(),
+            });
           });
 
-          const orderId = isSqlite
-            ? (orderInsert as { lastInsertRowid: number }).lastInsertRowid
-            : (orderInsert as unknown as [{ insertId: number }])[0].insertId;
+          const orderId = getInsertId(orderInsert);
 
           // Fetch order detail for lines
           try {
             const orderDetail = await service.getOrderDetail(order.id);
 
             for (const line of orderDetail.order?.items || []) {
-              await (db as any).insert(vmiOrderLines).values({
-                vmiOrderId: orderId,
-                tppCode: line.tppCode || null,
-                ttmtCode: line.ttmtCode || null,
-                itemName: line.name,
-                quantity: line.quantity,
-                unit: line.unit,
-                unitPrice: line.unitPrice,
-                totalPrice: line.totalPrice || line.quantity * line.unitPrice,
-                createdAt: isSqlite ? now.toISOString() : now,
+              await executeDbOperation(async (db) => {
+                return db.insert(vmiOrderLines).values({
+                  vmiOrderId: orderId,
+                  tppCode: line.tppCode || null,
+                  ttmtCode: line.ttmtCode || null,
+                  itemName: line.name,
+                  quantity: line.quantity,
+                  unit: line.unit,
+                  unitPrice: line.unitPrice,
+                  totalPrice: line.totalPrice || line.quantity * line.unitPrice,
+                  createdAt: dbDate(),
+                });
               });
             }
           } catch {
@@ -187,13 +183,15 @@ export async function POST(request: NextRequest) {
         }
 
         // Update last poll time
-        await (db as any)
-          .update(vmiConfig)
-          .set({
-            lastOrdersPollAt: isSqlite ? now.toISOString() : now,
-            updatedAt: isSqlite ? now.toISOString() : now,
-          })
-          .where(eq(vmiConfig.vendorId, config.vendorId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(vmiConfig)
+            .set({
+              lastOrdersPollAt: dbDate(),
+              updatedAt: dbDate(),
+            })
+            .where(eq(vmiConfig.vendorId, config.vendorId));
+        });
 
         results.push({
           vendorId: config.vendorId,
