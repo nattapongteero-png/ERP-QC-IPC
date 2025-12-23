@@ -90,4 +90,23 @@ closedDate: toDbDate(getTodayStr()),    // For today's date
 
 **Location:** `src/lib/db/date-utils.ts`
 
+### Reading dates from database
+
+When reading date fields from the database, always use safe conversion:
+
+```typescript
+import { toDateSafe, formatDateFromDb, formatMonthFromDb } from '../db/date-utils';
+
+// Convert DB value to Date object safely
+const date = toDateSafe(record.dateField);
+
+// Format DB value to YYYY-MM-DD string
+const dateStr = formatDateFromDb(record.dateField);
+
+// Format DB value to YYYY-MM month string
+const monthStr = formatMonthFromDb(record.dateField);
+```
+
+**Why:** SQLite returns date fields as strings, MySQL returns Date objects. These utilities handle both.
+
 <!-- MANUAL ADDITIONS END -->
