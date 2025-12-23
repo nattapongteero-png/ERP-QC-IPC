@@ -1127,7 +1127,7 @@ export async function triggerOOSInvestigation(
   // Determine severity based on margin
   let severity: 'critical' | 'major' | 'minor' = 'major';
   if (oosDetails.margin) {
-    // Critical if margin > 20% of limit
+    // Critical if absolute margin > 20 units
     if (oosDetails.margin > 20) {
       severity = 'critical';
     } else if (oosDetails.margin < 5) {
@@ -1153,7 +1153,7 @@ export async function triggerOOSInvestigation(
       type: 'OOS',
       severity,
       status: 'open',
-      source: 'stability_test',
+      sourceType: 'stability_test',
       sourceId: sampleId,
       reportedBy: userId,
       reportedAt: new Date().toISOString(),
@@ -1181,7 +1181,7 @@ export async function triggerOOSInvestigation(
       type: 'OOS',
       severity,
       description,
-      source: 'stability_test',
+      sourceType: 'stability_test',
       sourceId: sampleId,
     },
   });

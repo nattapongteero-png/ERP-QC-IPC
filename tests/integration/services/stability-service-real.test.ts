@@ -143,6 +143,8 @@ import {
   getSampleAlerts,
   getStabilityTrends,
   getStudyTrendData,
+  detectOOS,
+  triggerOOSInvestigation,
 } from '@/lib/services/stability-service';
 
 // Create tables from Drizzle schema
@@ -156,6 +158,7 @@ function syncSchemaFromDrizzle() {
     schema.sqliteStabilityStudies,
     schema.sqliteStabilitySamples,
     schema.sqliteStabilityTrends,
+    schema.sqliteDeviations,
   ];
 
   for (const table of tablesToCreate) {
@@ -193,6 +196,7 @@ describe('Stability Service Real Integration Tests', () => {
   });
 
   function cleanStabilityTables() {
+    sqlite.exec('DELETE FROM deviations');
     sqlite.exec('DELETE FROM stability_trends');
     sqlite.exec('DELETE FROM stability_samples');
     sqlite.exec('DELETE FROM stability_studies');
@@ -694,6 +698,226 @@ describe('Stability Service Real Integration Tests', () => {
 
       expect(trendData).not.toBeNull();
       expect(trendData!.parameters.length).toBe(0);
+    });
+  });
+
+  // ============================================
+  // OOS Detection Tests (T707)
+  // ============================================
+
+  describe('OOS Detection (detectOOS)', () => {
+    let sampleId: number;
+
+    beforeEach(async () => {
+      const protocol = await createProtocol({
+        name: 'OOS Test Protocol',
+        productId: 1,
+        studyType: 'long_term',
+        storageCondition: '25°C',
+        timepoints: [0],
+        testsRequired: [{ testId: 1 }],
+      }, TEST_USER_IDS.LAB_SUPERVISOR);
+      await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
+
+      const study = await createStudy({
+        protocolId: protocol.id,
+        lotId: 1,
+        startDate: TEST_DATES.STUDY_START,
+      }, TEST_USER_IDS.LAB_SUPERVISOR);
+
+      const samples = await getSamples({ studyId: study.id });
+      sampleId = samples.samples[0].id;
+    });
+
+    it('should return false when no spec limits defined (null min and max)', async () => {
+      const result = await detectOOS(sampleId, 50, null, null);
+
+      expect(result.isOOS).toBe(false);
+      expect(result.deviation).toBeUndefined();
+      expect(result.margin).toBeUndefined();
+    });
+
+    it('should detect below minimum with correct margin', async () => {
+      const result = await detectOOS(sampleId, 85, 90, 110);
+
+      expect(result.isOOS).toBe(true);
+      expect(result.deviation).toBe('below_min');
+      expect(result.margin).toBe(5); // 90 - 85 = 5
+    });
+
+    it('should detect above maximum with correct margin', async () => {
+      const result = await detectOOS(sampleId, 115, 90, 110);
+
+      expect(result.isOOS).toBe(true);
+      expect(result.deviation).toBe('above_max');
+      expect(result.margin).toBe(5); // 115 - 110 = 5
+    });
+
+    it('should return false when result is within limits', async () => {
+      const result = await detectOOS(sampleId, 100, 90, 110);
+
+      expect(result.isOOS).toBe(false);
+      expect(result.deviation).toBeUndefined();
+      expect(result.margin).toBeUndefined();
+    });
+
+    it('should return false when result is exactly at min limit', async () => {
+      const result = await detectOOS(sampleId, 90, 90, 110);
+
+      expect(result.isOOS).toBe(false);
+      expect(result.deviation).toBeUndefined();
+      expect(result.margin).toBeUndefined();
+    });
+
+    it('should return false when result is exactly at max limit', async () => {
+      const result = await detectOOS(sampleId, 110, 90, 110);
+
+      expect(result.isOOS).toBe(false);
+      expect(result.deviation).toBeUndefined();
+      expect(result.margin).toBeUndefined();
+    });
+
+    it('should handle only min limit defined', async () => {
+      const result = await detectOOS(sampleId, 85, 90, null);
+
+      expect(result.isOOS).toBe(true);
+      expect(result.deviation).toBe('below_min');
+      expect(result.margin).toBe(5);
+    });
+
+    it('should handle only max limit defined', async () => {
+      const result = await detectOOS(sampleId, 115, null, 110);
+
+      expect(result.isOOS).toBe(true);
+      expect(result.deviation).toBe('above_max');
+      expect(result.margin).toBe(5);
+    });
+  });
+
+  // ============================================
+  // OOS Investigation Tests (T708)
+  // ============================================
+
+  describe('OOS Investigation (triggerOOSInvestigation)', () => {
+    let sampleId: number;
+
+    beforeEach(async () => {
+      const protocol = await createProtocol({
+        name: 'OOS Investigation Protocol',
+        productId: 1,
+        studyType: 'long_term',
+        storageCondition: '25°C',
+        timepoints: [0],
+        testsRequired: [{ testId: 1 }],
+      }, TEST_USER_IDS.LAB_SUPERVISOR);
+      await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
+
+      const study = await createStudy({
+        protocolId: protocol.id,
+        lotId: 1,
+        startDate: TEST_DATES.STUDY_START,
+      }, TEST_USER_IDS.LAB_SUPERVISOR);
+
+      const samples = await getSamples({ studyId: study.id });
+      sampleId = samples.samples[0].id;
+    });
+
+    it('should create deviation with critical severity for large margin', async () => {
+      const oosDetails = {
+        isOOS: true,
+        deviation: 'below_min' as const,
+        margin: 25, // > 20, should be critical
+      };
+
+      const deviationId = await triggerOOSInvestigation(sampleId, oosDetails, TEST_USER_IDS.LAB_TECHNICIAN);
+
+      expect(deviationId).toBeGreaterThan(0);
+
+      // Verify deviation was created with correct severity
+      const deviation = sqlite.prepare('SELECT * FROM deviations WHERE id = ?').get(deviationId) as {
+        severity: string;
+        type: string;
+        status: string;
+        reported_by: number;
+      };
+      expect(deviation).toBeDefined();
+      expect(deviation.severity).toBe('critical');
+      expect(deviation.type).toBe('OOS');
+      expect(deviation.status).toBe('open');
+      expect(deviation.reported_by).toBe(TEST_USER_IDS.LAB_TECHNICIAN);
+    });
+
+    it('should create deviation with major severity for medium margin', async () => {
+      const oosDetails = {
+        isOOS: true,
+        deviation: 'above_max' as const,
+        margin: 15, // 5-20, should be major
+      };
+
+      const deviationId = await triggerOOSInvestigation(sampleId, oosDetails, TEST_USER_IDS.LAB_TECHNICIAN);
+
+      const deviation = sqlite.prepare('SELECT * FROM deviations WHERE id = ?').get(deviationId) as {
+        severity: string;
+      };
+      expect(deviation.severity).toBe('major');
+    });
+
+    it('should create deviation with minor severity for small margin', async () => {
+      const oosDetails = {
+        isOOS: true,
+        deviation: 'below_min' as const,
+        margin: 3, // < 5, should be minor
+      };
+
+      const deviationId = await triggerOOSInvestigation(sampleId, oosDetails, TEST_USER_IDS.LAB_TECHNICIAN);
+
+      const deviation = sqlite.prepare('SELECT * FROM deviations WHERE id = ?').get(deviationId) as {
+        severity: string;
+      };
+      expect(deviation.severity).toBe('minor');
+    });
+
+    it('should link deviation to sample via oosInvestigationId', async () => {
+      const oosDetails = {
+        isOOS: true,
+        deviation: 'below_min' as const,
+        margin: 10,
+      };
+
+      const deviationId = await triggerOOSInvestigation(sampleId, oosDetails, TEST_USER_IDS.LAB_TECHNICIAN);
+
+      // Verify sample was updated with deviation link
+      const updatedSample = await getSampleById(sampleId);
+      expect(updatedSample?.oosInvestigationId).toBe(deviationId);
+    });
+
+    it('should throw error when sample not found', async () => {
+      const oosDetails = {
+        isOOS: true,
+        deviation: 'below_min' as const,
+        margin: 10,
+      };
+
+      await expect(triggerOOSInvestigation(99999, oosDetails, TEST_USER_IDS.LAB_TECHNICIAN))
+        .rejects.toThrow('Sample 99999 not found');
+    });
+
+    it('should include study and sample details in deviation description', async () => {
+      const oosDetails = {
+        isOOS: true,
+        deviation: 'above_max' as const,
+        margin: 12.5,
+      };
+
+      const deviationId = await triggerOOSInvestigation(sampleId, oosDetails, TEST_USER_IDS.LAB_TECHNICIAN);
+
+      const deviation = sqlite.prepare('SELECT * FROM deviations WHERE id = ?').get(deviationId) as {
+        description: string;
+      };
+      expect(deviation.description).toContain('Stability Study');
+      expect(deviation.description).toContain('timepoint 0 months');
+      expect(deviation.description).toContain('above maximum');
+      expect(deviation.description).toContain('12.50 units');
     });
   });
 });
