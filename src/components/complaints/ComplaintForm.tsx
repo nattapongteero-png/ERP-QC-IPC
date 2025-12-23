@@ -47,8 +47,9 @@ interface FormData {
 
 interface Product {
   id: number;
-  name: string;
-  sku: string;
+  code: string;
+  nameTh: string;
+  nameEn?: string | null;
 }
 
 interface Lot {
@@ -316,7 +317,7 @@ export function ComplaintForm({
             Product <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
-            items={(products || []).map((p) => ({ value: p.id, label: `${p.name} (${p.sku})` }))}
+            items={(products || []).map((p) => ({ value: p.id, label: `${p.nameTh} (${p.code})` }))}
             value={formData.productId}
             valueExpr="value"
             displayExpr="label"

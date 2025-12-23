@@ -69,8 +69,9 @@ interface FormData {
 
 interface Product {
   id: number;
-  name: string;
-  sku: string;
+  code: string;
+  nameTh: string;
+  nameEn?: string | null;
 }
 
 interface Lot {
@@ -439,7 +440,7 @@ export function ComplaintDataEntryDialog({
               <DxSelectBox
                 items={(products || []).map((p) => ({
                   value: p.id,
-                  label: `${p.name} (${p.sku})`,
+                  label: `${p.nameTh} (${p.code})`,
                 }))}
                 value={formData.productId}
                 valueExpr="value"
