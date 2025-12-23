@@ -7,7 +7,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
-import { getNow, toDbDate, getTodayStr } from '../db/date-utils';
+import { getNow, toDbDate, getTodayStr, formatDateFromDb, formatMonthFromDb } from '../db/date-utils';
 import { eq, and, desc, gte, lte, like, count } from 'drizzle-orm';
 import {
   sqliteComplaints,
@@ -831,13 +831,12 @@ export async function getComplaintTrends(
 
   // Calculate data points based on date grouping
   const dateCounts = new Map<string, number>();
-  complaints.forEach((c: { receivedDate: string }) => {
+  complaints.forEach((c: { receivedDate: Date | string }) => {
     let label: string;
-    const date = new Date(c.receivedDate);
     if (dateFormat === 'day') {
-      label = c.receivedDate;
+      label = formatDateFromDb(c.receivedDate);
     } else {
-      label = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+      label = formatMonthFromDb(c.receivedDate);
     }
     dateCounts.set(label, (dateCounts.get(label) || 0) + 1);
   });
