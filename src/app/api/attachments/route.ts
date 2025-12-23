@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         const query = {
           moduleName: searchParams.get('moduleName'),
           entityId: searchParams.get('entityId'),
-          category: searchParams.get('category'),
+          category: searchParams.get('category') || undefined,
         };
 
         // Validate query params
