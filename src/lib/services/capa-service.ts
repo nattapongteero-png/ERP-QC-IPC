@@ -7,7 +7,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
-import { eq, and, desc, asc, gte, lte, like, or, isNull, sql, count } from 'drizzle-orm';
+import { eq, and, desc, asc, lte, like, or, count } from 'drizzle-orm';
 import {
   sqliteCapa,
   sqliteCapaActions,
@@ -164,263 +164,267 @@ export async function listCapas(
 ): Promise<CapaListResponse> {
   const { status, type, priority, sourceType, ownerId, overdue, page = 1, limit = 20 } = params;
   const offset = (page - 1) * limit;
+  const { capa, actions, users } = getTables();
+  const db = await getDb();
 
-  if (isSqlite()) {
-    // Build query conditions
-    const conditions = [];
-    if (status) conditions.push(eq(sqliteCapa.status, status));
-    if (type) conditions.push(eq(sqliteCapa.type, type));
-    if (priority) conditions.push(eq(sqliteCapa.priority, priority));
-    if (sourceType) conditions.push(eq(sqliteCapa.sourceType, sourceType));
-    if (ownerId) conditions.push(eq(sqliteCapa.ownerId, ownerId));
+  // Build query conditions
+  const conditions = [];
+  if (status) conditions.push(eq(capa.status, status));
+  if (type) conditions.push(eq(capa.type, type));
+  if (priority) conditions.push(eq(capa.priority, priority));
+  if (sourceType) conditions.push(eq(capa.sourceType, sourceType));
+  if (ownerId) conditions.push(eq(capa.ownerId, ownerId));
 
-    const today = new Date().toISOString().split('T')[0];
-    if (overdue) {
-      conditions.push(
-        and(
-          lte(sqliteCapa.dueDate, today),
-          or(
-            eq(sqliteCapa.status, 'open'),
-            eq(sqliteCapa.status, 'investigation'),
-            eq(sqliteCapa.status, 'action_pending'),
-            eq(sqliteCapa.status, 'verification')
-          )
+  const today = new Date().toISOString().split('T')[0];
+  if (overdue) {
+    conditions.push(
+      and(
+        lte(capa.dueDate, today),
+        or(
+          eq(capa.status, 'open'),
+          eq(capa.status, 'investigation'),
+          eq(capa.status, 'action_pending'),
+          eq(capa.status, 'verification')
         )
-      );
-    }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    // Get total count
-    const countResult = await ((await getDb()) as any)
-      .select({ count: count() })
-      .from(sqliteCapa)
-      .where(whereClause);
-    const total = countResult[0]?.count || 0;
-
-    // Get CAPAs with user info
-    const capas = await ((await getDb()) as any)
-      .select({
-        id: sqliteCapa.id,
-        capaNumber: sqliteCapa.capaNumber,
-        title: sqliteCapa.title,
-        sourceType: sqliteCapa.sourceType,
-        sourceId: sqliteCapa.sourceId,
-        deviationId: sqliteCapa.deviationId,
-        complaintId: sqliteCapa.complaintId,
-        auditFindingId: sqliteCapa.auditFindingId,
-        type: sqliteCapa.type,
-        priority: sqliteCapa.priority,
-        status: sqliteCapa.status,
-        rootCauseAnalysis: sqliteCapa.rootCauseAnalysis,
-        rootCauseCategory: sqliteCapa.rootCauseCategory,
-        dueDate: sqliteCapa.dueDate,
-        closedDate: sqliteCapa.closedDate,
-        ownerId: sqliteCapa.ownerId,
-        ownerName: sqliteUsers.name,
-        createdBy: sqliteCapa.createdBy,
-        createdAt: sqliteCapa.createdAt,
-        updatedAt: sqliteCapa.updatedAt,
-      })
-      .from(sqliteCapa)
-      .leftJoin(sqliteUsers, eq(sqliteCapa.ownerId, sqliteUsers.id))
-      .where(whereClause)
-      .orderBy(desc(sqliteCapa.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    // Add action counts and overdue status
-    const capaList: Capa[] = await Promise.all(
-      capas.map(async (capa: DbCapaRow) => {
-        const actions = await ((await getDb()) as any)
-          .select({ status: sqliteCapaActions.status })
-          .from(sqliteCapaActions)
-          .where(eq(sqliteCapaActions.capaId, capa.id));
-
-        const actionCount = actions.length;
-        const actionsCompleted = actions.filter((a: { status: string }) => a.status === 'completed').length;
-        const isOverdue = capa.dueDate && capa.dueDate < today &&
-          !['closed', 'cancelled'].includes(capa.status);
-
-        return {
-          ...capa,
-          sourceType: capa.sourceType as CapaSourceType,
-          type: capa.type as CapaType,
-          priority: capa.priority as CapaPriority,
-          status: capa.status as CapaStatus,
-          actionCount,
-          actionsCompleted,
-          isOverdue,
-        } as Capa;
-      })
+      )
     );
-
-    return { capas: capaList, total };
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Get total count
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const countResult = await (db as any)
+    .select({ count: count() })
+    .from(capa)
+    .where(whereClause);
+  const total = countResult[0]?.count || 0;
+
+  // Get CAPAs with user info
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const capas = await (db as any)
+    .select({
+      id: capa.id,
+      capaNumber: capa.capaNumber,
+      title: capa.title,
+      sourceType: capa.sourceType,
+      sourceId: capa.sourceId,
+      deviationId: capa.deviationId,
+      complaintId: capa.complaintId,
+      auditFindingId: capa.auditFindingId,
+      type: capa.type,
+      priority: capa.priority,
+      status: capa.status,
+      rootCauseAnalysis: capa.rootCauseAnalysis,
+      rootCauseCategory: capa.rootCauseCategory,
+      dueDate: capa.dueDate,
+      closedDate: capa.closedDate,
+      ownerId: capa.ownerId,
+      ownerName: users.name,
+      createdBy: capa.createdBy,
+      createdAt: capa.createdAt,
+      updatedAt: capa.updatedAt,
+    })
+    .from(capa)
+    .leftJoin(users, eq(capa.ownerId, users.id))
+    .where(whereClause)
+    .orderBy(desc(capa.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  // Add action counts and overdue status
+  const capaList: Capa[] = await Promise.all(
+    capas.map(async (capaRow: DbCapaRow) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const actionList = await (db as any)
+        .select({ status: actions.status })
+        .from(actions)
+        .where(eq(actions.capaId, capaRow.id));
+
+      const actionCount = actionList.length;
+      const actionsCompleted = actionList.filter((a: { status: string }) => a.status === 'completed').length;
+      const isOverdue = capaRow.dueDate && capaRow.dueDate < today &&
+        !['closed', 'cancelled'].includes(capaRow.status);
+
+      return {
+        ...capaRow,
+        sourceType: capaRow.sourceType as CapaSourceType,
+        type: capaRow.type as CapaType,
+        priority: capaRow.priority as CapaPriority,
+        status: capaRow.status as CapaStatus,
+        actionCount,
+        actionsCompleted,
+        isOverdue,
+      } as Capa;
+    })
+  );
+
+  return { capas: capaList, total };
 }
 
 /**
  * Get CAPA by ID with basic info
  */
 export async function getCapaById(id: number): Promise<Capa | null> {
-  if (isSqlite()) {
-    const result = await ((await getDb()) as any)
-      .select({
-        id: sqliteCapa.id,
-        capaNumber: sqliteCapa.capaNumber,
-        title: sqliteCapa.title,
-        sourceType: sqliteCapa.sourceType,
-        sourceId: sqliteCapa.sourceId,
-        deviationId: sqliteCapa.deviationId,
-        complaintId: sqliteCapa.complaintId,
-        auditFindingId: sqliteCapa.auditFindingId,
-        type: sqliteCapa.type,
-        priority: sqliteCapa.priority,
-        status: sqliteCapa.status,
-        rootCauseAnalysis: sqliteCapa.rootCauseAnalysis,
-        rootCauseCategory: sqliteCapa.rootCauseCategory,
-        dueDate: sqliteCapa.dueDate,
-        closedDate: sqliteCapa.closedDate,
-        ownerId: sqliteCapa.ownerId,
-        ownerName: sqliteUsers.name,
-        createdBy: sqliteCapa.createdBy,
-        createdAt: sqliteCapa.createdAt,
-        updatedAt: sqliteCapa.updatedAt,
-      })
-      .from(sqliteCapa)
-      .leftJoin(sqliteUsers, eq(sqliteCapa.ownerId, sqliteUsers.id))
-      .where(eq(sqliteCapa.id, id))
-      .limit(1);
+  const { capa: capaTable, users } = getTables();
+  const db = await getDb();
 
-    if (result.length === 0) return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (db as any)
+    .select({
+      id: capaTable.id,
+      capaNumber: capaTable.capaNumber,
+      title: capaTable.title,
+      sourceType: capaTable.sourceType,
+      sourceId: capaTable.sourceId,
+      deviationId: capaTable.deviationId,
+      complaintId: capaTable.complaintId,
+      auditFindingId: capaTable.auditFindingId,
+      type: capaTable.type,
+      priority: capaTable.priority,
+      status: capaTable.status,
+      rootCauseAnalysis: capaTable.rootCauseAnalysis,
+      rootCauseCategory: capaTable.rootCauseCategory,
+      dueDate: capaTable.dueDate,
+      closedDate: capaTable.closedDate,
+      ownerId: capaTable.ownerId,
+      ownerName: users.name,
+      createdBy: capaTable.createdBy,
+      createdAt: capaTable.createdAt,
+      updatedAt: capaTable.updatedAt,
+    })
+    .from(capaTable)
+    .leftJoin(users, eq(capaTable.ownerId, users.id))
+    .where(eq(capaTable.id, id))
+    .limit(1);
 
-    const capa = result[0] as DbCapaRow;
-    const today = new Date().toISOString().split('T')[0];
-    const isOverdue = capa.dueDate && capa.dueDate < today &&
-      !['closed', 'cancelled'].includes(capa.status);
+  if (result.length === 0) return null;
 
-    return {
-      ...capa,
-      sourceType: capa.sourceType as CapaSourceType,
-      type: capa.type as CapaType,
-      priority: capa.priority as CapaPriority,
-      status: capa.status as CapaStatus,
-      isOverdue,
-    } as Capa;
-  }
+  const capaRow = result[0] as DbCapaRow;
+  const today = new Date().toISOString().split('T')[0];
+  const isOverdue = capaRow.dueDate && capaRow.dueDate < today &&
+    !['closed', 'cancelled'].includes(capaRow.status);
 
-  throw new Error('MySQL not implemented for CAPA');
+  return {
+    ...capaRow,
+    sourceType: capaRow.sourceType as CapaSourceType,
+    type: capaRow.type as CapaType,
+    priority: capaRow.priority as CapaPriority,
+    status: capaRow.status as CapaStatus,
+    isOverdue,
+  } as Capa;
 }
 
 /**
  * Get CAPA with full details including actions and effectiveness checks
  */
 export async function getCapaDetails(id: number): Promise<CapaDetails | null> {
-  const capa = await getCapaById(id);
-  if (!capa) return null;
+  const capaData = await getCapaById(id);
+  if (!capaData) return null;
 
-  if (isSqlite()) {
-    // Get actions
-    const actionsResult = await ((await getDb()) as any)
-      .select({
-        id: sqliteCapaActions.id,
-        capaId: sqliteCapaActions.capaId,
-        actionNumber: sqliteCapaActions.actionNumber,
-        description: sqliteCapaActions.description,
-        actionType: sqliteCapaActions.actionType,
-        assigneeId: sqliteCapaActions.assigneeId,
-        assigneeName: sqliteUsers.name,
-        dueDate: sqliteCapaActions.dueDate,
-        status: sqliteCapaActions.status,
-        completionNotes: sqliteCapaActions.completionNotes,
-        completedAt: sqliteCapaActions.completedAt,
-        verifiedBy: sqliteCapaActions.verifiedBy,
-        verifiedAt: sqliteCapaActions.verifiedAt,
-      })
-      .from(sqliteCapaActions)
-      .leftJoin(sqliteUsers, eq(sqliteCapaActions.assigneeId, sqliteUsers.id))
-      .where(eq(sqliteCapaActions.capaId, id))
-      .orderBy(asc(sqliteCapaActions.actionNumber));
+  const { actions: actionsTable, effectiveness, users, deviations } = getTables();
+  const db = await getDb();
 
-    // Get verifier names for actions
-    const actions: CapaAction[] = await Promise.all(
-      actionsResult.map(async (action: DbCapaActionRow) => {
-        let verifiedByName: string | undefined;
-        if (action.verifiedBy) {
-          const verifier = await ((await getDb()) as any)
-            .select({ displayName: sqliteUsers.name })
-            .from(sqliteUsers)
-            .where(eq(sqliteUsers.id, action.verifiedBy))
-            .limit(1);
-          verifiedByName = verifier[0]?.displayName || undefined;
-        }
+  // Get actions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actionsResult = await (db as any)
+    .select({
+      id: actionsTable.id,
+      capaId: actionsTable.capaId,
+      actionNumber: actionsTable.actionNumber,
+      description: actionsTable.description,
+      actionType: actionsTable.actionType,
+      assigneeId: actionsTable.assigneeId,
+      assigneeName: users.name,
+      dueDate: actionsTable.dueDate,
+      status: actionsTable.status,
+      completionNotes: actionsTable.completionNotes,
+      completedAt: actionsTable.completedAt,
+      verifiedBy: actionsTable.verifiedBy,
+      verifiedAt: actionsTable.verifiedAt,
+    })
+    .from(actionsTable)
+    .leftJoin(users, eq(actionsTable.assigneeId, users.id))
+    .where(eq(actionsTable.capaId, id))
+    .orderBy(asc(actionsTable.actionNumber));
 
-        return {
-          ...action,
-          actionType: action.actionType as CapaActionType,
-          status: action.status as CapaActionStatus,
-          assigneeName: action.assigneeName || undefined,
-          verifiedByName,
-        } as CapaAction;
-      })
-    );
-
-    // Get effectiveness checks
-    const effectivenessResult = await ((await getDb()) as any)
-      .select({
-        id: sqliteCapaEffectiveness.id,
-        capaId: sqliteCapaEffectiveness.capaId,
-        checkNumber: sqliteCapaEffectiveness.checkNumber,
-        checkDate: sqliteCapaEffectiveness.checkDate,
-        verifierId: sqliteCapaEffectiveness.verifierId,
-        verifierName: sqliteUsers.name,
-        criteria: sqliteCapaEffectiveness.criteria,
-        result: sqliteCapaEffectiveness.result,
-        evidence: sqliteCapaEffectiveness.evidence,
-        followUpRequired: sqliteCapaEffectiveness.followUpRequired,
-        notes: sqliteCapaEffectiveness.notes,
-      })
-      .from(sqliteCapaEffectiveness)
-      .leftJoin(sqliteUsers, eq(sqliteCapaEffectiveness.verifierId, sqliteUsers.id))
-      .where(eq(sqliteCapaEffectiveness.capaId, id))
-      .orderBy(asc(sqliteCapaEffectiveness.checkNumber));
-
-    const effectivenessChecks: CapaEffectiveness[] = effectivenessResult.map(
-      (check: DbCapaEffectivenessRow) => ({
-        ...check,
-        checkDate: check.checkDate || '',
-        verifierId: check.verifierId || 0,
-        verifierName: check.verifierName || undefined,
-        criteria: check.criteria || '',
-        result: (check.result || 'effective') as CapaEffectivenessResult,
-        followUpRequired: check.followUpRequired || false,
-      })
-    );
-
-    // Get source details if applicable
-    let source: object | undefined;
-    if (capa.deviationId) {
-      const deviation = await ((await getDb()) as any)
-        .select()
-        .from(sqliteDeviations)
-        .where(eq(sqliteDeviations.id, capa.deviationId))
-        .limit(1);
-      if (deviation.length > 0) {
-        source = deviation[0];
+  // Get verifier names for actions
+  const actions: CapaAction[] = await Promise.all(
+    actionsResult.map(async (action: DbCapaActionRow) => {
+      let verifiedByName: string | undefined;
+      if (action.verifiedBy) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const verifier = await (db as any)
+          .select({ displayName: users.name })
+          .from(users)
+          .where(eq(users.id, action.verifiedBy))
+          .limit(1);
+        verifiedByName = verifier[0]?.displayName || undefined;
       }
-    }
 
-    return {
-      ...capa,
-      actions,
-      effectivenessChecks,
-      source,
-    };
+      return {
+        ...action,
+        actionType: action.actionType as CapaActionType,
+        status: action.status as CapaActionStatus,
+        assigneeName: action.assigneeName || undefined,
+        verifiedByName,
+      } as CapaAction;
+    })
+  );
+
+  // Get effectiveness checks
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const effectivenessResult = await (db as any)
+    .select({
+      id: effectiveness.id,
+      capaId: effectiveness.capaId,
+      checkNumber: effectiveness.checkNumber,
+      checkDate: effectiveness.checkDate,
+      verifierId: effectiveness.verifierId,
+      verifierName: users.name,
+      criteria: effectiveness.criteria,
+      result: effectiveness.result,
+      evidence: effectiveness.evidence,
+      followUpRequired: effectiveness.followUpRequired,
+      notes: effectiveness.notes,
+    })
+    .from(effectiveness)
+    .leftJoin(users, eq(effectiveness.verifierId, users.id))
+    .where(eq(effectiveness.capaId, id))
+    .orderBy(asc(effectiveness.checkNumber));
+
+  const effectivenessChecks: CapaEffectiveness[] = effectivenessResult.map(
+    (check: DbCapaEffectivenessRow) => ({
+      ...check,
+      checkDate: check.checkDate || '',
+      verifierId: check.verifierId || 0,
+      verifierName: check.verifierName || undefined,
+      criteria: check.criteria || '',
+      result: (check.result || 'effective') as CapaEffectivenessResult,
+      followUpRequired: check.followUpRequired || false,
+    })
+  );
+
+  // Get source details if applicable
+  let source: object | undefined;
+  if (capaData.deviationId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deviation = await (db as any)
+      .select()
+      .from(deviations)
+      .where(eq(deviations.id, capaData.deviationId))
+      .limit(1);
+    if (deviation.length > 0) {
+      source = deviation[0];
+    }
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  return {
+    ...capaData,
+    actions,
+    effectivenessChecks,
+    source,
+  };
 }
 
 /**
@@ -430,31 +434,36 @@ export async function createCapa(
   data: CapaCreate,
   userId: number
 ): Promise<Capa> {
-  if (isSqlite()) {
-    const capaNumber = await generateCapaNumber();
-    const now = new Date().toISOString();
+  const { capa: capaTable } = getTables();
+  const db = await getDb();
+  const capaNumber = await generateCapaNumber();
+  const now = new Date().toISOString();
 
-    // Determine source IDs based on sourceType
-    let deviationId: number | null = null;
-    let complaintId: number | null = null;
-    let auditFindingId: number | null = null;
+  // Determine source IDs based on sourceType
+  let deviationId: number | null = null;
+  let complaintId: number | null = null;
+  let auditFindingId: number | null = null;
 
-    if (data.sourceId) {
-      switch (data.sourceType) {
-        case 'deviation':
-          deviationId = data.sourceId;
-          break;
-        case 'complaint':
-          complaintId = data.sourceId;
-          break;
-        case 'audit_finding':
-          auditFindingId = data.sourceId;
-          break;
-      }
+  if (data.sourceId) {
+    switch (data.sourceType) {
+      case 'deviation':
+        deviationId = data.sourceId;
+        break;
+      case 'complaint':
+        complaintId = data.sourceId;
+        break;
+      case 'audit_finding':
+        auditFindingId = data.sourceId;
+        break;
     }
+  }
 
-    const result = await ((await getDb()) as any)
-      .insert(sqliteCapa)
+  let capaId: number;
+
+  if (isSqlite()) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (db as any)
+      .insert(capaTable)
       .values({
         capaNumber,
         title: data.title,
@@ -474,24 +483,53 @@ export async function createCapa(
         createdAt: now,
         updatedAt: now,
       })
-      .returning({ id: sqliteCapa.id });
-
-    const capaId = result[0].id;
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'CREATE',
-      tableName: 'capa',
-      recordId: capaId,
-      newValue: { capaNumber, title: data.title },
-    });
-
-    const capa = await getCapaById(capaId);
-    return capa!;
+      .returning({ id: capaTable.id });
+    capaId = result[0].id;
+  } else {
+    // MySQL - insert and get last insert ID
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any)
+      .insert(capaTable)
+      .values({
+        capaNumber,
+        title: data.title,
+        sourceType: data.sourceType,
+        sourceId: data.sourceId || null,
+        deviationId,
+        complaintId,
+        auditFindingId,
+        type: data.type,
+        priority: data.priority,
+        status: 'open',
+        rootCauseAnalysis: data.rootCauseAnalysis || null,
+        rootCauseCategory: data.rootCauseCategory || null,
+        dueDate: data.dueDate,
+        ownerId: data.ownerId,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      });
+    // Get the inserted CAPA by capaNumber
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inserted = await (db as any)
+      .select({ id: capaTable.id })
+      .from(capaTable)
+      .where(eq(capaTable.capaNumber, capaNumber))
+      .limit(1);
+    capaId = inserted[0].id;
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'CREATE',
+    tableName: 'capa',
+    recordId: capaId,
+    newValue: { capaNumber, title: data.title },
+  });
+
+  const createdCapa = await getCapaById(capaId);
+  return createdCapa!;
 }
 
 /**
@@ -502,41 +540,41 @@ export async function createFromDeviation(
   capaData: Omit<CapaCreate, 'sourceType' | 'sourceId'>,
   userId: number
 ): Promise<Capa> {
-  if (isSqlite()) {
-    // Verify deviation exists
-    const deviation = await ((await getDb()) as any)
-      .select()
-      .from(sqliteDeviations)
-      .where(eq(sqliteDeviations.id, deviationId))
-      .limit(1);
+  const { deviations } = getTables();
+  const db = await getDb();
 
-    if (deviation.length === 0) {
-      throw new Error('Deviation not found');
-    }
+  // Verify deviation exists
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const deviation = await (db as any)
+    .select()
+    .from(deviations)
+    .where(eq(deviations.id, deviationId))
+    .limit(1);
 
-    // Create CAPA linked to deviation
-    const capa = await createCapa(
-      {
-        ...capaData,
-        sourceType: 'deviation',
-        sourceId: deviationId,
-      },
-      userId
-    );
-
-    // Create audit log for deviation link
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'capa',
-      recordId: capa.id,
-      newValue: { deviationId, deviationNumber: deviation[0].deviationNumber },
-    });
-
-    return capa;
+  if (deviation.length === 0) {
+    throw new Error('Deviation not found');
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  // Create CAPA linked to deviation
+  const capa = await createCapa(
+    {
+      ...capaData,
+      sourceType: 'deviation',
+      sourceId: deviationId,
+    },
+    userId
+  );
+
+  // Create audit log for deviation link
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'capa',
+    recordId: capa.id,
+    newValue: { deviationId, deviationNumber: deviation[0].deviationNumber },
+  });
+
+  return capa;
 }
 
 /**
@@ -547,43 +585,43 @@ export async function updateCapa(
   data: CapaUpdate,
   userId: number
 ): Promise<Capa> {
-  if (isSqlite()) {
-    const existing = await getCapaById(id);
-    if (!existing) {
-      throw new Error('CAPA not found');
-    }
+  const { capa: capaTable } = getTables();
+  const db = await getDb();
 
-    const now = new Date().toISOString();
-    const updateData: Record<string, unknown> = { updatedAt: now };
-
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.priority !== undefined) updateData.priority = data.priority;
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.rootCauseAnalysis !== undefined) updateData.rootCauseAnalysis = data.rootCauseAnalysis;
-    if (data.rootCauseCategory !== undefined) updateData.rootCauseCategory = data.rootCauseCategory;
-    if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
-    if (data.ownerId !== undefined) updateData.ownerId = data.ownerId;
-
-    await ((await getDb()) as any)
-      .update(sqliteCapa)
-      .set(updateData)
-      .where(eq(sqliteCapa.id, id));
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'capa',
-      recordId: id,
-      oldValue: { status: existing.status, priority: existing.priority },
-      newValue: updateData,
-    });
-
-    const updated = await getCapaById(id);
-    return updated!;
+  const existing = await getCapaById(id);
+  if (!existing) {
+    throw new Error('CAPA not found');
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  const now = new Date().toISOString();
+  const updateData: Record<string, unknown> = { updatedAt: now };
+
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.priority !== undefined) updateData.priority = data.priority;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.rootCauseAnalysis !== undefined) updateData.rootCauseAnalysis = data.rootCauseAnalysis;
+  if (data.rootCauseCategory !== undefined) updateData.rootCauseCategory = data.rootCauseCategory;
+  if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+  if (data.ownerId !== undefined) updateData.ownerId = data.ownerId;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(capaTable)
+    .set(updateData)
+    .where(eq(capaTable.id, id));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'capa',
+    recordId: id,
+    oldValue: { status: existing.status, priority: existing.priority },
+    newValue: updateData,
+  });
+
+  const updated = await getCapaById(id);
+  return updated!;
 }
 
 /**
@@ -594,53 +632,53 @@ export async function closeCapa(
   closureNotes: string | null,
   userId: number
 ): Promise<Capa> {
-  if (isSqlite()) {
-    const existing = await getCapaDetails(id);
-    if (!existing) {
-      throw new Error('CAPA not found');
-    }
+  const { capa: capaTable } = getTables();
+  const db = await getDb();
 
-    // Verify all actions are completed or verified
-    const incompleteActions = existing.actions.filter(
-      (a: CapaAction) => !['completed'].includes(a.status)
-    );
-    if (incompleteActions.length > 0) {
-      throw new Error(`Cannot close CAPA: ${incompleteActions.length} action(s) not completed`);
-    }
-
-    // Verify at least one effectiveness check exists and is effective
-    const effectiveChecks = existing.effectivenessChecks.filter(
-      (e: CapaEffectiveness) => e.result === 'effective'
-    );
-    if (effectiveChecks.length === 0) {
-      throw new Error('Cannot close CAPA: No effective verification recorded');
-    }
-
-    const now = new Date().toISOString();
-
-    await ((await getDb()) as any)
-      .update(sqliteCapa)
-      .set({
-        status: 'closed',
-        closedDate: now,
-        updatedAt: now,
-      })
-      .where(eq(sqliteCapa.id, id));
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'capa',
-      recordId: id,
-      newValue: { closedDate: now, closureNotes },
-    });
-
-    const closed = await getCapaById(id);
-    return closed!;
+  const existing = await getCapaDetails(id);
+  if (!existing) {
+    throw new Error('CAPA not found');
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  // Verify all actions are completed or verified
+  const incompleteActions = existing.actions.filter(
+    (a: CapaAction) => !['completed'].includes(a.status)
+  );
+  if (incompleteActions.length > 0) {
+    throw new Error(`Cannot close CAPA: ${incompleteActions.length} action(s) not completed`);
+  }
+
+  // Verify at least one effectiveness check exists and is effective
+  const effectiveChecks = existing.effectivenessChecks.filter(
+    (e: CapaEffectiveness) => e.result === 'effective'
+  );
+  if (effectiveChecks.length === 0) {
+    throw new Error('Cannot close CAPA: No effective verification recorded');
+  }
+
+  const now = new Date().toISOString();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(capaTable)
+    .set({
+      status: 'closed',
+      closedDate: now,
+      updatedAt: now,
+    })
+    .where(eq(capaTable.id, id));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'capa',
+    recordId: id,
+    newValue: { closedDate: now, closureNotes },
+  });
+
+  const closed = await getCapaById(id);
+  return closed!;
 }
 
 // ============================================
@@ -655,26 +693,33 @@ export async function addAction(
   data: CapaActionCreate,
   userId: number
 ): Promise<CapaAction> {
+  const { capa: capaTable, actions: actionsTable, users } = getTables();
+  const db = await getDb();
+
+  // Verify CAPA exists
+  const capa = await getCapaById(capaId);
+  if (!capa) {
+    throw new Error('CAPA not found');
+  }
+
+  // Get next action number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existingActions = await (db as any)
+    .select({ actionNumber: actionsTable.actionNumber })
+    .from(actionsTable)
+    .where(eq(actionsTable.capaId, capaId))
+    .orderBy(desc(actionsTable.actionNumber))
+    .limit(1);
+
+  const nextActionNumber = existingActions.length > 0 ? existingActions[0].actionNumber + 1 : 1;
+  const now = new Date().toISOString();
+
+  let actionId: number;
+
   if (isSqlite()) {
-    // Verify CAPA exists
-    const capa = await getCapaById(capaId);
-    if (!capa) {
-      throw new Error('CAPA not found');
-    }
-
-    // Get next action number
-    const actions = await ((await getDb()) as any)
-      .select({ actionNumber: sqliteCapaActions.actionNumber })
-      .from(sqliteCapaActions)
-      .where(eq(sqliteCapaActions.capaId, capaId))
-      .orderBy(desc(sqliteCapaActions.actionNumber))
-      .limit(1);
-
-    const nextActionNumber = actions.length > 0 ? actions[0].actionNumber + 1 : 1;
-    const now = new Date().toISOString();
-
-    const result = await ((await getDb()) as any)
-      .insert(sqliteCapaActions)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (db as any)
+      .insert(actionsTable)
       .values({
         capaId,
         actionNumber: nextActionNumber,
@@ -685,59 +730,80 @@ export async function addAction(
         status: 'pending',
         createdAt: now,
       })
-      .returning({ id: sqliteCapaActions.id });
-
-    const actionId = result[0].id;
-
-    // Update CAPA status to action_pending if still in investigation
-    if (['open', 'investigation'].includes(capa.status)) {
-      await ((await getDb()) as any)
-        .update(sqliteCapa)
-        .set({ status: 'action_pending', updatedAt: now })
-        .where(eq(sqliteCapa.id, capaId));
-    }
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'CREATE',
-      tableName: 'capa_actions',
-      recordId: actionId,
-      newValue: { capaId, actionNumber: nextActionNumber, description: data.description },
-    });
-
-    // Fetch and return the action with assignee name
-    const actionResult = await ((await getDb()) as any)
-      .select({
-        id: sqliteCapaActions.id,
-        capaId: sqliteCapaActions.capaId,
-        actionNumber: sqliteCapaActions.actionNumber,
-        description: sqliteCapaActions.description,
-        actionType: sqliteCapaActions.actionType,
-        assigneeId: sqliteCapaActions.assigneeId,
-        assigneeName: sqliteUsers.name,
-        dueDate: sqliteCapaActions.dueDate,
-        status: sqliteCapaActions.status,
-        completionNotes: sqliteCapaActions.completionNotes,
-        completedAt: sqliteCapaActions.completedAt,
-        verifiedBy: sqliteCapaActions.verifiedBy,
-        verifiedAt: sqliteCapaActions.verifiedAt,
-      })
-      .from(sqliteCapaActions)
-      .leftJoin(sqliteUsers, eq(sqliteCapaActions.assigneeId, sqliteUsers.id))
-      .where(eq(sqliteCapaActions.id, actionId))
+      .returning({ id: actionsTable.id });
+    actionId = result[0].id;
+  } else {
+    // MySQL - insert and get by capaId and actionNumber
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any)
+      .insert(actionsTable)
+      .values({
+        capaId,
+        actionNumber: nextActionNumber,
+        description: data.description,
+        actionType: data.actionType,
+        assigneeId: data.assigneeId,
+        dueDate: data.dueDate,
+        status: 'pending',
+        createdAt: now,
+      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inserted = await (db as any)
+      .select({ id: actionsTable.id })
+      .from(actionsTable)
+      .where(and(eq(actionsTable.capaId, capaId), eq(actionsTable.actionNumber, nextActionNumber)))
       .limit(1);
-
-    const action = actionResult[0] as DbCapaActionRow;
-    return {
-      ...action,
-      actionType: action.actionType as CapaActionType,
-      status: action.status as CapaActionStatus,
-      assigneeName: action.assigneeName || undefined,
-    } as CapaAction;
+    actionId = inserted[0].id;
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  // Update CAPA status to action_pending if still in investigation
+  if (['open', 'investigation'].includes(capa.status)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any)
+      .update(capaTable)
+      .set({ status: 'action_pending', updatedAt: now })
+      .where(eq(capaTable.id, capaId));
+  }
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'CREATE',
+    tableName: 'capa_actions',
+    recordId: actionId,
+    newValue: { capaId, actionNumber: nextActionNumber, description: data.description },
+  });
+
+  // Fetch and return the action with assignee name
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actionResult = await (db as any)
+    .select({
+      id: actionsTable.id,
+      capaId: actionsTable.capaId,
+      actionNumber: actionsTable.actionNumber,
+      description: actionsTable.description,
+      actionType: actionsTable.actionType,
+      assigneeId: actionsTable.assigneeId,
+      assigneeName: users.name,
+      dueDate: actionsTable.dueDate,
+      status: actionsTable.status,
+      completionNotes: actionsTable.completionNotes,
+      completedAt: actionsTable.completedAt,
+      verifiedBy: actionsTable.verifiedBy,
+      verifiedAt: actionsTable.verifiedAt,
+    })
+    .from(actionsTable)
+    .leftJoin(users, eq(actionsTable.assigneeId, users.id))
+    .where(eq(actionsTable.id, actionId))
+    .limit(1);
+
+  const action = actionResult[0] as DbCapaActionRow;
+  return {
+    ...action,
+    actionType: action.actionType as CapaActionType,
+    status: action.status as CapaActionStatus,
+    assigneeName: action.assigneeName || undefined,
+  } as CapaAction;
 }
 
 /**
@@ -748,75 +814,77 @@ export async function updateAction(
   data: CapaActionUpdate,
   userId: number
 ): Promise<CapaAction> {
-  if (isSqlite()) {
-    // Get existing action
-    const existing = await ((await getDb()) as any)
-      .select()
-      .from(sqliteCapaActions)
-      .where(eq(sqliteCapaActions.id, actionId))
-      .limit(1);
+  const { actions: actionsTable, users } = getTables();
+  const db = await getDb();
 
-    if (existing.length === 0) {
-      throw new Error('Action not found');
-    }
+  // Get existing action
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existing = await (db as any)
+    .select()
+    .from(actionsTable)
+    .where(eq(actionsTable.id, actionId))
+    .limit(1);
 
-    const updateData: Record<string, unknown> = {};
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.completionNotes !== undefined) updateData.completionNotes = data.completionNotes;
-    if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
-
-    // If marking as completed, set completedAt
-    if (data.status === 'completed') {
-      updateData.completedAt = new Date().toISOString();
-    }
-
-    await ((await getDb()) as any)
-      .update(sqliteCapaActions)
-      .set(updateData)
-      .where(eq(sqliteCapaActions.id, actionId));
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'capa_actions',
-      recordId: actionId,
-      oldValue: { status: existing[0].status },
-      newValue: updateData,
-    });
-
-    // Fetch and return updated action
-    const actionResult = await ((await getDb()) as any)
-      .select({
-        id: sqliteCapaActions.id,
-        capaId: sqliteCapaActions.capaId,
-        actionNumber: sqliteCapaActions.actionNumber,
-        description: sqliteCapaActions.description,
-        actionType: sqliteCapaActions.actionType,
-        assigneeId: sqliteCapaActions.assigneeId,
-        assigneeName: sqliteUsers.name,
-        dueDate: sqliteCapaActions.dueDate,
-        status: sqliteCapaActions.status,
-        completionNotes: sqliteCapaActions.completionNotes,
-        completedAt: sqliteCapaActions.completedAt,
-        verifiedBy: sqliteCapaActions.verifiedBy,
-        verifiedAt: sqliteCapaActions.verifiedAt,
-      })
-      .from(sqliteCapaActions)
-      .leftJoin(sqliteUsers, eq(sqliteCapaActions.assigneeId, sqliteUsers.id))
-      .where(eq(sqliteCapaActions.id, actionId))
-      .limit(1);
-
-    const action = actionResult[0] as DbCapaActionRow;
-    return {
-      ...action,
-      actionType: action.actionType as CapaActionType,
-      status: action.status as CapaActionStatus,
-      assigneeName: action.assigneeName || undefined,
-    } as CapaAction;
+  if (existing.length === 0) {
+    throw new Error('Action not found');
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  const updateData: Record<string, unknown> = {};
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.completionNotes !== undefined) updateData.completionNotes = data.completionNotes;
+  if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+
+  // If marking as completed, set completedAt
+  if (data.status === 'completed') {
+    updateData.completedAt = new Date().toISOString();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(actionsTable)
+    .set(updateData)
+    .where(eq(actionsTable.id, actionId));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'capa_actions',
+    recordId: actionId,
+    oldValue: { status: existing[0].status },
+    newValue: updateData,
+  });
+
+  // Fetch and return updated action
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actionResult = await (db as any)
+    .select({
+      id: actionsTable.id,
+      capaId: actionsTable.capaId,
+      actionNumber: actionsTable.actionNumber,
+      description: actionsTable.description,
+      actionType: actionsTable.actionType,
+      assigneeId: actionsTable.assigneeId,
+      assigneeName: users.name,
+      dueDate: actionsTable.dueDate,
+      status: actionsTable.status,
+      completionNotes: actionsTable.completionNotes,
+      completedAt: actionsTable.completedAt,
+      verifiedBy: actionsTable.verifiedBy,
+      verifiedAt: actionsTable.verifiedAt,
+    })
+    .from(actionsTable)
+    .leftJoin(users, eq(actionsTable.assigneeId, users.id))
+    .where(eq(actionsTable.id, actionId))
+    .limit(1);
+
+  const action = actionResult[0] as DbCapaActionRow;
+  return {
+    ...action,
+    actionType: action.actionType as CapaActionType,
+    status: action.status as CapaActionStatus,
+    assigneeName: action.assigneeName || undefined,
+  } as CapaAction;
 }
 
 /**
@@ -826,104 +894,109 @@ export async function verifyAction(
   actionId: number,
   userId: number
 ): Promise<CapaAction> {
-  if (isSqlite()) {
-    const existing = await ((await getDb()) as any)
-      .select()
-      .from(sqliteCapaActions)
-      .where(eq(sqliteCapaActions.id, actionId))
-      .limit(1);
+  const { capa: capaTable, actions: actionsTable, users } = getTables();
+  const db = await getDb();
 
-    if (existing.length === 0) {
-      throw new Error('Action not found');
-    }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existing = await (db as any)
+    .select()
+    .from(actionsTable)
+    .where(eq(actionsTable.id, actionId))
+    .limit(1);
 
-    if (existing[0].status !== 'completed') {
-      throw new Error('Can only verify completed actions');
-    }
-
-    const now = new Date().toISOString();
-
-    await ((await getDb()) as any)
-      .update(sqliteCapaActions)
-      .set({
-        verifiedBy: userId,
-        verifiedAt: now,
-      })
-      .where(eq(sqliteCapaActions.id, actionId));
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'APPROVE',
-      tableName: 'capa_actions',
-      recordId: actionId,
-      newValue: { verifiedBy: userId, verifiedAt: now },
-    });
-
-    // Check if all actions are now verified - update CAPA status
-    const capaId = existing[0].capaId;
-    const allActions = await ((await getDb()) as any)
-      .select({ status: sqliteCapaActions.status, verifiedBy: sqliteCapaActions.verifiedBy })
-      .from(sqliteCapaActions)
-      .where(eq(sqliteCapaActions.capaId, capaId));
-
-    const allVerified = allActions.every(
-      (a: { status: string; verifiedBy: number | null }) =>
-        a.status === 'completed' && a.verifiedBy !== null
-    );
-
-    if (allVerified) {
-      await ((await getDb()) as any)
-        .update(sqliteCapa)
-        .set({ status: 'verification', updatedAt: now })
-        .where(eq(sqliteCapa.id, capaId));
-    }
-
-    // Fetch and return updated action
-    const actionResult = await ((await getDb()) as any)
-      .select({
-        id: sqliteCapaActions.id,
-        capaId: sqliteCapaActions.capaId,
-        actionNumber: sqliteCapaActions.actionNumber,
-        description: sqliteCapaActions.description,
-        actionType: sqliteCapaActions.actionType,
-        assigneeId: sqliteCapaActions.assigneeId,
-        assigneeName: sqliteUsers.name,
-        dueDate: sqliteCapaActions.dueDate,
-        status: sqliteCapaActions.status,
-        completionNotes: sqliteCapaActions.completionNotes,
-        completedAt: sqliteCapaActions.completedAt,
-        verifiedBy: sqliteCapaActions.verifiedBy,
-        verifiedAt: sqliteCapaActions.verifiedAt,
-      })
-      .from(sqliteCapaActions)
-      .leftJoin(sqliteUsers, eq(sqliteCapaActions.assigneeId, sqliteUsers.id))
-      .where(eq(sqliteCapaActions.id, actionId))
-      .limit(1);
-
-    const action = actionResult[0] as DbCapaActionRow;
-
-    // Get verifier name
-    let verifiedByName: string | undefined;
-    if (action.verifiedBy) {
-      const verifier = await ((await getDb()) as any)
-        .select({ displayName: sqliteUsers.name })
-        .from(sqliteUsers)
-        .where(eq(sqliteUsers.id, action.verifiedBy))
-        .limit(1);
-      verifiedByName = verifier[0]?.displayName || undefined;
-    }
-
-    return {
-      ...action,
-      actionType: action.actionType as CapaActionType,
-      status: action.status as CapaActionStatus,
-      assigneeName: action.assigneeName || undefined,
-      verifiedByName,
-    } as CapaAction;
+  if (existing.length === 0) {
+    throw new Error('Action not found');
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  if (existing[0].status !== 'completed') {
+    throw new Error('Can only verify completed actions');
+  }
+
+  const now = new Date().toISOString();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db as any)
+    .update(actionsTable)
+    .set({
+      verifiedBy: userId,
+      verifiedAt: now,
+    })
+    .where(eq(actionsTable.id, actionId));
+
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'APPROVE',
+    tableName: 'capa_actions',
+    recordId: actionId,
+    newValue: { verifiedBy: userId, verifiedAt: now },
+  });
+
+  // Check if all actions are now verified - update CAPA status
+  const capaId = existing[0].capaId;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allActions = await (db as any)
+    .select({ status: actionsTable.status, verifiedBy: actionsTable.verifiedBy })
+    .from(actionsTable)
+    .where(eq(actionsTable.capaId, capaId));
+
+  const allVerified = allActions.every(
+    (a: { status: string; verifiedBy: number | null }) =>
+      a.status === 'completed' && a.verifiedBy !== null
+  );
+
+  if (allVerified) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any)
+      .update(capaTable)
+      .set({ status: 'verification', updatedAt: now })
+      .where(eq(capaTable.id, capaId));
+  }
+
+  // Fetch and return updated action
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actionResult = await (db as any)
+    .select({
+      id: actionsTable.id,
+      capaId: actionsTable.capaId,
+      actionNumber: actionsTable.actionNumber,
+      description: actionsTable.description,
+      actionType: actionsTable.actionType,
+      assigneeId: actionsTable.assigneeId,
+      assigneeName: users.name,
+      dueDate: actionsTable.dueDate,
+      status: actionsTable.status,
+      completionNotes: actionsTable.completionNotes,
+      completedAt: actionsTable.completedAt,
+      verifiedBy: actionsTable.verifiedBy,
+      verifiedAt: actionsTable.verifiedAt,
+    })
+    .from(actionsTable)
+    .leftJoin(users, eq(actionsTable.assigneeId, users.id))
+    .where(eq(actionsTable.id, actionId))
+    .limit(1);
+
+  const action = actionResult[0] as DbCapaActionRow;
+
+  // Get verifier name
+  let verifiedByName: string | undefined;
+  if (action.verifiedBy) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const verifier = await (db as any)
+      .select({ displayName: users.name })
+      .from(users)
+      .where(eq(users.id, action.verifiedBy))
+      .limit(1);
+    verifiedByName = verifier[0]?.displayName || undefined;
+  }
+
+  return {
+    ...action,
+    actionType: action.actionType as CapaActionType,
+    status: action.status as CapaActionStatus,
+    assigneeName: action.assigneeName || undefined,
+    verifiedByName,
+  } as CapaAction;
 }
 
 // ============================================
@@ -938,26 +1011,33 @@ export async function recordEffectiveness(
   data: CapaEffectivenessCreate,
   userId: number
 ): Promise<CapaEffectiveness> {
+  const { effectiveness, users } = getTables();
+  const db = await getDb();
+
+  // Verify CAPA exists
+  const capa = await getCapaById(capaId);
+  if (!capa) {
+    throw new Error('CAPA not found');
+  }
+
+  // Get next check number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const checks = await (db as any)
+    .select({ checkNumber: effectiveness.checkNumber })
+    .from(effectiveness)
+    .where(eq(effectiveness.capaId, capaId))
+    .orderBy(desc(effectiveness.checkNumber))
+    .limit(1);
+
+  const nextCheckNumber = checks.length > 0 ? checks[0].checkNumber + 1 : 1;
+  const now = new Date().toISOString();
+
+  let checkId: number;
+
   if (isSqlite()) {
-    // Verify CAPA exists
-    const capa = await getCapaById(capaId);
-    if (!capa) {
-      throw new Error('CAPA not found');
-    }
-
-    // Get next check number
-    const checks = await ((await getDb()) as any)
-      .select({ checkNumber: sqliteCapaEffectiveness.checkNumber })
-      .from(sqliteCapaEffectiveness)
-      .where(eq(sqliteCapaEffectiveness.capaId, capaId))
-      .orderBy(desc(sqliteCapaEffectiveness.checkNumber))
-      .limit(1);
-
-    const nextCheckNumber = checks.length > 0 ? checks[0].checkNumber + 1 : 1;
-    const now = new Date().toISOString();
-
-    const result = await ((await getDb()) as any)
-      .insert(sqliteCapaEffectiveness)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (db as any)
+      .insert(effectiveness)
       .values({
         capaId,
         checkNumber: nextCheckNumber,
@@ -970,52 +1050,74 @@ export async function recordEffectiveness(
         notes: data.notes || null,
         createdAt: now,
       })
-      .returning({ id: sqliteCapaEffectiveness.id });
-
-    const checkId = result[0].id;
-
-    // Create audit log
-    await createAuditLog({
-      userId,
-      action: 'UPDATE',
-      tableName: 'capa_effectiveness',
-      recordId: checkId,
-      newValue: { capaId, checkNumber: nextCheckNumber, result: data.result },
-    });
-
-    // Fetch and return the effectiveness check
-    const checkResult = await ((await getDb()) as any)
-      .select({
-        id: sqliteCapaEffectiveness.id,
-        capaId: sqliteCapaEffectiveness.capaId,
-        checkNumber: sqliteCapaEffectiveness.checkNumber,
-        checkDate: sqliteCapaEffectiveness.checkDate,
-        verifierId: sqliteCapaEffectiveness.verifierId,
-        verifierName: sqliteUsers.name,
-        criteria: sqliteCapaEffectiveness.criteria,
-        result: sqliteCapaEffectiveness.result,
-        evidence: sqliteCapaEffectiveness.evidence,
-        followUpRequired: sqliteCapaEffectiveness.followUpRequired,
-        notes: sqliteCapaEffectiveness.notes,
-      })
-      .from(sqliteCapaEffectiveness)
-      .leftJoin(sqliteUsers, eq(sqliteCapaEffectiveness.verifierId, sqliteUsers.id))
-      .where(eq(sqliteCapaEffectiveness.id, checkId))
+      .returning({ id: effectiveness.id });
+    checkId = result[0].id;
+  } else {
+    // MySQL - insert and get by capaId and checkNumber
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any)
+      .insert(effectiveness)
+      .values({
+        capaId,
+        checkNumber: nextCheckNumber,
+        checkDate: data.checkDate || now.split('T')[0],
+        verifierId: userId,
+        criteria: data.criteria,
+        result: data.result,
+        evidence: data.evidence || null,
+        followUpRequired: data.followUpRequired || false,
+        notes: data.notes || null,
+        createdAt: now,
+      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inserted = await (db as any)
+      .select({ id: effectiveness.id })
+      .from(effectiveness)
+      .where(and(eq(effectiveness.capaId, capaId), eq(effectiveness.checkNumber, nextCheckNumber)))
       .limit(1);
-
-    const check = checkResult[0] as DbCapaEffectivenessRow;
-    return {
-      ...check,
-      checkDate: check.checkDate || '',
-      verifierId: check.verifierId || userId,
-      verifierName: check.verifierName || undefined,
-      criteria: check.criteria || '',
-      result: (check.result || data.result) as CapaEffectivenessResult,
-      followUpRequired: check.followUpRequired || false,
-    } as CapaEffectiveness;
+    checkId = inserted[0].id;
   }
 
-  throw new Error('MySQL not implemented for CAPA');
+  // Create audit log
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'capa_effectiveness',
+    recordId: checkId,
+    newValue: { capaId, checkNumber: nextCheckNumber, result: data.result },
+  });
+
+  // Fetch and return the effectiveness check
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const checkResult = await (db as any)
+    .select({
+      id: effectiveness.id,
+      capaId: effectiveness.capaId,
+      checkNumber: effectiveness.checkNumber,
+      checkDate: effectiveness.checkDate,
+      verifierId: effectiveness.verifierId,
+      verifierName: users.name,
+      criteria: effectiveness.criteria,
+      result: effectiveness.result,
+      evidence: effectiveness.evidence,
+      followUpRequired: effectiveness.followUpRequired,
+      notes: effectiveness.notes,
+    })
+    .from(effectiveness)
+    .leftJoin(users, eq(effectiveness.verifierId, users.id))
+    .where(eq(effectiveness.id, checkId))
+    .limit(1);
+
+  const check = checkResult[0] as DbCapaEffectivenessRow;
+  return {
+    ...check,
+    checkDate: check.checkDate || '',
+    verifierId: check.verifierId || userId,
+    verifierName: check.verifierName || undefined,
+    criteria: check.criteria || '',
+    result: (check.result || data.result) as CapaEffectivenessResult,
+    followUpRequired: check.followUpRequired || false,
+  } as CapaEffectiveness;
 }
 
 // ============================================
@@ -1026,99 +1128,100 @@ export async function recordEffectiveness(
  * Get CAPA dashboard statistics
  */
 export async function getCapaDashboard(): Promise<CapaDashboard> {
-  if (isSqlite()) {
-    const today = new Date().toISOString().split('T')[0];
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    const monthStartStr = monthStart.toISOString().split('T')[0];
+  const { capa: capaTable, effectiveness } = getTables();
+  const db = await getDb();
 
-    // Get all CAPAs
-    const allCapas = await ((await getDb()) as any)
-      .select({
-        status: sqliteCapa.status,
-        priority: sqliteCapa.priority,
-        dueDate: sqliteCapa.dueDate,
-        closedDate: sqliteCapa.closedDate,
-        createdAt: sqliteCapa.createdAt,
-      })
-      .from(sqliteCapa);
+  const today = new Date().toISOString().split('T')[0];
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const monthStartStr = monthStart.toISOString().split('T')[0];
 
-    // Calculate statistics
-    const openStatuses = ['open', 'investigation', 'action_pending', 'verification'];
-    const totalOpen = allCapas.filter((c: { status: string }) => openStatuses.includes(c.status)).length;
+  // Get all CAPAs
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allCapas = await (db as any)
+    .select({
+      status: capaTable.status,
+      priority: capaTable.priority,
+      dueDate: capaTable.dueDate,
+      closedDate: capaTable.closedDate,
+      createdAt: capaTable.createdAt,
+    })
+    .from(capaTable);
 
-    const byStatus: Record<CapaStatus, number> = {
-      open: 0,
-      investigation: 0,
-      action_pending: 0,
-      verification: 0,
-      closed: 0,
-      cancelled: 0,
-    };
+  // Calculate statistics
+  const openStatuses = ['open', 'investigation', 'action_pending', 'verification'];
+  const totalOpen = allCapas.filter((c: { status: string }) => openStatuses.includes(c.status)).length;
 
-    const byPriority: Record<CapaPriority, number> = {
-      low: 0,
-      medium: 0,
-      high: 0,
-      critical: 0,
-    };
+  const byStatus: Record<CapaStatus, number> = {
+    open: 0,
+    investigation: 0,
+    action_pending: 0,
+    verification: 0,
+    closed: 0,
+    cancelled: 0,
+  };
 
-    let overdue = 0;
-    let closedThisMonth = 0;
-    let totalClosureTime = 0;
-    let closedCount = 0;
+  const byPriority: Record<CapaPriority, number> = {
+    low: 0,
+    medium: 0,
+    high: 0,
+    critical: 0,
+  };
 
-    allCapas.forEach((capa: { status: string; priority: string; dueDate: string | null; closedDate: string | null; createdAt: string }) => {
-      byStatus[capa.status as CapaStatus]++;
-      byPriority[capa.priority as CapaPriority]++;
+  let overdue = 0;
+  let closedThisMonth = 0;
+  let totalClosureTime = 0;
+  let closedCount = 0;
 
-      // Check overdue
-      if (
-        capa.dueDate &&
-        capa.dueDate < today &&
-        openStatuses.includes(capa.status)
-      ) {
-        overdue++;
-      }
+  allCapas.forEach((capa: { status: string; priority: string; dueDate: string | null; closedDate: string | null; createdAt: string }) => {
+    byStatus[capa.status as CapaStatus]++;
+    byPriority[capa.priority as CapaPriority]++;
 
-      // Closed this month
-      if (capa.closedDate && capa.closedDate >= monthStartStr) {
-        closedThisMonth++;
-      }
+    // Check overdue
+    if (
+      capa.dueDate &&
+      capa.dueDate < today &&
+      openStatuses.includes(capa.status)
+    ) {
+      overdue++;
+    }
 
-      // Calculate closure time
-      if (capa.closedDate) {
-        const created = new Date(capa.createdAt);
-        const closed = new Date(capa.closedDate);
-        const days = Math.ceil((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-        totalClosureTime += days;
-        closedCount++;
-      }
-    });
+    // Closed this month
+    if (capa.closedDate && capa.closedDate >= monthStartStr) {
+      closedThisMonth++;
+    }
 
-    const avgClosureTime = closedCount > 0 ? Math.round(totalClosureTime / closedCount) : 0;
+    // Calculate closure time
+    if (capa.closedDate) {
+      const created = new Date(capa.createdAt);
+      const closed = new Date(capa.closedDate);
+      const days = Math.ceil((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+      totalClosureTime += days;
+      closedCount++;
+    }
+  });
 
-    // Calculate effectiveness rate
-    const effectivenessChecks = await ((await getDb()) as any)
-      .select({ result: sqliteCapaEffectiveness.result })
-      .from(sqliteCapaEffectiveness);
+  const avgClosureTime = closedCount > 0 ? Math.round(totalClosureTime / closedCount) : 0;
 
-    const totalChecks = effectivenessChecks.length;
-    const effectiveChecks = effectivenessChecks.filter(
-      (c: { result: string | null }) => c.result === 'effective'
-    ).length;
-    const effectivenessRate = totalChecks > 0 ? Math.round((effectiveChecks / totalChecks) * 100) : 0;
+  // Calculate effectiveness rate
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const effectivenessChecks = await (db as any)
+    .select({ result: effectiveness.result })
+    .from(effectiveness);
 
-    return {
-      totalOpen,
-      byStatus,
-      byPriority,
-      overdue,
-      closedThisMonth,
-      avgClosureTime,
-      effectivenessRate,
-    };
-  }
+  const totalChecks = effectivenessChecks.length;
+  const effectiveChecks = effectivenessChecks.filter(
+    (c: { result: string | null }) => c.result === 'effective'
+  ).length;
+  const effectivenessRate = totalChecks > 0 ? Math.round((effectiveChecks / totalChecks) * 100) : 0;
 
-  throw new Error('MySQL not implemented for CAPA');
+  return {
+    totalOpen,
+    byStatus,
+    byPriority,
+    overdue,
+    closedThisMonth,
+    avgClosureTime,
+    effectivenessRate,
+  };
 }
