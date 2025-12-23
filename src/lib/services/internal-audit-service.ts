@@ -551,7 +551,7 @@ export async function createAudit(
     auditType: data.auditType,
     scope: data.scope,
     gmpChapters: JSON.stringify(data.gmpChapters),
-    scheduledDate: data.scheduledDate,
+    scheduledDate: toDbDate(data.scheduledDate),
     leadAuditorId: data.leadAuditorId,
     auditTeam: data.auditTeam ? JSON.stringify(data.auditTeam) : null,
     status: 'scheduled',
@@ -1194,7 +1194,7 @@ export async function generateAuditSchedule(
 ): Promise<Audit[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
-  const { auditPlans, users } = getTables();
+  const { users } = getTables();
 
   // Verify plan exists
   const plan = await getAuditPlanById(planId);

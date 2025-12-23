@@ -119,6 +119,22 @@ export const sqliteHerbalAttributes = sqliteTable('herbal_attributes', {
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Item Images (รูปภาพสินค้า)
+export const sqliteItemImages = sqliteTable('item_images', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  itemId: integer('item_id').notNull().references(() => sqliteItems.id),
+  fileName: text('file_name').notNull(), // Original file name
+  fileSize: integer('file_size').notNull(), // File size in bytes
+  mimeType: text('mime_type').notNull(), // e.g., image/jpeg, image/png
+  imageData: blob('image_data', { mode: 'buffer' }).notNull(), // Binary image data
+  thumbnailData: blob('thumbnail_data', { mode: 'buffer' }), // Thumbnail binary data
+  isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false), // Primary/main image
+  sortOrder: integer('sort_order').notNull().default(0),
+  description: text('description'), // Optional description/caption
+  uploadedBy: integer('uploaded_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Vendors (ผู้ขาย)
 export const sqliteVendors = sqliteTable('vendors', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -1065,6 +1081,22 @@ export const mysqlHerbalAttributes = mysqlTable('herbal_attributes', {
   dryingMethod: varchar('drying_method', { length: 255 }),
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Item Images (รูปภาพสินค้า)
+export const mysqlItemImages = mysqlTable('item_images', {
+  id: int('id').primaryKey().autoincrement(),
+  itemId: int('item_id').notNull().references(() => mysqlItems.id),
+  fileName: varchar('file_name', { length: 255 }).notNull(), // Original file name
+  fileSize: int('file_size').notNull(), // File size in bytes
+  mimeType: varchar('mime_type', { length: 100 }).notNull(), // e.g., image/jpeg, image/png
+  imageData: longblob('image_data').notNull(), // Binary image data (LONGBLOB for large images)
+  thumbnailData: longblob('thumbnail_data'), // Thumbnail binary data
+  isPrimary: mysqlBoolean('is_primary').notNull().default(false), // Primary/main image
+  sortOrder: int('sort_order').notNull().default(0),
+  description: varchar('description', { length: 500 }), // Optional description/caption
+  uploadedBy: int('uploaded_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
 // Vendors
