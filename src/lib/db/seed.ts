@@ -117,8 +117,8 @@ export async function seedDatabase() {
     { code: 'EX-001', nameTh: 'สารสกัดขมิ้นชัน', nameEn: 'Turmeric Extract', type: 'extract', category: 'Extract', primaryUnit: 'kg' },
     { code: 'PK-001', nameTh: 'แคปซูลเปล่า ขนาด 0', nameEn: 'Empty Capsule Size 0', type: 'packaging', category: 'Capsule', primaryUnit: 'pcs' },
     { code: 'PK-002', nameTh: 'ขวดพลาสติก 100ml', nameEn: 'Plastic Bottle 100ml', type: 'packaging', category: 'Bottle', primaryUnit: 'pcs' },
-    { code: 'FG-001', nameTh: 'แคปซูลขมิ้นชัน 500mg', nameEn: 'Turmeric Capsule 500mg', type: 'finished_product', category: 'Capsule', primaryUnit: 'bottle' },
-    { code: 'FG-002', nameTh: 'แคปซูลฟ้าทะลายโจร 400mg', nameEn: 'Andrographis Capsule 400mg', type: 'finished_product', category: 'Capsule', primaryUnit: 'bottle' },
+    { code: 'FG-001', nameTh: 'แคปซูลขมิ้นชัน 500mg', nameEn: 'Turmeric Capsule 500mg', type: 'finished_goods', category: 'Capsule', primaryUnit: 'bottle' },
+    { code: 'FG-002', nameTh: 'แคปซูลฟ้าทะลายโจร 400mg', nameEn: 'Andrographis Capsule 400mg', type: 'finished_goods', category: 'Capsule', primaryUnit: 'bottle' },
   ];
 
   for (const item of items) {

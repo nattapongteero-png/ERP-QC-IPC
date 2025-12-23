@@ -21,7 +21,6 @@ import {
   ChevronRight,
   BoxSelect,
   Leaf,
-  FlaskConical,
   Box,
   Pill,
   PackageCheck,
@@ -55,11 +54,10 @@ const itemTypes = [
 const getTypeConfig = (type: string) => {
   const config: Record<string, { icon: typeof Package; bgColor: string; textColor: string; label: string }> = {
     raw_material: { icon: Leaf, bgColor: 'bg-emerald-100', textColor: 'text-emerald-700', label: 'Raw Material' },
-    extract: { icon: FlaskConical, bgColor: 'bg-purple-100', textColor: 'text-purple-700', label: 'Extract' },
     packaging: { icon: Box, bgColor: 'bg-blue-100', textColor: 'text-blue-700', label: 'Packaging' },
     wip: { icon: Package, bgColor: 'bg-orange-100', textColor: 'text-orange-700', label: 'WIP' },
-    finished_goods: { icon: Pill, bgColor: 'bg-indigo-100', textColor: 'text-indigo-700', label: 'Finished Goods' },
-    finished_product: { icon: Pill, bgColor: 'bg-indigo-100', textColor: 'text-indigo-700', label: 'Finished Product' },
+    finished_goods: { icon: Pill, bgColor: 'bg-purple-100', textColor: 'text-purple-700', label: 'Finished Goods' },
+    consumable: { icon: Package, bgColor: 'bg-gray-100', textColor: 'text-gray-700', label: 'Consumable' },
   };
   return config[type] || { icon: Package, bgColor: 'bg-gray-100', textColor: 'text-gray-700', label: type };
 };

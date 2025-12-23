@@ -78,7 +78,7 @@ export const sqliteItems = sqliteTable('items', {
   code: text('code').notNull().unique(),
   nameTh: text('name_th').notNull(),
   nameEn: text('name_en'),
-  type: text('type').notNull(), // raw_material, extract, solvent, excipient, packaging, finished_product
+  type: text('type').notNull(), // raw_material, packaging, wip, finished_goods, consumable
   category: text('category'),
   primaryUnit: text('primary_unit').notNull(),
   secondaryUnit: text('secondary_unit'),

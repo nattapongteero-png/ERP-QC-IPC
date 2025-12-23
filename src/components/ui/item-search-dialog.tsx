@@ -52,12 +52,10 @@ interface ItemSearchDialogProps {
 // Item type color mapping
 const itemTypeColors: Record<string, { bg: string; text: string; label: string }> = {
   raw_material: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Raw Material' },
-  extract: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Extract' },
-  solvent: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Solvent' },
-  excipient: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Excipient' },
-  packaging: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Packaging' },
-  finished_product: { bg: 'bg-indigo-100', text: 'text-indigo-700', label: 'Finished Product' },
-  finished_goods: { bg: 'bg-indigo-100', text: 'text-indigo-700', label: 'Finished Goods' },
+  packaging: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Packaging' },
+  wip: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Work in Progress' },
+  finished_goods: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Finished Goods' },
+  consumable: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Consumable' },
 };
 
 // Stock status helper
