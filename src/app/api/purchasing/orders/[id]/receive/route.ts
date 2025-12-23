@@ -1,9 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqlitePurchaseOrders, sqlitePurchaseOrderLines, sqliteInventoryLots, sqliteItems, sqliteWarehouses,
-  mysqlPurchaseOrders, mysqlPurchaseOrderLines, mysqlInventoryLots, mysqlItems, mysqlWarehouses
-} from '@/lib/db/schema';
+import { NextRequest } from 'next/server';
+import { getTableRef, executeDbOperation, dbDate, getInsertId, parseDbDate } from '@/lib/db/db-helper';
 import { eq, and } from 'drizzle-orm';
 import { withAuth, successResponse, errorResponse, serverErrorResponse } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
@@ -27,30 +23,32 @@ export async function POST(
         return errorResponse('Quantity must be greater than 0');
       }
 
-      const db = await getDb();
-      const usingSqlite = isSqlite();
-      const purchaseOrders = usingSqlite ? sqlitePurchaseOrders : mysqlPurchaseOrders;
-      const purchaseOrderLines = usingSqlite ? sqlitePurchaseOrderLines : mysqlPurchaseOrderLines;
-      const inventoryLots = usingSqlite ? sqliteInventoryLots : mysqlInventoryLots;
-      const items = usingSqlite ? sqliteItems : mysqlItems;
-      const warehouses = usingSqlite ? sqliteWarehouses : mysqlWarehouses;
+      const purchaseOrders = getTableRef('purchaseOrders');
+      const purchaseOrderLines = getTableRef('purchaseOrderLines');
+      const inventoryLots = getTableRef('inventoryLots');
+      const items = getTableRef('items');
+      const warehouses = getTableRef('warehouses');
 
       // Validate warehouse exists and is active
-      const warehouseResult = await (db as any)
-        .select({ id: warehouses.id })
-        .from(warehouses)
-        .where(and(eq(warehouses.id, warehouseId), eq(warehouses.isActive, true)))
-        .limit(1);
+      const warehouseResult = await executeDbOperation(async (db) => {
+        return db
+          .select({ id: warehouses.id })
+          .from(warehouses)
+          .where(and(eq(warehouses.id, warehouseId), eq(warehouses.isActive, true)))
+          .limit(1);
+      });
 
       if (warehouseResult.length === 0) {
         return errorResponse('Invalid or inactive warehouse selected');
       }
 
       // Get PO
-      const poResult = await (db as any)
-        .select()
-        .from(purchaseOrders)
-        .where(eq(purchaseOrders.id, poId));
+      const poResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(purchaseOrders)
+          .where(eq(purchaseOrders.id, poId));
+      });
 
       if (poResult.length === 0) {
         return errorResponse('Purchase order not found', 404);
@@ -59,28 +57,29 @@ export async function POST(
       const po = poResult[0];
 
       // Get PO line with item info
-      const lineResult = await (db as any)
-        .select({
-          id: purchaseOrderLines.id,
-          itemId: purchaseOrderLines.itemId,
-          quantity: purchaseOrderLines.quantity,
-          receivedQuantity: purchaseOrderLines.receivedQuantity,
-          unit: purchaseOrderLines.unit,
-          itemUnit: items.primaryUnit,
-        })
-        .from(purchaseOrderLines)
-        .leftJoin(items, eq(purchaseOrderLines.itemId, items.id))
-        .where(and(
-          eq(purchaseOrderLines.id, lineId),
-          eq(purchaseOrderLines.poId, poId)
-        ));
+      const lineResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: purchaseOrderLines.id,
+            itemId: purchaseOrderLines.itemId,
+            quantity: purchaseOrderLines.quantity,
+            receivedQuantity: purchaseOrderLines.receivedQuantity,
+            unit: purchaseOrderLines.unit,
+            itemUnit: items.primaryUnit,
+          })
+          .from(purchaseOrderLines)
+          .leftJoin(items, eq(purchaseOrderLines.itemId, items.id))
+          .where(and(
+            eq(purchaseOrderLines.id, lineId),
+            eq(purchaseOrderLines.poId, poId)
+          ));
+      });
 
       if (lineResult.length === 0) {
         return errorResponse('PO line not found', 404);
       }
 
       const line = lineResult[0];
-      // Convert to numbers - MySQL decimal types return as strings
       const lineQuantity = Number(line.quantity) || 0;
       const lineReceivedQuantity = Number(line.receivedQuantity) || 0;
       const receiveQuantity = Number(quantity);
@@ -90,47 +89,47 @@ export async function POST(
         return errorResponse(`Cannot receive more than pending quantity (${pendingQty})`);
       }
 
-      const now = new Date();
-      const parsedExpiryDate = usingSqlite ? expiryDate : new Date(expiryDate);
-      const parsedReceivedDate = usingSqlite ? now.toISOString() : now;
-
       // Create inventory lot
-      const lotResult = await (db as any).insert(inventoryLots).values({
-        lotNumber,
-        itemId: line.itemId,
-        warehouseId: warehouseId,
-        quantity: receiveQuantity,
-        unit: line.unit || line.itemUnit || 'unit',
-        status: 'released',
-        expiryDate: parsedExpiryDate,
-        receivedDate: parsedReceivedDate,
-        poNumber: po.poNumber,
-        createdAt: usingSqlite ? now.toISOString() : now,
-        updatedAt: usingSqlite ? now.toISOString() : now,
+      const lotResult = await executeDbOperation(async (db) => {
+        return db.insert(inventoryLots).values({
+          lotNumber,
+          itemId: line.itemId,
+          warehouseId: warehouseId,
+          quantity: receiveQuantity,
+          unit: line.unit || line.itemUnit || 'unit',
+          status: 'released',
+          expiryDate: parseDbDate(expiryDate),
+          receivedDate: dbDate(),
+          poNumber: po.poNumber,
+          createdAt: dbDate(),
+          updatedAt: dbDate(),
+        });
       });
 
-      const lotId = usingSqlite ? lotResult.lastInsertRowid : lotResult[0].insertId;
+      const lotId = getInsertId(lotResult);
 
       // Update PO line received quantity
       const newReceivedQty = lineReceivedQuantity + receiveQuantity;
-      await (db as any)
-        .update(purchaseOrderLines)
-        .set({ receivedQuantity: newReceivedQty })
-        .where(eq(purchaseOrderLines.id, lineId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(purchaseOrderLines)
+          .set({ receivedQuantity: newReceivedQty })
+          .where(eq(purchaseOrderLines.id, lineId));
+      });
 
       // Check if all lines are fully received, update PO status
-      const allLines = await (db as any)
-        .select({
-          quantity: purchaseOrderLines.quantity,
-          receivedQuantity: purchaseOrderLines.receivedQuantity,
-        })
-        .from(purchaseOrderLines)
-        .where(eq(purchaseOrderLines.poId, poId));
+      const allLines = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            quantity: purchaseOrderLines.quantity,
+            receivedQuantity: purchaseOrderLines.receivedQuantity,
+          })
+          .from(purchaseOrderLines)
+          .where(eq(purchaseOrderLines.poId, poId));
+      });
 
-      // Convert to numbers - MySQL decimal types return as strings
-      const totalOrdered = allLines.reduce((sum: number, l: { quantity: number | null }) => sum + (Number(l.quantity) || 0), 0);
-      // Note: allLines still has the OLD receivedQuantity values, so we adjust for the current update
-      const totalReceived = allLines.reduce((sum: number, l: { receivedQuantity: number | null }) => sum + (Number(l.receivedQuantity) || 0), 0) + receiveQuantity - lineReceivedQuantity;
+      const totalOrdered = allLines.reduce((sum: number, l: Record<string, unknown>) => sum + (Number(l.quantity) || 0), 0);
+      const totalReceived = allLines.reduce((sum: number, l: Record<string, unknown>) => sum + (Number(l.receivedQuantity) || 0), 0) + receiveQuantity - lineReceivedQuantity;
 
       let newStatus = po.status;
       if (totalReceived >= totalOrdered) {
@@ -140,13 +139,15 @@ export async function POST(
       }
 
       if (newStatus !== po.status) {
-        await (db as any)
-          .update(purchaseOrders)
-          .set({
-            status: newStatus,
-            updatedAt: usingSqlite ? now.toISOString() : now,
-          })
-          .where(eq(purchaseOrders.id, poId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(purchaseOrders)
+            .set({
+              status: newStatus,
+              updatedAt: dbDate(),
+            })
+            .where(eq(purchaseOrders.id, poId));
+        });
       }
 
       await createAuditLog({
