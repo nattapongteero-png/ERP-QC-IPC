@@ -45,9 +45,18 @@ vi.mock('@/lib/services/inventory.service', () => ({
   updateLotStatus: vi.fn(() => Promise.resolve()),
 }));
 
-// Import service after mocking - pure functions first
+// Import service after mocking - all functions now that schema is aligned
 import {
   calculateSamplingPlan,
+  createQCTestRequest,
+  recordTestResult,
+  evaluateLotRelease,
+  releaseLot,
+  generateCOA,
+  createDeviation,
+  updateDeviationInvestigation,
+  closeDeviation,
+  getDeviationStatistics,
 } from '@/lib/services/quality.service';
 
 // ============================================
@@ -337,68 +346,309 @@ describe('Quality Service Real Integration Tests', () => {
   });
 
   // ============================================
-  // Database-Dependent Tests
-  // NOTE: These are skipped due to schema mismatch between quality.service.ts
-  // and the current Drizzle ORM schema. The service expects different columns.
+  // Database-Dependent Tests (T058-T061)
+  // Schema aligned via Phase 0 tasks - now functional
   // ============================================
 
-  describe.skip('QC Test Request (SKIP - schema mismatch)', () => {
-    /**
-     * SCHEMA MISMATCH:
-     * quality.service.ts inserts: { lotId, testType, specId, sampleSize, status, requestedBy, requestedAt }
-     * schema.ts expects: { lotId, specId, testType, sampleNumber, testDate, result, numericResult, status, testedBy, ... }
-     *
-     * Mismatched columns:
-     * - Service uses 'sampleSize' but schema has 'sampleNumber'
-     * - Service uses 'requestedBy' but schema has 'testedBy'
-     * - Service uses 'requestedAt' but schema expects 'createdAt' (has default)
-     */
+  describe('QC Test Request (T058)', () => {
+    beforeEach(() => {
+      // Create inventory lot for testing
+      sqlite.exec(`
+        INSERT INTO inventory_lots (id, item_id, lot_number, batch_number, quantity, unit, status, warehouse_id, received_date, expiry_date)
+        VALUES (1, 1, 'LOT-QC-001', 'BATCH-QC-001', 100, 'kg', 'quarantine', 2, date('now'), date('now', '+730 days'))
+      `);
+
+      // Create quality spec
+      sqlite.exec(`
+        INSERT INTO quality_specs (id, item_id, test_name, test_method, min_value, max_value, unit, is_critical, is_active)
+        VALUES (1, 1, 'Moisture Content', 'USP <731>', NULL, 10, '%', 1, 1)
+      `);
+    });
+
     it('should create QC test request for incoming material', async () => {
-      // Would fail with "table quality_tests has no column named sample_size"
+      const testIds = await createQCTestRequest(1, ['incoming'], TEST_USER_ID);
+
+      expect(testIds).toHaveLength(1);
+      expect(testIds[0]).toBeGreaterThan(0);
+
+      // Verify test was created in database
+      const test = sqlite.prepare('SELECT * FROM quality_tests WHERE id = ?').get(testIds[0]) as any;
+      expect(test.lot_id).toBe(1);
+      expect(test.test_type).toBe('incoming');
+      expect(test.status).toBe('pending');
+      expect(test.requested_by).toBe(TEST_USER_ID);
+    });
+
+    it('should create multiple test requests for different test types', async () => {
+      const testIds = await createQCTestRequest(1, ['incoming', 'identity', 'assay'], TEST_USER_ID);
+
+      expect(testIds).toHaveLength(3);
+
+      const tests = sqlite.prepare('SELECT * FROM quality_tests WHERE lot_id = 1').all() as any[];
+      expect(tests).toHaveLength(3);
+      expect(tests.map(t => t.test_type)).toContain('incoming');
+      expect(tests.map(t => t.test_type)).toContain('identity');
+      expect(tests.map(t => t.test_type)).toContain('assay');
+    });
+
+    it('should calculate and store sample size from AQL plan', async () => {
+      const testIds = await createQCTestRequest(1, ['incoming'], TEST_USER_ID);
+
+      const test = sqlite.prepare('SELECT * FROM quality_tests WHERE id = ?').get(testIds[0]) as any;
+      expect(test.sample_size).toBeGreaterThan(0);
+    });
+
+    it('should update lot status to under_test', async () => {
+      await createQCTestRequest(1, ['incoming'], TEST_USER_ID);
+
+      const lot = sqlite.prepare('SELECT * FROM inventory_lots WHERE id = 1').get() as any;
+      expect(lot.status).toBe('under_test');
+    });
+
+    it('should throw error for non-existent lot', async () => {
+      await expect(createQCTestRequest(999, ['incoming'], TEST_USER_ID))
+        .rejects.toThrow('Lot 999 not found');
     });
   });
 
-  describe.skip('Test Result Recording (SKIP - schema mismatch)', () => {
-    /**
-     * SCHEMA MISMATCH:
-     * quality.service.ts updates: { resultValue, resultText, status, testedBy, testedAt }
-     * schema.ts expects: { result, numericResult, status, testedBy, ... }
-     *
-     * Mismatched columns:
-     * - Service uses 'resultValue' but schema has 'numericResult'
-     * - Service uses 'resultText' but schema has 'result'
-     * - Service uses 'testedAt' but schema has 'createdAt/updatedAt'
-     */
-    it('should record test result with pass/fail evaluation', async () => {
-      // Would fail with column name mismatch
+  describe('Test Result Recording (T059)', () => {
+    let testId: number;
+
+    beforeEach(async () => {
+      // Create lot
+      sqlite.exec(`
+        INSERT INTO inventory_lots (id, item_id, lot_number, quantity, unit, status, warehouse_id, received_date, expiry_date)
+        VALUES (1, 1, 'LOT-RES-001', 100, 'kg', 'quarantine', 2, date('now'), date('now', '+730 days'))
+      `);
+
+      // Create spec with range
+      sqlite.exec(`
+        INSERT INTO quality_specs (id, item_id, test_name, spec_type, min_value, max_value, unit, is_critical, is_active)
+        VALUES (1, 1, 'Moisture Content', 'range', 0, 10, '%', 1, 1)
+      `);
+
+      // Create test record
+      sqlite.exec(`
+        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, status, requested_by, requested_at)
+        VALUES (1, 1, 1, 'incoming', 'pending', 1, datetime('now'))
+      `);
+      testId = 1;
+    });
+
+    it('should record passing test result', async () => {
+      const result = await recordTestResult(testId, 8.5, 'Within spec', TEST_USER_ID);
+
+      expect(result.status).toBe('pass');
+      expect(result.deviationId).toBeUndefined();
+
+      const test = sqlite.prepare('SELECT * FROM quality_tests WHERE id = ?').get(testId) as any;
+      expect(test.numeric_result).toBe(8.5);
+      expect(test.result).toBe('Within spec');
+      expect(test.status).toBe('passed');
+      expect(test.tested_by).toBe(TEST_USER_ID);
+    });
+
+    it('should record failing test result and create OOS deviation', async () => {
+      const result = await recordTestResult(testId, 12.5, 'Out of spec', TEST_USER_ID);
+
+      expect(result.status).toBe('fail');
+      expect(result.deviationId).toBeGreaterThan(0);
+
+      // Verify deviation was created
+      const deviation = sqlite.prepare('SELECT * FROM deviations WHERE id = ?').get(result.deviationId) as any;
+      expect(deviation.type).toBe('OOS');
+      expect(deviation.severity).toBe('major');
+      expect(deviation.status).toBe('open');
+      expect(deviation.lot_id).toBe(1);
+    });
+
+    it('should handle text-based test results', async () => {
+      // Create text-based spec
+      sqlite.exec(`
+        INSERT INTO quality_specs (id, item_id, test_name, spec_type, text_value, is_critical, is_active)
+        VALUES (2, 1, 'Color Check', 'text', 'brown', 1, 1)
+      `);
+      sqlite.exec(`
+        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, status, requested_by, requested_at)
+        VALUES (2, 1, 2, 'incoming', 'pending', 1, datetime('now'))
+      `);
+
+      const result = await recordTestResult(2, null, 'brown', TEST_USER_ID);
+      expect(result.status).toBe('pass');
+    });
+
+    it('should throw error for non-existent test', async () => {
+      await expect(recordTestResult(999, 5.0, 'Test', TEST_USER_ID))
+        .rejects.toThrow('Test 999 not found');
     });
   });
 
-  describe.skip('Deviation Management (SKIP - schema mismatch)', () => {
-    /**
-     * SCHEMA MISMATCH:
-     * quality.service.ts inserts: { deviationNumber, lotId, workOrderId, type, severity, status, description, reportedBy, reportedAt }
-     * schema.ts expects: { deviationNumber, title, description, sourceType, sourceId, severity, status, reportedBy, ... }
-     *
-     * Mismatched columns:
-     * - Service uses 'lotId' but schema uses 'sourceId' with 'sourceType'
-     * - Service uses 'workOrderId' but schema doesn't have it
-     * - Service uses 'type' but schema uses 'sourceType'
-     * - Service uses 'reportedAt' but schema has 'createdAt'
-     * - Schema requires 'title' which service doesn't provide
-     */
-    it('should create deviation for OOS result', async () => {
-      // Would fail with schema mismatch
+  describe('Deviation Management (T059 continued)', () => {
+    beforeEach(() => {
+      sqlite.exec(`
+        INSERT INTO inventory_lots (id, item_id, lot_number, quantity, unit, status, warehouse_id, received_date, expiry_date)
+        VALUES (1, 1, 'LOT-DEV-001', 100, 'kg', 'quarantine', 2, date('now'), date('now', '+730 days'))
+      `);
+    });
+
+    it('should create deviation for lot-related issue', async () => {
+      const deviationId = await createDeviation(
+        1,  // lotId
+        null,  // workOrderId
+        'OOS',
+        'major',
+        'Moisture content 15% exceeds max 10%',
+        TEST_USER_ID
+      );
+
+      expect(deviationId).toBeGreaterThan(0);
+
+      const deviation = sqlite.prepare('SELECT * FROM deviations WHERE id = ?').get(deviationId) as any;
+      expect(deviation.lot_id).toBe(1);
+      expect(deviation.type).toBe('OOS');
+      expect(deviation.severity).toBe('major');
+      expect(deviation.status).toBe('open');
+      expect(deviation.deviation_number).toMatch(/^DEV-\d{6}-\d{4}$/);
+    });
+
+    it('should update deviation with investigation details', async () => {
+      // Create deviation first
+      const deviationId = await createDeviation(1, null, 'OOS', 'major', 'Test failure', TEST_USER_ID);
+
+      // Update with investigation
+      const updated = await updateDeviationInvestigation(
+        deviationId,
+        'Storage temperature exceeded during transport',
+        'Reject affected lot and retrain receiving staff',
+        'Install temperature monitoring at receiving dock',
+        2, // responsiblePerson
+        '2024-12-31',
+        TEST_USER_ID
+      );
+
+      expect(updated).toBe(true);
+
+      const deviation = sqlite.prepare('SELECT * FROM deviations WHERE id = ?').get(deviationId) as any;
+      expect(deviation.root_cause).toContain('temperature');
+      expect(deviation.corrective_action).toContain('Reject');
+      expect(deviation.preventive_action).toContain('monitoring');
+      expect(deviation.status).toBe('investigation');
+    });
+
+    it('should close deviation with closure notes', async () => {
+      // Create and investigate deviation
+      const deviationId = await createDeviation(1, null, 'OOS', 'minor', 'Minor issue', TEST_USER_ID);
+      await updateDeviationInvestigation(deviationId, 'Root cause', 'CA', 'PA', 2, '2024-12-31', TEST_USER_ID);
+
+      // Close deviation
+      const closed = await closeDeviation(deviationId, 'Verified effectiveness of CAPA', TEST_USER_ID);
+
+      expect(closed).toBe(true);
+
+      const deviation = sqlite.prepare('SELECT * FROM deviations WHERE id = ?').get(deviationId) as any;
+      expect(deviation.status).toBe('closed');
+      expect(deviation.closure_notes).toContain('effectiveness');
+      expect(deviation.closed_by).toBe(TEST_USER_ID);
+    });
+
+    it('should not close deviation without CAPA documentation', async () => {
+      const deviationId = await createDeviation(1, null, 'OOS', 'major', 'Issue', TEST_USER_ID);
+
+      await expect(closeDeviation(deviationId, 'Trying to close', TEST_USER_ID))
+        .rejects.toThrow('Cannot close deviation without CAPA documentation');
+    });
+
+    it('should get deviation statistics', async () => {
+      // Create multiple deviations
+      await createDeviation(1, null, 'OOS', 'critical', 'Critical 1', TEST_USER_ID);
+      await createDeviation(1, null, 'process', 'major', 'Major 1', TEST_USER_ID);
+      await createDeviation(1, null, 'documentation', 'minor', 'Minor 1', TEST_USER_ID);
+
+      const stats = await getDeviationStatistics();
+
+      expect(stats.total).toBe(3);
+      expect(stats.byStatus['open']).toBe(3);
+      expect(stats.bySeverity['critical']).toBe(1);
+      expect(stats.bySeverity['major']).toBe(1);
+      expect(stats.bySeverity['minor']).toBe(1);
     });
   });
 
-  describe.skip('COA Generation (SKIP - depends on mismatched schema)', () => {
-    /**
-     * COA generation depends on quality_tests table having correct data,
-     * which cannot be inserted due to schema mismatch.
-     */
-    it('should generate Certificate of Analysis', async () => {
-      // Would fail because test data cannot be inserted
+  describe('COA Generation (T061)', () => {
+    beforeEach(() => {
+      // Create lot with full data
+      sqlite.exec(`
+        INSERT INTO inventory_lots (id, item_id, lot_number, batch_number, quantity, unit, status, warehouse_id, manufacturing_date, expiry_date, coa_number)
+        VALUES (1, 1, 'LOT-COA-001', 'BATCH-COA-001', 50, 'kg', 'released', 1, date('now', '-30 days'), date('now', '+700 days'), 'COA-2024-0001')
+      `);
+
+      // Create specs
+      sqlite.exec(`
+        INSERT INTO quality_specs (id, item_id, test_name, spec_type, min_value, max_value, unit, is_critical, is_active)
+        VALUES
+          (1, 1, 'Moisture Content', 'range', 0, 10, '%', 1, 1),
+          (2, 1, 'Andrographolide', 'min', 1, NULL, '%', 1, 1)
+      `);
+
+      // Create completed tests
+      sqlite.exec(`
+        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, numeric_result, result, status, tested_by, tested_at)
+        VALUES
+          (1, 1, 1, 'incoming', 8.2, '8.2% moisture', 'passed', 2, datetime('now')),
+          (2, 1, 2, 'incoming', 1.5, '1.5% andrographolide', 'passed', 2, datetime('now'))
+      `);
+    });
+
+    it('should generate COA with all test results', async () => {
+      const coa = await generateCOA(1);
+
+      expect(coa.documentNumber).toBe('COA-2024-0001');
+      expect(coa.productInfo.lotNumber).toBe('LOT-COA-001');
+      expect(coa.productInfo.batchNumber).toBe('BATCH-COA-001');
+      expect(coa.productInfo.quantity).toBe(50);
+      expect(coa.testResults).toHaveLength(2);
+      expect(coa.conclusion).toBe('PASS');
+    });
+
+    it('should include test results with specifications', async () => {
+      const coa = await generateCOA(1);
+
+      const moistureTest = coa.testResults.find(t => t.testType === 'incoming');
+      expect(moistureTest).toBeDefined();
+      expect(moistureTest?.status).toBe('pass');
+    });
+
+    it('should mark COA as FAIL if any test failed', async () => {
+      // Add a failed test
+      sqlite.exec(`
+        INSERT INTO quality_tests (id, lot_id, spec_id, test_type, numeric_result, result, status, tested_by, tested_at)
+        VALUES (3, 1, 1, 'stability', 12, '12% moisture - FAIL', 'failed', 2, datetime('now'))
+      `);
+
+      const coa = await generateCOA(1);
+
+      expect(coa.conclusion).toBe('FAIL');
+      expect(coa.testResults.some(t => t.status === 'fail')).toBe(true);
+    });
+
+    it('should generate new COA number if not existing', async () => {
+      // Create lot without COA number
+      sqlite.exec(`
+        INSERT INTO inventory_lots (id, item_id, lot_number, quantity, unit, status, warehouse_id, expiry_date)
+        VALUES (2, 1, 'LOT-COA-002', 25, 'kg', 'released', 1, date('now', '+365 days'))
+      `);
+      sqlite.exec(`
+        INSERT INTO quality_tests (lot_id, spec_id, test_type, numeric_result, status, tested_by, tested_at)
+        VALUES (2, 1, 'incoming', 7.0, 'passed', 2, datetime('now'))
+      `);
+
+      const coa = await generateCOA(2);
+
+      expect(coa.documentNumber).toMatch(/^COA-\d{6}-\d{4}$/);
+    });
+
+    it('should throw error for non-existent lot', async () => {
+      await expect(generateCOA(999)).rejects.toThrow('Lot 999 not found');
     });
   });
 

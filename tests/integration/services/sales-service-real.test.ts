@@ -41,6 +41,7 @@ import {
   checkATP,
   createSalesOrder,
   allocateLotsForOrder,
+  CustomerDetails,
 } from '@/lib/services/sales.service';
 
 // Import inventory for seeding
@@ -250,21 +251,22 @@ describe('Sales Service Real Integration Tests', () => {
 
   // ============================================
   // Sales Order Creation Tests
-  // NOTE: These tests are skipped because the sales.service.ts has a schema mismatch:
-  // - It uses `vendors` table as `customers` (line 38-39)
-  // - The sales_orders schema requires `customerName` not `customerId`
-  // This needs to be fixed in the service layer first.
   // ============================================
-  describe.skip('Sales Order Creation (SKIP - service uses wrong schema)', () => {
+  describe('Sales Order Creation', () => {
     it('should create sales order with ATP check', async () => {
       // Set up stock
       const lotId = await receiveMaterial(1, 'LOT-SO-001', 100, 'box', 1, FUTURE_DATE, null, null, TEST_USER_ID);
       await updateLotStatus(lotId, 'released', TEST_USER_ID);
 
+      const customer: CustomerDetails = {
+        name: 'Hospital A',
+        contact: '021111111',
+        address: '123 Hospital Rd',
+      };
+
       const result = await createSalesOrder(
-        1, // customerId (Hospital A)
+        customer,
         [{ itemId: 1, quantity: 50, unitPrice: 150, requiredDate: FUTURE_DATE }],
-        '123 Hospital Rd',
         TEST_USER_ID
       );
 
@@ -275,7 +277,8 @@ describe('Sales Service Real Integration Tests', () => {
       // Verify SO was created
       const so = sqlite.prepare('SELECT * FROM sales_orders WHERE id = ?').get(result.orderId) as any;
       expect(so.so_number).toMatch(/^SO-\d{6}-\d{4}$/);
-      expect(so.customer_id).toBe(1);
+      expect(so.customer_name).toBe('Hospital A');
+      expect(so.customer_address).toBe('123 Hospital Rd');
       expect(so.status).toBe('draft');
       expect(so.total_amount).toBe(7500); // 50 * 150
     });
@@ -287,13 +290,18 @@ describe('Sales Service Real Integration Tests', () => {
       await updateLotStatus(lot1, 'released', TEST_USER_ID);
       await updateLotStatus(lot2, 'released', TEST_USER_ID);
 
+      const customer: CustomerDetails = {
+        name: 'Pharmacy B',
+        contact: '022222222',
+        address: '456 Pharmacy St',
+      };
+
       const result = await createSalesOrder(
-        2, // customerId (Pharmacy B)
+        customer,
         [
           { itemId: 1, quantity: 30, unitPrice: 150, requiredDate: FUTURE_DATE },
           { itemId: 2, quantity: 20, unitPrice: 180, requiredDate: FUTURE_DATE },
         ],
-        '456 Pharmacy St',
         TEST_USER_ID
       );
 
@@ -302,7 +310,7 @@ describe('Sales Service Real Integration Tests', () => {
       expect(result.atpResults.every(r => r.canFulfill)).toBe(true);
 
       // Verify SO lines
-      const lines = sqlite.prepare('SELECT * FROM sales_order_lines WHERE sales_order_id = ? ORDER BY line_number').all(result.orderId) as any[];
+      const lines = sqlite.prepare('SELECT * FROM sales_order_lines WHERE so_id = ? ORDER BY id').all(result.orderId) as any[];
       expect(lines.length).toBe(2);
       expect(lines[0].item_id).toBe(1);
       expect(lines[0].quantity).toBe(30);
@@ -315,10 +323,14 @@ describe('Sales Service Real Integration Tests', () => {
       const lotId = await receiveMaterial(1, 'LOT-SHORT', 20, 'box', 1, FUTURE_DATE, null, null, TEST_USER_ID);
       await updateLotStatus(lotId, 'released', TEST_USER_ID);
 
+      const customer: CustomerDetails = {
+        name: 'Hospital A',
+        address: '123 Hospital Rd',
+      };
+
       const result = await createSalesOrder(
-        1,
+        customer,
         [{ itemId: 1, quantity: 50, unitPrice: 150, requiredDate: FUTURE_DATE }],
-        '123 Hospital Rd',
         TEST_USER_ID
       );
 
@@ -332,17 +344,18 @@ describe('Sales Service Real Integration Tests', () => {
       const lot = await receiveMaterial(1, 'LOT-SEQ', 100, 'box', 1, FUTURE_DATE, null, null, TEST_USER_ID);
       await updateLotStatus(lot, 'released', TEST_USER_ID);
 
+      const customer1: CustomerDetails = { name: 'Customer 1', address: 'Address 1' };
+      const customer2: CustomerDetails = { name: 'Customer 2', address: 'Address 2' };
+
       const result1 = await createSalesOrder(
-        1,
+        customer1,
         [{ itemId: 1, quantity: 10, unitPrice: 100, requiredDate: FUTURE_DATE }],
-        'Address 1',
         TEST_USER_ID
       );
 
       const result2 = await createSalesOrder(
-        2,
+        customer2,
         [{ itemId: 1, quantity: 10, unitPrice: 100, requiredDate: FUTURE_DATE }],
-        'Address 2',
         TEST_USER_ID
       );
 
@@ -356,15 +369,19 @@ describe('Sales Service Real Integration Tests', () => {
   // ============================================
   // Order Fulfillment Tests
   // ============================================
-  describe.skip('Order Fulfillment Workflow (SKIP - depends on Sales Order creation)', () => {
+  describe('Order Fulfillment Workflow', () => {
     it('should reject allocation for non-confirmed order', async () => {
       const lot = await receiveMaterial(1, 'LOT-ALLOC', 100, 'box', 1, FUTURE_DATE, null, null, TEST_USER_ID);
       await updateLotStatus(lot, 'released', TEST_USER_ID);
 
+      const customer: CustomerDetails = {
+        name: 'Hospital A',
+        address: '123 Hospital Rd',
+      };
+
       const result = await createSalesOrder(
-        1,
+        customer,
         [{ itemId: 1, quantity: 50, unitPrice: 150, requiredDate: FUTURE_DATE }],
-        '123 Hospital Rd',
         TEST_USER_ID
       );
 
@@ -373,43 +390,93 @@ describe('Sales Service Real Integration Tests', () => {
         allocateLotsForOrder(result.orderId, TEST_USER_ID)
       ).rejects.toThrow(/Confirmed/);
     });
+
+    it('should allocate lots for confirmed order using FEFO', async () => {
+      // Create two lots with different expiry dates
+      const nearExpiryDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const farExpiryDate = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const nearLot = await receiveMaterial(1, 'LOT-NEAR', 50, 'box', 1, nearExpiryDate, null, null, TEST_USER_ID);
+      const farLot = await receiveMaterial(1, 'LOT-FAR', 50, 'box', 1, farExpiryDate, null, null, TEST_USER_ID);
+      await updateLotStatus(nearLot, 'released', TEST_USER_ID);
+      await updateLotStatus(farLot, 'released', TEST_USER_ID);
+
+      const customer: CustomerDetails = { name: 'Hospital A', address: '123 Hospital Rd' };
+      const result = await createSalesOrder(
+        customer,
+        [{ itemId: 1, quantity: 30, unitPrice: 150, requiredDate: FUTURE_DATE }],
+        TEST_USER_ID
+      );
+
+      // Update order to confirmed status
+      sqlite.exec(`UPDATE sales_orders SET status = 'confirmed' WHERE id = ${result.orderId}`);
+
+      const allocations = await allocateLotsForOrder(result.orderId, TEST_USER_ID);
+
+      expect(allocations.length).toBe(1);
+      // FEFO should pick the near-expiry lot first
+      expect(allocations[0].allocations[0].lotNumber).toBe('LOT-NEAR');
+
+      // Verify order status updated
+      const so = sqlite.prepare('SELECT status FROM sales_orders WHERE id = ?').get(result.orderId) as any;
+      expect(so.status).toBe('processing');
+    });
   });
 
   // ============================================
   // Edge Cases
   // ============================================
   describe('Edge Cases', () => {
-    it.skip('should handle non-existent customer (SKIP - uses broken createSalesOrder)', async () => {
+    it('should require customer name', async () => {
       await expect(
         createSalesOrder(
-          999, // Non-existent customer
+          { name: '', address: 'Address' }, // Empty customer name
           [{ itemId: 1, quantity: 10, unitPrice: 100, requiredDate: FUTURE_DATE }],
-          'Address',
           TEST_USER_ID
         )
-      ).rejects.toThrow(/Customer.*not found/);
+      ).rejects.toThrow(/Customer name is required/);
     });
 
     it('should handle non-existent item in ATP check', async () => {
       await expect(checkATP(999, 10)).rejects.toThrow(/Item.*not found/);
     });
 
-    it.skip('should calculate correct total amount (SKIP - uses broken createSalesOrder)', async () => {
+    it('should calculate correct total amount', async () => {
       const lot = await receiveMaterial(1, 'LOT-TOTAL', 100, 'box', 1, FUTURE_DATE, null, null, TEST_USER_ID);
       await updateLotStatus(lot, 'released', TEST_USER_ID);
 
+      const customer: CustomerDetails = { name: 'Test Customer', address: 'Address' };
       const result = await createSalesOrder(
-        1,
+        customer,
         [
           { itemId: 1, quantity: 10, unitPrice: 150, requiredDate: FUTURE_DATE },
           { itemId: 1, quantity: 5, unitPrice: 200, requiredDate: FUTURE_DATE },
         ],
-        'Address',
         TEST_USER_ID
       );
 
       const so = sqlite.prepare('SELECT total_amount FROM sales_orders WHERE id = ?').get(result.orderId) as any;
       expect(so.total_amount).toBe(2500); // (10*150) + (5*200)
+    });
+
+    it('should handle non-existent item in sales order line', async () => {
+      const customer: CustomerDetails = { name: 'Test Customer', address: 'Address' };
+      await expect(
+        createSalesOrder(
+          customer,
+          [{ itemId: 999, quantity: 10, unitPrice: 100, requiredDate: FUTURE_DATE }],
+          TEST_USER_ID
+        )
+      ).rejects.toThrow(/Item.*not found/);
+    });
+
+    it('should handle zero quantity in ATP check', async () => {
+      const lot = await receiveMaterial(1, 'LOT-ZERO', 50, 'box', 1, FUTURE_DATE, null, null, TEST_USER_ID);
+      await updateLotStatus(lot, 'released', TEST_USER_ID);
+
+      const atpResult = await checkATP(1, 0);
+      expect(atpResult.canFulfill).toBe(true);
+      expect(atpResult.shortfall).toBe(0);
     });
   });
 });
