@@ -10,7 +10,7 @@ import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
-import { ArrowLeft, Package, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Package, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 
 interface BOM {
   id: number;
@@ -85,9 +85,9 @@ function NewWorkOrderContent() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ limit: '100' });
-      // Only filter by active status if not loading a specific BOM and not searching
+      // Only filter by approved status if not loading a specific BOM and not searching
       if (!includeAllStatuses) {
-        params.set('status', 'active');
+        params.set('status', 'approved');
       }
       if (search) params.set('search', search);
 
