@@ -387,8 +387,8 @@ export default function BOMDashboardPage() {
           </Tabs>
         </div>
 
-        {/* DataGrid - Fixed width columns to prevent overflow */}
-        <div className="p-3 overflow-hidden">
+        {/* DataGrid */}
+        <div className="p-3">
           <DxDataGrid
             dataSource={filteredBOMs}
             keyExpr="id"
@@ -396,7 +396,8 @@ export default function BOMDashboardPage() {
             rowAlternationEnabled
             loading={bomLoading}
             height={350}
-            wordWrapEnabled={false}
+            width="100%"
+            columnAutoWidth
             showColumnLines={false}
             onRowClick={(e) => {
               if (e.data?.id) {
@@ -410,7 +411,7 @@ export default function BOMDashboardPage() {
             <DxColumn
               dataField="code"
               caption="Code"
-              width={95}
+              minWidth={100}
               cellRender={(cell) => (
                 <span className="font-mono font-medium text-emerald-700 text-xs">{cell.value}</span>
               )}
@@ -418,16 +419,16 @@ export default function BOMDashboardPage() {
             <DxColumn
               dataField="name"
               caption="Name"
-              width={200}
-              cssClass="dx-cell-truncate"
+              minWidth={180}
+              width={280}
               cellRender={(cell) => (
-                <div className="truncate text-xs" style={{ maxWidth: '180px' }} title={cell.value}>{cell.value}</div>
+                <div className="truncate text-xs" title={cell.value}>{cell.value}</div>
               )}
             />
             <DxColumn
               dataField="productCode"
               caption="Product"
-              width={75}
+              minWidth={80}
               cellRender={(cell) => (
                 <span className="font-mono text-gray-600 text-xs">{cell.value}</span>
               )}
@@ -435,7 +436,7 @@ export default function BOMDashboardPage() {
             <DxColumn
               dataField="standardBatchSize"
               caption="Batch"
-              width={95}
+              minWidth={120}
               alignment="right"
               cellRender={(cell) => (
                 <span className="tabular-nums text-xs">
@@ -446,7 +447,7 @@ export default function BOMDashboardPage() {
             <DxColumn
               dataField="version"
               caption="Ver"
-              width={45}
+              width={50}
               alignment="center"
               cellRender={(cell) => (
                 <span className="text-gray-500 text-xs">v{cell.value}</span>
@@ -455,19 +456,19 @@ export default function BOMDashboardPage() {
             <DxColumn
               dataField="status"
               caption="Status"
-              width={90}
+              minWidth={100}
               cellRender={(cell) => renderStatusBadge(cell.value)}
             />
             <DxColumn
               dataField="createdAt"
               caption="Created"
-              width={85}
+              minWidth={100}
               dataType="date"
               format="yyyy-MM-dd"
             />
             <DxColumn
               caption=""
-              width={35}
+              width={40}
               cellRender={(cell) => (
                 <DxButton
                   icon="chevronright"
