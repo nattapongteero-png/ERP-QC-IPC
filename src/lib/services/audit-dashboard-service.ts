@@ -363,7 +363,7 @@ export async function getMinStockAlerts(): Promise<MinStockAlerts> {
       );
   });
 
-  const allItems = [...criticalItems, ...warningItems].map((item) => ({
+  const allItems = [...criticalItems, ...warningItems].map((item: { itemId: number; itemCode: string; itemName: string; onHand: number | string; minStock: number | string | null; reorderPoint: number | string | null }) => ({
     itemId: item.itemId,
     itemCode: item.itemCode,
     itemName: item.itemName,
@@ -556,7 +556,7 @@ export async function getPendingQcRelease(): Promise<PendingQcRelease> {
 
   return {
     count: pendingLots.length,
-    items: pendingLots.map((lot) => {
+    items: pendingLots.map((lot: { lotId: number; lotNumber: string; itemName: string; testDate: string | Date | null }) => {
       const testDate = lot.testDate
         ? (typeof lot.testDate === 'string' ? new Date(lot.testDate) : lot.testDate)
         : today;
@@ -636,7 +636,7 @@ export async function getFgApproved(): Promise<FgApproved> {
   return {
     totalBatches: totals[0]?.totalBatches || 0,
     totalQuantity: Number(totals[0]?.totalQuantity) || 0,
-    byMonth: byMonthData.map((m) => ({
+    byMonth: byMonthData.map((m: { month: string; batches: number; quantity: string | number | null }) => ({
       month: m.month,
       batches: m.batches,
       quantity: Number(m.quantity) || 0,
