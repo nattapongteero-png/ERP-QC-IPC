@@ -772,7 +772,8 @@ export default function LotsPage() {
       {/* Create Lot Modal */}
       <DxPopup
         visible={showModal}
-        onVisibleChange={(v) => { if (!v) { setShowModal(false); resetForm(); } }}
+        onVisibleChange={(v) => { if (!v) setShowModal(false); }}
+        onHidden={() => resetForm()}
         title="รับ Lot ใหม่"
         width={800}
         height="auto"
@@ -993,7 +994,7 @@ export default function LotsPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="ยกเลิก" type="default" stylingMode="outlined" onClick={() => { setShowModal(false); resetForm(); }} />
+            <DxButton text="ยกเลิก" type="default" stylingMode="outlined" onClick={() => setShowModal(false)} />
             <DxButton text="รับ Lot" icon="check" type="success" onClick={handleCreateLot} />
           </div>
         </div>
@@ -1001,8 +1002,9 @@ export default function LotsPage() {
 
       {/* QC Action Modal */}
       <DxPopup
-        visible={showQCModal && !!selectedLot}
-        onVisibleChange={(v) => { if (!v) { setShowQCModal(false); setSelectedLot(null); } }}
+        visible={showQCModal}
+        onVisibleChange={(v) => { if (!v) setShowQCModal(false); }}
+        onHidden={() => setSelectedLot(null)}
         title="ตัดสินใจ QC"
         width={500}
         height="auto"
@@ -1046,7 +1048,7 @@ export default function LotsPage() {
             </div>
 
             <div className="flex justify-end gap-3">
-              <DxButton text="ยกเลิก" type="default" stylingMode="outlined" onClick={() => { setShowQCModal(false); setSelectedLot(null); }} />
+              <DxButton text="ยกเลิก" type="default" stylingMode="outlined" onClick={() => setShowQCModal(false)} />
               <DxButton text="ปฏิเสธ" icon="close" type="danger" onClick={() => handleQCAction('reject')} />
               <DxButton text="ปล่อย" icon="check" type="success" onClick={() => handleQCAction('release')} />
             </div>
@@ -1056,8 +1058,9 @@ export default function LotsPage() {
 
       {/* Traceability Modal */}
       <DxPopup
-        visible={showTraceModal && !!selectedLot && !!traceData}
-        onVisibleChange={(v) => { if (!v) { setShowTraceModal(false); setSelectedLot(null); setTraceData(null); } }}
+        visible={showTraceModal}
+        onVisibleChange={(v) => { if (!v) setShowTraceModal(false); }}
+        onHidden={() => { setSelectedLot(null); setTraceData(null); }}
         title="Lot Traceability"
         width={700}
         height="auto"
@@ -1155,7 +1158,7 @@ export default function LotsPage() {
             )}
 
             <div className="flex justify-end mt-6 pt-4 border-t">
-              <DxButton text="ปิด" type="default" stylingMode="outlined" onClick={() => { setShowTraceModal(false); setSelectedLot(null); setTraceData(null); }} />
+              <DxButton text="ปิด" type="default" stylingMode="outlined" onClick={() => setShowTraceModal(false)} />
             </div>
           </div>
         )}

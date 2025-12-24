@@ -136,10 +136,10 @@
 
 ### PQR Service Tests [US-PQR]
 
-- [ ] T089 [P] [US-PQR] Create tests/integration/services/pqr-service-real.test.ts with schema sync for product_quality_reviews, deviations, complaints, stability_studies tables
-- [ ] T090 [US-PQR] Implement real-world scenario: Annual PQR generation aggregating deviations, OOS, changes, stability, complaints, recalls
-- [ ] T091 [US-PQR] Test PQR service functions: generatePQR, getPQRById, listPQRsByProduct, approvePQR
-- [ ] T092 [US-PQR] Test edge cases: incomplete data handling, date range validation, multi-product PQR comparison
+- [x] T089 [P] [US-PQR] Create tests/integration/services/pqr-service-real.test.ts with schema sync for product_quality_reviews, deviations, complaints, stability_studies tables - 30 tests passing
+- [x] T090 [US-PQR] Implement real-world scenario: Annual PQR generation aggregating deviations, OOS, changes, stability, complaints, recalls
+- [x] T091 [US-PQR] Test PQR service functions: generatePQR, getPQRById, listPQRsByProduct, approvePQR
+- [x] T092 [US-PQR] Test edge cases: incomplete data handling, date range validation, multi-product PQR comparison
 
 **Checkpoint**: PQR module has comprehensive real SQLite tests covering FR-004 requirements
 
@@ -173,10 +173,10 @@
 
 - [x] T056 [P] [US9] Create tests/integration/services/quality-service-real.test.ts with schema sync for quality_tests, quality_specs, deviations tables
 - [x] T057 [US9] AQL Sampling Plan calculation tests (ISO 2859-1 compliance) - 16 tests
-- [ ] T058 [US9] Quality service database functions - schema aligned, ready to proceed
-- [ ] T059 [US9] Quality test workflow scenarios - schema aligned, ready to proceed
+- [x] T058 [US9] Quality service database functions - 48 tests passing
+- [x] T059 [US9] Quality test workflow scenarios - included in comprehensive test suite
 - [x] T060 [US9] Quality specs, test records, and deviation lifecycle tests (direct database) - 13 tests
-- [ ] T061 [US9] COA generation tests - schema aligned, ready to proceed
+- [x] T061 [US9] COA generation tests - included in test suite
 
 ### HR Service Tests [US10]
 
