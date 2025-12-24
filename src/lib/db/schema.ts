@@ -262,6 +262,7 @@ export const sqliteBOM = sqliteTable('bom', {
   batchUnit: text('batch_unit').notNull(),
   yieldTarget: real('yield_target'), // percentage
   lossAllowance: real('loss_allowance'), // percentage
+  theoreticalYield: real('theoretical_yield'), // absolute quantity in product unit
   effectiveDate: text('effective_date'),
   expiryDate: text('expiry_date'),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
@@ -1261,6 +1262,7 @@ export const mysqlBOM = mysqlTable('bom', {
   batchUnit: varchar('batch_unit', { length: 50 }).notNull(),
   yieldTarget: decimal('yield_target', { precision: 5, scale: 2 }),
   lossAllowance: decimal('loss_allowance', { precision: 5, scale: 2 }),
+  theoreticalYield: decimal('theoretical_yield', { precision: 15, scale: 4 }), // absolute quantity in product unit
   effectiveDate: datetime('effective_date'),
   expiryDate: datetime('expiry_date'),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),

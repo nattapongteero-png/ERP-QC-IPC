@@ -40,6 +40,7 @@ export async function GET(
             batchUnit: bomTable.batchUnit,
             yieldTarget: bomTable.yieldTarget,
             lossAllowance: bomTable.lossAllowance,
+            theoreticalYield: bomTable.theoreticalYield,
             effectiveDate: bomTable.effectiveDate,
             expiryDate: bomTable.expiryDate,
             createdAt: bomTable.createdAt,
@@ -107,6 +108,7 @@ export async function PUT(
         batchUnit,
         yieldTarget,
         lossAllowance,
+        theoreticalYield,
         effectiveDate,
         expiryDate,
         lines,
@@ -159,6 +161,7 @@ export async function PUT(
       if (batchUnit !== undefined) updateData.batchUnit = batchUnit;
       if (yieldTarget !== undefined) updateData.yieldTarget = yieldTarget;
       if (lossAllowance !== undefined) updateData.lossAllowance = lossAllowance;
+      if (theoreticalYield !== undefined) updateData.theoreticalYield = theoreticalYield;
       if (effectiveDate !== undefined) {
         updateData.effectiveDate = parseDbDate(effectiveDate);
       }

@@ -40,6 +40,7 @@ export default function NewBOMPage() {
   const [batchUnit, setBatchUnit] = useState('');
   const [yieldTarget, setYieldTarget] = useState('95');
   const [lossAllowance, setLossAllowance] = useState('5');
+  const [theoreticalYield, setTheoreticalYield] = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
   const [lines, setLines] = useState<BOMLine[]>([]);
 
@@ -130,6 +131,7 @@ export default function NewBOMPage() {
           batchUnit,
           yieldTarget: yieldTarget ? parseFloat(yieldTarget) : null,
           lossAllowance: lossAllowance ? parseFloat(lossAllowance) : null,
+          theoreticalYield: theoreticalYield ? parseFloat(theoreticalYield) : null,
           effectiveDate: effectiveDate || null,
           lines: lines.map((line, index) => ({
             itemId: line.itemId,
@@ -264,6 +266,20 @@ export default function NewBOMPage() {
                       placeholder="e.g., kg, L, pcs"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Theoretical Yield ({selectedProduct?.primaryUnit || batchUnit || 'unit'})
+                  </label>
+                  <DxTextBox
+                    value={theoreticalYield}
+                    onValueChange={setTheoreticalYield}
+                    placeholder={`Expected output quantity in ${selectedProduct?.primaryUnit || batchUnit || 'unit'}`}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Expected quantity of finished product from this batch
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

@@ -62,6 +62,7 @@ interface BOMDetail {
   batchUnit: string;
   yieldTarget: number;
   lossAllowance: number;
+  theoreticalYield: number;
   effectiveDate: string;
   expiryDate: string;
   createdAt: string;
@@ -103,6 +104,7 @@ export default function BOMDetailPage() {
     batchUnit: '',
     yieldTarget: 0,
     lossAllowance: 0,
+    theoreticalYield: 0,
     effectiveDate: '',
     expiryDate: '',
   });
@@ -205,6 +207,7 @@ export default function BOMDetailPage() {
           batchUnit: result.data.batchUnit || '',
           yieldTarget: result.data.yieldTarget || 0,
           lossAllowance: result.data.lossAllowance || 0,
+          theoreticalYield: result.data.theoreticalYield || 0,
           effectiveDate: result.data.effectiveDate?.split('T')[0] || '',
           expiryDate: result.data.expiryDate?.split('T')[0] || '',
         });
@@ -230,6 +233,7 @@ export default function BOMDetailPage() {
           batchUnit: editForm.batchUnit,
           yieldTarget: editForm.yieldTarget || null,
           lossAllowance: editForm.lossAllowance || null,
+          theoreticalYield: editForm.theoreticalYield || null,
           effectiveDate: editForm.effectiveDate || null,
           expiryDate: editForm.expiryDate || null,
         }),
@@ -713,13 +717,22 @@ export default function BOMDetailPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Batch Size</p>
                 <p className="text-2xl font-bold text-blue-600">{bom.batchSize?.toLocaleString() || 0}</p>
                 <p className="text-xs text-gray-500">{bom.batchUnit}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-600">Theoretical Yield</p>
+                <p className="text-2xl font-bold text-purple-600">{bom.theoreticalYield?.toLocaleString() || '-'}</p>
+                <p className="text-xs text-gray-500">{bom.productUnit}</p>
               </div>
             </CardContent>
           </Card>
@@ -932,7 +945,16 @@ export default function BOMDetailPage() {
                 format="#,##0.#"
               />
             </div>
-            <div></div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Theoretical Yield ({bom?.productUnit || 'unit'})
+              </label>
+              <DxNumberBox
+                value={editForm.theoreticalYield}
+                onValueChange={(value) => setEditForm({ ...editForm, theoreticalYield: value || 0 })}
+                format="#,##0.###"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
