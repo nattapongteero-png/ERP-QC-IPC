@@ -479,12 +479,6 @@ export function ItemSearchDialog({
               cellRender={renderItemType}
               allowSorting
             />
-            <DxColumn
-              dataField="category"
-              caption="Category"
-              width={120}
-              allowSorting
-            />
             {showStock && (
               <DxColumn
                 dataField="onHand"
