@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   Barcode,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { TppSearchDialog, TppItem } from '@/components/ui/tpp-search-dialog';
 import { TtmtSearchDialog, TtmtItem } from '@/components/ui/ttmt-search-dialog';
@@ -177,6 +178,46 @@ const generateItemCode = (type: string): string => {
     : 'ITM';
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `${prefix}-${random}`;
+};
+
+// Map TTMT dispensing units to internal units
+const mapTtmtUnitToUnit = (dispensingUnit: string): string => {
+  const unitMap: Record<string, string> = {
+    'เม็ด': 'pcs',
+    'แคปซูล': 'pcs',
+    'ซอง': 'pcs',
+    'ขวด': 'btl',
+    'กล่อง': 'box',
+    'มิลลิลิตร': 'ml',
+    'ลิตร': 'L',
+    'กรัม': 'g',
+    'กิโลกรัม': 'kg',
+    'หลอด': 'pcs',
+    'แผง': 'pcs',
+  };
+  return unitMap[dispensingUnit] || 'pcs';
+};
+
+// Map TTMT dosage form to category
+const mapTtmtDosageToCategory = (dosageForm: string): string => {
+  const categoryMap: Record<string, string> = {
+    'ยาแคปซูลแข็ง': 'Capsule',
+    'ยาแคปซูล': 'Capsule',
+    'ยาเม็ด': 'Tablet',
+    'ยาผง': 'Powder',
+    'ยาน้ำ': 'Liquid',
+    'ยาครีม': 'Cream',
+    'ยาขี้ผึ้ง': 'Ointment',
+    'ยาลูกกลอน': 'Pill',
+    'ชาสมุนไพร': 'Tea',
+  };
+  // Check if any key is contained in the dosageForm
+  for (const [key, value] of Object.entries(categoryMap)) {
+    if (dosageForm.includes(key) || key.includes(dosageForm)) {
+      return value;
+    }
+  }
+  return '';
 };
 
 // ============================================================================
@@ -375,6 +416,7 @@ export function ItemEditForm({
   // State for TPP/TTMT search dialogs
   const [showTppSearch, setShowTppSearch] = React.useState(false);
   const [showTtmtSearch, setShowTtmtSearch] = React.useState(false);
+  const [showTtmtQuickFill, setShowTtmtQuickFill] = React.useState(false);
 
   // Fetch categories and units from database
   const { data: categories, isLoading: categoriesLoading } = useItemCategories();
@@ -428,6 +470,33 @@ export function ItemEditForm({
       ttmtCode: ttmtItem.ttmtCode,
       ttmtName: ttmtItem.fsn, // Use FSN as the name
     }));
+  }, []);
+
+  // Handler for TTMT quick-fill (fills entire form from TTMT product)
+  const handleTtmtQuickFill = React.useCallback((ttmtItem: TtmtItem) => {
+    const mappedUnit = mapTtmtUnitToUnit(ttmtItem.dispensingUnit);
+    const mappedCategory = mapTtmtDosageToCategory(ttmtItem.dosageForm);
+
+    setFormData(prev => ({
+      ...prev,
+      // Auto-set type to finished_goods for TTMT products
+      type: 'finished_goods',
+      // Use FSN as Thai name, trade name as English name
+      nameTh: ttmtItem.fsn || ttmtItem.tradeName || '',
+      nameEn: ttmtItem.tradeName || '',
+      // Map category from dosage form
+      category: mappedCategory || prev.category,
+      // Map unit from dispensing unit
+      primaryUnit: mappedUnit,
+      // Set TTMT codes
+      ttmtCode: ttmtItem.ttmtCode,
+      ttmtName: ttmtItem.fsn,
+      // Enable VMI sync since this is from TTMT database
+      vmiSyncEnabled: true,
+      // Generate a code based on type
+      code: generateItemCode('finished_goods'),
+    }));
+    setShowTtmtQuickFill(false);
   }, []);
 
   const typeConfig = getTypeConfig(formData.type);
@@ -494,6 +563,32 @@ export function ItemEditForm({
 
             {/* Left Column - Main Form (8 cols) */}
             <div className="col-span-8 space-y-6">
+
+              {/* TTMT Quick Fill - Only show when creating new item */}
+              {!isEditing && (
+                <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 rounded-2xl border-2 border-dashed border-green-300 p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-green-100 rounded-xl">
+                        <Sparkles className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Quick Fill from TTMT Database</h3>
+                        <p className="text-sm text-gray-600 mt-0.5">
+                          Search well-known Thai Traditional Medicine products and auto-fill the form
+                        </p>
+                      </div>
+                    </div>
+                    <DxButton
+                      text="Search TTMT Products"
+                      icon="search"
+                      type="success"
+                      stylingMode="contained"
+                      onClick={() => setShowTtmtQuickFill(true)}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Item Type Selection */}
               <SectionCard
@@ -684,6 +779,13 @@ export function ItemEditForm({
                 open={showTtmtSearch}
                 onOpenChange={setShowTtmtSearch}
                 onSelect={handleTtmtSelect}
+              />
+              {/* TTMT Quick Fill Dialog for new item creation */}
+              <TtmtSearchDialog
+                open={showTtmtQuickFill}
+                onOpenChange={setShowTtmtQuickFill}
+                onSelect={handleTtmtQuickFill}
+                title="Quick Fill from TTMT Products"
               />
 
               {/* Units of Measurement */}
