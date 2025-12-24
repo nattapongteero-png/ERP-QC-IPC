@@ -7,8 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { getSession } from '@/lib/auth';
 import {
   createLabelVerification,
   getLabelVerificationsForBatchRecord,
@@ -25,10 +24,10 @@ interface RouteContext {
  * GET /api/production/batch-records/[id]/labels
  * Get all label verifications for a batch record
  */
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -78,8 +77,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
