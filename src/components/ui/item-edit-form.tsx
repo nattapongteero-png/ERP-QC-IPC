@@ -70,6 +70,8 @@ export interface Item {
   ttmtCode: string | null;
   ttmtName: string | null;
   vmiSyncEnabled: boolean;
+  // GMP Phase 4: Strength for finished goods (FR-059)
+  strength: string | null;
 }
 
 export interface ItemFormData {
@@ -93,6 +95,8 @@ export interface ItemFormData {
   ttmtCode: string;
   ttmtName: string;
   vmiSyncEnabled: boolean;
+  // GMP Phase 4: Strength for finished goods (FR-059)
+  strength: string;
 }
 
 export interface ItemEditFormProps {
@@ -142,6 +146,7 @@ export const getDefaultFormData = (): ItemFormData => ({
   ttmtCode: '',
   ttmtName: '',
   vmiSyncEnabled: false,
+  strength: '',
 });
 
 export const itemToFormData = (item: Item): ItemFormData => ({
@@ -164,6 +169,7 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   ttmtCode: item.ttmtCode || '',
   ttmtName: item.ttmtName || '',
   vmiSyncEnabled: item.vmiSyncEnabled || false,
+  strength: item.strength || '',
 });
 
 export const getTypeConfig = (type: string) => {
@@ -631,6 +637,18 @@ export function ItemEditForm({
                       placeholder="English name (optional)"
                     />
                   </div>
+                  {/* FR-059: Strength field for finished goods */}
+                  {formData.type === 'finished_goods' && (
+                    <div className="col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Strength/Dosage</label>
+                      <DxTextBox
+                        value={formData.strength}
+                        onValueChange={(value) => updateFormData('strength', value)}
+                        placeholder="e.g., 500mg, 250mg/5ml"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Dosage strength for GMP compliance</p>
+                    </div>
+                  )}
                 </div>
               </SectionCard>
 

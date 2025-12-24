@@ -596,6 +596,42 @@ export default function LotsPage() {
       },
     },
     {
+      dataField: 'manufacturerName',
+      caption: 'ผู้ผลิต',
+      width: 150,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <div>
+          <p className="text-gray-700 text-sm truncate">{cellInfo.data.manufacturerName || '-'}</p>
+          {cellInfo.data.countryOfOrigin && (
+            <p className="text-xs text-gray-500">{cellInfo.data.countryOfOrigin}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      dataField: 'retestDate',
+      caption: 'Retest',
+      width: 130,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => {
+        if (!cellInfo.data.retestDate) return <span className="text-gray-400">-</span>;
+        const retestDate = new Date(cellInfo.data.retestDate);
+        const today = new Date();
+        const daysUntilRetest = Math.floor((retestDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const isOverdue = daysUntilRetest < 0;
+        const isUpcoming = daysUntilRetest >= 0 && daysUntilRetest <= 30;
+        return (
+          <div>
+            <p className="text-gray-700">{formatDate(cellInfo.data.retestDate)}</p>
+            <Badge variant={isOverdue ? 'danger' : isUpcoming ? 'warning' : 'default'} size="sm">
+              {isOverdue ? `เกิน ${Math.abs(daysUntilRetest)} วัน` : `${daysUntilRetest} วัน`}
+            </Badge>
+          </div>
+        );
+      },
+    },
+    {
       dataField: 'status',
       caption: 'สถานะ',
       width: 120,

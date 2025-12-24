@@ -80,6 +80,12 @@ export async function GET(request: NextRequest) {
             warehouseId: lotsTable.warehouseId,
             warehouseName: warehousesTable.name,
             createdAt: lotsTable.createdAt,
+            // Phase 4: GMP Compliance fields
+            manufacturerName: lotsTable.manufacturerName,
+            importerName: lotsTable.importerName,
+            countryOfOrigin: lotsTable.countryOfOrigin,
+            retestDate: lotsTable.retestDate,
+            retestStatus: lotsTable.retestStatus,
           })
           .from(lotsTable)
           .leftJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
