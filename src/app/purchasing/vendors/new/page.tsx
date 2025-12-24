@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,15 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { PageHeader } from '@/components/ui/page-header';
+
+// Generate vendor code: VND-YYYYMMDD-XXXX
+function generateVendorCode(): string {
+  const now = new Date();
+  const year = now.getFullYear().toString().slice(-2);
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `VND-${year}${month}-${random}`;
+}
 
 export default function NewVendorPage() {
   const router = useRouter();
@@ -25,6 +34,11 @@ export default function NewVendorPage() {
     isApproved: false,
     isVMI: false,
   });
+
+  // Auto-generate vendor code on mount
+  useEffect(() => {
+    setForm(prev => ({ ...prev, code: generateVendorCode() }));
+  }, []);
 
   const handleSave = async () => {
     if (!form.code || !form.name) {
