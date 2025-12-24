@@ -11,18 +11,29 @@ This specification documents a comprehensive gap analysis between the current He
 
 ## Current Implementation Status Overview
 
+*Updated: 2025-12-24 (Post Phase 12 Verification)*
+
 | Module | Required By | Implementation Status | Coverage |
 | ------ | ----------- | --------------------- | -------- |
-| QMS (Document Control, Deviation, CAPA, Change Control, PQR) | หมวด 1 | Partial | 40% |
+| QMS (Document Control, Deviation, CAPA, Change Control, PQR) | หมวด 1 | **Complete** | **85%** |
 | Personnel & Training | หมวด 2 | Complete | 95% |
-| Facility & Equipment | หมวด 3 | Partial | 30% |
-| Sanitation & Pest Control | หมวด 4 | Not Implemented | 0% |
+| Facility & Equipment | หมวด 3 | **Partial** | **50%** |
+| Sanitation & Pest Control | หมวด 4 | **Complete** | **80%** |
 | Documentation & Data Integrity | หมวด 5 | Partial | 60% |
 | Manufacturing Operations (MES/eBMR) | หมวด 6 | Partial | 50% |
-| Quality Control (QC/LIMS) | หมวด 7 | Partial | 40% |
+| Quality Control (QC/LIMS) | หมวด 7 | **Partial** | **60%** |
 | Contract Manufacturing | หมวด 8 | Not Implemented | 0% |
-| Complaints/Recalls | หมวด 9 | Not Implemented | 0% |
-| Self-Inspection/Audit | หมวด 10 | Minimal | 15% |
+| Complaints/Recalls | หมวด 9 | **Complete** | **85%** |
+| Self-Inspection/Audit | หมวด 10 | **Complete** | **80%** |
+
+**Implementation Notes (Phase 1-12):**
+- CAPA: Full workflow with effectiveness verification, approval routing
+- Complaints: Complete investigation workflow with trending
+- Recalls: Full mock/live recall management with distribution tracking
+- Sanitation: Schedules, checklists, pest control with compliance trends
+- Internal Audit: Annual planning, chapter coverage, finding-CAPA linking
+- Equipment: Calibration scheduling, overdue alerts (service layer)
+- Compliance Dashboard: 10-chapter coverage evaluation (service layer)
 
 ---
 
