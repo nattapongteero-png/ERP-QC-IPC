@@ -40,7 +40,7 @@ vi.mock('@/components/ui/dx-data-grid', () => ({
   DxDataGrid: ({ dataSource, onRowClick }: { dataSource: unknown[]; onRowClick?: (e: unknown) => void }) => (
     <div data-testid="dx-data-grid">
       <div data-testid="grid-row-count">{dataSource?.length || 0} rows</div>
-      {dataSource?.map((item: { id: number; lotNumber: string }, idx: number) => (
+      {(dataSource as Array<{ id: number; lotNumber: string }>)?.map((item, idx) => (
         <div
           key={idx}
           data-testid={`grid-row-${item.id}`}

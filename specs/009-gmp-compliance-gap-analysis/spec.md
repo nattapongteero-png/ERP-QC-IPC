@@ -9,6 +9,16 @@
 
 This specification documents a comprehensive gap analysis between the current Herbal Medicine ERP codebase and the regulatory requirements defined in `docs/INTEL-HERBAL-MANUFACTURING.md`. The analysis covers all 10 chapters (หมวด) of the Thai FDA Low-Risk Herbal Product Manufacturing requirements plus appendices.
 
+## Implementation Approach
+
+This specification is being addressed in phases:
+
+1. **Phase 1 (Current)**: Integration test infrastructure - Validates existing service layer code works correctly with real database operations. See `plan.md` for details.
+
+2. **Phase 2 (Future)**: Feature implementation - Addresses gaps identified in the "Not Implemented" section below. Requires separate implementation plan.
+
+3. **Phase 3 (Future)**: Contract Manufacturing & Appendix requirements (FR-035, FR-036, FR-045, FR-046).
+
 ## Current Implementation Status Overview
 
 *Updated: 2025-12-24 (Post Phase 12 Verification)*
@@ -34,6 +44,14 @@ This specification documents a comprehensive gap analysis between the current He
 - Internal Audit: Annual planning, chapter coverage, finding-CAPA linking
 - Equipment: Calibration scheduling, overdue alerts (service layer)
 - Compliance Dashboard: 10-chapter coverage evaluation (service layer)
+
+### Implementation vs. Testing Scope
+
+**Current Phase Focus**: Integration testing of existing service layer code.
+
+The requirements below (FR-001 through FR-046) represent the **target state**. Current implementation status is shown in the table above. The associated `plan.md` and `tasks.md` address **test coverage** for existing implementations, not new feature development.
+
+**Gap Identification**: Requirements marked "Not Implemented" or with <80% coverage require separate implementation planning after test infrastructure is complete.
 
 ---
 
@@ -366,7 +384,7 @@ Referenced by SC-003 for CAPA closure timelines:
 | ---------------- | ------------- | --------------- |
 | Deviation Management | Basic deviation workflow | Missing CAPA integration and effectiveness tracking |
 | Quality Testing | Test records with pass/fail | Missing sampling SOP linkage, reference sample tracking |
-| Batch Records | Work orders with basic BMR | Missing line clearance, IPC enforcement, dual verification |
+| Batch Records | Work orders with basic BMR | **FR-025**: Line clearance not enforced; **FR-026**: Dual verification not implemented; **FR-028**: Packaging tracking not implemented |
 | Equipment Management | Basic asset registry | Missing scheduled maintenance, calibration alerts, cleaning status |
 | Lot Status | Quarantine/Release workflow | Missing rejection reason tracking, blocked status handling |
 | Material Specs | Basic item specifications | Missing natural origin details required by regulation |

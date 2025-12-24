@@ -252,13 +252,13 @@ describe('Inventory Service Real Integration Tests', () => {
       // Release only first lot
       await updateLotStatus(lotId1, 'released', TEST_USER_ID_2);
 
-      const onHand = await recalculateItemOnHand(1);
-      expect(onHand).toBe(100); // Only released lot counts
+      const result = await recalculateItemOnHand(1);
+      expect(result.onHand).toBe(100); // Only released lot counts
 
       // Release second lot
       await updateLotStatus(lotId2, 'released', TEST_USER_ID_2);
-      const newOnHand = await recalculateItemOnHand(1);
-      expect(newOnHand).toBe(150);
+      const newResult = await recalculateItemOnHand(1);
+      expect(newResult.onHand).toBe(150);
     });
   });
 
@@ -674,14 +674,14 @@ describe('Inventory Service Real Integration Tests', () => {
       await updateLotStatus(lot1, 'released', TEST_USER_ID);
       await updateLotStatus(lot2, 'released', TEST_USER_ID);
 
-      const onHand = await recalculateItemOnHand(1);
-      expect(onHand).toBe(250); // Only released lots
+      const result = await recalculateItemOnHand(1);
+      expect(result.onHand).toBe(250); // Only released lots
 
       // Issue some from lot1
       await issueMaterial(lot1, 25, 'WO', 1, 'WO-OH-1', TEST_USER_ID);
 
-      const newOnHand = await recalculateItemOnHand(1);
-      expect(newOnHand).toBe(225);
+      const newResult = await recalculateItemOnHand(1);
+      expect(newResult.onHand).toBe(225);
     });
 
     it('should provide complete stock summary', async () => {

@@ -169,6 +169,11 @@
 - [x] T054 [US8] Test batch record functions: startProduction, recordStep, verifyMaterial, calculateYield in production-service-real.test.ts
 - [x] T055 [US8] Test edge cases: yield variance deviation, material substitution, batch record completion in production-service-real.test.ts
 
+**Implementation Note**: Tasks T050-T055 test existing production service functions. The following spec requirements are NOT fully implemented and require future work:
+- FR-025: Line clearance enforcement (currently no blocking logic)
+- FR-026: Dual verification workflow (currently single-user operations)
+- FR-028: Packaging material lifecycle tracking (not in current service)
+
 ### Quality Service Tests [US9]
 
 - [x] T056 [P] [US9] Create tests/integration/services/quality-service-real.test.ts with schema sync for quality_tests, quality_specs, deviations tables
@@ -354,6 +359,20 @@ The following requirements are explicitly deferred to a future phase:
 | FR-036 | Batch-Level Contractor ID | Depends on FR-035 implementation | Phase 2 |
 | FR-045 | Reference Library (Pharmacopoeia) | SHOULD requirement, lower priority | Phase 2 |
 | FR-046 | Verification Protocols | SHOULD requirement, depends on Change Control | Phase 2 |
+
+---
+
+## Implementation Gaps (Require Future Planning)
+
+The following MUST requirements from spec.md are partially tested but lack full implementation:
+
+| Requirement | Description | Current State | Action Required |
+|-------------|-------------|---------------|-----------------|
+| FR-025 | Line clearance verification before production | Production tests exist but feature not enforced | Create implementation plan |
+| FR-026 | Dual verification for dispensing/weighing | Tests verify existing functions but workflow incomplete | Create implementation plan |
+| FR-028 | Packaging material issuance/return/destruction tracking | Basic inventory transactions tested, no packaging-specific logic | Create implementation plan |
+
+**Priority**: These are หมวด 6 (Manufacturing Operations) requirements rated P2 in spec.md. Implementation should follow current test phase completion.
 
 ---
 
