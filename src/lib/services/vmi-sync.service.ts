@@ -757,10 +757,32 @@ export class VmiSyncService {
       const batch = items.slice(i, i + this.BATCH_SIZE);
       this.log(`[sendPricesToPortal] Processing batch ${batchNumber}/${totalBatches}`);
 
+      // Filter out items with no valid price (API requires unitPrice > 0)
+      const validPriceItems = batch.filter((item) => item.unitPrice > 0);
+      const skippedCount = batch.length - validPriceItems.length;
+
+      if (skippedCount > 0) {
+        this.log(`[sendPricesToPortal] Skipping ${skippedCount} items with no valid price (unitPrice must be > 0)`);
+        // Mark skipped items as failed
+        failed += skippedCount;
+        batch.filter((item) => item.unitPrice <= 0).forEach((item) => {
+          errors.push({
+            itemId: item.id,
+            itemCode: item.code,
+            error: 'No valid price configured (unitPrice must be > 0)',
+          });
+        });
+      }
+
+      if (validPriceItems.length === 0) {
+        this.log(`[sendPricesToPortal] No items with valid prices in this batch, skipping`);
+        continue;
+      }
+
       // Transform to VMI Portal format (per docs/VMI-VENDOR-API.md)
-      const payload = batch.map((item) => ({
+      const payload = validPriceItems.map((item) => ({
         localCode: item.code,
-        unitPrice: item.unitPrice,
+        unitPrice: Number(item.unitPrice),
         effectiveDate: new Date().toISOString(),
         isActive: true,
       }));
@@ -782,9 +804,9 @@ export class VmiSyncService {
         this.log(`[sendPricesToPortal] Response status: ${response.status}`);
 
         if (response.ok) {
-          processed += batch.length;
+          processed += validPriceItems.length;
         } else {
-          failed += batch.length;
+          failed += validPriceItems.length;
           const responseText = await response.text();
           this.logError(`[sendPricesToPortal] API error:`, responseText);
           let errorData: Record<string, unknown> = {};
@@ -793,7 +815,7 @@ export class VmiSyncService {
           } catch {
             // Not JSON response
           }
-          batch.forEach((item) => {
+          validPriceItems.forEach((item) => {
             errors.push({
               itemId: item.id,
               itemCode: item.code,
@@ -804,8 +826,8 @@ export class VmiSyncService {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Network error';
         this.logError(`[sendPricesToPortal] Network/fetch error:`, error);
-        failed += batch.length;
-        batch.forEach((item) => {
+        failed += validPriceItems.length;
+        validPriceItems.forEach((item) => {
           errors.push({
             itemId: item.id,
             itemCode: item.code,
@@ -815,7 +837,7 @@ export class VmiSyncService {
       }
     }
 
-    this.log(`[sendPricesToPortal] Complete - processed: ${processed}, failed: ${failed}`);
+    this.log(`[sendPricesToPortal] Complete - processed: ${processed}, failed: ${failed}, errors: ${errors.length}`);
     return { processed, failed, errors };
   }
 
