@@ -336,7 +336,7 @@ export default function LotsPage() {
       if (data.success) {
         setShowModal(false);
         fetchLots();
-        resetForm();
+        // Note: resetForm() is called in onHidden callback after popup animation completes
       }
     } catch {
       // Network errors handled by global error handler
@@ -359,8 +359,8 @@ export default function LotsPage() {
       const data = await res.json();
       if (data.success) {
         setShowQCModal(false);
-        setSelectedLot(null);
         fetchLots();
+        // Note: setSelectedLot(null) is called in onHidden callback after popup animation completes
       }
     } catch {
       // Network errors handled by global error handler
