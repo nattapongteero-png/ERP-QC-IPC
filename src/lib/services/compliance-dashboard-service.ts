@@ -11,7 +11,6 @@ import { getComplaintDashboard } from './complaint-service';
 import { getSanitationTrends } from './sanitation-service';
 import { getOverdueCalibrations } from './equipment-maintenance-service';
 import { getDb, isSqlite } from '../db';
-import { getTodayStr } from '../db/date-utils';
 import { eq, count } from 'drizzle-orm';
 import {
   sqliteStabilityStudies,
@@ -22,14 +21,14 @@ import {
   mysqlUsers,
 } from '../db/schema';
 
-import type {
-  ComplianceOverview,
-  ChapterCoverage,
-  ComplianceGap,
-  ComplianceRequirement,
-  GMPChapterNumber,
+import {
   GMP_CHAPTERS,
-  GapsWithDrilldownParams,
+  type ComplianceOverview,
+  type ChapterCoverage,
+  type ComplianceGap,
+  type ComplianceRequirement,
+  type GMPChapterNumber,
+  type GapsWithDrilldownParams,
 } from '@/types/compliance';
 
 // Get table references based on database type
@@ -48,19 +47,6 @@ function getTables() {
   };
 }
 
-// Import GMP chapter mapping
-const GMP_CHAPTER_MAP: typeof GMP_CHAPTERS = {
-  1: { name: 'ระบบบริหารคุณภาพ', nameEn: 'Quality Management System' },
-  2: { name: 'บุคลากร', nameEn: 'Personnel' },
-  3: { name: 'อาคารสถานที่และเครื่องมือ', nameEn: 'Premises and Equipment' },
-  4: { name: 'การสุขาภิบาลและสุขอนามัย', nameEn: 'Sanitation and Hygiene' },
-  5: { name: 'เอกสารและข้อมูล', nameEn: 'Documentation' },
-  6: { name: 'การดำเนินการผลิต', nameEn: 'Production Operations' },
-  7: { name: 'การควบคุมคุณภาพ', nameEn: 'Quality Control' },
-  8: { name: 'การจ้างผลิตและจ้างตรวจวิเคราะห์', nameEn: 'Contract Manufacturing' },
-  9: { name: 'ข้อร้องเรียนและการเรียกคืน', nameEn: 'Complaints and Recalls' },
-  10: { name: 'การตรวจสอบตนเอง', nameEn: 'Self-Inspection' },
-};
 
 // ============================================
 // T1101: Get Compliance Overview
@@ -107,7 +93,7 @@ export async function getComplianceOverview(): Promise<ComplianceOverview> {
 export async function calculateChapterCoverage(
   chapterNumber: GMPChapterNumber
 ): Promise<ChapterCoverage> {
-  const chapterInfo = GMP_CHAPTER_MAP[chapterNumber];
+  const chapterInfo = GMP_CHAPTERS[chapterNumber];
   const requirements: ComplianceRequirement[] = [];
   const gaps: ComplianceGap[] = [];
 
@@ -192,7 +178,7 @@ async function evaluateChapter1(
       requirementId: '1.1',
       requirement: 'CAPA effectiveness rate >= 85%',
       chapter: 1,
-      chapterName: GMP_CHAPTER_MAP[1].name,
+      chapterName: GMP_CHAPTERS[1].name,
       currentStatus: `Current effectiveness rate: ${capaEffectiveness}%`,
       affectedRecords: [],
       remediation: 'Review CAPA effectiveness checks. Ensure verification criteria are clearly defined and follow-up actions are documented.',
@@ -238,7 +224,7 @@ async function evaluateChapter1(
       requirementId: '1.2',
       requirement: 'Deviation closure rate >= 90% within 30 days',
       chapter: 1,
-      chapterName: GMP_CHAPTER_MAP[1].name,
+      chapterName: GMP_CHAPTERS[1].name,
       currentStatus: `Current closure rate: ${deviationClosureRate}%`,
       affectedRecords: [],
       remediation: 'Review deviation investigation timelines. Assign clear owners and due dates. Escalate overdue investigations.',
@@ -262,7 +248,7 @@ async function evaluateChapter1(
       requirementId: '1.3',
       requirement: 'No overdue CAPAs',
       chapter: 1,
-      chapterName: GMP_CHAPTER_MAP[1].name,
+      chapterName: GMP_CHAPTERS[1].name,
       currentStatus: `${overdueCapas} CAPAs are overdue`,
       affectedRecords: [],
       remediation: 'Review overdue CAPAs. Reassign if needed. Update due dates with justification or expedite completion.',
@@ -304,7 +290,7 @@ async function evaluateChapter2(
       requirementId: '2.1',
       requirement: 'Active personnel records exist',
       chapter: 2,
-      chapterName: GMP_CHAPTER_MAP[2].name,
+      chapterName: GMP_CHAPTERS[2].name,
       currentStatus: 'No active personnel records found',
       affectedRecords: [],
       remediation: 'Create personnel records in the system. Ensure all staff have user accounts with proper roles.',
@@ -345,7 +331,7 @@ async function evaluateChapter3(
       requirementId: '3.1',
       requirement: 'No overdue equipment calibrations',
       chapter: 3,
-      chapterName: GMP_CHAPTER_MAP[3].name,
+      chapterName: GMP_CHAPTERS[3].name,
       currentStatus: `${overdueCalibrations.length} equipment items have overdue calibrations`,
       affectedRecords,
       remediation: 'Schedule calibrations for overdue equipment immediately. Take equipment out of service until calibrated if critical.',
@@ -382,7 +368,7 @@ async function evaluateChapter4(
       requirementId: '4.1',
       requirement: 'Sanitation compliance rate >= 95%',
       chapter: 4,
-      chapterName: GMP_CHAPTER_MAP[4].name,
+      chapterName: GMP_CHAPTERS[4].name,
       currentStatus: `Current compliance rate: ${complianceRate}%`,
       affectedRecords: [],
       remediation: 'Review sanitation schedules and assign clear responsibilities. Investigate reasons for missed tasks.',
@@ -397,7 +383,7 @@ async function evaluateChapter4(
  */
 async function evaluateChapter5(
   requirements: ComplianceRequirement[],
-  gaps: ComplianceGap[]
+  _gaps: ComplianceGap[]
 ): Promise<void> {
   // Requirement 5.1: Document control system in place
   // Since we have a compliance system, assume document control is in place
@@ -411,6 +397,7 @@ async function evaluateChapter5(
   });
 
   // No gaps for now - future enhancement: check for SOP versions, approval status
+  void _gaps; // Silence unused parameter warning
 }
 
 /**
@@ -437,7 +424,7 @@ async function evaluateChapter6(
       requirementId: '6.1',
       requirement: 'Production work orders tracked in system',
       chapter: 6,
-      chapterName: GMP_CHAPTER_MAP[6].name,
+      chapterName: GMP_CHAPTERS[6].name,
       currentStatus: 'Production module not yet implemented',
       affectedRecords: [],
       remediation: 'Implement production work order tracking module to manage batch records and manufacturing processes.',
@@ -480,7 +467,7 @@ async function evaluateChapter7(
       requirementId: '7.1',
       requirement: 'Active stability studies in progress',
       chapter: 7,
-      chapterName: GMP_CHAPTER_MAP[7].name,
+      chapterName: GMP_CHAPTERS[7].name,
       currentStatus: 'No active stability studies found',
       affectedRecords: [],
       remediation: 'Initiate stability studies for all marketed products. Follow approved stability protocols.',
@@ -513,7 +500,7 @@ async function evaluateChapter8(
       requirementId: '8.1',
       requirement: 'Contract vendor qualification records maintained',
       chapter: 8,
-      chapterName: GMP_CHAPTER_MAP[8].name,
+      chapterName: GMP_CHAPTERS[8].name,
       currentStatus: 'Vendor management module not yet implemented',
       affectedRecords: [],
       remediation: 'Implement vendor qualification module if contract manufacturing is used. Maintain qualification records and periodic audits.',
@@ -553,7 +540,7 @@ async function evaluateChapter9(
       requirementId: '9.1',
       requirement: 'Complaint investigation rate >= 95%',
       chapter: 9,
-      chapterName: GMP_CHAPTER_MAP[9].name,
+      chapterName: GMP_CHAPTERS[9].name,
       currentStatus: `${complaintDashboard.pendingInvestigation} complaints pending investigation`,
       affectedRecords: [],
       remediation: 'Route pending complaints to QC for investigation. Assign investigators and track completion.',
@@ -577,7 +564,7 @@ async function evaluateChapter9(
       requirementId: '9.2',
       requirement: 'No open critical complaints',
       chapter: 9,
-      chapterName: GMP_CHAPTER_MAP[9].name,
+      chapterName: GMP_CHAPTERS[9].name,
       currentStatus: `${criticalComplaintsOpen} critical complaints are still open`,
       affectedRecords: [],
       remediation: 'Escalate critical complaints immediately. Complete investigations and implement corrective actions.',
@@ -615,7 +602,7 @@ async function evaluateChapter10(
       requirementId: '10.1',
       requirement: 'Annual audit plan completion >= 80%',
       chapter: 10,
-      chapterName: GMP_CHAPTER_MAP[10].name,
+      chapterName: GMP_CHAPTERS[10].name,
       currentStatus: `Current completion rate: ${Math.round(auditCompletion)}%`,
       affectedRecords: [],
       remediation: 'Review audit schedule. Assign lead auditors. Conduct remaining planned audits before year-end.',
@@ -643,10 +630,10 @@ async function evaluateChapter10(
       requirementId: '10.2',
       requirement: 'All 10 GMP chapters audited at least once per year',
       chapter: 10,
-      chapterName: GMP_CHAPTER_MAP[10].name,
+      chapterName: GMP_CHAPTERS[10].name,
       currentStatus: `Chapters not audited: ${missingChapters.join(', ')}`,
       affectedRecords: [],
-      remediation: `Schedule audits for missing chapters: ${missingChapters.map(ch => GMP_CHAPTER_MAP[ch as GMPChapterNumber].name).join(', ')}`,
+      remediation: `Schedule audits for missing chapters: ${missingChapters.map(ch => GMP_CHAPTERS[ch as GMPChapterNumber].name).join(', ')}`,
       priority: missingChapters.length > 3 ? 'high' : 'medium',
     });
   }
@@ -667,7 +654,7 @@ async function evaluateChapter10(
       requirementId: '10.3',
       requirement: 'Open audit findings <= 5',
       chapter: 10,
-      chapterName: GMP_CHAPTER_MAP[10].name,
+      chapterName: GMP_CHAPTERS[10].name,
       currentStatus: `${openFindings} findings are still open`,
       affectedRecords: [],
       remediation: 'Close open findings. Assign CAPAs if required. Verify corrective actions are implemented.',
