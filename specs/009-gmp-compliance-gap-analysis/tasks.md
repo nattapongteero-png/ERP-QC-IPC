@@ -185,15 +185,15 @@
 
 ### Implementation for User Story 14
 
-- [ ] T077 [US14] Create label-verification.service.ts in src/lib/services/ with createLabelVerification, verifyLabel, witnessLabel functions
-- [ ] T078 [US14] Create /api/production/batch-records/[batchRecordId]/labels/route.ts for GET and POST (label upload uses attachments API)
-- [ ] T079 [US14] Create /api/production/labels/[labelId]/verify/route.ts with operator e-signature
-- [ ] T080 [US14] Create /api/production/labels/[labelId]/witness/route.ts with witness e-signature
-- [ ] T081 [US14] Create label-verification-form.tsx component in src/components/production/ with image upload using DocumentAttachment
-- [ ] T082 [US14] Create label verification page at src/app/production/label-verification/page.tsx
-- [ ] T083 [US14] Update batch record detail page to show label verifications in src/app/production/work-orders/[id]/batch-record/page.tsx
-- [ ] T084 [US14] Create integration test for label-verification-service in tests/integration/services/label-verification-service-real.test.ts
-- [ ] T085 [US14] Create UI test for label verification workflow in tests/e2e/label-verification.test.tsx
+- [X] T077 [US14] Create label-verification.service.ts in src/lib/services/ with createLabelVerification, verifyLabel, witnessLabel functions
+- [X] T078 [US14] Create /api/production/batch-records/[batchRecordId]/labels/route.ts for GET and POST (label upload uses attachments API)
+- [X] T079 [US14] Create /api/production/labels/[labelId]/verify/route.ts with operator e-signature
+- [X] T080 [US14] Create /api/production/labels/[labelId]/witness/route.ts with witness e-signature
+- [X] T081 [US14] Create label-verification-form.tsx component in src/components/production/ with image upload using DocumentAttachment
+- [X] T082 [US14] Create label verification page at src/app/production/label-verification/page.tsx
+- [X] T083 [US14] Update batch record detail page to show label verifications in src/app/production/batch-records/[id]/page.tsx
+- [X] T084 [US14] Create integration test for label-verification-service in tests/integration/services/label-verification-service.test.ts (13 tests passing)
+- [X] T085 [US14] Create UI test for label verification workflow in tests/e2e/label-verification.test.tsx (43 tests passing)
 
 **Checkpoint**: Label images attached to batch records with dual e-signature verification (operator + witness)
 
