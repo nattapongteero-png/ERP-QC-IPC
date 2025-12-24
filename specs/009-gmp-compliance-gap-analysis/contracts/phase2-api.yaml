@@ -72,7 +72,10 @@ paths:
 
   /inventory/lots/{lotId}/documents:
     get:
-      summary: List documents attached to lot (FR-057)
+      summary: List documents attached to lot (FR-057) - Proxies to existing attachments API
+      description: |
+        Uses existing attachments table with moduleName='inventory_lot'.
+        This endpoint wraps the standard attachments API for convenience.
       operationId: getLotDocuments
       tags: [Inventory]
       parameters:
@@ -582,20 +585,25 @@ components:
 
     LotDocument:
       type: object
+      description: |
+        Uses existing attachments table with database BLOB storage.
+        File data is stored in attachments.fileData column (LONGBLOB in MySQL).
       properties:
         id: { type: integer }
         lotId: { type: integer }
         documentType:
           type: string
-          enum: [coa, specification, msds, other]
+          enum: [coa, specification, msds, photo, other]
+          description: Maps to attachments.category
         fileName: { type: string }
-        filePath: { type: string }
         fileSize: { type: integer }
         mimeType: { type: string }
         uploadedBy: { type: integer }
         uploadedByName: { type: string }
         uploadedAt: { type: string, format: date-time }
-        isActive: { type: boolean }
+        downloadUrl:
+          type: string
+          description: URL to download file via /api/attachments/{id}/download
 
     QcSummaryResponse:
       type: object
@@ -728,6 +736,9 @@ components:
 
     LabelVerification:
       type: object
+      description: |
+        Label images are stored in the existing attachments table with moduleName='label_verification'.
+        Use DocumentAttachment component for upload/display.
       properties:
         id: { type: integer }
         workOrderId: { type: integer }
@@ -735,7 +746,12 @@ components:
         labelType:
           type: string
           enum: [product_label, batch_label, carton_label, shipper_label]
-        imagePath: { type: string }
+        imageAttachmentId:
+          type: integer
+          description: Reference to attachments table (moduleName='label_verification')
+        imageUrl:
+          type: string
+          description: URL to download label image via /api/attachments/{id}/download
         productName: { type: string }
         batchNumber: { type: string }
         expiryDate: { type: string, format: date }

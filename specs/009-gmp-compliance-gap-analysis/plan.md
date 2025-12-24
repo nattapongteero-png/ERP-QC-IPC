@@ -133,10 +133,11 @@ tests/
 | Table | Purpose | FR Reference |
 |-------|---------|--------------|
 | `line_clearance_checklists` | Pre-production verification | FR-062 |
-| `label_verifications` | BMR label attachments | FR-064/065 |
+| `label_verifications` | BMR label attachments (images via existing `attachments` table) | FR-064/065 |
 | `electronic_signatures` | 21 CFR Part 11 signatures | FR-071-074 |
-| `lot_documents` | COA/Spec/MSDS attachments | FR-057 |
 | `stock_alert_rules` | Configurable alert thresholds | FR-050 |
+
+**Note**: Lot documents (FR-057) use the existing `attachments` table with `moduleName='inventory_lot'` - no new table needed.
 
 ### Column Additions
 

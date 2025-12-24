@@ -1094,13 +1094,12 @@ export const lineClearanceChecklists = sqliteTable('line_clearance_checklists', 
 });
 
 // Label Verifications (FR-064/065)
+// Note: Label images are stored in the existing 'attachments' table with moduleName='label_verification'
 export const labelVerifications = sqliteTable('label_verifications', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   workOrderId: integer('work_order_id').references(() => workOrders.id),
   batchRecordId: integer('batch_record_id').references(() => batchRecords.id),
   labelType: text('label_type').notNull(), // product_label, batch_label, carton_label
-  imagePath: text('image_path').notNull(),
-  imageHash: text('image_hash'),
   productName: text('product_name'),
   batchNumber: text('batch_number'),
   expiryDate: text('expiry_date'),
@@ -1115,23 +1114,13 @@ export const labelVerifications = sqliteTable('label_verifications', {
   verifiedAt: text('verified_at'),
 });
 
-// Lot Documents (FR-057)
-export const lotDocuments = sqliteTable('lot_documents', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  lotId: integer('lot_id').references(() => inventoryLots.id).notNull(),
-  documentType: text('document_type').notNull(), // coa, specification, msds, other
-  fileName: text('file_name').notNull(),
-  filePath: text('file_path').notNull(),
-  fileSize: integer('file_size'),
-  mimeType: text('mime_type'),
-  fileHash: text('file_hash'),
-  uploadedBy: integer('uploaded_by').references(() => users.id),
-  uploadedAt: text('uploaded_at').default(sql`CURRENT_TIMESTAMP`),
-  expiryDate: text('expiry_date'),
-  notes: text('notes'),
-  isActive: integer('is_active', { mode: 'boolean' }).default(true),
-  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
-});
+// Lot Documents (FR-057) - Uses existing 'attachments' table
+// No new table needed! Use DocumentAttachment component with:
+//   moduleName: 'inventory_lot'
+//   entityId: lotId
+//   categories: ['coa', 'specification', 'msds', 'photo']
+//
+// The existing attachments table stores files as BLOB (fileData LONGBLOB in MySQL)
 ```
 
 ### Phase 2B: Electronic Signature Service
@@ -1535,12 +1524,46 @@ Before marking Phase 2 implementation complete:
 - [ ] Schema changes applied to both SQLite and MySQL
 - [ ] Electronic signature service with password verification
 - [ ] Line clearance workflow with blocking logic
-- [ ] Label verification with image upload and dual signature
+- [ ] Label verification with DocumentAttachment component and dual e-signature
+- [ ] Lot documents using DocumentAttachment component (moduleName='inventory_lot')
 - [ ] QC disposition with approval workflow
 - [ ] Dashboard KPI endpoint returning all 8 metrics
 - [ ] Integration tests for all new services
 - [ ] UI components using DevExtreme exclusively
 - [ ] All critical operations require e-signature
+- [ ] All file storage uses existing `attachments` table (database BLOB, not filesystem)
 - [ ] Tests pass with `pnpm test:run`
 - [ ] No console errors or warnings
 - [ ] Performance: Dashboard loads <3s
+
+### DocumentAttachment Component Usage (Phase 2)
+
+For lot documents (FR-057) and label verification images (FR-064/065), use the existing reusable `DocumentAttachment` component:
+
+```tsx
+// For lot documents (COA, Spec, MSDS)
+<DocumentAttachment
+  moduleName="inventory_lot"
+  entityId={lotId}
+  title="Lot Documents"
+  categories={['coa', 'specification', 'msds', 'photo']}
+  allowedExtensions={['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx']}
+/>
+
+// For label verification images
+<DocumentAttachment
+  moduleName="label_verification"
+  entityId={labelVerificationId}
+  title="Label Image"
+  categories={['photo']}
+  allowedExtensions={['.jpg', '.jpeg', '.png', '.webp']}
+  maxFiles={1}
+/>
+```
+
+**Key Points:**
+- All files stored as BLOB in database (`attachments.fileData`)
+- No filesystem storage - enables easy backup/restore
+- Uses existing polymorphic attachments table
+- Component handles upload, preview, and deletion
+- See `docs/DOCUMENT-ATTACHMENT-COMPONENT.md` for full API reference

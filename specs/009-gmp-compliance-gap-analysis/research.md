@@ -525,28 +525,42 @@ async function startProduction(workOrderId: number): Promise<void> {
 
 ### Research Task 4: Label Verification with Image Attachment
 
-**Decision**: Image upload to local filesystem with batch record linking
+**Decision**: Use existing `DocumentAttachment` component with database BLOB storage
 
 **Rationale**:
 - Auditor requires label images attached to BMR as evidence
 - Must support photo capture from mobile devices
 - Dual signature (operator + witness) required
+- **Existing `attachments` table already supports BLOB storage** (see `docs/DOCUMENT-ATTACHMENT-COMPONENT.md`)
+- Polymorphic design allows any module to attach files via `moduleName` and `entityId`
 
 **Alternatives Considered**:
-1. **S3/cloud storage** - Deferred: adds external dependency, privacy concerns
-2. **Database BLOB** - Rejected: performance impact, backup complexity
-3. **Local filesystem with path reference** - Selected: simple, auditable, backup-friendly
+1. **S3/cloud storage** - Rejected: adds external dependency, privacy concerns
+2. **Local filesystem** - Rejected: harder to manage, backup complexity, not consistent with existing pattern
+3. **Database BLOB via existing attachments table** - Selected: consistent with existing codebase, easy management/retrieval
 
 **Implementation Pattern**:
 ```typescript
-// Label verification structure
+// Label verification links to attachments table via label_verifications.id
+// Use existing DocumentAttachment component for image upload
+
+// In UI:
+<DocumentAttachment
+  moduleName="label_verification"
+  entityId={labelVerificationId}
+  title="Label Image"
+  categories={['photo']}
+  allowedExtensions={['.jpg', '.jpeg', '.png', '.webp']}
+  maxFiles={1}
+/>
+
+// Label verification structure (references attachment via moduleName/entityId pattern)
 interface LabelVerification {
   id: number;
   workOrderId: number;
   batchRecordId: number;
   labelType: 'product_label' | 'batch_label' | 'carton_label';
-  imagePath: string;          // /uploads/labels/2024/12/WO-001-label-001.jpg
-  imageHash: string;          // SHA-256 of file for integrity
+  // Image stored in attachments table with moduleName='label_verification', entityId=this.id
   productName: string;        // Verified product name
   batchNumber: string;        // Verified batch number
   expiryDate: string;         // Verified expiry date
@@ -556,11 +570,8 @@ interface LabelVerification {
   status: 'pending' | 'verified' | 'rejected';
 }
 
-// File storage path pattern
-const getImagePath = (workOrderId: number, labelIndex: number) => {
-  const date = new Date();
-  return `/uploads/labels/${date.getFullYear()}/${date.getMonth() + 1}/WO-${workOrderId}-label-${labelIndex}.jpg`;
-};
+// To retrieve label image:
+const labelImage = await getAttachments('label_verification', labelVerificationId);
 ```
 
 ### Research Task 5: Manufacturer/Importer Data Capture
@@ -692,7 +703,8 @@ ORDER BY l.retestDate ASC
 | Dashboard queries | Single combined query with subqueries | Performance: one round-trip |
 | E-signatures | Password + SHA-256 hash | 21 CFR Part 11 compliant, simple |
 | Line clearance | Checklist with blocking | GMP enforcement, not just documentation |
-| Label images | Local filesystem storage | Simple, backup-friendly |
+| Label images | Database BLOB via DocumentAttachment | Consistent with existing pattern, easy backup/restore |
+| Lot documents | Database BLOB via DocumentAttachment | Reuses existing attachments table, no new table needed |
 | Manufacturer data | Text + optional FK | Flexible for all sources |
 | Disposition | Enum with approval workflow | Auditable decision chain |
 | Retest alerts | Date field with status enum | Automatic tracking |

@@ -769,7 +769,7 @@ Pre-production line clearance verification records.
 
 ### label_verifications
 
-BMR label attachment and verification records.
+BMR label attachment and verification records. Label images are stored using the existing `attachments` table with `moduleName='label_verification'`.
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
@@ -777,8 +777,6 @@ BMR label attachment and verification records.
 | workOrderId | integer | FK → work_orders | Associated work order |
 | batchRecordId | integer | FK → batch_records | Associated batch record step |
 | labelType | text | enum | product_label, batch_label, carton_label, shipper_label |
-| imagePath | text | not null | Path to uploaded image file |
-| imageHash | text | | SHA-256 hash of image for integrity |
 | productName | text | | Verified product name on label |
 | batchNumber | text | | Verified batch number on label |
 | expiryDate | text | | Verified expiry date on label |
@@ -791,6 +789,8 @@ BMR label attachment and verification records.
 | rejectionReason | text | | Reason if rejected |
 | createdAt | text | timestamp | |
 | verifiedAt | text | timestamp | |
+
+**Note**: Label images are stored in the existing `attachments` table (BLOB storage) using `moduleName='label_verification'` and `entityId=labelVerificationId`. Use the reusable `DocumentAttachment` component for upload/display.
 
 ### electronic_signatures
 
@@ -821,32 +821,40 @@ CREATE INDEX idx_esig_user ON electronic_signatures(userId);
 CREATE INDEX idx_esig_signed_at ON electronic_signatures(signedAt);
 ```
 
-### lot_documents
+### Lot Documents (Using Existing attachments Table)
 
-Documents attached to inventory lots (COA, Spec, MSDS).
+Documents attached to inventory lots (COA, Spec, MSDS) use the **existing `attachments` table** with BLOB storage.
 
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| id | integer | PK, auto | |
-| lotId | integer | FK → inventory_lots, not null | Associated lot |
-| documentType | text | enum | coa, specification, msds, other |
-| fileName | text | not null | Original file name |
-| filePath | text | not null | Storage path |
-| fileSize | integer | | File size in bytes |
-| mimeType | text | | File MIME type |
-| fileHash | text | | SHA-256 hash for integrity |
-| uploadedBy | integer | FK → users | Who uploaded |
-| uploadedAt | text | timestamp | When uploaded |
-| expiryDate | text | | Document expiry if applicable |
-| notes | text | | Additional notes |
-| isActive | integer | boolean | Whether document is current |
-| createdAt | text | timestamp | |
+**Storage Pattern**:
+- `moduleName`: `'inventory_lot'`
+- `entityId`: The lot ID
+- `category`: `'coa'` | `'specification'` | `'msds'` | `'photo'`
 
-**Indexes**:
-```sql
-CREATE INDEX idx_lot_docs_lot ON lot_documents(lotId);
-CREATE INDEX idx_lot_docs_type ON lot_documents(documentType);
+**Existing attachments Table Structure** (already in schema):
+| Field | Type | Description |
+|-------|------|-------------|
+| id | integer | PK, auto |
+| moduleName | text | `'inventory_lot'` for lot documents |
+| entityId | integer | Lot ID |
+| category | text | Document type (coa, specification, msds, photo) |
+| fileName | text | Original file name |
+| fileData | blob | File content (LONGBLOB in MySQL) |
+| fileSize | integer | File size in bytes |
+| mimeType | text | File MIME type |
+| uploadedBy | integer | FK → users |
+| createdAt | timestamp | |
+
+**UI Component**: Use the reusable `DocumentAttachment` component:
+```tsx
+<DocumentAttachment
+  moduleName="inventory_lot"
+  entityId={lotId}
+  title="Lot Documents"
+  categories={['coa', 'specification', 'msds', 'photo']}
+/>
 ```
+
+**No new table required** - This approach reuses existing infrastructure for consistency.
 
 ### stock_alert_rules
 
@@ -879,9 +887,12 @@ work_orders ─────────────────────→ l
                                           │
                                           ↓
                                    electronic_signatures ←─── quality_tests (disposition)
-                                          ↑
-                                          │
-inventory_lots ───────────────────→ lot_documents
+
+inventory_lots ───────────────────→ attachments (moduleName='inventory_lot')
+                                   (existing table, no new table needed)
+
+label_verifications ──────────────→ attachments (moduleName='label_verification')
+                                   (for label images, using existing BLOB storage)
 
 items ────────────────────────────→ stock_alert_rules
 ```
@@ -901,7 +912,9 @@ CREATE INDEX idx_label_verify_status ON label_verifications(status);
 
 -- Electronic Signatures (see above)
 
--- Lot Documents (see above)
+-- Attachments (existing table - ensure these indexes exist)
+-- Note: These may already exist in the base schema
+CREATE INDEX IF NOT EXISTS idx_attachments_module_entity ON attachments(moduleName, entityId);
 
 -- Stock Alerts
 CREATE INDEX idx_stock_alerts_item ON stock_alert_rules(itemId);
@@ -923,5 +936,8 @@ CREATE INDEX idx_inventory_lots_retest ON inventory_lots(retestDate, retestStatu
 3. **quality_tests columns**: Add disposition columns with 'pending' default
 4. **bom_lines columns**: Add columns with NULL default (historical records won't have verification)
 5. **work_orders columns**: Add lineClearance columns, existing WOs default to not required
-6. **New tables**: Create in order: electronic_signatures first (referenced by others)
+6. **New tables**: Create in order: electronic_signatures first (referenced by others), then line_clearance_checklists, label_verifications, stock_alert_rules
 7. **Seed data**: Add default stock_alert_rules for common thresholds (90 days expiry, 30 days retest)
+8. **No lot_documents table needed**: Use existing `attachments` table with `moduleName='inventory_lot'`
+9. **No filesystem storage**: All files stored as BLOB in `attachments.fileData` column
+10. **Label images**: Use existing `attachments` table with `moduleName='label_verification'`
