@@ -41,7 +41,12 @@ async function fetchQCUsers(): Promise<{ id: number; displayName: string }[]> {
   const response = await fetch('/api/users?role=qc');
   const result = await response.json();
   if (!result.success) return [];
-  return result.data || [];
+  // API returns paginated response with items array
+  const users = result.data?.items || result.data || [];
+  // Map users to expected format with displayName
+  return Array.isArray(users)
+    ? users.map((u: { id: number; name: string }) => ({ id: u.id, displayName: u.name }))
+    : [];
 }
 
 async function routeToQC(complaintId: number, investigatorId: number): Promise<ComplaintInvestigation> {
