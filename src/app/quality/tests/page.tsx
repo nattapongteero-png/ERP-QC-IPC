@@ -87,6 +87,11 @@ interface QualityTest {
   numericResult: number | null;
   status: 'pending' | 'pass' | 'fail' | 'retest';
   createdAt: string;
+  // Disposition fields (FR-067 to FR-070)
+  disposition?: string | null;
+  dispositionReason?: string | null;
+  dispositionBy?: number | null;
+  dispositionApprovedBy?: number | null;
 }
 
 // ============================================
@@ -121,6 +126,28 @@ const STATUS_CONFIG = {
     color: '#f59e0b',
     bgClass: 'bg-amber-100 text-amber-700 border-amber-200',
     icon: AlertTriangle,
+  },
+} as const;
+
+// Disposition status config for FR-067 to FR-070
+const DISPOSITION_CONFIG = {
+  pending_disposition: {
+    label: 'Needs Disposition',
+    labelTh: 'รอตัดสินใจ',
+    bgClass: 'bg-orange-100 text-orange-700 border-orange-200',
+    icon: AlertTriangle,
+  },
+  pending_approval: {
+    label: 'Needs Approval',
+    labelTh: 'รออนุมัติ',
+    bgClass: 'bg-blue-100 text-blue-700 border-blue-200',
+    icon: Clock,
+  },
+  approved: {
+    label: 'Approved',
+    labelTh: 'อนุมัติแล้ว',
+    bgClass: 'bg-green-100 text-green-700 border-green-200',
+    icon: CheckCircle,
   },
 } as const;
 
@@ -207,7 +234,15 @@ export default function QualityTestsPage() {
     const today = new Date().toISOString().split('T')[0];
     const todayTests = tests.filter(t => t.testDate?.startsWith(today)).length;
 
-    return { total, pending, pass, fail, retest, passRate, typeStats, todayTests };
+    // Disposition stats (FR-067 to FR-070)
+    const needsDisposition = tests.filter(t =>
+      (t.status === 'fail' || t.status === 'retest') && !t.disposition
+    ).length;
+    const needsApproval = tests.filter(t =>
+      t.disposition && !t.dispositionApprovedBy
+    ).length;
+
+    return { total, pending, pass, fail, retest, passRate, typeStats, todayTests, needsDisposition, needsApproval };
   }, [tests]);
 
   // Filtered tests based on status
@@ -330,6 +365,33 @@ export default function QualityTestsPage() {
     const IconComponent = config.icon;
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgClass}`}>
+        <IconComponent className="h-3 w-3" />
+        {config.labelTh}
+      </span>
+    );
+  }, []);
+
+  // Disposition status cell renderer (FR-067 to FR-070)
+  const renderDispositionCell = useCallback((data: { data: QualityTest }) => {
+    const test = data.data;
+    // Only show disposition status for failed/retest tests
+    if (test.status !== 'fail' && test.status !== 'retest') {
+      return <span className="text-gray-400">-</span>;
+    }
+
+    let configKey: keyof typeof DISPOSITION_CONFIG;
+    if (test.dispositionApprovedBy) {
+      configKey = 'approved';
+    } else if (test.disposition) {
+      configKey = 'pending_approval';
+    } else {
+      configKey = 'pending_disposition';
+    }
+
+    const config = DISPOSITION_CONFIG[configKey];
+    const IconComponent = config.icon;
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${config.bgClass}`}>
         <IconComponent className="h-3 w-3" />
         {config.labelTh}
       </span>
@@ -711,6 +773,12 @@ export default function QualityTestsPage() {
             caption="Status"
             width={120}
             cellRender={renderStatusCell}
+          />
+          <Column
+            caption="Disposition"
+            width={130}
+            cellRender={renderDispositionCell}
+            allowFiltering={false}
           />
           <Column
             caption=""

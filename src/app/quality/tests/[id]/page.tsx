@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -9,6 +9,41 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
+import { DispositionForm, type DispositionType } from '@/components/quality/disposition-form';
+import toast from 'react-hot-toast';
+
+interface DispositionData {
+  test: {
+    id: number;
+    testType: string;
+    status: string;
+    result: string | null;
+    disposition: DispositionType | null;
+    dispositionReason: string | null;
+    dispositionAt: string | null;
+    dispositionApprovedAt: string | null;
+  };
+  lot: {
+    id: number;
+    lotNumber: string;
+    status: string;
+  } | null;
+  dispositionBy: {
+    id: number;
+    fullName: string;
+  } | null;
+  approvedBy: {
+    id: number;
+    fullName: string;
+  } | null;
+  signatures: Array<{
+    id: number;
+    action: string;
+    fullName: string;
+    signedAt: string;
+    meaning: string;
+  }>;
+}
 
 interface TestDetail {
   test: {
@@ -89,9 +124,11 @@ export default function QualityTestDetailPage() {
     result: '',
     notes: '',
   });
+  const [dispositionData, setDispositionData] = useState<DispositionData | null>(null);
 
   useEffect(() => {
     fetchTestDetail();
+    fetchDispositionDetails();
   }, [params.id]);
 
   const fetchTestDetail = async () => {
@@ -112,6 +149,71 @@ export default function QualityTestDetailPage() {
       setLoading(false);
     }
   };
+
+  const fetchDispositionDetails = async () => {
+    try {
+      const response = await fetch(`/api/quality/tests/${params.id}/disposition`);
+      const result = await response.json();
+      if (result.success) {
+        setDispositionData(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch disposition details:', error);
+    }
+  };
+
+  const handleSetDisposition = useCallback(
+    async (
+      disposition: DispositionType,
+      reason: string,
+      password: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const response = await fetch(`/api/quality/tests/${params.id}/disposition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ disposition, reason, password }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          toast.success('Disposition decision recorded');
+          fetchDispositionDetails();
+          fetchTestDetail();
+          return { success: true };
+        }
+        return { success: false, error: result.error };
+      } catch (error) {
+        return { success: false, error: (error as Error).message };
+      }
+    },
+    [params.id]
+  );
+
+  const handleApproveDisposition = useCallback(
+    async (
+      password: string,
+      notes?: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const response = await fetch(`/api/quality/tests/${params.id}/disposition/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password, approvalNotes: notes }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          toast.success(`Disposition approved${result.data.lotStatusUpdated ? `. Lot status updated to: ${result.data.newLotStatus}` : ''}`);
+          fetchDispositionDetails();
+          fetchTestDetail();
+          return { success: true };
+        }
+        return { success: false, error: result.error };
+      } catch (error) {
+        return { success: false, error: (error as Error).message };
+      }
+    },
+    [params.id]
+  );
 
   const handleSubmitResult = async () => {
     setIsSaving(true);
@@ -472,6 +574,39 @@ export default function QualityTestDetailPage() {
             </Card>
           )}
         </div>
+
+        {/* Disposition Section - FR-067, FR-068, FR-069, FR-070 */}
+        {test.result && (test.result === 'fail' || test.result === 'failed') && (
+          <div className="mt-6">
+            <DispositionForm
+              testId={test.id}
+              testType={getTestTypeLabel(test.testType)}
+              testResult={test.result}
+              lotNumber={lot?.lotNumber}
+              itemName={item?.nameEn || item?.nameTh}
+              initialData={dispositionData?.test ? {
+                disposition: dispositionData.test.disposition,
+                dispositionReason: dispositionData.test.dispositionReason,
+                dispositionAt: dispositionData.test.dispositionAt,
+                dispositionApprovedAt: dispositionData.test.dispositionApprovedAt,
+              } : undefined}
+              status={
+                dispositionData?.test?.dispositionApprovedAt
+                  ? 'approved'
+                  : dispositionData?.test?.disposition
+                  ? 'dispositioned'
+                  : 'pending'
+              }
+              dispositionByName={dispositionData?.dispositionBy?.fullName}
+              approvedByName={dispositionData?.approvedBy?.fullName}
+              onSetDisposition={handleSetDisposition}
+              onApprove={handleApproveDisposition}
+              canDisposition={!dispositionData?.test?.disposition}
+              canApprove={!!dispositionData?.test?.disposition && !dispositionData?.test?.dispositionApprovedAt}
+              readOnly={!!dispositionData?.test?.dispositionApprovedAt}
+            />
+          </div>
+        )}
       </div>
   );
 }

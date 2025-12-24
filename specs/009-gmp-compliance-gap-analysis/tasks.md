@@ -209,16 +209,16 @@
 
 ### Implementation for User Story 15
 
-- [ ] T086 [US15] Create qc-disposition.service.ts in src/lib/services/ with setDisposition, approveDisposition, updateLotStatusFromDisposition functions
-- [ ] T087 [US15] Create /api/quality/tests/[testId]/disposition/route.ts for POST
-- [ ] T088 [US15] Create /api/quality/tests/[testId]/disposition/approve/route.ts with e-signature
-- [ ] T089 [US15] Create /api/quality/qc-summary/route.ts API endpoint (FR-051 detailed)
-- [ ] T090 [US15] Create /api/quality/pending-release/route.ts API endpoint (FR-053)
-- [ ] T091 [US15] Create disposition-form.tsx component in src/components/quality/ with reason field and approval workflow
-- [ ] T092 [US15] Update quality test detail page to include disposition section in src/app/quality/tests/[id]/page.tsx
-- [ ] T093 [US15] Update quality test list to show disposition status in src/app/quality/tests/page.tsx
-- [ ] T094 [US15] Create integration test for qc-disposition-service in tests/integration/services/qc-disposition-service-real.test.ts
-- [ ] T095 [US15] Create UI test for disposition workflow in tests/e2e/qc-disposition.test.tsx
+- [X] T086 [US15] Create qc-disposition.service.ts in src/lib/services/ with setDisposition, approveDisposition, updateLotStatusFromDisposition functions
+- [X] T087 [US15] Create /api/quality/tests/[testId]/disposition/route.ts for GET/POST
+- [X] T088 [US15] Create /api/quality/tests/[testId]/disposition/approve/route.ts with e-signature
+- [X] T089 [US15] Create /api/quality/qc-summary/route.ts API endpoint (FR-051 detailed)
+- [X] T090 [US15] Create /api/quality/pending-release/route.ts API endpoint (FR-053)
+- [X] T091 [US15] Create disposition-form.tsx component in src/components/quality/ with reason field and approval workflow
+- [X] T092 [US15] Update quality test detail page to include disposition section in src/app/quality/tests/[id]/page.tsx
+- [X] T093 [US15] Update quality test list to show disposition status in src/app/quality/tests/page.tsx
+- [X] T094 [US15] Create integration test for qc-disposition-service in tests/integration/services/qc-disposition-service.test.ts
+- [X] T095 [US15] Create UI test for disposition workflow in tests/e2e/qc-disposition.test.tsx
 
 **Checkpoint**: Disposition decisions recorded with approval workflow, lot status auto-updated, complete audit trail
 
