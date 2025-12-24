@@ -14,7 +14,7 @@ import { z } from 'zod';
 // Validation schemas
 const listQuerySchema = z.object({
   page: z.coerce.number().min(1).optional().default(1),
-  limit: z.coerce.number().min(1).max(100).optional().default(20),
+  limit: z.coerce.number().min(1).max(1000).optional().default(20),
   portalId: z.coerce.number().optional(),
   status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']).optional(),
   searchTerm: z.string().optional(),
