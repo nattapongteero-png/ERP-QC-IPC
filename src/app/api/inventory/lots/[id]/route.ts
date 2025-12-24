@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, desc } from 'drizzle-orm';
 import { withAuth } from '@/lib/api-utils';
-import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
+import { getTableRef, executeDbOperation, dbDate, parseDbDate } from '@/lib/db/db-helper';
 import { createAuditLog, getClientIP } from '@/lib/audit';
 
 // GET - Get lot detail with all related information
@@ -238,12 +238,12 @@ export async function PUT(
       };
 
       // Only update fields that are provided
-      if (body.batchNumber !== undefined) updateData.batchNumber = body.batchNumber;
+      if (body.batchNumber !== undefined) updateData.batchNumber = body.batchNumber || null;
       if (body.warehouseId !== undefined) updateData.warehouseId = body.warehouseId;
       if (body.locationId !== undefined) updateData.locationId = body.locationId;
-      if (body.manufacturingDate !== undefined) updateData.manufacturingDate = body.manufacturingDate;
-      if (body.expiryDate !== undefined) updateData.expiryDate = body.expiryDate;
-      if (body.coaNumber !== undefined) updateData.coaNumber = body.coaNumber;
+      if (body.manufacturingDate !== undefined) updateData.manufacturingDate = parseDbDate(body.manufacturingDate);
+      if (body.expiryDate !== undefined) updateData.expiryDate = parseDbDate(body.expiryDate);
+      if (body.coaNumber !== undefined) updateData.coaNumber = body.coaNumber || null;
 
       await executeDbOperation(async (db) => {
         return db.update(lots).set(updateData).where(eq(lots.id, parseInt(id)));
