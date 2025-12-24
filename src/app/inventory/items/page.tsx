@@ -49,6 +49,7 @@ import {
   CheckCircle,
   XCircle,
   Warehouse,
+  Clock,
 } from 'lucide-react';
 import { ItemEditDialog, Item, ItemFormData } from '@/components/ui/item-edit-dialog';
 import { DxConfirmDialog } from '@/components/ui/dx-popup';
@@ -165,6 +166,8 @@ export default function ItemsPage() {
   const statistics = useMemo(() => {
     const totalValue = items.reduce((sum, item) => sum + (Number(item.onHandCost) || 0), 0);
     const totalQuantity = items.reduce((sum, item) => sum + (Number(item.onHand) || 0), 0);
+    const totalQuarantine = items.reduce((sum, item) => sum + (Number(item.quarantineQty) || 0), 0);
+    const itemsInQuarantine = items.filter((item) => (item.quarantineQty ?? 0) > 0).length;
     const lowStockItems = items.filter(
       (item) => item.minStock && item.onHand !== undefined && item.onHand < item.minStock
     ).length;
@@ -175,6 +178,8 @@ export default function ItemsPage() {
     return {
       totalValue,
       totalQuantity,
+      totalQuarantine,
+      itemsInQuarantine,
       lowStockItems,
       activeItems,
       inactiveItems,
@@ -316,6 +321,26 @@ export default function ItemsPage() {
             ฿{data.data.onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
         )}
+      </div>
+    );
+  }, []);
+
+  const renderQuarantineCell = useCallback((data: { data: Item }) => {
+    const quarantineQty = data.data.quarantineQty ?? 0;
+
+    if (quarantineQty === 0) {
+      return (
+        <div className="text-gray-400 text-center">-</div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1.5">
+        <Clock className="h-4 w-4 text-amber-500" />
+        <span className="font-medium text-amber-700">
+          {quarantineQty.toLocaleString()}
+        </span>
+        <span className="text-xs text-gray-500">{data.data.primaryUnit}</span>
       </div>
     );
   }, []);
@@ -473,9 +498,15 @@ export default function ItemsPage() {
               {/* Compact Stats */}
               <div className="flex items-center gap-4 text-sm">
                 {statistics.lowStockItems > 0 && (
-                  <div className="flex items-center gap-1.5 text-amber-600">
+                  <div className="flex items-center gap-1.5 text-red-600">
                     <AlertTriangle className="h-4 w-4" />
                     <span className="font-medium">{statistics.lowStockItems} Low Stock</span>
+                  </div>
+                )}
+                {statistics.itemsInQuarantine > 0 && (
+                  <div className="flex items-center gap-1.5 text-amber-600">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-medium">{statistics.itemsInQuarantine} In Quarantine</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-gray-500">
@@ -543,9 +574,15 @@ export default function ItemsPage() {
             />
             <Column
               dataField="onHand"
-              caption="Stock"
+              caption="On Hand"
               width={150}
               cellRender={renderStockCell}
+            />
+            <Column
+              dataField="quarantineQty"
+              caption="Quarantine"
+              width={120}
+              cellRender={renderQuarantineCell}
             />
             <Column
               dataField="primaryUnit"

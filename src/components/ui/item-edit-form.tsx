@@ -62,6 +62,7 @@ export interface Item {
   createdAt: string;
   onHand?: number;
   onHandCost?: number;
+  quarantineQty?: number;
   // VMI Standard Codes
   tppCode: string | null;
   tppName: string | null;
