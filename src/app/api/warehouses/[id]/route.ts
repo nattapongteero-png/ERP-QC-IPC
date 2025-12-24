@@ -61,6 +61,11 @@ export async function PUT(
         name: body.name,
         location: body.location || null,
         type: body.type || 'general',
+        capacity: body.capacity ?? null,
+        temperatureMin: body.temperatureMin ?? null,
+        temperatureMax: body.temperatureMax ?? null,
+        humidityMin: body.humidityMin ?? null,
+        humidityMax: body.humidityMax ?? null,
         isActive: body.isActive ?? true,
         updatedAt: dbDate(),
       };

@@ -173,6 +173,7 @@ export const sqliteWarehouses = sqliteTable('warehouses', {
   name: text('name').notNull(),
   type: text('type').notNull(), // raw_material, finished_goods, quarantine, rejected
   location: text('location'),
+  capacity: real('capacity'), // Storage capacity in units
   temperatureMin: real('temperature_min'),
   temperatureMax: real('temperature_max'),
   humidityMin: real('humidity_min'),
@@ -1139,6 +1140,7 @@ export const mysqlWarehouses = mysqlTable('warehouses', {
   name: varchar('name', { length: 255 }).notNull(),
   type: varchar('type', { length: 50 }).notNull(),
   location: varchar('location', { length: 255 }),
+  capacity: decimal('capacity', { precision: 15, scale: 4 }), // Storage capacity in units
   temperatureMin: decimal('temperature_min', { precision: 5, scale: 2 }),
   temperatureMax: decimal('temperature_max', { precision: 5, scale: 2 }),
   humidityMin: decimal('humidity_min', { precision: 5, scale: 2 }),

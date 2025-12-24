@@ -66,13 +66,23 @@ export async function POST(request: NextRequest) {
   return withAuth(request, async (session) => {
     try {
       const body = await request.json();
-      const { code, name, type, location } = body;
+      const {
+        code,
+        name,
+        type,
+        location,
+        capacity,
+        temperatureMin,
+        temperatureMax,
+        humidityMin,
+        humidityMax,
+      } = body;
 
       if (!code || !name || !type) {
         return errorResponse('Code, name, and type are required');
       }
 
-      const validTypes = ['raw_material', 'finished_goods', 'quarantine', 'rejected', 'wip'];
+      const validTypes = ['raw_material', 'finished_goods', 'quarantine', 'rejected', 'wip', 'cold_storage'];
       if (!validTypes.includes(type)) {
         return errorResponse(`Type must be one of: ${validTypes.join(', ')}`);
       }
@@ -97,7 +107,12 @@ export async function POST(request: NextRequest) {
           code,
           name,
           type,
-          location,
+          location: location || null,
+          capacity: capacity || null,
+          temperatureMin: temperatureMin ?? null,
+          temperatureMax: temperatureMax ?? null,
+          humidityMin: humidityMin ?? null,
+          humidityMax: humidityMax ?? null,
         });
       });
 
@@ -108,7 +123,7 @@ export async function POST(request: NextRequest) {
         action: 'CREATE',
         tableName: 'warehouses',
         recordId: Number(warehouseId),
-        newValue: { code, name, type },
+        newValue: { code, name, type, capacity },
         ipAddress: getClientIP(request),
       });
 

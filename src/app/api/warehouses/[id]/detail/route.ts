@@ -98,10 +98,12 @@ export async function GET(
         inventoryByType[type].quantity += lot.quantity || 0;
       });
 
-      // Calculate storage utilization (mock data for now)
-      const storageCapacity = 1000; // This would come from warehouse settings
+      // Calculate storage utilization using actual warehouse capacity
+      const storageCapacity = Number(warehouse.capacity) || 0;
       const usedCapacity = totalQuantity;
-      const utilizationPercent = Math.round((usedCapacity / storageCapacity) * 100);
+      const utilizationPercent = storageCapacity > 0
+        ? Math.round((usedCapacity / storageCapacity) * 100)
+        : 0;
 
       return NextResponse.json({
         success: true,
