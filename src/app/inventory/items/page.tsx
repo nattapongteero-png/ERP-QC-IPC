@@ -231,11 +231,6 @@ export default function ItemsPage() {
     setDialogOpen(true);
   };
 
-  const handleOpenCreate = () => {
-    setEditingItem(null);
-    setDialogOpen(true);
-  };
-
   // Excel export handler
   const onExporting = useCallback((e: ExportingEvent) => {
     const workbook = new Workbook();
@@ -437,7 +432,7 @@ export default function ItemsPage() {
                 View Lots
               </button>
               <button
-                onClick={handleOpenCreate}
+                onClick={() => router.push('/inventory/items/new')}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 <Plus className="h-4 w-4" />
