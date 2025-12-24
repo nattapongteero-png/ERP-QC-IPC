@@ -71,36 +71,49 @@ function getTables() {
 }
 
 /**
- * Recalculate and update item's onHand quantity from released lots
+ * Recalculate and update item's onHand and quarantineQty from lots
  * Call this whenever lot quantities or statuses change
  */
-export async function recalculateItemOnHand(itemId: number): Promise<number> {
+export async function recalculateItemOnHand(itemId: number): Promise<{ onHand: number; quarantineQty: number }> {
   const { lots, items } = getTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
   const usingSqlite = isSqlite();
 
-  // Sum quantities from released lots for this item
-  const [result] = await (database as any)
+  // Sum quantities from released lots for this item (onHand)
+  const [releasedResult] = await (database as any)
     .select({
       totalOnHand: sql`COALESCE(SUM(${lots.quantity}), 0)`,
     })
     .from(lots)
     .where(and(eq(lots.itemId, itemId), eq(lots.status, 'released')));
 
-  const onHand = Number(result?.totalOnHand) || 0;
+  // Sum quantities from quarantine/under_test lots (quarantineQty)
+  const [quarantineResult] = await (database as any)
+    .select({
+      totalQuarantine: sql`COALESCE(SUM(${lots.quantity}), 0)`,
+    })
+    .from(lots)
+    .where(and(
+      eq(lots.itemId, itemId),
+      or(eq(lots.status, 'quarantine'), eq(lots.status, 'under_test'))
+    ));
 
-  // Update item's onHand field
+  const onHand = Number(releasedResult?.totalOnHand) || 0;
+  const quarantineQty = Number(quarantineResult?.totalQuarantine) || 0;
+
+  // Update item's onHand and quarantineQty fields
   const now = new Date();
   await (database as any)
     .update(items)
     .set({
       onHand,
+      quarantineQty,
       updatedAt: usingSqlite ? now.toISOString() : now,
     })
     .where(eq(items.id, itemId));
 
-  return onHand;
+  return { onHand, quarantineQty };
 }
 
 /**

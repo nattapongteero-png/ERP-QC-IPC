@@ -90,6 +90,7 @@ export const sqliteItems = sqliteTable('items', {
   reorderPoint: real('reorder_point'),
   onHand: real('on_hand').notNull().default(0), // Cached on-hand quantity from released lots
   onHandCost: real('on_hand_cost').notNull().default(0), // Cached total cost of on-hand inventory
+  quarantineQty: real('quarantine_qty').notNull().default(0), // Cached quantity in quarantine/under_test status
   isLotControlled: integer('is_lot_controlled', { mode: 'boolean' }).notNull().default(true),
   isFEFO: integer('is_fefo', { mode: 'boolean' }).notNull().default(true),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
@@ -1055,6 +1056,7 @@ export const mysqlItems = mysqlTable('items', {
   reorderPoint: decimal('reorder_point', { precision: 15, scale: 4 }),
   onHand: decimal('on_hand', { precision: 15, scale: 4 }).notNull().default('0'), // Cached on-hand quantity from released lots
   onHandCost: decimal('on_hand_cost', { precision: 15, scale: 4 }).notNull().default('0'), // Cached total cost of on-hand inventory
+  quarantineQty: decimal('quarantine_qty', { precision: 15, scale: 4 }).notNull().default('0'), // Cached quantity in quarantine/under_test status
   isLotControlled: mysqlBoolean('is_lot_controlled').notNull().default(true),
   isFEFO: mysqlBoolean('is_fefo').notNull().default(true),
   isActive: mysqlBoolean('is_active').notNull().default(true),

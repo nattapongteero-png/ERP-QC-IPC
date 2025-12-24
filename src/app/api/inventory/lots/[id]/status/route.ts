@@ -71,10 +71,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ipAddress: getClientIP(request),
       });
 
-      // Recalculate item onHand if status changed to/from 'released'
-      if (status === 'released' || oldLot.status === 'released') {
-        await recalculateItemOnHand(oldLot.itemId);
-      }
+      // Recalculate item onHand and quarantineQty whenever status changes
+      // (affects onHand for released, quarantineQty for quarantine/under_test)
+      await recalculateItemOnHand(oldLot.itemId);
 
       return successResponse({ id: lotId, status }, `Lot status updated to ${status}`);
     } catch (error) {

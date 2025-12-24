@@ -3,6 +3,7 @@ import { getTableRef, executeDbOperation, dbDate, getInsertId, parseDbDate } fro
 import { eq, and } from 'drizzle-orm';
 import { withAuth, successResponse, errorResponse, serverErrorResponse } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { recalculateItemOnHand } from '@/lib/services/inventory.service';
 
 export async function POST(
   request: NextRequest,
@@ -158,6 +159,9 @@ export async function POST(
         newValue: { lotNumber, itemId: line.itemId, quantity: receiveQuantity, poNumber: po.poNumber },
         ipAddress: getClientIP(request),
       });
+
+      // Recalculate item onHand and quarantineQty
+      await recalculateItemOnHand(line.itemId);
 
       return successResponse({
         lotId: Number(lotId),

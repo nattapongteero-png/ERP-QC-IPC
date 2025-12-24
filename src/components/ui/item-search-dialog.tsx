@@ -27,6 +27,7 @@ import {
   BarChart3,
   Layers,
   Search,
+  Clock,
 } from 'lucide-react';
 
 export interface Item {
@@ -42,6 +43,7 @@ export interface Item {
   itemType?: string;
   isActive?: boolean;
   onHand?: number;
+  quarantineQty?: number;
   minStock?: number;
   reorderPoint?: number;
 }
@@ -301,6 +303,23 @@ export function ItemSearchDialog({
     );
   };
 
+  const renderQuarantineStock = (cellInfo: CellRenderInfo) => {
+    const item = cellInfo.data;
+    const quarantineQty = Number(item.quarantineQty) || 0;
+
+    if (quarantineQty === 0) {
+      return <span className="text-gray-400">-</span>;
+    }
+
+    return (
+      <div className="flex items-center gap-1.5 text-amber-600">
+        <Clock className="h-4 w-4" />
+        <span className="font-medium">{formatNumber(quarantineQty)}</span>
+        <span className="text-gray-500 text-xs">{item.primaryUnit}</span>
+      </div>
+    );
+  };
+
   const renderPrice = (cellInfo: CellRenderInfo) => {
     const item = cellInfo.data;
 
@@ -472,6 +491,16 @@ export function ItemSearchDialog({
                 caption="Stock"
                 width={140}
                 cellRender={renderStock}
+                allowSorting
+                alignment="right"
+              />
+            )}
+            {showStock && (
+              <DxColumn
+                dataField="quarantineQty"
+                caption="Quarantine"
+                width={140}
+                cellRender={renderQuarantineStock}
                 allowSorting
                 alignment="right"
               />

@@ -10,6 +10,7 @@ import {
   createPaginatedResponse,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { recalculateItemOnHand } from '@/lib/services/inventory.service';
 
 // GET /api/inventory/lots - List inventory lots
 export async function GET(request: NextRequest) {
@@ -182,6 +183,9 @@ export async function POST(request: NextRequest) {
         newValue: { itemId, lotNumber, quantity, warehouseId },
         ipAddress: getClientIP(request),
       });
+
+      // Recalculate item onHand and quarantineQty (new lot starts in quarantine)
+      await recalculateItemOnHand(itemId);
 
       return successResponse({ id: Number(lotId) }, 'Inventory lot created successfully');
     } catch (error) {
