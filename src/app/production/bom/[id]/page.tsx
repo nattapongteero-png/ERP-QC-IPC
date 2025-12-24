@@ -1165,6 +1165,7 @@ export default function BOMDetailPage() {
         onSelect={handleSelectItem}
         title="Select Material"
         showPrice="cost"
+        filterType="raw_material"
       />
 
       {/* Edit Line Dialog */}

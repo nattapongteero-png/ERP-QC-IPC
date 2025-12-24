@@ -596,10 +596,10 @@ export function ItemSearchDialog({
       visible={open}
       onHiding={() => onOpenChange(false)}
       title=""
-      width="90%"
+      width="95%"
       maxWidth={1200}
-      height="85%"
-      maxHeight={800}
+      height="90%"
+      maxHeight={900}
       showCloseButton
       showTitle={false}
     >
