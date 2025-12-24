@@ -71,7 +71,7 @@
 ### Schema Sync and Validation
 
 - [X] T025 Export new tables and type aliases in src/lib/db/schema.ts (types added at end of file)
-- [ ] T026 Run DB_TYPE=sqlite pnpm db:push to apply SQLite schema changes
+- [X] T026 Run DB_TYPE=sqlite pnpm db:push to apply SQLite schema changes
 - [X] T027 TypeScript types for new tables added directly in schema.ts (ElectronicSignature, LineClearanceChecklist, LabelVerification, StockAlertRule)
 
 ### Electronic Signature Service (Foundation for US13, US14, US15)
@@ -228,14 +228,14 @@
 
 **Purpose**: Integration, validation, and optimization across all user stories
 
-- [ ] T096 [P] Create /api/signatures/route.ts API endpoint for listing signatures by entity (FR-074)
-- [ ] T097 Add signature display component showing full name, title, timestamp, meaning in src/components/shared/signature-display.tsx
-- [ ] T098 Add stock_alert_rules seed data for default thresholds (90 days expiry, 30 days retest) in tests/helpers/seed-data.ts
-- [ ] T099 [P] Run performance test for dashboard audit-kpis endpoint to verify <3s load (SC-011)
-- [ ] T100 [P] Validate all e-signature operations require password re-authentication (SC-018)
-- [ ] T101 Run full integration test suite to verify all tests pass
-- [ ] T102 Run ESLint and TypeScript checks (pnpm lint && pnpm tsc --noEmit)
-- [ ] T103 Update quickstart.md with Phase 2 verification steps
+- [X] T096 [P] Create /api/signatures/route.ts API endpoint for listing signatures by entity (FR-074)
+- [X] T097 Add signature display component showing full name, title, timestamp, meaning in src/components/shared/signature-display.tsx
+- [X] T098 Add stock_alert_rules seed data for default thresholds (90 days expiry, 30 days retest) in tests/helpers/seed-data.ts
+- [X] T099 [P] Run performance test for dashboard audit-kpis endpoint to verify <3s load (SC-011)
+- [X] T100 [P] Validate all e-signature operations require password re-authentication (SC-018)
+- [X] T101 Run full integration test suite to verify all tests pass
+- [X] T102 Run ESLint and TypeScript checks (pnpm lint && pnpm tsc --noEmit)
+- [X] T103 Update quickstart.md with Phase 2 verification steps
 
 ---
 
