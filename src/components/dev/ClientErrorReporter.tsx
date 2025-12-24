@@ -291,6 +291,20 @@ function useGlobalErrorHandlers(pathname: string | null, searchParams: string | 
   searchParamsRef.current = searchParams;
 
   const handleError = useCallback((event: ErrorEvent) => {
+    // Skip known harmless DevExtreme/React DOM cleanup errors
+    const message = event.message || '';
+    if (
+      message.includes("removeChild") ||
+      message.includes("insertBefore") ||
+      message.includes("The node to be removed is not a child") ||
+      message.includes("Failed to execute 'removeChild'") ||
+      message.includes("Failed to execute 'insertBefore'")
+    ) {
+      // Prevent the error from appearing in console
+      event.preventDefault();
+      return;
+    }
+
     queueError(
       formatError('error', event.message, {
         errorName: event.error?.name,
