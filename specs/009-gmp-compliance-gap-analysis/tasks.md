@@ -131,22 +131,22 @@
 
 ### Implementation for User Story 12
 
-- [ ] T053 [US12] Update inventory.service.ts to handle manufacturer/importer fields on lot creation in src/lib/services/inventory.service.ts
-- [ ] T054 [US12] Update inventory.service.ts to handle retest date tracking (retestDate, retestIntervalMonths, retestStatus)
-- [ ] T055 [US12] Create /api/inventory/lots/[id]/documents/route.ts to proxy to existing attachments API with moduleName='inventory_lot' (FR-057)
-- [ ] T056 [P] [US12] Update lot creation form to include manufacturer name and ID fields in src/app/inventory/lots/new/page.tsx
-- [ ] T057 [P] [US12] Update lot creation form to include importer name and ID fields
-- [ ] T058 [P] [US12] Update lot creation form to include country of origin field
-- [ ] T059 [P] [US12] Update lot creation form to include retest date and interval fields
-- [ ] T060 [US12] Add DocumentAttachment component to lot detail page for COA/Spec/MSDS uploads in src/app/inventory/lots/[id]/page.tsx (FR-057)
-- [ ] T061 [P] [US12] Update item form to include strength field for finished goods in src/app/inventory/items/[id]/page.tsx (FR-059)
-- [ ] T062 [P] [US12] Add photo upload with scale reference using DocumentAttachment in lot detail page (FR-060)
-- [ ] T063 [US12] Create retest alert query and display QC hold reason on lot detail page (FR-061)
-- [ ] T064 [US12] Update lot list page to show manufacturer and retest status columns in src/app/inventory/lots/page.tsx
-- [ ] T065 [US12] Create integration test for inventory lot with manufacturer/retest fields in tests/integration/services/inventory-service-real.test.ts
-- [ ] T066 [US12] Create UI test for lot creation with all new fields in tests/e2e/inventory-lot-creation.test.tsx
+- [X] T053 [US12] Update inventory.service.ts to handle manufacturer/importer fields on lot creation in src/lib/services/inventory.service.ts
+- [X] T054 [US12] Update inventory.service.ts to handle retest date tracking (retestDate, retestIntervalMonths, retestStatus)
+- [X] T055 [US12] Create /api/inventory/lots/[id]/documents/route.ts to proxy to existing attachments API with moduleName='inventory_lot' (FR-057)
+- [X] T056 [P] [US12] Update lot creation form to include manufacturer name and ID fields in src/app/inventory/lots/page.tsx
+- [X] T057 [P] [US12] Update lot creation form to include importer name and ID fields
+- [X] T058 [P] [US12] Update lot creation form to include country of origin field
+- [X] T059 [P] [US12] Update lot creation form to include retest date and interval fields
+- [X] T060 [US12] Add DocumentAttachment component to lot detail page for COA/Spec/MSDS uploads in src/app/inventory/lots/[id]/page.tsx (FR-057)
+- [X] T061 [P] [US12] Update item form to include strength field for finished goods in src/components/ui/item-edit-form.tsx (FR-059)
+- [X] T062 [P] [US12] Add photo upload with scale reference using DocumentAttachment in lot detail page (FR-060) - Photo category included in Documents tab
+- [X] T063 [US12] Create retest alert query and display QC hold reason on lot detail page (FR-061) - checkRetestAlerts function added
+- [X] T064 [US12] Update lot list page to show manufacturer and retest status columns in src/app/inventory/lots/page.tsx
+- [X] T065 [US12] Create integration test for inventory lot with manufacturer/retest fields in tests/integration/services/inventory-service-phase4.test.ts (9 tests passing)
+- [X] T066 [US12] Create UI test for lot creation with all new fields in tests/e2e/inventory-lot-creation.test.tsx (28 tests passing)
 
-**Checkpoint**: Material receipt captures all required fields, documents attached via DocumentAttachment, retest tracking functional
+**Checkpoint**: Material receipt captures all required fields, documents attached via DocumentAttachment, retest tracking functional ✅ PHASE 4 COMPLETE (ALL TESTS PASSING)
 
 ---
 
