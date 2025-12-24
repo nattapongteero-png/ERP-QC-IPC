@@ -134,7 +134,8 @@ async function fetchVendors(): Promise<Vendor[]> {
   if (!result.success) {
     throw new Error(result.error || 'Failed to fetch vendors');
   }
-  return result.data || result.items || [];
+  // API returns paginated response: { success: true, data: { items: [...], total, ... } }
+  return result.data?.items || [];
 }
 
 async function createPriceOffer(itemId: number, data: PriceOfferFormData): Promise<{ id: number }> {
