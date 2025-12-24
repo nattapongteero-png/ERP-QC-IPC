@@ -56,6 +56,36 @@ import { DxConfirmDialog } from '@/components/ui/dx-popup';
 import { cn } from '@/lib/utils/cn';
 
 // ============================================
+// Helper Functions
+// ============================================
+
+/**
+ * Format number to compact human-readable format
+ * e.g., 1500 -> "1.5K", 1500000 -> "1.5M", 1500000000 -> "1.5B"
+ */
+function formatCompactNumber(value: number): string {
+  if (value === 0) return '0';
+
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+
+  if (absValue >= 1_000_000_000) {
+    const formatted = (absValue / 1_000_000_000).toFixed(1);
+    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'B';
+  }
+  if (absValue >= 1_000_000) {
+    const formatted = (absValue / 1_000_000).toFixed(1);
+    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'M';
+  }
+  if (absValue >= 1_000) {
+    const formatted = (absValue / 1_000).toFixed(1);
+    return sign + (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'K';
+  }
+
+  return sign + absValue.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+// ============================================
 // Constants
 // ============================================
 
@@ -300,20 +330,21 @@ export default function ItemsPage() {
 
   const renderStockCell = useCallback((data: { data: Item }) => {
     const onHand = data.data.onHand ?? 0;
+    const onHandCost = data.data.onHandCost ?? 0;
     const minStock = data.data.minStock ?? 0;
     const isLow = minStock > 0 && onHand < minStock;
 
     return (
       <div>
         <div className={cn('font-medium', isLow ? 'text-red-600' : 'text-gray-900')}>
-          {onHand.toLocaleString()} {data.data.primaryUnit}
+          {formatCompactNumber(onHand)} {data.data.primaryUnit}
           {isLow && (
             <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">Low</span>
           )}
         </div>
-        {data.data.onHandCost !== undefined && data.data.onHandCost > 0 && (
-          <div className="text-xs text-gray-500">
-            ฿{data.data.onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        {onHandCost > 0 && (
+          <div className="text-xs text-gray-500" title={`฿${onHandCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}>
+            ฿{formatCompactNumber(onHandCost)}
           </div>
         )}
       </div>
@@ -330,10 +361,10 @@ export default function ItemsPage() {
     }
 
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5" title={`${quarantineQty.toLocaleString()} ${data.data.primaryUnit}`}>
         <Clock className="h-4 w-4 text-amber-500" />
         <span className="font-medium text-amber-700">
-          {quarantineQty.toLocaleString()}
+          {formatCompactNumber(quarantineQty)}
         </span>
         <span className="text-xs text-gray-500">{data.data.primaryUnit}</span>
       </div>
