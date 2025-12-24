@@ -6,8 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { getSession } from '@/lib/auth';
 import { approveDisposition } from '@/lib/services/qc-disposition.service';
 
 interface RouteContext {
@@ -20,8 +19,8 @@ interface RouteContext {
  */
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -49,7 +48,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const userId = session.user.id as number;
+    const userId = session.userId;
 
     const result = await approveDisposition({
       testId: testIdNum,

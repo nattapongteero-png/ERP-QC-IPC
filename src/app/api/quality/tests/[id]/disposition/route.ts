@@ -7,8 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { getSession } from '@/lib/auth';
 import {
   setDisposition,
   getDispositionDetails,
@@ -23,10 +22,10 @@ interface RouteContext {
  * GET /api/quality/tests/[id]/disposition
  * Get disposition details for a test
  */
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -71,8 +70,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -124,7 +123,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const userId = session.user.id as number;
+    const userId = session.userId;
 
     const result = await setDisposition({
       testId: testIdNum,

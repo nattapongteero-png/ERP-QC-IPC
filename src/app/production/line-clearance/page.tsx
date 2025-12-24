@@ -206,7 +206,6 @@ function LineClearanceContent() {
         <PageHeader
           title="Line Clearance"
           description="Complete line clearance verification before production start (FR-062)"
-          icon={<ClipboardCheck className="h-6 w-6" />}
           actions={
             <DxButton
               text="Back to Work Orders"

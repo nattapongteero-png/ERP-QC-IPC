@@ -141,6 +141,24 @@ export function seedStabilityTestData(sqlite: Database.Database): void {
 }
 
 /**
+ * Seed stock alert rules with default thresholds
+ * FR-049 (expiry alerts), FR-050 (min stock alerts), FR-056 (retest alerts)
+ */
+export function seedStockAlertRules(sqlite: Database.Database): void {
+  const now = new Date().toISOString();
+  sqlite.exec(`
+    INSERT OR IGNORE INTO stock_alert_rules (id, item_id, alert_type, threshold_days, threshold_qty, notify_roles, is_active, created_by, created_at, updated_at)
+    VALUES
+      -- Global expiry alert: 90 days before expiry (FR-049)
+      (1, NULL, 'expiry', 90, NULL, '["qa_manager", "warehouse_manager"]', 1, ${TEST_USER_IDS.QA_MANAGER}, '${now}', '${now}'),
+      -- Global min stock alert (FR-050)
+      (2, NULL, 'min_stock', NULL, 100, '["warehouse_manager", "purchasing"]', 1, ${TEST_USER_IDS.QA_MANAGER}, '${now}', '${now}'),
+      -- Global retest alert: 30 days before retest (FR-056)
+      (3, NULL, 'retest', 30, NULL, '["qa_manager", "qc_analyst"]', 1, ${TEST_USER_IDS.QA_MANAGER}, '${now}', '${now}')
+  `);
+}
+
+/**
  * Seed all common test data
  * Use when you need a fully populated test database
  */
@@ -150,4 +168,5 @@ export function seedAllTestData(sqlite: Database.Database): void {
   seedTestLots(sqlite);
   seedTestDeviations(sqlite);
   seedDocumentTypes(sqlite);
+  seedStockAlertRules(sqlite);
 }

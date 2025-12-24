@@ -124,8 +124,11 @@ export async function GET(
         : workOrder.yieldPercentage || null;
 
       // Calculate material consumption
+      // Map field names for UI compatibility (UI expects plannedQty/actualQty)
       const materialConsumption = materialsWithLots.map((material: Record<string, unknown>) => ({
         ...material,
+        plannedQty: material.plannedQuantity,
+        actualQty: material.actualQuantity,
         consumptionPercent: material.plannedQuantity && material.actualQuantity
           ? Math.round(((material.actualQuantity as number) / (material.plannedQuantity as number)) * 100 * 100) / 100
           : null,

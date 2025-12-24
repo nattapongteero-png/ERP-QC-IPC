@@ -118,8 +118,52 @@ export async function POST(request: NextRequest) {
       }
 
       const workOrdersTable = getTableRef('workOrders');
+      const bomTable = getTableRef('bOM');
+      const bomLinesTable = getTableRef('bOMLines');
+      const workOrderMaterialsTable = getTableRef('workOrderMaterials');
       const woNumber = generateWONumber();
 
+      // Fetch BOM to get batch size for scaling
+      const bomResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: bomTable.id,
+            batchSize: bomTable.batchSize,
+            status: bomTable.status,
+          })
+          .from(bomTable)
+          .where(eq(bomTable.id, bomId));
+      });
+
+      if (bomResult.length === 0) {
+        return errorResponse('BOM not found', 404);
+      }
+
+      const bom = bomResult[0];
+
+      // Validate BOM status - only approved BOMs can be used for production
+      if (bom.status !== 'approved' && bom.status !== 'active') {
+        return errorResponse(`Cannot create work order from BOM with status '${bom.status}'. Only approved BOMs can be used.`);
+      }
+
+      const bomBatchSize = Number(bom.batchSize) || 1;
+
+      // Fetch BOM lines (materials)
+      const bomLines = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            itemId: bomLinesTable.itemId,
+            quantity: bomLinesTable.quantity,
+            unit: bomLinesTable.unit,
+            sequence: bomLinesTable.sequence,
+            isOptional: bomLinesTable.isOptional,
+          })
+          .from(bomLinesTable)
+          .where(eq(bomLinesTable.bomId, bomId))
+          .orderBy(bomLinesTable.sequence);
+      });
+
+      // Create work order
       const result = await executeDbOperation(async (db) => {
         return db.insert(workOrdersTable).values({
           woNumber,
@@ -141,16 +185,44 @@ export async function POST(request: NextRequest) {
 
       const workOrderId = getInsertId(result);
 
+      // Auto-populate materials from BOM lines (scaled to planned quantity)
+      const scalingFactor = Number(plannedQuantity) / bomBatchSize;
+      let materialsCreated = 0;
+
+      for (const line of bomLines) {
+        // Skip optional materials - they can be added manually if needed
+        if (line.isOptional) continue;
+
+        const scaledQuantity = Number(line.quantity) * scalingFactor;
+
+        await executeDbOperation(async (db) => {
+          return db.insert(workOrderMaterialsTable).values({
+            workOrderId: Number(workOrderId),
+            itemId: line.itemId,
+            lotId: null, // Lot to be selected later during material issuance
+            plannedQuantity: scaledQuantity,
+            actualQuantity: null,
+            unit: line.unit,
+            status: 'pending',
+          });
+        });
+
+        materialsCreated++;
+      }
+
       await createAuditLog({
         userId: session.userId,
         action: 'CREATE',
         tableName: 'work_orders',
         recordId: Number(workOrderId),
-        newValue: { woNumber, batchNumber, plannedQuantity, status: 'planned' },
+        newValue: { woNumber, batchNumber, plannedQuantity, status: 'planned', materialsFromBom: materialsCreated },
         ipAddress: getClientIP(request),
       });
 
-      return successResponse({ id: Number(workOrderId), woNumber }, 'Work order created successfully');
+      return successResponse(
+        { id: Number(workOrderId), woNumber, materialsCreated },
+        `Work order created successfully with ${materialsCreated} materials from BOM`
+      );
     } catch (error) {
       return serverErrorResponse(error);
     }

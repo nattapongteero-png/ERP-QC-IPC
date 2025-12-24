@@ -83,7 +83,7 @@ function generateSignatureHash(data: {
 /**
  * Verify user password for electronic signature
  */
-async function verifyPassword(userId: number, password: string): Promise<boolean> {
+export async function verifyUserPassword(userId: number, password: string): Promise<boolean> {
   const usersTable = getTableRef('users');
 
   const users = await executeDbOperation(async (db) => {
@@ -150,7 +150,7 @@ export async function createElectronicSignature(
   request: SignatureRequest
 ): Promise<SignatureResult> {
   // Verify password
-  const passwordValid = await verifyPassword(request.userId, request.password);
+  const passwordValid = await verifyUserPassword(request.userId, request.password);
   if (!passwordValid) {
     return {
       success: false,

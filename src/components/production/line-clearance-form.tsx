@@ -270,7 +270,7 @@ export function LineClearanceForm({
                     <div className="flex items-center gap-3">
                       <CheckBox
                         value={isChecked}
-                        onValueChange={(value) => handleChecklistChange(item.key, value)}
+                        onValueChange={(value) => handleChecklistChange(item.key, value ?? false)}
                         disabled={isDisabled}
                       />
                       <label className="font-medium text-gray-900">{item.label}</label>

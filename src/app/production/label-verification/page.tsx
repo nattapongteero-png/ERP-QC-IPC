@@ -252,7 +252,6 @@ function LabelVerificationContent() {
         <PageHeader
           title="Label Verification"
           description="Verify and witness label content with dual electronic signatures (FR-064, FR-065)"
-          icon={<Tag className="h-6 w-6" />}
           actions={
             <DxButton
               text="Back to Work Orders"

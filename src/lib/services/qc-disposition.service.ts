@@ -23,7 +23,7 @@ import {
   mysqlElectronicSignatures,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
-import { verifyUserPassword, createElectronicSignature } from './electronic-signature.service';
+import { createElectronicSignature, verifyUserPassword } from './electronic-signature-service';
 import { getNow } from '../db/date-utils';
 
 // Disposition types
@@ -231,7 +231,7 @@ export async function setDisposition(input: DispositionInput): Promise<Dispositi
     const [user] = await database
       .select({
         id: users.id,
-        fullName: users.fullName,
+        fullName: users.name,
       })
       .from(users)
       .where(eq(users.id, userId));
@@ -261,6 +261,7 @@ export async function setDisposition(input: DispositionInput): Promise<Dispositi
       entityId: testId,
       action: 'disposition_decision',
       userId,
+      password,
       meaning: signatureMeaning,
     });
 
@@ -345,7 +346,7 @@ export async function approveDisposition(input: DispositionApprovalInput): Promi
     const [user] = await database
       .select({
         id: users.id,
-        fullName: users.fullName,
+        fullName: users.name,
       })
       .from(users)
       .where(eq(users.id, userId));
@@ -373,6 +374,7 @@ export async function approveDisposition(input: DispositionApprovalInput): Promi
       entityId: testId,
       action: 'disposition_approval',
       userId,
+      password,
       meaning: signatureMeaning,
     });
 
@@ -488,7 +490,7 @@ export async function getDispositionDetails(testId: number): Promise<Disposition
     const [userData] = await database
       .select({
         id: users.id,
-        fullName: users.fullName,
+        fullName: users.name,
       })
       .from(users)
       .where(eq(users.id, test.dispositionBy));
@@ -501,7 +503,7 @@ export async function getDispositionDetails(testId: number): Promise<Disposition
     const [userData] = await database
       .select({
         id: users.id,
-        fullName: users.fullName,
+        fullName: users.name,
       })
       .from(users)
       .where(eq(users.id, test.dispositionApprovedBy));
@@ -528,9 +530,9 @@ export async function getDispositionDetails(testId: number): Promise<Disposition
 
   // Get user names for signatures
   const signatureDetails = await Promise.all(
-    signatureRecords.map(async (sig) => {
+    signatureRecords.map(async (sig: { id: number; action: string; userId: number; signedAt: string | Date; meaning: string }) => {
       const [sigUser] = await database
-        .select({ fullName: users.fullName })
+        .select({ fullName: users.name })
         .from(users)
         .where(eq(users.id, sig.userId));
       return {
@@ -650,7 +652,7 @@ export async function getPendingRelease(): Promise<PendingReleaseItem[]> {
       disposition: tests.disposition,
       dispositionReason: tests.dispositionReason,
       dispositionApprovedBy: tests.dispositionApprovedBy,
-      testedAt: tests.testedAt,
+      testedAt: tests.testDate,
       lotId: tests.lotId,
       lotNumber: lots.lotNumber,
       itemId: lots.itemId,
@@ -660,7 +662,7 @@ export async function getPendingRelease(): Promise<PendingReleaseItem[]> {
     .where(
       sql`(${tests.status} = 'failed' AND ${tests.disposition} IS NULL) OR (${tests.disposition} IS NOT NULL AND ${tests.dispositionApprovedBy} IS NULL)`
     )
-    .orderBy(desc(tests.testedAt));
+    .orderBy(desc(tests.testDate));
 
   // Get item details
   const results: PendingReleaseItem[] = [];

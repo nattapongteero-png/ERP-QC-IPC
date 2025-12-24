@@ -8,6 +8,13 @@
       "when": 1766279187220,
       "tag": "0000_eminent_robin_chapel",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1766556214846,
+      "tag": "0001_shiny_yellow_claw",
+      "breakpoints": true
     }
   ]
 }
