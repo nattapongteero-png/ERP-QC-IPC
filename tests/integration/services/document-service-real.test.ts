@@ -391,8 +391,9 @@ describe('Document Service Real Integration Tests', () => {
       // Verify version is rejected
       const history = await getVersionHistory(doc.id);
       expect(history[0].status).toBe('rejected');
-      expect(history[0].approvals[0].status).toBe('rejected');
-      expect(history[0].approvals[0].comments).toContain('safety precautions');
+      expect(history[0].approvals).toBeDefined();
+      expect(history[0].approvals?.[0].status).toBe('rejected');
+      expect(history[0].approvals?.[0].comments).toContain('safety precautions');
     });
   });
 
@@ -504,7 +505,7 @@ describe('Document Service Real Integration Tests', () => {
     it('should filter by document type', async () => {
       const result = await getDocuments({ typeId: 1 });
       expect(result.documents.length).toBe(2);
-      expect(result.documents.every(d => d.typeCode === 'SOP')).toBe(true);
+      expect(result.documents.every(d => d.typeName === 'Standard Operating Procedure')).toBe(true);
     });
 
     it('should filter by department', async () => {

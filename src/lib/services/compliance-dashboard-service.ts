@@ -193,16 +193,16 @@ async function evaluateChapter1(
       id: deviations.id,
       deviationNumber: deviations.deviationNumber,
       status: deviations.status,
-      closedDate: deviations.closedDate,
+      closedAt: deviations.closedAt,
       createdAt: deviations.createdAt,
     })
     .from(deviations);
 
   const closedDeviations = allDeviations.filter((d: { status: string }) => d.status === 'closed');
-  const closedWithin30Days = closedDeviations.filter((d: { createdAt: string; closedDate: string | null }) => {
-    if (!d.closedDate) return false;
+  const closedWithin30Days = closedDeviations.filter((d: { createdAt: string; closedAt: string | null }) => {
+    if (!d.closedAt) return false;
     const created = new Date(d.createdAt);
-    const closed = new Date(d.closedDate);
+    const closed = new Date(d.closedAt);
     const daysDiff = Math.ceil((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
     return daysDiff <= 30;
   });
@@ -323,8 +323,8 @@ async function evaluateChapter3(
   if (!noOverdueCalibrations) {
     const affectedRecords = overdueCalibrations.slice(0, 5).map(eq => ({
       type: 'equipment',
-      id: eq.id,
-      reference: `${eq.code} - ${eq.name}`,
+      id: eq.equipmentId,
+      reference: `${eq.equipmentType} - ${eq.equipmentName}`,
     }));
 
     gaps.push({

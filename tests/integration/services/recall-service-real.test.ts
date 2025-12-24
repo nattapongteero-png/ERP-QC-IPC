@@ -402,10 +402,10 @@ describe('Recall Service Real Integration Tests', () => {
       }, TEST_USER_IDS.QA_MANAGER);
 
       const updated = await updateRecall(recall.id, {
-        reason: 'Updated reason with more details',
+        status: 'in_progress',
       }, TEST_USER_IDS.QA_MANAGER);
 
-      expect(updated?.reason).toBe('Updated reason with more details');
+      expect(updated?.status).toBe('in_progress');
     });
 
     it('should list recalls with filters', async () => {

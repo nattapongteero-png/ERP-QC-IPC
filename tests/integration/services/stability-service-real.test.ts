@@ -254,7 +254,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C ± 2°C / 60% RH ± 5%',
         timepoints: [0, 3, 6, 9, 12, 18, 24, 36],
-        testsRequired: [{ testId: 1, testName: 'Assay' }, { testId: 2, testName: 'Dissolution' }],
+        testsRequired: [1, 2],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       expect(protocol.id).toBeDefined();
@@ -314,7 +314,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'accelerated',
         storageCondition: '40°C ± 2°C / 75% RH ± 5%',
         timepoints: [0, 1, 2, 3, 6],
-        testsRequired: [{ testId: 1, testName: 'Assay' }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       expect(protocol.studyType).toBe('accelerated');
@@ -348,7 +348,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0, 3],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       const num2 = await generateProtocolNumber();
@@ -362,10 +362,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'intermediate',
         storageCondition: '30°C ± 2°C / 65% RH',
         timepoints: [0, 3, 6, 9, 12],
-        testsRequired: [
-          { testId: 1, testName: 'Assay' },
-          { testId: 2, testName: 'Moisture' },
-        ],
+        testsRequired: [1, 2],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       expect(protocol.studyType).toBe('intermediate');
@@ -379,7 +376,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0, 3],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       await createProtocol({
@@ -388,7 +385,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'accelerated',
         storageCondition: '40°C',
         timepoints: [0, 1],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       const longTermProtocols = await listProtocols({ studyType: 'long_term' });
@@ -405,7 +402,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0, 3],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       const updated = await updateProtocol(protocol.id, {
@@ -424,7 +421,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0, 3],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
@@ -448,7 +445,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0, 3, 6],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
       await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
       approvedProtocolId = protocol.id;
@@ -478,7 +475,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0, 3],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
 
       await expect(createStudy({
@@ -531,7 +528,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0, 3, 6],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
       await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
 
@@ -605,7 +602,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
       await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
 
@@ -629,7 +626,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0, 3],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
       await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
 
@@ -684,7 +681,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
       await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
 
@@ -715,7 +712,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
       await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
 
@@ -808,7 +805,7 @@ describe('Stability Service Real Integration Tests', () => {
         studyType: 'long_term',
         storageCondition: '25°C',
         timepoints: [0],
-        testsRequired: [{ testId: 1 }],
+        testsRequired: [1],
       }, TEST_USER_IDS.LAB_SUPERVISOR);
       await approveProtocol(protocol.id, TEST_USER_IDS.APPROVER);
 

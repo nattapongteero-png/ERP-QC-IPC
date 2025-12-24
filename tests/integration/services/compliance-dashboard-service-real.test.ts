@@ -451,7 +451,7 @@ describe('Compliance Dashboard Service - Real Database Integration', () => {
       await createCapa(
         {
           title: 'Test Overdue CAPA',
-          sourceType: 'internal',
+          sourceType: 'other',
           type: 'corrective',
           priority: 'high',
           ownerId: testUserId,
@@ -596,7 +596,7 @@ describe('Compliance Dashboard Service - Real Database Integration', () => {
       await createCapa(
         {
           title: 'Test CAPA for Effectiveness',
-          sourceType: 'internal',
+          sourceType: 'other',
           type: 'corrective',
           priority: 'medium',
           ownerId: testUserId,

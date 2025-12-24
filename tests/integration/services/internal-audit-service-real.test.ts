@@ -243,18 +243,19 @@ describe('Internal Audit Service Real Integration Tests', () => {
 
       // Step 2: Approve the plan
       const approvedPlan = await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
-      expect(approvedPlan.status).toBe('approved');
-      expect(approvedPlan.approvedBy).toBe(TEST_USER_IDS.QA_MANAGER);
+      expect(approvedPlan).not.toBeNull();
+      expect(approvedPlan!.status).toBe('approved');
+      expect(approvedPlan!.approvedBy).toBe(TEST_USER_IDS.QA_MANAGER);
 
       // Step 3: Schedule an audit
       const audit = await createAudit({
         planId: plan.id,
         auditType: 'internal',
         scope: 'หมวด 7 - การดำเนินการผลิต',
+        gmpChapters: [7],
         scheduledDate: TEST_DATES.NEAR_FUTURE,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
         auditTeam: [TEST_USER_IDS.AUDITOR],
-        objectives: 'ตรวจประเมินกระบวนการผลิตตามมาตรฐาน GMP',
       }, TEST_USER_IDS.QA_MANAGER);
 
       expect(audit.id).toBeDefined();
@@ -263,8 +264,9 @@ describe('Internal Audit Service Real Integration Tests', () => {
 
       // Step 4: Start the audit
       const startedAudit = await startAudit(audit.id, TEST_USER_IDS.LEAD_AUDITOR);
-      expect(startedAudit.status).toBe('in_progress');
-      expect(startedAudit.actualDate).toBeDefined();
+      expect(startedAudit).not.toBeNull();
+      expect(startedAudit!.status).toBe('in_progress');
+      expect(startedAudit!.actualDate).toBeDefined();
 
       // Step 5: Record findings
       const finding1 = await createAuditFinding({
@@ -296,8 +298,9 @@ describe('Internal Audit Service Real Integration Tests', () => {
         reportPath: '/reports/audit-2025-001.pdf',
       }, TEST_USER_IDS.LEAD_AUDITOR);
 
-      expect(completedAudit.status).toBe('completed');
-      expect(completedAudit.summary).toContain('major finding');
+      expect(completedAudit).not.toBeNull();
+      expect(completedAudit!.status).toBe('completed');
+      expect(completedAudit!.summary).toContain('major finding');
 
       // Step 7: Get audit details with findings
       const auditDetails = await getAuditById(audit.id);
@@ -309,7 +312,10 @@ describe('Internal Audit Service Real Integration Tests', () => {
   describe('Scenario 2: Finding Classification and CAPA Linkage', () => {
     it('should link CAPA to major finding and track closure', async () => {
       // Setup: Create plan and audit
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
 
       const audit = await createAudit({
@@ -345,8 +351,9 @@ describe('Internal Audit Service Real Integration Tests', () => {
 
       // Link CAPA to finding
       const linkedFinding = await assignCapaToFinding(finding.id, 1, TEST_USER_IDS.QA_MANAGER);
-      expect(linkedFinding.capaId).toBe(1);
-      expect(linkedFinding.status).toBe('capa_assigned');
+      expect(linkedFinding).not.toBeNull();
+      expect(linkedFinding!.capaId).toBe(1);
+      expect(linkedFinding!.status).toBe('capa_assigned');
 
       // Complete CAPA (simulate)
       sqlite.exec(`UPDATE capa SET status = 'closed' WHERE id = 1`);
@@ -354,19 +361,23 @@ describe('Internal Audit Service Real Integration Tests', () => {
       // Close finding (only takes id and userId)
       const closedFinding = await closeAuditFinding(finding.id, TEST_USER_IDS.QA_MANAGER);
 
-      expect(closedFinding.status).toBe('closed');
-      expect(closedFinding.closedDate).toBeDefined();
+      expect(closedFinding).not.toBeNull();
+      expect(closedFinding!.status).toBe('closed');
+      expect(closedFinding!.closedDate).toBeDefined();
     });
   });
 
   describe('Scenario 3: Supplier Audit Workflow', () => {
     it('should handle supplier audit with different audit type', async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
 
       const audit = await createAudit({
         planId: plan.id,
-        auditType: 'supplier',
+        auditType: 'external',
         scope: 'Raw Material Supplier - ABC Herbs Co.',
         gmpChapters: [3, 6], // Storage and production
         scheduledDate: TEST_DATES.NEAR_FUTURE,
@@ -412,8 +423,14 @@ describe('Internal Audit Service Real Integration Tests', () => {
     });
 
     it('should filter plans by year', async () => {
-      await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
-      await createAuditPlan({ planYear: year - 1 }, TEST_USER_IDS.QA_MANAGER);
+      await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
+      await createAuditPlan({
+        planYear: year - 1,
+        name: `GMP Internal Audit Plan ${year - 1}`,
+      }, TEST_USER_IDS.QA_MANAGER);
 
       const plans = await getAuditPlans({ year });
       expect(plans.length).toBe(1);
@@ -421,8 +438,14 @@ describe('Internal Audit Service Real Integration Tests', () => {
     });
 
     it('should filter plans by status', async () => {
-      const plan1 = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
-      await createAuditPlan({ planYear: year - 1 }, TEST_USER_IDS.QA_MANAGER);
+      const plan1 = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
+      await createAuditPlan({
+        planYear: year - 1,
+        name: `GMP Internal Audit Plan ${year - 1}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan1.id, TEST_USER_IDS.QA_MANAGER);
 
       const approvedPlans = await getAuditPlans({ status: 'approved' });
@@ -430,17 +453,24 @@ describe('Internal Audit Service Real Integration Tests', () => {
     });
 
     it('should update audit plan', async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
 
       const updated = await updateAuditPlan(plan.id, {
         name: 'Updated Plan Name',
       }, TEST_USER_IDS.QA_MANAGER);
 
-      expect(updated.name).toBe('Updated Plan Name');
+      expect(updated).not.toBeNull();
+      expect(updated!.name).toBe('Updated Plan Name');
     });
 
     it('should get plan by ID', async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
 
       const retrieved = await getAuditPlanById(plan.id);
       expect(retrieved).not.toBeNull();
@@ -456,7 +486,10 @@ describe('Internal Audit Service Real Integration Tests', () => {
     let planId: number;
 
     beforeEach(async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
       planId = plan.id;
     });
@@ -469,6 +502,7 @@ describe('Internal Audit Service Real Integration Tests', () => {
         planId,
         auditType: 'internal',
         scope: 'Test',
+        gmpChapters: [1],
         scheduledDate: TEST_DATES.NEAR_FUTURE,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
               }, TEST_USER_IDS.QA_MANAGER);
@@ -482,10 +516,10 @@ describe('Internal Audit Service Real Integration Tests', () => {
         planId,
         auditType: 'internal',
         scope: 'Production Area',
+        gmpChapters: [6],
         scheduledDate: TEST_DATES.NEAR_FUTURE,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
         auditTeam: [TEST_USER_IDS.AUDITOR],
-        objectives: 'Verify compliance',
       }, TEST_USER_IDS.QA_MANAGER);
 
       expect(audit.auditType).toBe('internal');
@@ -498,14 +532,16 @@ describe('Internal Audit Service Real Integration Tests', () => {
         planId,
         auditType: 'internal',
         scope: 'Area A',
+        gmpChapters: [1],
         scheduledDate: TEST_DATES.NEAR_FUTURE,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
               }, TEST_USER_IDS.QA_MANAGER);
 
       await createAudit({
         planId,
-        auditType: 'supplier',
+        auditType: 'external',
         scope: 'Supplier B',
+        gmpChapters: [3],
         scheduledDate: TEST_DATES.NEAR_FUTURE,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
               }, TEST_USER_IDS.QA_MANAGER);
@@ -519,16 +555,17 @@ describe('Internal Audit Service Real Integration Tests', () => {
         planId,
         auditType: 'internal',
         scope: 'Original Scope',
+        gmpChapters: [1],
         scheduledDate: TEST_DATES.NEAR_FUTURE,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
               }, TEST_USER_IDS.QA_MANAGER);
 
       const updated = await updateAudit(audit.id, {
         scope: 'Updated Scope',
-        objectives: 'New objectives',
       }, TEST_USER_IDS.QA_MANAGER);
 
-      expect(updated.scope).toBe('Updated Scope');
+      expect(updated).not.toBeNull();
+      expect(updated!.scope).toBe('Updated Scope');
     });
 
     it('should start and complete audit', async () => {
@@ -536,18 +573,21 @@ describe('Internal Audit Service Real Integration Tests', () => {
         planId,
         auditType: 'internal',
         scope: 'Test',
+        gmpChapters: [1],
         scheduledDate: TEST_DATES.TODAY,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
               }, TEST_USER_IDS.QA_MANAGER);
 
       const started = await startAudit(audit.id, TEST_USER_IDS.LEAD_AUDITOR);
-      expect(started.status).toBe('in_progress');
+      expect(started).not.toBeNull();
+      expect(started!.status).toBe('in_progress');
 
       const completed = await completeAudit(audit.id, {
-        conclusion: 'Audit completed successfully',
+        summary: 'Audit completed successfully',
       }, TEST_USER_IDS.LEAD_AUDITOR);
 
-      expect(completed.status).toBe('completed');
+      expect(completed).not.toBeNull();
+      expect(completed!.status).toBe('completed');
     });
   });
 
@@ -559,13 +599,17 @@ describe('Internal Audit Service Real Integration Tests', () => {
     let auditId: number;
 
     beforeEach(async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
 
       const audit = await createAudit({
         planId: plan.id,
         auditType: 'internal',
         scope: 'Test',
+        gmpChapters: [1],
         scheduledDate: TEST_DATES.TODAY,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
               }, TEST_USER_IDS.QA_MANAGER);
@@ -646,7 +690,8 @@ describe('Internal Audit Service Real Integration Tests', () => {
       // Close finding (no CAPA required)
       const closed = await closeAuditFinding(finding.id, TEST_USER_IDS.QA_MANAGER);
 
-      expect(closed.status).toBe('closed');
+      expect(closed).not.toBeNull();
+      expect(closed!.status).toBe('closed');
     });
   });
 
@@ -656,7 +701,10 @@ describe('Internal Audit Service Real Integration Tests', () => {
 
   describe('Audit Statistics', () => {
     it('should calculate audit statistics for year', async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
 
       // Create first audit and complete it
@@ -681,7 +729,10 @@ describe('Internal Audit Service Real Integration Tests', () => {
     });
 
     it('should calculate chapter coverage', async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
 
       // Create audits for different GMP chapters (1-3)
@@ -801,7 +852,10 @@ describe('Internal Audit Service Real Integration Tests', () => {
     let findingId: number;
 
     beforeEach(async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
 
       const audit = await createAudit({
@@ -881,7 +935,10 @@ describe('Internal Audit Service Real Integration Tests', () => {
     let auditId: number;
 
     beforeEach(async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
 
       const audit = await createAudit({
@@ -1022,23 +1079,27 @@ describe('Internal Audit Service Real Integration Tests', () => {
     });
 
     it('should handle audit with no findings', async () => {
-      const plan = await createAuditPlan({ planYear: year }, TEST_USER_IDS.QA_MANAGER);
+      const plan = await createAuditPlan({
+        planYear: year,
+        name: `GMP Internal Audit Plan ${year}`,
+      }, TEST_USER_IDS.QA_MANAGER);
       await approveAuditPlan(plan.id, TEST_USER_IDS.QA_MANAGER);
 
       const audit = await createAudit({
         planId: plan.id,
         auditType: 'internal',
         scope: 'Test',
+        gmpChapters: [1],
         scheduledDate: TEST_DATES.TODAY,
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
               }, TEST_USER_IDS.QA_MANAGER);
 
       await startAudit(audit.id, TEST_USER_IDS.LEAD_AUDITOR);
       const completed = await completeAudit(audit.id, {
-        conclusion: 'No findings - full compliance',
+        summary: 'No findings - full compliance',
       }, TEST_USER_IDS.LEAD_AUDITOR);
 
-      const details = await getAuditById(completed.id);
+      const details = await getAuditById(completed!.id);
       expect(details!.findings.length).toBe(0);
     });
   });
