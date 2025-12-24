@@ -25,7 +25,7 @@
 - [x] T000B [P] Fix sales.service.ts schema mismatch (uses vendors as customers, expects customerId but schema has customerName)
 - [x] T000C [P] Fix hr.service.ts createOrgUnit Date object insertion (should use string dates per date-utils.ts)
 
-**Checkpoint**: All services align with Drizzle schema - skipped tasks can proceed ✅ COMPLETE
+**Checkpoint**: Schema alignment complete for service layer. Note: Some service functions may still have edge cases requiring additional fixes during test implementation. ✅ COMPLETE
 
 ---
 
@@ -130,6 +130,21 @@
 
 ---
 
+## Phase 4.5: PQR Module Tests (FR-004 Coverage)
+
+**Goal**: Integration tests for Product Quality Review (PQR) generation per FR-004
+
+### PQR Service Tests [US-PQR]
+
+- [ ] T089 [P] [US-PQR] Create tests/integration/services/pqr-service-real.test.ts with schema sync for product_quality_reviews, deviations, complaints, stability_studies tables
+- [ ] T090 [US-PQR] Implement real-world scenario: Annual PQR generation aggregating deviations, OOS, changes, stability, complaints, recalls
+- [ ] T091 [US-PQR] Test PQR service functions: generatePQR, getPQRById, listPQRsByProduct, approvePQR
+- [ ] T092 [US-PQR] Test edge cases: incomplete data handling, date range validation, multi-product PQR comparison
+
+**Checkpoint**: PQR module has comprehensive real SQLite tests covering FR-004 requirements
+
+---
+
 ## Phase 5: Business Module Tests - Priority 3 (P3)
 
 **Goal**: Integration tests for core business modules: Inventory, Production, Quality, HR
@@ -158,10 +173,10 @@
 
 - [x] T056 [P] [US9] Create tests/integration/services/quality-service-real.test.ts with schema sync for quality_tests, quality_specs, deviations tables
 - [x] T057 [US9] AQL Sampling Plan calculation tests (ISO 2859-1 compliance) - 16 tests
-- [ ] T058 [US9] BLOCKED BY T000A - quality.service.ts schema alignment required
-- [ ] T059 [US9] BLOCKED BY T000A - database-dependent functions blocked by schema mismatch
+- [ ] T058 [US9] Quality service database functions - schema aligned, ready to proceed
+- [ ] T059 [US9] Quality test workflow scenarios - schema aligned, ready to proceed
 - [x] T060 [US9] Quality specs, test records, and deviation lifecycle tests (direct database) - 13 tests
-- [ ] T061 [US9] BLOCKED BY T000A - COA generation depends on schema alignment
+- [ ] T061 [US9] COA generation tests - schema aligned, ready to proceed
 
 ### HR Service Tests [US10]
 
@@ -170,7 +185,7 @@
 - [x] T064 [US10] Training records, competency matrix, and expiry tracking tests
 - [x] T065 [US10] Employee and position CRUD functions tests
 - [x] T066 [US10] Authorization, delegation, and health records tests
-- [ ] T067 [US10] BLOCKED BY T000C - createOrgUnit Date object fix required
+- [ ] T067 [US10] createOrgUnit Date handling tests - date-utils aligned, ready to proceed
 
 **Checkpoint**: P3 core business modules have comprehensive real SQLite tests
 
@@ -184,9 +199,9 @@
 
 - [x] T068 [P] [US11] Create tests/integration/services/sales-service-real.test.ts with schema sync for sales_orders, sales_order_items, customers tables
 - [x] T069 [US11] Implement real-world scenario: ATP calculation tests (5 passing) in sales-service-real.test.ts
-- [ ] T070 [US11] BLOCKED BY T000B - sales.service.ts schema alignment required
-- [ ] T071 [US11] BLOCKED BY T000B - depends on createSalesOrder fix
-- [ ] T072 [US11] BLOCKED BY T000B - depends on createSalesOrder fix
+- [ ] T070 [US11] Sales order CRUD functions - schema aligned, ready to proceed
+- [ ] T071 [US11] Order fulfillment workflow - schema aligned, ready to proceed
+- [ ] T072 [US11] Edge cases and validation tests - schema aligned, ready to proceed
 
 ### Purchasing Service Tests [US12]
 
@@ -317,10 +332,11 @@ With multiple developers after Phase 2:
 | 2 | Foundational - Reference Validation | 3 | 3 | 0 | 0 | - |
 | 3 | P1 GMP Module Tests (Complaints, Documents, Audit) | 18 | 18 | 0 | 0 | P1 |
 | 4 | P2 GMP Module Tests (Recalls, Sanitation, Stability) | 18 | 18 | 0 | 0 | P2 |
-| 5 | P3 Business Module Tests (Inventory, Production, Quality, HR) | 24 | 17 | 7 | 0 | P3 |
+| 4.5 | PQR Module Tests (FR-004 Coverage) | 4 | 0 | 0 | 4 | P2 |
+| 5 | P3 Business Module Tests (Inventory, Production, Quality, HR) | 24 | 17 | 0 | 7 | P3 |
 | 6 | P3 Business Module Tests (Sales, Purchasing, VMI) | 15 | 2 | 0 | 13 | P3 |
 | 7 | Polish & Verification | 6 | 0 | 0 | 6 | - |
-| **Total** | | **91** | **62** | **7** | **22** | |
+| **Total** | | **95** | **65** | **0** | **30** | |
 
 ---
 

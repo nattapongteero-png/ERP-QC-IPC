@@ -321,6 +321,7 @@ As an Internal Auditor, I need to schedule audits, record findings, track CAPAs,
 ### Measurable Outcomes
 
 - **SC-001**: All 10 GMP chapters (หมวด) have at least 80% requirement coverage within the system
+  > **Coverage Calculation**: Coverage % = (Count of MUST functional requirements with at least one passing integration test) / (Total MUST functional requirements) × 100. SHOULD requirements are tracked but not included in the 80% threshold. Each requirement maps to one or more test scenarios in `tasks.md`.
 - **SC-002**: 100% of batch releases require electronic authorization from qualified personnel
 - **SC-003**: All deviations are closed with CAPA within 30 days (minor) or 60 days (major/critical)
 - **SC-004**: Document retrieval for any version takes less than 30 seconds

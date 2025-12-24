@@ -9,6 +9,19 @@ This plan addresses the gap between mock-based unit tests and real-world integra
 
 **Goal**: Ensure all service modules have comprehensive integration tests using real SQLite that cover real-world scenarios including complete CRUD operations, workflow validations, and data integrity checks.
 
+## Scope Clarification
+
+**This plan covers integration TESTING only, not implementation.**
+
+The spec.md shows implementation status ranging from 0% to 95% for various modules. This testing plan:
+
+1. **Tests existing service layer code** - All 14 service files exist in `src/lib/services/` with exported functions
+2. **Does NOT implement missing features** - If a service function doesn't exist, it's out of scope for this testing phase
+3. **Validates what exists works correctly** - Integration tests confirm existing code operates with real SQLite database
+4. **Identifies gaps through test failures** - Tests that fail due to missing functionality document implementation gaps
+
+Modules with partial implementation (e.g., MES/eBMR at 50%) will have tests written for implemented functions only. Missing functionality is documented in test skip comments with references to spec.md requirements.
+
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x with strict mode enabled
