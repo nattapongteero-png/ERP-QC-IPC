@@ -330,25 +330,23 @@ export class VmiSyncService {
       const batch = items.slice(i, i + this.BATCH_SIZE);
       this.log(`[sendInventoryToPortal] Processing batch ${batchNumber}/${totalBatches} with ${batch.length} items`);
 
-      // Transform to VMI Portal format
+      // Transform to VMI Portal format (per docs/VMI-VENDOR-API.md)
       const payload = batch.map((item) => ({
         localCode: item.code,
         quantityAvailable: item.quantity,
-        unit: item.unit,
       }));
 
-      const apiUrl = `${portal.portalUrl}/api/vendor/inventory`;
-      this.log(`[sendInventoryToPortal] Calling API: PUT ${apiUrl}`);
+      const apiUrl = `${portal.portalUrl}/api/external/vendor/inventory`;
+      this.log(`[sendInventoryToPortal] Calling API: POST ${apiUrl}`);
 
       try {
         const response = await fetch(apiUrl, {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-API-Key': apiKey,
-            'X-Vendor-Id': portal.vendorId,
           },
-          body: JSON.stringify({ items: payload }),
+          body: JSON.stringify({ inventory: payload }),
           signal: AbortSignal.timeout(30000),
         });
 
@@ -552,25 +550,28 @@ export class VmiSyncService {
       const batch = items.slice(i, i + this.BATCH_SIZE);
       this.log(`[sendItemsToPortal] Processing batch ${batchNumber}/${totalBatches}`);
 
+      // Transform to VMI Portal format (per docs/VMI-VENDOR-API.md)
       const payload = batch.map((item) => ({
         localCode: item.code,
         name: item.nameTh,
-        nameEn: item.nameEn,
         unit: item.unit,
+        packSize: 1, // Default pack size
+        packUnit: item.unit,
         tppCode: item.tppCode,
         ttmtCode: item.ttmtCode,
         category: item.category,
+        isActive: true,
       }));
 
-      const apiUrl = `${portal.portalUrl}/api/vendor/items`;
+      const apiUrl = `${portal.portalUrl}/api/external/vendor/items`;
+      this.log(`[sendItemsToPortal] Calling API: POST ${apiUrl}`);
 
       try {
         const response = await fetch(apiUrl, {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-API-Key': apiKey,
-            'X-Vendor-Id': portal.vendorId,
           },
           body: JSON.stringify({ items: payload }),
           signal: AbortSignal.timeout(30000),
@@ -756,24 +757,25 @@ export class VmiSyncService {
       const batch = items.slice(i, i + this.BATCH_SIZE);
       this.log(`[sendPricesToPortal] Processing batch ${batchNumber}/${totalBatches}`);
 
+      // Transform to VMI Portal format (per docs/VMI-VENDOR-API.md)
       const payload = batch.map((item) => ({
         localCode: item.code,
         unitPrice: item.unitPrice,
-        unit: item.unit,
-        effectiveDate: new Date().toISOString().split('T')[0],
+        effectiveDate: new Date().toISOString(),
+        isActive: true,
       }));
 
-      const apiUrl = `${portal.portalUrl}/api/vendor/prices`;
+      const apiUrl = `${portal.portalUrl}/api/external/vendor/prices`;
+      this.log(`[sendPricesToPortal] Calling API: POST ${apiUrl}`);
 
       try {
         const response = await fetch(apiUrl, {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-API-Key': apiKey,
-            'X-Vendor-Id': portal.vendorId,
           },
-          body: JSON.stringify({ prices: payload }),
+          body: JSON.stringify({ offers: payload }),
           signal: AbortSignal.timeout(30000),
         });
 
