@@ -272,10 +272,12 @@ export default function VmiSyncPage() {
   const isAnySyncing =
     inventoryMutation.isPending || itemsMutation.isPending || pricesMutation.isPending;
 
-  // Get last sync for each type
+  // Get last (most recent) sync for each type
   const getLastSync = (syncType: VmiSyncType): SyncHistoryItem | null => {
     if (!historyData?.items) return null;
-    return historyData.items.find((item) => item.syncType === syncType) || null;
+    // Data is ordered by startedAt ascending (oldest first), so we need to find the last matching item
+    const matching = historyData.items.filter((item) => item.syncType === syncType);
+    return matching.length > 0 ? matching[matching.length - 1] : null;
   };
 
   // Calculate stats
@@ -607,7 +609,7 @@ export default function VmiSyncPage() {
                 <div className="w-px h-10 bg-white/20" />
                 <div className="text-center">
                   <div className="text-2xl font-bold text-red-300">{stats.failedToday}</div>
-                  <div className="text-xs text-indigo-200">ล้มเหลว</div>
+                  <div className="text-xs text-indigo-200">ล้มเหลววันนี้</div>
                 </div>
                 {stats.isRunning && (
                   <>
