@@ -7,7 +7,7 @@
  * Feature: 008-vmi-vendor-sync
  */
 
-import { eq, and, isNotNull, gte, or, inArray } from 'drizzle-orm';
+import { eq, and, isNotNull, isNull, gte, lte, or, inArray } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
 import {
   sqliteItems,
@@ -16,6 +16,8 @@ import {
   mysqlVmiPortalConfig,
   sqliteVmiSyncHistory,
   mysqlVmiSyncHistory,
+  sqliteVMIPriceOffers,
+  mysqlVMIPriceOffers,
   type VmiSyncHistory,
 } from '@/lib/db/schema';
 import { decrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
@@ -175,6 +177,7 @@ export class VmiSyncService {
       items: this.isSqlite ? sqliteItems : mysqlItems,
       portals: this.isSqlite ? sqliteVmiPortalConfig : mysqlVmiPortalConfig,
       syncHistory: this.isSqlite ? sqliteVmiSyncHistory : mysqlVmiSyncHistory,
+      priceOffers: this.isSqlite ? sqliteVMIPriceOffers : mysqlVMIPriceOffers,
     };
   }
 
@@ -1187,38 +1190,58 @@ export class VmiSyncService {
   }
 
   /**
-   * Get items with prices
+   * Get items with prices from vmi_price_offers table
+   * Only returns items that have active price offers with valid effective dates
    */
   private async getPriceItems(itemIds: number[] | undefined): Promise<PriceItem[]> {
-    this.log(`[getPriceItems] Getting price items, itemIds filter: ${itemIds?.length || 'none'}`);
+    this.log(`[getPriceItems] Getting price items from vmi_price_offers, itemIds filter: ${itemIds?.length || 'none'}`);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = (await this.getDb()) as any;
-    const { items } = this.getTables();
+    const { items, priceOffers } = this.getTables();
 
-    const conditions = [
+    // Get current date for filtering active offers
+    const now = this.isSqlite ? new Date().toISOString() : new Date();
+
+    // Build conditions for items
+    const itemConditions = [
       eq(items.vmiSyncEnabled, true),
     ];
 
     if (itemIds && itemIds.length > 0) {
-      conditions.push(inArray(items.id, itemIds));
+      itemConditions.push(inArray(items.id, itemIds));
     }
 
+    // Join items with vmi_price_offers
+    // Filter for active offers where effectiveDate <= now and (expiryDate is null OR expiryDate >= now)
     const records = await db
       .select({
         id: items.id,
         code: items.code,
         unit: items.primaryUnit,
+        unitPrice: priceOffers.unitPrice,
       })
       .from(items)
-      .where(and(...conditions));
+      .innerJoin(priceOffers, eq(items.id, priceOffers.itemId))
+      .where(
+        and(
+          ...itemConditions,
+          eq(priceOffers.isActive, true),
+          lte(priceOffers.effectiveDate, now as any),
+          or(
+            isNull(priceOffers.expiryDate),
+            gte(priceOffers.expiryDate, now as any)
+          )
+        )
+      );
 
-    this.log(`[getPriceItems] Found ${records.length} price items`);
+    this.log(`[getPriceItems] Found ${records.length} items with active price offers`);
 
-    return records.map((r: any) => ({
+    // MySQL DECIMAL columns return strings, so convert to numbers
+    return records.map((r: { id: number; code: string; unit: string; unitPrice: string | number }) => ({
       id: r.id,
       code: r.code,
-      unitPrice: 0, // Price not stored in items table - would need to fetch from pricing table
+      unitPrice: Number(r.unitPrice) || 0,
       unit: r.unit,
     }));
   }
