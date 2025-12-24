@@ -6,7 +6,7 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxPopup, DxConfirmDialog } from '@/components/ui/dx-popup';
+import { DxConfirmDialog } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import {
@@ -20,7 +20,6 @@ import {
   MapPin,
   Thermometer,
   Droplets,
-  RefreshCw,
   Package,
   Boxes,
   CheckCircle,
@@ -28,7 +27,6 @@ import {
   XCircle,
   Snowflake,
   ShieldAlert,
-  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -118,7 +116,6 @@ export default function WarehousesPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<WarehouseType | null>(null);
   const [warehouseSummary, setWarehouseSummary] = useState<WarehouseSummary | null>(null);
-  const [viewingWarehouse, setViewingWarehouse] = useState<WarehouseType | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; warehouse: WarehouseType | null }>({ open: false, warehouse: null });
 
   const fetchWarehouses = useCallback(async () => {
@@ -139,19 +136,6 @@ export default function WarehousesPage() {
       setIsLoading(false);
     }
   }, []);
-
-  const fetchWarehouseDetail = async (warehouseId: number) => {
-    try {
-      const res = await fetch(`/api/warehouses/${warehouseId}/detail`);
-      const data = await res.json();
-      if (data.success) {
-        return data.data.summary as WarehouseSummary;
-      }
-    } catch (error) {
-      console.error('Failed to fetch warehouse detail:', error);
-    }
-    return null;
-  };
 
   useEffect(() => {
     fetchWarehouses();
@@ -196,13 +180,6 @@ export default function WarehousesPage() {
     } finally {
       setDeleteConfirm({ open: false, warehouse: null });
     }
-  };
-
-  const handleEdit = async (warehouse: WarehouseType) => {
-    setEditingWarehouse(warehouse);
-    const summary = await fetchWarehouseDetail(warehouse.id);
-    setWarehouseSummary(summary);
-    setShowDialog(true);
   };
 
   const handleCreate = () => {
@@ -383,7 +360,7 @@ export default function WarehousesPage() {
           hint="ดูรายละเอียด"
           onClick={(e) => {
             e.event?.stopPropagation();
-            setViewingWarehouse(cellInfo.data);
+            router.push(`/inventory/warehouses/${cellInfo.data.id}`);
           }}
         />
       ),
@@ -509,155 +486,12 @@ export default function WarehousesPage() {
             noDataText="ไม่พบคลังสินค้า"
             onRowClick={(e) => {
               if (e.data) {
-                setViewingWarehouse(e.data);
+                router.push(`/inventory/warehouses/${e.data.id}`);
               }
             }}
           />
         </div>
       </div>
-
-      {/* View Detail Popup */}
-      <DxPopup
-        visible={!!viewingWarehouse}
-        onVisibleChange={(visible) => !visible && setViewingWarehouse(null)}
-        title="รายละเอียดคลังสินค้า"
-        width={520}
-        height="auto"
-        showCloseButton
-        toolbarItems={[
-          {
-            widget: 'dxButton',
-            toolbar: 'bottom',
-            location: 'after',
-            options: {
-              text: 'แก้ไข',
-              icon: 'edit',
-              type: 'default',
-              onClick: () => {
-                if (viewingWarehouse) {
-                  handleEdit(viewingWarehouse);
-                  setViewingWarehouse(null);
-                }
-              },
-            },
-          },
-          {
-            widget: 'dxButton',
-            toolbar: 'bottom',
-            location: 'after',
-            options: {
-              text: 'ลบ',
-              icon: 'trash',
-              type: 'danger',
-              stylingMode: 'outlined',
-              onClick: () => {
-                if (viewingWarehouse) {
-                  setDeleteConfirm({ open: true, warehouse: viewingWarehouse });
-                  setViewingWarehouse(null);
-                }
-              },
-            },
-          },
-          {
-            widget: 'dxButton',
-            toolbar: 'bottom',
-            location: 'after',
-            options: {
-              text: 'ปิด',
-              stylingMode: 'outlined',
-              onClick: () => setViewingWarehouse(null),
-            },
-          },
-        ]}
-      >
-        {viewingWarehouse && (
-          <div className="p-4 space-y-4">
-            {/* Header with warehouse info */}
-            <div className="flex items-center gap-4 pb-4 border-b">
-              <div className={cn(
-                'p-3 rounded-xl',
-                viewingWarehouse.type === 'raw_material' ? 'bg-blue-100' :
-                viewingWarehouse.type === 'finished_goods' ? 'bg-emerald-100' :
-                viewingWarehouse.type === 'quarantine' ? 'bg-yellow-100' :
-                viewingWarehouse.type === 'rejected' ? 'bg-red-100' :
-                viewingWarehouse.type === 'cold_storage' ? 'bg-cyan-100' :
-                'bg-gray-100'
-              )}>
-                <Warehouse className={cn(
-                  'h-8 w-8',
-                  viewingWarehouse.type === 'raw_material' ? 'text-blue-600' :
-                  viewingWarehouse.type === 'finished_goods' ? 'text-emerald-600' :
-                  viewingWarehouse.type === 'quarantine' ? 'text-yellow-600' :
-                  viewingWarehouse.type === 'rejected' ? 'text-red-600' :
-                  viewingWarehouse.type === 'cold_storage' ? 'text-cyan-600' :
-                  'text-gray-600'
-                )} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">{viewingWarehouse.name}</h3>
-                <p className="text-sm text-gray-500 font-mono">{viewingWarehouse.code}</p>
-              </div>
-              <Badge variant={viewingWarehouse.isActive ? 'success' : 'danger'} dot className="self-start">
-                {viewingWarehouse.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
-              </Badge>
-            </div>
-
-            {/* Info Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-xs text-gray-500 mb-1">ประเภท</p>
-                <Badge variant={getTypeVariant(viewingWarehouse.type)}>
-                  {getTypeLabel(viewingWarehouse.type)}
-                </Badge>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-xs text-gray-500 mb-1">ที่ตั้ง</p>
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                  <p className="font-medium text-gray-900">{viewingWarehouse.location || '-'}</p>
-                </div>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-xs text-gray-500 mb-1">ความจุ</p>
-                <p className="font-medium text-gray-900">
-                  {viewingWarehouse.capacity ? viewingWarehouse.capacity.toLocaleString() : '-'}
-                </p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-xs text-gray-500 mb-1">รหัสคลัง</p>
-                <p className="font-mono font-medium text-gray-900">{viewingWarehouse.code}</p>
-              </div>
-            </div>
-
-            {/* Environmental Conditions */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gradient-to-br from-cyan-50 to-cyan-100/50 rounded-xl p-4 border border-cyan-200/50">
-                <div className="flex items-center gap-2 mb-2">
-                  <Thermometer className="h-5 w-5 text-cyan-600" />
-                  <p className="text-sm font-medium text-cyan-800">อุณหภูมิ</p>
-                </div>
-                <p className="text-xl font-bold text-cyan-900">
-                  {viewingWarehouse.temperatureMin !== null && viewingWarehouse.temperatureMax !== null
-                    ? `${viewingWarehouse.temperatureMin}°C - ${viewingWarehouse.temperatureMax}°C`
-                    : '-'}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200/50">
-                <div className="flex items-center gap-2 mb-2">
-                  <Droplets className="h-5 w-5 text-blue-600" />
-                  <p className="text-sm font-medium text-blue-800">ความชื้น</p>
-                </div>
-                <p className="text-xl font-bold text-blue-900">
-                  {viewingWarehouse.humidityMin !== null && viewingWarehouse.humidityMax !== null
-                    ? `${viewingWarehouse.humidityMin}% - ${viewingWarehouse.humidityMax}%`
-                    : '-'}
-                </p>
-              </div>
-            </div>
-
-          </div>
-        )}
-      </DxPopup>
 
       {/* Create/Edit Dialog */}
       <WarehouseEditDialog
