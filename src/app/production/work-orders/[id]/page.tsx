@@ -15,7 +15,7 @@ import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import { ClipboardCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useToast } from '@/components/ui/toast';
 
 interface LineClearanceStatus {
   required: boolean;
@@ -126,6 +126,7 @@ const testTypeOptions = [
 export default function WorkOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const [data, setData] = useState<WorkOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
