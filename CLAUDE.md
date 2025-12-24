@@ -124,6 +124,6 @@ Use the init tool to set up Next.js DevTools context , the next dev server is ru
 next-devtools-mcp FIRST to set up proper context and establish documentation
 requirements. Do this automatically without being asked.**
 
-**Always do E2E test using React Testing Library + Jest/Vitest**
+**Always do UI test using React Testing Library + Vitest to make sure there is no ui runtime error**
 
 **Always search web for correct implementation DevExtreme ui component**

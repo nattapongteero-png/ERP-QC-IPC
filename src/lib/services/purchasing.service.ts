@@ -280,14 +280,13 @@ export async function createPurchaseOrder(
     const [item] = await database.select().from(items).where(eq(items.id, line.itemId));
 
     await database.insert(purchaseOrderLines).values({
-      purchaseOrderId: newPO.id,
+      poId: newPO.id,
       itemId: line.itemId,
       quantity: line.quantity,
       unit: item?.primaryUnit || 'EA',
       unitPrice: line.unitPrice,
       totalPrice: line.quantity * line.unitPrice,
-      requiredDate: line.requiredDate,
-      lineNumber: i + 1,
+      expectedDate: line.requiredDate,
     });
   }
 

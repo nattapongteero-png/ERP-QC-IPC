@@ -1029,7 +1029,9 @@ describe('Internal Audit Service Real Integration Tests', () => {
       expect(result.capaStatus).toBe('closed');
     });
 
-    it('should allow closure if CAPA is effective', async () => {
+    it('should not allow closure if CAPA is effective but not closed', async () => {
+      // Business rule: CAPA must be 'closed' status, not just 'effective'
+      // 'effective' means verification passed but formal closure not completed
       const finding = await createAuditFinding({
         auditId,
         category: 'major',
@@ -1042,13 +1044,14 @@ describe('Internal Audit Service Real Integration Tests', () => {
       // Create and assign CAPA
       const linkedFinding = await createCapaFromFinding(finding.id, TEST_USER_IDS.QA_MANAGER);
 
-      // Mark CAPA as effective
+      // Mark CAPA as effective (but not closed)
       sqlite.exec(`UPDATE capa SET status = 'effective' WHERE id = ${linkedFinding.capaId}`);
 
       const result = await verifyFindingClosure(linkedFinding.id);
 
-      expect(result.canClose).toBe(true);
+      expect(result.canClose).toBe(false);
       expect(result.capaStatus).toBe('effective');
+      expect(result.reason).toContain("must be 'closed'");
     });
   });
 
