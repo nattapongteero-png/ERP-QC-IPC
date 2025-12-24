@@ -1116,10 +1116,10 @@ export class VmiSyncService {
       .from(items)
       .where(inArray(items.id, itemIds));
 
-    const result = records.map((r: { id: number; code: string; quantity: number | null; unit: string }) => ({
+    const result = records.map((r: { id: number; code: string; quantity: number | string | null; unit: string }) => ({
       id: r.id,
       code: r.code,
-      quantity: r.quantity || 0,
+      quantity: Number(r.quantity) || 0, // Ensure number type (MySQL DECIMAL returns string)
       unit: r.unit,
     }));
 
