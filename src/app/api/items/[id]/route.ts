@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         'code', 'nameTh', 'nameEn', 'type', 'category', 'primaryUnit',
         'secondaryUnit', 'conversionRate', 'shelfLifeDays', 'storageCondition',
         'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
-        'tppCode', 'tppName', 'ttmtCode', 'ttmtName'
+        'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'vmiSyncEnabled'
       ];
 
       for (const field of allowedFields) {
