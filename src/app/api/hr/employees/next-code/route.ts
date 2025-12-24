@@ -10,7 +10,7 @@ import { NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
-      const employees = getTableRef('hrEmployees');
+      const employees = getTableRef('HREmployees');
 
       // Get the highest employee code number
       const result = await executeDbOperation(async (db) => {

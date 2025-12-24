@@ -38,7 +38,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
 
         // Verify employee exists
-        const hrEmployees = getTableRef('hrEmployees');
+        const hrEmployees = getTableRef('HREmployees');
         const existing = await executeDbOperation(async (db) => {
           return db
             .select({ id: hrEmployees.id })
@@ -134,7 +134,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
           return errorResponse('Invalid employee ID');
         }
 
-        const hrEmployees = getTableRef('hrEmployees');
+        const hrEmployees = getTableRef('HREmployees');
         const existing = await executeDbOperation(async (db) => {
           return db
             .select({
