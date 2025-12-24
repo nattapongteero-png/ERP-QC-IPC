@@ -101,11 +101,11 @@ export default function BOMDashboardPage() {
     const config = statusConfig[status as keyof typeof statusConfig];
     if (!config) return <span className="text-gray-500">{status}</span>;
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        {status === 'active' && <CheckCircle className="h-3 w-3" />}
-        {status === 'draft' && <FileEdit className="h-3 w-3" />}
-        {status === 'approved' && <CheckCircle className="h-3 w-3" />}
-        {status === 'obsolete' && <Archive className="h-3 w-3" />}
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium ${config.color}`}>
+        {status === 'active' && <CheckCircle className="h-3.5 w-3.5" />}
+        {status === 'draft' && <FileEdit className="h-3.5 w-3.5" />}
+        {status === 'approved' && <CheckCircle className="h-3.5 w-3.5" />}
+        {status === 'obsolete' && <Archive className="h-3.5 w-3.5" />}
         {config.label}
       </span>
     );
@@ -209,12 +209,12 @@ export default function BOMDashboardPage() {
       {/* Charts & Cards Section - Responsive Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* Status Distribution - Takes 1 column */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 min-w-0">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 bg-emerald-50 rounded-lg">
-              <Boxes className="h-4 w-4 text-emerald-600" />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="p-2 bg-emerald-50 rounded-lg">
+              <Boxes className="h-5 w-5 text-emerald-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-sm">Status Distribution</h3>
+            <h3 className="font-semibold text-gray-900 text-base">Status Distribution</h3>
           </div>
           {statusChartData.length > 0 ? (
             <PieChart
@@ -248,76 +248,76 @@ export default function BOMDashboardPage() {
         </div>
 
         {/* Top Products - Takes 1 column */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 min-w-0 overflow-hidden">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 bg-purple-50 rounded-lg">
-              <Package className="h-4 w-4 text-purple-600" />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="p-2 bg-purple-50 rounded-lg">
+              <Package className="h-5 w-5 text-purple-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-sm">Top Products</h3>
+            <h3 className="font-semibold text-gray-900 text-base">Top Products</h3>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {dashboard?.topProducts?.slice(0, 4).map((product, index) => (
               <div
                 key={product.productId}
-                className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
               >
-                <div className="w-6 h-6 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs font-medium shrink-0">
+                <div className="w-7 h-7 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-sm font-medium shrink-0">
                   {index + 1}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900 text-xs truncate" title={product.productName}>
+                  <p className="font-medium text-gray-900 text-sm truncate" title={product.productName}>
                     {product.productName}
                   </p>
-                  <p className="text-[10px] text-gray-500 font-mono">{product.productCode}</p>
+                  <p className="text-xs text-gray-500 font-mono">{product.productCode}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-semibold text-gray-900 text-xs">{product.bomCount}</p>
-                  <p className="text-[10px] text-green-600">{product.activeBOMs} active</p>
+                  <p className="font-semibold text-gray-900 text-sm">{product.bomCount}</p>
+                  <p className="text-xs text-green-600">{product.activeBOMs} active</p>
                 </div>
               </div>
             )) || (
               <div className="text-center py-6 text-gray-400">
                 <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-xs">No data</p>
+                <p className="text-sm">No data</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Recent BOMs - Takes 1 column */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 min-w-0 overflow-hidden">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 bg-amber-50 rounded-lg">
-              <ClipboardList className="h-4 w-4 text-amber-600" />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="p-2 bg-amber-50 rounded-lg">
+              <ClipboardList className="h-5 w-5 text-amber-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-sm">Recent BOMs</h3>
+            <h3 className="font-semibold text-gray-900 text-base">Recent BOMs</h3>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {dashboard?.recentBOMs?.slice(0, 4).map((bom) => (
               <div
                 key={bom.id}
                 onClick={() => router.push(`/production/bom/${bom.id}`)}
-                className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
               >
-                <div className={`w-1 h-8 rounded-full shrink-0 ${statusConfig[bom.status as keyof typeof statusConfig]?.borderColor || 'border-gray-300'} bg-current opacity-60`} />
+                <div className={`w-1.5 h-10 rounded-full shrink-0 ${statusConfig[bom.status as keyof typeof statusConfig]?.borderColor || 'border-gray-300'} bg-current opacity-60`} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1">
-                    <p className="font-mono text-xs font-medium text-gray-900">{bom.code}</p>
-                    <span className="text-[10px] text-gray-400">v{bom.version}</span>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-mono text-sm font-medium text-gray-900">{bom.code}</p>
+                    <span className="text-xs text-gray-400">v{bom.version}</span>
                   </div>
-                  <p className="text-[10px] text-gray-500 truncate" title={bom.productName}>
+                  <p className="text-xs text-gray-500 truncate" title={bom.productName}>
                     {bom.productName}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   {renderStatusBadge(bom.status)}
-                  <ChevronRight className="h-3 w-3 text-gray-300 group-hover:text-emerald-500" />
+                  <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-emerald-500" />
                 </div>
               </div>
             )) || (
               <div className="text-center py-6 text-gray-400">
                 <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-xs">No recent BOMs</p>
+                <p className="text-sm">No recent BOMs</p>
               </div>
             )}
           </div>
@@ -326,12 +326,12 @@ export default function BOMDashboardPage() {
 
       {/* Alerts Section */}
       {dashboard && dashboard.draftBOMs > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
-              <h4 className="font-semibold text-amber-800 text-sm">Pending Review</h4>
-              <p className="text-xs text-amber-700 mt-0.5">
+              <h4 className="font-semibold text-amber-800 text-base">Pending Review</h4>
+              <p className="text-sm text-amber-700 mt-0.5">
                 You have <strong>{dashboard.draftBOMs}</strong> draft BOM{dashboard.draftBOMs > 1 ? 's' : ''} pending approval.
               </p>
               <button
@@ -339,9 +339,9 @@ export default function BOMDashboardPage() {
                   setStatusFilter('draft');
                   setActiveTab('draft');
                 }}
-                className="mt-1 text-xs font-medium text-amber-800 hover:text-amber-900 flex items-center gap-0.5"
+                className="mt-2 text-sm font-medium text-amber-800 hover:text-amber-900 flex items-center gap-1"
               >
-                View draft BOMs <ChevronRight className="h-3 w-3" />
+                View draft BOMs <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -357,7 +357,7 @@ export default function BOMDashboardPage() {
               <div className="p-1.5 bg-emerald-50 rounded-lg">
                 <Settings className="h-4 w-4 text-emerald-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 text-sm">BOM Registry</h3>
+              <h3 className="font-semibold text-gray-900 text-base">BOM Registry</h3>
             </div>
             <DxSelectBox
               dataSource={statusFilters}
@@ -370,17 +370,17 @@ export default function BOMDashboardPage() {
             />
           </div>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-3">
-            <TabsList className="text-xs">
-              <TabsTrigger value="all" className="text-xs px-2 py-1">
+            <TabsList className="text-sm">
+              <TabsTrigger value="all" className="text-sm px-3 py-1.5">
                 All ({bomData?.length || 0})
               </TabsTrigger>
-              <TabsTrigger value="approved" className="text-xs px-2 py-1">
+              <TabsTrigger value="approved" className="text-sm px-3 py-1.5">
                 Approved ({bomData?.filter((b: { status: string }) => b.status === 'approved').length || 0})
               </TabsTrigger>
-              <TabsTrigger value="draft" className="text-xs px-2 py-1">
+              <TabsTrigger value="draft" className="text-sm px-3 py-1.5">
                 Draft ({bomData?.filter((b: { status: string }) => b.status === 'draft').length || 0})
               </TabsTrigger>
-              <TabsTrigger value="obsolete" className="text-xs px-2 py-1">
+              <TabsTrigger value="obsolete" className="text-sm px-3 py-1.5">
                 Obsolete ({bomData?.filter((b: { status: string }) => b.status === 'obsolete').length || 0})
               </TabsTrigger>
             </TabsList>
@@ -413,7 +413,7 @@ export default function BOMDashboardPage() {
               caption="Code"
               minWidth={100}
               cellRender={(cell) => (
-                <span className="font-mono font-medium text-emerald-700 text-xs">{cell.value}</span>
+                <span className="font-mono font-medium text-emerald-700 text-sm">{cell.value}</span>
               )}
             />
             <DxColumn
@@ -422,7 +422,7 @@ export default function BOMDashboardPage() {
               minWidth={180}
               width={400}
               cellRender={(cell) => (
-                <div className="truncate text-xs" title={cell.value}>{cell.value}</div>
+                <div className="truncate text-sm" title={cell.value}>{cell.value}</div>
               )}
             />
             <DxColumn
@@ -430,7 +430,7 @@ export default function BOMDashboardPage() {
               caption="Product"
               minWidth={80}
               cellRender={(cell) => (
-                <span className="font-mono text-gray-600 text-xs">{cell.value}</span>
+                <span className="font-mono text-gray-600 text-sm">{cell.value}</span>
               )}
             />
             <DxColumn
@@ -439,7 +439,7 @@ export default function BOMDashboardPage() {
               minWidth={120}
               alignment="right"
               cellRender={(cell) => (
-                <span className="tabular-nums text-xs">
+                <span className="tabular-nums text-sm">
                   {cell.data.standardBatchSize?.toLocaleString() || '-'} {cell.data.batchUnit || ''}
                 </span>
               )}
@@ -450,7 +450,7 @@ export default function BOMDashboardPage() {
               width={70}
               alignment="center"
               cellRender={(cell) => (
-                <span className="text-gray-500 text-xs">v{cell.value}</span>
+                <span className="text-gray-500 text-sm">v{cell.value}</span>
               )}
             />
             <DxColumn
