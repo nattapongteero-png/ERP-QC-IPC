@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -12,7 +13,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
-import { MoreVertical, Edit, Trash2, CheckCircle, XCircle, Archive, Copy, Plus, DollarSign, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, XCircle, Archive, Copy, DollarSign, ChevronDown } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 
 interface BOMLine {
@@ -71,6 +72,7 @@ interface BOMDetail {
 export default function BOMDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [bom, setBom] = useState<BOMDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
@@ -157,6 +159,12 @@ export default function BOMDetailPage() {
   const [lineToDelete, setLineToDelete] = useState<BOMLine | null>(null);
   const [deletingLine, setDeletingLine] = useState(false);
 
+  // Invalidate BOM list cache when data changes
+  const invalidateBomCache = () => {
+    queryClient.invalidateQueries({ queryKey: ['bom-list'] });
+    queryClient.invalidateQueries({ queryKey: ['bom-dashboard'] });
+  };
+
   useEffect(() => {
     fetchBOMDetail();
   }, [params.id]);
@@ -230,6 +238,7 @@ export default function BOMDetailPage() {
       if (result.success) {
         setEditDialogOpen(false);
         fetchBOMDetail();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to update BOM:', error);
@@ -247,6 +256,7 @@ export default function BOMDetailPage() {
       });
       const result = await response.json();
       if (result.success) {
+        invalidateBomCache();
         router.push('/production/bom');
       }
     } catch (error) {
@@ -271,6 +281,7 @@ export default function BOMDetailPage() {
         setStatusDialogOpen(false);
         setNewStatus('');
         fetchBOMDetail();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -350,6 +361,7 @@ export default function BOMDetailPage() {
         });
         fetchBOMDetail();
         fetchBOMCost();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to add line:', error);
@@ -387,6 +399,7 @@ export default function BOMDetailPage() {
         setEditingLine(null);
         fetchBOMDetail();
         fetchBOMCost();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to update line:', error);
@@ -413,6 +426,7 @@ export default function BOMDetailPage() {
         setLineToDelete(null);
         fetchBOMDetail();
         fetchBOMCost();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to delete line:', error);
