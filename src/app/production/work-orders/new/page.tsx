@@ -80,14 +80,14 @@ function NewWorkOrderContent() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fetch BOMs
+  // Fetch BOMs - Only approved BOMs can be used for work orders
   const fetchBoms = async (search = '', includeAllStatuses = false) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ limit: '100' });
-      // Only filter by active/approved status if not loading a specific BOM and not searching
+      // Only approved BOMs can be used for production work orders
       if (!includeAllStatuses) {
-        params.set('status', 'active,approved');
+        params.set('status', 'approved');
       }
       if (search) params.set('search', search);
 

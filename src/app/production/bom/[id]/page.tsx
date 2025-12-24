@@ -13,7 +13,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
-import { Edit, Trash2, CheckCircle, XCircle, Archive, Copy, DollarSign, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 
 interface BOMLine {
@@ -450,24 +450,25 @@ export default function BOMDetailPage() {
     return <Badge variant={variants[type] || 'default'}>{type?.replace('_', ' ') || 'N/A'}</Badge>;
   };
 
+  // Simplified BOM status workflow: draft → approved → obsolete
   const getStatusActions = () => {
     if (!bom) return [];
     const actions: { label: string; status: string; icon: typeof CheckCircle; variant: 'primary' | 'warning' | 'danger' }[] = [];
 
     switch (bom.status) {
       case 'draft':
-        actions.push({ label: 'Activate', status: 'active', icon: CheckCircle, variant: 'primary' });
+        actions.push({ label: 'Approve for Production', status: 'approved', icon: CheckCircle, variant: 'primary' });
         break;
       case 'active':
-        actions.push({ label: 'Approve', status: 'approved', icon: CheckCircle, variant: 'primary' });
+        // Legacy status - allow transition to approved
+        actions.push({ label: 'Approve for Production', status: 'approved', icon: CheckCircle, variant: 'primary' });
         actions.push({ label: 'Set Obsolete', status: 'obsolete', icon: Archive, variant: 'warning' });
         break;
       case 'approved':
         actions.push({ label: 'Set Obsolete', status: 'obsolete', icon: Archive, variant: 'warning' });
-        actions.push({ label: 'Revert to Active', status: 'active', icon: XCircle, variant: 'warning' });
         break;
       case 'obsolete':
-        actions.push({ label: 'Reactivate', status: 'active', icon: CheckCircle, variant: 'primary' });
+        actions.push({ label: 'Reactivate', status: 'approved', icon: CheckCircle, variant: 'primary' });
         break;
     }
 

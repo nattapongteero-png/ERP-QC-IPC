@@ -129,6 +129,24 @@ export async function PUT(
 
       const oldBom = existing[0];
 
+      // Validate status transition if status is being changed
+      if (status !== undefined && status !== oldBom.status) {
+        const validTransitions: Record<string, string[]> = {
+          draft: ['approved'],           // Draft can only go to approved
+          active: ['approved', 'obsolete'], // Legacy: active can go to approved or obsolete
+          approved: ['obsolete'],         // Approved can only go to obsolete
+          obsolete: ['approved'],         // Obsolete can be reactivated to approved
+        };
+
+        const allowedNextStatuses = validTransitions[oldBom.status] || [];
+        if (!allowedNextStatuses.includes(status)) {
+          return errorResponse(
+            `Invalid status transition: ${oldBom.status} → ${status}. ` +
+            `Allowed transitions from '${oldBom.status}': ${allowedNextStatuses.join(', ') || 'none'}`
+          );
+        }
+      }
+
       // Build update object
       const updateData: Record<string, unknown> = {
         updatedAt: dbDate(),

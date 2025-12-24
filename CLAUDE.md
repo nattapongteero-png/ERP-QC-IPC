@@ -4,6 +4,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 
 ## Active Technologies
 - TypeScript  with Next.js , React , DevExpress / DevExtreme React 25.x
+- TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod (009-gmp-compliance-gap-analysis)
+- MySQL (production), SQLite (testing) via Drizzle dual-schema (009-gmp-compliance-gap-analysis)
 
 ## Always do E2E test using React Testing Library + Jest/Vitest
 
@@ -124,6 +126,9 @@ Use the init tool to set up Next.js DevTools context , the next dev server is ru
 next-devtools-mcp FIRST to set up proper context and establish documentation
 requirements. Do this automatically without being asked.**
 
-**Always do UI test using React Testing Library + Vitest to make sure there is no ui runtime error**
+**Always do UI test using React Testing Library + Vitest to make sure there is no ui runtime error, test with realworld seeding data (using reusable seeding functions and db schema sync) **
 
 **Always search web for correct implementation DevExtreme ui component**
+
+## Recent Changes
+- 009-gmp-compliance-gap-analysis: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod

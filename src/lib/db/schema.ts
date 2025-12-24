@@ -102,6 +102,8 @@ export const sqliteItems = sqliteTable('items', {
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSyncEnabled: integer('vmi_sync_enabled', { mode: 'boolean' }).notNull().default(false),
   lastVmiSyncAt: text('last_vmi_sync_at'),
+  // Phase 2: Strength/potency for finished goods (FR-059)
+  strength: text('strength'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -215,6 +217,17 @@ export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   vendorId: integer('vendor_id').references(() => sqliteVendors.id),
   poNumber: text('po_number'),
   coaNumber: text('coa_number'),
+  // Phase 2: Manufacturer/Importer fields (FR-055)
+  manufacturerName: text('manufacturer_name'),
+  manufacturerId: integer('manufacturer_id').references(() => sqliteVendors.id),
+  importerName: text('importer_name'),
+  importerId: integer('importer_id').references(() => sqliteVendors.id),
+  countryOfOrigin: text('country_of_origin'),
+  // Phase 2: Retest tracking fields (FR-056)
+  retestDate: text('retest_date'),
+  retestIntervalMonths: integer('retest_interval_months'),
+  lastRetestDate: text('last_retest_date'),
+  retestStatus: text('retest_status'), // not_required, pending, scheduled, completed, overdue
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -267,6 +280,12 @@ export const sqliteBOMLines = sqliteTable('bom_lines', {
   sequence: integer('sequence').notNull().default(1),
   isOptional: integer('is_optional', { mode: 'boolean' }).notNull().default(false),
   notes: text('notes'),
+  // Phase 2: BOM verification columns (FR-063)
+  percentageInFormula: real('percentage_in_formula'),
+  weighedQty: real('weighed_qty'),
+  weighedBy: integer('weighed_by').references(() => sqliteUsers.id),
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -305,6 +324,12 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   notes: text('notes'),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  // Phase 2: Line clearance columns (FR-062)
+  lineClearanceRequired: integer('line_clearance_required', { mode: 'boolean' }).notNull().default(true),
+  lineClearanceStatus: text('line_clearance_status'), // pending, cleared, failed
+  lineClearanceBy: integer('line_clearance_by').references(() => sqliteUsers.id),
+  lineClearanceAt: text('line_clearance_at'),
+  lineClearanceChecklistId: integer('line_clearance_checklist_id'), // FK added after table creation
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -380,6 +405,13 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
   approvedAt: text('approved_at'),
   notes: text('notes'),
+  // Phase 2: Disposition columns (FR-067 to FR-070)
+  disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
+  dispositionBy: integer('disposition_by').references(() => sqliteUsers.id),
+  dispositionAt: text('disposition_at'),
+  dispositionReason: text('disposition_reason'),
+  dispositionApprovedBy: integer('disposition_approved_by').references(() => sqliteUsers.id),
+  dispositionApprovedAt: text('disposition_approved_at'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1069,6 +1101,8 @@ export const mysqlItems = mysqlTable('items', {
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSyncEnabled: mysqlBoolean('vmi_sync_enabled').notNull().default(false),
   lastVmiSyncAt: datetime('last_vmi_sync_at'),
+  // Phase 2: Strength/potency for finished goods (FR-059)
+  strength: varchar('strength', { length: 100 }),
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1182,6 +1216,17 @@ export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   vendorId: int('vendor_id').references(() => mysqlVendors.id),
   poNumber: varchar('po_number', { length: 50 }),
   coaNumber: varchar('coa_number', { length: 100 }),
+  // Phase 2: Manufacturer/Importer fields (FR-055)
+  manufacturerName: varchar('manufacturer_name', { length: 255 }),
+  manufacturerId: int('manufacturer_id').references(() => mysqlVendors.id),
+  importerName: varchar('importer_name', { length: 255 }),
+  importerId: int('importer_id').references(() => mysqlVendors.id),
+  countryOfOrigin: varchar('country_of_origin', { length: 100 }),
+  // Phase 2: Retest tracking fields (FR-056)
+  retestDate: datetime('retest_date'),
+  retestIntervalMonths: int('retest_interval_months'),
+  lastRetestDate: datetime('last_retest_date'),
+  retestStatus: varchar('retest_status', { length: 50 }), // not_required, pending, scheduled, completed, overdue
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1234,6 +1279,12 @@ export const mysqlBOMLines = mysqlTable('bom_lines', {
   sequence: int('sequence').notNull().default(1),
   isOptional: mysqlBoolean('is_optional').notNull().default(false),
   notes: mysqlText('notes'),
+  // Phase 2: BOM verification columns (FR-063)
+  percentageInFormula: decimal('percentage_in_formula', { precision: 5, scale: 2 }),
+  weighedQty: decimal('weighed_qty', { precision: 15, scale: 4 }),
+  weighedBy: int('weighed_by').references(() => mysqlUsers.id),
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -1272,6 +1323,12 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   notes: mysqlText('notes'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  // Phase 2: Line clearance columns (FR-062)
+  lineClearanceRequired: mysqlBoolean('line_clearance_required').notNull().default(true),
+  lineClearanceStatus: varchar('line_clearance_status', { length: 50 }), // pending, cleared, failed
+  lineClearanceBy: int('line_clearance_by').references(() => mysqlUsers.id),
+  lineClearanceAt: datetime('line_clearance_at'),
+  lineClearanceChecklistId: int('line_clearance_checklist_id'), // FK added after table creation
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1347,6 +1404,13 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
   notes: mysqlText('notes'),
+  // Phase 2: Disposition columns (FR-067 to FR-070)
+  disposition: varchar('disposition', { length: 50 }), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
+  dispositionBy: int('disposition_by').references(() => mysqlUsers.id),
+  dispositionAt: datetime('disposition_at'),
+  dispositionReason: mysqlText('disposition_reason'),
+  dispositionApprovedBy: int('disposition_approved_by').references(() => mysqlUsers.id),
+  dispositionApprovedAt: datetime('disposition_approved_at'),
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -3446,6 +3510,174 @@ export const sqliteAttachmentsRelations = relations(sqliteAttachments, ({ one })
   }),
 }));
 
+// ============================================
+// Phase 2: Electronic Signatures (21 CFR Part 11)
+// ============================================
+
+// Electronic Signatures - SQLite
+export const sqliteElectronicSignatures = sqliteTable('electronic_signatures', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  entityType: text('entity_type').notNull(), // e.g., 'line_clearance', 'label_verification', 'disposition'
+  entityId: integer('entity_id').notNull(),
+  action: text('action').notNull(), // e.g., 'perform', 'verify', 'witness', 'approve'
+  userId: integer('user_id').notNull().references(() => sqliteUsers.id),
+  username: text('username').notNull(),
+  fullName: text('full_name').notNull(),
+  title: text('title'), // Job title at time of signature
+  signedAt: text('signed_at').notNull(),
+  meaning: text('meaning').notNull(), // Statement of meaning, e.g., "I verify this is correct"
+  passwordVerified: integer('password_verified', { mode: 'boolean' }).notNull().default(false),
+  signatureHash: text('signature_hash').notNull(), // SHA-256 hash for verification
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Electronic Signatures - MySQL
+export const mysqlElectronicSignatures = mysqlTable('electronic_signatures', {
+  id: int('id').primaryKey().autoincrement(),
+  entityType: varchar('entity_type', { length: 50 }).notNull(),
+  entityId: int('entity_id').notNull(),
+  action: varchar('action', { length: 50 }).notNull(),
+  userId: int('user_id').notNull().references(() => mysqlUsers.id),
+  username: varchar('username', { length: 100 }).notNull(),
+  fullName: varchar('full_name', { length: 255 }).notNull(),
+  title: varchar('title', { length: 100 }),
+  signedAt: datetime('signed_at').notNull(),
+  meaning: mysqlText('meaning').notNull(),
+  passwordVerified: mysqlBoolean('password_verified').notNull().default(false),
+  signatureHash: varchar('signature_hash', { length: 64 }).notNull(),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: mysqlText('user_agent'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// Phase 2: Line Clearance Checklists
+// ============================================
+
+// Line Clearance Checklists - SQLite
+export const sqliteLineClearanceChecklists = sqliteTable('line_clearance_checklists', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  previousProductCleared: integer('previous_product_cleared', { mode: 'boolean' }).default(false),
+  areaClean: integer('area_clean', { mode: 'boolean' }).default(false),
+  equipmentClean: integer('equipment_clean', { mode: 'boolean' }).default(false),
+  noContaminationRisk: integer('no_contamination_risk', { mode: 'boolean' }).default(false),
+  labelsRemoved: integer('labels_removed', { mode: 'boolean' }).default(false),
+  docsReady: integer('docs_ready', { mode: 'boolean' }).default(false),
+  performedBy: integer('performed_by').references(() => sqliteUsers.id),
+  performedAt: text('performed_at'),
+  performedSignatureId: integer('performed_signature_id').references(() => sqliteElectronicSignatures.id),
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
+  verifiedSignatureId: integer('verified_signature_id').references(() => sqliteElectronicSignatures.id),
+  status: text('status').notNull().default('pending'), // pending, completed, rejected
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Line Clearance Checklists - MySQL
+export const mysqlLineClearanceChecklists = mysqlTable('line_clearance_checklists', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  previousProductCleared: mysqlBoolean('previous_product_cleared').default(false),
+  areaClean: mysqlBoolean('area_clean').default(false),
+  equipmentClean: mysqlBoolean('equipment_clean').default(false),
+  noContaminationRisk: mysqlBoolean('no_contamination_risk').default(false),
+  labelsRemoved: mysqlBoolean('labels_removed').default(false),
+  docsReady: mysqlBoolean('docs_ready').default(false),
+  performedBy: int('performed_by').references(() => mysqlUsers.id),
+  performedAt: datetime('performed_at'),
+  performedSignatureId: int('performed_signature_id').references(() => mysqlElectronicSignatures.id),
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
+  verifiedSignatureId: int('verified_signature_id').references(() => mysqlElectronicSignatures.id),
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// ============================================
+// Phase 2: Label Verifications
+// ============================================
+
+// Label Verifications - SQLite
+export const sqliteLabelVerifications = sqliteTable('label_verifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  batchRecordId: integer('batch_record_id').references(() => sqliteBatchRecords.id),
+  labelType: text('label_type').notNull(), // product_label, batch_label, carton_label, shipper_label
+  imageAttachmentId: integer('image_attachment_id').references(() => sqliteAttachments.id),
+  productName: text('product_name'),
+  batchNumber: text('batch_number'),
+  expiryDate: text('expiry_date'),
+  isCorrect: integer('is_correct', { mode: 'boolean' }),
+  operatorId: integer('operator_id').references(() => sqliteUsers.id),
+  operatorSignatureId: integer('operator_signature_id').references(() => sqliteElectronicSignatures.id),
+  witnessId: integer('witness_id').references(() => sqliteUsers.id),
+  witnessSignatureId: integer('witness_signature_id').references(() => sqliteElectronicSignatures.id),
+  status: text('status').notNull().default('pending'), // pending, verified, rejected
+  rejectionReason: text('rejection_reason'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  verifiedAt: text('verified_at'),
+});
+
+// Label Verifications - MySQL
+export const mysqlLabelVerifications = mysqlTable('label_verifications', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  batchRecordId: int('batch_record_id').references(() => mysqlBatchRecords.id),
+  labelType: varchar('label_type', { length: 50 }).notNull(),
+  imageAttachmentId: int('image_attachment_id').references(() => mysqlAttachments.id),
+  productName: varchar('product_name', { length: 255 }),
+  batchNumber: varchar('batch_number', { length: 100 }),
+  expiryDate: datetime('expiry_date'),
+  isCorrect: mysqlBoolean('is_correct'),
+  operatorId: int('operator_id').references(() => mysqlUsers.id),
+  operatorSignatureId: int('operator_signature_id').references(() => mysqlElectronicSignatures.id),
+  witnessId: int('witness_id').references(() => mysqlUsers.id),
+  witnessSignatureId: int('witness_signature_id').references(() => mysqlElectronicSignatures.id),
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  rejectionReason: mysqlText('rejection_reason'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  verifiedAt: datetime('verified_at'),
+});
+
+// ============================================
+// Phase 2: Stock Alert Rules
+// ============================================
+
+// Stock Alert Rules - SQLite
+export const sqliteStockAlertRules = sqliteTable('stock_alert_rules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  itemId: integer('item_id').references(() => sqliteItems.id),
+  warehouseId: integer('warehouse_id').references(() => sqliteWarehouses.id),
+  alertType: text('alert_type').notNull(), // min_stock, reorder_point, expiry_warning
+  threshold: real('threshold').notNull(),
+  warningDays: integer('warning_days'), // For expiry alerts
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  notifyEmails: text('notify_emails'), // JSON array of email addresses
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Stock Alert Rules - MySQL
+export const mysqlStockAlertRules = mysqlTable('stock_alert_rules', {
+  id: int('id').primaryKey().autoincrement(),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  warehouseId: int('warehouse_id').references(() => mysqlWarehouses.id),
+  alertType: varchar('alert_type', { length: 50 }).notNull(),
+  threshold: decimal('threshold', { precision: 15, scale: 4 }).notNull(),
+  warningDays: int('warning_days'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  notifyEmails: mysqlText('notify_emails'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -3612,3 +3844,13 @@ export type NewPqrMetric = typeof sqlitePqrMetrics.$inferInsert;
 // Reusable Attachment System
 export type Attachment = typeof sqliteAttachments.$inferSelect;
 export type NewAttachment = typeof sqliteAttachments.$inferInsert;
+
+// Phase 2: Electronic Signatures and New Tables (009 GMP Phase 2)
+export type ElectronicSignature = typeof sqliteElectronicSignatures.$inferSelect;
+export type NewElectronicSignature = typeof sqliteElectronicSignatures.$inferInsert;
+export type LineClearanceChecklist = typeof sqliteLineClearanceChecklists.$inferSelect;
+export type NewLineClearanceChecklist = typeof sqliteLineClearanceChecklists.$inferInsert;
+export type LabelVerification = typeof sqliteLabelVerifications.$inferSelect;
+export type NewLabelVerification = typeof sqliteLabelVerifications.$inferInsert;
+export type StockAlertRule = typeof sqliteStockAlertRules.$inferSelect;
+export type NewStockAlertRule = typeof sqliteStockAlertRules.$inferInsert;

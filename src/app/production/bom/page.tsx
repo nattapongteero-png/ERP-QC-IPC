@@ -45,19 +45,19 @@ import {
 } from 'lucide-react';
 import type { BOMDashboard } from '@/app/api/bom/dashboard/route';
 
-// Status configuration
+// Status configuration - Simplified workflow: draft → approved → obsolete
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-amber-100 text-amber-800', borderColor: 'border-amber-500' },
-  active: { label: 'Active', color: 'bg-green-100 text-green-800', borderColor: 'border-green-500' },
-  approved: { label: 'Approved', color: 'bg-blue-100 text-blue-800', borderColor: 'border-blue-500' },
+  active: { label: 'Active (Legacy)', color: 'bg-teal-100 text-teal-800', borderColor: 'border-teal-500' }, // Legacy status
+  approved: { label: 'Approved', color: 'bg-green-100 text-green-800', borderColor: 'border-green-500' },
   obsolete: { label: 'Obsolete', color: 'bg-gray-100 text-gray-600', borderColor: 'border-gray-400' },
 };
 
 const statusFilters = [
   { value: '', label: 'All Statuses' },
-  { value: 'active', label: 'Active' },
   { value: 'approved', label: 'Approved' },
   { value: 'draft', label: 'Draft' },
+  { value: 'active', label: 'Active (Legacy)' },
   { value: 'obsolete', label: 'Obsolete' },
 ];
 
@@ -122,7 +122,8 @@ export default function BOMDashboardPage() {
 
   const filteredBOMs = bomData?.filter((bom: { status: string }) => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'active') return bom.status === 'active' || bom.status === 'approved';
+    if (activeTab === 'approved') return bom.status === 'approved';
+    if (activeTab === 'legacy') return bom.status === 'active'; // Legacy active status
     return bom.status === activeTab;
   }) || [];
 
@@ -431,12 +432,17 @@ export default function BOMDashboardPage() {
                 <TabsTrigger value="all">
                   All ({bomData?.length || 0})
                 </TabsTrigger>
-                <TabsTrigger value="active">
-                  Active ({bomData?.filter((b: { status: string }) => b.status === 'active' || b.status === 'approved').length || 0})
+                <TabsTrigger value="approved">
+                  Approved ({bomData?.filter((b: { status: string }) => b.status === 'approved').length || 0})
                 </TabsTrigger>
                 <TabsTrigger value="draft">
                   Draft ({bomData?.filter((b: { status: string }) => b.status === 'draft').length || 0})
                 </TabsTrigger>
+                {bomData?.some((b: { status: string }) => b.status === 'active') && (
+                  <TabsTrigger value="legacy">
+                    Legacy ({bomData?.filter((b: { status: string }) => b.status === 'active').length || 0})
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="obsolete">
                   Obsolete ({bomData?.filter((b: { status: string }) => b.status === 'obsolete').length || 0})
                 </TabsTrigger>
