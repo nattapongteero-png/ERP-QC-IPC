@@ -108,6 +108,14 @@ The following module names are supported:
 | `vendor` | Vendor/Supplier Records |
 | `goods_receiving` | Goods Receiving Notes (GRN) |
 
+### Sales Modules
+
+| Module Name | Description |
+|------------|-------------|
+| `sales_order` | Sales Order Documents |
+| `customer` | Customer Records |
+| `sales_quotation` | Sales Quotation Documents |
+
 ---
 
 ## Supported File Types
@@ -182,6 +190,17 @@ Available categories for organizing attachments:
 | `coa` | ใบ COA | Certificate of Analysis |
 | `vendor_qualification` | คุณสมบัติผู้ขาย | Vendor qualification documents |
 | `purchase_contract` | สัญญาซื้อขาย | Purchase contracts |
+
+### Sales Categories
+
+| Category | Thai Label | Description |
+|----------|-----------|-------------|
+| `sales_quotation` | ใบเสนอราคาขาย | Sales quotations |
+| `sales_invoice` | ใบกำกับภาษี | Tax invoices |
+| `receipt` | ใบเสร็จรับเงิน | Payment receipts |
+| `shipping_doc` | เอกสารจัดส่ง | Shipping documents |
+| `sales_contract` | สัญญาขาย | Sales contracts |
+| `customer_po` | ใบสั่งซื้อลูกค้า | Customer purchase orders |
 | `other` | อื่นๆ | Other documents |
 
 ---
