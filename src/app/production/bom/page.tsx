@@ -420,7 +420,7 @@ export default function BOMDashboardPage() {
               dataField="name"
               caption="Name"
               minWidth={180}
-              width={280}
+              width={400}
               cellRender={(cell) => (
                 <div className="truncate text-xs" title={cell.value}>{cell.value}</div>
               )}
@@ -446,8 +446,8 @@ export default function BOMDashboardPage() {
             />
             <DxColumn
               dataField="version"
-              caption="Ver"
-              width={50}
+              caption="Version"
+              width={70}
               alignment="center"
               cellRender={(cell) => (
                 <span className="text-gray-500 text-xs">v{cell.value}</span>
