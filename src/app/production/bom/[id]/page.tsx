@@ -827,7 +827,19 @@ export default function BOMDetailPage() {
               icon="plus"
               type="normal"
               stylingMode="outlined"
-              onClick={() => setAddLineDialogOpen(true)}
+              onClick={() => {
+                // Reset form before opening dialog
+                setNewLine({
+                  itemId: 0,
+                  itemCode: '',
+                  itemName: '',
+                  itemUnit: '',
+                  quantity: 0,
+                  isOptional: false,
+                  notes: '',
+                });
+                setAddLineDialogOpen(true);
+              }}
             />
           </CardHeader>
           <CardContent>
