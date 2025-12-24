@@ -6,7 +6,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getTableRef, executeDbOperation, dbDate, parseDbDate } from '@/lib/db/db-helper';
 import { isSqlite } from '@/lib/db';
 import {
