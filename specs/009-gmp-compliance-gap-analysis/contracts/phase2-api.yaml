@@ -1,0 +1,792 @@
+openapi: 3.0.3
+info:
+  title: GMP Compliance Gap Analysis - Phase 2 API
+  description: API contracts for External Auditor Requirements (FR-047 to FR-074)
+  version: 2.0.0
+
+servers:
+  - url: /api
+    description: Local development
+
+paths:
+  # Dashboard & KPI Endpoints (FR-047 to FR-054)
+  /dashboard/audit-kpis:
+    get:
+      summary: Get all audit dashboard KPIs
+      description: Returns all 8 KPI values for the audit dashboard in a single response
+      operationId: getAuditKpis
+      tags: [Dashboard]
+      responses:
+        '200':
+          description: All KPIs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditKpisResponse'
+
+  /dashboard/rm-summary:
+    get:
+      summary: Get RM received YTD summary (FR-047)
+      operationId: getRmSummary
+      tags: [Dashboard]
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+          description: Year to filter (defaults to current year)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Top N items to return
+      responses:
+        '200':
+          description: RM summary retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RmSummaryResponse'
+
+  # Inventory Endpoints
+  /inventory/min-stock-alerts:
+    get:
+      summary: Get items below minimum stock (FR-050)
+      operationId: getMinStockAlerts
+      tags: [Inventory]
+      parameters:
+        - name: alertLevel
+          in: query
+          schema:
+            type: string
+            enum: [critical, warning, reorder]
+          description: Filter by alert level
+      responses:
+        '200':
+          description: Min stock alerts retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MinStockAlertsResponse'
+
+  /inventory/lots/{lotId}/documents:
+    get:
+      summary: List documents attached to lot (FR-057)
+      operationId: getLotDocuments
+      tags: [Inventory]
+      parameters:
+        - name: lotId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Documents retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LotDocument'
+
+    post:
+      summary: Upload document to lot (FR-057)
+      operationId: uploadLotDocument
+      tags: [Inventory]
+      parameters:
+        - name: lotId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                documentType:
+                  type: string
+                  enum: [coa, specification, msds, other]
+                notes:
+                  type: string
+              required: [file, documentType]
+      responses:
+        '201':
+          description: Document uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LotDocument'
+
+  # Quality Endpoints
+  /quality/qc-summary:
+    get:
+      summary: Get QC pass/fail summary with dispositions (FR-051)
+      operationId: getQcSummary
+      tags: [Quality]
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: testType
+          in: query
+          schema:
+            type: string
+            enum: [incoming, in_process, final]
+      responses:
+        '200':
+          description: QC summary retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QcSummaryResponse'
+
+  /quality/pending-release:
+    get:
+      summary: Get FG pending QC release (FR-053)
+      operationId: getPendingRelease
+      tags: [Quality]
+      responses:
+        '200':
+          description: Pending release items retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingReleaseItem'
+
+  /quality/tests/{testId}/disposition:
+    post:
+      summary: Set QC disposition decision (FR-067)
+      operationId: setDisposition
+      tags: [Quality]
+      parameters:
+        - name: testId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetDispositionRequest'
+      responses:
+        '200':
+          description: Disposition set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityTest'
+
+  /quality/tests/{testId}/disposition/approve:
+    post:
+      summary: Approve QC disposition with e-signature (FR-067)
+      operationId: approveDisposition
+      tags: [Quality]
+      parameters:
+        - name: testId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ElectronicSignatureRequest'
+      responses:
+        '200':
+          description: Disposition approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityTest'
+
+  # Production Endpoints
+  /production/status:
+    get:
+      summary: Get current production status (FR-052)
+      operationId: getProductionStatus
+      tags: [Production]
+      responses:
+        '200':
+          description: Production status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionStatusResponse'
+
+  /production/work-orders/{workOrderId}/line-clearance:
+    get:
+      summary: Get line clearance checklist (FR-062)
+      operationId: getLineClearance
+      tags: [Production]
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Line clearance retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineClearanceChecklist'
+
+    post:
+      summary: Complete line clearance checklist (FR-062)
+      operationId: completeLineClearance
+      tags: [Production]
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteLineClearanceRequest'
+      responses:
+        '201':
+          description: Line clearance completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineClearanceChecklist'
+
+  /production/work-orders/{workOrderId}/line-clearance/verify:
+    post:
+      summary: Verify line clearance with e-signature (FR-062)
+      operationId: verifyLineClearance
+      tags: [Production]
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ElectronicSignatureRequest'
+      responses:
+        '200':
+          description: Line clearance verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineClearanceChecklist'
+
+  /production/batch-records/{batchRecordId}/labels:
+    get:
+      summary: List label verifications for batch record (FR-064)
+      operationId: getLabelVerifications
+      tags: [Production]
+      parameters:
+        - name: batchRecordId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Label verifications retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LabelVerification'
+
+    post:
+      summary: Upload label for verification (FR-064)
+      operationId: uploadLabel
+      tags: [Production]
+      parameters:
+        - name: batchRecordId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                labelType:
+                  type: string
+                  enum: [product_label, batch_label, carton_label, shipper_label]
+                productName:
+                  type: string
+                batchNumber:
+                  type: string
+                expiryDate:
+                  type: string
+                  format: date
+              required: [image, labelType]
+      responses:
+        '201':
+          description: Label uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelVerification'
+
+  /production/labels/{labelId}/verify:
+    post:
+      summary: Verify label with operator signature (FR-065)
+      operationId: verifyLabel
+      tags: [Production]
+      parameters:
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ElectronicSignatureRequest'
+                - type: object
+                  properties:
+                    isCorrect:
+                      type: boolean
+                  required: [isCorrect]
+      responses:
+        '200':
+          description: Label verified by operator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelVerification'
+
+  /production/labels/{labelId}/witness:
+    post:
+      summary: Witness label verification with e-signature (FR-065)
+      operationId: witnessLabel
+      tags: [Production]
+      parameters:
+        - name: labelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ElectronicSignatureRequest'
+      responses:
+        '200':
+          description: Label witnessed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelVerification'
+
+  # Electronic Signature Endpoints
+  /signatures:
+    get:
+      summary: List signatures for an entity (FR-074)
+      operationId: getSignatures
+      tags: [Signatures]
+      parameters:
+        - name: entityType
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: entityId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Signatures retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ElectronicSignature'
+
+components:
+  schemas:
+    AuditKpisResponse:
+      type: object
+      properties:
+        rmReceivedYtd:
+          type: object
+          properties:
+            count: { type: integer }
+            totalQuantity: { type: number }
+            topItems:
+              type: array
+              items:
+                type: object
+                properties:
+                  itemId: { type: integer }
+                  itemName: { type: string }
+                  receiptCount: { type: integer }
+                  totalQuantity: { type: number }
+        rmStatusBreakdown:
+          type: object
+          properties:
+            released: { type: integer }
+            pending: { type: integer }
+            rejected: { type: integer }
+            pendingReasons:
+              type: array
+              items:
+                type: object
+                properties:
+                  reason: { type: string }
+                  count: { type: integer }
+        expiryAlerts:
+          type: object
+          properties:
+            count: { type: integer }
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  lotId: { type: integer }
+                  itemName: { type: string }
+                  expiryDate: { type: string }
+                  daysUntilExpiry: { type: integer }
+        minStockAlerts:
+          type: object
+          properties:
+            count: { type: integer }
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/MinStockAlertItem'
+        qcSummary:
+          type: object
+          properties:
+            passed: { type: integer }
+            failed: { type: integer }
+            pending: { type: integer }
+            dispositions:
+              type: object
+              properties:
+                accept: { type: integer }
+                reject: { type: integer }
+                rework: { type: integer }
+                scrap: { type: integer }
+                returnToVendor: { type: integer }
+        productionStatus:
+          type: object
+          properties:
+            activeWorkOrders: { type: integer }
+            inProgress:
+              type: array
+              items:
+                type: object
+                properties:
+                  workOrderId: { type: integer }
+                  productName: { type: string }
+                  batchNumber: { type: string }
+                  plannedQuantity: { type: number }
+        pendingQcRelease:
+          type: object
+          properties:
+            count: { type: integer }
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/PendingReleaseItem'
+        fgApproved:
+          type: object
+          properties:
+            count: { type: integer }
+            totalQuantity: { type: number }
+
+    RmSummaryResponse:
+      type: object
+      properties:
+        year: { type: integer }
+        totalItems: { type: integer }
+        totalQuantity: { type: number }
+        topItems:
+          type: array
+          items:
+            type: object
+            properties:
+              itemId: { type: integer }
+              itemCode: { type: string }
+              itemName: { type: string }
+              receiptCount: { type: integer }
+              totalQuantity: { type: number }
+              lastReceived: { type: string, format: date-time }
+
+    MinStockAlertsResponse:
+      type: object
+      properties:
+        total: { type: integer }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MinStockAlertItem'
+
+    MinStockAlertItem:
+      type: object
+      properties:
+        itemId: { type: integer }
+        itemCode: { type: string }
+        itemName: { type: string }
+        onHand: { type: number }
+        minStock: { type: number }
+        reorderPoint: { type: number }
+        shortfall: { type: number }
+        alertLevel:
+          type: string
+          enum: [critical, warning, reorder]
+
+    LotDocument:
+      type: object
+      properties:
+        id: { type: integer }
+        lotId: { type: integer }
+        documentType:
+          type: string
+          enum: [coa, specification, msds, other]
+        fileName: { type: string }
+        filePath: { type: string }
+        fileSize: { type: integer }
+        mimeType: { type: string }
+        uploadedBy: { type: integer }
+        uploadedByName: { type: string }
+        uploadedAt: { type: string, format: date-time }
+        isActive: { type: boolean }
+
+    QcSummaryResponse:
+      type: object
+      properties:
+        dateFrom: { type: string, format: date }
+        dateTo: { type: string, format: date }
+        passed: { type: integer }
+        failed: { type: integer }
+        pending: { type: integer }
+        total: { type: integer }
+        passRate: { type: number }
+        dispositions:
+          type: object
+          properties:
+            pending: { type: integer }
+            accept: { type: integer }
+            reject: { type: integer }
+            rework: { type: integer }
+            scrap: { type: integer }
+            returnToVendor: { type: integer }
+            conditionalRelease: { type: integer }
+
+    PendingReleaseItem:
+      type: object
+      properties:
+        lotId: { type: integer }
+        lotNumber: { type: string }
+        itemId: { type: integer }
+        itemName: { type: string }
+        quantity: { type: number }
+        status: { type: string }
+        holdReason: { type: string }
+        pendingTests:
+          type: array
+          items:
+            type: object
+            properties:
+              testId: { type: integer }
+              testName: { type: string }
+              status: { type: string }
+
+    QualityTest:
+      type: object
+      properties:
+        id: { type: integer }
+        testNumber: { type: string }
+        lotId: { type: integer }
+        status: { type: string }
+        result: { type: string }
+        disposition:
+          type: string
+          enum: [pending, accept, reject, rework, scrap, return_to_vendor, conditional_release]
+        dispositionBy: { type: integer }
+        dispositionByName: { type: string }
+        dispositionAt: { type: string, format: date-time }
+        dispositionReason: { type: string }
+        dispositionApprovedBy: { type: integer }
+        dispositionApprovedByName: { type: string }
+        dispositionApprovedAt: { type: string, format: date-time }
+
+    SetDispositionRequest:
+      type: object
+      properties:
+        disposition:
+          type: string
+          enum: [accept, reject, rework, scrap, return_to_vendor, conditional_release]
+        reason:
+          type: string
+          description: Required for non-accept dispositions
+      required: [disposition]
+
+    ProductionStatusResponse:
+      type: object
+      properties:
+        activeWorkOrders: { type: integer }
+        inProgress:
+          type: array
+          items:
+            type: object
+            properties:
+              workOrderId: { type: integer }
+              workOrderNumber: { type: string }
+              productId: { type: integer }
+              productName: { type: string }
+              batchNumber: { type: string }
+              status: { type: string }
+              plannedQuantity: { type: number }
+              actualQuantity: { type: number }
+              startedAt: { type: string, format: date-time }
+              lineClearanceStatus: { type: string }
+
+    LineClearanceChecklist:
+      type: object
+      properties:
+        id: { type: integer }
+        workOrderId: { type: integer }
+        previousProductCleared: { type: boolean }
+        areaClean: { type: boolean }
+        equipmentClean: { type: boolean }
+        noContaminationRisk: { type: boolean }
+        labelsRemoved: { type: boolean }
+        docsReady: { type: boolean }
+        performedBy: { type: integer }
+        performedByName: { type: string }
+        performedAt: { type: string, format: date-time }
+        verifiedBy: { type: integer }
+        verifiedByName: { type: string }
+        verifiedAt: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [pending, completed, rejected]
+        notes: { type: string }
+
+    CompleteLineClearanceRequest:
+      type: object
+      properties:
+        previousProductCleared: { type: boolean }
+        areaClean: { type: boolean }
+        equipmentClean: { type: boolean }
+        noContaminationRisk: { type: boolean }
+        labelsRemoved: { type: boolean }
+        docsReady: { type: boolean }
+        notes: { type: string }
+      required:
+        - previousProductCleared
+        - areaClean
+        - equipmentClean
+        - noContaminationRisk
+        - labelsRemoved
+
+    LabelVerification:
+      type: object
+      properties:
+        id: { type: integer }
+        workOrderId: { type: integer }
+        batchRecordId: { type: integer }
+        labelType:
+          type: string
+          enum: [product_label, batch_label, carton_label, shipper_label]
+        imagePath: { type: string }
+        productName: { type: string }
+        batchNumber: { type: string }
+        expiryDate: { type: string, format: date }
+        isCorrect: { type: boolean }
+        operatorId: { type: integer }
+        operatorName: { type: string }
+        operatorSignatureId: { type: integer }
+        witnessId: { type: integer }
+        witnessName: { type: string }
+        witnessSignatureId: { type: integer }
+        status:
+          type: string
+          enum: [pending, verified, rejected]
+        rejectionReason: { type: string }
+        createdAt: { type: string, format: date-time }
+        verifiedAt: { type: string, format: date-time }
+
+    ElectronicSignatureRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          description: User password for re-authentication
+        meaning:
+          type: string
+          description: Statement of meaning (e.g., "I verify this label is correct")
+      required: [password, meaning]
+
+    ElectronicSignature:
+      type: object
+      properties:
+        id: { type: integer }
+        entityType: { type: string }
+        entityId: { type: integer }
+        action: { type: string }
+        userId: { type: integer }
+        username: { type: string }
+        fullName: { type: string }
+        title: { type: string }
+        signedAt: { type: string, format: date-time }
+        meaning: { type: string }
+        signatureHash: { type: string }
+
+tags:
+  - name: Dashboard
+    description: Audit dashboard KPI endpoints
+  - name: Inventory
+    description: Inventory management endpoints
+  - name: Quality
+    description: Quality control endpoints
+  - name: Production
+    description: Production workflow endpoints
+  - name: Signatures
+    description: Electronic signature endpoints

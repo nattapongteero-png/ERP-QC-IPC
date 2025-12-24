@@ -1004,3 +1004,543 @@ Before marking integration tests complete for a module:
 - [ ] Edge cases covered (empty lists, not found, validation errors)
 - [ ] Tests pass with `pnpm test:run`
 - [ ] No console errors or warnings
+
+---
+
+## Part 3: External Auditor Requirements Implementation (2025-12-24)
+
+This section covers Phase 2 implementation patterns for addressing external auditor requirements (FR-047 to FR-074).
+
+### Phase 2A: Schema Changes
+
+#### Step 1: Add Columns to Existing Tables
+
+```typescript
+// src/lib/db/schema.ts - Add to inventoryLots table
+
+// Manufacturer/Importer tracking (FR-055)
+manufacturerName: text('manufacturer_name'),
+manufacturerId: integer('manufacturer_id').references(() => vendors.id),
+importerName: text('importer_name'),
+importerId: integer('importer_id').references(() => vendors.id),
+countryOfOrigin: text('country_of_origin'),
+
+// Retest tracking (FR-056)
+retestDate: text('retest_date'),
+retestIntervalMonths: integer('retest_interval_months'),
+lastRetestDate: text('last_retest_date'),
+retestStatus: text('retest_status'), // not_required, pending, scheduled, completed, overdue
+```
+
+```typescript
+// Add to qualityTests table (FR-067)
+disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor
+dispositionBy: integer('disposition_by').references(() => users.id),
+dispositionAt: text('disposition_at'),
+dispositionReason: text('disposition_reason'),
+dispositionApprovedBy: integer('disposition_approved_by').references(() => users.id),
+dispositionApprovedAt: text('disposition_approved_at'),
+```
+
+```typescript
+// Add to workOrders table (FR-062)
+lineClearanceRequired: integer('line_clearance_required', { mode: 'boolean' }).default(true),
+lineClearanceStatus: text('line_clearance_status'), // pending, cleared, failed
+lineClearanceBy: integer('line_clearance_by').references(() => users.id),
+lineClearanceAt: text('line_clearance_at'),
+lineClearanceChecklistId: integer('line_clearance_checklist_id'),
+```
+
+#### Step 2: Add New Tables
+
+```typescript
+// src/lib/db/schema.ts - Electronic Signatures (FR-071-074)
+export const electronicSignatures = sqliteTable('electronic_signatures', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  entityType: text('entity_type').notNull(), // line_clearance, label_verification, disposition
+  entityId: integer('entity_id').notNull(),
+  action: text('action').notNull(), // perform, verify, approve, witness
+  userId: integer('user_id').references(() => users.id).notNull(),
+  username: text('username').notNull(),
+  fullName: text('full_name').notNull(),
+  title: text('title'),
+  signedAt: text('signed_at').notNull(),
+  meaning: text('meaning').notNull(),
+  passwordVerified: integer('password_verified', { mode: 'boolean' }).notNull(),
+  signatureHash: text('signature_hash').notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Line Clearance Checklists (FR-062)
+export const lineClearanceChecklists = sqliteTable('line_clearance_checklists', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').references(() => workOrders.id),
+  previousProductCleared: integer('previous_product_cleared', { mode: 'boolean' }),
+  areaClean: integer('area_clean', { mode: 'boolean' }),
+  equipmentClean: integer('equipment_clean', { mode: 'boolean' }),
+  noContaminationRisk: integer('no_contamination_risk', { mode: 'boolean' }),
+  labelsRemoved: integer('labels_removed', { mode: 'boolean' }),
+  docsReady: integer('docs_ready', { mode: 'boolean' }),
+  performedBy: integer('performed_by').references(() => users.id),
+  performedAt: text('performed_at'),
+  verifiedBy: integer('verified_by').references(() => users.id),
+  verifiedAt: text('verified_at'),
+  verifierSignatureId: integer('verifier_signature_id').references(() => electronicSignatures.id),
+  status: text('status').default('pending'), // pending, completed, rejected
+  notes: text('notes'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Label Verifications (FR-064/065)
+export const labelVerifications = sqliteTable('label_verifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').references(() => workOrders.id),
+  batchRecordId: integer('batch_record_id').references(() => batchRecords.id),
+  labelType: text('label_type').notNull(), // product_label, batch_label, carton_label
+  imagePath: text('image_path').notNull(),
+  imageHash: text('image_hash'),
+  productName: text('product_name'),
+  batchNumber: text('batch_number'),
+  expiryDate: text('expiry_date'),
+  isCorrect: integer('is_correct', { mode: 'boolean' }),
+  operatorId: integer('operator_id').references(() => users.id),
+  operatorSignatureId: integer('operator_signature_id').references(() => electronicSignatures.id),
+  witnessId: integer('witness_id').references(() => users.id),
+  witnessSignatureId: integer('witness_signature_id').references(() => electronicSignatures.id),
+  status: text('status').default('pending'), // pending, verified, rejected
+  rejectionReason: text('rejection_reason'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  verifiedAt: text('verified_at'),
+});
+
+// Lot Documents (FR-057)
+export const lotDocuments = sqliteTable('lot_documents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  lotId: integer('lot_id').references(() => inventoryLots.id).notNull(),
+  documentType: text('document_type').notNull(), // coa, specification, msds, other
+  fileName: text('file_name').notNull(),
+  filePath: text('file_path').notNull(),
+  fileSize: integer('file_size'),
+  mimeType: text('mime_type'),
+  fileHash: text('file_hash'),
+  uploadedBy: integer('uploaded_by').references(() => users.id),
+  uploadedAt: text('uploaded_at').default(sql`CURRENT_TIMESTAMP`),
+  expiryDate: text('expiry_date'),
+  notes: text('notes'),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+```
+
+### Phase 2B: Electronic Signature Service
+
+```typescript
+// src/lib/services/electronic-signature.service.ts
+import crypto from 'crypto';
+import { db } from '@/lib/db';
+import { electronicSignatures, users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getNow } from '@/lib/db/date-utils';
+
+interface CreateSignatureParams {
+  entityType: string;
+  entityId: number;
+  action: string;
+  userId: number;
+  password: string;
+  meaning: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export async function createElectronicSignature(params: CreateSignatureParams) {
+  // 1. Verify password (implement your auth check)
+  const user = await verifyUserPassword(params.userId, params.password);
+  if (!user) {
+    throw new Error('Invalid credentials - password verification failed');
+  }
+
+  // 2. Generate signature hash
+  const signedAt = getNow();
+  const signatureData = [
+    params.entityType,
+    params.entityId,
+    params.action,
+    user.id,
+    signedAt,
+  ].join('|');
+  const signatureHash = crypto.createHash('sha256').update(signatureData).digest('hex');
+
+  // 3. Store signature
+  const [signature] = await db.insert(electronicSignatures).values({
+    entityType: params.entityType,
+    entityId: params.entityId,
+    action: params.action,
+    userId: user.id,
+    username: user.email,
+    fullName: user.name,
+    title: user.title || null,
+    signedAt: signedAt as unknown as string,
+    meaning: params.meaning,
+    passwordVerified: true,
+    signatureHash,
+    ipAddress: params.ipAddress || null,
+    userAgent: params.userAgent || null,
+  }).returning();
+
+  return signature;
+}
+
+async function verifyUserPassword(userId: number, password: string): Promise<typeof users.$inferSelect | null> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user) return null;
+
+  // Implement actual password verification with bcrypt
+  // const isValid = await bcrypt.compare(password, user.password);
+  // if (!isValid) return null;
+
+  return user;
+}
+
+export async function getSignaturesForEntity(entityType: string, entityId: number) {
+  return db.query.electronicSignatures.findMany({
+    where: and(
+      eq(electronicSignatures.entityType, entityType),
+      eq(electronicSignatures.entityId, entityId)
+    ),
+    orderBy: [asc(electronicSignatures.signedAt)],
+  });
+}
+```
+
+### Phase 2C: Line Clearance Service
+
+```typescript
+// src/lib/services/line-clearance.service.ts
+import { db } from '@/lib/db';
+import { lineClearanceChecklists, workOrders } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getNow } from '@/lib/db/date-utils';
+import { createElectronicSignature } from './electronic-signature.service';
+
+interface CreateLineClearanceParams {
+  workOrderId: number;
+  previousProductCleared: boolean;
+  areaClean: boolean;
+  equipmentClean: boolean;
+  noContaminationRisk: boolean;
+  labelsRemoved: boolean;
+  docsReady?: boolean;
+  notes?: string;
+}
+
+export async function createLineClearance(params: CreateLineClearanceParams, userId: number) {
+  // Validate all critical items are checked
+  if (!params.previousProductCleared || !params.areaClean ||
+      !params.equipmentClean || !params.noContaminationRisk || !params.labelsRemoved) {
+    throw new Error('All critical line clearance items must be checked');
+  }
+
+  const [checklist] = await db.insert(lineClearanceChecklists).values({
+    workOrderId: params.workOrderId,
+    previousProductCleared: params.previousProductCleared,
+    areaClean: params.areaClean,
+    equipmentClean: params.equipmentClean,
+    noContaminationRisk: params.noContaminationRisk,
+    labelsRemoved: params.labelsRemoved,
+    docsReady: params.docsReady ?? false,
+    performedBy: userId,
+    performedAt: getNow() as unknown as string,
+    status: 'pending', // Awaiting verification
+    notes: params.notes || null,
+  }).returning();
+
+  return checklist;
+}
+
+export async function verifyLineClearance(
+  checklistId: number,
+  userId: number,
+  password: string,
+  meaning: string
+) {
+  const checklist = await db.query.lineClearanceChecklists.findFirst({
+    where: eq(lineClearanceChecklists.id, checklistId),
+  });
+
+  if (!checklist) throw new Error('Line clearance checklist not found');
+  if (checklist.status !== 'pending') throw new Error('Checklist already processed');
+  if (checklist.performedBy === userId) throw new Error('Verifier must be different from performer');
+
+  // Create electronic signature
+  const signature = await createElectronicSignature({
+    entityType: 'line_clearance',
+    entityId: checklistId,
+    action: 'verify',
+    userId,
+    password,
+    meaning,
+  });
+
+  // Update checklist
+  const [updated] = await db.update(lineClearanceChecklists)
+    .set({
+      verifiedBy: userId,
+      verifiedAt: getNow() as unknown as string,
+      verifierSignatureId: signature.id,
+      status: 'completed',
+    })
+    .where(eq(lineClearanceChecklists.id, checklistId))
+    .returning();
+
+  // Update work order
+  await db.update(workOrders)
+    .set({
+      lineClearanceStatus: 'cleared',
+      lineClearanceBy: userId,
+      lineClearanceAt: getNow() as unknown as string,
+      lineClearanceChecklistId: checklistId,
+    })
+    .where(eq(workOrders.id, checklist.workOrderId));
+
+  return updated;
+}
+
+export async function checkLineClearanceRequired(workOrderId: number): Promise<boolean> {
+  const wo = await db.query.workOrders.findFirst({
+    where: eq(workOrders.id, workOrderId),
+  });
+
+  if (!wo) throw new Error('Work order not found');
+
+  return wo.lineClearanceRequired && wo.lineClearanceStatus !== 'cleared';
+}
+```
+
+### Phase 2D: Dashboard KPI Service
+
+```typescript
+// src/lib/services/dashboard.service.ts
+import { db } from '@/lib/db';
+import { inventoryLots, items, qualityTests, workOrders } from '@/lib/db/schema';
+import { eq, and, gte, sql, count, sum } from 'drizzle-orm';
+
+export async function getAuditKpis() {
+  const currentYear = new Date().getFullYear();
+  const yearStart = `${currentYear}-01-01`;
+
+  const [
+    rmReceivedYtd,
+    rmStatusBreakdown,
+    expiryAlerts,
+    minStockAlerts,
+    qcSummary,
+    productionStatus,
+    pendingQcRelease,
+    fgApproved,
+  ] = await Promise.all([
+    getRmReceivedYtd(yearStart),
+    getRmStatusBreakdown(),
+    getExpiryAlerts(90), // 90 days threshold
+    getMinStockAlerts(),
+    getQcSummary(),
+    getProductionStatus(),
+    getPendingQcRelease(),
+    getFgApproved(),
+  ]);
+
+  return {
+    rmReceivedYtd,
+    rmStatusBreakdown,
+    expiryAlerts,
+    minStockAlerts,
+    qcSummary,
+    productionStatus,
+    pendingQcRelease,
+    fgApproved,
+  };
+}
+
+async function getRmReceivedYtd(yearStart: string) {
+  const result = await db
+    .select({
+      itemId: inventoryLots.itemId,
+      itemName: items.name,
+      receiptCount: count(inventoryLots.id),
+      totalQuantity: sum(inventoryLots.quantity),
+    })
+    .from(inventoryLots)
+    .innerJoin(items, eq(inventoryLots.itemId, items.id))
+    .where(
+      and(
+        gte(inventoryLots.receivedDate, yearStart),
+        sql`${items.type} IN ('raw_material', 'herbal')`
+      )
+    )
+    .groupBy(inventoryLots.itemId)
+    .orderBy(sql`receipt_count DESC`)
+    .limit(10);
+
+  return {
+    count: result.length,
+    totalQuantity: result.reduce((sum, r) => sum + (Number(r.totalQuantity) || 0), 0),
+    topItems: result,
+  };
+}
+
+async function getRmStatusBreakdown() {
+  const result = await db
+    .select({
+      status: inventoryLots.status,
+      count: count(inventoryLots.id),
+    })
+    .from(inventoryLots)
+    .innerJoin(items, eq(inventoryLots.itemId, items.id))
+    .where(sql`${items.type} IN ('raw_material', 'herbal')`)
+    .groupBy(inventoryLots.status);
+
+  const breakdown = {
+    released: 0,
+    pending: 0,
+    rejected: 0,
+  };
+
+  for (const row of result) {
+    if (row.status === 'released') breakdown.released = Number(row.count);
+    else if (['quarantine', 'under_test'].includes(row.status || '')) breakdown.pending += Number(row.count);
+    else if (row.status === 'rejected') breakdown.rejected = Number(row.count);
+  }
+
+  return breakdown;
+}
+
+// ... implement remaining helper functions similarly
+```
+
+### Phase 2E: Electronic Signature UI Component
+
+```tsx
+// src/components/shared/electronic-signature-dialog.tsx
+'use client';
+
+import { useState } from 'react';
+import { Popup } from 'devextreme-react/popup';
+import { TextBox } from 'devextreme-react/text-box';
+import { Button } from 'devextreme-react/button';
+import { ValidationSummary, ValidationGroup } from 'devextreme-react/validation-group';
+
+interface ElectronicSignatureDialogProps {
+  visible: boolean;
+  onClose: () => void;
+  onSign: (password: string, meaning: string) => Promise<void>;
+  meaning: string;
+  title?: string;
+}
+
+export function ElectronicSignatureDialog({
+  visible,
+  onClose,
+  onSign,
+  meaning,
+  title = 'Electronic Signature Required',
+}: ElectronicSignatureDialogProps) {
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSign = async () => {
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await onSign(password, meaning);
+      setPassword('');
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signature failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Popup
+      visible={visible}
+      onHiding={onClose}
+      title={title}
+      width={400}
+      height="auto"
+      showCloseButton
+    >
+      <div className="p-4 space-y-4">
+        <div className="bg-blue-50 p-3 rounded border border-blue-200">
+          <p className="text-sm font-medium text-blue-800">Signature Meaning:</p>
+          <p className="text-sm text-blue-700">{meaning}</p>
+        </div>
+
+        <p className="text-sm text-gray-600">
+          By signing, you confirm the above statement. Please enter your password to authenticate.
+        </p>
+
+        <ValidationGroup>
+          <TextBox
+            placeholder="Enter your password"
+            mode="password"
+            value={password}
+            onValueChanged={(e) => setPassword(e.value)}
+            stylingMode="outlined"
+          >
+            {/* Add validation rules if needed */}
+          </TextBox>
+
+          {error && (
+            <div className="text-red-600 text-sm mt-2">{error}</div>
+          )}
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              text="Cancel"
+              onClick={onClose}
+              disabled={isSubmitting}
+            />
+            <Button
+              text={isSubmitting ? 'Signing...' : 'Sign'}
+              type="default"
+              stylingMode="contained"
+              onClick={handleSign}
+              disabled={isSubmitting || !password}
+            />
+          </div>
+        </ValidationGroup>
+      </div>
+    </Popup>
+  );
+}
+```
+
+### Verification Checklist (Phase 2)
+
+Before marking Phase 2 implementation complete:
+
+- [ ] Schema changes applied to both SQLite and MySQL
+- [ ] Electronic signature service with password verification
+- [ ] Line clearance workflow with blocking logic
+- [ ] Label verification with image upload and dual signature
+- [ ] QC disposition with approval workflow
+- [ ] Dashboard KPI endpoint returning all 8 metrics
+- [ ] Integration tests for all new services
+- [ ] UI components using DevExtreme exclusively
+- [ ] All critical operations require e-signature
+- [ ] Tests pass with `pnpm test:run`
+- [ ] No console errors or warnings
+- [ ] Performance: Dashboard loads <3s

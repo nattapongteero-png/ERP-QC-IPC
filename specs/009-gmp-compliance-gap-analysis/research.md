@@ -394,3 +394,316 @@ export function seedTestUsers(sqlite: Database.Database) {
 | Slow tests from disk I/O | In-memory SQLite only |
 | Missing FK constraints in SQLite | Explicit test for relationship integrity |
 | Test maintenance burden | Shared helpers reduce duplication |
+
+---
+
+## Part 3: External Auditor Requirements Research (2025-12-24)
+
+**Purpose**: Resolve technical unknowns for Phase 2 implementation addressing auditor questions from `docs/AUDIT-QUESTION-P1.md`
+
+### Research Task 1: Dashboard KPI Query Optimization
+
+**Decision**: Use materialized aggregation queries with database-level caching
+
+**Rationale**:
+- Auditor dashboard needs 8 KPI cards loading simultaneously
+- Each KPI requires aggregation across 1000+ records
+- Performance target: <3 seconds for full dashboard
+
+**Alternatives Considered**:
+1. **Real-time queries per card** - Rejected: 8 sequential queries too slow
+2. **Background job with cache table** - Rejected: complexity, stale data concerns
+3. **Single combined query with subqueries** - Selected: one DB round-trip, all data returned
+
+**Implementation Pattern**:
+```sql
+-- Single query for all 8 KPIs
+SELECT
+  -- FR-047: RM received YTD
+  (SELECT COUNT(DISTINCT l.id) FROM inventory_lots l
+   JOIN items i ON l.itemId = i.id
+   WHERE i.type IN ('raw_material', 'herbal')
+   AND l.receivedDate >= DATE_TRUNC('year', CURRENT_DATE)) as rm_received_ytd,
+
+  -- FR-048: RM status breakdown
+  (SELECT JSON_OBJECT(
+    'released', COUNT(CASE WHEN status = 'released' THEN 1 END),
+    'pending', COUNT(CASE WHEN status IN ('quarantine', 'under_test') THEN 1 END),
+    'rejected', COUNT(CASE WHEN status = 'rejected' THEN 1 END)
+  ) FROM inventory_lots) as rm_status,
+
+  -- ... additional subqueries for FR-049 to FR-054
+```
+
+### Research Task 2: Electronic Signature Implementation (21 CFR Part 11)
+
+**Decision**: Password re-authentication with SHA-256 hash, database storage
+
+**Rationale**:
+- 21 CFR Part 11 requires: unique user identification, password verification, meaning statement
+- PKI/digital certificates are overkill for low-risk herbal products
+- Simple implementation covers FDA requirements for electronic records
+
+**Alternatives Considered**:
+1. **PKI with X.509 certificates** - Rejected: excessive complexity, cost, maintenance
+2. **Biometric authentication** - Rejected: hardware dependency, privacy concerns
+3. **Password + meaning statement** - Selected: meets requirements, simple to implement
+
+**Implementation Pattern**:
+```typescript
+// Electronic signature service
+interface ElectronicSignature {
+  entityType: string;      // 'line_clearance', 'label_verification', 'disposition'
+  entityId: number;
+  action: string;          // 'perform', 'verify', 'approve', 'witness'
+  userId: number;
+  username: string;        // Captured at sign time
+  fullName: string;
+  title: string;
+  signedAt: string;
+  meaning: string;         // "I verify this label is correct"
+  signatureHash: string;   // SHA-256(entityType|entityId|action|userId|signedAt)
+  ipAddress: string;
+}
+
+async function createSignature(params: SignatureParams): Promise<ElectronicSignature> {
+  // 1. Verify password
+  const user = await verifyPassword(params.userId, params.password);
+  if (!user) throw new Error('Invalid credentials');
+
+  // 2. Generate hash
+  const data = `${params.entityType}|${params.entityId}|${params.action}|${user.id}|${new Date().toISOString()}`;
+  const hash = crypto.createHash('sha256').update(data).digest('hex');
+
+  // 3. Store signature
+  return db.insert(electronicSignatures).values({...});
+}
+```
+
+**21 CFR Part 11 Compliance Checklist**:
+- ✅ Unique user identification (username/userId)
+- ✅ Password verification at signing time
+- ✅ Timestamp of signature (signedAt)
+- ✅ Meaning/intent statement (meaning field)
+- ✅ Tamper-evident (hash verification)
+- ✅ Audit trail (signature record immutable)
+
+### Research Task 3: Line Clearance Workflow Design
+
+**Decision**: Checklist-based verification with work order blocking
+
+**Rationale**:
+- GMP requires documented line clearance before production
+- Thai FDA หมวด 6 mandates prevention of cross-contamination
+- System must enforce, not just document
+
+**Implementation Pattern**:
+```typescript
+// Line clearance checklist items
+const LINE_CLEARANCE_ITEMS = [
+  { code: 'PREV_PRODUCT', label: 'Previous product/materials removed', critical: true },
+  { code: 'AREA_CLEAN', label: 'Production area cleaned', critical: true },
+  { code: 'EQUIPMENT_CLEAN', label: 'Equipment cleaned and verified', critical: true },
+  { code: 'NO_CONTAMINATION', label: 'No contamination risk identified', critical: true },
+  { code: 'LABELS_REMOVED', label: 'Previous batch labels removed', critical: true },
+  { code: 'DOCS_READY', label: 'Batch documentation ready', critical: false },
+];
+
+// Work order status transition
+async function startProduction(workOrderId: number): Promise<void> {
+  const wo = await getWorkOrderById(workOrderId);
+
+  // Block if line clearance not complete
+  if (wo.lineClearanceStatus !== 'cleared') {
+    throw new Error('Line clearance must be completed before starting production');
+  }
+
+  // Proceed with status change
+  await updateWorkOrderStatus(workOrderId, 'in_progress');
+}
+```
+
+### Research Task 4: Label Verification with Image Attachment
+
+**Decision**: Image upload to local filesystem with batch record linking
+
+**Rationale**:
+- Auditor requires label images attached to BMR as evidence
+- Must support photo capture from mobile devices
+- Dual signature (operator + witness) required
+
+**Alternatives Considered**:
+1. **S3/cloud storage** - Deferred: adds external dependency, privacy concerns
+2. **Database BLOB** - Rejected: performance impact, backup complexity
+3. **Local filesystem with path reference** - Selected: simple, auditable, backup-friendly
+
+**Implementation Pattern**:
+```typescript
+// Label verification structure
+interface LabelVerification {
+  id: number;
+  workOrderId: number;
+  batchRecordId: number;
+  labelType: 'product_label' | 'batch_label' | 'carton_label';
+  imagePath: string;          // /uploads/labels/2024/12/WO-001-label-001.jpg
+  imageHash: string;          // SHA-256 of file for integrity
+  productName: string;        // Verified product name
+  batchNumber: string;        // Verified batch number
+  expiryDate: string;         // Verified expiry date
+  isCorrect: boolean;         // Verification result
+  operatorSignatureId: number;  // FK to electronic_signatures
+  witnessSignatureId: number;   // FK to electronic_signatures
+  status: 'pending' | 'verified' | 'rejected';
+}
+
+// File storage path pattern
+const getImagePath = (workOrderId: number, labelIndex: number) => {
+  const date = new Date();
+  return `/uploads/labels/${date.getFullYear()}/${date.getMonth() + 1}/WO-${workOrderId}-label-${labelIndex}.jpg`;
+};
+```
+
+### Research Task 5: Manufacturer/Importer Data Capture
+
+**Decision**: Add text fields to inventory_lots with optional FK to vendors
+
+**Rationale**:
+- Auditor requires manufacturer and importer separate from seller
+- Not all manufacturers are in vendor master (e.g., overseas suppliers)
+- Need country of origin for traceability
+
+**Alternatives Considered**:
+1. **Separate manufacturer/importer tables** - Rejected: over-engineering, low data volume
+2. **Vendor table with type field** - Partial: use for known vendors, text for others
+3. **Text fields + optional FK** - Selected: flexible, captures all cases
+
+**Schema Addition**:
+```typescript
+// Added to inventory_lots
+manufacturerName: text('manufacturer_name'),           // Free text if no vendor record
+manufacturerId: integer('manufacturer_id').references(() => vendors.id),
+importerName: text('importer_name'),
+importerId: integer('importer_id').references(() => vendors.id),
+countryOfOrigin: text('country_of_origin'),            // ISO country code or name
+```
+
+### Research Task 6: QC Disposition Workflow
+
+**Decision**: Enum-based disposition with approval workflow and automatic lot status update
+
+**Rationale**:
+- Auditor asks "what action was taken" for failed QC
+- Must track who decided, who approved, when
+- Lot status must sync with disposition
+
+**Disposition Types**:
+| Disposition | Description | Lot Status Result |
+|-------------|-------------|-------------------|
+| accept | Passed all tests | released |
+| reject | Failed, cannot be used | rejected |
+| rework | Failed, can be reworked | on_hold |
+| scrap | Failed, destroy | rejected |
+| return_to_vendor | Supplier issue | rejected |
+| conditional_release | Partial acceptance | released (with note) |
+
+**Implementation Pattern**:
+```typescript
+// Disposition workflow
+async function setDisposition(testId: number, disposition: DispositionType, reason: string): Promise<void> {
+  const test = await getQualityTestById(testId);
+
+  // Require reason for non-accept dispositions
+  if (disposition !== 'accept' && !reason) {
+    throw new Error('Reason required for reject/rework/scrap/return dispositions');
+  }
+
+  // Update test record
+  await updateQualityTest(testId, {
+    disposition,
+    dispositionBy: getCurrentUserId(),
+    dispositionAt: getNow(),
+    dispositionReason: reason,
+  });
+
+  // Queue for approval (except accept which is auto-approved)
+  if (disposition !== 'accept') {
+    await createApprovalRequest('disposition', testId);
+  }
+}
+
+async function approveDisposition(testId: number): Promise<void> {
+  const test = await getQualityTestById(testId);
+
+  // Update approval
+  await updateQualityTest(testId, {
+    dispositionApprovedBy: getCurrentUserId(),
+    dispositionApprovedAt: getNow(),
+  });
+
+  // Update lot status based on disposition
+  const lotStatusMap = {
+    accept: 'released',
+    reject: 'rejected',
+    rework: 'on_hold',
+    scrap: 'rejected',
+    return_to_vendor: 'rejected',
+    conditional_release: 'released',
+  };
+
+  await updateLotStatus(test.lotId, lotStatusMap[test.disposition]);
+}
+```
+
+### Research Task 7: Retest Date Management
+
+**Decision**: Add retest tracking fields with automatic alert generation
+
+**Rationale**:
+- Some materials require periodic re-testing (e.g., reference standards)
+- Thai FDA requires retest before use if retest date passed
+- System should alert before retest due
+
+**Schema Addition**:
+```typescript
+// Added to inventory_lots
+retestDate: text('retest_date'),                    // Next retest due date
+retestIntervalMonths: integer('retest_interval_months'), // Recurrence interval
+lastRetestDate: text('last_retest_date'),           // When last retested
+retestStatus: text('retest_status', { enum: ['not_required', 'pending', 'scheduled', 'completed', 'overdue'] }),
+```
+
+**Alert Query**:
+```sql
+-- Materials needing retest in next 30 days
+SELECT l.*, i.name as itemName
+FROM inventory_lots l
+JOIN items i ON l.itemId = i.id
+WHERE l.retestDate IS NOT NULL
+  AND l.retestDate <= DATE('now', '+30 days')
+  AND l.retestStatus NOT IN ('completed', 'not_required')
+  AND l.quantity > 0
+ORDER BY l.retestDate ASC
+```
+
+### Technology Decisions Summary (Phase 2)
+
+| Area | Decision | Rationale |
+|------|----------|-----------|
+| Dashboard queries | Single combined query with subqueries | Performance: one round-trip |
+| E-signatures | Password + SHA-256 hash | 21 CFR Part 11 compliant, simple |
+| Line clearance | Checklist with blocking | GMP enforcement, not just documentation |
+| Label images | Local filesystem storage | Simple, backup-friendly |
+| Manufacturer data | Text + optional FK | Flexible for all sources |
+| Disposition | Enum with approval workflow | Auditable decision chain |
+| Retest alerts | Date field with status enum | Automatic tracking |
+
+### Unresolved Items
+
+None - all Phase 2 technical unknowns resolved.
+
+### Next Steps
+
+1. Update data-model.md with new entities from Phase 2
+2. Generate API contracts for new endpoints
+3. Update quickstart.md with Phase 2 implementation guide
+4. Run /speckit.tasks to generate detailed tasks

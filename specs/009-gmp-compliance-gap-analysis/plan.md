@@ -1,55 +1,48 @@
-# Implementation Plan: Comprehensive Integration Tests with Real SQLite
+# Implementation Plan: GMP Compliance Gap Analysis - Phase 2 (External Auditor Requirements)
 
-**Branch**: `009-gmp-compliance-gap-analysis` | **Date**: 2025-12-23 | **Spec**: [spec.md](./spec.md)
-**Input**: User request to add comprehensive integration tests using real SQLite for all modules
+**Branch**: `009-gmp-compliance-gap-analysis` | **Date**: 2025-12-24 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/009-gmp-compliance-gap-analysis/spec.md`
+**Phase**: 2 - External Auditor Gap Closure (FR-047 to FR-074)
 
 ## Summary
 
-This plan addresses the gap between mock-based unit tests and real-world integration tests. Currently, only the CAPA service has comprehensive integration tests with real SQLite database. All other GMP compliance modules (Complaints, Documents, Internal Audit, Recalls, Sanitation, Stability) and business modules (Production, Quality, Inventory, HR, Sales, Purchasing, VMI) use mocked database calls that don't validate actual database operations, schema compatibility, or real-world workflows.
+Phase 2 addresses 21 gaps identified from external auditor questions (docs/AUDIT-QUESTION-P1.md). These include:
+- Dashboard KPIs for RM status, QC summary, production status
+- Inventory detail fields (manufacturer, importer, retest date, documents)
+- Production workflows (line clearance, label verification, BOM enhancements)
+- Quality control improvements (disposition decisions, approval workflows)
+- Electronic signature system for 21 CFR Part 11 alignment
 
-**Goal**: Ensure all service modules have comprehensive integration tests using real SQLite that cover real-world scenarios including complete CRUD operations, workflow validations, and data integrity checks.
-
-## Scope Clarification
-
-**This plan covers integration TESTING only, not implementation.**
-
-The spec.md shows implementation status ranging from 0% to 95% for various modules. This testing plan:
-
-1. **Tests existing service layer code** - All 14 service files exist in `src/lib/services/` with exported functions
-2. **Does NOT implement missing features** - If a service function doesn't exist, it's out of scope for this testing phase
-3. **Validates what exists works correctly** - Integration tests confirm existing code operates with real SQLite database
-4. **Identifies gaps through test failures** - Tests that fail due to missing functionality document implementation gaps
-
-Modules with partial implementation (e.g., MES/eBMR at 50%) will have tests written for implemented functions only. Missing functionality is documented in test skip comments with references to spec.md requirements.
+**Total Effort**: 46 days estimated across 4 sub-phases.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x with strict mode enabled
-**Primary Dependencies**: Next.js 16.0.10, React 19.2.1, Drizzle ORM 0.45.1, better-sqlite3 12.5.0
-**Storage**: MySQL 8.0 (production), SQLite (testing) via Drizzle ORM dual-schema pattern
-**Testing**: Vitest 4.0.16 with jsdom environment
-**Target Platform**: Node.js server (API routes) + Browser (React components)
-**Project Type**: Web application (Next.js full-stack)
-**Performance Goals**: All tests complete within 60 seconds, individual test < 1 second
-**Constraints**: Tests must work with in-memory SQLite (:memory:), no external services required
-**Scale/Scope**: 14 service modules (CAPA existing + 13 new), targeting ~150 integration test cases
+**Language/Version**: TypeScript 5.x with Next.js 14+
+**Primary Dependencies**: Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
+**Storage**: MySQL (production), SQLite (testing) via Drizzle dual-schema
+**Testing**: Vitest + React Testing Library for integration tests
+**Target Platform**: Web application (desktop primary, tablet secondary)
+**Project Type**: Full-stack web application (Next.js monolith)
+**Performance Goals**: Dashboard loads <3s, API responses <500ms
+**Constraints**: Must maintain backward compatibility with existing data
+**Scale/Scope**: ~50 concurrent users, 10k+ lots, 100+ work orders/month
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| **I. Code Quality Standards** | ✅ PASS | Integration tests improve code quality, TypeScript strict mode, no hardcoded values |
-| **II. Testing Standards** | ✅ PASS | This plan directly addresses "Integration Tests: API endpoints MUST have integration tests validating request/response contracts. Database operations MUST have integration tests validating data integrity." |
-| **III. User Experience Consistency** | N/A | Testing infrastructure, no UI changes |
-| **IV. Performance Requirements** | ✅ PASS | Tests target < 1 second per test |
-| **V. Security and GMP Compliance** | ✅ PASS | Tests validate audit trail, data integrity, role-based access |
+| Principle | Requirement | Status | Notes |
+|-----------|-------------|--------|-------|
+| I. Type Safety | Strict TypeScript, no `any` | ✅ PASS | All new code will use Zod schemas |
+| I. No Hardcoded Values | Config in env/database | ✅ PASS | Alert thresholds configurable |
+| I. Reusable Components | Shared dialogs/forms | ✅ PASS | E-signature component reusable |
+| II. Test Coverage | Unit + integration tests | ✅ PASS | Each feature tested with real SQLite |
+| III. DevExtreme Only | No other UI libraries | ✅ PASS | All UI uses DevExtreme |
+| IV. Performance | <3s page load, <500ms API | ✅ PASS | Dashboard uses optimized queries |
+| V. Audit Trail | All changes logged | ✅ PASS | E-signatures provide enhanced audit |
+| V. Data Integrity | Lot data immutable after QC | ✅ PASS | Disposition requires e-signature |
 
-**Quality Gates:**
-- Type Check: Tests must pass `pnpm tsc --noEmit`
-- Lint: Tests must pass `pnpm lint`
-- Unit Tests: All tests must pass `pnpm test:run`
+**Gate Status**: ✅ PASSED - No violations
 
 ## Project Structure
 
@@ -57,215 +50,258 @@ Modules with partial implementation (e.g., MES/eBMR at 50%) will have tests writ
 
 ```text
 specs/009-gmp-compliance-gap-analysis/
-├── plan.md              # This file
-├── research.md          # Phase 0 output - testing patterns and best practices
-├── data-model.md        # Phase 1 output - test schema requirements
-├── quickstart.md        # Phase 1 output - how to run and write tests
-└── tasks.md             # Phase 2 output (created by /speckit.tasks)
+├── spec.md              # Updated with FR-047 to FR-074
+├── plan.md              # This file (Phase 2 plan)
+├── research.md          # Updated with Phase 2 research
+├── data-model.md        # Updated with new entities
+├── quickstart.md        # Updated with Phase 2 guide
+├── contracts/           # API contracts for new endpoints
+└── tasks.md             # Phase 2 tasks (generated by /speckit.tasks)
 ```
 
 ### Source Code (repository root)
 
 ```text
 src/
+├── app/
+│   ├── api/
+│   │   ├── dashboard/
+│   │   │   ├── audit-kpis/route.ts        # FR-047 to FR-054
+│   │   │   └── rm-summary/route.ts        # FR-047
+│   │   ├── inventory/
+│   │   │   ├── min-stock-alerts/route.ts  # FR-050
+│   │   │   └── lots/[id]/documents/route.ts  # FR-057
+│   │   ├── production/
+│   │   │   ├── line-clearance/route.ts    # FR-062
+│   │   │   └── label-verification/route.ts  # FR-064/065
+│   │   └── quality/
+│   │       └── disposition/route.ts       # FR-067
+│   ├── dashboard/
+│   │   └── audit/page.tsx                 # Auditor dashboard UI
+│   └── production/
+│       ├── line-clearance/page.tsx        # Line clearance UI
+│       └── label-verification/page.tsx    # Label verification UI
+├── components/
+│   ├── shared/
+│   │   ├── electronic-signature-dialog.tsx  # FR-071
+│   │   └── document-upload.tsx            # FR-057
+│   ├── dashboard/
+│   │   ├── rm-summary-card.tsx            # FR-047
+│   │   ├── rm-status-card.tsx             # FR-048
+│   │   ├── expiry-alert-card.tsx          # FR-049
+│   │   ├── min-stock-alert-card.tsx       # FR-050
+│   │   ├── qc-summary-card.tsx            # FR-051
+│   │   ├── production-status-card.tsx     # FR-052
+│   │   ├── pending-qc-card.tsx            # FR-053
+│   │   └── fg-approved-card.tsx           # FR-054
+│   └── production/
+│       ├── line-clearance-form.tsx        # FR-062
+│       └── label-verification-form.tsx    # FR-064/065
 ├── lib/
 │   ├── db/
-│   │   ├── index.ts           # Database connection (SQLite/MySQL switch)
-│   │   └── schema/            # Drizzle ORM schema definitions
-│   │       ├── sqlite/        # SQLite-specific schemas
-│   │       └── mysql/         # MySQL-specific schemas
-│   └── services/              # Service modules to test (20 files)
-│       ├── capa-service.ts           # ✅ Has real SQLite tests
-│       ├── complaint-service.ts      # ❌ Needs real SQLite tests
-│       ├── document-service.ts       # ❌ Needs real SQLite tests
-│       ├── internal-audit-service.ts # ❌ Needs real SQLite tests
-│       ├── recall-service.ts         # ❌ Needs real SQLite tests
-│       ├── sanitation-service.ts     # ❌ Needs real SQLite tests
-│       ├── stability-service.ts      # ❌ Needs real SQLite tests
-│       ├── inventory.service.ts      # ❌ Needs real SQLite tests
-│       ├── production.service.ts     # ❌ Needs real SQLite tests
-│       ├── quality.service.ts        # ❌ Needs real SQLite tests
-│       ├── hr.service.ts             # ❌ Needs real SQLite tests
-│       ├── sales.service.ts          # ❌ Needs real SQLite tests
-│       ├── purchasing.service.ts     # ❌ Needs real SQLite tests
-│       ├── vmi-portal.service.ts     # ❌ Needs real SQLite tests
-│       ├── vmi-sync.service.ts       # ❌ Needs real SQLite tests
-│       └── ...
-│
-tests/
-├── setup.ts                    # Global test setup (DB_TYPE=sqlite)
-├── helpers/                    # NEW: Shared test utilities
-│   ├── test-db.ts              # NEW: Database setup helper
-│   ├── schema-sync.ts          # NEW: Drizzle schema → SQLite DDL
-│   └── seed-data.ts            # NEW: Common test data seeding
-├── unit/                       # Existing unit tests (mocked)
+│   │   └── schema/
+│   │       ├── sqlite/schema.ts           # Updated with new columns/tables
+│   │       └── mysql/schema.ts            # Updated with new columns/tables
 │   └── services/
+│       ├── dashboard.service.ts           # Audit KPI calculations
+│       ├── electronic-signature.service.ts  # FR-071 to FR-074
+│       └── line-clearance.service.ts      # FR-062
+└── types/
+    ├── dashboard.ts                       # Dashboard KPI types
+    └── electronic-signature.ts            # E-signature types
+
+tests/
 ├── integration/
-│   ├── services/               # NEW: Real SQLite integration tests
-│   │   ├── capa-service-real.test.ts           # ✅ EXISTS
-│   │   ├── complaint-service-real.test.ts      # NEW
-│   │   ├── document-service-real.test.ts       # NEW
-│   │   ├── internal-audit-service-real.test.ts # NEW
-│   │   ├── recall-service-real.test.ts         # NEW
-│   │   ├── sanitation-service-real.test.ts     # NEW
-│   │   ├── stability-service-real.test.ts      # NEW
-│   │   ├── inventory-service-real.test.ts      # NEW
-│   │   ├── production-service-real.test.ts     # NEW
-│   │   ├── quality-service-real.test.ts        # NEW
-│   │   ├── hr-service-real.test.ts             # NEW
-│   │   ├── sales-service-real.test.ts          # NEW
-│   │   ├── purchasing-service-real.test.ts     # NEW
-│   │   └── vmi-portal-service-real.test.ts     # NEW
-│   └── api/                    # Existing API tests
+│   ├── services/
+│   │   ├── dashboard-service-real.test.ts
+│   │   ├── electronic-signature-service-real.test.ts
+│   │   └── line-clearance-service-real.test.ts
+│   └── api/
+│       └── dashboard-audit-kpis.test.ts
+└── helpers/
+    └── seed-data.ts                       # Updated with Phase 2 seed data
 ```
 
-**Structure Decision**: Extend existing test structure with shared helpers and new integration test files following the CAPA pattern.
+**Structure Decision**: Extends existing Next.js monolith structure. New features follow established patterns from Phase 1 modules.
 
-## Modules Requiring Integration Tests
+---
 
-### Priority 1: GMP Compliance Modules (P1)
+## Phase 2A: Schema Changes (Week 1-2)
 
-| Module | Service File | Required Tables | Test Scenarios |
-|--------|--------------|-----------------|----------------|
-| Complaints | `complaint-service.ts` | complaints, complaint_investigations, users | Create, investigate, escalate, close, trend analysis |
-| Documents | `document-service.ts` | documents, document_versions, document_approvals, users | Create, version, approve, obsolete, search |
-| Internal Audit | `internal-audit-service.ts` | internal_audits, audit_findings, audit_checklists, users | Schedule, conduct, record findings, link to CAPA |
+### New Tables
 
-### Priority 2: GMP Compliance Modules (P2)
+| Table | Purpose | FR Reference |
+|-------|---------|--------------|
+| `line_clearance_checklists` | Pre-production verification | FR-062 |
+| `label_verifications` | BMR label attachments | FR-064/065 |
+| `electronic_signatures` | 21 CFR Part 11 signatures | FR-071-074 |
+| `lot_documents` | COA/Spec/MSDS attachments | FR-057 |
+| `stock_alert_rules` | Configurable alert thresholds | FR-050 |
 
-| Module | Service File | Required Tables | Test Scenarios |
-|--------|--------------|-----------------|----------------|
-| Recalls | `recall-service.ts` | recalls, recall_distributions, recall_returns, inventory_lots, users | Initiate, track distribution, reconcile returns |
-| Sanitation | `sanitation-service.ts` | sanitation_schedules, sanitation_logs, sanitation_areas, users | Schedule, log completion, verify, trend |
-| Stability | `stability-service.ts` | stability_studies, stability_tests, stability_results, quality_tests, users | Enroll, schedule, record results, trend, OOS |
+### Column Additions
 
-### Priority 3: Business Modules (P3)
+| Table | New Columns | FR Reference |
+|-------|-------------|--------------|
+| `inventory_lots` | manufacturerName, manufacturerId, importerName, importerId, countryOfOrigin, retestDate, retestInterval, retestStatus | FR-055, FR-056 |
+| `items` | strength | FR-059 |
+| `quality_tests` | disposition, dispositionBy, dispositionAt, dispositionReason, dispositionApprovedBy, dispositionApprovedAt | FR-067-070 |
+| `bom_lines` | percentageInFormula, weighedQty, weighedBy, verifiedBy, verifiedAt | FR-063 |
+| `work_orders` | lineClearanceRequired, lineClearanceStatus, lineClearanceBy, lineClearanceAt, lineClearanceChecklistId | FR-062 |
 
-| Module | Service File | Required Tables | Test Scenarios |
-|--------|--------------|-----------------|----------------|
-| Inventory | `inventory.service.ts` | inventory_items, inventory_lots, inventory_transactions, users | Receive, issue, transfer, adjust, quarantine/release |
-| Production | `production.service.ts` | work_orders, batch_records, bill_of_materials, users | Create order, execute, yield reconciliation |
-| Quality | `quality.service.ts` | quality_tests, test_results, specifications, users | Sample, test, approve/reject, OOS workflow |
-| HR | `hr.service.ts` | hr_employees, hr_training_records, hr_authorizations, users | Create employee, assign training, track completion |
-| Sales | `sales.service.ts` | sales_orders, sales_order_items, customers, users | Create order, fulfill, ship, invoice |
-| Purchasing | `purchasing.service.ts` | purchase_orders, po_items, vendors, users | Create PO, receive, approve, close |
-| VMI Portal | `vmi-portal.service.ts` | vmi_vendors, vmi_inventory, vmi_orders, users | Configure vendor, sync inventory, process orders |
+---
 
-## Testing Pattern (Based on CAPA Implementation)
+## Phase 2B: Dashboard & Alerts (Week 2-3)
 
-### Standard Integration Test Structure
+### New API Endpoints
 
-```typescript
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import * as schema from '@/lib/db/schema/sqlite';
-import { setupTestDatabase, seedTestUsers, cleanTables } from '@/tests/helpers/test-db';
+| Endpoint | Method | Purpose | FR Reference |
+|----------|--------|---------|--------------|
+| `/api/dashboard/audit-kpis` | GET | All 8 KPI cards for audit dashboard | FR-047-054 |
+| `/api/dashboard/rm-summary` | GET | RM received YTD with frequency | FR-047 |
+| `/api/inventory/min-stock-alerts` | GET | Items below reorder point | FR-050 |
+| `/api/quality/qc-summary` | GET | Pass/fail counts with dispositions | FR-051 |
+| `/api/production/status` | GET | Active work orders summary | FR-052 |
+| `/api/quality/pending-release` | GET | FG awaiting QC approval | FR-053 |
 
-describe('ModuleService Integration (Real SQLite)', () => {
-  let sqlite: Database.Database;
-  let testDb: ReturnType<typeof drizzle>;
+### Dashboard Components
 
-  beforeAll(async () => {
-    // Setup in-memory SQLite with schema sync
-    const setup = await setupTestDatabase();
-    sqlite = setup.sqlite;
-    testDb = setup.db;
+8 new KPI cards for the audit dashboard page at `/dashboard/audit`:
+1. RM Received YTD (FR-047)
+2. RM Status Breakdown (FR-048)
+3. Expiry Alerts (FR-049)
+4. Min Stock Alerts (FR-050)
+5. QC Summary (FR-051)
+6. Production Status (FR-052)
+7. Pending QC Release (FR-053)
+8. FG Approved (FR-054)
 
-    // Mock db module to use test database
-    vi.doMock('@/lib/db', () => ({
-      isSqlite: () => true,
-      getDb: async () => testDb,
-      getSqliteDb: () => testDb,
-      schema,
-    }));
-  });
+---
 
-  beforeEach(() => {
-    cleanTables(sqlite, ['table1', 'table2']);
-    seedTestUsers(sqlite);
-  });
+## Phase 2C: Production Workflows (Week 3-4)
 
-  afterAll(() => {
-    sqlite.close();
-  });
+### Line Clearance Workflow (FR-062)
 
-  describe('Real-World Scenarios', () => {
-    it('should complete full workflow from creation to closure', async () => {
-      // Test complete lifecycle
-    });
+**Flow**:
+1. Work order released → Line clearance required
+2. Operator completes checklist (previous product cleared, area clean, equipment clean)
+3. Verifier reviews and signs (e-signature)
+4. Line clearance approved → Production can start
+5. System blocks production if line clearance not complete
 
-    it('should handle error conditions appropriately', async () => {
-      // Test validation, constraints, error paths
-    });
-  });
+### Label Verification Workflow (FR-064/065)
 
-  describe('Service Functions', () => {
-    it('should create record with all required fields', async () => {
-      // Test individual function
-    });
-  });
-});
+**Flow**:
+1. Packaging step reached → Label verification required
+2. Operator uploads label image
+3. Operator signs (e-signature with meaning: "I verify this label is correct")
+4. Witness countersigns (e-signature)
+5. Label verification attached to batch record
+
+### Electronic Signature System (FR-071-074)
+
+**Components**:
+- `ElectronicSignatureDialog` - Reusable modal for password re-auth
+- `electronicSignatures` table - Stores signature records
+- Signature hash generation using SHA-256
+- Meaning statement capture ("I have performed...", "I verify...")
+
+**Critical Operations Requiring E-Signature**:
+- Line clearance verification
+- Label verification (operator + witness)
+- QC disposition approval
+- Document approval
+- CAPA effectiveness verification
+
+---
+
+## Phase 2D: Testing & Polish (Week 4-5)
+
+### Integration Tests Required
+
+| Test File | Coverage |
+|-----------|----------|
+| `dashboard-service-real.test.ts` | All 8 KPI calculations |
+| `electronic-signature-service-real.test.ts` | Signature creation, verification, hash validation |
+| `line-clearance-service-real.test.ts` | Checklist workflow, blocking logic |
+| `label-verification-service-real.test.ts` | Image upload, dual signature |
+| `qc-disposition-service-real.test.ts` | Disposition workflow, lot status update |
+
+### UI Tests Required
+
+| Test File | Coverage |
+|-----------|----------|
+| `audit-dashboard.test.tsx` | 8 KPI cards render correctly |
+| `line-clearance-form.test.tsx` | Form validation, submission |
+| `electronic-signature-dialog.test.tsx` | Password verification, error states |
+
+---
+
+## Dependencies & Execution Order
+
+```mermaid
+graph TD
+    A[Phase 2A: Schema Changes] --> B[Phase 2B: Dashboard & Alerts]
+    A --> C[Phase 2C: Production Workflows]
+    B --> D[Phase 2D: Testing & Polish]
+    C --> D
+
+    subgraph Phase 2A
+        A1[Add inventory_lots columns] --> A2[Add quality_tests columns]
+        A1 --> A3[Create line_clearance_checklists]
+        A2 --> A4[Create electronic_signatures]
+        A3 --> A4
+    end
+
+    subgraph Phase 2C
+        C1[E-Signature Service] --> C2[Line Clearance Workflow]
+        C1 --> C3[Label Verification Workflow]
+        C2 --> C4[Production Blocking Logic]
+    end
 ```
 
-### Real-World Scenario Examples Per Module
+---
 
-**Complaints:**
-1. Customer complaint received → QC review → Investigation → Root cause → CAPA created → Closure
-2. Complaint trend analysis across product lines
-3. Escalation to regulatory notification for serious issues
+## Risk Mitigation
 
-**Documents:**
-1. Draft SOP → Review → Approve → Publish → Train → Obsolete → Archive
-2. Version control with concurrent edits blocked
-3. Approval workflow with delegation
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| E-signature complexity | Medium | High | Start with simple password re-auth, defer PKI |
+| Schema migration breaks production | Low | High | Test migrations on staging first |
+| Dashboard performance with large data | Medium | Medium | Add indexes, use aggregation queries |
+| Label image storage size | Low | Medium | Compress images, use S3 if needed |
+| Dual signature UX complexity | Medium | Medium | Design intuitive operator/witness flow |
 
-**Internal Audit:**
-1. Annual audit schedule → Conduct audit → Record findings → Create CAPAs → Verify closure
-2. Finding classification and severity tracking
-3. Audit report generation
+---
 
-## Complexity Tracking
+## Success Criteria Verification
 
-No constitution violations expected - this plan adds testing infrastructure which is explicitly required by Constitution Section II.
+| Criterion | Test Method |
+|-----------|-------------|
+| SC-011: Dashboard <3s | Performance test with 10k lots |
+| SC-012: 100% manufacturer recorded | DB constraint + UI validation |
+| SC-013: 100% retest dates tracked | DB constraint for materials with retest |
+| SC-014: 100% lots have COA | Validation rule on lot creation |
+| SC-015: 100% line clearance enforced | Integration test for production blocking |
+| SC-016: 100% label verification | Integration test for packaging step |
+| SC-017: 100% disposition on failed QC | DB constraint + workflow enforcement |
+| SC-018: E-signatures with password | Unit test for signature service |
 
-## Implementation Approach
+---
 
-### Phase 1: Shared Test Infrastructure
-1. Create `tests/helpers/test-db.ts` - Database setup helper (extract from CAPA tests)
-2. Create `tests/helpers/schema-sync.ts` - Generic schema synchronization
-3. Create `tests/helpers/seed-data.ts` - Common test data factory
+## Next Steps
 
-### Phase 2: GMP Compliance Module Tests (P1)
-4. Complaint service integration tests
-5. Document service integration tests
-6. Internal Audit service integration tests
+1. Run `/speckit.tasks` to generate detailed tasks for Phase 2
+2. Execute Phase 2A schema changes first
+3. Deploy to staging for testing
+4. Execute Phase 2B-2D in sequence
+5. Run full integration test suite
+6. Deploy to production
 
-### Phase 3: GMP Compliance Module Tests (P2)
-7. Recall service integration tests
-8. Sanitation service integration tests
-9. Stability service integration tests
+---
 
-### Phase 4: Business Module Tests (P3)
-10. Inventory service integration tests
-11. Production service integration tests
-12. Quality service integration tests
-13. HR service integration tests
-14. Sales service integration tests
-15. Purchasing service integration tests
-16. VMI Portal service integration tests
+## References
 
-### Phase 5: Verification
-17. Run all tests, ensure no regressions
-18. Update coverage reports
-19. Document test patterns in quickstart.md
-
-## Success Criteria
-
-- [ ] All 14 service modules have real SQLite integration tests
-- [ ] Each module has at least 5 real-world scenario tests
-- [ ] All tests pass with `pnpm test:run`
-- [ ] Test coverage for services increases by 25%+
-- [ ] Tests complete in < 90 seconds total (14 modules × ~10 tests × ~0.6s average)
-- [ ] Shared test helpers reduce boilerplate by 50%+
-- [ ] Schema alignment tasks (Phase 0) completed before blocked tests proceed
+- [spec.md](./spec.md) - Full specification with FR-047 to FR-074
+- [research.md](./research.md) - Technical decisions and patterns
+- [data-model.md](./data-model.md) - Entity definitions
+- [docs/AUDIT-QUESTION-P1.md](/docs/AUDIT-QUESTION-P1.md) - Original auditor questions

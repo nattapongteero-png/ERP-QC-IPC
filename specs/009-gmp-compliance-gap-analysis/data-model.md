@@ -678,3 +678,250 @@ CREATE INDEX idx_audit_findings_status ON audit_findings(status);
 2. Seed document_types with standard types (SOP, POL, FORM, WI, SPEC)
 3. Seed stability protocol templates for common products
 4. Run stability trend calculation as background job
+
+---
+
+# Phase 2: External Auditor Requirements (FR-047 to FR-074)
+
+**Added**: 2025-12-24
+**Purpose**: Schema additions to address auditor questions from `docs/AUDIT-QUESTION-P1.md`
+
+## Column Additions to Existing Tables
+
+### inventory_lots (Additional Columns)
+
+| Field | Type | Constraints | Description | FR Reference |
+|-------|------|-------------|-------------|--------------|
+| manufacturerName | text | | Manufacturer name (free text) | FR-055 |
+| manufacturerId | integer | FK → vendors | Optional link to vendor record | FR-055 |
+| importerName | text | | Importer name (free text) | FR-055 |
+| importerId | integer | FK → vendors | Optional link to vendor record | FR-055 |
+| countryOfOrigin | text | | ISO country code or name | FR-055 |
+| retestDate | text | | Next retest due date | FR-056 |
+| retestIntervalMonths | integer | | Recurrence interval | FR-056 |
+| lastRetestDate | text | | When last retested | FR-056 |
+| retestStatus | text | enum | not_required, pending, scheduled, completed, overdue | FR-056 |
+
+### items (Additional Columns)
+
+| Field | Type | Constraints | Description | FR Reference |
+|-------|------|-------------|-------------|--------------|
+| strength | text | | Potency/concentration for FG | FR-059 |
+
+### quality_tests (Additional Columns)
+
+| Field | Type | Constraints | Description | FR Reference |
+|-------|------|-------------|-------------|--------------|
+| disposition | text | enum | pending, accept, reject, rework, scrap, return_to_vendor, conditional_release | FR-067 |
+| dispositionBy | integer | FK → users | Who decided disposition | FR-067 |
+| dispositionAt | text | timestamp | When disposition decided | FR-067 |
+| dispositionReason | text | | Reason for non-accept disposition | FR-068 |
+| dispositionApprovedBy | integer | FK → users | Who approved disposition | FR-067 |
+| dispositionApprovedAt | text | timestamp | When approved | FR-067 |
+
+### bom_lines (Additional Columns)
+
+| Field | Type | Constraints | Description | FR Reference |
+|-------|------|-------------|-------------|--------------|
+| percentageInFormula | real | | % of total formula | FR-063 |
+| weighedQty | real | | Actual quantity weighed | FR-063 |
+| weighedBy | integer | FK → users | Who weighed | FR-063 |
+| verifiedBy | integer | FK → users | Who verified weighing | FR-063 |
+| verifiedAt | text | timestamp | Verification timestamp | FR-063 |
+
+### work_orders (Additional Columns)
+
+| Field | Type | Constraints | Description | FR Reference |
+|-------|------|-------------|-------------|--------------|
+| lineClearanceRequired | integer | boolean | Whether line clearance needed | FR-062 |
+| lineClearanceStatus | text | enum | pending, cleared, failed | FR-062 |
+| lineClearanceBy | integer | FK → users | Who verified line clearance | FR-062 |
+| lineClearanceAt | text | timestamp | When cleared | FR-062 |
+| lineClearanceChecklistId | integer | FK → line_clearance_checklists | Link to checklist | FR-062 |
+
+---
+
+## New Tables (Phase 2)
+
+### line_clearance_checklists
+
+Pre-production line clearance verification records.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | integer | PK, auto | |
+| workOrderId | integer | FK → work_orders | Associated work order |
+| checklistItems | text | JSON | Array of {code, label, checked, checkedBy, checkedAt} |
+| previousProductCleared | integer | boolean | Previous product/materials removed |
+| areaClean | integer | boolean | Production area cleaned |
+| equipmentClean | integer | boolean | Equipment cleaned and verified |
+| noContaminationRisk | integer | boolean | No contamination risk identified |
+| labelsRemoved | integer | boolean | Previous batch labels removed |
+| docsReady | integer | boolean | Batch documentation ready |
+| performedBy | integer | FK → users | Operator who completed |
+| performedAt | text | timestamp | When completed |
+| verifiedBy | integer | FK → users | Verifier who approved |
+| verifiedAt | text | timestamp | When verified |
+| verifierSignatureId | integer | FK → electronic_signatures | E-signature reference |
+| status | text | enum | pending, completed, rejected |
+| notes | text | | Additional notes |
+| createdAt | text | timestamp | |
+
+### label_verifications
+
+BMR label attachment and verification records.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | integer | PK, auto | |
+| workOrderId | integer | FK → work_orders | Associated work order |
+| batchRecordId | integer | FK → batch_records | Associated batch record step |
+| labelType | text | enum | product_label, batch_label, carton_label, shipper_label |
+| imagePath | text | not null | Path to uploaded image file |
+| imageHash | text | | SHA-256 hash of image for integrity |
+| productName | text | | Verified product name on label |
+| batchNumber | text | | Verified batch number on label |
+| expiryDate | text | | Verified expiry date on label |
+| isCorrect | integer | boolean | Whether label content is correct |
+| operatorId | integer | FK → users | Operator who uploaded/verified |
+| operatorSignatureId | integer | FK → electronic_signatures | Operator e-signature |
+| witnessId | integer | FK → users | Witness who countersigned |
+| witnessSignatureId | integer | FK → electronic_signatures | Witness e-signature |
+| status | text | enum | pending, verified, rejected |
+| rejectionReason | text | | Reason if rejected |
+| createdAt | text | timestamp | |
+| verifiedAt | text | timestamp | |
+
+### electronic_signatures
+
+21 CFR Part 11 compliant electronic signature records.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | integer | PK, auto | |
+| entityType | text | not null | line_clearance, label_verification, disposition, document, capa |
+| entityId | integer | not null | ID of the signed entity |
+| action | text | not null | perform, verify, approve, witness, reject |
+| userId | integer | FK → users, not null | Who signed |
+| username | text | not null | Username captured at sign time |
+| fullName | text | not null | Full name captured at sign time |
+| title | text | | Job title at sign time |
+| signedAt | text | not null | ISO timestamp of signature |
+| meaning | text | not null | Statement of meaning (e.g., "I verify this label is correct") |
+| passwordVerified | integer | boolean, not null | Whether password was verified |
+| signatureHash | text | not null | SHA-256(entityType|entityId|action|userId|signedAt) |
+| ipAddress | text | | IP address of signer |
+| userAgent | text | | Browser/client info |
+| createdAt | text | timestamp | |
+
+**Indexes**:
+```sql
+CREATE INDEX idx_esig_entity ON electronic_signatures(entityType, entityId);
+CREATE INDEX idx_esig_user ON electronic_signatures(userId);
+CREATE INDEX idx_esig_signed_at ON electronic_signatures(signedAt);
+```
+
+### lot_documents
+
+Documents attached to inventory lots (COA, Spec, MSDS).
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | integer | PK, auto | |
+| lotId | integer | FK → inventory_lots, not null | Associated lot |
+| documentType | text | enum | coa, specification, msds, other |
+| fileName | text | not null | Original file name |
+| filePath | text | not null | Storage path |
+| fileSize | integer | | File size in bytes |
+| mimeType | text | | File MIME type |
+| fileHash | text | | SHA-256 hash for integrity |
+| uploadedBy | integer | FK → users | Who uploaded |
+| uploadedAt | text | timestamp | When uploaded |
+| expiryDate | text | | Document expiry if applicable |
+| notes | text | | Additional notes |
+| isActive | integer | boolean | Whether document is current |
+| createdAt | text | timestamp | |
+
+**Indexes**:
+```sql
+CREATE INDEX idx_lot_docs_lot ON lot_documents(lotId);
+CREATE INDEX idx_lot_docs_type ON lot_documents(documentType);
+```
+
+### stock_alert_rules
+
+Configurable alert thresholds for inventory monitoring.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | integer | PK, auto | |
+| itemId | integer | FK → items | Item-specific rule (null for global) |
+| alertType | text | enum | expiry, min_stock, retest |
+| thresholdDays | integer | | Days before event for alert |
+| thresholdQty | real | | Quantity threshold for stock |
+| notifyRoles | text | JSON | Array of role names to notify |
+| isActive | integer | boolean | Whether rule is active |
+| createdBy | integer | FK → users | |
+| createdAt | text | timestamp | |
+| updatedAt | text | timestamp | |
+
+---
+
+## Relationships Diagram (Phase 2 Additions)
+
+```
+EXISTING                           PHASE 2 ADDITIONS
+─────────                          ─────────────────
+
+work_orders ─────────────────────→ line_clearance_checklists
+     │                                    │
+     └────────────────────────────→ label_verifications
+                                          │
+                                          ↓
+                                   electronic_signatures ←─── quality_tests (disposition)
+                                          ↑
+                                          │
+inventory_lots ───────────────────→ lot_documents
+
+items ────────────────────────────→ stock_alert_rules
+```
+
+---
+
+## Phase 2 Indexes
+
+```sql
+-- Line Clearance
+CREATE INDEX idx_line_clearance_wo ON line_clearance_checklists(workOrderId);
+CREATE INDEX idx_line_clearance_status ON line_clearance_checklists(status);
+
+-- Label Verification
+CREATE INDEX idx_label_verify_wo ON label_verifications(workOrderId);
+CREATE INDEX idx_label_verify_status ON label_verifications(status);
+
+-- Electronic Signatures (see above)
+
+-- Lot Documents (see above)
+
+-- Stock Alerts
+CREATE INDEX idx_stock_alerts_item ON stock_alert_rules(itemId);
+CREATE INDEX idx_stock_alerts_type ON stock_alert_rules(alertType);
+
+-- Disposition on quality_tests
+CREATE INDEX idx_quality_tests_disposition ON quality_tests(disposition);
+
+-- Retest on inventory_lots
+CREATE INDEX idx_inventory_lots_retest ON inventory_lots(retestDate, retestStatus);
+```
+
+---
+
+## Phase 2 Migration Notes
+
+1. **inventory_lots columns**: Add columns with NULL default, backfill not required
+2. **items.strength**: Add column with NULL default
+3. **quality_tests columns**: Add disposition columns with 'pending' default
+4. **bom_lines columns**: Add columns with NULL default (historical records won't have verification)
+5. **work_orders columns**: Add lineClearance columns, existing WOs default to not required
+6. **New tables**: Create in order: electronic_signatures first (referenced by others)
+7. **Seed data**: Add default stock_alert_rules for common thresholds (90 days expiry, 30 days retest)
