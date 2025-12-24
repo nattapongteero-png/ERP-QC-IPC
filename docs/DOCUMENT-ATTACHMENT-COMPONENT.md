@@ -100,6 +100,14 @@ The following module names are supported:
 | `position` | Position-related Documents |
 | `org_unit` | Organization Unit Documents |
 
+### Procurement Modules
+
+| Module Name | Description |
+|------------|-------------|
+| `purchase_order` | Purchase Order Documents |
+| `vendor` | Vendor/Supplier Records |
+| `goods_receiving` | Goods Receiving Notes (GRN) |
+
 ---
 
 ## Supported File Types
@@ -163,6 +171,17 @@ Available categories for organizing attachments:
 | `medical_certificate` | ใบรับรองแพทย์ | Medical certificates |
 | `training_material` | เอกสารฝึกอบรม | Training materials |
 | `authorization_doc` | เอกสารอนุมัติ | Authorization documents |
+
+### Procurement Categories
+
+| Category | Thai Label | Description |
+|----------|-----------|-------------|
+| `quotation` | ใบเสนอราคา | Price quotations |
+| `invoice` | ใบแจ้งหนี้ | Invoices |
+| `delivery_note` | ใบส่งของ | Delivery notes |
+| `coa` | ใบ COA | Certificate of Analysis |
+| `vendor_qualification` | คุณสมบัติผู้ขาย | Vendor qualification documents |
+| `purchase_contract` | สัญญาซื้อขาย | Purchase contracts |
 | `other` | อื่นๆ | Other documents |
 
 ---

@@ -106,6 +106,13 @@ const categoryLabels: Record<string, string> = {
   medical_certificate: 'ใบรับรองแพทย์',
   training_material: 'เอกสารฝึกอบรม',
   authorization_doc: 'เอกสารอนุมัติ',
+  // Procurement categories
+  quotation: 'ใบเสนอราคา',
+  invoice: 'ใบแจ้งหนี้',
+  delivery_note: 'ใบส่งของ',
+  coa: 'ใบ COA',
+  vendor_qualification: 'คุณสมบัติผู้ขาย',
+  purchase_contract: 'สัญญาซื้อขาย',
   other: 'อื่นๆ',
 };
 

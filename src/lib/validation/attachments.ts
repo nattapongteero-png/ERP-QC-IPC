@@ -70,6 +70,10 @@ export const VALID_MODULES = [
   'job_description',
   'position',
   'org_unit',
+  // Procurement modules
+  'purchase_order',
+  'vendor',
+  'goods_receiving',
 ] as const;
 
 export type ModuleName = (typeof VALID_MODULES)[number];
@@ -95,6 +99,13 @@ export const ATTACHMENT_CATEGORIES = [
   'medical_certificate',
   'training_material',
   'authorization_doc',
+  // Procurement categories
+  'quotation',
+  'invoice',
+  'delivery_note',
+  'coa',
+  'vendor_qualification',
+  'purchase_contract',
   'other',
 ] as const;
 
