@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { eq, like, or, sql, and, type SQL } from 'drizzle-orm';
+import { eq, like, or, sql, and, inArray, type SQL } from 'drizzle-orm';
 import { getTableRef, executeDbOperation, dbDate, getInsertId, parseDbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
@@ -33,7 +33,13 @@ export async function GET(request: NextRequest) {
         );
       }
       if (status) {
-        conditions.push(eq(bomTable.status, status));
+        // Support comma-separated statuses (e.g., "active,approved")
+        const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+        if (statuses.length === 1) {
+          conditions.push(eq(bomTable.status, statuses[0]));
+        } else if (statuses.length > 1) {
+          conditions.push(inArray(bomTable.status, statuses));
+        }
       }
 
       // Count query

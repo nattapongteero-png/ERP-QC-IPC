@@ -85,9 +85,9 @@ function NewWorkOrderContent() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ limit: '100' });
-      // Only filter by approved status if not loading a specific BOM and not searching
+      // Only filter by active/approved status if not loading a specific BOM and not searching
       if (!includeAllStatuses) {
-        params.set('status', 'approved');
+        params.set('status', 'active,approved');
       }
       if (search) params.set('search', search);
 
