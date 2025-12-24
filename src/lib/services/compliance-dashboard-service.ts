@@ -113,34 +113,34 @@ export async function calculateChapterCoverage(
 
   switch (chapterNumber) {
     case 1: // Quality Management System - CAPA & Deviations
-      await evaluateChapter1(requirements, gaps);
+      try { await evaluateChapter1(requirements, gaps); } catch { /* No CAPA/deviation data */ }
       break;
     case 2: // Personnel - Training records
-      await evaluateChapter2(requirements, gaps);
+      try { await evaluateChapter2(requirements, gaps); } catch { /* No personnel data */ }
       break;
     case 3: // Premises & Equipment - Calibration & Maintenance
-      await evaluateChapter3(requirements, gaps);
+      try { await evaluateChapter3(requirements, gaps); } catch { /* No equipment data */ }
       break;
     case 4: // Sanitation & Hygiene - Sanitation compliance
-      await evaluateChapter4(requirements, gaps);
+      try { await evaluateChapter4(requirements, gaps); } catch { /* No sanitation data */ }
       break;
     case 5: // Documentation - Document control
-      await evaluateChapter5(requirements, gaps);
+      try { await evaluateChapter5(requirements, gaps); } catch { /* No document data */ }
       break;
     case 6: // Production - Work orders (if exists)
-      await evaluateChapter6(requirements, gaps);
+      try { await evaluateChapter6(requirements, gaps); } catch { /* No production data */ }
       break;
     case 7: // Quality Control - Stability & OOS
-      await evaluateChapter7(requirements, gaps);
+      try { await evaluateChapter7(requirements, gaps); } catch { /* No stability data */ }
       break;
     case 8: // Contract Manufacturing - Vendor qualification (if exists)
-      await evaluateChapter8(requirements, gaps);
+      try { await evaluateChapter8(requirements, gaps); } catch { /* No contract data */ }
       break;
     case 9: // Complaints & Recalls
-      await evaluateChapter9(requirements, gaps);
+      try { await evaluateChapter9(requirements, gaps); } catch { /* No complaint data */ }
       break;
     case 10: // Self-Inspection - Audits & Findings
-      await evaluateChapter10(requirements, gaps);
+      try { await evaluateChapter10(requirements, gaps); } catch { /* No audit data */ }
       break;
   }
 
@@ -365,14 +365,9 @@ async function evaluateChapter4(
   const sanitationTrends = await getSanitationTrends({ period: 'month' });
 
   // Requirement 4.1: Sanitation compliance >= 95%
-  // Calculate compliance from dataPoints (completed vs scheduled)
-  const totalScheduled = sanitationTrends.dataPoints.reduce((sum, dp) => sum + dp.count, 0);
-  const completedOnTime = sanitationTrends.dataPoints.filter(dp => dp.label.includes('completed')).reduce((sum, dp) => sum + dp.count, 0);
-
-  // If no data, assume compliance is met (no tasks = no failures)
-  const complianceRate = totalScheduled > 0
-    ? Math.round((completedOnTime / totalScheduled) * 100)
-    : 100;
+  // Use the overallComplianceRate directly from getSanitationTrends()
+  // dataPoints have: { date, completed, missed, complianceRate }
+  const complianceRate = Math.round(sanitationTrends.overallComplianceRate);
   const sanitationComplianceMet = complianceRate >= 95;
 
   requirements.push({
