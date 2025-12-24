@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -12,13 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import {
   DollarSign,
-  Plus,
   Pencil,
   Trash2,
   AlertTriangle,
-  CheckCircle,
   Loader2,
-  Building2,
   Calendar,
   Package,
   Clock,
@@ -31,9 +27,6 @@ import {
 
 interface PriceOffer {
   id: number;
-  vendorId: number;
-  vendorName: string | null;
-  vendorCode: string | null;
   itemId: number;
   unitPrice: number;
   packPrice: number | null;
@@ -48,19 +41,12 @@ interface PriceOffer {
   updatedAt: string;
 }
 
-interface Vendor {
-  id: number;
-  code: string;
-  name: string;
-}
-
 interface ItemPriceOffersSectionProps {
   itemId: number;
   className?: string;
 }
 
 interface PriceOfferFormData {
-  vendorId: number | null;
   unitPrice: number | null;
   packPrice: number | null;
   moq: number | null;
@@ -104,7 +90,6 @@ function isOfferActive(offer: PriceOffer): boolean {
 
 function getDefaultFormData(): PriceOfferFormData {
   return {
-    vendorId: null,
     unitPrice: null,
     packPrice: null,
     moq: null,
@@ -126,16 +111,6 @@ async function fetchPriceOffers(itemId: number): Promise<PriceOffer[]> {
     throw new Error(result.error || 'Failed to fetch price offers');
   }
   return result.data;
-}
-
-async function fetchVendors(): Promise<Vendor[]> {
-  const response = await fetch('/api/vendors?limit=1000');
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to fetch vendors');
-  }
-  // API returns paginated response: { success: true, data: { items: [...], total, ... } }
-  return result.data?.items || [];
 }
 
 async function createPriceOffer(itemId: number, data: PriceOfferFormData): Promise<{ id: number }> {
@@ -195,19 +170,6 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
     enabled: !!itemId,
   });
 
-  // Fetch vendors for dropdown
-  const { data: vendors = [] } = useQuery({
-    queryKey: ['vendors-list'],
-    queryFn: fetchVendors,
-  });
-
-  const vendorOptions = React.useMemo(() => {
-    return vendors.map((v) => ({
-      value: v.id,
-      label: `${v.code} - ${v.name}`,
-    }));
-  }, [vendors]);
-
   // Create mutation
   const createMutation = useMutation({
     mutationFn: (data: PriceOfferFormData) => createPriceOffer(itemId, data),
@@ -252,7 +214,6 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
   const handleOpenEdit = (offer: PriceOffer) => {
     setEditingOffer(offer);
     setFormData({
-      vendorId: offer.vendorId,
       unitPrice: offer.unitPrice,
       packPrice: offer.packPrice,
       moq: offer.moq,
@@ -276,10 +237,6 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
     setFormError(null);
 
     // Validate
-    if (!formData.vendorId) {
-      setFormError('Please select a vendor');
-      return;
-    }
     if (!formData.unitPrice || formData.unitPrice <= 0) {
       setFormError('Unit price must be greater than 0');
       return;
@@ -297,7 +254,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
   };
 
   const handleDelete = (offer: PriceOffer) => {
-    if (confirm(`Are you sure you want to delete this price offer from ${offer.vendorName || offer.vendorCode}?`)) {
+    if (confirm('Are you sure you want to delete this price offer?')) {
       deleteMutation.mutate(offer.id);
     }
   };
@@ -348,7 +305,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
               <DollarSign className="h-8 w-8 text-gray-400" />
             </div>
             <p className="text-sm font-medium text-gray-700 mb-1">No price offers</p>
-            <p className="text-xs text-gray-500 mb-4">Add vendor price offers for VMI sync</p>
+            <p className="text-xs text-gray-500 mb-4">Add price offers for VMI sync</p>
             <DxButton
               text="Add Price Offer"
               icon="plus"
@@ -373,12 +330,8 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      {/* Vendor */}
+                      {/* Status badges */}
                       <div className="flex items-center gap-2 mb-2">
-                        <Building2 className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {offer.vendorName || offer.vendorCode || 'Unknown Vendor'}
-                        </span>
                         {isActive ? (
                           <Badge variant="success" dot className="text-xs">
                             Active
@@ -392,6 +345,11 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
                           <Badge variant="info" className="text-xs">
                             <RefreshCw className="h-3 w-3 mr-1" />
                             Synced
+                          </Badge>
+                        )}
+                        {offer.syncStatus === 'pending' && (
+                          <Badge variant="warning" className="text-xs">
+                            Pending Sync
                           </Badge>
                         )}
                       </div>
@@ -465,7 +423,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
         onHiding={handleCloseDialog}
         title={editingOffer ? 'Edit Price Offer' : 'Add Price Offer'}
         showCloseButton
-        width={500}
+        width={450}
         height="auto"
       >
         <div className="p-4 space-y-4">
@@ -475,23 +433,6 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
               <span className="text-sm">{formError}</span>
             </div>
           )}
-
-          {/* Vendor */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Vendor <span className="text-red-500">*</span>
-            </label>
-            <DxSelectBox
-              items={vendorOptions}
-              value={formData.vendorId}
-              onValueChange={(value) => updateFormData('vendorId', value)}
-              valueExpr="value"
-              displayExpr="label"
-              placeholder="Select vendor"
-              searchEnabled
-              searchExpr="label"
-            />
-          </div>
 
           {/* Prices */}
           <div className="grid grid-cols-2 gap-4">

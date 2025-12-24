@@ -2,7 +2,8 @@
  * VMI Price Offers API
  * Feature: 008-vmi-vendor-sync
  *
- * CRUD operations for managing VMI price offers for a specific item
+ * CRUD operations for managing VMI price offers for a specific item.
+ * Since this system IS the vendor, no vendor field is needed.
  */
 
 import { NextRequest } from 'next/server';
@@ -32,15 +33,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
 
       const priceOffersTable = getTableRef('VMIPriceOffers');
-      const vendorsTable = getTableRef('vendors');
 
       const offers = await executeDbOperation(async (db) => {
         return db
           .select({
             id: priceOffersTable.id,
-            vendorId: priceOffersTable.vendorId,
-            vendorName: vendorsTable.name,
-            vendorCode: vendorsTable.code,
             itemId: priceOffersTable.itemId,
             unitPrice: priceOffersTable.unitPrice,
             packPrice: priceOffersTable.packPrice,
@@ -55,7 +52,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             updatedAt: priceOffersTable.updatedAt,
           })
           .from(priceOffersTable)
-          .leftJoin(vendorsTable, eq(priceOffersTable.vendorId, vendorsTable.id))
           .where(eq(priceOffersTable.itemId, itemId))
           .orderBy(priceOffersTable.effectiveDate);
       });
@@ -86,12 +82,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
 
       const body = await request.json();
-      const { vendorId, unitPrice, packPrice, moq, leadTimeDays, effectiveDate, expiryDate } = body;
+      const { unitPrice, packPrice, moq, leadTimeDays, effectiveDate, expiryDate } = body;
 
       // Validate required fields
-      if (!vendorId) {
-        return errorResponse('Vendor is required');
-      }
       if (unitPrice === undefined || unitPrice === null || unitPrice <= 0) {
         return errorResponse('Unit price must be greater than 0');
       }
@@ -110,22 +103,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         return notFoundResponse('Item not found');
       }
 
-      // Verify vendor exists
-      const vendorsTable = getTableRef('vendors');
-      const vendor = await executeDbOperation(async (db) => {
-        const result = await db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId)).limit(1);
-        return result[0];
-      });
-
-      if (!vendor) {
-        return errorResponse('Vendor not found');
-      }
-
       const priceOffersTable = getTableRef('VMIPriceOffers');
       const now = dbDate();
 
       const newOffer = {
-        vendorId,
         itemId,
         unitPrice: unitPrice.toString(),
         packPrice: packPrice ? packPrice.toString() : null,
@@ -155,7 +136,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action: 'CREATE',
         tableName: 'vmi_price_offers',
         recordId: result.id,
-        newValue: { itemId, vendorId, unitPrice, effectiveDate },
+        newValue: { itemId, unitPrice, effectiveDate },
         ipAddress: getClientIP(request),
       });
 

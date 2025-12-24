@@ -2,7 +2,8 @@
  * VMI Price Offer Detail API
  * Feature: 008-vmi-vendor-sync
  *
- * GET/PUT/DELETE operations for a specific price offer
+ * GET/PUT/DELETE operations for a specific price offer.
+ * Since this system IS the vendor, no vendor field is needed.
  */
 
 import { NextRequest } from 'next/server';
@@ -32,15 +33,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
 
       const priceOffersTable = getTableRef('VMIPriceOffers');
-      const vendorsTable = getTableRef('vendors');
 
       const offer = await executeDbOperation(async (db) => {
         const result = await db
           .select({
             id: priceOffersTable.id,
-            vendorId: priceOffersTable.vendorId,
-            vendorName: vendorsTable.name,
-            vendorCode: vendorsTable.code,
             itemId: priceOffersTable.itemId,
             unitPrice: priceOffersTable.unitPrice,
             packPrice: priceOffersTable.packPrice,
@@ -55,7 +52,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             updatedAt: priceOffersTable.updatedAt,
           })
           .from(priceOffersTable)
-          .leftJoin(vendorsTable, eq(priceOffersTable.vendorId, vendorsTable.id))
           .where(
             and(
               eq(priceOffersTable.id, priceOfferId),
@@ -123,20 +119,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         updatedAt: dbDate(),
         syncStatus: 'pending', // Mark as pending since price changed
       };
-
-      // Update allowed fields
-      if (body.vendorId !== undefined) {
-        // Verify vendor exists
-        const vendorsTable = getTableRef('vendors');
-        const vendor = await executeDbOperation(async (db) => {
-          const result = await db.select().from(vendorsTable).where(eq(vendorsTable.id, body.vendorId)).limit(1);
-          return result[0];
-        });
-        if (!vendor) {
-          return errorResponse('Vendor not found');
-        }
-        updateData.vendorId = body.vendorId;
-      }
 
       if (body.unitPrice !== undefined) {
         if (body.unitPrice <= 0) {
@@ -243,7 +225,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         action: 'DELETE',
         tableName: 'vmi_price_offers',
         recordId: priceOfferId,
-        oldValue: { itemId, vendorId: existing.vendorId, unitPrice: existing.unitPrice },
+        oldValue: { itemId, unitPrice: existing.unitPrice },
         ipAddress: getClientIP(request),
       });
 
