@@ -128,7 +128,7 @@ export default function BOMDashboardPage() {
   }) || [];
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-full overflow-x-hidden">
         {/* Header */}
         <ResponsivePageHeader
           title="Bill of Materials (BOM)"
@@ -292,9 +292,9 @@ export default function BOMDashboardPage() {
         </div>
 
         {/* Top Products & Recent BOMs Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 [&>*]:min-w-0">
           {/* Top Products */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-purple-50 rounded-lg">
@@ -307,18 +307,18 @@ export default function BOMDashboardPage() {
               {dashboard?.topProducts?.slice(0, 6).map((product, index) => (
                 <div
                   key={product.productId}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-sm font-medium">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                    <div className="w-7 h-7 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
                       {index + 1}
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{product.productName}</p>
+                    <div className="min-w-0 flex-1 overflow-hidden max-w-[300px]">
+                      <p className="font-medium text-gray-900 text-sm truncate" title={product.productName}>{product.productName}</p>
                       <p className="text-xs text-gray-500 font-mono">{product.productCode}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0 whitespace-nowrap ml-auto">
                     <p className="font-semibold text-gray-900">{product.bomCount} BOMs</p>
                     <p className="text-xs text-green-600">{product.activeBOMs} active</p>
                   </div>
@@ -333,7 +333,7 @@ export default function BOMDashboardPage() {
           </div>
 
           {/* Recent BOMs */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-amber-50 rounded-lg">
@@ -347,19 +347,19 @@ export default function BOMDashboardPage() {
                 <div
                   key={bom.id}
                   onClick={() => router.push(`/production/bom/${bom.id}`)}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
+                  className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group overflow-hidden"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-1 h-10 rounded-full ${statusConfig[bom.status as keyof typeof statusConfig]?.borderColor || 'border-gray-300'} bg-current opacity-60`} />
-                    <div className="min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                    <div className={`w-1 h-10 rounded-full flex-shrink-0 ${statusConfig[bom.status as keyof typeof statusConfig]?.borderColor || 'border-gray-300'} bg-current opacity-60`} />
+                    <div className="min-w-0 flex-1 overflow-hidden max-w-[280px]">
                       <div className="flex items-center gap-2">
                         <p className="font-mono text-sm font-medium text-gray-900">{bom.code}</p>
                         <span className="text-xs text-gray-400">v{bom.version}</span>
                       </div>
-                      <p className="text-xs text-gray-500 truncate">{bom.productName}</p>
+                      <p className="text-xs text-gray-500 truncate" title={bom.productName}>{bom.productName}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-shrink-0 whitespace-nowrap ml-auto">
                     <div className="text-right">
                       {renderStatusBadge(bom.status)}
                       <p className="text-xs text-gray-400 mt-1">{bom.materialCount} materials</p>
@@ -405,7 +405,7 @@ export default function BOMDashboardPage() {
         )}
 
         {/* BOM List Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full min-w-0">
           {/* Tabs Header */}
           <div className="border-b border-gray-100 px-5 pt-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -451,7 +451,7 @@ export default function BOMDashboardPage() {
           </div>
 
           {/* DataGrid */}
-          <div className="p-4 overflow-x-auto">
+          <div className="p-4 overflow-hidden">
             <DxDataGrid
               dataSource={filteredBOMs}
               keyExpr="id"
@@ -460,8 +460,8 @@ export default function BOMDashboardPage() {
               loading={bomLoading}
               height={400}
               width="100%"
-              columnAutoWidth
               virtualScrolling
+              wordWrapEnabled={false}
               onRowClick={(e) => {
                 if (e.data?.id) {
                   router.push(`/production/bom/${e.data.id}`);
@@ -479,16 +479,32 @@ export default function BOMDashboardPage() {
                   <span className="font-mono font-medium text-emerald-700">{cell.value}</span>
                 )}
               />
-              <DxColumn dataField="name" caption="BOM Name" />
+              <DxColumn
+                dataField="name"
+                caption="BOM Name"
+                width={200}
+                cssClass="dx-cell-truncate"
+                cellRender={(cell) => (
+                  <div className="truncate max-w-[180px]" title={cell.value}>{cell.value}</div>
+                )}
+              />
               <DxColumn
                 dataField="productCode"
                 caption="Product"
-                width={100}
+                width={90}
                 cellRender={(cell) => (
                   <span className="font-mono text-gray-600">{cell.value}</span>
                 )}
               />
-              <DxColumn dataField="productName" caption="Product Name" />
+              <DxColumn
+                dataField="productName"
+                caption="Product Name"
+                width={180}
+                cssClass="dx-cell-truncate"
+                cellRender={(cell) => (
+                  <div className="truncate max-w-[160px]" title={cell.value}>{cell.value}</div>
+                )}
+              />
               <DxColumn
                 dataField="standardBatchSize"
                 caption="Batch Size"
