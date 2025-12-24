@@ -14,6 +14,15 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
+import { ClipboardCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+interface LineClearanceStatus {
+  required: boolean;
+  status: 'not_started' | 'pending' | 'performed' | 'verified' | 'rejected';
+  canStartProduction: boolean;
+  message: string;
+}
 
 interface WorkOrderDetail {
   workOrder: {
@@ -35,6 +44,8 @@ interface WorkOrderDetail {
     notes: string;
     createdAt: string;
     updatedAt: string;
+    lineClearanceRequired?: boolean;
+    lineClearanceStatus?: string;
   };
   materials: Array<{
     id: number;
@@ -136,6 +147,9 @@ export default function WorkOrderDetailPage() {
   const [testNotes, setTestNotes] = useState('');
   const [addingQCTest, setAddingQCTest] = useState(false);
 
+  // Line Clearance State (FR-062)
+  const [lineClearanceStatus, setLineClearanceStatus] = useState<LineClearanceStatus | null>(null);
+
   const tabs: DxTabItem[] = [
     { text: 'Overview', icon: 'info' },
     { text: 'Materials', icon: 'box' },
@@ -145,6 +159,7 @@ export default function WorkOrderDetailPage() {
 
   useEffect(() => {
     fetchWorkOrderDetail();
+    fetchLineClearanceStatus();
   }, [params.id]);
 
   useEffect(() => {
@@ -154,6 +169,18 @@ export default function WorkOrderDetailPage() {
       setLots([]);
     }
   }, [selectedItem]);
+
+  const fetchLineClearanceStatus = async () => {
+    try {
+      const response = await fetch(`/api/production/work-orders/${params.id}/line-clearance`);
+      const result = await response.json();
+      if (result.success) {
+        setLineClearanceStatus(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch line clearance status:', error);
+    }
+  };
 
   const fetchWorkOrderDetail = async () => {
     try {
@@ -258,6 +285,17 @@ export default function WorkOrderDetailPage() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    // FR-062: Check line clearance before starting production
+    if (newStatus === 'in_progress') {
+      if (lineClearanceStatus?.required && !lineClearanceStatus?.canStartProduction) {
+        toast.error(
+          `Cannot start production: ${lineClearanceStatus.message}. ` +
+          `Please complete line clearance first.`
+        );
+        return;
+      }
+    }
+
     try {
       const response = await fetch(`/api/production/work-orders/${params.id}/status`, {
         method: 'PUT',
@@ -266,10 +304,15 @@ export default function WorkOrderDetailPage() {
       });
       const result = await response.json();
       if (result.success) {
+        toast.success(`Work order status updated to ${newStatus}`);
         fetchWorkOrderDetail();
+        fetchLineClearanceStatus();
+      } else {
+        toast.error(result.error || 'Failed to update status');
       }
     } catch (error) {
       console.error('Failed to update status:', error);
+      toast.error('Failed to update status');
     }
   };
 
@@ -443,11 +486,22 @@ export default function WorkOrderDetailPage() {
             <p className="text-gray-600 mt-1">Batch: {workOrder.batchNumber || 'N/A'}</p>
           </div>
           <div className="flex gap-2">
+            {/* Line Clearance Button (FR-062) - Show when in released status */}
+            {workOrder.status === 'released' && lineClearanceStatus?.required && (
+              <DxButton
+                text="Line Clearance"
+                icon="check"
+                type={lineClearanceStatus?.canStartProduction ? 'success' : 'danger'}
+                stylingMode={lineClearanceStatus?.canStartProduction ? 'outlined' : 'contained'}
+                onClick={() => router.push(`/production/line-clearance?workOrderId=${workOrder.id}`)}
+              />
+            )}
             {nextStatus && (
               <DxButton
                 text={`Advance to ${getStatusLabel(nextStatus)}`}
                 type="default"
                 onClick={() => handleStatusChange(nextStatus)}
+                disabled={nextStatus === 'in_progress' && lineClearanceStatus?.required && !lineClearanceStatus?.canStartProduction}
               />
             )}
             <DxButton
@@ -512,6 +566,40 @@ export default function WorkOrderDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Line Clearance Status Card (FR-062) */}
+        {lineClearanceStatus?.required && workOrder.status === 'released' && (
+          <Card className={`border-2 ${lineClearanceStatus.canStartProduction ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${lineClearanceStatus.canStartProduction ? 'bg-green-100' : 'bg-amber-100'}`}>
+                    {lineClearanceStatus.canStartProduction ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <ClipboardCheck className="h-5 w-5 text-amber-600" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className={`font-medium ${lineClearanceStatus.canStartProduction ? 'text-green-800' : 'text-amber-800'}`}>
+                      Line Clearance {lineClearanceStatus.canStartProduction ? 'Complete' : 'Required'}
+                    </h3>
+                    <p className={`text-sm ${lineClearanceStatus.canStartProduction ? 'text-green-600' : 'text-amber-600'}`}>
+                      {lineClearanceStatus.message}
+                    </p>
+                  </div>
+                </div>
+                {!lineClearanceStatus.canStartProduction && (
+                  <DxButton
+                    text="Complete Line Clearance"
+                    type="default"
+                    onClick={() => router.push(`/production/line-clearance?workOrderId=${workOrder.id}`)}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabs */}
         <DxTabs

@@ -160,16 +160,16 @@
 
 ### Implementation for User Story 13
 
-- [ ] T067 [US13] Create line-clearance.service.ts in src/lib/services/ with createLineClearance, verifyLineClearance, checkLineClearanceRequired functions
-- [ ] T068 [US13] Update production.service.ts to block work order start if line clearance not complete
-- [ ] T069 [US13] Create /api/production/work-orders/[workOrderId]/line-clearance/route.ts for GET and POST
-- [ ] T070 [US13] Create /api/production/work-orders/[workOrderId]/line-clearance/verify/route.ts with e-signature
-- [ ] T071 [US13] Create ElectronicSignatureDialog component in src/components/shared/electronic-signature-dialog.tsx
-- [ ] T072 [US13] Create line-clearance-form.tsx component in src/components/production/ with checklist items
-- [ ] T073 [US13] Create line clearance page at src/app/production/line-clearance/page.tsx for work order line clearance
-- [ ] T074 [US13] Update work order detail page to show line clearance status and block production start in src/app/production/work-orders/[id]/page.tsx
-- [ ] T075 [US13] Create integration test for line-clearance-service in tests/integration/services/line-clearance-service-real.test.ts
-- [ ] T076 [US13] Create UI test for line clearance workflow in tests/e2e/line-clearance.test.tsx
+- [x] T067 [US13] Create line-clearance.service.ts in src/lib/services/ with createLineClearance, verifyLineClearance, checkLineClearanceRequired functions
+- [x] T068 [US13] Update production.service.ts to block work order start if line clearance not complete
+- [x] T069 [US13] Create /api/production/work-orders/[workOrderId]/line-clearance/route.ts for GET and POST
+- [x] T070 [US13] Create /api/production/work-orders/[workOrderId]/line-clearance/verify/route.ts with e-signature
+- [x] T071 [US13] Create ElectronicSignatureDialog component in src/components/shared/ElectronicSignatureDialog.tsx
+- [x] T072 [US13] Create line-clearance-form.tsx component in src/components/production/ with checklist items
+- [x] T073 [US13] Create line clearance page at src/app/production/line-clearance/page.tsx for work order line clearance
+- [x] T074 [US13] Update work order detail page to show line clearance status and block production start in src/app/production/work-orders/[id]/page.tsx
+- [x] T075 [US13] Create integration test for line-clearance-service in tests/integration/services/line-clearance-service.test.ts (12 tests)
+- [x] T076 [US13] Create UI test for line clearance workflow in tests/e2e/line-clearance.test.tsx (39 tests)
 
 **Checkpoint**: Line clearance enforced, production blocked until dual verification complete with e-signatures
 

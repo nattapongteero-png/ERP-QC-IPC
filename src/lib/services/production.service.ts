@@ -24,6 +24,7 @@ import {
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, issueMaterial, receiveMaterial } from './inventory.service';
+import { canStartProduction } from './line-clearance.service';
 
 // Types
 export interface BOMExplosionResult {
@@ -351,6 +352,17 @@ export async function updateWorkOrderStatus(
     throw new Error(
       `Cannot transition from ${currentStatus} to ${newStatus}. Allowed: ${workflow.canTransitionTo.join(', ')}`
     );
+  }
+
+  // FR-062: Check line clearance before starting production
+  if (newStatus === 'in_progress') {
+    const productionCheck = await canStartProduction(workOrderId);
+    if (!productionCheck.allowed) {
+      throw new Error(
+        `Cannot start production: ${productionCheck.reason}. ` +
+        `Line clearance status: ${productionCheck.lineClearanceStatus.status}`
+      );
+    }
   }
 
   // Update status
