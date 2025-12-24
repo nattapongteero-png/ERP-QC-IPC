@@ -67,6 +67,8 @@ interface DocumentAttachmentProps {
 
 The following module names are supported:
 
+### Quality/GMP Modules
+
 | Module Name | Description |
 |------------|-------------|
 | `capa` | Corrective and Preventive Actions |
@@ -84,6 +86,19 @@ The following module names are supported:
 | `pqr` | Product Quality Reviews |
 | `training` | Training Records |
 | `health_record` | Employee Health Records |
+
+### HR Modules
+
+| Module Name | Description |
+|------------|-------------|
+| `employee` | Employee Records (ID documents, contracts, photos) |
+| `training_course` | Training Course Materials |
+| `training_session` | Training Session Documents |
+| `authorization` | Personnel Authorization Records |
+| `delegation` | Authority Delegation Documents |
+| `job_description` | Job Description Documents |
+| `position` | Position-related Documents |
+| `org_unit` | Organization Unit Documents |
 
 ---
 
@@ -122,6 +137,8 @@ Other file types will trigger a download instead.
 
 Available categories for organizing attachments:
 
+### Quality/GMP Categories
+
 | Category | Thai Label | Description |
 |----------|-----------|-------------|
 | `evidence` | หลักฐาน | Evidence documents |
@@ -134,6 +151,18 @@ Available categories for organizing attachments:
 | `lab_result` | ผลห้องปฏิบัติการ | Laboratory results |
 | `certificate` | ใบรับรอง | Certificates |
 | `specification` | สเปค | Specifications |
+
+### HR Categories
+
+| Category | Thai Label | Description |
+|----------|-----------|-------------|
+| `id_document` | เอกสารประจำตัว | ID cards, passports |
+| `contract` | สัญญา | Employment contracts |
+| `qualification` | คุณวุฒิ | Degree certificates, transcripts |
+| `resume` | ประวัติ | Resumes/CVs |
+| `medical_certificate` | ใบรับรองแพทย์ | Medical certificates |
+| `training_material` | เอกสารฝึกอบรม | Training materials |
+| `authorization_doc` | เอกสารอนุมัติ | Authorization documents |
 | `other` | อื่นๆ | Other documents |
 
 ---

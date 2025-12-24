@@ -45,6 +45,7 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 // Module names that can have attachments
 export const VALID_MODULES = [
+  // Quality/GMP modules
   'capa',
   'deviation',
   'complaint',
@@ -60,12 +61,22 @@ export const VALID_MODULES = [
   'pqr',
   'training',
   'health_record',
+  // HR modules
+  'employee',
+  'training_course',
+  'training_session',
+  'authorization',
+  'delegation',
+  'job_description',
+  'position',
+  'org_unit',
 ] as const;
 
 export type ModuleName = (typeof VALID_MODULES)[number];
 
 // Attachment category options
 export const ATTACHMENT_CATEGORIES = [
+  // Quality/GMP categories
   'evidence',
   'report',
   'photo',
@@ -76,6 +87,14 @@ export const ATTACHMENT_CATEGORIES = [
   'lab_result',
   'certificate',
   'specification',
+  // HR categories
+  'id_document',
+  'contract',
+  'qualification',
+  'resume',
+  'medical_certificate',
+  'training_material',
+  'authorization_doc',
   'other',
 ] as const;
 

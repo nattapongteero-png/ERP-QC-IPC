@@ -87,6 +87,7 @@ function formatDate(dateStr: string): string {
 }
 
 const categoryLabels: Record<string, string> = {
+  // Quality/GMP categories
   evidence: 'หลักฐาน',
   report: 'รายงาน',
   photo: 'รูปภาพ',
@@ -97,6 +98,14 @@ const categoryLabels: Record<string, string> = {
   lab_result: 'ผลห้องปฏิบัติการ',
   certificate: 'ใบรับรอง',
   specification: 'สเปค',
+  // HR categories
+  id_document: 'เอกสารประจำตัว',
+  contract: 'สัญญา',
+  qualification: 'คุณวุฒิ',
+  resume: 'ประวัติ',
+  medical_certificate: 'ใบรับรองแพทย์',
+  training_material: 'เอกสารฝึกอบรม',
+  authorization_doc: 'เอกสารอนุมัติ',
   other: 'อื่นๆ',
 };
 
