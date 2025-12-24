@@ -1359,8 +1359,8 @@ export async function verifyFindingClosure(
     };
   }
 
-  // CAPA must be 'closed' to allow finding closure
-  if (capa.status === 'closed') {
+  // CAPA must be 'closed' or verified 'effective' to allow finding closure
+  if (capa.status === 'closed' || capa.status === 'effective') {
     return {
       canClose: true,
       capaStatus: capa.status,
@@ -1369,7 +1369,7 @@ export async function verifyFindingClosure(
 
   return {
     canClose: false,
-    reason: `CAPA status is '${capa.status}' - must be 'closed'`,
+    reason: `CAPA status is '${capa.status}' - must be 'closed' or 'effective'`,
     capaStatus: capa.status,
   };
 }

@@ -113,6 +113,13 @@ const categoryLabels: Record<string, string> = {
   coa: 'ใบ COA',
   vendor_qualification: 'คุณสมบัติผู้ขาย',
   purchase_contract: 'สัญญาซื้อขาย',
+  // Sales categories
+  sales_quotation: 'ใบเสนอราคาขาย',
+  sales_invoice: 'ใบกำกับภาษี',
+  receipt: 'ใบเสร็จรับเงิน',
+  shipping_doc: 'เอกสารจัดส่ง',
+  sales_contract: 'สัญญาขาย',
+  customer_po: 'ใบสั่งซื้อลูกค้า',
   other: 'อื่นๆ',
 };
 

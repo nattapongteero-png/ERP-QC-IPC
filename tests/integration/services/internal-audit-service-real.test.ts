@@ -384,7 +384,7 @@ describe('Internal Audit Service Real Integration Tests', () => {
         leadAuditorId: TEST_USER_IDS.LEAD_AUDITOR,
       }, TEST_USER_IDS.QA_MANAGER);
 
-      expect(audit.auditType).toBe('supplier');
+      expect(audit.auditType).toBe('external'); // Supplier audits are classified as 'external'
 
       await startAudit(audit.id, TEST_USER_IDS.LEAD_AUDITOR);
 

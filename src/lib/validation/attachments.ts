@@ -74,6 +74,10 @@ export const VALID_MODULES = [
   'purchase_order',
   'vendor',
   'goods_receiving',
+  // Sales modules
+  'sales_order',
+  'customer',
+  'sales_quotation',
 ] as const;
 
 export type ModuleName = (typeof VALID_MODULES)[number];
@@ -106,6 +110,13 @@ export const ATTACHMENT_CATEGORIES = [
   'coa',
   'vendor_qualification',
   'purchase_contract',
+  // Sales categories
+  'sales_quotation',
+  'sales_invoice',
+  'receipt',
+  'shipping_doc',
+  'sales_contract',
+  'customer_po',
   'other',
 ] as const;
 
