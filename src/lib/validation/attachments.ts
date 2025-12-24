@@ -78,6 +78,8 @@ export const VALID_MODULES = [
   'sales_order',
   'customer',
   'sales_quotation',
+  // Inventory modules (GMP Phase 2)
+  'inventory_lot',
 ] as const;
 
 export type ModuleName = (typeof VALID_MODULES)[number];
@@ -108,6 +110,7 @@ export const ATTACHMENT_CATEGORIES = [
   'invoice',
   'delivery_note',
   'coa',
+  'msds',
   'vendor_qualification',
   'purchase_contract',
   // Sales categories

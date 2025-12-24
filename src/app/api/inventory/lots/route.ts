@@ -117,6 +117,14 @@ export async function POST(request: NextRequest) {
         vendorId,
         poNumber,
         coaNumber,
+        // Phase 4: GMP Compliance fields (FR-055, FR-056)
+        manufacturerName,
+        manufacturerId,
+        importerName,
+        importerId,
+        countryOfOrigin,
+        retestDate,
+        retestIntervalMonths,
       } = body;
 
       if (!itemId || !lotNumber || !warehouseId || !quantity || !unit) {
@@ -129,6 +137,7 @@ export async function POST(request: NextRequest) {
       // Parse dates properly
       const parsedMfgDate = manufacturingDate ? dbDate(new Date(manufacturingDate)) : null;
       const parsedExpDate = expiryDate ? dbDate(new Date(expiryDate)) : null;
+      const parsedRetestDate = retestDate ? dbDate(new Date(retestDate)) : null;
 
       // Create lot with quarantine status
       const result = await executeDbOperation(async (db) => {
@@ -148,6 +157,15 @@ export async function POST(request: NextRequest) {
           vendorId: vendorId || null,
           poNumber: poNumber || null,
           coaNumber: coaNumber || null,
+          // Phase 4: GMP Compliance fields
+          manufacturerName: manufacturerName || null,
+          manufacturerId: manufacturerId || null,
+          importerName: importerName || null,
+          importerId: importerId || null,
+          countryOfOrigin: countryOfOrigin || null,
+          retestDate: parsedRetestDate,
+          retestIntervalMonths: retestIntervalMonths || null,
+          retestStatus: parsedRetestDate ? 'scheduled' : null,
           createdAt: dbDate(),
           updatedAt: dbDate(),
         });

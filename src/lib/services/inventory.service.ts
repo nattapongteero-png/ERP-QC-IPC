@@ -26,6 +26,38 @@ export interface LotAllocation {
   expiryDate: string | null;
 }
 
+// Phase 2: Material Receipt Extended Fields (FR-055, FR-056)
+export interface MaterialReceiptData {
+  itemId: number;
+  lotNumber: string;
+  quantity: number;
+  unit: string;
+  warehouseId: number;
+  expiryDate?: string | null;
+  vendorId?: number | null;
+  poNumber?: string | null;
+  manufacturingDate?: string | null;
+  // FR-055: Manufacturer/Importer fields
+  manufacturerName?: string | null;
+  manufacturerId?: number | null;
+  importerName?: string | null;
+  importerId?: number | null;
+  countryOfOrigin?: string | null;
+  // FR-056: Retest date tracking
+  retestDate?: string | null;
+  retestIntervalMonths?: number | null;
+}
+
+export interface RetestAlert {
+  lotId: number;
+  lotNumber: string;
+  itemCode: string;
+  itemName: string;
+  retestDate: string;
+  daysUntilRetest: number;
+  retestStatus: string;
+}
+
 export interface StockSummary {
   itemId: number;
   itemCode: string;
@@ -874,4 +906,451 @@ export async function transferInventory(
   });
 
   return { newLotId: newLot.id, transactionId: txn.id };
+}
+
+/**
+ * Extended Receive Material with Manufacturer/Importer fields (FR-055) and Retest tracking (FR-056)
+ * Phase 2: GMP Compliance Gap Analysis
+ */
+export async function receiveMaterialExtended(
+  data: MaterialReceiptData,
+  userId: number
+): Promise<number> {
+  const { lots, transactions } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  // Calculate retest status based on retest date
+  let retestStatus: string | null = null;
+  if (data.retestDate) {
+    const retestDateObj = new Date(data.retestDate);
+    const today = new Date();
+    const daysUntilRetest = Math.ceil((retestDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysUntilRetest < 0) {
+      retestStatus = 'overdue';
+    } else if (daysUntilRetest <= 30) {
+      retestStatus = 'pending';
+    } else {
+      retestStatus = 'scheduled';
+    }
+  }
+
+  // Create new lot in quarantine status with extended fields
+  const insertData: Record<string, unknown> = {
+    itemId: data.itemId,
+    lotNumber: data.lotNumber,
+    warehouseId: data.warehouseId,
+    quantity: data.quantity,
+    reservedQuantity: 0,
+    unit: data.unit,
+    status: 'quarantine', // Always start in quarantine
+    expiryDate: data.expiryDate || null,
+    manufacturingDate: data.manufacturingDate || null,
+    receivedDate: new Date().toISOString().split('T')[0],
+    vendorId: data.vendorId || null,
+    poNumber: data.poNumber || null,
+    // FR-055: Manufacturer/Importer fields
+    manufacturerName: data.manufacturerName || null,
+    manufacturerId: data.manufacturerId || null,
+    importerName: data.importerName || null,
+    importerId: data.importerId || null,
+    countryOfOrigin: data.countryOfOrigin || null,
+    // FR-056: Retest tracking
+    retestDate: data.retestDate || null,
+    retestIntervalMonths: data.retestIntervalMonths || null,
+    retestStatus,
+  };
+
+  const [newLot] = await database
+    .insert(lots)
+    .values(insertData)
+    .returning({ id: lots.id });
+
+  // Create transaction record
+  await database
+    .insert(transactions)
+    .values({
+      lotId: newLot.id,
+      transactionType: 'receive',
+      quantity: data.quantity,
+      unit: data.unit,
+      referenceType: 'PO',
+      referenceNumber: data.poNumber,
+      toWarehouseId: data.warehouseId,
+      performedBy: userId,
+    });
+
+  // Create audit log with extended fields
+  await createAuditLog({
+    userId,
+    action: 'RECEIVE',
+    tableName: 'inventory_lots',
+    recordId: newLot.id,
+    newValue: {
+      lotNumber: data.lotNumber,
+      quantity: data.quantity,
+      status: 'quarantine',
+      poNumber: data.poNumber,
+      manufacturerName: data.manufacturerName,
+      importerName: data.importerName,
+      countryOfOrigin: data.countryOfOrigin,
+      retestDate: data.retestDate,
+    },
+  });
+
+  return newLot.id;
+}
+
+/**
+ * Update lot with manufacturer/importer information (FR-055)
+ */
+export async function updateLotManufacturerInfo(
+  lotId: number,
+  manufacturerName: string | null,
+  manufacturerId: number | null,
+  importerName: string | null,
+  importerId: number | null,
+  countryOfOrigin: string | null,
+  userId: number
+): Promise<boolean> {
+  const { lots } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  // Get current lot
+  const [lot] = await database
+    .select()
+    .from(lots)
+    .where(eq(lots.id, lotId));
+
+  if (!lot) {
+    throw new Error(`Lot ${lotId} not found`);
+  }
+
+  const oldValue = {
+    manufacturerName: lot.manufacturerName,
+    manufacturerId: lot.manufacturerId,
+    importerName: lot.importerName,
+    importerId: lot.importerId,
+    countryOfOrigin: lot.countryOfOrigin,
+  };
+
+  await database
+    .update(lots)
+    .set({
+      manufacturerName,
+      manufacturerId,
+      importerName,
+      importerId,
+      countryOfOrigin,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(lots.id, lotId));
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'inventory_lots',
+    recordId: lotId,
+    oldValue,
+    newValue: {
+      manufacturerName,
+      manufacturerId,
+      importerName,
+      importerId,
+      countryOfOrigin,
+    },
+  });
+
+  return true;
+}
+
+/**
+ * Update lot retest tracking information (FR-056)
+ */
+export async function updateLotRetestInfo(
+  lotId: number,
+  retestDate: string | null,
+  retestIntervalMonths: number | null,
+  userId: number
+): Promise<boolean> {
+  const { lots } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  // Get current lot
+  const [lot] = await database
+    .select()
+    .from(lots)
+    .where(eq(lots.id, lotId));
+
+  if (!lot) {
+    throw new Error(`Lot ${lotId} not found`);
+  }
+
+  // Calculate retest status
+  let retestStatus: string | null = null;
+  if (retestDate) {
+    const retestDateObj = new Date(retestDate);
+    const today = new Date();
+    const daysUntilRetest = Math.ceil((retestDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysUntilRetest < 0) {
+      retestStatus = 'overdue';
+    } else if (daysUntilRetest <= 30) {
+      retestStatus = 'pending';
+    } else {
+      retestStatus = 'scheduled';
+    }
+  }
+
+  const oldValue = {
+    retestDate: lot.retestDate,
+    retestIntervalMonths: lot.retestIntervalMonths,
+    retestStatus: lot.retestStatus,
+  };
+
+  await database
+    .update(lots)
+    .set({
+      retestDate,
+      retestIntervalMonths,
+      retestStatus,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(lots.id, lotId));
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'inventory_lots',
+    recordId: lotId,
+    oldValue,
+    newValue: {
+      retestDate,
+      retestIntervalMonths,
+      retestStatus,
+    },
+  });
+
+  return true;
+}
+
+/**
+ * Record retest completion and schedule next retest (FR-056)
+ */
+export async function recordRetestCompletion(
+  lotId: number,
+  userId: number
+): Promise<{ nextRetestDate: string | null }> {
+  const { lots } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  // Get current lot
+  const [lot] = await database
+    .select()
+    .from(lots)
+    .where(eq(lots.id, lotId));
+
+  if (!lot) {
+    throw new Error(`Lot ${lotId} not found`);
+  }
+
+  const today = new Date();
+  let nextRetestDate: string | null = null;
+
+  // Calculate next retest date if interval is set
+  if (lot.retestIntervalMonths) {
+    const nextDate = new Date(today);
+    nextDate.setMonth(nextDate.getMonth() + lot.retestIntervalMonths);
+    nextRetestDate = nextDate.toISOString().split('T')[0];
+  }
+
+  await database
+    .update(lots)
+    .set({
+      lastRetestDate: today.toISOString().split('T')[0],
+      retestDate: nextRetestDate,
+      retestStatus: nextRetestDate ? 'scheduled' : 'completed',
+      updatedAt: today.toISOString(),
+    })
+    .where(eq(lots.id, lotId));
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    tableName: 'inventory_lots',
+    recordId: lotId,
+    oldValue: {
+      retestDate: lot.retestDate,
+      lastRetestDate: lot.lastRetestDate,
+    },
+    newValue: {
+      lastRetestDate: today.toISOString().split('T')[0],
+      retestDate: nextRetestDate,
+      retestStatus: nextRetestDate ? 'scheduled' : 'completed',
+    },
+  });
+
+  return { nextRetestDate };
+}
+
+/**
+ * Check retest alerts - lots that need retesting (FR-056, FR-061)
+ */
+export async function checkRetestAlerts(daysThreshold: number = 30): Promise<{
+  overdue: RetestAlert[];
+  upcoming: RetestAlert[];
+}> {
+  const { lots, items } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const todayStr = getTodayStr();
+  const todayForQuery = toQueryDate(todayStr);
+  const thresholdDate = new Date();
+  thresholdDate.setDate(thresholdDate.getDate() + daysThreshold);
+  const thresholdDateForQuery = toQueryDate(thresholdDate.toISOString().split('T')[0]);
+
+  // Get overdue retest lots
+  const overdueLots = await database
+    .select({
+      lotId: lots.id,
+      lotNumber: lots.lotNumber,
+      itemCode: items.code,
+      itemName: items.nameTh,
+      retestDate: lots.retestDate,
+      retestStatus: lots.retestStatus,
+    })
+    .from(lots)
+    .innerJoin(items, eq(lots.itemId, items.id))
+    .where(
+      and(
+        or(eq(lots.status, 'released'), eq(lots.status, 'quarantine')),
+        sql`${lots.retestDate} IS NOT NULL`,
+        sql`${lots.retestDate} < ${todayStr}`
+      )
+    )
+    .orderBy(asc(lots.retestDate));
+
+  // Get upcoming retest lots (within threshold days)
+  const upcomingLots = await database
+    .select({
+      lotId: lots.id,
+      lotNumber: lots.lotNumber,
+      itemCode: items.code,
+      itemName: items.nameTh,
+      retestDate: lots.retestDate,
+      retestStatus: lots.retestStatus,
+    })
+    .from(lots)
+    .innerJoin(items, eq(lots.itemId, items.id))
+    .where(
+      and(
+        or(eq(lots.status, 'released'), eq(lots.status, 'quarantine')),
+        sql`${lots.retestDate} IS NOT NULL`,
+        gte(lots.retestDate, todayForQuery),
+        lte(lots.retestDate, thresholdDateForQuery)
+      )
+    )
+    .orderBy(asc(lots.retestDate));
+
+  const today = new Date(todayStr);
+
+  return {
+    overdue: overdueLots.map((lot: any) => ({
+      lotId: lot.lotId,
+      lotNumber: lot.lotNumber,
+      itemCode: lot.itemCode,
+      itemName: lot.itemName || lot.itemCode,
+      retestDate: lot.retestDate || '',
+      daysUntilRetest: Math.ceil(
+        (new Date(lot.retestDate || '').getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      ),
+      retestStatus: lot.retestStatus || 'overdue',
+    })),
+    upcoming: upcomingLots.map((lot: any) => ({
+      lotId: lot.lotId,
+      lotNumber: lot.lotNumber,
+      itemCode: lot.itemCode,
+      itemName: lot.itemName || lot.itemCode,
+      retestDate: lot.retestDate || '',
+      daysUntilRetest: Math.ceil(
+        (new Date(lot.retestDate || '').getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      ),
+      retestStatus: lot.retestStatus || 'pending',
+    })),
+  };
+}
+
+/**
+ * Get lot details with all Phase 2 fields
+ */
+export async function getLotDetails(lotId: number): Promise<{
+  id: number;
+  lotNumber: string;
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  status: string;
+  expiryDate: string | null;
+  manufacturerName: string | null;
+  manufacturerId: number | null;
+  importerName: string | null;
+  importerId: number | null;
+  countryOfOrigin: string | null;
+  retestDate: string | null;
+  retestIntervalMonths: number | null;
+  lastRetestDate: string | null;
+  retestStatus: string | null;
+  vendorId: number | null;
+  poNumber: string | null;
+  coaNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
+} | null> {
+  const { lots, items } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const [lot] = await database
+    .select({
+      id: lots.id,
+      lotNumber: lots.lotNumber,
+      itemId: lots.itemId,
+      itemCode: items.code,
+      itemName: items.nameTh,
+      quantity: lots.quantity,
+      unit: lots.unit,
+      status: lots.status,
+      expiryDate: lots.expiryDate,
+      manufacturerName: lots.manufacturerName,
+      manufacturerId: lots.manufacturerId,
+      importerName: lots.importerName,
+      importerId: lots.importerId,
+      countryOfOrigin: lots.countryOfOrigin,
+      retestDate: lots.retestDate,
+      retestIntervalMonths: lots.retestIntervalMonths,
+      lastRetestDate: lots.lastRetestDate,
+      retestStatus: lots.retestStatus,
+      vendorId: lots.vendorId,
+      poNumber: lots.poNumber,
+      coaNumber: lots.coaNumber,
+      createdAt: lots.createdAt,
+      updatedAt: lots.updatedAt,
+    })
+    .from(lots)
+    .innerJoin(items, eq(lots.itemId, items.id))
+    .where(eq(lots.id, lotId));
+
+  if (!lot) return null;
+
+  return {
+    ...lot,
+    itemName: lot.itemName || lot.itemCode,
+  };
 }

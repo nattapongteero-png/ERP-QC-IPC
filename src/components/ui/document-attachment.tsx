@@ -111,6 +111,7 @@ const categoryLabels: Record<string, string> = {
   invoice: 'ใบแจ้งหนี้',
   delivery_note: 'ใบส่งของ',
   coa: 'ใบ COA',
+  msds: 'ใบ MSDS',
   vendor_qualification: 'คุณสมบัติผู้ขาย',
   purchase_contract: 'สัญญาซื้อขาย',
   // Sales categories

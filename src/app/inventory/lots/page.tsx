@@ -56,6 +56,14 @@ interface LotFormData {
   vendorId: number | null;
   cost: number;
   notes: string;
+  // Phase 4: GMP Compliance fields (FR-055, FR-056)
+  manufacturerName: string;
+  manufacturerId: number | null;
+  importerName: string;
+  importerId: number | null;
+  countryOfOrigin: string;
+  retestDate: string;
+  retestIntervalMonths: number | null;
 }
 
 interface WarehouseData {
@@ -197,6 +205,14 @@ export default function LotsPage() {
     vendorId: null,
     cost: 0,
     notes: '',
+    // Phase 4: GMP Compliance fields
+    manufacturerName: '',
+    manufacturerId: null,
+    importerName: '',
+    importerId: null,
+    countryOfOrigin: '',
+    retestDate: '',
+    retestIntervalMonths: null,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -402,6 +418,14 @@ export default function LotsPage() {
       vendorId: null,
       cost: 0,
       notes: '',
+      // Phase 4: GMP Compliance fields
+      manufacturerName: '',
+      manufacturerId: null,
+      importerName: '',
+      importerId: null,
+      countryOfOrigin: '',
+      retestDate: '',
+      retestIntervalMonths: null,
     });
     setFormErrors({});
     setSelectedItem(null);
@@ -992,6 +1016,77 @@ export default function LotsPage() {
               value={formData.vendorId?.toString() || ''}
               onValueChange={(v) => setFormData(prev => ({ ...prev, vendorId: v ? parseInt(v) : null }))}
             />
+          </div>
+
+          {/* Phase 4: GMP Compliance Fields (FR-055) */}
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Package className="h-4 w-4 text-blue-500" />
+              ข้อมูล GMP Compliance
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ชื่อผู้ผลิต (Manufacturer)
+                </label>
+                <DxTextBox
+                  value={formData.manufacturerName}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, manufacturerName: v }))}
+                  placeholder="ชื่อผู้ผลิต..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ชื่อผู้นำเข้า (Importer)
+                </label>
+                <DxTextBox
+                  value={formData.importerName}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, importerName: v }))}
+                  placeholder="ชื่อผู้นำเข้า..."
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ประเทศต้นกำเนิด
+                </label>
+                <DxTextBox
+                  value={formData.countryOfOrigin}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, countryOfOrigin: v }))}
+                  placeholder="ประเทศ..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  วันที่ต้อง Retest
+                </label>
+                <DxDateBox
+                  value={formData.retestDate || ''}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, retestDate: v }))}
+                  min={formData.receivedDate || undefined}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ระยะเวลา Retest (เดือน)
+                </label>
+                <input
+                  type="number"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  value={formData.retestIntervalMonths || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    retestIntervalMonths: e.target.value ? parseInt(e.target.value) : null
+                  }))}
+                  min="1"
+                  max="60"
+                  placeholder="12"
+                />
+              </div>
+            </div>
           </div>
 
           <div>
