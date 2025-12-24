@@ -39,6 +39,7 @@ import {
 import { TppSearchDialog, TppItem } from '@/components/ui/tpp-search-dialog';
 import { TtmtSearchDialog, TtmtItem } from '@/components/ui/ttmt-search-dialog';
 import { ItemImagesSection } from '@/components/ui/item-images-section';
+import { ItemPriceOffersSection } from '@/components/ui/item-price-offers-section';
 
 // ============================================================================
 // Types
@@ -928,6 +929,11 @@ export function ItemEditForm({
               {/* Item Images (only for editing) */}
               {isEditing && item?.id && (
                 <ItemImagesSection itemId={item.id} />
+              )}
+
+              {/* VMI Price Offers (only for editing finished goods with VMI enabled) */}
+              {isEditing && item?.id && formData.type === 'finished_goods' && formData.vmiSyncEnabled && (
+                <ItemPriceOffersSection itemId={item.id} />
               )}
 
               {/* Item Status */}
