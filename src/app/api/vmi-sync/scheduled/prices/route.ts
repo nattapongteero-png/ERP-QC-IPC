@@ -13,19 +13,27 @@ import { vmiSyncService, VmiSyncError } from '@/lib/services/vmi-sync.service';
  * POST /api/vmi-sync/scheduled/prices
  *
  * Scheduled prices sync (triggered by cron job)
+ * Supports both Vercel Cron and custom cron with secret
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify authorization - accept either Vercel cron or custom secret
+    const vercelCron = request.headers.get('x-vercel-cron');
     const cronSecret = request.headers.get('X-Cron-Secret');
     const expectedSecret = process.env.CRON_SECRET;
 
-    if (!expectedSecret || cronSecret !== expectedSecret) {
+    const isVercelCron = vercelCron === '1';
+    const isValidSecret = expectedSecret && cronSecret === expectedSecret;
+
+    if (!isVercelCron && !isValidSecret) {
+      console.log('[VMI Scheduled Sync] Unauthorized attempt - no valid cron header or secret');
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    console.log('[VMI Scheduled Sync] Prices sync triggered by', isVercelCron ? 'Vercel Cron' : 'Custom Cron');
 
     // Run scheduled sync
     const result = await vmiSyncService.runScheduledPricesSync();

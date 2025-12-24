@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useVmiAutoSync } from '@/hooks/use-vmi-auto-sync';
 
 interface User {
   id: number;
@@ -52,6 +53,9 @@ export function MainLayout({ children }: MainLayoutProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // VMI Auto Sync - runs every 15 minutes when user is authenticated
+  useVmiAutoSync({ enabled: !!user });
 
   const handleLogout = async () => {
     try {
