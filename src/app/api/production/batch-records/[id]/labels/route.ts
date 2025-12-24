@@ -18,11 +18,11 @@ import {
 } from '@/lib/services/label-verification.service';
 
 interface RouteContext {
-  params: Promise<{ batchRecordId: string }>;
+  params: Promise<{ id: string }>;
 }
 
 /**
- * GET /api/production/batch-records/[batchRecordId]/labels
+ * GET /api/production/batch-records/[id]/labels
  * Get all label verifications for a batch record
  */
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -35,8 +35,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { batchRecordId } = await context.params;
-    const batchRecordIdNum = parseInt(batchRecordId, 10);
+    const { id } = await context.params;
+    const batchRecordIdNum = parseInt(id, 10);
 
     if (isNaN(batchRecordIdNum)) {
       return NextResponse.json(
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 /**
- * POST /api/production/batch-records/[batchRecordId]/labels
+ * POST /api/production/batch-records/[id]/labels
  * Create a new label verification record
  */
 export async function POST(request: NextRequest, context: RouteContext) {
@@ -86,8 +86,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { batchRecordId } = await context.params;
-    const batchRecordIdNum = parseInt(batchRecordId, 10);
+    const { id } = await context.params;
+    const batchRecordIdNum = parseInt(id, 10);
 
     if (isNaN(batchRecordIdNum)) {
       return NextResponse.json(
