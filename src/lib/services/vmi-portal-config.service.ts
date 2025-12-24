@@ -15,7 +15,7 @@ import {
   type VmiPortalConfig,
   type NewVmiPortalConfig,
 } from '@/lib/db/schema';
-// API key is stored in plain text (configured via UI settings)
+import { encrypt, decrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
 import type {
   VmiPortalConfigInput,
   VmiPortalConfigUpdate,
@@ -154,9 +154,20 @@ export class VmiPortalConfigService {
     const [record] = await db.select().from(table).where(eq(table.id, id));
     if (!record) return null;
 
+    // Decrypt the API key - handle both encrypted and legacy plain text formats
+    let decryptedApiKey = '';
+    if (record.apiKeyEncrypted) {
+      if (isValidCiphertext(record.apiKeyEncrypted)) {
+        decryptedApiKey = decrypt(record.apiKeyEncrypted);
+      } else {
+        // Legacy plain text - use as-is
+        decryptedApiKey = record.apiKeyEncrypted;
+      }
+    }
+
     return {
       ...record,
-      decryptedApiKey: record.apiKeyEncrypted, // Stored in plain text
+      decryptedApiKey,
     };
   }
 
@@ -169,10 +180,22 @@ export class VmiPortalConfigService {
     const table = this.getTable();
 
     const records = await db.select().from(table).where(eq(table.isEnabled, true));
-    return records.map((record: any) => ({
-      ...record,
-      decryptedApiKey: record.apiKeyEncrypted, // Stored in plain text
-    }));
+    return records.map((record: any) => {
+      // Decrypt the API key - handle both encrypted and legacy plain text formats
+      let decryptedApiKey = '';
+      if (record.apiKeyEncrypted) {
+        if (isValidCiphertext(record.apiKeyEncrypted)) {
+          decryptedApiKey = decrypt(record.apiKeyEncrypted);
+        } else {
+          // Legacy plain text - use as-is
+          decryptedApiKey = record.apiKeyEncrypted;
+        }
+      }
+      return {
+        ...record,
+        decryptedApiKey,
+      };
+    });
   }
 
   /**
@@ -190,10 +213,13 @@ export class VmiPortalConfigService {
 
     const now = this.isSqlite ? new Date().toISOString() : new Date();
 
+    // Encrypt the API key before storing
+    const encryptedApiKey = input.apiKey ? encrypt(input.apiKey) : '';
+
     const newRecord: NewVmiPortalConfig = {
       name: input.name,
       portalUrl: input.portalUrl,
-      apiKeyEncrypted: input.apiKey, // Store API key directly (plain text)
+      apiKeyEncrypted: encryptedApiKey,
       vendorId: input.vendorId,
       isEnabled: input.isEnabled ?? true,
       syncInventoryEnabled: input.syncInventoryEnabled ?? true,
@@ -258,9 +284,9 @@ export class VmiPortalConfigService {
     if (input.orderPollingEnabled !== undefined) updateData.orderPollingEnabled = input.orderPollingEnabled;
     if (input.orderPollingInterval !== undefined) updateData.orderPollingInterval = input.orderPollingInterval;
 
-    // Store new API key if provided (plain text)
+    // Encrypt and store new API key if provided
     if (input.apiKey) {
-      updateData.apiKeyEncrypted = input.apiKey;
+      updateData.apiKeyEncrypted = encrypt(input.apiKey);
     }
 
     await db.update(table).set(updateData).where(eq(table.id, id));

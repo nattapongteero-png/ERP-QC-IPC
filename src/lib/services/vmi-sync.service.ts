@@ -18,7 +18,7 @@ import {
   mysqlVmiSyncHistory,
   type VmiSyncHistory,
 } from '@/lib/db/schema';
-import { decrypt } from '@/lib/crypto/encrypt';
+import { decrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
 import type {
   VmiSyncType,
   VmiSyncTriggerType,
@@ -140,6 +140,24 @@ export class VmiSyncService {
   private logError(message: string, error: unknown) {
     const timestamp = new Date().toISOString();
     console.error(`[VMI Sync] ${timestamp} - ERROR: ${message}`, error);
+  }
+
+  /**
+   * Decrypt API key with fallback to plain text for legacy data
+   */
+  private decryptApiKey(encryptedKey: string): string {
+    if (!encryptedKey) {
+      throw new Error('API key is empty');
+    }
+
+    // Check if it's properly encrypted format (iv:authTag:ciphertext)
+    if (isValidCiphertext(encryptedKey)) {
+      return decrypt(encryptedKey);
+    }
+
+    // Legacy plain text - use as-is
+    this.log('[decryptApiKey] Using legacy plain text API key');
+    return encryptedKey;
   }
 
   /**
@@ -298,7 +316,7 @@ export class VmiSyncService {
     this.log(`[sendInventoryToPortal] Portal URL: ${portal.portalUrl}`);
     this.log(`[sendInventoryToPortal] Vendor ID: ${portal.vendorId}`);
 
-    const apiKey = decrypt(portal.apiKeyEncrypted);
+    const apiKey = this.decryptApiKey(portal.apiKeyEncrypted);
     const errors: Array<{ itemId: number; itemCode?: string; error: string }> = [];
     let processed = 0;
     let failed = 0;
@@ -521,7 +539,7 @@ export class VmiSyncService {
   ): Promise<{ processed: number; failed: number; errors: Array<{ itemId: number; itemCode?: string; error: string }> }> {
     this.log(`[sendItemsToPortal] Starting with ${items.length} items to portal: ${portal.name}`);
 
-    const apiKey = decrypt(portal.apiKeyEncrypted);
+    const apiKey = this.decryptApiKey(portal.apiKeyEncrypted);
     const errors: Array<{ itemId: number; itemCode?: string; error: string }> = [];
     let processed = 0;
     let failed = 0;
@@ -725,7 +743,7 @@ export class VmiSyncService {
   ): Promise<{ processed: number; failed: number; errors: Array<{ itemId: number; itemCode?: string; error: string }> }> {
     this.log(`[sendPricesToPortal] Starting with ${items.length} items to portal: ${portal.name}`);
 
-    const apiKey = decrypt(portal.apiKeyEncrypted);
+    const apiKey = this.decryptApiKey(portal.apiKeyEncrypted);
     const errors: Array<{ itemId: number; itemCode?: string; error: string }> = [];
     let processed = 0;
     let failed = 0;
