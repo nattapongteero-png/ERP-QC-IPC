@@ -405,7 +405,7 @@ export default function BOMDashboardPage() {
         )}
 
         {/* BOM List Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full">
           {/* Tabs Header */}
           <div className="border-b border-gray-100 px-5 pt-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -451,13 +451,17 @@ export default function BOMDashboardPage() {
           </div>
 
           {/* DataGrid */}
-          <div className="p-4">
+          <div className="p-4 overflow-x-auto">
             <DxDataGrid
               dataSource={filteredBOMs}
               keyExpr="id"
               showBorders={false}
               rowAlternationEnabled
               loading={bomLoading}
+              height={400}
+              width="100%"
+              columnAutoWidth
+              virtualScrolling
               onRowClick={(e) => {
                 if (e.data?.id) {
                   router.push(`/production/bom/${e.data.id}`);
@@ -475,16 +479,16 @@ export default function BOMDashboardPage() {
                   <span className="font-mono font-medium text-emerald-700">{cell.value}</span>
                 )}
               />
-              <DxColumn dataField="name" caption="BOM Name" minWidth={180} />
+              <DxColumn dataField="name" caption="BOM Name" />
               <DxColumn
                 dataField="productCode"
                 caption="Product"
-                width={120}
+                width={100}
                 cellRender={(cell) => (
                   <span className="font-mono text-gray-600">{cell.value}</span>
                 )}
               />
-              <DxColumn dataField="productName" caption="Product Name" minWidth={150} />
+              <DxColumn dataField="productName" caption="Product Name" />
               <DxColumn
                 dataField="standardBatchSize"
                 caption="Batch Size"
