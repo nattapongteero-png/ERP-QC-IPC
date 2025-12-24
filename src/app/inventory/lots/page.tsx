@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -181,7 +181,8 @@ export default function LotsPage() {
   const [showModal, setShowModal] = useState(false);
   const [showQCModal, setShowQCModal] = useState(false);
   const [showTraceModal, setShowTraceModal] = useState(false);
-  const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
+  const [qcLot, setQcLot] = useState<Lot | null>(null);
+  const [traceLot, setTraceLot] = useState<Lot | null>(null);
   const [traceData, setTraceData] = useState<TraceData | null>(null);
   const [formData, setFormData] = useState<LotFormData>({
     lotNumber: '',
@@ -202,6 +203,9 @@ export default function LotsPage() {
   // Item search dialog state
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<SearchItem | null>(null);
+
+  // Ref to track pending fetch after modal closes (prevents DOM error during popup animation)
+  const pendingFetchRef = useRef(false);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -334,9 +338,10 @@ export default function LotsPage() {
 
       const data = await res.json();
       if (data.success) {
+        // Set flag to fetch lots after popup animation completes (prevents DOM removeChild error)
+        pendingFetchRef.current = true;
         setShowModal(false);
-        fetchLots();
-        // Note: resetForm() is called in onHidden callback after popup animation completes
+        // Note: fetchLots() and resetForm() are called in onHidden callback after popup animation completes
       }
     } catch {
       // Network errors handled by global error handler
@@ -344,10 +349,10 @@ export default function LotsPage() {
   };
 
   const handleQCAction = async (action: 'release' | 'reject') => {
-    if (!selectedLot) return;
+    if (!qcLot) return;
 
     try {
-      const res = await fetch(`/api/inventory/lots/${selectedLot.id}/status`, {
+      const res = await fetch(`/api/inventory/lots/${qcLot.id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -358,9 +363,11 @@ export default function LotsPage() {
 
       const data = await res.json();
       if (data.success) {
+        // Close modal and refresh list
         setShowQCModal(false);
-        fetchLots();
-        // Note: setSelectedLot(null) is called in onHidden callback after popup animation completes
+        setQcLot(null);
+        // Refresh lots list after modal closes
+        setTimeout(() => fetchLots(), 100);
       }
     } catch {
       // Network errors handled by global error handler
@@ -368,7 +375,7 @@ export default function LotsPage() {
   };
 
   const handleViewTrace = async (lot: Lot) => {
-    setSelectedLot(lot);
+    setTraceLot(lot);
     try {
       const res = await fetch(`/api/inventory/traceability?lotId=${lot.id}`);
       const data = await res.json();
@@ -595,7 +602,7 @@ export default function LotsPage() {
               stylingMode="text"
               onClick={(e) => {
                 e?.event?.stopPropagation();
-                setSelectedLot(cellInfo.data);
+                setQcLot(cellInfo.data);
                 setShowQCModal(true);
               }}
             />
@@ -649,7 +656,7 @@ export default function LotsPage() {
                 View Items
               </button>
               <button
-                onClick={() => setShowModal(true)}
+                onClick={() => { resetForm(); setShowModal(true); }}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
               >
                 <Plus className="h-4 w-4" />
@@ -761,7 +768,7 @@ export default function LotsPage() {
                 description="เริ่มต้นด้วยการรับ Lot ใหม่เข้าคลัง หรือลองเปลี่ยนตัวกรอง"
                 action={{
                   label: 'รับ Lot ใหม่',
-                  onClick: () => setShowModal(true),
+                  onClick: () => { resetForm(); setShowModal(true); },
                 }}
               />
             )}
@@ -773,7 +780,14 @@ export default function LotsPage() {
       <DxPopup
         visible={showModal}
         onVisibleChange={(v) => { if (!v) setShowModal(false); }}
-        onHidden={() => resetForm()}
+        onHidden={() => {
+          // Fetch lots after popup animation completes if a lot was created
+          // Use setTimeout to ensure DevExtreme has fully cleaned up the DOM before triggering React re-renders
+          if (pendingFetchRef.current) {
+            pendingFetchRef.current = false;
+            setTimeout(() => fetchLots(), 0);
+          }
+        }}
         title="รับ Lot ใหม่"
         width={800}
         height="auto"
@@ -1001,22 +1015,26 @@ export default function LotsPage() {
       </DxPopup>
 
       {/* QC Action Modal */}
-      <DxPopup
-        visible={showQCModal}
-        onVisibleChange={(v) => { if (!v) setShowQCModal(false); }}
-        onHidden={() => setSelectedLot(null)}
-        title="ตัดสินใจ QC"
-        width={500}
-        height="auto"
-      >
-        {selectedLot && (
+      {showQCModal && qcLot && (
+        <DxPopup
+          visible={showQCModal}
+          onVisibleChange={(v) => {
+            if (!v) {
+              setShowQCModal(false);
+              setQcLot(null);
+            }
+          }}
+          title="ตัดสินใจ QC"
+          width={500}
+          height="auto"
+        >
           <div className="p-6">
             <div className="flex items-center gap-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-6">
               <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
-                <p className="font-bold text-yellow-800">{selectedLot.lotNumber}</p>
+                <p className="font-bold text-yellow-800">{qcLot.lotNumber}</p>
                 <p className="text-sm text-yellow-600">รอการตัดสินใจ QC</p>
               </div>
             </div>
@@ -1024,19 +1042,19 @@ export default function LotsPage() {
             <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between">
                 <span className="text-gray-600">สินค้า:</span>
-                <span className="font-medium">{selectedLot.itemCode} - {selectedLot.itemName}</span>
+                <span className="font-medium">{qcLot.itemCode} - {qcLot.itemName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">จำนวน:</span>
-                <span className="font-medium">{Number(selectedLot.quantity)?.toLocaleString()} {selectedLot.unit}</span>
+                <span className="font-medium">{Number(qcLot.quantity)?.toLocaleString()} {qcLot.unit}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">วันหมดอายุ:</span>
-                <span className="font-medium">{formatDate(selectedLot.expiryDate)}</span>
+                <span className="font-medium">{formatDate(qcLot.expiryDate)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">มูลค่า:</span>
-                <span className="font-medium text-emerald-600">{formatCurrency((Number(selectedLot.quantity) || 0) * (Number(selectedLot.cost) || 0))}</span>
+                <span className="font-medium text-emerald-600">{formatCurrency((Number(qcLot.quantity) || 0) * (Number(qcLot.cost) || 0))}</span>
               </div>
             </div>
 
@@ -1053,20 +1071,20 @@ export default function LotsPage() {
               <DxButton text="ปล่อย" icon="check" type="success" onClick={() => handleQCAction('release')} />
             </div>
           </div>
-        )}
-      </DxPopup>
+        </DxPopup>
+      )}
 
       {/* Traceability Modal */}
       <DxPopup
         visible={showTraceModal}
         onVisibleChange={(v) => { if (!v) setShowTraceModal(false); }}
-        onHidden={() => { setSelectedLot(null); setTraceData(null); }}
+        onHidden={() => { setTimeout(() => { setTraceLot(null); setTraceData(null); }, 0); }}
         title="Lot Traceability"
         width={700}
         height="auto"
         maxHeight="90vh"
       >
-        {selectedLot && traceData && (
+        {traceLot && traceData && (
           <div className="p-6">
             {/* Current Lot Info */}
             <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
@@ -1075,7 +1093,7 @@ export default function LotsPage() {
                   <Boxes className="h-5 w-5 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-emerald-800">{selectedLot.lotNumber}</h3>
+                  <h3 className="font-bold text-emerald-800">{traceLot.lotNumber}</h3>
                   <p className="text-sm text-emerald-600">Lot ปัจจุบัน</p>
                 </div>
               </div>
@@ -1083,22 +1101,22 @@ export default function LotsPage() {
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">สินค้า:</span>
-                  <span className="font-medium">{selectedLot.itemCode}</span>
+                  <span className="font-medium">{traceLot.itemCode}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">จำนวน:</span>
-                  <span className="font-medium">{Number(selectedLot.quantity)?.toLocaleString()} {selectedLot.unit}</span>
+                  <span className="font-medium">{Number(traceLot.quantity)?.toLocaleString()} {traceLot.unit}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">สถานะ:</span>
-                  <Badge variant={getStatusVariant(selectedLot.status)} size="sm">{getStatusLabel(selectedLot.status)}</Badge>
+                  <Badge variant={getStatusVariant(traceLot.status)} size="sm">{getStatusLabel(traceLot.status)}</Badge>
                 </div>
                 <div className="flex items-center gap-2">
                   <CalendarClock className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">หมดอายุ:</span>
-                  <span className="font-medium">{formatDate(selectedLot.expiryDate)}</span>
+                  <span className="font-medium">{formatDate(traceLot.expiryDate)}</span>
                 </div>
               </div>
             </div>
