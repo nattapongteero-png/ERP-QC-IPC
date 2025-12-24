@@ -198,28 +198,6 @@ const mapTtmtUnitToUnit = (dispensingUnit: string): string => {
   return unitMap[dispensingUnit] || 'pcs';
 };
 
-// Map TTMT dosage form to category
-const mapTtmtDosageToCategory = (dosageForm: string): string => {
-  const categoryMap: Record<string, string> = {
-    'ยาแคปซูลแข็ง': 'Capsule',
-    'ยาแคปซูล': 'Capsule',
-    'ยาเม็ด': 'Tablet',
-    'ยาผง': 'Powder',
-    'ยาน้ำ': 'Liquid',
-    'ยาครีม': 'Cream',
-    'ยาขี้ผึ้ง': 'Ointment',
-    'ยาลูกกลอน': 'Pill',
-    'ชาสมุนไพร': 'Tea',
-  };
-  // Check if any key is contained in the dosageForm
-  for (const [key, value] of Object.entries(categoryMap)) {
-    if (dosageForm.includes(key) || key.includes(dosageForm)) {
-      return value;
-    }
-  }
-  return '';
-};
-
 // ============================================================================
 // Section Card Component
 // ============================================================================
@@ -475,7 +453,6 @@ export function ItemEditForm({
   // Handler for TTMT quick-fill (fills entire form from TTMT product)
   const handleTtmtQuickFill = React.useCallback((ttmtItem: TtmtItem) => {
     const mappedUnit = mapTtmtUnitToUnit(ttmtItem.dispensingUnit);
-    const mappedCategory = mapTtmtDosageToCategory(ttmtItem.dosageForm);
 
     setFormData(prev => ({
       ...prev,
@@ -484,8 +461,8 @@ export function ItemEditForm({
       // Use FSN as Thai name, trade name as English name
       nameTh: ttmtItem.fsn || ttmtItem.tradeName || '',
       nameEn: ttmtItem.tradeName || '',
-      // Map category from dosage form
-      category: mappedCategory || prev.category,
+      // Always set category to "Finished Product" for TTMT products
+      category: 'finished',
       // Map unit from dispensing unit
       primaryUnit: mappedUnit,
       // Set TTMT codes
