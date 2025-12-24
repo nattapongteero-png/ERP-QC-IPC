@@ -1,247 +1,241 @@
-# Tasks: GMP Compliance Gap Analysis - Integration Tests
+# Tasks: GMP Compliance Gap Analysis - Phase 2 (External Auditor Requirements)
 
 **Input**: Design documents from `/specs/009-gmp-compliance-gap-analysis/`
-**Prerequisites**: plan.md (required), research.md, quickstart.md
-**Branch**: `009-gmp-compliance-gap-analysis`
-**Date**: 2025-12-23
-
-**Scope**: Comprehensive integration tests using real SQLite for all service modules. CAPA service already has tests - 15 additional modules need coverage.
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/phase2-api.yaml
+**Feature Branch**: `009-gmp-compliance-gap-analysis`
+**Scope**: FR-047 to FR-074 (External Auditor Requirements)
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story/module group this task belongs to
-- Include exact file paths in descriptions
+- **[Story]**: Which user story this task belongs to (US11-US15 from spec.md)
+
+## User Story Mapping
+
+| Story | Title | Priority | FR Range |
+|-------|-------|----------|----------|
+| US11 | External Auditor Reviews Dashboard KPIs | P1 | FR-047 to FR-054 |
+| US12 | Warehouse Clerk Records Complete Material Receipt | P1 | FR-055 to FR-061 |
+| US13 | Production Operator Completes Line Clearance | P1 | FR-062, FR-071-074 |
+| US14 | Production Operator Verifies Labels | P1 | FR-064, FR-065, FR-071-074 |
+| US15 | QC Analyst Records Disposition Decision | P1 | FR-067 to FR-070, FR-071-074 |
 
 ---
 
-## Phase 0: Schema Alignment (Pre-requisite)
+## Phase 1: Setup
 
-**Purpose**: Fix service-to-schema mismatches blocking integration tests
+**Purpose**: Project structure verification and dependency setup
 
-**WARNING**: These tasks MUST complete before skipped tasks can be un-skipped
-
-- [x] T000A [P] Fix quality.service.ts column name mismatches (uses different column names than schema)
-- [x] T000B [P] Fix sales.service.ts schema mismatch (uses vendors as customers, expects customerId but schema has customerName)
-- [x] T000C [P] Fix hr.service.ts createOrgUnit Date object insertion (should use string dates per date-utils.ts)
-
-**Checkpoint**: Schema alignment complete for service layer. Note: Some service functions may still have edge cases requiring additional fixes during test implementation. ✅ COMPLETE
+- [X] T001 Verify Next.js project structure matches plan.md layout
+- [X] T002 [P] Verify Drizzle ORM dual-schema configuration in src/lib/db/
+- [X] T003 [P] Verify DevExtreme React 25.x dependency in package.json
+- [X] T004 [P] Verify existing attachments table supports BLOB storage (fileData column)
 
 ---
 
-## Phase 1: Setup (Shared Test Infrastructure)
+## Phase 2: Foundational (Schema Changes - Blocking All User Stories)
 
-**Purpose**: Create reusable test utilities to reduce boilerplate across all test files
+**Purpose**: Database schema modifications required by ALL user stories
 
-- [x] T001 Create database setup helper in tests/helpers/test-db.ts with setupTestDatabase() and cleanTables() functions
-- [x] T002 Create schema sync utility in tests/helpers/schema-sync.ts with generateCreateTableSql() using Drizzle ORM metadata
-- [x] T003 [P] Create seed data factory in tests/helpers/seed-data.ts with seedTestUsers() and module-specific seed functions
-- [x] T004 [P] Create test constants in tests/helpers/test-constants.ts for shared test user IDs, statuses, and dates
+**CRITICAL**: No user story work can begin until this phase is complete
 
-**Checkpoint**: Shared test infrastructure ready - module tests can now be implemented in parallel
+### Schema Column Additions
 
----
+- [X] T005 Add manufacturer/importer columns to inventory_lots in src/lib/db/schema.ts (manufacturerName, manufacturerId, importerName, importerId, countryOfOrigin)
+- [X] T006 Add retest tracking columns to inventory_lots in src/lib/db/schema.ts (retestDate, retestIntervalMonths, lastRetestDate, retestStatus)
+- [X] T007 [P] Add strength column to items in src/lib/db/schema.ts
+- [X] T008 [P] Add disposition columns to quality_tests in src/lib/db/schema.ts (disposition, dispositionBy, dispositionAt, dispositionReason, dispositionApprovedBy, dispositionApprovedAt)
+- [X] T009 [P] Add BOM verification columns to bom_lines in src/lib/db/schema.ts (percentageInFormula, weighedQty, weighedBy, verifiedBy, verifiedAt)
+- [X] T010 [P] Add line clearance columns to work_orders in src/lib/db/schema.ts (lineClearanceRequired, lineClearanceStatus, lineClearanceBy, lineClearanceAt, lineClearanceChecklistId)
 
-## Phase 2: Foundational (Reference Implementation Validation)
+### MySQL Schema Mirror (Must match SQLite changes)
 
-**Purpose**: Verify existing CAPA tests work with shared helpers and establish baseline
+- [X] T011 Add manufacturer/importer columns to inventory_lots in src/lib/db/schema.ts (same file, MySQL section)
+- [X] T012 Add retest tracking columns to inventory_lots in src/lib/db/schema.ts
+- [X] T013 [P] Add strength column to items in src/lib/db/schema.ts
+- [X] T014 [P] Add disposition columns to quality_tests in src/lib/db/schema.ts
+- [X] T015 [P] Add BOM verification columns to bom_lines in src/lib/db/schema.ts
+- [X] T016 [P] Add line clearance columns to work_orders in src/lib/db/schema.ts
 
-**WARNING**: This phase MUST complete before module test implementation begins
+### New Tables (Order matters: electronic_signatures first, referenced by others)
 
-- [x] T005 Refactor tests/integration/services/capa-service-real.test.ts to use shared helpers from tests/helpers/
-- [x] T006 Run capa-service-real.test.ts and verify all tests pass with refactored helpers
-- [x] T007 Document test patterns in tests/helpers/README.md for contributor reference
+- [X] T017 Create electronic_signatures table (SQLite) in src/lib/db/schema.ts
+- [X] T018 Create electronic_signatures table (MySQL) in src/lib/db/schema.ts
+- [X] T019 Create line_clearance_checklists table (SQLite) in src/lib/db/schema.ts
+- [X] T020 Create line_clearance_checklists table (MySQL) in src/lib/db/schema.ts
+- [X] T021 Create label_verifications table (SQLite) in src/lib/db/schema.ts
+- [X] T022 Create label_verifications table (MySQL) in src/lib/db/schema.ts
+- [X] T023 Create stock_alert_rules table (SQLite) in src/lib/db/schema.ts
+- [X] T024 Create stock_alert_rules table (MySQL) in src/lib/db/schema.ts
 
-**Checkpoint**: Baseline validated - module test implementation can now begin in parallel
+### Schema Sync and Validation
 
----
+- [X] T025 Export new tables and type aliases in src/lib/db/schema.ts (types added at end of file)
+- [ ] T026 Run DB_TYPE=sqlite pnpm db:push to apply SQLite schema changes
+- [X] T027 TypeScript types for new tables added directly in schema.ts (ElectronicSignature, LineClearanceChecklist, LabelVerification, StockAlertRule)
 
-## Phase 3: GMP Compliance Module Tests - Priority 1 (P1)
+### Electronic Signature Service (Foundation for US13, US14, US15)
 
-**Goal**: Integration tests for critical GMP compliance modules: Complaints, Documents, Internal Audit
+- [X] T028 Create electronic-signature-service.ts in src/lib/services/ with createElectronicSignature, verifyUserPassword, getSignaturesForEntity, verifySignatureIntegrity functions
+- [X] T029 Create unit test for electronic-signature-service in tests/unit/services/ (10 tests passing)
 
-**Independent Test**: Each test file can run independently with `pnpm test tests/integration/services/[module]-service-real.test.ts`
-
-### Complaint Service Tests [US1]
-
-- [x] T008 [P] [US1] Create tests/integration/services/complaint-service-real.test.ts with schema sync for complaints and complaint_investigations tables
-- [x] T009 [US1] Implement real-world scenario: Customer complaint lifecycle (receive -> investigate -> close) in complaint-service-real.test.ts
-- [x] T010 [US1] Implement real-world scenario: Complaint escalation to regulatory notification in complaint-service-real.test.ts
-- [x] T011 [US1] Test complaint service CRUD functions: listComplaints, getComplaintById, createComplaint, updateComplaint in complaint-service-real.test.ts
-- [x] T012 [US1] Test complaint investigation functions: assignInvestigator, recordInvestigation, closeComplaint in complaint-service-real.test.ts
-- [x] T013 [US1] Test edge cases: empty list, not found, validation errors, severity escalation in complaint-service-real.test.ts
-
-### Document Service Tests [US2]
-
-- [x] T014 [P] [US2] Create tests/integration/services/document-service-real.test.ts with schema sync for documents, document_versions, document_approvals, document_types tables
-- [x] T015 [US2] Implement real-world scenario: Document approval workflow (draft -> review -> approve -> publish) in document-service-real.test.ts
-- [x] T016 [US2] Implement real-world scenario: Document version control (new version supersedes old) in document-service-real.test.ts
-- [x] T017 [US2] Test document service CRUD functions: listDocuments, getDocumentById, createDocument, updateDocument in document-service-real.test.ts
-- [x] T018 [US2] Test version functions: createVersion, submitForApproval, approveVersion, publishDocument in document-service-real.test.ts
-- [x] T019 [US2] Test edge cases: concurrent edit prevention, obsolete document access, approval chain delegation in document-service-real.test.ts
-
-### Internal Audit Service Tests [US3]
-
-- [x] T020 [P] [US3] Create tests/integration/services/internal-audit-service-real.test.ts with schema sync for audit_plans, audits, audit_findings, audit_checklists tables
-- [x] T021 [US3] Implement real-world scenario: Complete audit cycle (schedule -> conduct -> findings -> CAPA -> close) in internal-audit-service-real.test.ts
-- [x] T022 [US3] Implement real-world scenario: Finding classification and CAPA linkage in internal-audit-service-real.test.ts
-- [x] T023 [US3] Test audit service CRUD functions: listAudits, getAuditById, createAudit, updateAudit in internal-audit-service-real.test.ts
-- [x] T024 [US3] Test finding functions: recordFinding, createCapaFromFinding, completeAudit in internal-audit-service-real.test.ts
-- [x] T025 [US3] Test edge cases: audit plan coverage validation, finding severity tracking, GMP chapter mapping in internal-audit-service-real.test.ts
-
-**Checkpoint**: P1 GMP compliance modules have comprehensive real SQLite tests - run `pnpm test tests/integration/services/complaint-service-real.test.ts tests/integration/services/document-service-real.test.ts tests/integration/services/internal-audit-service-real.test.ts`
+**Checkpoint**: Foundation ready - all schema changes applied, e-signature service functional
 
 ---
 
-## Phase 4: GMP Compliance Module Tests - Priority 2 (P2)
+## Phase 3: User Story 11 - External Auditor Reviews Dashboard KPIs (Priority: P1) MVP
 
-**Goal**: Integration tests for secondary GMP compliance modules: Recalls, Sanitation, Stability
+**Goal**: Provide audit dashboard with 8 KPI cards showing RM status, QC summary, and production status
 
-**Independent Test**: Each test file can run independently
+**Independent Test**: View /dashboard/audit page and verify all 8 KPI cards display accurate real-time data
 
-### Recall Service Tests [US4]
+**FR Coverage**: FR-047 (RM YTD), FR-048 (RM Status), FR-049 (Expiry Alerts), FR-050 (Min Stock), FR-051 (QC Summary), FR-052 (Production Status), FR-053 (Pending QC), FR-054 (FG Approved)
 
-- [x] T026 [P] [US4] Create tests/integration/services/recall-service-real.test.ts with schema sync for recalls, recall_notifications, recall_reconciliation tables
-- [x] T027 [US4] Implement real-world scenario: Product recall execution (initiate -> notify -> reconcile -> close) in recall-service-real.test.ts
-- [x] T028 [US4] Implement real-world scenario: Distribution tracking and customer notification in recall-service-real.test.ts
-- [x] T029 [US4] Test recall service CRUD functions: listRecalls, getRecallById, createRecall, updateRecall in recall-service-real.test.ts
-- [x] T030 [US4] Test notification functions: getDistributionByLot, sendNotifications, trackReturns, reconcileRecall in recall-service-real.test.ts
-- [x] T031 [US4] Test edge cases: multi-batch recalls, effectiveness rate calculation, regulatory reporting in recall-service-real.test.ts
+### Implementation for User Story 11
 
-### Sanitation Service Tests [US5]
+- [X] T030 [US11] Create audit-dashboard-service.ts in src/lib/services/ with getAuditKpis aggregation function
+- [X] T031 [P] [US11] Implement getRmReceivedYtd helper in audit-dashboard-service.ts (FR-047)
+- [X] T032 [P] [US11] Implement getRmStatusBreakdown helper in audit-dashboard-service.ts (FR-048)
+- [X] T033 [P] [US11] Implement getExpiryAlerts helper in audit-dashboard-service.ts (FR-049)
+- [X] T034 [P] [US11] Implement getMinStockAlerts helper in audit-dashboard-service.ts (FR-050)
+- [X] T035 [P] [US11] Implement getQcSummary helper in audit-dashboard-service.ts (FR-051)
+- [X] T036 [P] [US11] Implement getProductionStatus helper in audit-dashboard-service.ts (FR-052)
+- [X] T037 [P] [US11] Implement getPendingQcRelease helper in audit-dashboard-service.ts (FR-053)
+- [X] T038 [P] [US11] Implement getFgApproved helper in audit-dashboard-service.ts (FR-054)
+- [X] T039 [US11] Create /api/dashboard/audit-kpis/route.ts API endpoint returning all 8 KPIs
+- [X] T040 [P] [US11] Create /api/dashboard/rm-summary/route.ts API endpoint (FR-047 detailed view)
+- [X] T041 [P] [US11] Create /api/inventory/min-stock-alerts/route.ts API endpoint (FR-050)
+- [X] T042 [US11] Create rm-summary-card.tsx component in src/components/dashboard/ (FR-047)
+- [X] T043 [P] [US11] Create rm-status-card.tsx component in src/components/dashboard/ (FR-048)
+- [X] T044 [P] [US11] Create expiry-alert-card.tsx component in src/components/dashboard/ (FR-049)
+- [X] T045 [P] [US11] Create min-stock-alert-card.tsx component in src/components/dashboard/ (FR-050)
+- [X] T046 [P] [US11] Create qc-summary-card.tsx component in src/components/dashboard/ (FR-051)
+- [X] T047 [P] [US11] Create production-status-card.tsx component in src/components/dashboard/ (FR-052)
+- [X] T048 [P] [US11] Create pending-qc-card.tsx component in src/components/dashboard/ (FR-053)
+- [X] T049 [P] [US11] Create fg-approved-card.tsx component in src/components/dashboard/ (FR-054)
+- [X] T050 [US11] Create audit dashboard page at src/app/dashboard/audit/page.tsx with all 8 KPI cards
+- [X] T051 [US11] Create integration test for audit-dashboard-service in tests/integration/services/audit-dashboard-service-real.test.ts (43 tests passing)
+- [X] T052 [US11] Create UI test for audit dashboard page in tests/e2e/dashboard-audit.test.tsx (30 tests passing)
 
-- [x] T032 [P] [US5] Create tests/integration/services/sanitation-service-real.test.ts with schema sync for sanitation_schedules, sanitation_logs, pest_control_logs tables
-- [x] T033 [US5] Implement real-world scenario: Sanitation schedule execution (schedule -> perform -> verify) in sanitation-service-real.test.ts
-- [x] T034 [US5] Implement real-world scenario: Pest control activity logging and trend analysis in sanitation-service-real.test.ts
-- [x] T035 [US5] Test sanitation service CRUD functions: listSchedules, createSchedule, logCleaning, verifyCompletion in sanitation-service-real.test.ts
-- [x] T036 [US5] Test pest control functions: logPestControl, getTrendAnalysis, getComplianceRate in sanitation-service-real.test.ts
-- [x] T037 [US5] Test edge cases: missed cleaning, deviation linking, frequency calculations in sanitation-service-real.test.ts
-
-### Stability Service Tests [US6]
-
-- [x] T038 [P] [US6] Create tests/integration/services/stability-service-real.test.ts with schema sync for stability_protocols, stability_studies, stability_samples, stability_trends tables
-- [x] T039 [US6] Implement real-world scenario: Stability study lifecycle (enroll -> schedule -> test -> trend) in stability-service-real.test.ts
-- [x] T040 [US6] Implement real-world scenario: OOS detection and investigation workflow in stability-service-real.test.ts
-- [x] T041 [US6] Test stability service CRUD functions: listStudies, getStudyById, createStudy, enrollBatch in stability-service-real.test.ts
-- [x] T042 [US6] Test sampling functions: scheduleSamples, recordSample, linkQualityTest, calculateTrend in stability-service-real.test.ts
-- [x] T043 [US6] Test edge cases: timepoint alerts, OOS flagging, trend slope calculation, spec limit comparison in stability-service-real.test.ts
-
-**Checkpoint**: P2 GMP compliance modules have comprehensive real SQLite tests
-
----
-
-## Phase 4.5: PQR Module Tests (FR-004 Coverage)
-
-**Goal**: Integration tests for Product Quality Review (PQR) generation per FR-004
-
-### PQR Service Tests [US-PQR]
-
-- [x] T089 [P] [US-PQR] Create tests/integration/services/pqr-service-real.test.ts with schema sync for product_quality_reviews, deviations, complaints, stability_studies tables - 30 tests passing
-- [x] T090 [US-PQR] Implement real-world scenario: Annual PQR generation aggregating deviations, OOS, changes, stability, complaints, recalls
-- [x] T091 [US-PQR] Test PQR service functions: generatePQR, getPQRById, listPQRsByProduct, approvePQR
-- [x] T092 [US-PQR] Test edge cases: incomplete data handling, date range validation, multi-product PQR comparison
-
-**Checkpoint**: PQR module has comprehensive real SQLite tests covering FR-004 requirements
+**Checkpoint**: Audit dashboard fully functional with all 8 KPI cards displaying real-time data (<3s load time target) ✅ COMPLETED
 
 ---
 
-## Phase 5: Business Module Tests - Priority 3 (P3)
+## Phase 4: User Story 12 - Warehouse Clerk Records Complete Material Receipt (Priority: P1)
 
-**Goal**: Integration tests for core business modules: Inventory, Production, Quality, HR
+**Goal**: Capture complete material receipt details including manufacturer, importer, retest date, and attached documents
 
-**Independent Test**: Each test file can run independently
+**Independent Test**: Receive a material, record all detail fields, attach COA document, verify data saved correctly
 
-### Inventory Service Tests [US7]
+**FR Coverage**: FR-055 (Manufacturer/Importer), FR-056 (Retest Date), FR-057 (COA/MSDS Attachments), FR-058 (Herbal Extract Details), FR-059 (FG Strength), FR-060 (Photo Upload), FR-061 (QC Hold Reason Display)
 
-- [x] T044 [P] [US7] Create tests/integration/services/inventory-service-real.test.ts with schema sync for inventory_items, inventory_lots, inventory_transactions tables
-- [x] T045 [US7] Implement real-world scenario: Material receipt with quarantine -> QC release workflow in inventory-service-real.test.ts
-- [x] T046 [US7] Implement real-world scenario: Stock transactions (issue, transfer, adjust) in inventory-service-real.test.ts
-- [x] T047 [US7] Test inventory service CRUD functions: listItems, getLotById, createTransaction, getStockBalance in inventory-service-real.test.ts
-- [x] T048 [US7] Test lot status functions: quarantineLot, releaseLot, rejectLot, getAvailableStock in inventory-service-real.test.ts
-- [x] T049 [US7] Test edge cases: negative stock prevention, lot expiry handling, status blocking in inventory-service-real.test.ts
+### Implementation for User Story 12
 
-### Production Service Tests [US8]
+- [ ] T053 [US12] Update inventory.service.ts to handle manufacturer/importer fields on lot creation in src/lib/services/inventory.service.ts
+- [ ] T054 [US12] Update inventory.service.ts to handle retest date tracking (retestDate, retestIntervalMonths, retestStatus)
+- [ ] T055 [US12] Create /api/inventory/lots/[id]/documents/route.ts to proxy to existing attachments API with moduleName='inventory_lot' (FR-057)
+- [ ] T056 [P] [US12] Update lot creation form to include manufacturer name and ID fields in src/app/inventory/lots/new/page.tsx
+- [ ] T057 [P] [US12] Update lot creation form to include importer name and ID fields
+- [ ] T058 [P] [US12] Update lot creation form to include country of origin field
+- [ ] T059 [P] [US12] Update lot creation form to include retest date and interval fields
+- [ ] T060 [US12] Add DocumentAttachment component to lot detail page for COA/Spec/MSDS uploads in src/app/inventory/lots/[id]/page.tsx (FR-057)
+- [ ] T061 [P] [US12] Update item form to include strength field for finished goods in src/app/inventory/items/[id]/page.tsx (FR-059)
+- [ ] T062 [P] [US12] Add photo upload with scale reference using DocumentAttachment in lot detail page (FR-060)
+- [ ] T063 [US12] Create retest alert query and display QC hold reason on lot detail page (FR-061)
+- [ ] T064 [US12] Update lot list page to show manufacturer and retest status columns in src/app/inventory/lots/page.tsx
+- [ ] T065 [US12] Create integration test for inventory lot with manufacturer/retest fields in tests/integration/services/inventory-service-real.test.ts
+- [ ] T066 [US12] Create UI test for lot creation with all new fields in tests/e2e/inventory-lot-creation.test.tsx
 
-- [x] T050 [P] [US8] Create tests/integration/services/production-service-real.test.ts with schema sync for work_orders, batch_records, bill_of_materials tables
-- [x] T051 [US8] Implement real-world scenario: Work order execution (release -> material issue -> production -> yield reconciliation) in production-service-real.test.ts
-- [x] T052 [US8] Implement real-world scenario: Line clearance and dual verification workflow in production-service-real.test.ts
-- [x] T053 [US8] Test production service CRUD functions: listWorkOrders, getWorkOrderById, createWorkOrder, updateStatus in production-service-real.test.ts
-- [x] T054 [US8] Test batch record functions: startProduction, recordStep, verifyMaterial, calculateYield in production-service-real.test.ts
-- [x] T055 [US8] Test edge cases: yield variance deviation, material substitution, batch record completion in production-service-real.test.ts
-
-**Implementation Note**: Tasks T050-T055 test existing production service functions. The following spec requirements are NOT fully implemented and require future work:
-- FR-025: Line clearance enforcement (currently no blocking logic)
-- FR-026: Dual verification workflow (currently single-user operations)
-- FR-028: Packaging material lifecycle tracking (not in current service)
-
-### Quality Service Tests [US9]
-
-- [x] T056 [P] [US9] Create tests/integration/services/quality-service-real.test.ts with schema sync for quality_tests, quality_specs, deviations tables
-- [x] T057 [US9] AQL Sampling Plan calculation tests (ISO 2859-1 compliance) - 16 tests
-- [x] T058 [US9] Quality service database functions - 48 tests passing
-- [x] T059 [US9] Quality test workflow scenarios - included in comprehensive test suite
-- [x] T060 [US9] Quality specs, test records, and deviation lifecycle tests (direct database) - 13 tests
-- [x] T061 [US9] COA generation tests - included in test suite
-
-### HR Service Tests [US10]
-
-- [x] T062 [P] [US10] Create tests/integration/services/hr-service-real.test.ts with schema sync for HR tables
-- [x] T063 [US10] Organization unit hierarchy and GMP separation of duties tests
-- [x] T064 [US10] Training records, competency matrix, and expiry tracking tests
-- [x] T065 [US10] Employee and position CRUD functions tests
-- [x] T066 [US10] Authorization, delegation, and health records tests
-- [x] T067 [US10] createOrgUnit Date handling tests - 34 tests passing
-
-**Checkpoint**: P3 core business modules have comprehensive real SQLite tests
+**Checkpoint**: Material receipt captures all required fields, documents attached via DocumentAttachment, retest tracking functional
 
 ---
 
-## Phase 6: Business Module Tests - Priority 3 Continued (P3)
+## Phase 5: User Story 13 - Production Operator Completes Line Clearance (Priority: P1)
 
-**Goal**: Integration tests for remaining business modules: Sales, Purchasing, VMI Portal
+**Goal**: Enforce line clearance verification with dual sign-off before production start
 
-### Sales Service Tests [US11]
+**Independent Test**: Attempt to start production, complete line clearance checklist, verify production blocked until clearance verified
 
-- [x] T068 [P] [US11] Create tests/integration/services/sales-service-real.test.ts with schema sync for sales_orders, sales_order_items, customers tables
-- [x] T069 [US11] Implement real-world scenario: ATP calculation tests (5 passing) in sales-service-real.test.ts
-- [x] T070 [US11] Sales order CRUD functions - 15 tests passing
-- [x] T071 [US11] Order fulfillment workflow - included in test suite
-- [x] T072 [US11] Edge cases and validation tests - included in test suite
+**FR Coverage**: FR-062 (Line Clearance Enforcement), FR-071-074 (Electronic Signatures)
 
-### Purchasing Service Tests [US12]
+### Implementation for User Story 13
 
-- [x] T073 [P] [US12] Create tests/integration/services/purchasing-service-real.test.ts with schema sync for purchase_orders, po_items, vendors tables - 28 tests passing
-- [x] T074 [US12] Implement real-world scenario: Purchase order lifecycle (create -> approve -> receive -> close) in purchasing-service-real.test.ts
-- [x] T075 [US12] Test purchasing service CRUD functions: listPOs, getPOById, createPO, updatePOStatus in purchasing-service-real.test.ts
-- [x] T076 [US12] Test receiving functions: receiveGoods, partialReceipt, linkToLot in purchasing-service-real.test.ts
-- [x] T077 [US12] Test edge cases: approved vendor validation, over-receipt prevention, PO closure with variances in purchasing-service-real.test.ts
+- [ ] T067 [US13] Create line-clearance.service.ts in src/lib/services/ with createLineClearance, verifyLineClearance, checkLineClearanceRequired functions
+- [ ] T068 [US13] Update production.service.ts to block work order start if line clearance not complete
+- [ ] T069 [US13] Create /api/production/work-orders/[workOrderId]/line-clearance/route.ts for GET and POST
+- [ ] T070 [US13] Create /api/production/work-orders/[workOrderId]/line-clearance/verify/route.ts with e-signature
+- [ ] T071 [US13] Create ElectronicSignatureDialog component in src/components/shared/electronic-signature-dialog.tsx
+- [ ] T072 [US13] Create line-clearance-form.tsx component in src/components/production/ with checklist items
+- [ ] T073 [US13] Create line clearance page at src/app/production/line-clearance/page.tsx for work order line clearance
+- [ ] T074 [US13] Update work order detail page to show line clearance status and block production start in src/app/production/work-orders/[id]/page.tsx
+- [ ] T075 [US13] Create integration test for line-clearance-service in tests/integration/services/line-clearance-service-real.test.ts
+- [ ] T076 [US13] Create UI test for line clearance workflow in tests/e2e/line-clearance.test.tsx
 
-### VMI Portal Service Tests [US13]
-
-Note: VMI core functionality (snapshot, ASN processing) is covered in purchasing-service-real.test.ts. VMI Portal external API tests are deferred as they require external service mocking.
-
-- [x] T078 [P] [US13] VMI inventory snapshot and ASN processing - covered in purchasing-service-real.test.ts (generateVMISnapshot, processVMIASN tests)
-- [x] T079 [US13] VMI replenishment workflow - covered in purchasing-service-real.test.ts "VMI Replenishment Workflow" scenario
-- [-] T080 [US13] DEFERRED: VMI Portal external API tests - requires HTTP mocking for external vmi-portal.bmscloud.in.th API
-- [-] T081 [US13] DEFERRED: VMI Sync external API tests - requires HTTP mocking for external portal sync
-- [-] T082 [US13] DEFERRED: VMI Portal error handling - external API failure scenarios
-
-**Checkpoint**: All P3 business modules have comprehensive real SQLite tests
+**Checkpoint**: Line clearance enforced, production blocked until dual verification complete with e-signatures
 
 ---
 
-## Phase 7: Polish & Verification
+## Phase 6: User Story 14 - Production Operator Verifies Labels (Priority: P1)
 
-**Purpose**: Final validation and documentation
+**Goal**: Attach label images to batch record with dual verification signatures
 
-- [x] T083 Run all integration tests with `pnpm test tests/integration/` and verify 100% pass rate - **944 tests passing**
-- [-] T084 DEFERRED: Generate test coverage report - coverage infrastructure requires additional setup
-- [-] T085 [P] DEFERRED: Update quickstart.md - documentation update deferred
-- [-] T086 [P] DEFERRED: Update research.md - documentation update deferred
-- [x] T087 Create test summary report - see Task Summary table below
-- [x] T088 Run `pnpm tsc --noEmit` and `pnpm lint` - TypeScript passes, lint warnings in test files (expected `any` types for SQLite results)
+**Independent Test**: Upload label image, verify label content, get operator and witness signatures, view label in batch record
 
-**Checkpoint**: All 16 service modules have comprehensive real SQLite integration tests
+**FR Coverage**: FR-064 (Label Image Attachment), FR-065 (Dual Label Verification), FR-071-074 (Electronic Signatures)
+
+### Implementation for User Story 14
+
+- [ ] T077 [US14] Create label-verification.service.ts in src/lib/services/ with createLabelVerification, verifyLabel, witnessLabel functions
+- [ ] T078 [US14] Create /api/production/batch-records/[batchRecordId]/labels/route.ts for GET and POST (label upload uses attachments API)
+- [ ] T079 [US14] Create /api/production/labels/[labelId]/verify/route.ts with operator e-signature
+- [ ] T080 [US14] Create /api/production/labels/[labelId]/witness/route.ts with witness e-signature
+- [ ] T081 [US14] Create label-verification-form.tsx component in src/components/production/ with image upload using DocumentAttachment
+- [ ] T082 [US14] Create label verification page at src/app/production/label-verification/page.tsx
+- [ ] T083 [US14] Update batch record detail page to show label verifications in src/app/production/work-orders/[id]/batch-record/page.tsx
+- [ ] T084 [US14] Create integration test for label-verification-service in tests/integration/services/label-verification-service-real.test.ts
+- [ ] T085 [US14] Create UI test for label verification workflow in tests/e2e/label-verification.test.tsx
+
+**Checkpoint**: Label images attached to batch records with dual e-signature verification (operator + witness)
+
+---
+
+## Phase 7: User Story 15 - QC Analyst Records Disposition Decision (Priority: P1)
+
+**Goal**: Record disposition decisions with approval workflow and automatic lot status update
+
+**Independent Test**: Complete QC test with fail result, record disposition, get approval, verify lot status updates automatically
+
+**FR Coverage**: FR-067 (Disposition Decision), FR-068 (Disposition Reason), FR-069 (Auto Lot Status Update), FR-070 (Audit Trail), FR-071-074 (Electronic Signatures)
+
+### Implementation for User Story 15
+
+- [ ] T086 [US15] Create qc-disposition.service.ts in src/lib/services/ with setDisposition, approveDisposition, updateLotStatusFromDisposition functions
+- [ ] T087 [US15] Create /api/quality/tests/[testId]/disposition/route.ts for POST
+- [ ] T088 [US15] Create /api/quality/tests/[testId]/disposition/approve/route.ts with e-signature
+- [ ] T089 [US15] Create /api/quality/qc-summary/route.ts API endpoint (FR-051 detailed)
+- [ ] T090 [US15] Create /api/quality/pending-release/route.ts API endpoint (FR-053)
+- [ ] T091 [US15] Create disposition-form.tsx component in src/components/quality/ with reason field and approval workflow
+- [ ] T092 [US15] Update quality test detail page to include disposition section in src/app/quality/tests/[id]/page.tsx
+- [ ] T093 [US15] Update quality test list to show disposition status in src/app/quality/tests/page.tsx
+- [ ] T094 [US15] Create integration test for qc-disposition-service in tests/integration/services/qc-disposition-service-real.test.ts
+- [ ] T095 [US15] Create UI test for disposition workflow in tests/e2e/qc-disposition.test.tsx
+
+**Checkpoint**: Disposition decisions recorded with approval workflow, lot status auto-updated, complete audit trail
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+**Purpose**: Integration, validation, and optimization across all user stories
+
+- [ ] T096 [P] Create /api/signatures/route.ts API endpoint for listing signatures by entity (FR-074)
+- [ ] T097 Add signature display component showing full name, title, timestamp, meaning in src/components/shared/signature-display.tsx
+- [ ] T098 Add stock_alert_rules seed data for default thresholds (90 days expiry, 30 days retest) in tests/helpers/seed-data.ts
+- [ ] T099 [P] Run performance test for dashboard audit-kpis endpoint to verify <3s load (SC-011)
+- [ ] T100 [P] Validate all e-signature operations require password re-authentication (SC-018)
+- [ ] T101 Run full integration test suite to verify all tests pass
+- [ ] T102 Run ESLint and TypeScript checks (pnpm lint && pnpm tsc --noEmit)
+- [ ] T103 Update quickstart.md with Phase 2 verification steps
 
 ---
 
@@ -249,139 +243,152 @@ Note: VMI core functionality (snapshot, ASN processing) is covered in purchasing
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup (Phase 1) - validates shared helpers work
-- **P1 Module Tests (Phase 3)**: Depends on Foundational (Phase 2) - [US1], [US2], [US3] can run in parallel
-- **P2 Module Tests (Phase 4)**: Depends on Foundational (Phase 2) - [US4], [US5], [US6] can run in parallel
-- **P3 Module Tests (Phase 5-6)**: Depends on Foundational (Phase 2) - [US7]-[US13] can run in parallel
-- **Polish (Phase 7)**: Depends on all test implementation phases
+- **Setup (Phase 1)**: No dependencies - verification only
+- **Foundational (Phase 2)**: Depends on Setup - BLOCKS all user stories
+  - Electronic Signature Service (T028-T029) must complete before US13, US14, US15
+- **User Stories (Phase 3-7)**: All depend on Foundational phase completion
+  - US11 (Dashboard): Can start independently after Phase 2
+  - US12 (Inventory): Can start independently after Phase 2
+  - US13 (Line Clearance): Requires e-signature service (T028)
+  - US14 (Label Verification): Requires e-signature service (T028)
+  - US15 (Disposition): Requires e-signature service (T028)
+- **Polish (Phase 8)**: Depends on all user stories complete
 
-### User Story Independence
+### User Story Dependencies
 
-Each user story represents a service module that can be tested independently:
+- **US11 (Dashboard KPIs)**: No dependencies on other stories - can start first
+- **US12 (Material Receipt)**: No dependencies on other stories - can start first
+- **US13 (Line Clearance)**: Depends on e-signature service, uses ElectronicSignatureDialog
+- **US14 (Label Verification)**: Depends on e-signature service, uses ElectronicSignatureDialog
+- **US15 (Disposition)**: Depends on e-signature service, uses ElectronicSignatureDialog
 
-| Story | Module | Dependencies |
-|-------|--------|--------------|
-| US1 | Complaints | Phase 2 only |
-| US2 | Documents | Phase 2 only |
-| US3 | Internal Audit | Phase 2 only, links to CAPA |
-| US4 | Recalls | Phase 2 only |
-| US5 | Sanitation | Phase 2 only |
-| US6 | Stability | Phase 2 only, links to quality_tests |
-| US7 | Inventory | Phase 2 only |
-| US8 | Production | Phase 2 only |
-| US9 | Quality | Phase 2 only |
-| US10 | HR | Phase 2 only |
-| US11 | Sales | Phase 2 only |
-| US12 | Purchasing | Phase 2 only |
-| US13 | VMI Portal | Phase 2 only |
+### Within Each User Story
+
+- Service layer before API endpoints
+- API endpoints before UI components
+- Core implementation before integration tests
+- Integration tests verify functionality
+- UI tests validate end-to-end workflow
 
 ### Parallel Opportunities
 
-**Phase 1 (Setup)**: T003, T004 can run in parallel after T001, T002
-
-**Phase 3-6 (Module Tests)**: All modules with [P] marker can start simultaneously:
-- T008, T014, T020 (P1 modules)
-- T026, T032, T038 (P2 modules)
-- T044, T050, T056, T062, T068, T073, T078 (P3 modules)
-
-**Within Each Module**: Test file creation [P] can run in parallel, scenarios are sequential
-
----
-
-## Parallel Example: P1 Module Tests
-
 ```bash
-# Launch all P1 module test files together (Phase 3):
-Task: "Create tests/integration/services/complaint-service-real.test.ts" [US1]
-Task: "Create tests/integration/services/document-service-real.test.ts" [US2]
-Task: "Create tests/integration/services/internal-audit-service-real.test.ts" [US3]
+# Phase 2 - After T017/T018 (electronic_signatures table):
+Task: T019 (line_clearance_checklists)
+Task: T021 (label_verifications)
+Task: T023 (stock_alert_rules)
 
-# Then implement scenarios sequentially within each module
+# US11 - All 8 dashboard helpers can run in parallel:
+Task: T031 (RM YTD)
+Task: T032 (RM Status)
+Task: T033 (Expiry Alerts)
+Task: T034 (Min Stock)
+Task: T035 (QC Summary)
+Task: T036 (Production Status)
+Task: T037 (Pending QC)
+Task: T038 (FG Approved)
+
+# US11 - All 8 KPI cards can run in parallel:
+Task: T042-T049 (all dashboard card components)
+
+# US12 - Form field updates can run in parallel:
+Task: T056 (manufacturer)
+Task: T057 (importer)
+Task: T058 (country)
+Task: T059 (retest date)
+Task: T061 (strength)
+Task: T062 (photo upload)
+
+# User stories themselves can run in parallel after Phase 2:
+Team A: US11 (Dashboard) + US12 (Inventory)
+Team B: US13 (Line Clearance)
+Team C: US14 (Labels) + US15 (Disposition)
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (Phase 1-3 Only)
+### MVP First (Dashboard KPIs Only)
 
-1. Complete Phase 1: Setup (shared helpers)
-2. Complete Phase 2: Foundational (validate with CAPA tests)
-3. Complete Phase 3: P1 GMP Modules (Complaints, Documents, Internal Audit)
-4. **STOP and VALIDATE**: Run `pnpm test tests/integration/` - all P1 tests pass
-5. Commit and verify: 4 modules with real SQLite tests (including existing CAPA)
+1. Complete Phase 1: Setup verification
+2. Complete Phase 2: Schema changes + e-signature service
+3. Complete Phase 3: US11 (Dashboard KPIs)
+4. **STOP and VALIDATE**: Test dashboard loads <3s with all 8 KPIs
+5. Deploy/demo audit dashboard
 
 ### Incremental Delivery
 
-1. Phase 1-2 complete → Shared infrastructure ready
-2. Add Phase 3 (P1 modules) → 4 modules tested (CAPA + 3 new)
-3. Add Phase 4 (P2 modules) → 7 modules tested
-4. Add Phase 5-6 (P3 modules) → 14 modules tested
-5. Add Phase 7 (Polish) → All 16 modules with documentation
+1. Setup + Foundational → Foundation ready
+2. Add US11 (Dashboard) → Test → Deploy (MVP - auditors can view KPIs)
+3. Add US12 (Inventory) → Test → Deploy (complete material tracking)
+4. Add US13 (Line Clearance) → Test → Deploy (production enforcement)
+5. Add US14 (Labels) → Test → Deploy (label verification)
+6. Add US15 (Disposition) → Test → Deploy (QC workflow complete)
+7. Each story adds value without breaking previous stories
 
-### Parallel Team Strategy
+### Estimated Effort
 
-With multiple developers after Phase 2:
-- Developer A: Complaints, Recalls, Sales (US1, US4, US11)
-- Developer B: Documents, Sanitation, Purchasing (US2, US5, US12)
-- Developer C: Internal Audit, Stability, VMI (US3, US6, US13)
-- Developer D: Inventory, Production, Quality, HR (US7, US8, US9, US10)
-
----
-
-## Task Summary
-
-| Phase | Description | Tasks | Completed | Deferred | Pending | Priority |
-|-------|-------------|-------|-----------|----------|---------|----------|
-| 0 | Schema Alignment (Pre-requisite) | 3 | 3 | - | 0 | DONE |
-| 1 | Setup - Shared Test Infrastructure | 4 | 4 | 0 | 0 | DONE |
-| 2 | Foundational - Reference Validation | 3 | 3 | 0 | 0 | DONE |
-| 3 | P1 GMP Module Tests (Complaints, Documents, Audit) | 18 | 18 | 0 | 0 | DONE |
-| 4 | P2 GMP Module Tests (Recalls, Sanitation, Stability) | 18 | 18 | 0 | 0 | DONE |
-| 4.5 | PQR Module Tests (FR-004 Coverage) | 4 | 4 | 0 | 0 | DONE |
-| 5 | P3 Business Module Tests (Inventory, Production, Quality, HR) | 24 | 24 | 0 | 0 | DONE |
-| 6 | P3 Business Module Tests (Sales, Purchasing, VMI) | 15 | 7 | 3 | 0 | DONE |
-| 7 | Polish & Verification | 6 | 3 | 3 | 0 | DONE |
-| **Total** | | **95** | **84** | **6** | **0** | |
-
-**Final Test Results**: 944 integration tests passing across 30 test files
+| Phase | Tasks | Estimated Days |
+|-------|-------|----------------|
+| Setup | T001-T004 | 0.5 |
+| Foundational | T005-T029 | 5 |
+| US11 Dashboard | T030-T052 | 6 |
+| US12 Inventory | T053-T066 | 5 |
+| US13 Line Clearance | T067-T076 | 4 |
+| US14 Labels | T077-T085 | 4 |
+| US15 Disposition | T086-T095 | 4 |
+| Polish | T096-T103 | 2 |
+| **Total** | **103 tasks** | **~30.5 days** |
 
 ---
 
-## Deferred Scope
+## Summary
 
-The following requirements are explicitly deferred to a future phase:
+- **Total Tasks**: 103
+- **Phase 1 (Setup)**: 4 tasks
+- **Phase 2 (Foundational)**: 25 tasks
+- **Phase 3 (US11 Dashboard)**: 23 tasks
+- **Phase 4 (US12 Inventory)**: 14 tasks
+- **Phase 5 (US13 Line Clearance)**: 10 tasks
+- **Phase 6 (US14 Labels)**: 9 tasks
+- **Phase 7 (US15 Disposition)**: 10 tasks
+- **Phase 8 (Polish)**: 8 tasks
 
-| Requirement | Description | Reason | Target Phase |
-|-------------|-------------|--------|--------------|
-| FR-035 | Contract Repository | No contract manufacturing currently in use | Phase 2 |
-| FR-036 | Batch-Level Contractor ID | Depends on FR-035 implementation | Phase 2 |
-| FR-045 | Reference Library (Pharmacopoeia) | SHOULD requirement, lower priority | Phase 2 |
-| FR-046 | Verification Protocols | SHOULD requirement, depends on Change Control | Phase 2 |
+### Independent Test Criteria by Story
 
----
+- **US11**: Dashboard loads in <3s showing all 8 KPI values
+- **US12**: Material receipt saves manufacturer, importer, retest date, COA attachment
+- **US13**: Work order blocked until line clearance verified by two persons
+- **US14**: Label images attached with dual e-signature (operator + witness)
+- **US15**: Disposition approved with e-signature, lot status auto-updated
 
-## Implementation Gaps (Require Future Planning)
+### Parallel Opportunities Identified
 
-The following MUST requirements from spec.md are partially tested but lack full implementation:
+- 6 schema column additions can run in parallel (T005-T010)
+- 6 MySQL schema mirrors can run in parallel (T011-T016)
+- 8 dashboard helper functions can run in parallel (T031-T038)
+- 8 dashboard card components can run in parallel (T042-T049)
+- 6 lot form field updates can run in parallel (T056-T062)
+- User stories US11-US15 can run in parallel after Phase 2
 
-| Requirement | Description | Current State | Action Required |
-|-------------|-------------|---------------|-----------------|
-| FR-025 | Line clearance verification before production | Production tests exist but feature not enforced | Create implementation plan |
-| FR-026 | Dual verification for dispensing/weighing | Tests verify existing functions but workflow incomplete | Create implementation plan |
-| FR-028 | Packaging material issuance/return/destruction tracking | Basic inventory transactions tested, no packaging-specific logic | Create implementation plan |
+### MVP Scope
 
-**Priority**: These are หมวด 6 (Manufacturing Operations) requirements rated P2 in spec.md. Implementation should follow current test phase completion.
+**User Story 11 only** provides immediate value for auditor visits:
+- Dashboard with 8 real-time KPI cards
+- RM status breakdown with pending reasons
+- Expiry and min stock alerts
+- QC pass/fail summary
+- Production status overview
 
 ---
 
 ## Notes
 
-- CAPA service tests already exist - use as reference implementation
-- Each test file must use real SQLite database (not mocks)
-- Schema sync from Drizzle ORM ensures test/production parity
-- Clean + seed in beforeEach prevents test pollution
-- Target: ~150 test cases across 14 modules (CAPA + 13 new)
-- Performance target: All tests complete in < 60 seconds
+- [P] tasks = different files, no dependencies
+- [Story] label maps task to specific user story
+- All file storage uses existing `attachments` table (database BLOB)
+- Label images and lot documents use DocumentAttachment component with moduleName
+- E-signatures require password re-authentication (21 CFR Part 11)
 - Commit after each task or logical group
+- Stop at any checkpoint to validate story independently
