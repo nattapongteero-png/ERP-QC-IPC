@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
 import { ItemEditForm, type Item, type ItemFormData } from '@/components/ui/item-edit-form';
 import { AlertTriangle } from 'lucide-react';
@@ -9,6 +10,7 @@ import { AlertTriangle } from 'lucide-react';
 export default function ItemDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const queryClient = useQueryClient();
   const isNew = params.id === 'new';
 
   const [item, setItem] = useState<Item | null>(null);
@@ -55,6 +57,8 @@ export default function ItemDetailPage() {
       const data = await res.json();
 
       if (data.success) {
+        // Invalidate the items list cache so it refreshes when we navigate back
+        await queryClient.invalidateQueries({ queryKey: ['items-list'] });
         router.push('/inventory/items');
       } else {
         setError(data.error || 'Failed to save item');
@@ -74,6 +78,8 @@ export default function ItemDetailPage() {
       const data = await res.json();
 
       if (data.success) {
+        // Invalidate the items list cache so it refreshes when we navigate back
+        await queryClient.invalidateQueries({ queryKey: ['items-list'] });
         router.push('/inventory/items');
       } else {
         setError(data.error || 'Failed to delete item');
