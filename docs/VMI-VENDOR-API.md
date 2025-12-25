@@ -1433,4 +1433,251 @@ curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/analytics/con
 
 ---
 
+## 10. Implementation Notes
+
+### Vendor API Key Management
+
+#### Database Schema: vendor_api_keys
+
+ระบบจัดเก็บ API Keys สำหรับ Vendor ในตาราง `vendor_api_keys`:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER/INT | Primary key (auto-increment) |
+| `vendor_id` | INTEGER/INT | Foreign key → vendors.id |
+| `key_hash` | TEXT/VARCHAR(64) | SHA-256 hash ของ API key |
+| `key_prefix` | TEXT/VARCHAR(16) | 16 ตัวอักษรแรกของ key (สำหรับระบุ) |
+| `name` | TEXT/VARCHAR(100) | ชื่อของ API key |
+| `permissions` | TEXT/VARCHAR(20) | สิทธิ์: `read`, `write`, `admin` |
+| `expires_at` | TEXT/DATETIME | วันหมดอายุ (optional) |
+| `last_used_at` | TEXT/DATETIME | วันที่ใช้งานล่าสุด |
+| `is_active` | BOOLEAN | สถานะใช้งาน |
+| `created_at` | TEXT/DATETIME | วันที่สร้าง |
+| `created_by` | INTEGER/INT | Foreign key → users.id |
+
+#### API Key Format
+
+```
+vmi_erp_{random_64_chars}
+```
+
+- **Prefix:** `vmi_erp_` (8 characters)
+- **Random part:** 64 hexadecimal characters
+- **Total length:** 72 characters
+- **Storage:** SHA-256 hash (64 characters) + prefix (16 characters)
+
+#### Security Features
+
+1. **Hash Storage:** เก็บเฉพาะ SHA-256 hash ของ API key ในฐานข้อมูล
+2. **One-time Display:** แสดง API key เต็มครั้งเดียวเมื่อสร้าง
+3. **Prefix Identification:** เก็บ 16 ตัวอักษรแรกเพื่อระบุ key ได้โดยไม่ต้อง expose ทั้งหมด
+4. **Automatic Expiration:** รองรับการกำหนดวันหมดอายุ
+5. **Revocation:** สามารถยกเลิก key โดยตั้ง `is_active = false`
+6. **Usage Tracking:** อัปเดต `last_used_at` ทุกครั้งที่ใช้งาน
+
+#### API Key Lifecycle
+
+```
+1. Create → Full key returned (only time shown)
+2. Store → SHA-256 hash stored in database
+3. Validate → Hash incoming key and compare
+4. Use → Update last_used_at timestamp
+5. Expire/Revoke → Set is_active = false
+```
+
+### TPP and TTMT Code Filtering Mechanism
+
+#### Product Code Types
+
+| Code Type | Format | Length | Example | Usage |
+|-----------|--------|--------|---------|-------|
+| **TPP Code** | 13 digits | 13 | `1100010001000` | Thai Pharmaceutical Products |
+| **TTMT Code** | A + 8 digits | 9 | `A01234567` | Thai Traditional Medicine (Herbal) |
+
+#### Data Model
+
+```sql
+-- items table มีทั้ง tppCode และ ttmtCode
+CREATE TABLE items (
+  id INTEGER PRIMARY KEY,
+  code VARCHAR(50),
+  name_th VARCHAR(500),
+  tpp_code VARCHAR(50),  -- TPP code (optional)
+  ttmt_code VARCHAR(10), -- TTMT code (optional)
+  ...
+);
+
+-- approved_vendor_list เชื่อม vendor กับ item
+CREATE TABLE approved_vendor_list (
+  id INTEGER PRIMARY KEY,
+  vendor_id INTEGER,
+  item_id INTEGER,
+  is_active BOOLEAN,
+  FOREIGN KEY (vendor_id) REFERENCES vendors(id),
+  FOREIGN KEY (item_id) REFERENCES items(id)
+);
+```
+
+#### Filtering Logic
+
+**Step 1: Get Vendor Product Codes**
+
+```typescript
+// Query AVL to get all items for this vendor
+SELECT DISTINCT items.tpp_code, items.ttmt_code
+FROM approved_vendor_list avl
+JOIN items ON avl.item_id = items.id
+WHERE avl.vendor_id = ? AND avl.is_active = true
+  AND (items.tpp_code IS NOT NULL OR items.ttmt_code IS NOT NULL)
+
+// Result:
+{
+  tppCodes: ['1100010001000', '9876543210987'],
+  ttmtCodes: ['A01234567', 'A99999999']
+}
+```
+
+**Step 2: Filter Data with OR Logic**
+
+```sql
+-- Example: Query hospital stock
+SELECT ...
+FROM inventory_lots lot
+JOIN items ON lot.item_id = items.id
+WHERE (
+  items.tpp_code IN ('1100010001000', '9876543210987')
+  OR
+  items.ttmt_code IN ('A01234567', 'A99999999')
+)
+```
+
+**OR Logic Justification:**
+- ผลิตภัณฑ์บางตัวมีเฉพาะ TPP code
+- ผลิตภัณฑ์บางตัวมีเฉพาะ TTMT code
+- ผลิตภัณฑ์บางตัวมีทั้งสอง code
+- ต้องใช้ OR เพื่อรวมทุกผลิตภัณฑ์ของ Vendor
+
+#### Query Parameter Support
+
+ทุก endpoint รองรับการกรองเพิ่มเติมด้วย:
+- `?tppCode=1100010001000` - ดูเฉพาะสินค้าที่มี TPP code นี้
+- `?ttmtCode=A01234567` - ดูเฉพาะสินค้าที่มี TTMT code นี้
+
+การกรองเหล่านี้จะ AND กับ vendor's product codes:
+
+```sql
+WHERE (
+  (items.tpp_code IN vendor_tpp_codes OR items.ttmt_code IN vendor_ttmt_codes)
+  AND
+  (items.tpp_code = specific_tpp OR items.ttmt_code = specific_ttmt)
+)
+```
+
+### Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant V as Vendor
+    participant M as Middleware
+    participant S as API Key Service
+    participant D as Database
+    participant E as ERP Data Service
+
+    V->>M: GET /plans (X-API-Key: vmi_erp_...)
+    M->>S: validateApiKey(apiKey)
+    S->>D: SELECT hash, vendor FROM vendor_api_keys WHERE hash = SHA256(key)
+    D->>S: vendor info
+    S->>M: {vendorId, vendorCode, permissions}
+    M->>S: getVendorProductCodes(vendorId)
+    S->>D: SELECT tpp_code, ttmt_code FROM items JOIN avl
+    D->>S: {tppCodes: [...], ttmtCodes: [...]}
+    S->>M: productCodes
+    M->>E: getPlans({productCodes, ...queryParams})
+    E->>D: SELECT ... WHERE (tpp IN ... OR ttmt IN ...)
+    D->>E: filtered data
+    E->>M: {items, total, page, pageSize}
+    M->>V: 200 OK {success: true, data: ...}
+```
+
+### Data Privacy and Security
+
+#### Automatic Filtering
+
+**ทุก query จะถูกกรองโดยอัตโนมัติ:**
+1. Middleware ดึง vendor's product codes จาก AVL
+2. Query engine เพิ่ม WHERE condition กรอง TPP/TTMT
+3. Vendor จะเห็นเฉพาะข้อมูลของผลิตภัณฑ์ที่ตนจำหน่าย
+
+#### Security Guarantees
+
+- ✅ **Vendor Isolation:** แต่ละ Vendor เห็นเฉพาะข้อมูลของตนเอง
+- ✅ **Product Filtering:** กรองโดยอัตโนมัติตาม AVL (Approved Vendor List)
+- ✅ **No Cross-Contamination:** Vendor A ไม่สามารถเห็นข้อมูลของ Vendor B
+- ✅ **Code-Level Protection:** การกรองทำที่ service layer ไม่ใช่แค่ UI
+- ✅ **Multi-Code Support:** รองรับทั้ง TPP (ยาแผนปัจจุบัน) และ TTMT (สมุนไพร)
+
+### Performance Considerations
+
+#### Indexes Required
+
+```sql
+-- For fast API key validation
+CREATE INDEX idx_vendor_api_keys_hash ON vendor_api_keys(key_hash);
+CREATE INDEX idx_vendor_api_keys_vendor_active ON vendor_api_keys(vendor_id, is_active);
+
+-- For product code filtering
+CREATE INDEX idx_items_tpp_code ON items(tpp_code);
+CREATE INDEX idx_items_ttmt_code ON items(ttmt_code);
+CREATE INDEX idx_avl_vendor_item ON approved_vendor_list(vendor_id, item_id);
+```
+
+#### Query Optimization
+
+- Product codes cached per request (not per query)
+- Use `IN` clause with array of codes (better than multiple OR)
+- Limit result sets with pagination (max 100 items/page)
+
+### API Response Format
+
+ทุก endpoint ใช้ response format เดียวกัน:
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Operation successful",
+  "data": { ... }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "code": "ERROR_CODE",
+  "message": "Error description"
+}
+```
+
+**Error Codes:**
+- `UNAUTHORIZED` - API key invalid/missing
+- `NO_PRODUCTS` - Vendor has no approved products
+- `VALIDATION_ERROR` - Invalid request parameters
+- `NOT_FOUND` - Resource not found
+
+### Testing and Validation
+
+Integration tests verify:
+1. ✅ API key creation and validation
+2. ✅ All 4 endpoints return proper structure
+3. ✅ TPP and TTMT code filtering works
+4. ✅ Query parameters accepted correctly
+5. ✅ Pagination functions properly
+6. ✅ Data filtered by vendor's product codes
+
+Test location: `tests/integration/vendor-erp-api.test.ts`
+
+---
+
 **© 2024-2025 VMI Portal - All Rights Reserved**
