@@ -6,6 +6,7 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import { getDashboardModuleKpis } from '@/lib/services/dashboard.service';
 
 // GET /api/dashboard - Get dashboard statistics
 export async function GET(request: NextRequest) {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
       const deviationsTable = getTableRef('deviations');
       const warehousesTable = getTableRef('warehouses');
 
-      // Get counts
+      // Get counts and module KPIs
       const [
         itemsCount,
         lotsInQuarantine,
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
         pendingPOs,
         pendingSOs,
         openDeviations,
+        moduleKpis,
       ] = await Promise.all([
         // Total active items
         executeDbOperation(async (db) => {
@@ -97,6 +99,9 @@ export async function GET(request: NextRequest) {
             .where(eq(deviationsTable.status, 'open'));
           return Number(result[0]?.count || 0);
         }),
+
+        // Module KPIs
+        getDashboardModuleKpis(),
       ]);
 
       // Get recent work orders
@@ -169,6 +174,7 @@ export async function GET(request: NextRequest) {
         inventoryByStatus,
         workOrdersByStatus,
         inventoryByWarehouseType,
+        moduleKpis,
       });
     } catch (error) {
       return serverErrorResponse(error);
