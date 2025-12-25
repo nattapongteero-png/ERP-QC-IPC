@@ -84,10 +84,10 @@ function getMonthStartStr(): string {
 // ============================================
 
 export async function getHRKpis(): Promise<HRKpis> {
-  const employeesTable = getTableRef('hrEmployees');
-  const healthRecordsTable = getTableRef('hrHealthRecords');
-  const authorizationsTable = getTableRef('hrAuthorizations');
-  const notificationsTable = getTableRef('hrNotifications');
+  const employeesTable = getTableRef('HREmployees');
+  const healthRecordsTable = getTableRef('HRHealthRecords');
+  const authorizationsTable = getTableRef('HRAuthorizations');
+  const notificationsTable = getTableRef('HRNotifications');
   const today = getTodayStr();
 
   const [
@@ -362,7 +362,7 @@ export async function getGMPKpis(): Promise<GMPKpis> {
   const deviationsTable = getTableRef('deviations');
   const capaTable = getTableRef('capa');
   const auditFindingsTable = getTableRef('auditFindings');
-  const trainingRecordsTable = getTableRef('hrTrainingRecords');
+  const trainingRecordsTable = getTableRef('HRTrainingRecords');
   const today = getTodayStr();
 
   const [
