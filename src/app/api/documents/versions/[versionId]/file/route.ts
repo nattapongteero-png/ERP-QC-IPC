@@ -47,7 +47,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
 
         // Get version from database
-        const database = await getDb();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const database = (await getDb()) as any;
         const versions = isSqlite() ? sqliteDocumentVersions : mysqlDocumentVersions;
 
         const [version] = await database
