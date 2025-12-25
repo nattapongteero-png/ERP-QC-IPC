@@ -8,15 +8,18 @@ import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteSalesOrders,
   sqliteSalesOrderLines,
+  sqliteSalesDeliveries,
   sqliteItems,
   sqliteInventoryLots,
   mysqlSalesOrders,
   mysqlSalesOrderLines,
+  mysqlSalesDeliveries,
   mysqlItems,
   mysqlInventoryLots,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
+import { getNow } from '../db/date-utils';
 
 // Types
 export interface ATPResult {
@@ -42,6 +45,7 @@ function getTables() {
     return {
       salesOrders: sqliteSalesOrders,
       salesOrderLines: sqliteSalesOrderLines,
+      salesDeliveries: sqliteSalesDeliveries,
       items: sqliteItems,
       lots: sqliteInventoryLots,
     };
@@ -49,6 +53,7 @@ function getTables() {
   return {
     salesOrders: mysqlSalesOrders,
     salesOrderLines: mysqlSalesOrderLines,
+    salesDeliveries: mysqlSalesDeliveries,
     items: mysqlItems,
     lots: mysqlInventoryLots,
   };
@@ -183,4 +188,153 @@ export async function allocateLotsForOrder(soId: number, userId: number) {
 
   await database.update(salesOrders).set({ status: 'processing' }).where(eq(salesOrders.id, soId));
   return allocations;
+}
+
+/**
+ * Fulfillment Types
+ */
+export interface FulfillmentInput {
+  soId: number;
+  soLineId: number;
+  itemId: number;
+  lotId: number;
+  quantity: number;
+  notes?: string;
+}
+
+export interface FulfillmentResult {
+  deliveryId: number;
+  deliveryNumber: string;
+  shippedQuantity: number;
+}
+
+/**
+ * Fulfill a sales order line by shipping from a specific lot
+ */
+export async function fulfillSalesOrderLine(
+  input: FulfillmentInput,
+  userId: number
+): Promise<FulfillmentResult> {
+  const { salesOrders, salesOrderLines, salesDeliveries, lots } = getTables();
+  const database = db();
+
+  // Get SO line
+  const [soLine] = await database
+    .select()
+    .from(salesOrderLines)
+    .where(
+      and(
+        eq(salesOrderLines.id, input.soLineId),
+        eq(salesOrderLines.soId, input.soId)
+      )
+    );
+
+  if (!soLine) throw new Error(`Sales order line ${input.soLineId} not found for order ${input.soId}`);
+
+  // Calculate pending quantity
+  const pendingQty = Number(soLine.quantity) - Number(soLine.shippedQuantity || 0);
+  if (input.quantity > pendingQty) {
+    throw new Error(`Quantity ${input.quantity} exceeds pending quantity ${pendingQty}`);
+  }
+
+  // Get lot info
+  const [lot] = await database.select().from(lots).where(eq(lots.id, input.lotId));
+  if (!lot) throw new Error(`Lot ${input.lotId} not found`);
+
+  // Get SO for delivery number generation
+  const [so] = await database.select().from(salesOrders).where(eq(salesOrders.id, input.soId));
+  if (!so) throw new Error(`Sales order ${input.soId} not found`);
+
+  // Generate delivery number
+  const today = new Date();
+  const prefix = `DL-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const lastDL = await database
+    .select({ deliveryNumber: salesDeliveries.deliveryNumber })
+    .from(salesDeliveries)
+    .where(sql`${salesDeliveries.deliveryNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(salesDeliveries.deliveryNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (lastDL.length > 0) {
+    sequence = parseInt(lastDL[0].deliveryNumber.split('-').pop() || '0') + 1;
+  }
+  const deliveryNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+
+  // Issue material from inventory (deducts lot quantity)
+  await issueMaterial(
+    input.lotId,
+    input.quantity,
+    'SO',
+    input.soId,
+    so.soNumber,
+    userId,
+    `Delivery for SO Line ${input.soLineId}`
+  );
+
+  // Create delivery record
+  const [newDelivery] = await database
+    .insert(salesDeliveries)
+    .values({
+      soId: input.soId,
+      soLineId: input.soLineId,
+      itemId: input.itemId,
+      lotId: input.lotId,
+      lotNumber: lot.lotNumber,
+      quantity: input.quantity,
+      unit: soLine.unit,
+      deliveryDate: getNow(),
+      deliveryNumber,
+      status: 'shipped',
+      notes: input.notes,
+      createdBy: userId,
+    })
+    .returning({ id: salesDeliveries.id });
+
+  // Update SO line shipped quantity
+  const newShippedQty = Number(soLine.shippedQuantity || 0) + input.quantity;
+  await database
+    .update(salesOrderLines)
+    .set({ shippedQuantity: newShippedQty })
+    .where(eq(salesOrderLines.id, input.soLineId));
+
+  // Check if all lines are fully shipped
+  const allLines = await database
+    .select({
+      quantity: salesOrderLines.quantity,
+      shippedQuantity: salesOrderLines.shippedQuantity,
+    })
+    .from(salesOrderLines)
+    .where(eq(salesOrderLines.soId, input.soId));
+
+  const allShipped = allLines.every(
+    (line) => Number(line.shippedQuantity || 0) >= Number(line.quantity)
+  );
+
+  if (allShipped) {
+    await database
+      .update(salesOrders)
+      .set({ status: 'shipped', shippedDate: getNow() })
+      .where(eq(salesOrders.id, input.soId));
+  } else if (so.status === 'confirmed') {
+    // Move to processing if first shipment
+    await database
+      .update(salesOrders)
+      .set({ status: 'processing' })
+      .where(eq(salesOrders.id, input.soId));
+  }
+
+  await createAuditLog({
+    userId,
+    action: 'SHIP',
+    tableName: 'sales_deliveries',
+    recordId: newDelivery.id,
+    newValue: { deliveryNumber, soId: input.soId, lotNumber: lot.lotNumber, quantity: input.quantity },
+  });
+
+  return {
+    deliveryId: newDelivery.id,
+    deliveryNumber,
+    shippedQuantity: input.quantity,
+  };
 }
