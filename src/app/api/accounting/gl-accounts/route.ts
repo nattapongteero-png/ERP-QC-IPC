@@ -19,7 +19,7 @@ import { glAccountCreateSchema } from '@/lib/validation/accounting';
 export async function GET(request: NextRequest) {
   return withAuth(
     request,
-    async (session) => {
+    async () => {
       try {
         const { searchParams } = new URL(request.url);
         const accountTypeId = searchParams.get('accountTypeId');
