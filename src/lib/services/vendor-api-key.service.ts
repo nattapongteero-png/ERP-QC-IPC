@@ -16,7 +16,6 @@ import {
   mysqlApprovedVendorList,
   sqliteItems,
   mysqlItems,
-  type VendorApiKey,
 } from '@/lib/db/schema';
 import { getNow } from '@/lib/db/date-utils';
 
@@ -147,7 +146,12 @@ export class VendorApiKeyService {
           and(
             eq(sqliteVendorApiKeys.keyHash, keyHash),
             eq(sqliteVendorApiKeys.isActive, true),
-            eq(sqliteVendors.isActive, true)
+            eq(sqliteVendors.isActive, true),
+            // Check expiration: allow if null OR not expired
+            or(
+              sql`${sqliteVendorApiKeys.expiresAt} IS NULL`,
+              sql`${sqliteVendorApiKeys.expiresAt} > ${now}`
+            )
           )
         )
         .limit(1);
@@ -186,7 +190,12 @@ export class VendorApiKeyService {
           and(
             eq(mysqlVendorApiKeys.keyHash, keyHash),
             eq(mysqlVendorApiKeys.isActive, true),
-            eq(mysqlVendors.isActive, true)
+            eq(mysqlVendors.isActive, true),
+            // Check expiration: allow if null OR not expired
+            or(
+              sql`${mysqlVendorApiKeys.expiresAt} IS NULL`,
+              sql`${mysqlVendorApiKeys.expiresAt} > CURRENT_TIMESTAMP`
+            )
           )
         )
         .limit(1);
