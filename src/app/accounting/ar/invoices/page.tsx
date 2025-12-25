@@ -39,6 +39,12 @@ import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+  AccountingStatusBadge,
+} from '@/components/accounting';
 
 // Types
 interface ARInvoice {
@@ -411,30 +417,20 @@ export default function ARInvoicesPage() {
     return Math.round(lineTotal * 0.07 * 100) / 100;
   }, [lineTotal]);
 
-  // Status badge render
+  // Status badge render using AccountingStatusBadge
   const statusCellRender = useCallback((cellData: { value: string }) => {
-    const statusMap: Record<string, { label: string; color: string }> = {
-      draft: { label: 'ร่าง', color: '#6c757d' },
-      confirmed: { label: 'ยืนยัน', color: '#17a2b8' },
-      posted: { label: 'ลงบัญชี', color: '#007bff' },
-      partial: { label: 'รับบางส่วน', color: '#ffc107' },
-      paid: { label: 'ชำระแล้ว', color: '#28a745' },
-      cancelled: { label: 'ยกเลิก', color: '#dc3545' },
+    const statusValue = cellData.value as 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'confirmed';
+    // Map AR-specific statuses to badge statuses
+    const statusMap: Record<string, 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'confirmed'> = {
+      draft: 'draft',
+      confirmed: 'confirmed',
+      posted: 'posted',
+      partial: 'partial',
+      paid: 'paid',
+      cancelled: 'cancelled',
     };
-    const status = statusMap[cellData.value] || { label: cellData.value, color: '#6c757d' };
-    return (
-      <span
-        style={{
-          backgroundColor: status.color,
-          color: 'white',
-          padding: '2px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-        }}
-      >
-        {status.label}
-      </span>
-    );
+    const mappedStatus = statusMap[statusValue] || 'draft';
+    return <AccountingStatusBadge status={mappedStatus} />;
   }, []);
 
   // Action buttons render
@@ -467,67 +463,99 @@ export default function ARInvoicesPage() {
     [handleConfirm, handleOpenPaymentDialog]
   );
 
+  // Calculate stats
+  const stats = useMemo(() => {
+    const total = invoices.length;
+    const pending = invoices.filter((i) => i.status === 'draft').length;
+    const outstanding = invoices.filter((i) => ['posted', 'partial'].includes(i.status)).length;
+    const paid = invoices.filter((i) => i.status === 'paid').length;
+    const totalAmount = invoices.reduce((sum, i) => sum + i.totalAmount, 0);
+    const outstandingAmount = invoices
+      .filter((i) => ['posted', 'partial'].includes(i.status))
+      .reduce((sum, i) => sum + (i.totalAmount - i.paidAmount), 0);
+
+    return { total, pending, outstanding, paid, totalAmount, outstandingAmount };
+  }, [invoices]);
+
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">ใบแจ้งหนี้ขาย</h1>
-        <p className="text-gray-600">AR Invoices / Tax Invoices</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      {/* Professional Header */}
+      <AccountingPageHeader
+        title="ใบแจ้งหนี้ขาย"
+        subtitle="AR Invoices / Tax Invoices"
+        icon="dollar-sign"
+        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ar-invoices'] })}
+        actions={
+          <Button
+            text="เพิ่มใบแจ้งหนี้"
+            icon="plus"
+            type="success"
+            onClick={handleOpenDialog}
+          />
+        }
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="text-gray-600 text-sm">รายการทั้งหมด</div>
-          <div className="text-2xl font-bold">{invoices.length}</div>
+      <div className="p-6 space-y-6">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <AccountingKPICard
+            label="รายการทั้งหมด"
+            value={stats.total.toLocaleString('th-TH')}
+            subtitle={`฿${stats.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
+            icon="file-text"
+            variant="info"
+          />
+          <AccountingKPICard
+            label="รอดำเนินการ"
+            value={stats.pending.toLocaleString('th-TH')}
+            subtitle="รอการยืนยัน"
+            icon="clock"
+            variant="warning"
+          />
+          <AccountingKPICard
+            label="ค้างรับ"
+            value={stats.outstanding.toLocaleString('th-TH')}
+            subtitle={`฿${stats.outstandingAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
+            icon="dollar-sign"
+            variant="danger"
+          />
+          <AccountingKPICard
+            label="ชำระแล้ว"
+            value={stats.paid.toLocaleString('th-TH')}
+            subtitle="เสร็จสมบูรณ์"
+            icon="check-circle"
+            variant="success"
+          />
         </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-          <div className="text-gray-600 text-sm">รอยืนยัน</div>
-          <div className="text-2xl font-bold">
-            {invoices.filter((i) => i.status === 'draft').length}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-orange-500">
-          <div className="text-gray-600 text-sm">ค้างรับ</div>
-          <div className="text-2xl font-bold">
-            {invoices.filter((i) => ['posted', 'partial'].includes(i.status)).length}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-          <div className="text-gray-600 text-sm">ชำระแล้ว</div>
-          <div className="text-2xl font-bold">
-            {invoices.filter((i) => i.status === 'paid').length}
-          </div>
-        </div>
-      </div>
 
-      {/* Filter */}
-      <div className="mb-4 flex items-center gap-4">
-        <SelectBox
-          dataSource={[
-            { value: '', label: 'ทั้งหมด' },
-            { value: 'draft', label: 'ร่าง' },
-            { value: 'posted', label: 'ลงบัญชี' },
-            { value: 'partial', label: 'รับบางส่วน' },
-            { value: 'paid', label: 'ชำระแล้ว' },
-          ]}
-          displayExpr="label"
-          valueExpr="value"
-          value={statusFilter}
-          onValueChanged={(e) => setStatusFilter(e.value)}
-          placeholder="กรองสถานะ"
-          width={180}
-        />
-        <Button
-          text="เพิ่มใบแจ้งหนี้"
-          icon="plus"
-          type="success"
-          onClick={handleOpenDialog}
-        />
-      </div>
+        {/* Filter Panel */}
+        <AccountingFilterPanel>
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                สถานะ
+              </label>
+              <SelectBox
+                dataSource={[
+                  { value: '', label: 'ทั้งหมด' },
+                  { value: 'draft', label: 'ร่าง' },
+                  { value: 'posted', label: 'ลงบัญชี' },
+                  { value: 'partial', label: 'รับบางส่วน' },
+                  { value: 'paid', label: 'ชำระแล้ว' },
+                ]}
+                displayExpr="label"
+                valueExpr="value"
+                value={statusFilter}
+                onValueChanged={(e) => setStatusFilter(e.value)}
+                placeholder="กรองสถานะ"
+                width={200}
+              />
+            </div>
+          </div>
+        </AccountingFilterPanel>
 
-      {/* Data Grid */}
-      <div className="bg-white rounded-lg shadow">
+        {/* Data Grid */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <DataGrid
           dataSource={invoices}
           keyExpr="id"
@@ -561,11 +589,11 @@ export default function ARInvoicesPage() {
             <Item name="columnChooserButton" location="after" />
           </Toolbar>
 
-          <Column dataField="invoiceNumber" caption="เลขที่ใบแจ้งหนี้" width={140} />
+          <Column dataField="invoiceNumber" caption="เลขที่ใบแจ้งหนี้" width={150} />
           <Column dataField="taxInvoiceNumber" caption="เลขที่ใบกำกับภาษี" width={160} />
           <Column dataField="customerId" caption="ลูกค้า" width={150} visible={false} />
-          <Column dataField="invoiceDate" caption="วันที่" dataType="date" width={100} />
-          <Column dataField="dueDate" caption="วันครบกำหนด" dataType="date" width={100} />
+          <Column dataField="invoiceDate" caption="วันที่" dataType="date" width={110} />
+          <Column dataField="dueDate" caption="วันครบกำหนด" dataType="date" width={110} />
           <Column dataField="description" caption="รายละเอียด" minWidth={150} />
           <Column
             dataField="totalAmount"
@@ -580,7 +608,7 @@ export default function ARInvoicesPage() {
             dataField="paidAmount"
             caption="รับแล้ว"
             dataType="number"
-            width={100}
+            width={120}
             alignment="right"
           >
             <Format type="fixedPoint" precision={2} />
@@ -588,12 +616,12 @@ export default function ARInvoicesPage() {
           <Column
             dataField="status"
             caption="สถานะ"
-            width={100}
+            width={120}
             cellRender={statusCellRender}
           />
           <Column
             caption="การดำเนินการ"
-            width={120}
+            width={150}
             cellRender={actionsCellRender}
             allowFiltering={false}
             allowSorting={false}
@@ -605,20 +633,20 @@ export default function ARInvoicesPage() {
             </TotalItem>
           </Summary>
         </DataGrid>
-      </div>
+        </div>
 
-      {/* Add Invoice Dialog */}
-      <Popup
-        visible={isDialogOpen}
-        onHiding={handleCloseDialog}
-        title="สร้างใบแจ้งหนี้ขาย"
-        width={800}
-        height="auto"
-        showCloseButton={true}
-        dragEnabled={true}
-      >
-        <div className="p-4">
-          <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
+        {/* Add Invoice Dialog */}
+        <Popup
+          visible={isDialogOpen}
+          onHiding={handleCloseDialog}
+          title="สร้างใบแจ้งหนี้ขาย"
+          width={800}
+          height="auto"
+          showCloseButton={true}
+          dragEnabled={true}
+        >
+          <div className="p-4">
+            <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
             <GroupItem colCount={3}>
               <SimpleItem
                 dataField="invoiceNumber"
@@ -665,10 +693,10 @@ export default function ARInvoicesPage() {
               label={{ text: 'รายละเอียด' }}
               editorOptions={{ height: 60 }}
             />
-          </Form>
+            </Form>
 
-          {/* Line Items */}
-          <div className="mt-6">
+            {/* Line Items */}
+            <div className="mt-6">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-semibold">รายการ</h3>
               <Button text="เพิ่มรายการ" icon="plus" type="default" onClick={addLine} />
@@ -781,131 +809,132 @@ export default function ARInvoicesPage() {
                 </tr>
               </tfoot>
             </table>
-          </div>
+            </div>
 
-          {/* Dialog Actions */}
-          <div className="mt-6 flex justify-end gap-2">
-            <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
-            <Button
-              text="บันทึก"
-              type="success"
-              onClick={handleSave}
-              disabled={createMutation.isPending}
-            />
+            {/* Dialog Actions */}
+            <div className="mt-6 flex justify-end gap-2">
+              <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
+              <Button
+                text="บันทึก"
+                type="success"
+                onClick={handleSave}
+                disabled={createMutation.isPending}
+              />
+            </div>
           </div>
-        </div>
-      </Popup>
+        </Popup>
 
-      {/* Payment Dialog */}
-      <Popup
-        visible={isPaymentDialogOpen}
-        onHiding={handleClosePaymentDialog}
-        title={`รับชำระเงิน - ${selectedInvoice?.invoiceNumber || ''}`}
-        width={500}
-        height="auto"
-        showCloseButton={true}
-        dragEnabled={true}
-      >
-        <div className="p-4">
-          {selectedInvoice && (
-            <>
-              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>เลขที่ใบกำกับภาษี:</div>
-                  <div className="font-semibold">{selectedInvoice.taxInvoiceNumber}</div>
-                  <div>ยอดรวม:</div>
-                  <div className="font-semibold">
-                    {selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
-                  </div>
-                  <div>รับแล้ว:</div>
-                  <div className="font-semibold">
-                    {selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
-                  </div>
-                  <div>ค้างรับ:</div>
-                  <div className="font-bold text-orange-600">
-                    {(selectedInvoice.totalAmount - selectedInvoice.paidAmount).toLocaleString('th-TH', {
-                      minimumFractionDigits: 2,
-                    })}{' '}
-                    บาท
+        {/* Payment Dialog */}
+        <Popup
+          visible={isPaymentDialogOpen}
+          onHiding={handleClosePaymentDialog}
+          title={`รับชำระเงิน - ${selectedInvoice?.invoiceNumber || ''}`}
+          width={500}
+          height="auto"
+          showCloseButton={true}
+          dragEnabled={true}
+        >
+          <div className="p-4">
+            {selectedInvoice && (
+              <>
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>เลขที่ใบกำกับภาษี:</div>
+                    <div className="font-semibold">{selectedInvoice.taxInvoiceNumber}</div>
+                    <div>ยอดรวม:</div>
+                    <div className="font-semibold">
+                      {selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+                    </div>
+                    <div>รับแล้ว:</div>
+                    <div className="font-semibold">
+                      {selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+                    </div>
+                    <div>ค้างรับ:</div>
+                    <div className="font-bold text-orange-600">
+                      {(selectedInvoice.totalAmount - selectedInvoice.paidAmount).toLocaleString('th-TH', {
+                        minimumFractionDigits: 2,
+                      })}{' '}
+                      บาท
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <Form formData={paymentFormData} labelLocation="top" showColonAfterLabel={true}>
-                <SimpleItem
-                  dataField="paymentDate"
-                  editorType="dxDateBox"
-                  label={{ text: 'วันที่รับชำระ' }}
-                  editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
-                >
-                  <RequiredRule message="กรุณาเลือกวันที่" />
-                </SimpleItem>
-                <SimpleItem
-                  dataField="bankAccountId"
-                  editorType="dxSelectBox"
-                  label={{ text: 'บัญชีรับเงิน' }}
-                  editorOptions={{
-                    dataSource: bankAccounts,
-                    displayExpr: (item: BankAccount) => item ? `${item.code} - ${item.nameTh}` : '',
-                    valueExpr: 'id',
-                    searchEnabled: true,
-                  }}
-                >
-                  <RequiredRule message="กรุณาเลือกบัญชี" />
-                </SimpleItem>
-                <SimpleItem
-                  dataField="paymentMethod"
-                  editorType="dxSelectBox"
-                  label={{ text: 'วิธีการรับชำระ' }}
-                  editorOptions={{
-                    dataSource: [
-                      { value: 'transfer', label: 'โอนเงิน' },
-                      { value: 'cash', label: 'เงินสด' },
-                      { value: 'check', label: 'เช็ค' },
-                      { value: 'other', label: 'อื่นๆ' },
-                    ],
-                    displayExpr: 'label',
-                    valueExpr: 'value',
-                  }}
-                />
-                <SimpleItem
-                  dataField="referenceNumber"
-                  label={{ text: 'เลขที่อ้างอิง' }}
-                  editorOptions={{ placeholder: 'เลขที่เช็ค / Ref. No.' }}
-                />
-                <SimpleItem
-                  dataField="amount"
-                  editorType="dxNumberBox"
-                  label={{ text: 'จำนวนเงิน (บาท)' }}
-                  editorOptions={{
-                    format: '#,##0.00',
-                    min: 0.01,
-                    max: selectedInvoice.totalAmount - selectedInvoice.paidAmount,
-                  }}
-                >
-                  <RequiredRule message="กรุณากรอกจำนวนเงิน" />
-                </SimpleItem>
-                <SimpleItem
-                  dataField="description"
-                  editorType="dxTextArea"
-                  label={{ text: 'หมายเหตุ' }}
-                  editorOptions={{ height: 60 }}
-                />
-              </Form>
+                <Form formData={paymentFormData} labelLocation="top" showColonAfterLabel={true}>
+                  <SimpleItem
+                    dataField="paymentDate"
+                    editorType="dxDateBox"
+                    label={{ text: 'วันที่รับชำระ' }}
+                    editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
+                  >
+                    <RequiredRule message="กรุณาเลือกวันที่" />
+                  </SimpleItem>
+                  <SimpleItem
+                    dataField="bankAccountId"
+                    editorType="dxSelectBox"
+                    label={{ text: 'บัญชีรับเงิน' }}
+                    editorOptions={{
+                      dataSource: bankAccounts,
+                      displayExpr: (item: BankAccount) => item ? `${item.code} - ${item.nameTh}` : '',
+                      valueExpr: 'id',
+                      searchEnabled: true,
+                    }}
+                  >
+                    <RequiredRule message="กรุณาเลือกบัญชี" />
+                  </SimpleItem>
+                  <SimpleItem
+                    dataField="paymentMethod"
+                    editorType="dxSelectBox"
+                    label={{ text: 'วิธีการรับชำระ' }}
+                    editorOptions={{
+                      dataSource: [
+                        { value: 'transfer', label: 'โอนเงิน' },
+                        { value: 'cash', label: 'เงินสด' },
+                        { value: 'check', label: 'เช็ค' },
+                        { value: 'other', label: 'อื่นๆ' },
+                      ],
+                      displayExpr: 'label',
+                      valueExpr: 'value',
+                    }}
+                  />
+                  <SimpleItem
+                    dataField="referenceNumber"
+                    label={{ text: 'เลขที่อ้างอิง' }}
+                    editorOptions={{ placeholder: 'เลขที่เช็ค / Ref. No.' }}
+                  />
+                  <SimpleItem
+                    dataField="amount"
+                    editorType="dxNumberBox"
+                    label={{ text: 'จำนวนเงิน (บาท)' }}
+                    editorOptions={{
+                      format: '#,##0.00',
+                      min: 0.01,
+                      max: selectedInvoice.totalAmount - selectedInvoice.paidAmount,
+                    }}
+                  >
+                    <RequiredRule message="กรุณากรอกจำนวนเงิน" />
+                  </SimpleItem>
+                  <SimpleItem
+                    dataField="description"
+                    editorType="dxTextArea"
+                    label={{ text: 'หมายเหตุ' }}
+                    editorOptions={{ height: 60 }}
+                  />
+                </Form>
 
-              <div className="mt-6 flex justify-end gap-2">
-                <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleClosePaymentDialog} />
-                <Button
-                  text="รับชำระ"
-                  type="success"
-                  onClick={handleReceivePayment}
-                  disabled={paymentMutation.isPending}
-                />
-              </div>
-            </>
-          )}
-        </div>
-      </Popup>
+                <div className="mt-6 flex justify-end gap-2">
+                  <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleClosePaymentDialog} />
+                  <Button
+                    text="รับชำระ"
+                    type="success"
+                    onClick={handleReceivePayment}
+                    disabled={paymentMutation.isPending}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </Popup>
+      </div>
     </div>
   );
 }
