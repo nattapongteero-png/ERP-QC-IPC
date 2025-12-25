@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2025-12-25
+**Updated**: 2025-12-25 (Added Fixed Assets & Equipment Management)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -45,6 +46,7 @@
    - Withholding Tax certificates (Por Ngor Dor 3/53)
    - Tax invoice numbering per Thai Revenue Department
    - Fiscal year flexibility (calendar or Oct-Sep government year)
+   - Thai Revenue Code depreciation useful lives
 
 3. **Module integrations clearly defined**:
    - Purchase module: PO receipt triggers AP Invoice
@@ -58,4 +60,32 @@
    - Overhead allocation
    - WIP to Finished Goods transfer
 
-5. **Assumptions documented**: Clear about scope boundaries (single company, THB currency, no electronic filing integration initially)
+5. **Fixed Assets Management** (Added 2025-12-25):
+   - Asset registration and categorization per Thai standards
+   - Depreciation calculation (straight-line/declining balance)
+   - Asset disposal with gain/loss calculation
+   - Asset movement and location tracking
+   - Revaluation and impairment support
+
+6. **Equipment and Maintenance Management** (Added 2025-12-25):
+   - Equipment master data (serial, manufacturer, model, warranty)
+   - Preventive maintenance scheduling (calendar/hours-based)
+   - Maintenance event recording with cost tracking
+   - Expense vs capital improvement distinction
+   - MTBF and reliability analysis
+
+7. **Assumptions documented**: Clear about scope boundaries:
+   - Single company, THB currency
+   - No electronic filing integration initially
+   - No external CMMS integration initially
+   - No barcode/RFID hardware integration initially
+
+### Specification Summary
+
+| Category | Count |
+|----------|-------|
+| User Stories | 10 |
+| Functional Requirements | 50 |
+| Key Entities | 18 |
+| Success Criteria | 15 |
+| Edge Cases | 10 |

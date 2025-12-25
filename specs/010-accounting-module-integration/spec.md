@@ -109,7 +109,43 @@ As a Tax Accountant, I need to calculate, track, and report VAT and Withholding 
 
 ---
 
-### User Story 7 - Perform Period-End Closing (Priority: P3)
+### User Story 7 - Manage Fixed Assets and Depreciation (Priority: P2)
+
+As an Asset Accountant, I need to register, track, and depreciate fixed assets according to Thai Revenue Code and Thai Accounting Standards, so that the company's asset values are accurately reflected in financial statements and tax filings.
+
+**Why this priority**: Fixed assets represent significant capital investments in manufacturing (machinery, equipment, buildings). Proper tracking ensures accurate balance sheet reporting, correct depreciation expense recognition, and compliance with Thai tax regulations for asset write-offs.
+
+**Independent Test**: Can be fully tested by registering a fixed asset, running depreciation calculations, and verifying the asset value and accumulated depreciation are correctly recorded. Delivers value through automated depreciation and asset tracking.
+
+**Acceptance Scenarios**:
+
+1. **Given** a capital purchase is received (e.g., machinery from PO), **When** I choose to capitalize it as a fixed asset, **Then** the system creates an asset record with acquisition cost, acquisition date, and assigns it to the appropriate asset category
+2. **Given** a fixed asset is registered, **When** the monthly depreciation process runs, **Then** the system calculates depreciation based on the configured method (straight-line or declining balance) and Thai Revenue Code useful life limits
+3. **Given** depreciation is calculated, **When** journal entries are posted, **Then** the system debits Depreciation Expense and credits Accumulated Depreciation for each asset
+4. **Given** a fixed asset needs to be disposed, **When** I record the disposal (sale, write-off, or scrapping), **Then** the system calculates gain/loss on disposal, removes the asset from active register, and creates appropriate journal entries
+5. **Given** I need to review asset status, **When** I generate the Fixed Asset Register report, **Then** I see all assets with acquisition cost, accumulated depreciation, net book value, location, and responsible person
+
+---
+
+### User Story 8 - Track Equipment and Maintenance Costs (Priority: P2)
+
+As a Plant Manager, I need to track manufacturing equipment, maintenance schedules, and maintenance costs, so that I can plan preventive maintenance, control repair expenses, and ensure equipment availability for production.
+
+**Why this priority**: In manufacturing, equipment uptime directly affects production capacity and product quality. Tracking maintenance costs helps with budgeting, identifying problematic equipment, and making repair-vs-replace decisions. This integrates with production planning and cost accounting.
+
+**Independent Test**: Can be fully tested by registering equipment, scheduling maintenance, recording maintenance events, and generating equipment cost reports. Delivers value through maintenance visibility and cost control.
+
+**Acceptance Scenarios**:
+
+1. **Given** a piece of manufacturing equipment is registered as a fixed asset, **When** I access its equipment profile, **Then** I can view and edit equipment-specific details (serial number, manufacturer, model, warranty info, location, assigned operator)
+2. **Given** equipment requires regular maintenance, **When** I set up a maintenance schedule, **Then** the system generates maintenance tasks at the specified intervals (daily, weekly, monthly, or by operating hours)
+3. **Given** maintenance is performed, **When** I record the maintenance event, **Then** the system captures the maintenance type (preventive, corrective, emergency), parts used, labor hours, and total cost
+4. **Given** maintenance costs are recorded, **When** the cost is linked to an asset, **Then** the system either expenses minor repairs or capitalizes major improvements based on configured thresholds
+5. **Given** I need to analyze equipment performance, **When** I generate the Equipment Maintenance History report, **Then** I see maintenance frequency, downtime, total costs, and mean time between failures (MTBF) for each piece of equipment
+
+---
+
+### User Story 9 - Perform Period-End Closing (Priority: P3)
 
 As an Accounting Manager, I need to perform month-end and year-end closing procedures to finalize financial periods, so that financial reports are accurate and the books are properly maintained.
 
@@ -126,7 +162,7 @@ As an Accounting Manager, I need to perform month-end and year-end closing proce
 
 ---
 
-### User Story 8 - Integrate with HR for Payroll Accounting (Priority: P3)
+### User Story 10 - Integrate with HR for Payroll Accounting (Priority: P3)
 
 As a Payroll Accountant, I need payroll expenses from the HR module to automatically create journal entries, so that labor costs are accurately recorded and can be allocated to production or cost centers.
 
@@ -150,6 +186,11 @@ As a Payroll Accountant, I need payroll expenses from the HR module to automatic
 - What happens when goods are returned after invoice is posted? Credit memo must be created with corresponding reversing entries.
 - How are advance payments from customers or to vendors handled? Advance payments are recorded to separate advance accounts and cleared against invoices when issued.
 - What happens when a fiscal year structure needs to change? System must support flexible fiscal year definitions (calendar year or Thai government fiscal year Oct-Sep).
+- What happens when a fixed asset is fully depreciated but still in use? Asset remains in register with zero net book value; no further depreciation is recorded.
+- How are asset improvements vs repairs distinguished? System uses configurable capitalization threshold; amounts above threshold are capitalized and added to asset value.
+- What happens when an asset is transferred between locations or departments? System tracks asset movement history and updates responsible cost center for depreciation allocation.
+- How does the system handle asset impairment? Impairment losses can be recorded when asset's recoverable amount is less than book value, per Thai Accounting Standard 36.
+- What happens when equipment breaks down unexpectedly? Emergency maintenance is recorded with downtime tracking; if repair cost exceeds threshold, triggers review for asset write-down or replacement decision.
 
 ## Requirements *(mandatory)*
 
@@ -205,9 +246,27 @@ As a Payroll Accountant, I need payroll expenses from the HR module to automatic
 - **FR-033**: System MUST allocate labor costs to cost centers or production batches based on employee assignments
 - **FR-034**: System MUST track statutory liabilities (Income Tax, Social Security, Provident Fund) from payroll deductions
 
+**Fixed Assets Management**
+- **FR-035**: System MUST maintain a Fixed Asset Register with asset categories following Thai Accounting Standards (Land, Buildings, Machinery, Equipment, Vehicles, Furniture, Intangible Assets)
+- **FR-036**: System MUST allow capitalization of purchases from AP Invoices when cost exceeds the configured capitalization threshold
+- **FR-037**: System MUST calculate depreciation using straight-line or declining balance methods based on Thai Revenue Code useful life limits (5-20 years by asset type)
+- **FR-038**: System MUST automatically generate monthly depreciation journal entries debiting Depreciation Expense and crediting Accumulated Depreciation
+- **FR-039**: System MUST track asset location, responsible person/department, and movement history
+- **FR-040**: System MUST record asset disposals (sale, write-off, transfer) with automatic calculation of gain/loss and corresponding journal entries
+- **FR-041**: System MUST generate Fixed Asset Register report showing cost, accumulated depreciation, and net book value as of any date
+- **FR-042**: System MUST support asset revaluation and impairment recording per Thai Accounting Standard 36
+
+**Equipment and Maintenance Management**
+- **FR-043**: System MUST maintain equipment master data including serial number, manufacturer, model, warranty information, and specifications
+- **FR-044**: System MUST support preventive maintenance scheduling based on calendar intervals or operating hours/units
+- **FR-045**: System MUST record maintenance events with type (preventive, corrective, emergency), parts used, labor hours, downtime, and costs
+- **FR-046**: System MUST distinguish between expense repairs and capital improvements based on configurable threshold
+- **FR-047**: System MUST track equipment operating hours and maintenance history for reliability analysis
+- **FR-048**: System MUST generate equipment maintenance cost reports and mean time between failures (MTBF) analysis
+
 **Data Integrity & Security**
-- **FR-035**: System MUST integrate with existing HR authorization system for role-based access control
-- **FR-036**: System MUST log all accounting transactions in the audit trail with user, timestamp, and source document reference
+- **FR-049**: System MUST integrate with existing HR authorization system for role-based access control
+- **FR-050**: System MUST log all accounting transactions in the audit trail with user, timestamp, and source document reference
 
 ### Key Entities *(include if feature involves data)*
 
@@ -220,6 +279,14 @@ As a Payroll Accountant, I need payroll expenses from the HR module to automatic
 - **Cost Allocation**: Manufacturing cost allocation record linking production batch to material, labor, and overhead costs
 - **VAT Transaction**: Individual VAT transaction for tax reporting (type, invoice reference, taxable amount, VAT amount, tax invoice number)
 - **Fiscal Period**: Accounting period definition (year, month/quarter, start date, end date, status: open/closed)
+- **Fixed Asset**: Capital asset record (asset code, description Thai/English, category, acquisition date, acquisition cost, useful life, depreciation method, salvage value, location, responsible person, status)
+- **Asset Category**: Classification of fixed assets (category code, name, default useful life, default depreciation method, asset GL account, depreciation expense GL account, accumulated depreciation GL account)
+- **Asset Depreciation**: Monthly depreciation record (asset, period, depreciation amount, accumulated depreciation, net book value)
+- **Asset Disposal**: Record of asset disposal (asset, disposal date, disposal type, proceeds, gain/loss, journal entry reference)
+- **Asset Movement**: History of asset location/department transfers (asset, from location, to location, transfer date, reason)
+- **Equipment**: Extended asset information for manufacturing equipment (asset reference, serial number, manufacturer, model, specifications, warranty start/end, operating hours, assigned operator)
+- **Maintenance Schedule**: Preventive maintenance plan (equipment, maintenance type, interval type, interval value, last performed, next due)
+- **Maintenance Record**: Individual maintenance event (equipment, maintenance date, type, description, parts used, labor hours, downtime hours, cost, performed by)
 
 ## Success Criteria *(mandatory)*
 
@@ -235,6 +302,11 @@ As a Payroll Accountant, I need payroll expenses from the HR module to automatic
 - **SC-008**: Period-end closing completes within 5 minutes for a typical month's transaction volume
 - **SC-009**: 100% of accounting transactions have audit trail entries with user, timestamp, and source reference
 - **SC-010**: Withholding Tax certificates can be generated immediately upon payment processing
+- **SC-011**: Monthly depreciation for all assets is calculated and posted automatically with zero manual intervention
+- **SC-012**: Fixed Asset Register report accurately reflects 100% of assets with correct net book values at any point in time
+- **SC-013**: Equipment maintenance scheduling generates alerts at least 7 days before preventive maintenance is due
+- **SC-014**: Equipment downtime and maintenance costs are tracked with 100% of maintenance events recorded
+- **SC-015**: Asset disposal transactions automatically calculate gain/loss and generate correct journal entries
 
 ## Assumptions
 
@@ -246,3 +318,6 @@ As a Payroll Accountant, I need payroll expenses from the HR module to automatic
 - Multi-branch/multi-company operations are not in initial scope but the design should not preclude future extension
 - Bank of Thailand exchange rates will be used for any foreign currency transactions
 - Electronic filing integration with Thai Revenue Department is not in initial scope (reports will be generated for manual upload)
+- Fixed asset depreciation will follow Thai Revenue Code standard useful lives (Buildings: 20 years, Machinery: 5-10 years, Vehicles: 5 years, Furniture/Equipment: 5 years) unless specifically configured otherwise
+- Equipment maintenance integration with external CMMS (Computerized Maintenance Management System) is not in initial scope
+- Barcode/RFID asset tracking hardware integration is not in initial scope but data model should support future extension
