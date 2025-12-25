@@ -1547,3 +1547,158 @@ export async function generateAssetRegister(
     },
   };
 }
+
+// ============================================
+// Equipment Cost Report (T208)
+// ============================================
+
+export interface EquipmentCostEntry {
+  equipmentId: number;
+  assetCode: string;
+  equipmentName: string;
+  manufacturer: string | null;
+  model: string | null;
+  operatingHours: number;
+  totalMaintenanceEvents: number;
+  totalPartsCost: number;
+  totalLaborCost: number;
+  totalExternalCost: number;
+  totalMaintenanceCost: number;
+  totalDowntimeHours: number;
+  costPerHour: number;
+}
+
+export interface EquipmentCostReport {
+  reportDate: string;
+  dateFrom: string | null;
+  dateTo: string | null;
+  entries: EquipmentCostEntry[];
+  summary: {
+    totalEquipment: number;
+    totalMaintenanceEvents: number;
+    totalPartsCost: number;
+    totalLaborCost: number;
+    totalExternalCost: number;
+    totalMaintenanceCost: number;
+    totalDowntimeHours: number;
+  };
+}
+
+/**
+ * Generate Equipment Cost Report
+ * Shows maintenance costs by equipment for the specified period
+ */
+export async function generateEquipmentCostReport(
+  dateFrom?: string,
+  dateTo?: string
+): Promise<EquipmentCostReport> {
+  const { equipment, fixedAssets, maintenanceRecords } = getAccountingTables();
+  const database = db();
+
+  // Get all equipment with asset info
+  const equipmentList = await database
+    .select({
+      equipment: equipment,
+      asset: fixedAssets,
+    })
+    .from(equipment)
+    .leftJoin(fixedAssets, eq(equipment.fixedAssetId, fixedAssets.id));
+
+  // Build maintenance query conditions
+  const conditions = [];
+  if (dateFrom) {
+    conditions.push(gte(maintenanceRecords.maintenanceDate, toQueryDate(dateFrom)));
+  }
+  if (dateTo) {
+    conditions.push(lte(maintenanceRecords.maintenanceDate, toQueryDate(dateTo)));
+  }
+
+  // Get all maintenance records in the period
+  let maintenanceQuery = database.select().from(maintenanceRecords);
+  if (conditions.length > 0) {
+    maintenanceQuery = maintenanceQuery.where(and(...conditions)) as typeof maintenanceQuery;
+  }
+  const allRecords = await maintenanceQuery;
+
+  // Group records by equipment
+  const recordsByEquipment = new Map<number, typeof allRecords>();
+  for (const record of allRecords) {
+    const equipmentId = (record as { equipmentId: number }).equipmentId;
+    if (!recordsByEquipment.has(equipmentId)) {
+      recordsByEquipment.set(equipmentId, []);
+    }
+    recordsByEquipment.get(equipmentId)!.push(record);
+  }
+
+  // Build entries
+  const entries: EquipmentCostEntry[] = [];
+  let totalMaintenanceEvents = 0;
+  let totalPartsCost = 0;
+  let totalLaborCost = 0;
+  let totalExternalCost = 0;
+  let totalDowntimeHours = 0;
+
+  for (const row of equipmentList) {
+    const eq = row.equipment as { id: number; manufacturer: string | null; model: string | null; operatingHours: number };
+    const asset = row.asset as { assetCode: string; nameTh: string } | null;
+    const records = recordsByEquipment.get(eq.id) || [];
+
+    let equipPartsCost = 0;
+    let equipLaborCost = 0;
+    let equipExternalCost = 0;
+    let equipDowntimeHours = 0;
+
+    for (const r of records) {
+      const record = r as { partsCost: number; laborCost: number; externalServiceCost: number; downtimeHours: number };
+      equipPartsCost += Number(record.partsCost) || 0;
+      equipLaborCost += Number(record.laborCost) || 0;
+      equipExternalCost += Number(record.externalServiceCost) || 0;
+      equipDowntimeHours += Number(record.downtimeHours) || 0;
+    }
+
+    const equipTotalCost = equipPartsCost + equipLaborCost + equipExternalCost;
+    const operatingHours = Number(eq.operatingHours) || 0;
+    const costPerHour = operatingHours > 0 ? equipTotalCost / operatingHours : 0;
+
+    entries.push({
+      equipmentId: eq.id,
+      assetCode: asset?.assetCode || 'N/A',
+      equipmentName: asset?.nameTh || 'Unknown',
+      manufacturer: eq.manufacturer,
+      model: eq.model,
+      operatingHours,
+      totalMaintenanceEvents: records.length,
+      totalPartsCost: equipPartsCost,
+      totalLaborCost: equipLaborCost,
+      totalExternalCost: equipExternalCost,
+      totalMaintenanceCost: equipTotalCost,
+      totalDowntimeHours: equipDowntimeHours,
+      costPerHour: Math.round(costPerHour * 100) / 100,
+    });
+
+    totalMaintenanceEvents += records.length;
+    totalPartsCost += equipPartsCost;
+    totalLaborCost += equipLaborCost;
+    totalExternalCost += equipExternalCost;
+    totalDowntimeHours += equipDowntimeHours;
+  }
+
+  // Sort by total maintenance cost descending
+  entries.sort((a, b) => b.totalMaintenanceCost - a.totalMaintenanceCost);
+
+  return {
+    reportDate: getTodayStr(),
+    dateFrom: dateFrom || null,
+    dateTo: dateTo || null,
+    entries,
+    summary: {
+      totalEquipment: entries.length,
+      totalMaintenanceEvents,
+      totalPartsCost,
+      totalLaborCost,
+      totalExternalCost,
+      totalMaintenanceCost: totalPartsCost + totalLaborCost + totalExternalCost,
+      totalDowntimeHours,
+    },
+  };
+}
