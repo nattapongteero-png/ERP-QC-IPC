@@ -14,7 +14,7 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import { sqliteDocumentVersions, mysqlDocumentVersions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         // Get version from database
         const database = await getDb();
-        const versions = useSqlite() ? sqliteDocumentVersions : mysqlDocumentVersions;
+        const versions = isSqlite() ? sqliteDocumentVersions : mysqlDocumentVersions;
 
         const [version] = await database
           .select({

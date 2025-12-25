@@ -10,7 +10,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { DispositionForm, type DispositionType } from '@/components/quality/disposition-form';
-import toast from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface DispositionData {
   test: {
@@ -115,6 +115,7 @@ const resultOptions = [
 export default function QualityTestDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const [data, setData] = useState<TestDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);

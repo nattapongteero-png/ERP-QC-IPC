@@ -9,7 +9,7 @@ import { LineClearanceForm } from '@/components/production/line-clearance-form';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { ClipboardCheck, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface WorkOrder {
   id: number;
@@ -49,6 +49,7 @@ function LineClearanceContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const workOrderIdParam = searchParams.get('workOrderId');
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<number | null>(
