@@ -10,8 +10,13 @@ import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import DataGrid, { Column, Paging, FilterRow, Selection } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { Calendar, Lock, Unlock, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+  AccountingStatusBadge,
+} from '@/components/accounting';
+import { Lock, Unlock, CheckCircle2, AlertTriangle, XCircle, Calendar } from 'lucide-react';
 import type { FiscalPeriod, FiscalYear, FiscalPeriodStatus } from '@/types/accounting';
 
 interface PeriodWithYear extends FiscalPeriod {
@@ -113,10 +118,19 @@ function StatusBadge({ status }: { status: FiscalPeriodStatus }) {
   };
   const { bg, text, icon: Icon } = config[status] || config.open;
 
+  const label =
+    status === 'soft_closed'
+      ? 'Soft Closed'
+      : status === 'open'
+        ? 'Open'
+        : status === 'closed'
+          ? 'Closed'
+          : status;
+
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${bg} ${text}`}>
       <Icon className="h-3 w-3" />
-      {status === 'soft_closed' ? 'Soft Closed' : status.charAt(0).toUpperCase() + status.slice(1)}
+      {label}
     </span>
   );
 }
@@ -189,64 +203,57 @@ export default function PeriodClosePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ResponsivePageHeader
+      <AccountingPageHeader
         title="Period Close"
         subtitle="Month-end and year-end closing procedures"
-        icon={Calendar}
-        iconColor="text-blue-600"
+        icon="calendar"
       />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
+        <AccountingKPICard
           label="Open Periods"
           value={openPeriods.toString()}
-          icon={Unlock}
-          iconColor="text-green-500"
-          accentColor="border-green-500"
+          icon="activity"
+          variant="success"
         />
-        <StatCard
+        <AccountingKPICard
           label="Soft Closed"
           value={softClosedPeriods.toString()}
-          icon={AlertTriangle}
-          iconColor="text-yellow-500"
-          accentColor="border-yellow-500"
+          icon="clock"
+          variant="warning"
         />
-        <StatCard
+        <AccountingKPICard
           label="Closed Periods"
           value={closedPeriods.toString()}
-          icon={Lock}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
+          icon="check-circle"
+          variant="info"
         />
-        <StatCard
+        <AccountingKPICard
           label="Total Periods"
           value={periods.length.toString()}
-          icon={Calendar}
-          iconColor="text-purple-500"
-          accentColor="border-purple-500"
+          icon="file-text"
+          variant="default"
         />
       </div>
 
       {/* Year Filter */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Fiscal Year</label>
-            <SelectBox
-              items={[{ id: undefined, yearCode: 'All Years' }, ...fiscalYears]}
-              value={selectedYearId}
-              onValueChanged={(e) => {
-                setSelectedYearId(e.value);
-                setSelectedPeriodId(null);
-              }}
-              valueExpr="id"
-              displayExpr="yearCode"
-              width={200}
-            />
-          </div>
+      <AccountingFilterPanel>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Fiscal Year</label>
+          <SelectBox
+            items={[{ id: undefined, yearCode: 'All Years' }, ...fiscalYears]}
+            value={selectedYearId}
+            onValueChanged={(e) => {
+              setSelectedYearId(e.value);
+              setSelectedPeriodId(null);
+            }}
+            valueExpr="id"
+            displayExpr="yearCode"
+            width={200}
+          />
         </div>
-      </div>
+      </AccountingFilterPanel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Periods Grid */}
@@ -337,11 +344,26 @@ export default function PeriodClosePage() {
               {/* Errors */}
               {validation.errors.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-red-800">Errors</h4>
+                  <div className="flex items-center gap-2 mb-3">
+                    <XCircle className="h-5 w-5 text-red-600" />
+                    <h4 className="text-sm font-semibold text-red-800">
+                      Errors ({validation.errors.length})
+                    </h4>
+                  </div>
                   {validation.errors.map((error, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-sm text-red-700 bg-red-50 p-2 rounded">
-                      <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <span>{error.message}</span>
+                    <div
+                      key={idx}
+                      className="flex items-start gap-3 text-sm text-red-700 bg-red-50 border border-red-200 p-3 rounded-lg"
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                      </div>
+                      <span className="flex-1">{error.message}</span>
+                      {error.count !== undefined && error.count > 0 && (
+                        <span className="flex-shrink-0 px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs font-semibold">
+                          {error.count}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -350,34 +372,60 @@ export default function PeriodClosePage() {
               {/* Warnings */}
               {validation.warnings.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-yellow-800">Warnings</h4>
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    <h4 className="text-sm font-semibold text-yellow-800">
+                      Warnings ({validation.warnings.length})
+                    </h4>
+                  </div>
                   {validation.warnings.map((warning, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-sm text-yellow-700 bg-yellow-50 p-2 rounded">
-                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <span>{warning.message}</span>
+                    <div
+                      key={idx}
+                      className="flex items-start gap-3 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 p-3 rounded-lg"
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-600" />
+                      </div>
+                      <span className="flex-1">{warning.message}</span>
+                      {warning.count !== undefined && warning.count > 0 && (
+                        <span className="flex-shrink-0 px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs font-semibold">
+                          {warning.count}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
 
               {/* Metrics */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-gray-600">Unposted JEs</div>
-                  <div className="font-semibold">{validation.metrics.unpostedJournalEntries}</div>
-                </div>
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-gray-600">Draft AP</div>
-                  <div className="font-semibold">{validation.metrics.draftAPInvoices}</div>
-                </div>
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-gray-600">Draft AR</div>
-                  <div className="font-semibold">{validation.metrics.draftARInvoices}</div>
-                </div>
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-gray-600">Trial Balance</div>
-                  <div className={`font-semibold ${validation.metrics.isBalanced ? 'text-green-600' : 'text-red-600'}`}>
-                    {validation.metrics.isBalanced ? 'Balanced' : 'Not Balanced'}
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-gray-800">Validation Metrics</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg border border-gray-200">
+                    <div className="text-gray-600 text-xs mb-1">Unposted JEs</div>
+                    <div className="font-bold text-lg text-gray-900">
+                      {validation.metrics.unpostedJournalEntries}
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg border border-gray-200">
+                    <div className="text-gray-600 text-xs mb-1">Draft AP</div>
+                    <div className="font-bold text-lg text-gray-900">
+                      {validation.metrics.draftAPInvoices}
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg border border-gray-200">
+                    <div className="text-gray-600 text-xs mb-1">Draft AR</div>
+                    <div className="font-bold text-lg text-gray-900">
+                      {validation.metrics.draftARInvoices}
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg border border-gray-200">
+                    <div className="text-gray-600 text-xs mb-1">Trial Balance</div>
+                    <div
+                      className={`font-bold text-lg ${validation.metrics.isBalanced ? 'text-green-600' : 'text-red-600'}`}
+                    >
+                      {validation.metrics.isBalanced ? 'Balanced' : 'Not Balanced'}
+                    </div>
                   </div>
                 </div>
               </div>
