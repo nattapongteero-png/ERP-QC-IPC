@@ -10,8 +10,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VmiSalesOrderService } from '@/lib/services/vmi-sales-order.service';
 import { z } from 'zod';
-import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
-import { eq } from 'drizzle-orm';
 
 const updateOrderSchema = z.object({
   notes: z.string().optional(),
@@ -81,8 +79,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    // Validate request body (schema includes notes and priority fields)
-    updateOrderSchema.parse(body);
+    const data = updateOrderSchema.parse(body);
 
     const service = new VmiSalesOrderService();
 
@@ -95,18 +92,31 @@ export async function PUT(
       }, { status: 404 });
     }
 
-    // Get table reference
-    const vmiSalesOrders = getTableRef('vmiSalesOrders');
+    // Update order using raw database update
+    const { useSqlite, db, sqliteDb } = await import('@/lib/db');
+    const { sqliteVmiSalesOrders, mysqlVmiSalesOrders } = await import('@/lib/db/schema');
+    const { eq } = await import('drizzle-orm');
 
-    // Update order
-    await executeDbOperation(async (db) => {
-      return db
-        .update(vmiSalesOrders)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    if (useSqlite()) {
+      await sqliteDb
+        .update(sqliteVmiSalesOrders)
         .set({
-          updatedAt: dbDate(),
+          notes: data.notes ?? order.notes,
+          priority: data.priority ?? order.priority,
+          updatedAt: new Date(),
         })
-        .where(eq(vmiSalesOrders.id, id));
-    });
+        .where(eq(sqliteVmiSalesOrders.id, id));
+    } else {
+      await db
+        .update(mysqlVmiSalesOrders)
+        .set({
+          notes: data.notes ?? order.notes,
+          priority: data.priority ?? order.priority,
+          updatedAt: new Date(),
+        })
+        .where(eq(mysqlVmiSalesOrders.id, id));
+    }
 
     // Get updated order
     const updatedOrder = await service.getOrderById(id);
@@ -122,7 +132,7 @@ export async function PUT(
       return NextResponse.json({
         success: false,
         error: 'Invalid request body',
-        details: error.issues,
+        details: error.errors,
       }, { status: 400 });
     }
 

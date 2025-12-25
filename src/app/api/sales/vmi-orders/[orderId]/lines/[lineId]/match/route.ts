@@ -9,8 +9,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VmiSalesOrderService } from '@/lib/services/vmi-sales-order.service';
 import { z } from 'zod';
-import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
-import { eq } from 'drizzle-orm';
 
 const matchLineSchema = z.object({
   itemId: z.number(),
@@ -52,10 +50,10 @@ export async function POST(
     }
 
     // Check if order is in an editable state
-    if (order.localStatus !== 'pending') {
+    if (order.status !== 'pending') {
       return NextResponse.json({
         success: false,
-        error: `Cannot modify order with status '${order.localStatus}'. Only pending orders can be edited.`,
+        error: `Cannot modify order with status '${order.status}'. Only pending orders can be edited.`,
       }, { status: 400 });
     }
 
@@ -68,20 +66,29 @@ export async function POST(
       }, { status: 404 });
     }
 
-    // Get table references
-    const items = getTableRef('items');
-    const vmiSalesOrderLines = getTableRef('vmiSalesOrderLines');
-
     // Verify item exists
-    const itemResult = await executeDbOperation(async (db) => {
-      return db
-        .select()
-        .from(items)
-        .where(eq(items.id, data.itemId))
-        .limit(1);
-    });
+    const { useSqlite, db, sqliteDb } = await import('@/lib/db');
+    const { sqliteItems, mysqlItems, sqliteVmiSalesOrderLines, mysqlVmiSalesOrderLines } = await import('@/lib/db/schema');
+    const { eq } = await import('drizzle-orm');
 
-    const item = itemResult[0];
+    let item;
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    if (useSqlite()) {
+      const items = await sqliteDb
+        .select()
+        .from(sqliteItems)
+        .where(eq(sqliteItems.id, data.itemId))
+        .limit(1);
+      item = items[0];
+    } else {
+      const items = await db
+        .select()
+        .from(mysqlItems)
+        .where(eq(mysqlItems.id, data.itemId))
+        .limit(1);
+      item = items[0];
+    }
+
     if (!item) {
       return NextResponse.json({
         success: false,
@@ -90,15 +97,28 @@ export async function POST(
     }
 
     // Update the line with the matched item
-    await executeDbOperation(async (db) => {
-      return db
-        .update(vmiSalesOrderLines)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    if (useSqlite()) {
+      await sqliteDb
+        .update(sqliteVmiSalesOrderLines)
         .set({
-          itemId: data.itemId,
-          matchStatus: 'matched',
+          matchedItemId: data.itemId,
+          matchMethod: 'manual',
+          unitPrice: item.sellingPrice,
+          lineTotal: item.sellingPrice ? item.sellingPrice * line.quantity : null,
         })
-        .where(eq(vmiSalesOrderLines.id, lineIdNum));
-    });
+        .where(eq(sqliteVmiSalesOrderLines.id, lineIdNum));
+    } else {
+      await db
+        .update(mysqlVmiSalesOrderLines)
+        .set({
+          matchedItemId: data.itemId,
+          matchMethod: 'manual',
+          unitPrice: item.sellingPrice ? String(item.sellingPrice) : null,
+          lineTotal: item.sellingPrice ? String(Number(item.sellingPrice) * line.quantity) : null,
+        })
+        .where(eq(mysqlVmiSalesOrderLines.id, lineIdNum));
+    }
 
     // Get updated order
     const updatedOrder = await service.getOrderById(orderIdNum);
@@ -110,7 +130,7 @@ export async function POST(
         lineId: lineIdNum,
         matchedItemId: data.itemId,
         matchedItemCode: item.code,
-        matchedItemName: item.nameTh || item.nameEn,
+        matchedItemName: item.name,
         message: 'Line matched successfully',
         order: updatedOrder,
       },
@@ -122,7 +142,7 @@ export async function POST(
       return NextResponse.json({
         success: false,
         error: 'Invalid request body',
-        details: error.issues,
+        details: error.errors,
       }, { status: 400 });
     }
 

@@ -7,61 +7,57 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, hasPermission } from '@/lib/auth';
+import {
+  successResponse,
+  serverErrorResponse,
+  withAuth,
+} from '@/lib/api-utils';
 import { listRecalls, createRecall } from '@/lib/services/recall-service';
 import { recallCreateSchema, recallListParamsSchema } from '@/lib/validation/recalls';
 
 export async function GET(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
+  return withAuth(
+    request,
+    async () => {
+      try {
+        const { searchParams } = new URL(request.url);
+        const params = {
+          status: searchParams.get('status') || undefined,
+          recallClass: searchParams.get('recallClass') || undefined,
+          productId: searchParams.get('productId') || undefined,
+          page: searchParams.get('page') || '1',
+          limit: searchParams.get('limit') || '20',
+        };
 
-    if (!hasPermission(session.role as any, 'recalls:read')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-    }
+        const validatedParams = recallListParamsSchema.parse(params);
+        const result = await listRecalls(validatedParams);
 
-    const { searchParams } = new URL(request.url);
-    const params = {
-      status: searchParams.get('status') || undefined,
-      recallClass: searchParams.get('recallClass') || undefined,
-      productId: searchParams.get('productId') || undefined,
-      page: searchParams.get('page') || '1',
-      limit: searchParams.get('limit') || '20',
-    };
-
-    const validatedParams = recallListParamsSchema.parse(params);
-    const result = await listRecalls(validatedParams);
-
-    return NextResponse.json({ success: true, data: result });
-  } catch (error) {
-    console.error('Error listing recalls:', error);
-    const message = error instanceof Error ? error.message : 'Failed to list recalls';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
+        return successResponse(result);
+      } catch (error) {
+        console.error('Error listing recalls:', error);
+        return serverErrorResponse(error);
+      }
+    },
+    ['recalls:read']
+  );
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const body = await request.json();
+        const validatedData = recallCreateSchema.parse(body);
 
-    if (!hasPermission(session.role as any, 'recalls:write')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-    }
+        const recall = await createRecall(validatedData, session.userId);
 
-    const body = await request.json();
-    const validatedData = recallCreateSchema.parse(body);
-
-    const recall = await createRecall(validatedData, session.userId);
-
-    return NextResponse.json({ success: true, data: recall }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating recall:', error);
-    const message = error instanceof Error ? error.message : 'Failed to create recall';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
+        return NextResponse.json({ success: true, data: recall }, { status: 201 });
+      } catch (error) {
+        console.error('Error creating recall:', error);
+        return serverErrorResponse(error);
+      }
+    },
+    ['recalls:write']
+  );
 }

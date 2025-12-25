@@ -4,13 +4,13 @@
  * GMP Document Detail Page
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 5)
  *
- * Modern redesigned page for viewing and managing a specific GMP document.
+ * Professional document viewer with embedded preview and version management.
  */
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DocumentFormDialog, DocumentVersionHistory, DocumentViewer } from '@/components/documents';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
 import { DxButton } from '@/components/ui/dx-button';
@@ -26,18 +26,13 @@ import {
   Download,
   X,
   ChevronLeft,
+  Eye,
+  FileSpreadsheet,
+  File,
+  ExternalLink,
   Maximize2,
   Minimize2,
-  History,
-  Edit3,
-  Plus,
-  Send,
-  Eye,
-  ExternalLink,
-  Info,
-  CheckCircle2,
-  AlertCircle,
-  FileIcon,
+  RotateCw,
 } from 'lucide-react';
 import type {
   DocumentDetails,
@@ -60,15 +55,7 @@ async function fetchDocument(id: number): Promise<DocumentDetails> {
 
 async function createVersion(
   documentId: number,
-  data: {
-    content?: string;
-    changeDescription?: string;
-    isMajorRevision?: boolean;
-    fileData?: string;
-    fileName?: string;
-    fileSize?: number;
-    mimeType?: string;
-  }
+  data: { content?: string; changeDescription?: string; isMajorRevision?: boolean }
 ): Promise<DocumentVersion> {
   const response = await fetch(`/api/documents/${documentId}/versions`, {
     method: 'POST',
@@ -97,78 +84,274 @@ async function updateDocumentStatus(
   }
 }
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
+// ============================================
+// Helper Functions
+// ============================================
+
+function getFileExtension(filePath: string): string {
+  return filePath.split('.').pop()?.toLowerCase() || '';
 }
 
-async function fetchApprovers(): Promise<User[]> {
-  // Fetch users who can approve (admins and managers)
-  const response = await fetch('/api/users?limit=100');
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to fetch users');
+function getFileIcon(extension: string) {
+  switch (extension) {
+    case 'pdf':
+      return <FileText className="h-16 w-16 text-red-500" />;
+    case 'doc':
+    case 'docx':
+      return <FileText className="h-16 w-16 text-blue-500" />;
+    case 'xls':
+    case 'xlsx':
+      return <FileSpreadsheet className="h-16 w-16 text-green-500" />;
+    default:
+      return <File className="h-16 w-16 text-gray-500" />;
   }
-  // Filter to only include admins and managers
-  return result.data.items.filter((u: User) =>
-    u.role === 'admin' || u.role === 'manager' || u.role === 'qc'
+}
+
+function getFileTypeLabel(extension: string): string {
+  switch (extension) {
+    case 'pdf':
+      return 'PDF Document';
+    case 'doc':
+      return 'Word Document (.doc)';
+    case 'docx':
+      return 'Word Document (.docx)';
+    case 'xls':
+      return 'Excel Spreadsheet (.xls)';
+    case 'xlsx':
+      return 'Excel Spreadsheet (.xlsx)';
+    default:
+      return 'Document';
+  }
+}
+
+// ============================================
+// Document Preview Component
+// ============================================
+
+function DocumentPreview({
+  versionId,
+  filePath,
+  fileName,
+  versionNumber,
+  isFullscreen,
+  onToggleFullscreen,
+}: {
+  versionId: number;
+  filePath: string;
+  fileName: string;
+  versionNumber: string;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+}) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const extension = getFileExtension(filePath);
+  const basePath = `/api/documents/versions/${versionId}/file`;
+  const downloadUrl = basePath;
+  const viewUrl = `${basePath}?inline=true`;
+  const isPdf = extension === 'pdf';
+
+  if (isPdf) {
+    return (
+      <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-full'}`}>
+        {/* Preview Toolbar */}
+        <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+          <div className="flex items-center gap-3">
+            <FileText className="h-5 w-5 text-red-500" />
+            <div>
+              <p className="font-medium text-sm">{fileName}</p>
+              <p className="text-xs text-muted-foreground">Version {versionNumber}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={downloadUrl}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              Download
+            </a>
+            <a
+              href={viewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md hover:bg-muted transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open in New Tab
+            </a>
+            <button
+              onClick={onToggleFullscreen}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* PDF Viewer */}
+        <div className="flex-1 bg-gray-100 dark:bg-gray-900 relative">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+              <div className="text-center">
+                <RotateCw className="h-8 w-8 animate-spin text-primary mx-auto" />
+                <p className="mt-2 text-sm text-muted-foreground">Loading PDF...</p>
+              </div>
+            </div>
+          )}
+          {hasError ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+              <div className="text-center p-8">
+                <FileText className="h-16 w-16 text-red-500 mx-auto" />
+                <h3 className="mt-4 text-lg font-semibold">Unable to Preview</h3>
+                <p className="mt-2 text-sm text-muted-foreground max-w-xs">
+                  The PDF could not be displayed in the browser. Please download to view.
+                </p>
+                <a
+                  href={downloadUrl}
+                  className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                >
+                  <Download className="h-5 w-5" />
+                  Download PDF
+                </a>
+              </div>
+            </div>
+          ) : (
+            <object
+              data={viewUrl}
+              type="application/pdf"
+              className="w-full h-full"
+              onLoad={() => setIsLoading(false)}
+              onError={() => {
+                setIsLoading(false);
+                setHasError(true);
+              }}
+            >
+              <embed
+                src={viewUrl}
+                type="application/pdf"
+                className="w-full h-full"
+              />
+            </object>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Non-PDF file preview placeholder
+  return (
+    <div className="flex flex-col h-full">
+      {/* Preview Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+        <div className="flex items-center gap-3">
+          {getFileIcon(extension)}
+          <div>
+            <p className="font-medium text-sm">{fileName}</p>
+            <p className="text-xs text-muted-foreground">Version {versionNumber}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href={downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Download
+          </a>
+        </div>
+      </div>
+
+      {/* File Info Panel */}
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center p-8">
+          {getFileIcon(extension)}
+          <h3 className="mt-4 text-lg font-semibold">{fileName}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{getFileTypeLabel(extension)}</p>
+          <p className="mt-4 text-xs text-muted-foreground max-w-xs">
+            Preview not available for this file type. Download the file to view its contents.
+          </p>
+          <a
+            href={downloadUrl}
+            className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          >
+            <Download className="h-5 w-5" />
+            Download File
+          </a>
+        </div>
+      </div>
+    </div>
   );
 }
 
-async function submitForApproval(
-  documentId: number,
-  versionId: number,
-  approvers: number[]
-): Promise<void> {
-  const response = await fetch(`/api/documents/${documentId}/approve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ versionId, approvers }),
-  });
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to submit for approval');
-  }
-}
+// ============================================
+// Text Content Preview Component
+// ============================================
 
-async function processApprovalDecision(
-  approvalId: number,
-  decision: 'approved' | 'rejected',
-  comments?: string
-): Promise<void> {
-  const response = await fetch(`/api/documents/approvals/${approvalId}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ decision, comments }),
-  });
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to process approval');
-  }
+function TextContentPreview({ content }: { content: string }) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+        <div className="flex items-center gap-3">
+          <FileText className="h-5 w-5 text-primary" />
+          <p className="font-medium text-sm">Document Content</p>
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto p-6 bg-white dark:bg-gray-950">
+        <div className="prose prose-sm max-w-none dark:prose-invert">
+          <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-6 rounded-lg border">
+            {content}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================
-// Status Color Mapping
+// No Content Placeholder
 // ============================================
 
-const statusConfig: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
-  draft: { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300', icon: <Edit3 className="h-3.5 w-3.5" /> },
-  active: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-  obsolete: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', icon: <AlertCircle className="h-3.5 w-3.5" /> },
-  archived: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: <FileIcon className="h-3.5 w-3.5" /> },
-};
+function NoContentPlaceholder() {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center px-4 py-2 bg-muted/50 border-b">
+        <div className="flex items-center gap-3">
+          <Eye className="h-5 w-5 text-muted-foreground" />
+          <p className="font-medium text-sm text-muted-foreground">Document Preview</p>
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center p-8">
+          <div className="w-20 h-20 mx-auto rounded-full bg-muted/50 flex items-center justify-center">
+            <FileText className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <h3 className="mt-4 text-lg font-semibold text-muted-foreground">No Content</h3>
+          <p className="mt-2 text-sm text-muted-foreground max-w-xs">
+            This version has no attached file or text content.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ============================================
-// Component
+// Main Component
 // ============================================
 
 export default function DocumentDetailPage() {
   const router = useRouter();
   const params = useParams();
   const documentId = Number(params.id);
-  const queryClient = useQueryClient();
 
   // State
   const [showEditForm, setShowEditForm] = useState(false);
@@ -182,13 +365,7 @@ export default function DocumentDetailPage() {
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<DocumentStatus | null>(null);
-  const [showVersionPanel, setShowVersionPanel] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedApprovers, setSelectedApprovers] = useState<number[]>([]);
-  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
-  const [approvalDecision, setApprovalDecision] = useState<'approved' | 'rejected' | null>(null);
-  const [approvalComments, setApprovalComments] = useState('');
-  const [pendingApprovalId, setPendingApprovalId] = useState<number | null>(null);
+  const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
 
   // Fetch document
   const {
@@ -204,24 +381,15 @@ export default function DocumentDetailPage() {
 
   // Create version mutation
   const createVersionMutation = useMutation({
-    mutationFn: (data: {
-      content?: string;
-      changeDescription?: string;
-      isMajorRevision?: boolean;
-      fileData?: string;
-      fileName?: string;
-      fileSize?: number;
-      mimeType?: string;
-    }) => createVersion(documentId, data),
+    mutationFn: (data: { content?: string; changeDescription?: string; isMajorRevision?: boolean; filePath?: string }) =>
+      createVersion(documentId, data),
     onSuccess: () => {
       setShowNewVersionDialog(false);
       setNewVersionContent('');
       setNewVersionDescription('');
       setIsMajorRevision(false);
       setSelectedFile(null);
-      // Invalidate both document and version history queries
-      queryClient.invalidateQueries({ queryKey: ['document', documentId] });
-      queryClient.invalidateQueries({ queryKey: ['document-versions', documentId] });
+      refetch();
     },
   });
 
@@ -235,57 +403,6 @@ export default function DocumentDetailPage() {
     },
     onError: (error) => {
       alert(error instanceof Error ? error.message : 'Failed to update status');
-    },
-  });
-
-  // Fetch approvers for submit dialog
-  const { data: approvers = [] } = useQuery({
-    queryKey: ['approvers'],
-    queryFn: fetchApprovers,
-    enabled: showSubmitDialog,
-  });
-
-  // Submit for approval mutation
-  const submitApprovalMutation = useMutation({
-    mutationFn: () => {
-      if (!document?.currentVersion?.id) {
-        throw new Error('No version to submit');
-      }
-      return submitForApproval(documentId, document.currentVersion.id, selectedApprovers);
-    },
-    onSuccess: () => {
-      setShowSubmitDialog(false);
-      setSelectedApprovers([]);
-      queryClient.invalidateQueries({ queryKey: ['document', documentId] });
-      queryClient.invalidateQueries({ queryKey: ['document-versions', documentId] });
-    },
-    onError: (error) => {
-      alert(error instanceof Error ? error.message : 'Failed to submit for approval');
-    },
-  });
-
-  // Process approval decision mutation
-  const processApprovalMutation = useMutation({
-    mutationFn: () => {
-      if (!pendingApprovalId || !approvalDecision) {
-        throw new Error('No approval to process');
-      }
-      return processApprovalDecision(
-        pendingApprovalId,
-        approvalDecision,
-        approvalComments || undefined
-      );
-    },
-    onSuccess: () => {
-      setShowApprovalDialog(false);
-      setPendingApprovalId(null);
-      setApprovalDecision(null);
-      setApprovalComments('');
-      queryClient.invalidateQueries({ queryKey: ['document', documentId] });
-      queryClient.invalidateQueries({ queryKey: ['document-versions', documentId] });
-    },
-    onError: (error) => {
-      alert(error instanceof Error ? error.message : 'Failed to process approval');
     },
   });
 
@@ -316,10 +433,7 @@ export default function DocumentDetailPage() {
 
   // Handle new version creation
   const handleCreateVersion = async () => {
-    let fileData: string | undefined;
-    let fileName: string | undefined;
-    let fileSize: number | undefined;
-    let mimeType: string | undefined;
+    let filePath: string | undefined;
 
     if (selectedFile) {
       setIsUploading(true);
@@ -337,11 +451,7 @@ export default function DocumentDetailPage() {
         if (!result.success) {
           throw new Error(result.error || 'Failed to upload file');
         }
-        // Get file data for database storage
-        fileData = result.data.fileData;
-        fileName = result.data.fileName;
-        fileSize = result.data.fileSize;
-        mimeType = result.data.mimeType;
+        filePath = result.data.filePath;
       } catch (error) {
         console.error('File upload failed:', error);
         setIsUploading(false);
@@ -354,45 +464,17 @@ export default function DocumentDetailPage() {
       content: newVersionContent || undefined,
       changeDescription: newVersionDescription || undefined,
       isMajorRevision,
-      fileData,
-      fileName,
-      fileSize,
-      mimeType,
+      filePath,
     });
-  };
-
-  // Get file download URL (from database BLOB)
-  const getFileDownloadUrl = (versionId: number, inline = false) => {
-    return `/api/documents/versions/${versionId}/download${inline ? '?inline=1' : ''}`;
-  };
-
-  // Check if version has file (either in DB or legacy filesystem)
-  const hasFile = (version: DocumentVersion | null) => {
-    return version?.hasFileData || version?.filePath;
-  };
-
-  // Get display filename
-  const getDisplayFileName = (version: DocumentVersion | null) => {
-    if (version?.fileName) return version.fileName;
-    if (version?.filePath) return version.filePath.split('/').pop() || 'document';
-    return 'document';
-  };
-
-  // Get file extension
-  const getFileExtension = (version: DocumentVersion | null) => {
-    const fileName = getDisplayFileName(version);
-    return fileName.split('.').pop()?.toUpperCase() || '';
   };
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        <div className="container mx-auto py-8 px-4">
-          <div className="animate-pulse space-y-6">
-            <div className="h-12 bg-white/50 dark:bg-slate-800/50 rounded-xl w-1/3" />
-            <div className="h-[600px] bg-white/50 dark:bg-slate-800/50 rounded-2xl" />
-          </div>
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <RotateCw className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="mt-2 text-muted-foreground">Loading document...</p>
         </div>
       </div>
     );
@@ -401,18 +483,15 @@ export default function DocumentDetailPage() {
   // Error state
   if (error || !document) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2">Failed to Load Document</h2>
-          <p className="text-muted-foreground mb-6">The document could not be found or an error occurred.</p>
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <FileText className="h-12 w-12 text-destructive mx-auto" />
+          <p className="mt-2 text-destructive font-medium">Failed to load document</p>
           <button
-            onClick={() => router.push('/gmp/documents')}
-            className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
+            onClick={() => router.back()}
+            className="mt-4 px-4 py-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
           >
-            Back to Documents
+            Go Back
           </button>
         </div>
       </div>
@@ -422,363 +501,225 @@ export default function DocumentDetailPage() {
   const canEdit = document.status === 'draft';
   const canCreateVersion = document.status === 'active' || document.status === 'draft';
   const hasDraftVersion = document.currentVersion?.status === 'draft';
-  const config = statusConfig[document.status] || statusConfig.draft;
+  const fileName = selectedVersion?.filePath?.split('/').pop() || 'document';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-      {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            {/* Left: Back & Title */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/gmp/documents')}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex h-10 w-10 items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="font-semibold text-lg leading-tight truncate max-w-[300px] lg:max-w-[500px]">
-                    {document.title}
-                  </h1>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-mono">{document.documentNumber}</span>
-                    <span className="hidden sm:inline">•</span>
-                    <span className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-                      {config.icon}
-                      {document.status.charAt(0).toUpperCase() + document.status.slice(1)}
-                    </span>
-                  </div>
-                </div>
+    <div className="h-screen flex flex-col bg-background">
+      {/* Top Header Bar */}
+      <header className="flex-none border-b bg-card">
+        <div className="flex items-center justify-between px-4 py-3">
+          {/* Left: Back button and document info */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/gmp/documents')}
+              className="p-2 rounded-md hover:bg-muted transition-colors"
+              title="Back to Documents"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="border-l pl-4">
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold truncate max-w-md">{document.title}</h1>
+                <WorkflowStatusBadge status={document.status} />
+                <button
+                  onClick={() => setShowStatusDialog(true)}
+                  className="text-xs px-2 py-0.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+                >
+                  Change
+                </button>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span className="font-mono">{document.documentNumber}</span>
+                <span>•</span>
+                <span>{document.typeName}</span>
+                {document.departmentName && (
+                  <>
+                    <span>•</span>
+                    <span>{document.departmentName}</span>
+                  </>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowVersionPanel(!showVersionPanel)}
-                className={`p-2.5 rounded-lg transition-all ${showVersionPanel ? 'bg-primary text-primary-foreground' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                title="Toggle Version History"
-              >
-                <History className="h-4 w-4" />
-              </button>
-              {canEdit && (
-                <button
-                  onClick={() => setShowEditForm(true)}
-                  className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  Edit
-                </button>
-              )}
-              {canCreateVersion && (
-                <button
-                  onClick={() => setShowNewVersionDialog(true)}
-                  className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-                >
-                  <Plus className="h-4 w-4" />
-                  New Version
-                </button>
-              )}
-              {hasDraftVersion && (
-                <button
-                  onClick={() => setShowSubmitDialog(true)}
-                  className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
-                >
-                  <Send className="h-4 w-4" />
-                  Submit
-                </button>
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
+            {canEdit && (
+              <DxButton
+                text="Edit"
+                icon="edit"
+                onClick={() => setShowEditForm(true)}
+                stylingMode="outlined"
+              />
+            )}
+            {canCreateVersion && (
+              <DxButton
+                text="New Version"
+                icon="add"
+                onClick={() => setShowNewVersionDialog(true)}
+                stylingMode="outlined"
+              />
+            )}
+            {hasDraftVersion && (
+              <DxButton
+                text="Submit for Approval"
+                icon="upload"
+                onClick={() => setShowSubmitDialog(true)}
+                type="success"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Version Info Bar */}
+        {selectedVersion && (
+          <div className={`flex items-center justify-between px-4 py-2 text-sm ${
+            !isViewingLatest
+              ? 'bg-amber-50 dark:bg-amber-900/20 border-t border-amber-200 dark:border-amber-800'
+              : 'bg-muted/30 border-t'
+          }`}>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Version {selectedVersion.versionNumber}</span>
+                <WorkflowStatusBadge status={selectedVersion.status} />
+                {!isViewingLatest && (
+                  <span className="px-2 py-0.5 text-xs bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200 rounded-full">
+                    Historical
+                  </span>
+                )}
+                {isViewingLatest && selectedVersion.id === document.currentVersionId && (
+                  <span className="px-2 py-0.5 text-xs bg-primary/20 text-primary rounded-full">
+                    Current
+                  </span>
+                )}
+              </div>
+              <span className="text-muted-foreground">
+                by {selectedVersion.createdByName || 'Unknown'} •{' '}
+                {new Date(selectedVersion.createdAt).toLocaleDateString('th-TH', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
+              {selectedVersion.changeDescription && (
+                <span className="text-muted-foreground truncate max-w-md">
+                  — {selectedVersion.changeDescription}
+                </span>
               )}
             </div>
           </div>
-        </div>
-      </div>
+        )}
+      </header>
 
       {/* Main Content Area */}
-      <div className="container mx-auto px-4 py-6">
-        <div className={`flex gap-6 ${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-slate-900 p-4' : ''}`}>
-          {/* Main Content */}
-          <div className={`flex-1 space-y-6 ${showVersionPanel && !isFullscreen ? 'lg:pr-80' : ''}`}>
-            {/* Document Info Cards */}
-            {!isFullscreen && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Document Type</p>
-                      <p className="font-medium text-sm">{document.typeName}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Created By</p>
-                      <p className="font-medium text-sm">{document.createdByName}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                      <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Created Date</p>
-                      <p className="font-medium text-sm">
-                        {new Date(document.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                      <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Retention</p>
-                      <p className="font-medium text-sm">{document.retentionYears} years</p>
-                    </div>
-                  </div>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Document Preview Panel (Left - 2/3 width) */}
+        <main className="flex-1 flex flex-col border-r overflow-hidden">
+          {selectedVersion?.filePath ? (
+            <DocumentPreview
+              versionId={selectedVersion.id}
+              filePath={selectedVersion.filePath}
+              fileName={fileName}
+              versionNumber={selectedVersion.versionNumber}
+              isFullscreen={isPreviewFullscreen}
+              onToggleFullscreen={() => setIsPreviewFullscreen(!isPreviewFullscreen)}
+            />
+          ) : selectedVersion?.content ? (
+            <TextContentPreview content={selectedVersion.content} />
+          ) : (
+            <NoContentPlaceholder />
+          )}
+        </main>
+
+        {/* Sidebar (Right - 1/3 width) */}
+        <aside className="w-80 xl:w-96 flex-none overflow-y-auto bg-card">
+          {/* Document Metadata */}
+          <div className="p-4 border-b">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              Document Details
+            </h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-3">
+                <Building className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-muted-foreground">Type</p>
+                  <p className="font-medium">{document.typeName}</p>
                 </div>
               </div>
-            )}
-
-            {/* Version Info Banner */}
-            {selectedVersion && !isFullscreen && (
-              <div className={`rounded-xl p-4 border ${!isViewingLatest ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${!isViewingLatest ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
-                      <Eye className={`h-5 w-5 ${!isViewingLatest ? 'text-amber-600' : 'text-blue-600'}`} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">Version {selectedVersion.versionNumber}</span>
-                        {isViewingLatest && selectedVersion.id === document.currentVersionId && (
-                          <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full">
-                            Current
-                          </span>
-                        )}
-                        {!isViewingLatest && (
-                          <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-full">
-                            Historical
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedVersion.createdByName || 'Unknown'} • {new Date(selectedVersion.createdAt).toLocaleDateString('th-TH')}
-                      </p>
-                    </div>
+              {document.departmentName && (
+                <div className="flex items-start gap-3">
+                  <Building className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-muted-foreground">Department</p>
+                    <p className="font-medium">{document.departmentName}</p>
                   </div>
-                  <WorkflowStatusBadge status={selectedVersion.status} />
                 </div>
-                {selectedVersion.changeDescription && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-sm">
-                      <span className="font-medium">Changes:</span> {selectedVersion.changeDescription}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* PDF Viewer / Document Content */}
-            <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden ${isFullscreen ? 'h-full flex flex-col' : ''}`}>
-              {/* Viewer Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-primary" />
-                  <span className="font-medium">
-                    {hasFile(selectedVersion) ? getDisplayFileName(selectedVersion) : 'Document Content'}
-                  </span>
-                  {hasFile(selectedVersion) && (
-                    <span className="text-xs text-muted-foreground px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded">
-                      {getFileExtension(selectedVersion)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {hasFile(selectedVersion) && selectedVersion && (
-                    <>
-                      <a
-                        href={getFileDownloadUrl(selectedVersion.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download
-                      </a>
-                      {getDisplayFileName(selectedVersion).toLowerCase().endsWith('.pdf') && (
-                        <a
-                          href={getFileDownloadUrl(selectedVersion.id, true)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                          title="Open in new tab"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      )}
-                    </>
-                  )}
-                  <button
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                  >
-                    {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </button>
+              )}
+              <div className="flex items-start gap-3">
+                <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-muted-foreground">Created By</p>
+                  <p className="font-medium">{document.createdByName || 'Unknown'}</p>
                 </div>
               </div>
-
-              {/* Content Area */}
-              <div className={`${isFullscreen ? 'flex-1' : ''}`}>
-                {/* Document Viewer for all supported file types */}
-                {hasFile(selectedVersion) && selectedVersion && (
-                  <DocumentViewer
-                    fileUrl={getFileDownloadUrl(selectedVersion.id)}
-                    fileName={getDisplayFileName(selectedVersion)}
-                    className={isFullscreen ? 'h-full' : 'h-[calc(100vh-320px)] min-h-[600px]'}
-                  />
-                )}
-
-                {/* Text Content */}
-                {!hasFile(selectedVersion) && selectedVersion?.content && (
-                  <div className="p-6">
-                    <pre className="whitespace-pre-wrap text-sm font-mono bg-slate-50 dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                      {selectedVersion.content}
-                    </pre>
-                  </div>
-                )}
-
-                {/* No Content */}
-                {!hasFile(selectedVersion) && !selectedVersion?.content && (
-                  <div className="flex flex-col items-center justify-center py-20 px-8">
-                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mb-6">
-                      <Info className="h-10 w-10 text-slate-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">No Content Available</h3>
-                    <p className="text-muted-foreground text-center max-w-md">
-                      This version does not have any content or attached files.
-                    </p>
-                  </div>
-                )}
+              <div className="flex items-start gap-3">
+                <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-muted-foreground">Created</p>
+                  <p className="font-medium">
+                    {new Date(document.createdAt).toLocaleDateString('th-TH', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-muted-foreground">Retention Period</p>
+                  <p className="font-medium">{document.retentionYears} years</p>
+                </div>
               </div>
             </div>
-
-            {/* Approval Chain */}
-            {selectedVersion?.approvals && selectedVersion.approvals.length > 0 && !isFullscreen && (
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-                  Approval Status
-                </h3>
-                <ApprovalChain
-                  steps={selectedVersion.approvals.map((a) => ({
-                    id: a.id,
-                    role: a.approvalRole,
-                    approverName: a.approverName || undefined,
-                    status: a.status as 'pending' | 'approved' | 'rejected',
-                    signedAt: a.signedAt || undefined,
-                    comments: a.comments || undefined,
-                  }))}
-                />
-
-                {/* Approval Actions for Pending Approvals */}
-                {selectedVersion.approvals.some(a => a.status === 'pending') && (
-                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      If you are an assigned approver, you can approve or reject this version:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedVersion.approvals
-                        .filter(a => a.status === 'pending')
-                        .map(a => (
-                          <div key={a.id} className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{a.approverName}:</span>
-                            <button
-                              onClick={() => {
-                                setPendingApprovalId(a.id);
-                                setApprovalDecision('approved');
-                                setShowApprovalDialog(true);
-                              }}
-                              className="px-3 py-1.5 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                setPendingApprovalId(a.id);
-                                setApprovalDecision('rejected');
-                                setShowApprovalDialog(true);
-                              }}
-                              className="px-3 py-1.5 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* Version History Sidebar */}
-          {showVersionPanel && !isFullscreen && (
-            <div className="hidden lg:block fixed right-4 top-24 w-72 max-h-[calc(100vh-120px)] overflow-auto bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
-              <div className="p-4 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <History className="h-4 w-4" />
-                    Version History
-                  </h3>
-                  <button
-                    onClick={() => setShowVersionPanel(false)}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="p-4">
-                <DocumentVersionHistory
-                  documentId={documentId}
-                  currentVersionId={document.currentVersionId || undefined}
-                  selectedVersionId={selectedVersionId || undefined}
-                  onVersionSelect={handleVersionSelect}
-                />
-              </div>
+          {/* Approval Status */}
+          {selectedVersion?.approvals && selectedVersion.approvals.length > 0 && (
+            <div className="p-4 border-b">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Approval Status
+              </h2>
+              <ApprovalChain
+                steps={selectedVersion.approvals.map((a) => ({
+                  id: a.id,
+                  role: a.approvalRole,
+                  approverName: a.approverName || undefined,
+                  status: a.status as 'pending' | 'approved' | 'rejected',
+                  signedAt: a.signedAt || undefined,
+                  comments: a.comments || undefined,
+                }))}
+                compact
+              />
             </div>
           )}
-        </div>
+
+          {/* Version History */}
+          <div className="p-4">
+            <DocumentVersionHistory
+              documentId={documentId}
+              currentVersionId={document.currentVersionId || undefined}
+              selectedVersionId={selectedVersionId || undefined}
+              onVersionSelect={handleVersionSelect}
+            />
+          </div>
+        </aside>
       </div>
 
-      {/* Mobile Actions FAB */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden z-40">
-        {canCreateVersion && (
-          <button
-            onClick={() => setShowNewVersionDialog(true)}
-            className="w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/30 flex items-center justify-center"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-        )}
-      </div>
+      {/* ============================================ */}
+      {/* Dialogs */}
+      {/* ============================================ */}
 
       {/* Edit Document Dialog */}
       <DocumentFormDialog
@@ -823,7 +764,7 @@ export default function DocumentDetailPage() {
           {/* File Upload */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Attach File (Optional)</label>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 hover:border-primary/50 transition-colors">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
               {selectedFile ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -907,10 +848,7 @@ export default function DocumentDetailPage() {
       {/* Submit for Approval Dialog */}
       <DxPopup
         visible={showSubmitDialog}
-        onHiding={() => {
-          setShowSubmitDialog(false);
-          setSelectedApprovers([]);
-        }}
+        onHiding={() => setShowSubmitDialog(false)}
         title="Submit for Approval"
         width={500}
         height="auto"
@@ -919,66 +857,26 @@ export default function DocumentDetailPage() {
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground">
             This will submit version {document.currentVersion?.versionNumber} for
-            approval. Select at least one approver.
+            approval based on the document type&apos;s approval chain.
           </p>
-
-          {/* Approvers Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Select Approvers</label>
-            <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
-              {approvers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Loading approvers...</p>
-              ) : (
-                approvers.map((user) => (
-                  <label
-                    key={user.id}
-                    className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedApprovers.includes(user.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedApprovers([...selectedApprovers, user.id]);
-                        } else {
-                          setSelectedApprovers(selectedApprovers.filter(id => id !== user.id));
-                        }
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {user.email} • {user.role}
-                      </p>
-                    </div>
-                  </label>
-                ))
-              )}
-            </div>
-            {selectedApprovers.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {selectedApprovers.length} approver(s) selected
-              </p>
-            )}
-          </div>
-
+          <p className="text-sm">
+            Required approvers will be notified and the version status will change
+            to &quot;Pending Approval&quot;.
+          </p>
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
               text="Cancel"
-              onClick={() => {
-                setShowSubmitDialog(false);
-                setSelectedApprovers([]);
-              }}
+              onClick={() => setShowSubmitDialog(false)}
               stylingMode="outlined"
-              disabled={submitApprovalMutation.isPending}
             />
             <DxButton
-              text={submitApprovalMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
-              icon={submitApprovalMutation.isPending ? undefined : 'upload'}
-              onClick={() => submitApprovalMutation.mutate()}
+              text="Submit"
+              icon="upload"
+              onClick={() => {
+                setShowSubmitDialog(false);
+                refetch();
+              }}
               type="success"
-              disabled={selectedApprovers.length === 0 || submitApprovalMutation.isPending}
             />
           </div>
         </div>
@@ -1009,10 +907,10 @@ export default function DocumentDetailPage() {
                   <button
                     key={status}
                     onClick={() => setPendingStatus(status)}
-                    className={`p-3 border rounded-xl text-sm font-medium transition-all ${
+                    className={`p-3 border rounded-lg text-sm font-medium transition-colors ${
                       pendingStatus === status
-                        ? 'border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-gray-200 hover:border-primary/50'
                     }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -1021,7 +919,7 @@ export default function DocumentDetailPage() {
             </div>
           </div>
           {pendingStatus && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <p className="text-sm text-amber-800 dark:text-amber-200">
                 {pendingStatus === 'active' && 'This will mark the document as active and make the current version effective.'}
                 {pendingStatus === 'draft' && 'This will revert the document to draft status.'}
@@ -1049,66 +947,6 @@ export default function DocumentDetailPage() {
               }}
               type="success"
               disabled={!pendingStatus || updateStatusMutation.isPending}
-            />
-          </div>
-        </div>
-      </DxPopup>
-
-      {/* Approval Decision Dialog */}
-      <DxPopup
-        visible={showApprovalDialog}
-        onHiding={() => {
-          setShowApprovalDialog(false);
-          setPendingApprovalId(null);
-          setApprovalDecision(null);
-          setApprovalComments('');
-        }}
-        title={approvalDecision === 'approved' ? 'Approve Document' : 'Reject Document'}
-        width={500}
-        height="auto"
-        showCloseButton
-      >
-        <div className="p-4 space-y-4">
-          <div className={`p-4 rounded-lg ${approvalDecision === 'approved' ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'}`}>
-            <p className={`text-sm ${approvalDecision === 'approved' ? 'text-emerald-800 dark:text-emerald-200' : 'text-red-800 dark:text-red-200'}`}>
-              {approvalDecision === 'approved'
-                ? 'You are about to approve this document version. Once all approvers approve, the document will become active.'
-                : 'You are about to reject this document version. The author will need to make changes and resubmit.'}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Comments {approvalDecision === 'rejected' && <span className="text-red-500">*</span>}
-            </label>
-            <DxTextArea
-              value={approvalComments}
-              onValueChange={(value) => setApprovalComments(value || '')}
-              placeholder={approvalDecision === 'approved' ? 'Optional comments...' : 'Please provide a reason for rejection...'}
-              height={100}
-            />
-            {approvalDecision === 'rejected' && !approvalComments && (
-              <p className="text-xs text-red-500">Comments are required when rejecting</p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t">
-            <DxButton
-              text="Cancel"
-              onClick={() => {
-                setShowApprovalDialog(false);
-                setPendingApprovalId(null);
-                setApprovalDecision(null);
-                setApprovalComments('');
-              }}
-              stylingMode="outlined"
-              disabled={processApprovalMutation.isPending}
-            />
-            <DxButton
-              text={processApprovalMutation.isPending ? 'Processing...' : (approvalDecision === 'approved' ? 'Approve' : 'Reject')}
-              onClick={() => processApprovalMutation.mutate()}
-              type={approvalDecision === 'approved' ? 'success' : 'danger'}
-              disabled={processApprovalMutation.isPending || (approvalDecision === 'rejected' && !approvalComments)}
             />
           </div>
         </div>

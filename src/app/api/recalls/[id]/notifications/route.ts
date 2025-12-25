@@ -7,9 +7,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-
-import { getSession, hasPermission } from '@/lib/auth';
+import {
+  successResponse,
+  errorResponse,
+  serverErrorResponse,
+  withAuth,
+} from '@/lib/api-utils';
 import {
   getRecallNotifications,
   createNotification,
@@ -21,73 +24,65 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
+  return withAuth(
+    request,
+    async () => {
+      try {
+        const { id } = await params;
+        const recallId = parseInt(id, 10);
 
-    if (!hasPermission(session.role as any, 'recalls:read')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-    }
+        if (isNaN(recallId)) {
+          return errorResponse('Invalid recall ID', 400);
+        }
 
-    const { id } = await params;
-    const recallId = parseInt(id, 10);
+        const recall = await getRecallById(recallId);
+        if (!recall) {
+          return errorResponse('Recall not found', 404);
+        }
 
-    if (isNaN(recallId)) {
-      return NextResponse.json({ success: false, error: 'Invalid recall ID' }, { status: 400 });
-    }
+        const notifications = await getRecallNotifications(recallId);
 
-    const recall = await getRecallById(recallId);
-    if (!recall) {
-      return NextResponse.json({ success: false, error: 'Recall not found' }, { status: 404 });
-    }
-
-    const notifications = await getRecallNotifications(recallId);
-
-    return NextResponse.json({ success: true, data: notifications });
-  } catch (error) {
-    console.error('Error getting notifications:', error);
-    const message = error instanceof Error ? error.message : 'Failed to get notifications';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
+        return successResponse(notifications);
+      } catch (error) {
+        console.error('Error getting notifications:', error);
+        return serverErrorResponse(error);
+      }
+    },
+    ['recalls:read']
+  );
 }
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const { id } = await params;
+        const recallId = parseInt(id, 10);
 
-    if (!hasPermission(session.role as any, 'recalls:execute')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-    }
+        if (isNaN(recallId)) {
+          return errorResponse('Invalid recall ID', 400);
+        }
 
-    const { id } = await params;
-    const recallId = parseInt(id, 10);
+        const recall = await getRecallById(recallId);
+        if (!recall) {
+          return errorResponse('Recall not found', 404);
+        }
 
-    if (isNaN(recallId)) {
-      return NextResponse.json({ success: false, error: 'Invalid recall ID' }, { status: 400 });
-    }
+        const body = await request.json();
+        const validatedData = recallNotificationCreateSchema.parse(body);
 
-    const recall = await getRecallById(recallId);
-    if (!recall) {
-      return NextResponse.json({ success: false, error: 'Recall not found' }, { status: 404 });
-    }
+        const notification = await createNotification(recallId, validatedData, session.userId);
 
-    const body = await request.json();
-    const validatedData = recallNotificationCreateSchema.parse(body);
-
-    const notification = await createNotification(recallId, validatedData, session.userId);
-
-    return NextResponse.json({ success: true, data: notification }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    const message = error instanceof Error ? error.message : 'Failed to create notification';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
+        return NextResponse.json({ success: true, data: notification }, { status: 201 });
+      } catch (error) {
+        console.error('Error creating notification:', error);
+        return serverErrorResponse(error);
+      }
+    },
+    ['recalls:execute']
+  );
 }

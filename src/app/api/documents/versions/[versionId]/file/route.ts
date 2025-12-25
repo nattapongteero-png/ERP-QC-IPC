@@ -1,8 +1,9 @@
 /**
- * Document File Download API
+ * Document Version File API
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 5)
  *
- * GET /api/documents/download/[...path] - Download a document file
+ * GET /api/documents/versions/[versionId]/file - Get file by version ID
+ * Use ?inline=true to view inline (for PDF preview)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,6 +14,9 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
+import { getDb, useSqlite } from '@/lib/db';
+import { sqliteDocumentVersions, mysqlDocumentVersions } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 // MIME types mapping
 const MIME_TYPES: Record<string, string> = {
@@ -24,37 +28,47 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 interface RouteParams {
-  params: Promise<{ path: string[] }>;
+  params: Promise<{ versionId: string }>;
 }
 
-// GET /api/documents/download/[...path] - Download or view file
-// Use ?inline=true to view inline (for PDF preview)
+// GET /api/documents/versions/[versionId]/file
 export async function GET(request: NextRequest, { params }: RouteParams) {
   return withAuth(
     request,
     async () => {
       try {
-        const { path: pathSegments } = await params;
+        const { versionId } = await params;
         const { searchParams } = new URL(request.url);
         const isInline = searchParams.get('inline') === 'true';
 
-        if (!pathSegments || pathSegments.length === 0) {
-          return errorResponse('File path is required', 400);
+        const versionIdNum = parseInt(versionId, 10);
+        if (isNaN(versionIdNum) || versionIdNum <= 0) {
+          return errorResponse('Invalid version ID', 400);
         }
 
-        // Reconstruct file path
-        const relativePath = pathSegments.join('/');
+        // Get version from database
+        const database = await getDb();
+        const versions = useSqlite() ? sqliteDocumentVersions : mysqlDocumentVersions;
 
-        // Security: prevent directory traversal
-        if (relativePath.includes('..') || relativePath.includes('//')) {
-          return errorResponse('Invalid file path', 400);
+        const [version] = await database
+          .select({
+            id: versions.id,
+            filePath: versions.filePath,
+          })
+          .from(versions)
+          .where(eq(versions.id, versionIdNum));
+
+        if (!version) {
+          return errorResponse('Version not found', 404);
         }
 
-        // Only allow files from uploads/documents directory
-        if (!relativePath.startsWith('uploads/documents/')) {
-          return errorResponse('Access denied', 403);
+        if (!version.filePath) {
+          return errorResponse('No file attached to this version', 404);
         }
 
+        // Construct file path
+        // filePath stored as: data/uploads/documents/{docId}/{filename}
+        const relativePath = version.filePath.replace(/^data\//, '');
         const filePath = join(process.cwd(), 'data', relativePath);
 
         // Check if file exists
@@ -78,7 +92,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         const filename = relativePath.split('/').pop() || 'document';
 
         // Return file with appropriate headers
-        // Use inline for preview, attachment for download
         const disposition = isInline ? 'inline' : 'attachment';
 
         return new NextResponse(fileBuffer, {
@@ -91,7 +104,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           },
         });
       } catch (error) {
-        console.error('[Documents] File download error:', error);
+        console.error('[Documents] File retrieval error:', error);
         return serverErrorResponse(error);
       }
     },
