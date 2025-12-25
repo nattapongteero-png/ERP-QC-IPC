@@ -1392,3 +1392,158 @@ export async function generateVATSummaryReport(
     vatPayable: netVATPayable > 0,
   };
 }
+
+// ============================================
+// Asset Register Report (T176)
+// ============================================
+
+export interface AssetRegisterEntry {
+  assetCode: string;
+  nameTh: string;
+  nameEn: string;
+  categoryCode: string;
+  categoryName: string;
+  acquisitionDate: string;
+  acquisitionCost: number;
+  usefulLifeMonths: number;
+  depreciationMethod: string;
+  accumulatedDepreciation: number;
+  netBookValue: number;
+  status: string;
+  location: string | null;
+}
+
+export interface AssetRegisterReport {
+  asOfDate: string;
+  entries: AssetRegisterEntry[];
+  summary: {
+    totalAssets: number;
+    totalAcquisitionCost: number;
+    totalAccumulatedDepreciation: number;
+    totalNetBookValue: number;
+    byStatus: Record<string, number>;
+    byCategory: Array<{
+      code: string;
+      name: string;
+      count: number;
+      acquisitionCost: number;
+      netBookValue: number;
+    }>;
+  };
+}
+
+/**
+ * Generate Asset Register Report
+ * Lists all fixed assets with depreciation and value information
+ * @param asOfDate - Report date (YYYY-MM-DD)
+ * @param filters - Optional filters (categoryId, status)
+ * @returns Asset register report
+ */
+export async function generateAssetRegister(
+  asOfDate: string,
+  filters?: { categoryId?: number; status?: string }
+): Promise<AssetRegisterReport> {
+  const { fixedAssets, assetCategories } = getAccountingTables();
+  const database = db();
+
+  // Build query with optional filters
+  const conditions = [];
+  if (filters?.categoryId) {
+    conditions.push(eq(fixedAssets.categoryId, filters.categoryId));
+  }
+  if (filters?.status) {
+    conditions.push(eq(fixedAssets.status, filters.status));
+  }
+
+  // Get assets with category info
+  let query = database
+    .select({
+      assetCode: fixedAssets.assetCode,
+      nameTh: fixedAssets.nameTh,
+      nameEn: fixedAssets.nameEn,
+      categoryCode: assetCategories.code,
+      categoryName: assetCategories.nameEn,
+      acquisitionDate: fixedAssets.acquisitionDate,
+      acquisitionCost: fixedAssets.acquisitionCost,
+      usefulLifeMonths: fixedAssets.usefulLifeMonths,
+      depreciationMethod: fixedAssets.depreciationMethod,
+      accumulatedDepreciation: fixedAssets.accumulatedDepreciation,
+      netBookValue: fixedAssets.netBookValue,
+      status: fixedAssets.status,
+      location: fixedAssets.location,
+    })
+    .from(fixedAssets)
+    .innerJoin(assetCategories, eq(fixedAssets.categoryId, assetCategories.id));
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  const assets = await query;
+
+  // Map entries
+  const entries: AssetRegisterEntry[] = assets.map(a => ({
+    assetCode: a.assetCode,
+    nameTh: a.nameTh,
+    nameEn: a.nameEn || '',
+    categoryCode: a.categoryCode,
+    categoryName: a.categoryName,
+    acquisitionDate: formatDateFromDb(a.acquisitionDate),
+    acquisitionCost: Number(a.acquisitionCost),
+    usefulLifeMonths: Number(a.usefulLifeMonths),
+    depreciationMethod: a.depreciationMethod,
+    accumulatedDepreciation: Number(a.accumulatedDepreciation),
+    netBookValue: Number(a.netBookValue),
+    status: a.status,
+    location: a.location,
+  }));
+
+  // Calculate summary
+  const totalAcquisitionCost = entries.reduce((sum, e) => sum + e.acquisitionCost, 0);
+  const totalAccumulatedDepreciation = entries.reduce((sum, e) => sum + e.accumulatedDepreciation, 0);
+  const totalNetBookValue = entries.reduce((sum, e) => sum + e.netBookValue, 0);
+
+  // By status
+  const byStatus: Record<string, number> = {};
+  entries.forEach(e => {
+    byStatus[e.status] = (byStatus[e.status] || 0) + 1;
+  });
+
+  // By category
+  const categoryMap = new Map<string, {
+    code: string;
+    name: string;
+    count: number;
+    acquisitionCost: number;
+    netBookValue: number;
+  }>();
+  entries.forEach(e => {
+    const existing = categoryMap.get(e.categoryCode);
+    if (existing) {
+      existing.count++;
+      existing.acquisitionCost += e.acquisitionCost;
+      existing.netBookValue += e.netBookValue;
+    } else {
+      categoryMap.set(e.categoryCode, {
+        code: e.categoryCode,
+        name: e.categoryName,
+        count: 1,
+        acquisitionCost: e.acquisitionCost,
+        netBookValue: e.netBookValue,
+      });
+    }
+  });
+
+  return {
+    asOfDate,
+    entries,
+    summary: {
+      totalAssets: entries.length,
+      totalAcquisitionCost,
+      totalAccumulatedDepreciation,
+      totalNetBookValue,
+      byStatus,
+      byCategory: Array.from(categoryMap.values()),
+    },
+  };
+}
