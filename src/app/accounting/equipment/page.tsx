@@ -10,8 +10,13 @@ import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import DataGrid, { Column, Export, Paging, FilterRow, SearchPanel, MasterDetail } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { Wrench, Clock, AlertTriangle, CheckCircle2, Activity } from 'lucide-react';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+  AccountingStatusBadge,
+} from '@/components/accounting';
+import { AlertTriangle, Clock } from 'lucide-react';
 import type { AccountingEquipment } from '@/lib/db/schema';
 
 interface EquipmentWithAsset extends AccountingEquipment {
@@ -108,21 +113,33 @@ function MaintenanceDetailView({ data }: { data: { data: EquipmentWithAsset } })
   });
 
   return (
-    <div className="p-4 bg-gray-50">
-      <h4 className="text-sm font-semibold text-gray-700 mb-3">Maintenance Schedules</h4>
+    <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50/30">
+      <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="w-1 h-4 bg-blue-500 rounded-full" />
+        Maintenance Schedules
+      </h4>
       {schedules.length === 0 ? (
-        <p className="text-gray-500 text-sm">No maintenance schedules configured.</p>
+        <div className="text-center py-8">
+          <p className="text-gray-500 text-sm">No maintenance schedules configured.</p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {schedules.map((schedule: { id: number; maintenanceType: string; description: string; intervalType: string; intervalValue: number; nextDue: string }) => (
-            <div key={schedule.id} className="bg-white rounded border p-3">
-              <div className="text-sm font-medium text-gray-800">{schedule.maintenanceType}</div>
-              <div className="text-xs text-gray-600">{schedule.description}</div>
-              <div className="text-xs text-gray-500 mt-2">
-                Every {schedule.intervalValue} {schedule.intervalType}
+            <div key={schedule.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-sm font-semibold text-gray-900">{schedule.maintenanceType}</div>
+                <div className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                  Active
+                </div>
               </div>
-              <div className="text-xs text-blue-600 mt-1">
-                Next: {formatDate(schedule.nextDue)}
+              <div className="text-xs text-gray-600 mb-3">{schedule.description}</div>
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="text-xs text-gray-500">
+                  Every {schedule.intervalValue} {schedule.intervalType}
+                </div>
+                <div className="text-xs font-medium text-blue-600">
+                  Next: {formatDate(schedule.nextDue)}
+                </div>
               </div>
             </div>
           ))}
@@ -131,6 +148,8 @@ function MaintenanceDetailView({ data }: { data: { data: EquipmentWithAsset } })
     </div>
   );
 }
+
+MaintenanceDetailView.displayName = 'MaintenanceDetailView';
 
 export default function EquipmentPage() {
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('');
@@ -175,117 +194,115 @@ export default function EquipmentPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ResponsivePageHeader
+      <AccountingPageHeader
         title="Equipment & Maintenance"
         subtitle="Track equipment, maintenance schedules, and MTBF analysis"
-        icon={Wrench}
-        iconColor="text-blue-600"
+        icon="wrench"
       />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <StatCard
+        <AccountingKPICard
           label="Total Equipment"
-          value={summary?.totalEquipment?.toString() || '-'}
-          icon={Wrench}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
+          value={summary?.totalEquipment?.toString() || '0'}
+          icon="wrench"
+          variant="info"
         />
-        <StatCard
+        <AccountingKPICard
           label="Available"
-          value={summary?.availableEquipment?.toString() || '-'}
-          icon={CheckCircle2}
-          iconColor="text-green-500"
-          accentColor="border-green-500"
+          value={summary?.availableEquipment?.toString() || '0'}
+          icon="check-circle"
+          variant="success"
         />
-        <StatCard
+        <AccountingKPICard
           label="In Use"
-          value={summary?.unavailableEquipment?.toString() || '-'}
-          icon={Activity}
-          iconColor="text-yellow-500"
-          accentColor="border-yellow-500"
+          value={summary?.unavailableEquipment?.toString() || '0'}
+          icon="activity"
+          variant="warning"
         />
-        <StatCard
+        <AccountingKPICard
           label="Overdue"
           value={overdue?.count?.toString() || '0'}
-          icon={AlertTriangle}
-          iconColor="text-red-500"
-          accentColor="border-red-500"
+          icon="clock"
+          variant="danger"
         />
-        <StatCard
+        <AccountingKPICard
           label="Due (7 days)"
           value={upcoming?.length?.toString() || '0'}
-          icon={Clock}
-          iconColor="text-orange-500"
-          accentColor="border-orange-500"
+          icon="clock"
+          variant="warning"
         />
       </div>
 
       {/* Overdue Maintenance Alert */}
       {(overdue?.count || 0) > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-red-800">
-            <AlertTriangle className="h-5 w-5" />
-            <span className="font-semibold">Overdue Maintenance Alert</span>
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 text-red-900 mb-2">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+            </div>
+            <span className="font-semibold text-lg">Overdue Maintenance Alert</span>
           </div>
-          <p className="text-sm text-red-700 mt-1">
-            There are {overdue?.count} maintenance tasks that are overdue. Please review and schedule immediately.
+          <p className="text-sm text-red-700 ml-11">
+            There are <span className="font-bold">{overdue?.count}</span> maintenance tasks that are overdue. Please review and schedule immediately.
           </p>
         </div>
       )}
 
       {/* Filters and Actions */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Availability</label>
-            <SelectBox
-              items={availabilityOptions}
-              value={availabilityFilter}
-              onValueChanged={(e) => setAvailabilityFilter(e.value)}
-              valueExpr="value"
-              displayExpr="text"
-              width={200}
-            />
-          </div>
-          <Button
-            text="Add Equipment"
-            type="default"
-            stylingMode="contained"
-            icon="plus"
-            onClick={() => notify('Add Equipment dialog - coming soon', 'info', 3000)}
+      <AccountingFilterPanel>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Availability</label>
+          <SelectBox
+            items={availabilityOptions}
+            value={availabilityFilter}
+            onValueChanged={(e) => setAvailabilityFilter(e.value)}
+            valueExpr="value"
+            displayExpr="text"
+            width={200}
           />
-          <Button
-            text="Maintenance Dashboard"
-            type="normal"
-            stylingMode="outlined"
-            onClick={() => notify('Maintenance Dashboard - coming soon', 'info', 3000)}
-          />
-          <Button
-            text="MTBF Analysis"
-            type="normal"
-            stylingMode="outlined"
-            onClick={() => notify('MTBF Analysis - coming soon', 'info', 3000)}
-          />
-          {equipment.length > 0 && (
-            <Button
-              text="Export JSON"
-              type="normal"
-              stylingMode="outlined"
-              onClick={handleExportJSON}
-            />
-          )}
         </div>
-      </div>
+        <Button
+          text="Add Equipment"
+          type="default"
+          stylingMode="contained"
+          icon="plus"
+          onClick={() => notify('Add Equipment dialog - coming soon', 'info', 3000)}
+        />
+        <Button
+          text="Maintenance Dashboard"
+          type="normal"
+          stylingMode="outlined"
+          onClick={() => notify('Maintenance Dashboard - coming soon', 'info', 3000)}
+        />
+        <Button
+          text="MTBF Analysis"
+          type="normal"
+          stylingMode="outlined"
+          onClick={() => notify('MTBF Analysis - coming soon', 'info', 3000)}
+        />
+        {equipment.length > 0 && (
+          <Button
+            text="Export JSON"
+            type="normal"
+            stylingMode="outlined"
+            onClick={handleExportJSON}
+          />
+        )}
+      </AccountingFilterPanel>
 
       {/* Equipment Grid */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Equipment Register
-        </h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-1 h-6 bg-blue-500 rounded-full" />
+          <h3 className="text-lg font-semibold text-gray-900">
+            Equipment Register
+          </h3>
+        </div>
         {isLoading ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Loading equipment...</p>
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600" />
+            <p className="text-gray-500 mt-3">Loading equipment...</p>
           </div>
         ) : (
           <DataGrid
@@ -326,15 +343,11 @@ export default function EquipmentPage() {
             <Column
               dataField="isAvailable"
               caption="Status"
-              width={100}
+              width={110}
               cellRender={({ data }) => (
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  data.isAvailable
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {data.isAvailable ? 'Available' : 'In Use'}
-                </span>
+                <AccountingStatusBadge
+                  status={data.isAvailable ? 'active' : 'pending'}
+                />
               )}
             />
             <Export enabled allowExportSelectedData />
@@ -345,30 +358,40 @@ export default function EquipmentPage() {
 
       {/* Upcoming Maintenance Section */}
       {upcoming.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Upcoming Maintenance (Next 7 Days)
-          </h3>
-          <div className="space-y-2">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-1 h-6 bg-orange-500 rounded-full" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              Upcoming Maintenance (Next 7 Days)
+            </h3>
+          </div>
+          <div className="space-y-3">
             {upcoming.slice(0, 5).map((item, index) => (
               <div
                 key={`upcoming-${index}`}
-                className="flex items-center justify-between p-3 bg-blue-50 rounded border border-blue-100"
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50/30 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors"
               >
-                <div>
-                  <span className="font-medium text-gray-800">
-                    {item.schedule.maintenanceType}
-                  </span>
-                  <span className="text-gray-600 ml-2">
-                    - {item.schedule.description}
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Clock className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">
+                      {item.schedule.maintenanceType}
+                    </span>
+                    <span className="text-gray-600 ml-2">
+                      - {item.schedule.description}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-600">
                     Due: {formatDate(item.schedule.nextDue)}
                   </span>
-                  <span className={`text-sm font-medium ${
-                    item.daysUntilDue <= 2 ? 'text-orange-600' : 'text-blue-600'
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    item.daysUntilDue <= 2
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'bg-blue-100 text-blue-700'
                   }`}>
                     {item.daysUntilDue === 0 ? 'Today' : `${item.daysUntilDue} days`}
                   </span>

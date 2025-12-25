@@ -55,7 +55,6 @@ import {
   DollarSign,
   LayoutGrid,
   FolderTree,
-  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -200,7 +199,6 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Dashboard', href: '/template', icon: LayoutDashboard },
       { name: 'Items', href: '/template/items', icon: Package },
-      { name: 'New Item', href: '/template/items/new', icon: Plus },
       { name: 'Categories', href: '/template/categories', icon: FolderTree },
     ],
   },
