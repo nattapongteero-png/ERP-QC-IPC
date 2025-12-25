@@ -476,5 +476,89 @@ export async function initializeDatabaseWithSync(): Promise<void> {
     // Don't throw - allow server to start even if seeding fails
   }
 
+  // Seed demo users if users table is empty
+  try {
+    await seedDemoUsersIfEmpty();
+  } catch (error) {
+    console.error('[Database] Failed to seed demo users:', error);
+    // Don't throw - allow server to start even if seeding fails
+  }
+
   console.log('[Database] Database initialization complete.');
+}
+
+/**
+ * Seed demo users if the users table is empty
+ * These are the credentials shown on the login page
+ */
+async function seedDemoUsersIfEmpty(): Promise<void> {
+  const usingSqlite = isSqlite();
+  const usersTable = usingSqlite ? schema.sqliteUsers : schema.mysqlUsers;
+
+  // Check if users table is empty
+  let isEmpty = false;
+  try {
+    if (usingSqlite) {
+      const db = getSqliteDb();
+      const result = await db.all(sql.raw('SELECT COUNT(*) as count FROM "users"'));
+      isEmpty = (result[0] as any)?.count === 0;
+    } else {
+      const db = await getMysqlDb();
+      const result = await db.execute(sql.raw('SELECT COUNT(*) as count FROM `users`'));
+      isEmpty = (result[0] as unknown as any[])[0]?.count === 0;
+    }
+  } catch (error) {
+    // Table might not exist - assume we should try to seed
+    console.log('[User Seed] Could not check users table, will attempt to seed');
+    isEmpty = true;
+  }
+
+  if (!isEmpty) {
+    console.log('[User Seed] Users table already has data, skipping demo user seed');
+    return;
+  }
+
+  console.log('[User Seed] Seeding demo users...');
+
+  // Import hashPassword dynamically to avoid circular dependencies
+  const { hashPassword } = await import('../auth');
+
+  const adminPassword = await hashPassword('admin123');
+  const userPassword = await hashPassword('user123');
+
+  // Demo users matching the login page credentials
+  const demoUsers = [
+    { email: 'admin@herbal-erp.com', password: adminPassword, name: 'System Administrator', role: 'admin', department: 'IT' },
+    { email: 'production@herbal-erp.com', password: userPassword, name: 'Production Manager', role: 'production', department: 'Production' },
+    { email: 'qc@herbal-erp.com', password: userPassword, name: 'QC Manager', role: 'qc', department: 'Quality Control' },
+    { email: 'warehouse@herbal-erp.com', password: userPassword, name: 'Warehouse Manager', role: 'warehouse', department: 'Warehouse' },
+    { email: 'purchasing@herbal-erp.com', password: userPassword, name: 'Purchasing Manager', role: 'purchasing', department: 'Purchasing' },
+    { email: 'sales@herbal-erp.com', password: userPassword, name: 'Sales Manager', role: 'sales', department: 'Sales' },
+    { email: 'hr@herbal-erp.com', password: userPassword, name: 'HR Manager', role: 'hr', department: 'Human Resources' },
+  ];
+
+  try {
+    if (usingSqlite) {
+      const db = getSqliteDb();
+      for (const user of demoUsers) {
+        await (db as any).insert(usersTable).values({ ...user, isActive: true }).onConflictDoNothing();
+      }
+    } else {
+      const db = await getMysqlDb();
+      for (const user of demoUsers) {
+        try {
+          await (db as any).insert(usersTable).values({ ...user, isActive: true });
+        } catch (error: any) {
+          // Ignore duplicate entry errors
+          if (!error.code?.includes('ER_DUP_ENTRY') && !error.message?.includes('Duplicate entry')) {
+            throw error;
+          }
+        }
+      }
+    }
+    console.log(`[User Seed] Created ${demoUsers.length} demo users`);
+  } catch (error) {
+    console.error('[User Seed] Failed to seed demo users:', error);
+    throw error;
+  }
 }
