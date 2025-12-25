@@ -178,7 +178,8 @@ export default function EquipmentPage() {
       <ResponsivePageHeader
         title="Equipment & Maintenance"
         subtitle="Track equipment, maintenance schedules, and MTBF analysis"
-        icon={<Wrench className="h-6 w-6 text-blue-600" />}
+        icon={Wrench}
+        iconColor="text-blue-600"
       />
 
       {/* Quick Stats */}
@@ -186,32 +187,37 @@ export default function EquipmentPage() {
         <StatCard
           label="Total Equipment"
           value={summary?.totalEquipment?.toString() || '-'}
-          icon={<Wrench className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Wrench}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
         />
         <StatCard
           label="Available"
           value={summary?.availableEquipment?.toString() || '-'}
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'up' }}
+          icon={CheckCircle2}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
         />
         <StatCard
           label="In Use"
           value={summary?.unavailableEquipment?.toString() || '-'}
-          icon={<Activity className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Activity}
+          iconColor="text-yellow-500"
+          accentColor="border-yellow-500"
         />
         <StatCard
           label="Overdue"
           value={overdue?.count?.toString() || '0'}
-          icon={<AlertTriangle className="h-5 w-5" />}
-          trend={{ value: overdue?.count || 0, direction: (overdue?.count || 0) > 0 ? 'down' : 'neutral' }}
+          icon={AlertTriangle}
+          iconColor="text-red-500"
+          accentColor="border-red-500"
         />
         <StatCard
           label="Due (7 days)"
           value={upcoming?.length?.toString() || '0'}
-          icon={<Clock className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Clock}
+          iconColor="text-orange-500"
+          accentColor="border-orange-500"
         />
       </div>
 

@@ -69,7 +69,8 @@ export default function VATReportPage() {
       <ResponsivePageHeader
         title="VAT Report"
         subtitle="Por Por 30 - Input and Output VAT summary for tax filing"
-        icon={<Receipt className="h-6 w-6 text-green-600" />}
+        icon={Receipt}
+        iconColor="text-green-600"
       />
 
       {/* Quick Stats */}
@@ -77,29 +78,30 @@ export default function VATReportPage() {
         <StatCard
           label="Tax Period"
           value={formatTaxPeriod(taxPeriod)}
-          icon={<Receipt className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Receipt}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
         />
         <StatCard
           label="Output VAT"
           value={report ? formatCurrency(report.outputVAT.totalVATAmount) : '-'}
-          icon={<TrendingUp className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'up' }}
+          icon={TrendingUp}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
         />
         <StatCard
           label="Input VAT"
           value={report ? formatCurrency(report.inputVAT.totalVATAmount) : '-'}
-          icon={<TrendingDown className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'down' }}
+          icon={TrendingDown}
+          iconColor="text-red-500"
+          accentColor="border-red-500"
         />
         <StatCard
           label="Net VAT"
           value={report ? formatCurrency(report.netVAT) : '-'}
-          icon={<Calculator className="h-5 w-5" />}
-          trend={{
-            value: 0,
-            direction: report ? (report.netVAT >= 0 ? 'up' : 'down') : 'neutral',
-          }}
+          icon={Calculator}
+          iconColor={report && report.netVAT >= 0 ? 'text-orange-500' : 'text-purple-500'}
+          accentColor={report && report.netVAT >= 0 ? 'border-orange-500' : 'border-purple-500'}
         />
       </div>
 

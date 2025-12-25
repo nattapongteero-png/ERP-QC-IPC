@@ -192,7 +192,8 @@ export default function PeriodClosePage() {
       <ResponsivePageHeader
         title="Period Close"
         subtitle="Month-end and year-end closing procedures"
-        icon={<Calendar className="h-6 w-6 text-blue-600" />}
+        icon={Calendar}
+        iconColor="text-blue-600"
       />
 
       {/* Quick Stats */}
@@ -200,26 +201,30 @@ export default function PeriodClosePage() {
         <StatCard
           label="Open Periods"
           value={openPeriods.toString()}
-          icon={<Unlock className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Unlock}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
         />
         <StatCard
           label="Soft Closed"
           value={softClosedPeriods.toString()}
-          icon={<AlertTriangle className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={AlertTriangle}
+          iconColor="text-yellow-500"
+          accentColor="border-yellow-500"
         />
         <StatCard
           label="Closed Periods"
           value={closedPeriods.toString()}
-          icon={<Lock className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'up' }}
+          icon={Lock}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
         />
         <StatCard
           label="Total Periods"
           value={periods.length.toString()}
-          icon={<Calendar className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Calendar}
+          iconColor="text-purple-500"
+          accentColor="border-purple-500"
         />
       </div>
 

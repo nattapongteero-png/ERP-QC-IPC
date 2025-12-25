@@ -142,7 +142,8 @@ const accountToFormData = (account: GLAccount): GLAccountFormData => ({
 
 export default function ChartOfAccountsPage() {
   const queryClient = useQueryClient();
-  const formRef = useRef<Form>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formRef = useRef<any>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [editingAccount, setEditingAccount] = useState<GLAccount | null>(null);
   const [formData, setFormData] = useState<GLAccountFormData>(getDefaultFormData());
@@ -351,9 +352,8 @@ export default function ChartOfAccountsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <ResponsivePageHeader
-        title="ผังบัญชี"
-        subtitle="Chart of Accounts"
-        description="จัดการผังบัญชีตามมาตรฐานการบัญชีไทย (TAS)"
+        title="ผังบัญชี (Chart of Accounts)"
+        subtitle="จัดการผังบัญชีตามมาตรฐานการบัญชีไทย (TAS)"
         icon={BookOpen}
       />
 
@@ -361,28 +361,32 @@ export default function ChartOfAccountsPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
-            title="บัญชีทั้งหมด"
+            label="บัญชีทั้งหมด"
             value={stats.total}
             icon={BookOpen}
-            color="blue"
+            iconColor="text-blue-500"
+            accentColor="border-blue-500"
           />
           <StatCard
-            title="ใช้งาน"
+            label="ใช้งาน"
             value={stats.active}
             icon={TrendingUp}
-            color="green"
+            iconColor="text-green-500"
+            accentColor="border-green-500"
           />
           <StatCard
-            title="ลงบัญชีได้"
+            label="ลงบัญชีได้"
             value={stats.postable}
             icon={Wallet}
-            color="purple"
+            iconColor="text-purple-500"
+            accentColor="border-purple-500"
           />
           <StatCard
-            title="บัญชีธนาคาร"
+            label="บัญชีธนาคาร"
             value={stats.bankAccounts}
             icon={CreditCard}
-            color="orange"
+            iconColor="text-orange-500"
+            accentColor="border-orange-500"
           />
         </div>
 

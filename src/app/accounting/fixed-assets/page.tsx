@@ -104,7 +104,8 @@ export default function FixedAssetsPage() {
       <ResponsivePageHeader
         title="Fixed Assets"
         subtitle="Thai Revenue Code compliant fixed asset management"
-        icon={<Package className="h-6 w-6 text-blue-600" />}
+        icon={Package}
+        iconColor="text-blue-600"
       />
 
       {/* Quick Stats */}
@@ -112,26 +113,30 @@ export default function FixedAssetsPage() {
         <StatCard
           label="Total Assets"
           value={summary?.totalAssets?.toString() || '-'}
-          icon={<Package className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Package}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
         />
         <StatCard
           label="Active Assets"
           value={summary?.activeAssets?.toString() || '-'}
-          icon={<Building2 className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'up' }}
+          icon={Building2}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
         />
         <StatCard
           label="Total Cost"
           value={summary ? formatCurrency(summary.totalAcquisitionCost) : '-'}
-          icon={<Calculator className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Calculator}
+          iconColor="text-purple-500"
+          accentColor="border-purple-500"
         />
         <StatCard
           label="Net Book Value"
           value={summary ? formatCurrency(summary.totalNetBookValue) : '-'}
-          icon={<TrendingDown className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'down' }}
+          icon={TrendingDown}
+          iconColor="text-orange-500"
+          accentColor="border-orange-500"
         />
       </div>
 

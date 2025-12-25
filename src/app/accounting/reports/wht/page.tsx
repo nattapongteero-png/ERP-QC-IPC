@@ -94,7 +94,8 @@ export default function WHTReportPage() {
       <ResponsivePageHeader
         title="WHT Certificates"
         subtitle={`${certificateType === 'pnd3' ? 'PND 3' : 'PND 53'} - Withholding tax certificates for tax filing`}
-        icon={<FileText className="h-6 w-6 text-blue-600" />}
+        icon={FileText}
+        iconColor="text-blue-600"
       />
 
       {/* Quick Stats */}
@@ -102,26 +103,30 @@ export default function WHTReportPage() {
         <StatCard
           label="Tax Period"
           value={formatTaxPeriod(taxPeriod)}
-          icon={<Receipt className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Receipt}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
         />
         <StatCard
           label="Certificate Type"
           value={certificateType === 'pnd3' ? 'PND 3' : 'PND 53'}
-          icon={certificateType === 'pnd3' ? <Users className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={certificateType === 'pnd3' ? Users : Building2}
+          iconColor="text-purple-500"
+          accentColor="border-purple-500"
         />
         <StatCard
           label="Certificates"
           value={report ? report.certificateCount.toString() : '-'}
-          icon={<FileText className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={FileText}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
         />
         <StatCard
           label="Total WHT"
           value={report ? formatCurrency(report.totalWHTAmount) : '-'}
-          icon={<Receipt className="h-5 w-5" />}
-          trend={{ value: 0, direction: 'neutral' }}
+          icon={Receipt}
+          iconColor="text-orange-500"
+          accentColor="border-orange-500"
         />
       </div>
 
