@@ -1054,6 +1054,37 @@ export interface AssetRegisterReport {
   };
 }
 
+export interface CashFlowSection {
+  title: string;
+  items: Array<{
+    description: string;
+    amount: number;
+  }>;
+  subtotal: number;
+}
+
+export interface CashFlowStatementReport {
+  periodStart: string;
+  periodEnd: string;
+  operatingActivities: {
+    netIncome: number;
+    adjustments: CashFlowSection;
+    workingCapitalChanges: CashFlowSection;
+    netCashFromOperating: number;
+  };
+  investingActivities: {
+    section: CashFlowSection;
+    netCashFromInvesting: number;
+  };
+  financingActivities: {
+    section: CashFlowSection;
+    netCashFromFinancing: number;
+  };
+  netChangeInCash: number;
+  beginningCashBalance: number;
+  endingCashBalance: number;
+}
+
 // ============================================
 // Filter/Query Types
 // ============================================
