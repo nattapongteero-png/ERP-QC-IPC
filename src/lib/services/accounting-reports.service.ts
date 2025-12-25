@@ -5,7 +5,7 @@
  * User Story 5: Generate Financial Statements
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, sql, gte, lte, inArray, lt, desc } from 'drizzle-orm';
 import { toQueryDate, formatDateFromDb } from '../db/date-utils';
 import { getAccountingTables } from './accounting.service';
@@ -44,7 +44,7 @@ export async function generateTrialBalance(
   fiscalYearStart?: string
 ): Promise<TrialBalanceReport> {
   const { glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Default fiscal year start to January 1st of the as-of-date year
   const yearStart = fiscalYearStart || `${asOfDate.substring(0, 4)}-01-01`;
@@ -205,7 +205,7 @@ export async function generateTrialBalance(
  */
 export async function generateBalanceSheet(asOfDate: string): Promise<BalanceSheetReport> {
   const { glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Helper to get account balance as of date
   async function getAccountBalance(accountId: number, normalBalance: string): Promise<number> {
@@ -436,7 +436,7 @@ export async function generateBalanceSheet(asOfDate: string): Promise<BalanceShe
  */
 async function calculateNetIncome(asOfDate: string, periodStart?: string): Promise<number> {
   const { glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const yearStart = periodStart || `${asOfDate.substring(0, 4)}-01-01`;
 
@@ -498,7 +498,7 @@ export async function generateIncomeStatement(
   periodEnd: string
 ): Promise<IncomeStatementReport> {
   const { glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Helper to get account totals for a period
   async function getAccountTotals(
@@ -681,7 +681,7 @@ export async function generateCashFlowStatement(
   periodEnd: string
 ): Promise<CashFlowStatementReport> {
   const { glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Helper to get balance change for an account between two dates
   async function getBalanceChange(accountCode: string): Promise<number> {
@@ -898,7 +898,7 @@ export async function generateAgingReport(
   asOfDate: string
 ): Promise<AgingReport> {
   const { apInvoices, arInvoices } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const asOfDateObj = new Date(asOfDate);
   const entries: AgingReportEntry[] = [];
@@ -1119,7 +1119,7 @@ export async function generateAgingReport(
  */
 export async function generateVATReport(taxPeriod: string): Promise<VATReport> {
   const { vatTransactions } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get all VAT transactions for the period
   const transactions = await database
@@ -1203,7 +1203,7 @@ export async function generateWHTCertificateSummary(
   certificateType: WHTCertificateType
 ): Promise<WHTCertificateSummary> {
   const { whtTransactions } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get vendors table
   const vendorsTable = isSqlite()
@@ -1281,7 +1281,7 @@ export async function generateWHTCertificatePDF(
   certificateId: number
 ): Promise<WHTCertificatePDFData | null> {
   const { whtTransactions } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get vendors table
   const vendorsTable = isSqlite()
@@ -1444,7 +1444,7 @@ export async function generateAssetRegister(
   filters?: { categoryId?: number; status?: string }
 ): Promise<AssetRegisterReport> {
   const { fixedAssets, assetCategories } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Build query with optional filters
   const conditions = [];
@@ -1593,7 +1593,7 @@ export async function generateEquipmentCostReport(
   dateTo?: string
 ): Promise<EquipmentCostReport> {
   const { equipment, fixedAssets, maintenanceRecords } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get all equipment with asset info
   const equipmentList = await database

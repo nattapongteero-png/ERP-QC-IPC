@@ -6,7 +6,7 @@
  * Month-end and year-end closing with validation and audit trail.
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or, isNull, ne, lt } from 'drizzle-orm';
 import { getAccountingTables, generateEntryNumber, createJournalEntry, postJournalEntry, getCurrentFiscalPeriod, getPeriodByDate } from './accounting.service';
@@ -91,7 +91,7 @@ export interface YearCloseResult {
  */
 export async function validatePeriodClose(periodId: number): Promise<PeriodCloseValidation> {
   const { fiscalPeriods, fiscalYears, journalEntries, apInvoices, arInvoices, payments, journalLines, glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get period and year info
   const periodResult = await database
@@ -289,7 +289,7 @@ export async function closeFiscalPeriod(
   force: boolean = false
 ): Promise<{ success: boolean; message: string }> {
   const { fiscalPeriods } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Validate first
   const validation = await validatePeriodClose(periodId);
@@ -345,7 +345,7 @@ export async function softCloseFiscalPeriod(
   closedBy: number
 ): Promise<{ success: boolean; message: string }> {
   const { fiscalPeriods } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get period info
   const periodResult = await database
@@ -407,7 +407,7 @@ export async function reopenFiscalPeriod(
   reason: string
 ): Promise<{ success: boolean; message: string }> {
   const { fiscalPeriods, fiscalYears } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get period info
   const periodResult = await database
@@ -486,7 +486,7 @@ export async function reopenFiscalPeriod(
  */
 export async function validateYearClose(fiscalYearId: number): Promise<YearCloseValidation> {
   const { fiscalYears, fiscalPeriods, journalEntries, journalLines, glAccounts, glAccountTypes } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get year info
   const yearResult = await database
@@ -629,7 +629,7 @@ export async function closeYearEnd(
   closedBy: number
 ): Promise<YearCloseResult> {
   const { fiscalYears, fiscalPeriods, glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Validate first
   const validation = await validateYearClose(fiscalYearId);
@@ -838,7 +838,7 @@ export async function createOpeningBalances(
   createdBy: number
 ): Promise<{ success: boolean; journalEntryId: number | null }> {
   const { fiscalYears, fiscalPeriods, glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Validate new year exists and is open
   const newYearResult = await database
@@ -1008,7 +1008,7 @@ export async function listFiscalPeriods(
   status?: FiscalPeriodStatus
 ): Promise<(FiscalPeriod & { fiscalYear?: FiscalYear })[]> {
   const { fiscalPeriods, fiscalYears } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const conditions = [];
 
@@ -1045,7 +1045,7 @@ export async function listFiscalPeriods(
  */
 export async function getFiscalPeriodById(id: number): Promise<(FiscalPeriod & { fiscalYear?: FiscalYear }) | null> {
   const { fiscalPeriods, fiscalYears } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select({
@@ -1070,7 +1070,7 @@ export async function getFiscalPeriodById(id: number): Promise<(FiscalPeriod & {
  */
 export async function listFiscalYears(status?: FiscalYearStatus): Promise<FiscalYear[]> {
   const { fiscalYears } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   let query = database.select().from(fiscalYears);
 
@@ -1090,7 +1090,7 @@ export async function listFiscalYears(status?: FiscalYearStatus): Promise<Fiscal
  */
 export async function getFiscalYearById(id: number): Promise<(FiscalYear & { periods?: FiscalPeriod[] }) | null> {
   const { fiscalYears, fiscalPeriods } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const yearResult = await database
     .select()

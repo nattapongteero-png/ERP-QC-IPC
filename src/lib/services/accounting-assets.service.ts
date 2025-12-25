@@ -10,7 +10,7 @@
  * - Asset transfers between locations
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or, isNull, between, count, sum } from 'drizzle-orm';
 import { getAccountingTables, createJournalEntry } from './accounting.service';
@@ -42,7 +42,7 @@ import type {
  */
 export async function listAssetCategories(): Promise<AssetCategory[]> {
   const { assetCategories } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select()
@@ -57,7 +57,7 @@ export async function listAssetCategories(): Promise<AssetCategory[]> {
  */
 export async function getAssetCategoryById(id: number): Promise<AssetCategory | null> {
   const { assetCategories } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select()
@@ -75,7 +75,7 @@ export async function createAssetCategory(
   input: AssetCategoryCreateInput
 ): Promise<{ id: number }> {
   const { assetCategories } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database.insert(assetCategories).values({
     code: input.code,
@@ -108,7 +108,7 @@ export async function updateAssetCategory(
   input: AssetCategoryUpdateInput
 ): Promise<void> {
   const { assetCategories } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   await database
     .update(assetCategories)
@@ -128,7 +128,7 @@ export async function updateAssetCategory(
  */
 export async function generateAssetCode(acquisitionDate: string): Promise<string> {
   const { fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const date = new Date(acquisitionDate);
   const year = date.getFullYear();
@@ -162,7 +162,7 @@ export async function createFixedAsset(
   createdBy?: number
 ): Promise<{ id: number; assetCode: string }> {
   const { fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get category for defaults
   const category = await getAssetCategoryById(input.categoryId);
@@ -228,7 +228,7 @@ export async function listFixedAssets(
   filters?: FixedAssetQueryInput
 ): Promise<FixedAsset[]> {
   const { fixedAssets, assetCategories } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   let query = database
     .select()
@@ -271,7 +271,7 @@ export async function listFixedAssets(
  */
 export async function getFixedAssetById(id: number): Promise<FixedAsset | null> {
   const { fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select()
@@ -290,7 +290,7 @@ export async function updateFixedAsset(
   input: FixedAssetUpdateInput
 ): Promise<void> {
   const { fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   await database
     .update(fixedAssets)
@@ -344,7 +344,7 @@ export async function runMonthlyDepreciation(
   journalEntryId: number | null;
 }> {
   const { fixedAssets, assetDepreciations, assetCategories } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get all active assets
   const activeAssets = await database
@@ -437,7 +437,7 @@ export async function getAssetDepreciationHistory(
   fixedAssetId: number
 ): Promise<AssetDepreciation[]> {
   const { assetDepreciations } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select()
@@ -473,7 +473,7 @@ export async function disposeAsset(
   journalEntryId: number | null;
 }> {
   const { fixedAssets, assetDisposals } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get the asset
   const asset = await getFixedAssetById(fixedAssetId);
@@ -537,7 +537,7 @@ export async function getAssetDisposal(
   fixedAssetId: number
 ): Promise<AssetDisposal | null> {
   const { assetDisposals } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select()
@@ -570,7 +570,7 @@ export async function transferAsset(
   createdBy?: number
 ): Promise<{ movementId: number }> {
   const { fixedAssets, assetMovements } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get the asset
   const asset = await getFixedAssetById(fixedAssetId);
@@ -616,7 +616,7 @@ export async function getAssetMovementHistory(
   fixedAssetId: number
 ): Promise<AssetMovement[]> {
   const { assetMovements } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select()
@@ -644,7 +644,7 @@ export async function getAssetSummary(): Promise<{
   totalNetBookValue: number;
 }> {
   const { fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select({
@@ -683,7 +683,7 @@ export async function getAssetsByCategory(): Promise<Array<{
   totalNetBookValue: number;
 }>> {
   const { fixedAssets, assetCategories } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select({

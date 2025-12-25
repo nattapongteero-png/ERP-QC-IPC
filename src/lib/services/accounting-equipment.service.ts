@@ -7,7 +7,7 @@
  * for manufacturing operations and GMP compliance.
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or, isNull, lt } from 'drizzle-orm';
 import { getAccountingTables } from './accounting.service';
@@ -40,7 +40,7 @@ export async function createEquipment(
   createdBy?: number
 ): Promise<{ id: number }> {
   const { equipment, fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Verify fixed asset exists
   const asset = await database
@@ -92,7 +92,7 @@ export async function createEquipment(
  */
 export async function getEquipmentById(id: number): Promise<(AccountingEquipment & { asset?: FixedAsset }) | null> {
   const { equipment, fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select({
@@ -119,7 +119,7 @@ export async function listEquipment(
   filters?: EquipmentQueryInput
 ): Promise<Array<AccountingEquipment & { assetCode?: string; assetName?: string }>> {
   const { equipment, fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   let query = database
     .select({
@@ -161,7 +161,7 @@ export async function updateEquipment(
   input: EquipmentUpdateInput
 ): Promise<void> {
   const { equipment } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const updateData: Record<string, unknown> = {
     ...input,
@@ -190,7 +190,7 @@ export async function updateMeterReading(
   readingDate?: string
 ): Promise<{ previousReading: number; newReading: number; hoursAdded: number }> {
   const { equipment } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get current equipment
   const current = await database
@@ -242,7 +242,7 @@ export async function createMaintenanceSchedule(
   createdBy?: number
 ): Promise<{ id: number }> {
   const { maintenanceSchedules, equipment } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Verify equipment exists
   const eq_result = await database
@@ -323,7 +323,7 @@ export async function updateMaintenanceSchedule(
   input: MaintenanceScheduleUpdateInput
 ): Promise<void> {
   const { maintenanceSchedules } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   await database
     .update(maintenanceSchedules)
@@ -341,7 +341,7 @@ export async function getEquipmentSchedules(
   equipmentId: number
 ): Promise<AcctMaintenanceSchedule[]> {
   const { maintenanceSchedules } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select()
@@ -367,7 +367,7 @@ export async function recordMaintenanceEvent(
   createdBy?: number
 ): Promise<{ id: number; totalCost: number }> {
   const { maintenanceRecords, maintenanceSchedules, equipment } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Calculate total cost
   const partsCost = input.partsCost || 0;
@@ -458,7 +458,7 @@ export async function getEquipmentMaintenanceHistory(
   filters?: MaintenanceRecordQueryInput
 ): Promise<AcctMaintenanceRecord[]> {
   const { maintenanceRecords } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const conditions = [eq(maintenanceRecords.equipmentId, equipmentId)];
 
@@ -498,7 +498,7 @@ export async function getUpcomingMaintenance(
   daysUntilDue: number;
 }>> {
   const { maintenanceSchedules, equipment } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const daysAhead = filters?.daysAhead || 30;
   const today = getTodayStr();
@@ -552,7 +552,7 @@ export async function getOverdueMaintenance(
   daysOverdue: number;
 }>> {
   const { maintenanceSchedules, equipment } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const today = getTodayStr();
 
@@ -618,7 +618,7 @@ export async function calculateMTBF(
   endDate?: string
 ): Promise<MTBFAnalysis> {
   const { maintenanceRecords, equipment, fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get equipment info
   const eqResult = await database
@@ -725,7 +725,7 @@ export async function getEquipmentCostSummary(
   endDate?: string
 ): Promise<EquipmentCostSummary> {
   const { maintenanceRecords, equipment, fixedAssets } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get equipment info
   const eqResult = await database
@@ -817,7 +817,7 @@ export async function getEquipmentSummary(): Promise<{
   upcomingMaintenanceCount: number;
 }> {
   const { equipment, maintenanceSchedules } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Count equipment
   const eqResult = await database

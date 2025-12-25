@@ -4,7 +4,7 @@
  * fiscal periods, and Thai tax compliance (VAT 7%, WHT)
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or, isNull, between } from 'drizzle-orm';
 import {
@@ -147,7 +147,7 @@ export function getAccountingTables() {
  */
 export async function generateEntryNumber(entryDate: string | Date): Promise<string> {
   const { journalEntries } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Parse the date to get year and month
   const date = typeof entryDate === 'string' ? new Date(entryDate) : entryDate;
@@ -185,7 +185,7 @@ export async function generateEntryNumber(entryDate: string | Date): Promise<str
  */
 export async function getCurrentFiscalPeriod(): Promise<FiscalPeriod | null> {
   const { fiscalPeriods, fiscalYears } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
   const today = toQueryDate(getTodayStr());
 
   const result = await database
@@ -240,7 +240,7 @@ export async function getCurrentFiscalPeriod(): Promise<FiscalPeriod | null> {
  */
 export async function getPeriodByDate(date: string | Date): Promise<FiscalPeriod | null> {
   const { fiscalPeriods, fiscalYears } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const queryDate = toQueryDate(typeof date === 'string' ? date : date.toISOString().split('T')[0]);
 
@@ -295,7 +295,7 @@ export async function getPeriodByDate(date: string | Date): Promise<FiscalPeriod
  */
 export async function isPeriodOpen(periodId: number): Promise<boolean> {
   const { fiscalPeriods, fiscalYears } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select({
@@ -337,7 +337,7 @@ export interface CreateJournalEntryInput {
  */
 export async function createJournalEntry(input: CreateJournalEntryInput): Promise<JournalEntry> {
   const { journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Validate that lines exist
   if (!input.lines || input.lines.length < 2) {
@@ -432,7 +432,7 @@ export async function createJournalEntry(input: CreateJournalEntryInput): Promis
  */
 export async function getJournalEntryById(id: number): Promise<JournalEntry> {
   const { journalEntries, journalLines, glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get journal entry
   const [entry] = await database
@@ -515,7 +515,7 @@ export async function getJournalEntryById(id: number): Promise<JournalEntry> {
  */
 export async function postJournalEntry(id: number, postedBy: number): Promise<JournalEntry> {
   const { journalEntries } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get current entry
   const [entry] = await database
@@ -581,7 +581,7 @@ export async function reverseJournalEntry(
   reason?: string
 ): Promise<JournalEntry> {
   const { journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get original entry with lines
   const originalEntry = await getJournalEntryById(id);
@@ -726,7 +726,7 @@ export function calculateWHT(
  */
 export async function listGLAccountTypes(): Promise<GLAccountType[]> {
   const { glAccountTypes } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const result = await database
     .select()
@@ -760,7 +760,7 @@ export async function listGLAccounts(filters?: {
   search?: string;
 }): Promise<GLAccount[]> {
   const { glAccounts, glAccountTypes } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const conditions: any[] = [];
 
@@ -883,7 +883,7 @@ export async function createGLAccount(
   createdBy: number
 ): Promise<GLAccount> {
   const { glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Calculate level based on parent
   let level = 1;
@@ -956,7 +956,7 @@ export async function createFiscalYear(
   createdBy: number
 ): Promise<FiscalYear> {
   const { fiscalYears, fiscalPeriods } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // If this is set as current, unset any existing current year
   if (input.isCurrent) {
@@ -1033,7 +1033,7 @@ export async function createFiscalYear(
  */
 export async function getFiscalYearById(id: number): Promise<FiscalYear> {
   const { fiscalYears, fiscalPeriods } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const [year] = await database
     .select()
@@ -1083,7 +1083,7 @@ export async function getFiscalYearById(id: number): Promise<FiscalYear> {
  */
 export async function listFiscalYears(): Promise<FiscalYear[]> {
   const { fiscalYears } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const years = await database
     .select()
@@ -1115,7 +1115,7 @@ export async function listFiscalYears(): Promise<FiscalYear[]> {
  */
 export async function getGLAccountById(id: number): Promise<GLAccount | null> {
   const { glAccounts, glAccountTypes } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const [account] = await database
     .select({
@@ -1185,7 +1185,7 @@ export async function updateGLAccount(
   updatedBy: number
 ): Promise<GLAccount> {
   const { glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Check if account exists
   const existing = await getGLAccountById(id);
@@ -1233,7 +1233,7 @@ export async function deactivateGLAccount(
   deactivatedBy: number
 ): Promise<GLAccount> {
   const { glAccounts, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Check if account exists
   const existing = await getGLAccountById(id);
@@ -1291,7 +1291,7 @@ export async function deleteGLAccount(
   deletedBy: number
 ): Promise<void> {
   const { glAccounts, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Check if account exists
   const existing = await getGLAccountById(id);
@@ -1397,7 +1397,7 @@ export async function getGLAccountBalance(
   asOfDate?: string
 ): Promise<GLAccountBalance> {
   const { journalEntries, journalLines, glAccounts, glAccountTypes } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get account details
   const [account] = await database
@@ -1587,7 +1587,7 @@ export interface CreateAPInvoiceInput {
  */
 export async function generateAPInvoiceNumber(invoiceDate: string | Date): Promise<string> {
   const { apInvoices } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const date = typeof invoiceDate === 'string' ? new Date(invoiceDate) : invoiceDate;
   const year = date.getFullYear();
@@ -1624,7 +1624,7 @@ export async function createAPInvoice(
   createdBy: number
 ): Promise<APInvoice> {
   const { apInvoices, apInvoiceLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Calculate line amounts and totals
   const processedLines = input.lines.map((line, index) => {
@@ -1711,7 +1711,7 @@ export async function createAPInvoice(
  */
 export async function getAPInvoiceById(id: number): Promise<APInvoice> {
   const { apInvoices, apInvoiceLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const [invoice] = await database
     .select()
@@ -1781,7 +1781,7 @@ export async function listAPInvoices(filters?: {
   search?: string;
 }): Promise<APInvoice[]> {
   const { apInvoices } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const conditions: any[] = [];
 
@@ -1861,7 +1861,7 @@ export async function updateAPInvoice(
   updatedBy: number
 ): Promise<APInvoice> {
   const { apInvoices } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const existing = await getAPInvoiceById(id);
   if (existing.status !== 'draft') {
@@ -1904,7 +1904,7 @@ export async function approveAPInvoice(
   approvedBy: number
 ): Promise<APInvoice> {
   const { apInvoices, apInvoiceLines, glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const invoice = await getAPInvoiceById(id);
   if (invoice.status !== 'draft') {
@@ -2039,7 +2039,7 @@ export async function recordAPPayment(
   recordedBy: number
 ): Promise<{ payment: any; invoice: APInvoice }> {
   const { apInvoices, payments, paymentAllocations, glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const invoice = await getAPInvoiceById(apInvoiceId);
 
@@ -2245,7 +2245,7 @@ export async function createVATTransaction(input: {
   branchCode?: string;
 }): Promise<{ id: number }> {
   const { vatTransactions } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Determine tax period from invoice date
   const invoiceDate = new Date(input.taxInvoiceDate);
@@ -2295,7 +2295,7 @@ export async function listJournalEntries(filters?: {
   search?: string;
 }): Promise<JournalEntry[]> {
   const { journalEntries } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const conditions: any[] = [];
 
@@ -2430,7 +2430,7 @@ export interface CreateARInvoiceInput {
  */
 export async function generateTaxInvoiceNumber(invoiceDate: string | Date): Promise<string> {
   const { arInvoices } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const date = typeof invoiceDate === 'string' ? new Date(invoiceDate) : invoiceDate;
   const year = date.getFullYear();
@@ -2463,7 +2463,7 @@ export async function generateTaxInvoiceNumber(invoiceDate: string | Date): Prom
  */
 export async function generateARInvoiceNumber(invoiceDate: string | Date): Promise<string> {
   const { arInvoices } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const date = typeof invoiceDate === 'string' ? new Date(invoiceDate) : invoiceDate;
   const year = date.getFullYear();
@@ -2500,7 +2500,7 @@ export async function createARInvoice(
   createdBy: number
 ): Promise<ARInvoice> {
   const { arInvoices, arInvoiceLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Calculate line amounts and totals
   const processedLines = input.lines.map((line, index) => {
@@ -2587,7 +2587,7 @@ export async function createARInvoice(
  */
 export async function getARInvoiceById(id: number): Promise<ARInvoice> {
   const { arInvoices, arInvoiceLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const [invoice] = await database
     .select()
@@ -2656,7 +2656,7 @@ export async function listARInvoices(filters?: {
   search?: string;
 }): Promise<ARInvoice[]> {
   const { arInvoices } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const conditions: any[] = [];
 
@@ -2737,7 +2737,7 @@ export async function updateARInvoice(
   updatedBy: number
 ): Promise<ARInvoice> {
   const { arInvoices } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const existing = await getARInvoiceById(id);
   if (existing.status !== 'draft') {
@@ -2781,7 +2781,7 @@ export async function confirmARInvoice(
   confirmedBy: number
 ): Promise<ARInvoice> {
   const { arInvoices, glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const invoice = await getARInvoiceById(id);
   if (invoice.status !== 'draft') {
@@ -2915,7 +2915,7 @@ export async function recordARPayment(
   recordedBy: number
 ): Promise<{ payment: any; invoice: ARInvoice }> {
   const { arInvoices, payments, paymentAllocations, glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const invoice = await getARInvoiceById(arInvoiceId);
 
@@ -3160,7 +3160,7 @@ export async function recordMaterialCost(
   recordedBy: number
 ): Promise<{ journalEntry: JournalEntry; totalCost: number }> {
   const { glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const totalCost = input.quantity * input.unitCost;
 
@@ -3240,7 +3240,7 @@ export async function allocateLaborCost(
   recordedBy: number
 ): Promise<{ journalEntry: JournalEntry; totalCost: number }> {
   const { glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const totalCost = input.laborHours * input.hourlyRate;
 
@@ -3321,7 +3321,7 @@ export async function allocateOverhead(
   recordedBy: number
 ): Promise<{ journalEntry: JournalEntry; totalCost: number }> {
   const { glAccounts } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const totalCost = input.basisAmount * input.overheadRate;
 
@@ -3410,7 +3410,7 @@ export async function transferToFinishedGoods(
   recordedBy: number
 ): Promise<{ journalEntry: JournalEntry; totalCost: number; unitCost: number }> {
   const { glAccounts, journalEntries, journalLines } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Calculate total WIP cost for this work order by summing all journal entries
   const costEntries = await database
@@ -3537,7 +3537,7 @@ export async function getBatchCostBreakdown(
   workOrderId: number
 ): Promise<BatchCostBreakdown> {
   const { journalEntries, journalLines, glAccounts, workOrders } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get work order details
   const [workOrder] = await database
@@ -3694,7 +3694,7 @@ export async function generateWHTCertificateNumber(
   paymentDate: string
 ): Promise<string> {
   const { whtTransactions } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const date = new Date(paymentDate);
   const year = date.getFullYear();
@@ -3730,7 +3730,7 @@ export async function createWHTTransaction(
   input: CreateWHTTransactionInput
 ): Promise<{ id: number; certificateNumber: string }> {
   const { whtTransactions } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Generate certificate number
   const certificateNumber = await generateWHTCertificateNumber(
@@ -3807,7 +3807,7 @@ export async function listWHTCertificates(filters?: {
   endDate?: string;
 }): Promise<WHTTransactionWithVendor[]> {
   const { whtTransactions } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get vendors table
   const vendorsTable = isSqlite()
@@ -3895,7 +3895,7 @@ export async function getWHTCertificateById(
   id: number
 ): Promise<WHTTransactionWithVendor | null> {
   const { whtTransactions } = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const vendorsTable = isSqlite()
     ? (await import('../db/schema')).sqliteVendors
@@ -3970,7 +3970,7 @@ export async function createPayrollJournalEntry(
   createdBy: number
 ): Promise<PayrollJournalResult> {
   const tables = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Calculate totals
   let totalGrossPay = 0;
@@ -4305,7 +4305,7 @@ export async function getPayrollSummary(
   journalEntryCount: number;
 }> {
   const tables = getAccountingTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get the fiscal period
   const [period] = await database
