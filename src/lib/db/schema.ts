@@ -531,6 +531,24 @@ export const sqliteSalesOrderLines = sqliteTable('sales_order_lines', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Sales Deliveries (บันทึกการจัดส่ง)
+export const sqliteSalesDeliveries = sqliteTable('sales_deliveries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  soId: integer('so_id').notNull().references(() => sqliteSalesOrders.id),
+  soLineId: integer('so_line_id').notNull().references(() => sqliteSalesOrderLines.id),
+  itemId: integer('item_id').notNull().references(() => sqliteItems.id),
+  lotId: integer('lot_id').notNull().references(() => sqliteInventoryLots.id),
+  lotNumber: text('lot_number').notNull(),
+  quantity: real('quantity').notNull(),
+  unit: text('unit').notNull(),
+  deliveryDate: text('delivery_date').notNull(),
+  deliveryNumber: text('delivery_number').notNull(),
+  status: text('status').notNull().default('shipped'), // shipped, delivered, returned
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Customers (ลูกค้า)
 export const sqliteCustomers = sqliteTable('customers', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -1802,6 +1820,24 @@ export const mysqlSalesOrderLines = mysqlTable('sales_order_lines', {
   unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
   totalPrice: decimal('total_price', { precision: 15, scale: 2 }).notNull(),
   notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Sales Deliveries (บันทึกการจัดส่ง)
+export const mysqlSalesDeliveries = mysqlTable('sales_deliveries', {
+  id: int('id').primaryKey().autoincrement(),
+  soId: int('so_id').notNull().references(() => mysqlSalesOrders.id),
+  soLineId: int('so_line_id').notNull().references(() => mysqlSalesOrderLines.id),
+  itemId: int('item_id').notNull().references(() => mysqlItems.id),
+  lotId: int('lot_id').notNull().references(() => mysqlInventoryLots.id),
+  lotNumber: varchar('lot_number', { length: 50 }).notNull(),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(),
+  unit: varchar('unit', { length: 20 }).notNull(),
+  deliveryDate: datetime('delivery_date').notNull(),
+  deliveryNumber: varchar('delivery_number', { length: 50 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('shipped'),
+  notes: mysqlText('notes'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -5107,6 +5143,8 @@ export type PurchaseOrder = typeof sqlitePurchaseOrders.$inferSelect;
 export type NewPurchaseOrder = typeof sqlitePurchaseOrders.$inferInsert;
 export type SalesOrder = typeof sqliteSalesOrders.$inferSelect;
 export type NewSalesOrder = typeof sqliteSalesOrders.$inferInsert;
+export type SalesDelivery = typeof sqliteSalesDeliveries.$inferSelect;
+export type NewSalesDelivery = typeof sqliteSalesDeliveries.$inferInsert;
 export type Customer = typeof sqliteCustomers.$inferSelect;
 export type NewCustomer = typeof sqliteCustomers.$inferInsert;
 export type ReportCategory = typeof sqliteReportCategories.$inferSelect;
