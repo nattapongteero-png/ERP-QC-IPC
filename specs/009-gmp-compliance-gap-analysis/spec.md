@@ -474,7 +474,7 @@ As a QC Analyst, I need to record disposition decisions (accept/reject/rework/sc
 
 - **FR-071**: System MUST implement electronic signature with password re-authentication for critical operations (disposition, line clearance, label verification)
 - **FR-072**: System MUST capture signature meaning statement (e.g., "I have verified this label is correct")
-- **FR-073**: System MUST generate tamper-evident signature hash for audit trail integrity
+- **FR-073**: System MUST generate tamper-evident signature hash using SHA-256 for audit trail integrity
 - **FR-074**: System MUST display signature details including: full name, title, timestamp, meaning, signature ID
 
 ### Key Entities

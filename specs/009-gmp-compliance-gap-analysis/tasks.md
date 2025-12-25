@@ -4,6 +4,7 @@
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/phase2-api.yaml
 **Feature Branch**: `009-gmp-compliance-gap-analysis`
 **Scope**: FR-047 to FR-074 (External Auditor Requirements)
+**Effort Note**: This file covers 30.5 days of Phase 2 implementation. The 46-day estimate in plan.md includes all FR-047 to FR-074 gaps; this tasks.md reflects refined estimates after detailed task breakdown.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -141,6 +142,7 @@
 - [X] T060 [US12] Add DocumentAttachment component to lot detail page for COA/Spec/MSDS uploads in src/app/inventory/lots/[id]/page.tsx (FR-057)
 - [X] T061 [P] [US12] Update item form to include strength field for finished goods in src/components/ui/item-edit-form.tsx (FR-059)
 - [X] T062 [P] [US12] Add photo upload with scale reference using DocumentAttachment in lot detail page (FR-060) - Photo category included in Documents tab
+- [ ] T062B [P] [US12] Update BOM line form to include percentage in formula, weighed quantity, weighed by, and verified by fields in src/components/production/bom-line-form.tsx (FR-063)
 - [X] T063 [US12] Create retest alert query and display QC hold reason on lot detail page (FR-061) - checkRetestAlerts function added
 - [X] T064 [US12] Update lot list page to show manufacturer and retest status columns in src/app/inventory/lots/page.tsx
 - [X] T065 [US12] Create integration test for inventory lot with manufacturer/retest fields in tests/integration/services/inventory-service-phase4.test.ts (9 tests passing)
@@ -345,11 +347,11 @@ Team C: US14 (Labels) + US15 (Disposition)
 
 ## Summary
 
-- **Total Tasks**: 103
+- **Total Tasks**: 104
 - **Phase 1 (Setup)**: 4 tasks
 - **Phase 2 (Foundational)**: 25 tasks
 - **Phase 3 (US11 Dashboard)**: 23 tasks
-- **Phase 4 (US12 Inventory)**: 14 tasks
+- **Phase 4 (US12 Inventory)**: 15 tasks
 - **Phase 5 (US13 Line Clearance)**: 10 tasks
 - **Phase 6 (US14 Labels)**: 9 tasks
 - **Phase 7 (US15 Disposition)**: 10 tasks
