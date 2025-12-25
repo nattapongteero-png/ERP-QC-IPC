@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, real, blob } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType } from 'drizzle-orm/mysql-core';
+import { sqliteTable, text, integer, real, blob, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Custom type for MySQL LONGBLOB (for storing large binary files)
@@ -4282,7 +4282,7 @@ export const sqliteGLAccounts = sqliteTable('gl_accounts', {
   nameTh: text('name_th').notNull(),
   nameEn: text('name_en').notNull(),
   accountTypeId: integer('account_type_id').notNull().references(() => sqliteGLAccountTypes.id),
-  parentId: integer('parent_id').references(() => sqliteGLAccounts.id),
+  parentId: integer('parent_id').references((): AnySQLiteColumn => sqliteGLAccounts.id),
   level: integer('level').notNull().default(1),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   isPostable: integer('is_postable', { mode: 'boolean' }).notNull().default(true),
@@ -4340,7 +4340,7 @@ export const sqliteJournalEntries = sqliteTable('journal_entries', {
   postedAt: text('posted_at'),
   reversedBy: integer('reversed_by').references(() => sqliteUsers.id),
   reversedAt: text('reversed_at'),
-  reversalEntryId: integer('reversal_entry_id').references(() => sqliteJournalEntries.id),
+  reversalEntryId: integer('reversal_entry_id').references((): AnySQLiteColumn => sqliteJournalEntries.id),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -4697,7 +4697,7 @@ export const mysqlGLAccounts = mysqlTable('gl_accounts', {
   nameTh: varchar('name_th', { length: 200 }).notNull(),
   nameEn: varchar('name_en', { length: 200 }).notNull(),
   accountTypeId: int('account_type_id').notNull().references(() => mysqlGLAccountTypes.id),
-  parentId: int('parent_id').references(() => mysqlGLAccounts.id),
+  parentId: int('parent_id').references((): AnyMySqlColumn => mysqlGLAccounts.id),
   level: int('level').notNull().default(1),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   isPostable: mysqlBoolean('is_postable').notNull().default(true),
@@ -4755,7 +4755,7 @@ export const mysqlJournalEntries = mysqlTable('journal_entries', {
   postedAt: datetime('posted_at'),
   reversedBy: int('reversed_by').references(() => mysqlUsers.id),
   reversedAt: datetime('reversed_at'),
-  reversalEntryId: int('reversal_entry_id').references(() => mysqlJournalEntries.id),
+  reversalEntryId: int('reversal_entry_id').references((): AnyMySqlColumn => mysqlJournalEntries.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
