@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { withVendorAuth, type VendorApiContext } from '@/lib/middleware/vendor-api-auth';
+import { withVendorAuth } from '@/lib/middleware/vendor-api-auth';
 import { vendorApiKeyService } from '@/lib/services/vendor-api-key.service';
 
 // Mock the vendor API key service
