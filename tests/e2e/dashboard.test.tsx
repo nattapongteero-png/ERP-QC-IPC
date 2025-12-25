@@ -548,8 +548,8 @@ describe('Dashboard Page E2E', () => {
 
   describe('Loading State', () => {
     it('should show loading skeletons when loading', async () => {
-      // Mock fetch to delay
-      global.fetch = vi.fn(() => new Promise(() => {}));
+      // Mock fetch to delay - never resolves to keep loading state
+      global.fetch = vi.fn(() => new Promise<Response>(() => {}));
 
       const { container } = render(<DashboardPage />);
 

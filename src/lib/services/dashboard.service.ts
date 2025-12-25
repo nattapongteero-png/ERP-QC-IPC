@@ -72,11 +72,13 @@ function getMonthStart(): Date {
   return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
-function getMonthStartStr(): string {
+/**
+ * Get month start for query conditions
+ * MySQL requires Date object, SQLite requires ISO string
+ */
+function getMonthStartForQuery(): Date | string {
   const monthStart = getMonthStart();
-  return isSqlite()
-    ? monthStart.toISOString()
-    : monthStart.toISOString().slice(0, 19).replace('T', ' ');
+  return isSqlite() ? monthStart.toISOString() : monthStart;
 }
 
 // ============================================
@@ -170,7 +172,7 @@ export async function getPurchaseKpis(): Promise<PurchaseKpis> {
   const vendorsTable = getTableRef('vendors');
   const avlTable = getTableRef('approvedVendorList');
   const itemsTable = getTableRef('items');
-  const monthStartStr = getMonthStartStr();
+  const monthStart = getMonthStartForQuery();
 
   const [
     pendingResult,
@@ -201,7 +203,7 @@ export async function getPurchaseKpis(): Promise<PurchaseKpis> {
       const result = await db
         .select({ total: sql`COALESCE(SUM(${poTable.totalAmount}), 0)` })
         .from(poTable)
-        .where(gte(poTable.createdAt, monthStartStr));
+        .where(gte(poTable.createdAt, monthStart));
       return Number(result[0]?.total || 0);
     }),
     // Active vendors
@@ -250,7 +252,7 @@ export async function getPurchaseKpis(): Promise<PurchaseKpis> {
 
 export async function getSalesKpis(): Promise<SalesKpis> {
   const soTable = getTableRef('salesOrders');
-  const monthStartStr = getMonthStartStr();
+  const monthStart = getMonthStartForQuery();
 
   const [
     pendingResult,
@@ -271,7 +273,7 @@ export async function getSalesKpis(): Promise<SalesKpis> {
       const result = await db
         .select({ total: sql`COALESCE(SUM(${soTable.totalAmount}), 0)` })
         .from(soTable)
-        .where(gte(soTable.createdAt, monthStartStr));
+        .where(gte(soTable.createdAt, monthStart));
       return Number(result[0]?.total || 0);
     }),
     // Orders fulfilled MTD
@@ -282,7 +284,7 @@ export async function getSalesKpis(): Promise<SalesKpis> {
         .where(
           and(
             eq(soTable.status, 'fulfilled'),
-            gte(soTable.updatedAt, monthStartStr)
+            gte(soTable.updatedAt, monthStart)
           )
         );
       return Number(result[0]?.count || 0);
@@ -292,7 +294,7 @@ export async function getSalesKpis(): Promise<SalesKpis> {
       const result = await db
         .select({ count: sql`count(*)` })
         .from(soTable)
-        .where(gte(soTable.createdAt, monthStartStr));
+        .where(gte(soTable.createdAt, monthStart));
       return Number(result[0]?.count || 0);
     }),
   ]);

@@ -15,6 +15,14 @@ const eslintConfig = defineConfig([
     // Exclude reference folder (external example code)
     "reference/**",
   ]),
+  // Custom rule overrides for this project
+  {
+    rules: {
+      // Allow 'any' in database operations - Drizzle ORM dual-schema pattern requires it
+      // See src/lib/db/db-helper.ts for documentation
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;
