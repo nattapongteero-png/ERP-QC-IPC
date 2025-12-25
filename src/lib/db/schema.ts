@@ -1,6 +1,6 @@
 import { sqliteTable, text, integer, real, blob } from 'drizzle-orm/sqlite-core';
 import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType } from 'drizzle-orm/mysql-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // Custom type for MySQL LONGBLOB (for storing large binary files)
 const longblob = customType<{ data: Buffer; driverData: Buffer }>({
@@ -2458,6 +2458,21 @@ export const mysqlVmiSalesOrderLines = mysqlTable('vmi_sales_order_lines', {
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
+// Vendor API Keys (for external vendors accessing our ERP data)
+export const mysqlVendorApiKeys = mysqlTable('vendor_api_keys', {
+  id: int('id').primaryKey().autoincrement(),
+  vendorId: int('vendor_id').notNull().references(() => mysqlVendors.id),
+  keyHash: varchar('key_hash', { length: 64 }).notNull(), // SHA-256 hash
+  keyPrefix: varchar('key_prefix', { length: 16 }).notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  permissions: varchar('permissions', { length: 20 }).notNull().default('read'),
+  expiresAt: datetime('expires_at'),
+  lastUsedAt: datetime('last_used_at'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+});
+
 // ============================================
 // GMP Compliance - Document Control (MySQL)
 // ============================================
@@ -3197,6 +3212,21 @@ export const sqliteVmiSalesOrderLines = sqliteTable('vmi_sales_order_lines', {
   lineTotal: real('line_total').notNull(),
   matchStatus: text('match_status').notNull().default('unmatched'), // unmatched, matched, multiple_matches, manual_mapped
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Vendor API Keys (for external vendors accessing our ERP data)
+export const sqliteVendorApiKeys = sqliteTable('vendor_api_keys', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  vendorId: integer('vendor_id').notNull().references(() => sqliteVendors.id),
+  keyHash: text('key_hash').notNull(), // SHA-256 hash of API key
+  keyPrefix: text('key_prefix').notNull(), // First 16 chars for identification (vmi_erp_XXXXXXXX)
+  name: text('name').notNull(), // Descriptive name for key
+  permissions: text('permissions').notNull().default('read'), // read, write, admin
+  expiresAt: text('expires_at'), // Optional expiration date
+  lastUsedAt: text('last_used_at'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
 });
 
 // ============================================
@@ -4313,6 +4343,8 @@ export type VmiSalesOrder = typeof sqliteVmiSalesOrders.$inferSelect;
 export type NewVmiSalesOrder = typeof sqliteVmiSalesOrders.$inferInsert;
 export type VmiSalesOrderLine = typeof sqliteVmiSalesOrderLines.$inferSelect;
 export type NewVmiSalesOrderLine = typeof sqliteVmiSalesOrderLines.$inferInsert;
+export type VendorApiKey = typeof sqliteVendorApiKeys.$inferSelect;
+export type NewVendorApiKey = typeof sqliteVendorApiKeys.$inferInsert;
 
 // GMP Compliance Gap Analysis Types (009-gmp-compliance-gap-analysis)
 // Document Control (หมวด 5)

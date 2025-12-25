@@ -2,8 +2,8 @@
 
 ## คู่มือการเชื่อมต่อ API สำหรับ Vendor
 
-**เวอร์ชัน:** 1.2
-**อัปเดตล่าสุด:** 20 ธันวาคม 2567
+**เวอร์ชัน:** 1.3
+**อัปเดตล่าสุด:** 25 ธันวาคม 2567
 
 ---
 
@@ -17,6 +17,7 @@
 6. [API สำหรับจัดการคำสั่งซื้อ](#6-api-สำหรับจัดการคำสั่งซื้อ)
 7. [รหัสข้อผิดพลาด](#7-รหัสข้อผิดพลาด)
 8. [ตัวอย่างการใช้งาน](#8-ตัวอย่างการใช้งาน)
+9. [API สำหรับดึงข้อมูลโรงพยาบาล (ERP Integration)](#9-api-สำหรับดึงข้อมูลโรงพยาบาล-erp-integration)
 
 ---
 
@@ -1072,6 +1073,363 @@ curl -X POST https://vmi-portal.bmscloud.in.th/api/external/vendor/prices \
 หากพบปัญหาในการใช้งาน กรุณาติดต่อ:
 - Email: support@vmi-portal.bmscloud.in.th
 - โทร: 02-xxx-xxxx
+
+---
+
+## 9. API สำหรับดึงข้อมูลโรงพยาบาล (ERP Integration)
+
+API สำหรับให้ Vendor ดึงข้อมูลจากโรงพยาบาลเพื่อใช้ในการวางแผนการผลิตและบริหารสต็อก เช่น แผนจัดซื้อ สต็อกคงคลังโรงพยาบาล การเบิกใช้รายวัน และการวิเคราะห์อัตราการใช้งาน
+
+> **หมายเหตุ:** ข้อมูลทั้งหมดจะถูกกรองตาม TPP Code ของสินค้าที่ Vendor จำหน่ายเท่านั้น
+
+---
+
+### GET /api/external/vendor/plans
+
+ดึงข้อมูลแผนจัดซื้อของโรงพยาบาลที่มีสินค้าของ Vendor
+
+#### Query Parameters
+
+| พารามิเตอร์ | ประเภท | จำเป็น | ค่าเริ่มต้น | คำอธิบาย |
+|------------|--------|--------|------------|----------|
+| `hospitalCode` | string | ไม่ | - | กรองตามรหัสโรงพยาบาล |
+| `fiscalYear` | number | ไม่ | - | กรองตามปีงบประมาณ (2500-2600) |
+| `quarter` | number | ไม่ | - | กรองตามไตรมาส (1-4) |
+| `status` | string | ไม่ | - | กรองตามสถานะ: `draft`, `active`, `closed` |
+| `tppCode` | string | ไม่ | - | กรองตาม TPP Code เฉพาะ |
+| `ttmtCode` | string | ไม่ | - | กรองตาม TTMT Code เฉพาะ |
+| `page` | number | ไม่ | 1 | หน้าที่ต้องการ |
+| `pageSize` | number | ไม่ | 50 | จำนวนรายการต่อหน้า (สูงสุด 100) |
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/plans?fiscalYear=2568&quarter=1" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY"
+```
+
+#### Response สำเร็จ
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Purchase plans retrieved successfully",
+  "data": {
+    "plans": [
+      {
+        "id": 1,
+        "hospitalCode": "10001",
+        "hospitalName": "โรงพยาบาลตัวอย่าง",
+        "fiscalYear": 2568,
+        "quarter": 1,
+        "name": "แผนจัดซื้อไตรมาส 1/2568",
+        "budgetCeiling": 1000000,
+        "actualSpend": 250000,
+        "status": "active",
+        "startDate": "2024-10-01",
+        "endDate": "2024-12-31",
+        "items": [
+          {
+            "tppCode": "1234567890123",
+            "ttmtCode": "A01234567",
+            "itemName": "ยาตัวอย่าง 500mg",
+            "plannedQuantity": 1000,
+            "unitPrice": 100,
+            "totalPrice": 100000,
+            "actualQuantity": 250,
+            "actualValue": 25000
+          }
+        ]
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageSize": 50
+  }
+}
+```
+
+#### รายละเอียดฟิลด์ items
+
+| ฟิลด์ | ประเภท | คำอธิบาย |
+|-------|--------|----------|
+| `tppCode` | string | รหัส TPP ของสินค้า |
+| `ttmtCode` | string/null | รหัส TTMT ของสินค้า |
+| `itemName` | string | ชื่อสินค้า |
+| `plannedQuantity` | number | จำนวนที่วางแผนจัดซื้อ |
+| `unitPrice` | number | ราคาต่อหน่วย (บาท) |
+| `totalPrice` | number | มูลค่ารวมที่วางแผน (บาท) |
+| `actualQuantity` | number | จำนวนที่สั่งซื้อจริง |
+| `actualValue` | number | มูลค่าที่สั่งซื้อจริง (บาท) |
+
+---
+
+### GET /api/external/vendor/hospital-stock
+
+ดึงข้อมูลสต็อกคงคลังของโรงพยาบาลสำหรับสินค้าที่ Vendor จำหน่าย
+
+#### Query Parameters
+
+| พารามิเตอร์ | ประเภท | จำเป็น | ค่าเริ่มต้น | คำอธิบาย |
+|------------|--------|--------|------------|----------|
+| `hospitalCode` | string | ไม่ | - | กรองตามรหัสโรงพยาบาล |
+| `tppCode` | string | ไม่ | - | กรองตาม TPP Code เฉพาะ |
+| `ttmtCode` | string | ไม่ | - | กรองตาม TTMT Code เฉพาะ |
+| `warehouseCode` | string | ไม่ | - | กรองตามรหัสคลังสินค้า |
+| `includeExpiring` | boolean | ไม่ | false | แสดงเฉพาะสินค้าใกล้หมดอายุ |
+| `expiringWithinDays` | number | ไม่ | 90 | จำนวนวันก่อนหมดอายุ (ใช้กับ includeExpiring) |
+| `page` | number | ไม่ | 1 | หน้าที่ต้องการ |
+| `pageSize` | number | ไม่ | 50 | จำนวนรายการต่อหน้า (สูงสุด 100) |
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/hospital-stock?hospitalCode=10001" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY"
+```
+
+#### Response สำเร็จ
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Hospital stock retrieved successfully",
+  "data": {
+    "items": [
+      {
+        "hospitalCode": "10001",
+        "hospitalName": "โรงพยาบาลตัวอย่าง",
+        "warehouseCode": "WH001",
+        "warehouseName": "คลังยาหลัก",
+        "tppCode": "1234567890123",
+        "ttmtCode": "A01234567",
+        "itemName": "ยาตัวอย่าง 500mg",
+        "quantity": 500,
+        "lotNumber": "LOT2024001",
+        "expiryDate": "2025-06-30",
+        "lastMovementDate": "2024-12-20",
+        "daysUntilExpiry": 187
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageSize": 50
+  }
+}
+```
+
+#### รายละเอียดฟิลด์ items
+
+| ฟิลด์ | ประเภท | คำอธิบาย |
+|-------|--------|----------|
+| `hospitalCode` | string | รหัสโรงพยาบาล |
+| `hospitalName` | string | ชื่อโรงพยาบาล |
+| `warehouseCode` | string | รหัสคลังสินค้า |
+| `warehouseName` | string | ชื่อคลังสินค้า |
+| `tppCode` | string | รหัส TPP |
+| `ttmtCode` | string/null | รหัส TTMT |
+| `itemName` | string | ชื่อสินค้า |
+| `quantity` | number | จำนวนคงเหลือ |
+| `lotNumber` | string | หมายเลข Lot |
+| `expiryDate` | string | วันหมดอายุ (YYYY-MM-DD) |
+| `lastMovementDate` | string | วันที่มีการเคลื่อนไหวล่าสุด |
+| `daysUntilExpiry` | number | จำนวนวันก่อนหมดอายุ |
+
+---
+
+### GET /api/external/vendor/consumption
+
+ดึงข้อมูลการเบิกใช้สินค้าของโรงพยาบาล
+
+#### Query Parameters
+
+| พารามิเตอร์ | ประเภท | จำเป็น | ค่าเริ่มต้น | คำอธิบาย |
+|------------|--------|--------|------------|----------|
+| `hospitalCode` | string | ไม่ | - | กรองตามรหัสโรงพยาบาล |
+| `tppCode` | string | ไม่ | - | กรองตาม TPP Code เฉพาะ |
+| `ttmtCode` | string | ไม่ | - | กรองตาม TTMT Code เฉพาะ |
+| `warehouseCode` | string | ไม่ | - | กรองตามรหัสคลังสินค้า |
+| `startDate` | string | ไม่ | - | วันที่เริ่มต้น (YYYY-MM-DD) |
+| `endDate` | string | ไม่ | - | วันที่สิ้นสุด (YYYY-MM-DD) |
+| `groupBy` | string | ไม่ | daily | การจัดกลุ่ม: `daily`, `weekly`, `monthly` |
+| `page` | number | ไม่ | 1 | หน้าที่ต้องการ |
+| `pageSize` | number | ไม่ | 50 | จำนวนรายการต่อหน้า (สูงสุด 100) |
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/consumption?startDate=2024-12-01&endDate=2024-12-31&groupBy=daily" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY"
+```
+
+#### Response สำเร็จ
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Consumption data retrieved successfully",
+  "data": {
+    "items": [
+      {
+        "hospitalCode": "10001",
+        "hospitalName": "โรงพยาบาลตัวอย่าง",
+        "warehouseCode": "WH001",
+        "warehouseName": "คลังยาหลัก",
+        "tppCode": "1234567890123",
+        "ttmtCode": "A01234567",
+        "itemName": "ยาตัวอย่าง 500mg",
+        "date": "2024-12-24",
+        "quantity": 50,
+        "value": 5000
+      }
+    ],
+    "summary": [
+      {
+        "tppCode": "1234567890123",
+        "ttmtCode": "A01234567",
+        "itemName": "ยาตัวอย่าง 500mg",
+        "totalQuantity": 1500,
+        "totalValue": 150000,
+        "avgDailyQuantity": 50,
+        "dataPoints": 30
+      }
+    ],
+    "total": 30,
+    "page": 1,
+    "pageSize": 50
+  }
+}
+```
+
+#### รายละเอียดฟิลด์ summary
+
+| ฟิลด์ | ประเภท | คำอธิบาย |
+|-------|--------|----------|
+| `tppCode` | string | รหัส TPP |
+| `ttmtCode` | string/null | รหัส TTMT |
+| `itemName` | string | ชื่อสินค้า |
+| `totalQuantity` | number | ปริมาณรวมที่เบิกใช้ |
+| `totalValue` | number | มูลค่ารวมที่เบิกใช้ (บาท) |
+| `avgDailyQuantity` | number | ปริมาณเฉลี่ยต่อวัน |
+| `dataPoints` | number | จำนวนจุดข้อมูล |
+
+---
+
+### GET /api/external/vendor/analytics/consumption-rate
+
+ดึงข้อมูลวิเคราะห์อัตราการใช้งานพร้อมการพยากรณ์ความต้องการ
+
+#### Query Parameters
+
+| พารามิเตอร์ | ประเภท | จำเป็น | ค่าเริ่มต้น | คำอธิบาย |
+|------------|--------|--------|------------|----------|
+| `hospitalCode` | string | ไม่ | - | กรองตามรหัสโรงพยาบาล |
+| `tppCode` | string | ไม่ | - | กรองตาม TPP Code เฉพาะ |
+| `ttmtCode` | string | ไม่ | - | กรองตาม TTMT Code เฉพาะ |
+| `periodDays` | number | ไม่ | 30 | ช่วงเวลาย้อนหลังที่วิเคราะห์ (7-365 วัน) |
+| `forecastDays` | number | ไม่ | 30 | จำนวนวันที่พยากรณ์ (1-180 วัน) |
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/analytics/consumption-rate?periodDays=30&forecastDays=30" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY"
+```
+
+#### Response สำเร็จ
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Consumption rate analytics retrieved successfully",
+  "data": {
+    "items": [
+      {
+        "tppCode": "1234567890123",
+        "ttmtCode": "A01234567",
+        "itemName": "ยาตัวอย่าง 500mg",
+        "totalConsumption": 1500,
+        "avgDailyConsumption": 50,
+        "avgDailyValue": 5000,
+        "minDailyConsumption": 30,
+        "maxDailyConsumption": 80,
+        "consumptionStdDev": 12.5,
+        "dataPointsCount": 30,
+        "periodStartDate": "2024-11-25",
+        "periodEndDate": "2024-12-25",
+        "currentHospitalStock": 500,
+        "daysOfStockRemaining": 10,
+        "forecastedDemand": 1500,
+        "forecastedDemandLow": 1125,
+        "forecastedDemandHigh": 1875,
+        "vendorStockAvailable": 5000,
+        "canFulfillForecast": true,
+        "trend": "stable",
+        "trendPercentage": 2.5
+      }
+    ],
+    "analysisDate": "2024-12-25",
+    "periodDays": 30,
+    "forecastDays": 30
+  }
+}
+```
+
+#### รายละเอียดฟิลด์ items
+
+| ฟิลด์ | ประเภท | คำอธิบาย |
+|-------|--------|----------|
+| `tppCode` | string | รหัส TPP |
+| `ttmtCode` | string/null | รหัส TTMT |
+| `itemName` | string | ชื่อสินค้า |
+| `totalConsumption` | number | ปริมาณการใช้รวมในช่วงเวลา |
+| `avgDailyConsumption` | number | ปริมาณการใช้เฉลี่ยต่อวัน |
+| `avgDailyValue` | number | มูลค่าการใช้เฉลี่ยต่อวัน (บาท) |
+| `minDailyConsumption` | number | ปริมาณการใช้ต่ำสุดต่อวัน |
+| `maxDailyConsumption` | number | ปริมาณการใช้สูงสุดต่อวัน |
+| `consumptionStdDev` | number | ค่าเบี่ยงเบนมาตรฐาน |
+| `dataPointsCount` | number | จำนวนจุดข้อมูล |
+| `periodStartDate` | string | วันที่เริ่มต้นช่วงวิเคราะห์ |
+| `periodEndDate` | string | วันที่สิ้นสุดช่วงวิเคราะห์ |
+| `currentHospitalStock` | number | สต็อกคงเหลือของโรงพยาบาล |
+| `daysOfStockRemaining` | number | จำนวนวันที่สต็อกจะหมด |
+| `forecastedDemand` | number | ความต้องการที่พยากรณ์ |
+| `forecastedDemandLow` | number | ความต้องการขั้นต่ำ (-1 std dev) |
+| `forecastedDemandHigh` | number | ความต้องการขั้นสูง (+1 std dev) |
+| `vendorStockAvailable` | number | สต็อกที่ Vendor พร้อมจำหน่าย |
+| `canFulfillForecast` | boolean | Vendor มีสต็อกเพียงพอหรือไม่ |
+| `trend` | string | แนวโน้ม: `increasing`, `stable`, `decreasing` |
+| `trendPercentage` | number | เปอร์เซ็นต์การเปลี่ยนแปลง |
+
+---
+
+### กรณีการใช้งาน ERP Integration
+
+#### 1. การวางแผนการผลิตเชิงรุก
+
+ใช้ข้อมูลจาก `/analytics/consumption-rate` เพื่อ:
+- ดู `avgDailyConsumption` เพื่อเข้าใจความต้องการพื้นฐาน
+- ติดตาม `trend` เพื่อคาดการณ์การเปลี่ยนแปลงความต้องการ
+- เปรียบเทียบ `forecastedDemand` กับ `vendorStockAvailable`
+- วางแผนการผลิตจาก `forecastedDemandHigh` เพื่อสร้าง Buffer
+
+#### 2. การช่วยโรงพยาบาลลด ROP
+
+แสดงข้อมูลให้โรงพยาบาลเห็นว่า Vendor มีสต็อกพร้อม:
+- แสดง `vendorStockAvailable` (การรับประกันความพร้อม)
+- พิสูจน์ว่า `canFulfillForecast = true`
+- ให้ Lead Time ที่เชื่อถือได้จากข้อมูล Vendor
+
+#### 3. การประสานสต็อก
+
+ใช้ข้อมูลจาก `/hospital-stock` เพื่อ:
+- ติดตาม `daysOfStockRemaining` ของแต่ละรายการ
+- จัดการ `expiringWithinDays` สำหรับ FEFO
+- ประสานการเติมสต็อกก่อนขาด
 
 ---
 
