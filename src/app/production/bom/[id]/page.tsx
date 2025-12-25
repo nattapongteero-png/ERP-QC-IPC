@@ -13,7 +13,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
-import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown, Settings } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 
 interface BOMLine {
@@ -648,6 +648,14 @@ export default function BOMDetailPage() {
             <p className="text-gray-600 mt-1">{bom.name}</p>
           </div>
           <div className="flex gap-2">
+            <DxButton
+              text="Configuration"
+              icon="preferences"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => router.push(`/production/bom/${bom.id}/configuration`)}
+              hint="Configure rooms, equipment, SOP steps, and QC criteria"
+            />
             <DxButton
               text="Create Work Order"
               type="default"

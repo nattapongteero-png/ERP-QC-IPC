@@ -158,7 +158,7 @@ services:
     networks:
       - herbal-erp-network
 
-reporting-backend-arjaro:
+  reporting-backend-arjaro:
     build:
       context: ./reporting-backend
       dockerfile: Dockerfile

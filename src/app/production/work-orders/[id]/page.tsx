@@ -153,6 +153,7 @@ export default function WorkOrderDetailPage() {
 
   const tabs: DxTabItem[] = [
     { text: 'Overview', icon: 'info' },
+    { text: 'Execution', icon: 'runner' },
     { text: 'Materials', icon: 'box' },
     { text: 'QC Tests', icon: 'check' },
     { text: 'eBMR', icon: 'doc' },
