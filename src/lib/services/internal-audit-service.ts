@@ -7,7 +7,7 @@
 
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 import { getDb, isSqlite } from '../db';
-import { getNow, toDbDate, getTodayStr } from '../db/date-utils';
+import { getNow, toDbDate, getTodayStr, toQueryDate } from '../db/date-utils';
 import {
   sqliteAuditPlans,
   sqliteAudits,
@@ -1042,8 +1042,8 @@ export async function getAuditStatistics(year: number): Promise<AuditStatistics>
   const database = (await getDb()) as any;
   const { audits, findings } = getTables();
 
-  const startOfYear = `${year}-01-01`;
-  const endOfYear = `${year}-12-31`;
+  const startOfYear = toQueryDate(`${year}-01-01`);
+  const endOfYear = toQueryDate(`${year}-12-31`);
 
   // Get audits in the year
   const auditList = await database
@@ -1109,8 +1109,8 @@ export async function getChapterCoverage(year: number): Promise<ChapterCoverage>
   const database = (await getDb()) as any;
   const { audits, findings } = getTables();
 
-  const startOfYear = `${year}-01-01`;
-  const endOfYear = `${year}-12-31`;
+  const startOfYear = toQueryDate(`${year}-01-01`);
+  const endOfYear = toQueryDate(`${year}-12-31`);
 
   // Get audits in the year
   const auditList = await database
