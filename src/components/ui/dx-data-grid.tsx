@@ -91,8 +91,10 @@ export interface DxDataGridColumn {
 export interface DxDataGridProps<T = Record<string, unknown>> {
   /** Data source */
   dataSource: T[];
-  /** Column definitions */
-  columns: DxDataGridColumn[];
+  /** Column definitions (optional if using DxColumn children) */
+  columns?: DxDataGridColumn[];
+  /** Children (for using DxColumn, DxSearchPanel, etc. directly) */
+  children?: React.ReactNode;
   /** Row key field */
   keyExpr?: string;
   /** Show borders */
@@ -194,6 +196,7 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
 export function DxDataGrid<T = Record<string, unknown>>({
   dataSource,
   columns,
+  children,
   keyExpr = 'id',
   showBorders = true,
   showRowLines = true,
@@ -245,6 +248,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
 
   // Filter columns based on device type when responsiveColumns is enabled
   const responsiveFilteredColumns = useMemo(() => {
+    if (!columns) return [];
     if (!responsiveColumns) return columns;
 
     return columns.filter((col) => {
@@ -343,6 +347,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
         </Toolbar>
       )}
 
+      {/* Render columns from columns prop if provided */}
       {responsiveFilteredColumns.map((col, index) => (
         <Column
           key={col.dataField || `col-${index}`}
@@ -366,6 +371,9 @@ export function DxDataGrid<T = Record<string, unknown>>({
           sortIndex={col.sortIndex}
         />
       ))}
+
+      {/* Render children if provided (for DxColumn, DxSearchPanel, etc.) */}
+      {children}
     </DataGrid>
   );
 }
