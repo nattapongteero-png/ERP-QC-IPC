@@ -38,6 +38,10 @@ import {
   Edit,
   Eye,
   Send,
+  XCircle,
+  Info,
+  AlertOctagon,
+  ArrowRight,
 } from 'lucide-react';
 
 // ============================================================================
@@ -98,6 +102,124 @@ interface SODetail {
 }
 
 type TabKey = 'overview' | 'lines' | 'fulfillment' | 'shipping';
+
+// Error types for fulfillment
+interface FulfillmentError {
+  type: 'lot_status' | 'insufficient_qty' | 'invalid_line' | 'invalid_lot' | 'exceeds_pending' | 'unknown';
+  title: string;
+  message: string;
+  details: {
+    lotNumber?: string;
+    lotStatus?: string;
+    requestedQty?: number;
+    availableQty?: number;
+    pendingQty?: number;
+  };
+  suggestions: string[];
+}
+
+// Parse error message to structured error
+function parseErrorMessage(errorMsg: string): FulfillmentError {
+  // Lot not released error
+  const lotStatusMatch = errorMsg.match(/Lot\s+([\w-]+)\s+is not released\s*\(status:\s*(\w+)\)/i);
+  if (lotStatusMatch) {
+    const [, lotNumber, status] = lotStatusMatch;
+    const statusLabels: Record<string, string> = {
+      quarantine: 'กักกัน (Quarantine)',
+      blocked: 'ถูกบล็อก (Blocked)',
+      rejected: 'ถูกปฏิเสธ (Rejected)',
+      under_test: 'กำลังทดสอบ (Under Test)',
+    };
+    return {
+      type: 'lot_status',
+      title: 'ไม่สามารถใช้ Lot นี้ได้',
+      message: `Lot ${lotNumber} ยังไม่ได้รับการปล่อย (Release) เพื่อใช้งาน`,
+      details: { lotNumber, lotStatus: status },
+      suggestions: [
+        `Lot นี้มีสถานะ "${statusLabels[status] || status}"`,
+        'กรุณาติดต่อฝ่ายควบคุมคุณภาพ (QC) เพื่อตรวจสอบและปล่อย Lot',
+        'หรือเลือก Lot อื่นที่มีสถานะ "Released" แล้ว',
+      ],
+    };
+  }
+
+  // Insufficient quantity error
+  const insufficientMatch = errorMsg.match(/Insufficient.*Available:\s*(\d+(?:\.\d+)?),\s*Requested:\s*(\d+(?:\.\d+)?)/i);
+  if (insufficientMatch) {
+    const available = parseFloat(insufficientMatch[1]);
+    const requested = parseFloat(insufficientMatch[2]);
+    return {
+      type: 'insufficient_qty',
+      title: 'สต็อกไม่เพียงพอ',
+      message: `Lot นี้มีจำนวนสินค้าไม่เพียงพอสำหรับการจัดส่ง`,
+      details: { availableQty: available, requestedQty: requested },
+      suggestions: [
+        `มีสินค้าพร้อมใช้: ${available.toLocaleString()} หน่วย`,
+        `ต้องการ: ${requested.toLocaleString()} หน่วย`,
+        'ลดจำนวนที่จะจัดส่งให้ไม่เกินจำนวนที่มี',
+        'หรือเลือก Lot เพิ่มเติมเพื่อให้ครบจำนวน',
+      ],
+    };
+  }
+
+  // Exceeds pending quantity
+  const exceedsPendingMatch = errorMsg.match(/exceeds pending quantity\s*(\d+(?:\.\d+)?)/i) ||
+                              errorMsg.match(/Quantity\s*(\d+(?:\.\d+)?)\s*exceeds pending/i);
+  if (exceedsPendingMatch || errorMsg.toLowerCase().includes('exceeds pending')) {
+    const pendingMatch = errorMsg.match(/(\d+(?:\.\d+)?)/);
+    const pending = pendingMatch ? parseFloat(pendingMatch[1]) : undefined;
+    return {
+      type: 'exceeds_pending',
+      title: 'จำนวนเกินยอดค้างส่ง',
+      message: 'จำนวนที่ต้องการจัดส่งมากกว่ายอดที่ยังค้างอยู่',
+      details: { pendingQty: pending },
+      suggestions: [
+        pending ? `ยอดค้างส่ง: ${pending.toLocaleString()} หน่วย` : 'ตรวจสอบยอดค้างส่ง',
+        'ลดจำนวนที่จะจัดส่งให้ไม่เกินยอดค้าง',
+      ],
+    };
+  }
+
+  // Sales order line not found
+  if (errorMsg.toLowerCase().includes('line') && errorMsg.toLowerCase().includes('not found')) {
+    return {
+      type: 'invalid_line',
+      title: 'ไม่พบรายการสินค้า',
+      message: 'ไม่พบรายการสินค้าที่ระบุในใบสั่งขายนี้',
+      details: {},
+      suggestions: [
+        'รีเฟรชหน้าและลองใหม่อีกครั้ง',
+        'ตรวจสอบว่าใบสั่งขายยังมีรายการนี้อยู่หรือไม่',
+      ],
+    };
+  }
+
+  // Lot not found
+  if (errorMsg.toLowerCase().includes('lot') && errorMsg.toLowerCase().includes('not found')) {
+    return {
+      type: 'invalid_lot',
+      title: 'ไม่พบ Lot',
+      message: 'ไม่พบ Lot ที่ระบุในระบบ',
+      details: {},
+      suggestions: [
+        'Lot อาจถูกลบหรือใช้หมดแล้ว',
+        'รีเฟรชหน้าและเลือก Lot ใหม่',
+      ],
+    };
+  }
+
+  // Unknown error
+  return {
+    type: 'unknown',
+    title: 'เกิดข้อผิดพลาด',
+    message: errorMsg || 'ไม่สามารถดำเนินการได้',
+    details: {},
+    suggestions: [
+      'ลองใหม่อีกครั้ง',
+      'หากปัญหายังคงอยู่ กรุณาติดต่อผู้ดูแลระบบ',
+    ],
+  };
+}
 
 // ============================================================================
 // Status Configuration
@@ -244,6 +366,9 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     quantity: 0,
   });
   const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [fulfillError, setFulfillError] = useState<FulfillmentError | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchSODetail = async () => {
     setIsLoading(true);
@@ -296,6 +421,9 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   const submitFulfill = async () => {
     if (!selectedLine) return;
 
+    setIsSubmitting(true);
+    setFulfillError(null);
+
     try {
       const response = await fetch(`/api/sales/orders/${resolvedParams.id}/fulfill`, {
         method: 'POST',
@@ -315,11 +443,22 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         fetchSODetail(); // Refresh order data
         fetchDeliveries(); // Refresh delivery history
       } else {
-        alert(result.error || 'เกิดข้อผิดพลาดในการจัดส่ง');
+        // Parse and display structured error
+        const parsedError = parseErrorMessage(result.error || 'Unknown error');
+        setFulfillError(parsedError);
+        setShowFulfillModal(false);
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error('Failed to fulfill:', error);
-      alert('เกิดข้อผิดพลาดในการจัดส่ง');
+      const parsedError = parseErrorMessage(
+        error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ'
+      );
+      setFulfillError(parsedError);
+      setShowFulfillModal(false);
+      setShowErrorModal(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1219,14 +1358,159 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               type="normal"
               stylingMode="outlined"
               onClick={() => setShowFulfillModal(false)}
+              disabled={isSubmitting}
             />
             <DxButton
-              text="ยืนยันการจัดส่ง"
-              icon="check"
+              text={isSubmitting ? 'กำลังดำเนินการ...' : 'ยืนยันการจัดส่ง'}
+              icon={isSubmitting ? 'refresh' : 'check'}
               type="success"
               onClick={submitFulfill}
+              disabled={isSubmitting || !fulfillForm.lotId || fulfillForm.quantity <= 0}
             />
           </div>
+        </div>
+      </DxPopup>
+
+      {/* Error Modal */}
+      <DxPopup
+        visible={showErrorModal}
+        onHiding={() => setShowErrorModal(false)}
+        title=""
+        width={520}
+        height="auto"
+        showCloseButton
+        showTitle={false}
+      >
+        <div className="p-6">
+          {fulfillError && (
+            <>
+              {/* Error Header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className={cn(
+                  'h-14 w-14 rounded-xl flex items-center justify-center shrink-0',
+                  fulfillError.type === 'lot_status' ? 'bg-amber-100' :
+                  fulfillError.type === 'insufficient_qty' ? 'bg-red-100' :
+                  'bg-gray-100'
+                )}>
+                  {fulfillError.type === 'lot_status' ? (
+                    <AlertOctagon className="h-7 w-7 text-amber-600" />
+                  ) : fulfillError.type === 'insufficient_qty' ? (
+                    <XCircle className="h-7 w-7 text-red-600" />
+                  ) : (
+                    <AlertTriangle className="h-7 w-7 text-gray-600" />
+                  )}
+                </div>
+                <div>
+                  <h2 className={cn(
+                    'text-xl font-bold',
+                    fulfillError.type === 'lot_status' ? 'text-amber-800' :
+                    fulfillError.type === 'insufficient_qty' ? 'text-red-800' :
+                    'text-gray-800'
+                  )}>
+                    {fulfillError.title}
+                  </h2>
+                  <p className="text-gray-600 mt-1">{fulfillError.message}</p>
+                </div>
+              </div>
+
+              {/* Error Details */}
+              {(fulfillError.details.lotNumber || fulfillError.details.lotStatus ||
+                fulfillError.details.availableQty !== undefined || fulfillError.details.requestedQty !== undefined) && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Info className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">รายละเอียด</span>
+                  </div>
+                  <div className="space-y-2">
+                    {fulfillError.details.lotNumber && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Lot Number:</span>
+                        <span className="font-mono font-semibold text-indigo-600">{fulfillError.details.lotNumber}</span>
+                      </div>
+                    )}
+                    {fulfillError.details.lotStatus && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">สถานะ Lot:</span>
+                        <span className={cn(
+                          'px-2 py-0.5 rounded-full text-xs font-medium',
+                          fulfillError.details.lotStatus === 'quarantine' ? 'bg-amber-100 text-amber-700' :
+                          fulfillError.details.lotStatus === 'blocked' ? 'bg-red-100 text-red-700' :
+                          fulfillError.details.lotStatus === 'rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        )}>
+                          {fulfillError.details.lotStatus}
+                        </span>
+                      </div>
+                    )}
+                    {fulfillError.details.availableQty !== undefined && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">จำนวนพร้อมใช้:</span>
+                        <span className="font-semibold text-green-600">{fulfillError.details.availableQty.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {fulfillError.details.requestedQty !== undefined && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">จำนวนที่ต้องการ:</span>
+                        <span className="font-semibold text-red-600">{fulfillError.details.requestedQty.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {fulfillError.details.pendingQty !== undefined && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">ยอดค้างส่ง:</span>
+                        <span className="font-semibold">{fulfillError.details.pendingQty.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Suggestions */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm font-medium text-gray-700">วิธีแก้ไข</span>
+                </div>
+                <ul className="space-y-2">
+                  {fulfillError.suggestions.map((suggestion, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <ArrowRight className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <span className="text-gray-600">{suggestion}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                {fulfillError.type === 'lot_status' && (
+                  <DxButton
+                    text="ไปหน้าควบคุมคุณภาพ"
+                    icon="link"
+                    type="default"
+                    stylingMode="outlined"
+                    onClick={() => router.push('/quality/lots')}
+                  />
+                )}
+                <DxButton
+                  text="เลือก Lot ใหม่"
+                  icon="refresh"
+                  type="default"
+                  onClick={() => {
+                    setShowErrorModal(false);
+                    if (selectedLine) {
+                      handleFulfill(selectedLine);
+                    }
+                  }}
+                />
+                <DxButton
+                  text="ปิด"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => setShowErrorModal(false)}
+                />
+              </div>
+            </>
+          )}
         </div>
       </DxPopup>
     </MainLayout>
