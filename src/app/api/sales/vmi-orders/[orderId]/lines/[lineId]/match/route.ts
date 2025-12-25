@@ -50,10 +50,10 @@ export async function POST(
     }
 
     // Check if order is in an editable state
-    if (order.status !== 'pending') {
+    if (order.localStatus !== 'pending') {
       return NextResponse.json({
         success: false,
-        error: `Cannot modify order with status '${order.status}'. Only pending orders can be edited.`,
+        error: `Cannot modify order with status '${order.localStatus}'. Only pending orders can be edited.`,
       }, { status: 400 });
     }
 
