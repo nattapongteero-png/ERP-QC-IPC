@@ -40,6 +40,12 @@ export const ACCT_TEST_IDS = {
   COGS: 501,
   SALARY_EXPENSE: 601,
 
+  // Manufacturing Cost Accounts (US4)
+  INVENTORY_WIP: 108,          // 1132 Work-In-Progress
+  MANUFACTURING_LABOR: 602,    // 5210 Manufacturing Labor
+  MANUFACTURING_OVERHEAD: 603, // 5220 Manufacturing Overhead
+  COST_OF_GOODS_MFG: 502,      // 5120 Cost of Goods Manufactured
+
   // Fiscal Year/Period
   FISCAL_YEAR_2025: 1,
   FISCAL_PERIOD_JAN: 1,
@@ -109,6 +115,7 @@ export function seedGLAccounts(sqlite: Database.Database): void {
       (${ACCT_TEST_IDS.AR_DOMESTIC}, '1121', 'ลูกหนี้การค้า', 'Accounts Receivable', ${ACCT_TEST_IDS.ASSET_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
       (${ACCT_TEST_IDS.INVENTORY_RAW}, '1131', 'วัตถุดิบ', 'Raw Materials', ${ACCT_TEST_IDS.ASSET_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
       (${ACCT_TEST_IDS.INVENTORY_FG}, '1133', 'สินค้าสำเร็จรูป', 'Finished Goods', ${ACCT_TEST_IDS.ASSET_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${ACCT_TEST_IDS.INVENTORY_WIP}, '1132', 'งานระหว่างทำ', 'Work-In-Progress', ${ACCT_TEST_IDS.ASSET_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
       (${ACCT_TEST_IDS.FIXED_ASSETS}, '1213', 'เครื่องจักรและอุปกรณ์', 'Machinery', ${ACCT_TEST_IDS.ASSET_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
       (${ACCT_TEST_IDS.ACCUM_DEPR}, '1223', 'ค่าเสื่อมราคาสะสม', 'Accum. Depreciation', ${ACCT_TEST_IDS.ASSET_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
       (${ACCT_TEST_IDS.INPUT_VAT}, '1142', 'ภาษีซื้อ', 'Input VAT', ${ACCT_TEST_IDS.ASSET_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -128,7 +135,10 @@ export function seedGLAccounts(sqlite: Database.Database): void {
 
       -- Expenses
       (${ACCT_TEST_IDS.COGS}, '5110', 'ต้นทุนขาย', 'Cost of Goods Sold', ${ACCT_TEST_IDS.EXPENSE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-      (${ACCT_TEST_IDS.SALARY_EXPENSE}, '6210', 'เงินเดือน', 'Salaries', ${ACCT_TEST_IDS.EXPENSE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      (${ACCT_TEST_IDS.COST_OF_GOODS_MFG}, '5120', 'ต้นทุนผลิต', 'Cost of Goods Manufactured', ${ACCT_TEST_IDS.EXPENSE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${ACCT_TEST_IDS.SALARY_EXPENSE}, '6210', 'เงินเดือน', 'Salaries', ${ACCT_TEST_IDS.EXPENSE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${ACCT_TEST_IDS.MANUFACTURING_LABOR}, '5210', 'ค่าแรงงานผลิต', 'Manufacturing Labor', ${ACCT_TEST_IDS.EXPENSE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${ACCT_TEST_IDS.MANUFACTURING_OVERHEAD}, '5220', 'ค่าใช้จ่ายการผลิต', 'Manufacturing Overhead', ${ACCT_TEST_IDS.EXPENSE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
 }
 
@@ -373,4 +383,96 @@ export function verifyTrialBalance(sqlite: Database.Database): { totalDebit: num
     totalCredit: result?.total_credit || 0,
     isBalanced: Math.abs((result?.total_debit || 0) - (result?.total_credit || 0)) < 0.01,
   };
+}
+
+// ============================================
+// Manufacturing Cost Accounting Test Data (US4)
+// ============================================
+
+export const MANUFACTURING_TEST_IDS = {
+  // Items
+  RAW_MATERIAL_1: 1,
+  RAW_MATERIAL_2: 2,
+  WIP_ITEM: 3,
+  FINISHED_GOODS: 4,
+
+  // Work Orders
+  WORK_ORDER_1: 1,
+  WORK_ORDER_2: 2,
+
+  // Lots
+  LOT_1: 1,
+  LOT_2: 2,
+};
+
+/**
+ * Seed items for cost allocation tests
+ */
+export function seedItems(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO items (id, code, name_th, name_en, type, category, primary_unit, is_lot_controlled, is_fefo, is_active, on_hand, on_hand_cost, created_at, updated_at)
+    VALUES
+      (${MANUFACTURING_TEST_IDS.RAW_MATERIAL_1}, 'RM-001', 'วัตถุดิบ 1', 'Raw Material 1', 'raw_material', 'herbs', 'kg', 1, 1, 1, 100, 5000, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${MANUFACTURING_TEST_IDS.RAW_MATERIAL_2}, 'RM-002', 'วัตถุดิบ 2', 'Raw Material 2', 'raw_material', 'herbs', 'kg', 1, 1, 1, 50, 2500, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${MANUFACTURING_TEST_IDS.WIP_ITEM}, 'WIP-001', 'งานระหว่างทำ 1', 'Work In Progress 1', 'wip', 'production', 'unit', 1, 1, 1, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${MANUFACTURING_TEST_IDS.FINISHED_GOODS}, 'FG-001', 'สินค้าสำเร็จรูป 1', 'Finished Goods 1', 'finished_goods', 'products', 'box', 1, 1, 1, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+}
+
+/**
+ * Seed work orders for cost allocation tests
+ */
+export function seedWorkOrders(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO work_orders (id, wo_number, bom_id, product_id, batch_number, planned_quantity, actual_quantity, unit, status, priority, planned_start_date, planned_end_date, created_by, created_at, updated_at)
+    VALUES
+      (${MANUFACTURING_TEST_IDS.WORK_ORDER_1}, 'WO-202501-0001', 1, ${MANUFACTURING_TEST_IDS.FINISHED_GOODS}, 'BATCH-001', 100, 0, 'box', 'in_progress', 5, '2025-01-15', '2025-01-20', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${MANUFACTURING_TEST_IDS.WORK_ORDER_2}, 'WO-202501-0002', 1, ${MANUFACTURING_TEST_IDS.FINISHED_GOODS}, 'BATCH-002', 50, 50, 'box', 'completed', 5, '2025-01-10', '2025-01-12', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+}
+
+/**
+ * Seed inventory lots for cost allocation tests
+ */
+export function seedInventoryLots(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO inventory_lots (id, item_id, lot_number, warehouse_id, quantity, reserved_quantity, unit, status, expiry_date, received_date, created_at, updated_at)
+    VALUES
+      (${MANUFACTURING_TEST_IDS.LOT_1}, ${MANUFACTURING_TEST_IDS.RAW_MATERIAL_1}, 'LOT-RM001-001', 1, 100, 0, 'kg', 'released', '2026-01-15', '2025-01-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${MANUFACTURING_TEST_IDS.LOT_2}, ${MANUFACTURING_TEST_IDS.RAW_MATERIAL_2}, 'LOT-RM002-001', 1, 50, 0, 'kg', 'released', '2026-02-15', '2025-01-05', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+}
+
+/**
+ * Seed BOMs for work order references
+ */
+export function seedBOMs(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO bom (id, code, name, product_id, version, status, batch_size, batch_unit, effective_date, created_at, updated_at)
+    VALUES
+      (1, 'BOM-001', 'Test BOM', ${MANUFACTURING_TEST_IDS.FINISHED_GOODS}, '1.0', 'approved', 100, 'box', '2025-01-01', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+}
+
+/**
+ * Seed warehouse for lot references
+ */
+export function seedWarehouses(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO warehouses (id, code, name, type, is_active, created_at, updated_at)
+    VALUES
+      (1, 'WH-001', 'Main Warehouse', 'main', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+}
+
+/**
+ * Seed complete manufacturing cost test data
+ */
+export function seedManufacturingCostTestData(sqlite: Database.Database): void {
+  seedAccountingBasics(sqlite);
+  seedWarehouses(sqlite);
+  seedItems(sqlite);
+  seedBOMs(sqlite);
+  seedWorkOrders(sqlite);
+  seedInventoryLots(sqlite);
 }

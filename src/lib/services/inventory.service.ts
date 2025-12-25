@@ -17,8 +17,16 @@ import {
   mysqlWarehouses,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
+import { recordMaterialCost } from './accounting.service';
 
 // Types
+
+// Options for material issue with cost tracking (US4: Manufacturing Cost Accounting)
+export interface MaterialIssueCostOptions {
+  workOrderId: number;
+  batchNumber: string;
+  unitCost?: number; // If not provided, will calculate from item's average cost
+}
 export interface LotAllocation {
   lotId: number;
   lotNumber: string;
@@ -257,9 +265,10 @@ export async function issueMaterial(
   referenceId: number,
   referenceNumber: string,
   userId: number,
-  reason?: string
+  reason?: string,
+  costOptions?: MaterialIssueCostOptions
 ): Promise<number> {
-  const { lots, transactions } = getTables();
+  const { lots, transactions, items } = getTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
 
@@ -322,6 +331,41 @@ export async function issueMaterial(
       referenceNumber,
     },
   });
+
+  // US4: Manufacturing Cost Accounting - Record material cost for work orders
+  if (costOptions) {
+    // Determine unit cost: use provided value or calculate from item's average cost
+    let unitCost = costOptions.unitCost;
+
+    if (unitCost === undefined) {
+      // Get item's average cost from onHandCost / onHand
+      const [item] = await database
+        .select({
+          onHand: items.onHand,
+          onHandCost: items.onHandCost,
+        })
+        .from(items)
+        .where(eq(items.id, lot.itemId));
+
+      if (item && Number(item.onHand) > 0) {
+        unitCost = Number(item.onHandCost) / Number(item.onHand);
+      } else {
+        unitCost = 0; // No cost available
+      }
+    }
+
+    // Record material cost in accounting system
+    await recordMaterialCost({
+      workOrderId: costOptions.workOrderId,
+      batchNumber: costOptions.batchNumber,
+      materialItemId: lot.itemId,
+      lotId: lotId,
+      quantity: quantity,
+      unitCost: unitCost,
+      issueDate: new Date().toISOString().split('T')[0],
+      description: `Material issue: ${lot.lotNumber} for WO ${referenceNumber}`,
+    }, userId);
+  }
 
   return txn.id;
 }

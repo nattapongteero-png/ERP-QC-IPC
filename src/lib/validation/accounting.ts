@@ -753,6 +753,92 @@ export const maintenanceDueQuerySchema = z.object({
 });
 
 // ============================================
+// Cost Allocation Schemas (US4: Manufacturing Cost Accounting)
+// ============================================
+
+export const overheadTypeSchema = z.enum(['fixed', 'variable', 'mixed']);
+
+export const allocationBasisSchema = z.enum([
+  'labor_hours',
+  'machine_hours',
+  'units',
+  'direct_labor_cost',
+]);
+
+export const materialCostInputSchema = z.object({
+  workOrderId: positiveIntSchema.describe('กรุณาเลือกใบสั่งผลิต'),
+  batchNumber: z
+    .string()
+    .min(1, 'เลขที่รุ่นการผลิตจำเป็น')
+    .max(50, 'เลขที่รุ่นการผลิตต้องไม่เกิน 50 ตัวอักษร'),
+  materialItemId: positiveIntSchema.describe('กรุณาเลือกวัตถุดิบ'),
+  lotId: positiveIntSchema.optional().nullable(),
+  quantity: z.number().positive('จำนวนต้องมากกว่า 0'),
+  unitCost: currencyAmountSchema,
+  issueDate: dateStringSchema,
+  description: z.string().max(500).optional().nullable(),
+});
+
+export const laborCostInputSchema = z.object({
+  workOrderId: positiveIntSchema.describe('กรุณาเลือกใบสั่งผลิต'),
+  batchNumber: z
+    .string()
+    .min(1, 'เลขที่รุ่นการผลิตจำเป็น')
+    .max(50, 'เลขที่รุ่นการผลิตต้องไม่เกิน 50 ตัวอักษร'),
+  laborHours: z.number().positive('ชั่วโมงแรงงานต้องมากกว่า 0'),
+  hourlyRate: z.number().positive('อัตราค่าแรงต้องมากกว่า 0'),
+  allocationDate: dateStringSchema,
+  description: z.string().max(500).optional().nullable(),
+  costCenterId: positiveIntSchema.optional().nullable(),
+});
+
+export const overheadAllocationInputSchema = z.object({
+  workOrderId: positiveIntSchema.describe('กรุณาเลือกใบสั่งผลิต'),
+  batchNumber: z
+    .string()
+    .min(1, 'เลขที่รุ่นการผลิตจำเป็น')
+    .max(50, 'เลขที่รุ่นการผลิตต้องไม่เกิน 50 ตัวอักษร'),
+  overheadType: overheadTypeSchema,
+  allocationBasis: allocationBasisSchema,
+  basisAmount: z.number().positive('จำนวนฐานการปันส่วนต้องมากกว่า 0'),
+  overheadRate: z.number().positive('อัตราค่าใช้จ่ายโสหุ้ยต้องมากกว่า 0'),
+  allocationDate: dateStringSchema,
+  description: z.string().max(500).optional().nullable(),
+});
+
+export const transferToFinishedGoodsInputSchema = z.object({
+  workOrderId: positiveIntSchema.describe('กรุณาเลือกใบสั่งผลิต'),
+  batchNumber: z
+    .string()
+    .min(1, 'เลขที่รุ่นการผลิตจำเป็น')
+    .max(50, 'เลขที่รุ่นการผลิตต้องไม่เกิน 50 ตัวอักษร'),
+  finishedGoodsItemId: positiveIntSchema.describe('กรุณาเลือกสินค้าสำเร็จรูป'),
+  producedQuantity: z.number().positive('จำนวนผลิตต้องมากกว่า 0'),
+  transferDate: dateStringSchema,
+  description: z.string().max(500).optional().nullable(),
+  lotId: positiveIntSchema.optional().nullable(),
+});
+
+export const costAllocationInputSchema = z.discriminatedUnion('allocationType', [
+  z.object({
+    allocationType: z.literal('material'),
+    data: materialCostInputSchema,
+  }),
+  z.object({
+    allocationType: z.literal('labor'),
+    data: laborCostInputSchema,
+  }),
+  z.object({
+    allocationType: z.literal('overhead'),
+    data: overheadAllocationInputSchema,
+  }),
+  z.object({
+    allocationType: z.literal('transfer'),
+    data: transferToFinishedGoodsInputSchema,
+  }),
+]);
+
+// ============================================
 // Type Exports (inferred from schemas)
 // ============================================
 
@@ -805,3 +891,9 @@ export type AgingReportQueryInput = z.infer<typeof agingReportQuerySchema>;
 export type AssetRegisterQueryInput = z.infer<typeof assetRegisterQuerySchema>;
 export type DepreciationScheduleQueryInput = z.infer<typeof depreciationScheduleQuerySchema>;
 export type MaintenanceDueQueryInput = z.infer<typeof maintenanceDueQuerySchema>;
+// Cost Allocation Types (US4)
+export type MaterialCostInput = z.infer<typeof materialCostInputSchema>;
+export type LaborCostInput = z.infer<typeof laborCostInputSchema>;
+export type OverheadAllocationInput = z.infer<typeof overheadAllocationInputSchema>;
+export type TransferToFinishedGoodsInput = z.infer<typeof transferToFinishedGoodsInputSchema>;
+export type CostAllocationInput = z.infer<typeof costAllocationInputSchema>;

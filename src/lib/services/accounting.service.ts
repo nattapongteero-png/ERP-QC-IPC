@@ -31,6 +31,7 @@ import {
   sqliteAccountingEquipment,
   sqliteAcctMaintenanceSchedules,
   sqliteAcctMaintenanceRecords,
+  sqliteWorkOrders,
   // MySQL tables
   mysqlGLAccountTypes,
   mysqlGLAccounts,
@@ -54,6 +55,7 @@ import {
   mysqlAccountingEquipment,
   mysqlAcctMaintenanceSchedules,
   mysqlAcctMaintenanceRecords,
+  mysqlWorkOrders,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import type {
@@ -104,6 +106,7 @@ export function getAccountingTables() {
       equipment: sqliteAccountingEquipment,
       maintenanceSchedules: sqliteAcctMaintenanceSchedules,
       maintenanceRecords: sqliteAcctMaintenanceRecords,
+      workOrders: sqliteWorkOrders,
     };
   }
   return {
@@ -129,6 +132,7 @@ export function getAccountingTables() {
     equipment: mysqlAccountingEquipment,
     maintenanceSchedules: mysqlAcctMaintenanceSchedules,
     maintenanceRecords: mysqlAcctMaintenanceRecords,
+    workOrders: mysqlWorkOrders,
   };
 }
 
@@ -3060,5 +3064,603 @@ export async function recordARPayment(
       journalEntryId: receiptJE.id,
     },
     invoice: updatedInvoice,
+  };
+}
+
+// ============================================
+// User Story 4: Manufacturing Cost Accounting
+// ============================================
+
+/**
+ * Material cost allocation input
+ */
+export interface MaterialCostInput {
+  workOrderId: number;
+  batchNumber: string;
+  materialItemId: number;
+  lotId?: number;
+  quantity: number;
+  unitCost: number;
+  issueDate: string;
+  description?: string;
+}
+
+/**
+ * Labor cost allocation input
+ */
+export interface LaborCostInput {
+  workOrderId: number;
+  batchNumber: string;
+  laborHours: number;
+  hourlyRate: number;
+  allocationDate: string;
+  description?: string;
+  costCenterId?: number;
+}
+
+/**
+ * Overhead allocation input
+ */
+export interface OverheadAllocationInput {
+  workOrderId: number;
+  batchNumber: string;
+  overheadType: 'fixed' | 'variable' | 'mixed';
+  allocationBasis: 'labor_hours' | 'machine_hours' | 'units' | 'direct_labor_cost';
+  basisAmount: number;
+  overheadRate: number;
+  allocationDate: string;
+  description?: string;
+}
+
+/**
+ * Transfer to finished goods input
+ */
+export interface TransferToFGInput {
+  workOrderId: number;
+  batchNumber: string;
+  finishedGoodsItemId: number;
+  quantity: number;
+  lotNumber: string;
+  transferDate: string;
+  description?: string;
+}
+
+/**
+ * Batch cost breakdown result
+ */
+export interface BatchCostBreakdown {
+  workOrderId: number;
+  batchNumber: string;
+  materialCost: number;
+  laborCost: number;
+  overheadCost: number;
+  totalCost: number;
+  unitCost: number;
+  producedQuantity: number;
+  status: 'in_progress' | 'completed';
+  journalEntries: {
+    id: number;
+    entryNumber: string;
+    entryDate: string;
+    description: string;
+    amount: number;
+    type: 'material' | 'labor' | 'overhead' | 'transfer';
+  }[];
+}
+
+/**
+ * Record material cost - Debit WIP, Credit Raw Materials
+ * When raw materials are issued to production
+ * @param input - Material cost details
+ * @param recordedBy - User ID who recorded
+ * @returns Journal entry created
+ */
+export async function recordMaterialCost(
+  input: MaterialCostInput,
+  recordedBy: number
+): Promise<{ journalEntry: JournalEntry; totalCost: number }> {
+  const { glAccounts } = getAccountingTables();
+  const database = db();
+
+  const totalCost = input.quantity * input.unitCost;
+
+  // Find WIP and Raw Materials accounts
+  const [wipAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1132')) // WIP account
+    .limit(1);
+
+  const [rawMaterialAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1131')) // Raw Materials
+    .limit(1);
+
+  if (!wipAccount || !rawMaterialAccount) {
+    throw new Error('WIP or Raw Materials account not found');
+  }
+
+  const journalLines: JournalLineCreate[] = [
+    // Debit WIP (increase WIP inventory)
+    {
+      glAccountId: wipAccount.id,
+      debit: totalCost,
+      credit: 0,
+      description: `Material issue: ${input.description || `Item ${input.materialItemId}`}`,
+    },
+    // Credit Raw Materials (reduce raw material inventory)
+    {
+      glAccountId: rawMaterialAccount.id,
+      debit: 0,
+      credit: totalCost,
+      description: `Material issue: ${input.description || `Item ${input.materialItemId}`}`,
+    },
+  ];
+
+  const journalEntry = await createJournalEntry({
+    entryDate: input.issueDate,
+    description: `Material cost for WO ${input.workOrderId} Batch ${input.batchNumber}`,
+    sourceType: 'COST_ALLOCATION',
+    sourceId: input.workOrderId,
+    lines: journalLines,
+    createdBy: recordedBy,
+  });
+
+  await postJournalEntry(journalEntry.id, recordedBy);
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'cost_allocation',
+    recordId: journalEntry.id,
+    userId: recordedBy,
+    newValue: {
+      type: 'material',
+      workOrderId: input.workOrderId,
+      batchNumber: input.batchNumber,
+      totalCost,
+    },
+  });
+
+  return {
+    journalEntry,
+    totalCost,
+  };
+}
+
+/**
+ * Allocate labor cost - Debit WIP, Credit Manufacturing Labor (or Wages Payable)
+ * When labor hours are recorded for a production batch
+ * @param input - Labor cost details
+ * @param recordedBy - User ID who recorded
+ * @returns Journal entry created
+ */
+export async function allocateLaborCost(
+  input: LaborCostInput,
+  recordedBy: number
+): Promise<{ journalEntry: JournalEntry; totalCost: number }> {
+  const { glAccounts } = getAccountingTables();
+  const database = db();
+
+  const totalCost = input.laborHours * input.hourlyRate;
+
+  // Find WIP and Manufacturing Labor accounts
+  const [wipAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1132')) // WIP account
+    .limit(1);
+
+  const [laborAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '5210')) // Manufacturing Labor
+    .limit(1);
+
+  if (!wipAccount || !laborAccount) {
+    throw new Error('WIP or Manufacturing Labor account not found');
+  }
+
+  const journalLines: JournalLineCreate[] = [
+    // Debit WIP (increase WIP for labor absorbed)
+    {
+      glAccountId: wipAccount.id,
+      debit: totalCost,
+      credit: 0,
+      description: `Labor: ${input.laborHours} hrs @ ${input.hourlyRate}/hr`,
+    },
+    // Credit Manufacturing Labor (labor applied)
+    {
+      glAccountId: laborAccount.id,
+      debit: 0,
+      credit: totalCost,
+      description: `Labor: ${input.laborHours} hrs @ ${input.hourlyRate}/hr`,
+    },
+  ];
+
+  const journalEntry = await createJournalEntry({
+    entryDate: input.allocationDate,
+    description: `Labor cost for WO ${input.workOrderId} Batch ${input.batchNumber}`,
+    sourceType: 'COST_ALLOCATION',
+    sourceId: input.workOrderId,
+    lines: journalLines,
+    createdBy: recordedBy,
+  });
+
+  await postJournalEntry(journalEntry.id, recordedBy);
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'cost_allocation',
+    recordId: journalEntry.id,
+    userId: recordedBy,
+    newValue: {
+      type: 'labor',
+      workOrderId: input.workOrderId,
+      batchNumber: input.batchNumber,
+      laborHours: input.laborHours,
+      totalCost,
+    },
+  });
+
+  return {
+    journalEntry,
+    totalCost,
+  };
+}
+
+/**
+ * Allocate overhead cost - Debit WIP, Credit Manufacturing Overhead
+ * Applies overhead based on configured allocation basis
+ * @param input - Overhead allocation details
+ * @param recordedBy - User ID who recorded
+ * @returns Journal entry created
+ */
+export async function allocateOverhead(
+  input: OverheadAllocationInput,
+  recordedBy: number
+): Promise<{ journalEntry: JournalEntry; totalCost: number }> {
+  const { glAccounts } = getAccountingTables();
+  const database = db();
+
+  const totalCost = input.basisAmount * input.overheadRate;
+
+  // Find WIP and Manufacturing Overhead accounts
+  const [wipAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1132')) // WIP account
+    .limit(1);
+
+  const [overheadAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '5220')) // Manufacturing Overhead
+    .limit(1);
+
+  if (!wipAccount || !overheadAccount) {
+    throw new Error('WIP or Manufacturing Overhead account not found');
+  }
+
+  const basisLabel = {
+    labor_hours: 'labor hours',
+    machine_hours: 'machine hours',
+    units: 'units',
+    direct_labor_cost: 'direct labor cost',
+  }[input.allocationBasis];
+
+  const journalLines: JournalLineCreate[] = [
+    // Debit WIP (increase WIP for overhead absorbed)
+    {
+      glAccountId: wipAccount.id,
+      debit: totalCost,
+      credit: 0,
+      description: `Overhead: ${input.basisAmount} ${basisLabel} @ ${input.overheadRate}`,
+    },
+    // Credit Manufacturing Overhead (overhead applied)
+    {
+      glAccountId: overheadAccount.id,
+      debit: 0,
+      credit: totalCost,
+      description: `Overhead: ${input.basisAmount} ${basisLabel} @ ${input.overheadRate}`,
+    },
+  ];
+
+  const journalEntry = await createJournalEntry({
+    entryDate: input.allocationDate,
+    description: `Overhead (${input.overheadType}) for WO ${input.workOrderId} Batch ${input.batchNumber}`,
+    sourceType: 'COST_ALLOCATION',
+    sourceId: input.workOrderId,
+    lines: journalLines,
+    createdBy: recordedBy,
+  });
+
+  await postJournalEntry(journalEntry.id, recordedBy);
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'cost_allocation',
+    recordId: journalEntry.id,
+    userId: recordedBy,
+    newValue: {
+      type: 'overhead',
+      workOrderId: input.workOrderId,
+      batchNumber: input.batchNumber,
+      overheadType: input.overheadType,
+      allocationBasis: input.allocationBasis,
+      totalCost,
+    },
+  });
+
+  return {
+    journalEntry,
+    totalCost,
+  };
+}
+
+/**
+ * Transfer to Finished Goods - Debit FG Inventory, Credit WIP
+ * When production is completed and goods are transferred
+ * @param input - Transfer details
+ * @param recordedBy - User ID who recorded
+ * @returns Journal entry created with total cost transferred
+ */
+export async function transferToFinishedGoods(
+  input: TransferToFGInput,
+  recordedBy: number
+): Promise<{ journalEntry: JournalEntry; totalCost: number; unitCost: number }> {
+  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
+  const database = db();
+
+  // Calculate total WIP cost for this work order by summing all journal entries
+  const costEntries = await database
+    .select({
+      totalDebit: journalEntries.totalDebit,
+    })
+    .from(journalEntries)
+    .where(
+      and(
+        eq(journalEntries.sourceType, 'COST_ALLOCATION'),
+        eq(journalEntries.sourceId, input.workOrderId),
+        eq(journalEntries.status, 'posted')
+      )
+    );
+
+  const totalCost = costEntries.reduce((sum, entry) => sum + (entry.totalDebit || 0), 0);
+
+  // Also need to calculate from WIP debit lines for accuracy
+  const wipAccountResult = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1132'))
+    .limit(1);
+
+  let wipTotalCost = totalCost;
+  if (wipAccountResult.length > 0) {
+    const wipLines = await database
+      .select({
+        debit: journalLines.debit,
+      })
+      .from(journalLines)
+      .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+      .where(
+        and(
+          eq(journalLines.glAccountId, wipAccountResult[0].id),
+          eq(journalEntries.sourceType, 'COST_ALLOCATION'),
+          eq(journalEntries.sourceId, input.workOrderId),
+          eq(journalEntries.status, 'posted')
+        )
+      );
+
+    const totalWipDebit = wipLines.reduce((sum, line) => sum + (line.debit || 0), 0);
+    if (totalWipDebit > 0) {
+      wipTotalCost = totalWipDebit;
+    }
+  }
+
+  const unitCost = input.quantity > 0 ? wipTotalCost / input.quantity : 0;
+
+  // Find FG and WIP accounts
+  const [fgAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1133')) // Finished Goods
+    .limit(1);
+
+  const [wipAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1132')) // WIP
+    .limit(1);
+
+  if (!fgAccount || !wipAccount) {
+    throw new Error('Finished Goods or WIP account not found');
+  }
+
+  const journalLinesList: JournalLineCreate[] = [
+    // Debit Finished Goods (increase FG inventory)
+    {
+      glAccountId: fgAccount.id,
+      debit: wipTotalCost,
+      credit: 0,
+      description: `Transfer ${input.quantity} units to FG - Lot ${input.lotNumber}`,
+    },
+    // Credit WIP (reduce WIP)
+    {
+      glAccountId: wipAccount.id,
+      debit: 0,
+      credit: wipTotalCost,
+      description: `Transfer ${input.quantity} units to FG - Lot ${input.lotNumber}`,
+    },
+  ];
+
+  const journalEntry = await createJournalEntry({
+    entryDate: input.transferDate,
+    description: `FG Transfer for WO ${input.workOrderId} Batch ${input.batchNumber} - ${input.quantity} units`,
+    sourceType: 'COST_ALLOCATION',
+    sourceId: input.workOrderId,
+    lines: journalLinesList,
+    createdBy: recordedBy,
+  });
+
+  await postJournalEntry(journalEntry.id, recordedBy);
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'cost_allocation',
+    recordId: journalEntry.id,
+    userId: recordedBy,
+    newValue: {
+      type: 'transfer_fg',
+      workOrderId: input.workOrderId,
+      batchNumber: input.batchNumber,
+      quantity: input.quantity,
+      totalCost: wipTotalCost,
+      unitCost,
+    },
+  });
+
+  return {
+    journalEntry,
+    totalCost: wipTotalCost,
+    unitCost,
+  };
+}
+
+/**
+ * Get batch cost breakdown
+ * Retrieves all costs associated with a work order/batch
+ * @param workOrderId - Work order ID
+ * @returns Cost breakdown with material, labor, overhead details
+ */
+export async function getBatchCostBreakdown(
+  workOrderId: number
+): Promise<BatchCostBreakdown> {
+  const { journalEntries, journalLines, glAccounts, workOrders } = getAccountingTables();
+  const database = db();
+
+  // Get work order details
+  const [workOrder] = await database
+    .select({
+      id: workOrders.id,
+      batchNumber: workOrders.batchNumber,
+      status: workOrders.status,
+      actualQuantity: workOrders.actualQuantity,
+      plannedQuantity: workOrders.plannedQuantity,
+    })
+    .from(workOrders)
+    .where(eq(workOrders.id, workOrderId))
+    .limit(1);
+
+  if (!workOrder) {
+    throw new Error(`Work order ${workOrderId} not found`);
+  }
+
+  // Get all cost allocation journal entries for this work order
+  const entries = await database
+    .select({
+      id: journalEntries.id,
+      entryNumber: journalEntries.entryNumber,
+      entryDate: journalEntries.entryDate,
+      description: journalEntries.description,
+      totalDebit: journalEntries.totalDebit,
+    })
+    .from(journalEntries)
+    .where(
+      and(
+        eq(journalEntries.sourceType, 'COST_ALLOCATION'),
+        eq(journalEntries.sourceId, workOrderId),
+        eq(journalEntries.status, 'posted')
+      )
+    )
+    .orderBy(journalEntries.entryDate);
+
+  // Get WIP account
+  const [wipAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1132'))
+    .limit(1);
+
+  // Get account IDs for categorization
+  const accounts = await database
+    .select({ id: glAccounts.id, code: glAccounts.code })
+    .from(glAccounts)
+    .where(
+      sql`${glAccounts.code} IN ('1131', '5210', '5220', '1133')`
+    );
+
+  const accountMap = new Map(accounts.map((a) => [a.code, a.id]));
+  const rawMaterialId = accountMap.get('1131');
+  const laborId = accountMap.get('5210');
+  const overheadId = accountMap.get('5220');
+  const fgId = accountMap.get('1133');
+
+  let materialCost = 0;
+  let laborCost = 0;
+  let overheadCost = 0;
+  let transferredCost = 0;
+
+  const journalEntriesDetails: BatchCostBreakdown['journalEntries'] = [];
+
+  for (const entry of entries) {
+    // Get lines for this entry
+    const lines = await database
+      .select({
+        glAccountId: journalLines.glAccountId,
+        debit: journalLines.debit,
+        credit: journalLines.credit,
+      })
+      .from(journalLines)
+      .where(eq(journalLines.journalEntryId, entry.id));
+
+    let entryType: 'material' | 'labor' | 'overhead' | 'transfer' = 'material';
+    let amount = entry.totalDebit || 0;
+
+    // Determine entry type based on credited account
+    for (const line of lines) {
+      if (line.credit && line.credit > 0) {
+        if (line.glAccountId === rawMaterialId) {
+          entryType = 'material';
+          materialCost += line.credit;
+        } else if (line.glAccountId === laborId) {
+          entryType = 'labor';
+          laborCost += line.credit;
+        } else if (line.glAccountId === overheadId) {
+          entryType = 'overhead';
+          overheadCost += line.credit;
+        } else if (line.glAccountId === wipAccount?.id) {
+          entryType = 'transfer';
+          transferredCost += line.credit;
+        }
+        amount = line.credit;
+      }
+    }
+
+    journalEntriesDetails.push({
+      id: entry.id,
+      entryNumber: entry.entryNumber,
+      entryDate: formatDateFromDb(entry.entryDate),
+      description: entry.description || '',
+      amount,
+      type: entryType,
+    });
+  }
+
+  const totalCost = materialCost + laborCost + overheadCost;
+  const producedQuantity = workOrder.actualQuantity || workOrder.plannedQuantity || 0;
+  const unitCost = producedQuantity > 0 ? totalCost / producedQuantity : 0;
+
+  return {
+    workOrderId,
+    batchNumber: workOrder.batchNumber,
+    materialCost,
+    laborCost,
+    overheadCost,
+    totalCost,
+    unitCost,
+    producedQuantity,
+    status: transferredCost >= totalCost ? 'completed' : 'in_progress',
+    journalEntries: journalEntriesDetails,
   };
 }
