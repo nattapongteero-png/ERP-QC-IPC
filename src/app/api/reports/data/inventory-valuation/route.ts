@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
-import * as schema from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { eq, and, type SQL } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,21 +13,18 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
     const { searchParams } = new URL(request.url);
 
     const warehouseId = searchParams.get('warehouseId');
     const asOfDate = searchParams.get('asOfDate') || new Date().toISOString().split('T')[0];
 
     // Get the appropriate schema tables
-    const itemsTable = isSqlite ? schema.sqliteItems : schema.mysqlItems;
-    const lotsTable = isSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
-    const warehousesTable = isSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
+    const itemsTable = getTableRef('items');
+    const lotsTable = getTableRef('inventoryLots');
+    const warehousesTable = getTableRef('warehouses');
 
     // Build inventory valuation query
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [];
 
     // Filter by warehouse if specified
     if (warehouseId) {
@@ -39,23 +35,24 @@ export async function GET(request: NextRequest) {
     conditions.push(eq(lotsTable.status, 'released'));
 
     // Query inventory lots with item and warehouse details
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
-      .select({
-        itemCode: itemsTable.code,
-        itemName: itemsTable.nameTh,
-        itemNameEn: itemsTable.nameEn,
-        category: itemsTable.category,
-        warehouseCode: warehousesTable.code,
-        warehouseName: warehousesTable.name,
-        lotNumber: lotsTable.lotNumber,
-        quantity: lotsTable.quantity,
-        expiryDate: lotsTable.expiryDate,
-      })
-      .from(lotsTable)
-      .innerJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
-      .innerJoin(warehousesTable, eq(lotsTable.warehouseId, warehousesTable.id))
-      .where(conditions.length > 0 ? and(...conditions) : undefined);
+    const results = await executeDbOperation(async (db) => {
+      return db
+        .select({
+          itemCode: itemsTable.code,
+          itemName: itemsTable.nameTh,
+          itemNameEn: itemsTable.nameEn,
+          category: itemsTable.category,
+          warehouseCode: warehousesTable.code,
+          warehouseName: warehousesTable.name,
+          lotNumber: lotsTable.lotNumber,
+          quantity: lotsTable.quantity,
+          expiryDate: lotsTable.expiryDate,
+        })
+        .from(lotsTable)
+        .innerJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
+        .innerJoin(warehousesTable, eq(lotsTable.warehouseId, warehousesTable.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
+    });
 
     // Calculate total value for each row
     // Note: unitCost is not available in the lots table, using a placeholder value

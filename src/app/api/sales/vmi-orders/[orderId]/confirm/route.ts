@@ -49,38 +49,37 @@ export async function POST(
     }
 
     // Check if order is in a confirmable state
-    if (order.status !== 'pending') {
+    if (order.localStatus !== 'pending') {
       return NextResponse.json({
         success: false,
-        error: `Cannot confirm order with status '${order.status}'. Only pending orders can be confirmed.`,
+        error: `Cannot confirm order with status '${order.localStatus}'. Only pending orders can be confirmed.`,
       }, { status: 400 });
     }
 
     // Check if all lines are matched
-    const unmatchedLines = order.lines?.filter(line => !line.matchedItemId) || [];
+    const unmatchedLines = order.lines?.filter(line => !line.itemId || line.matchStatus === 'unmatched') || [];
     if (unmatchedLines.length > 0) {
       return NextResponse.json({
         success: false,
         error: `Cannot confirm order. ${unmatchedLines.length} line(s) have unmatched items.`,
         details: unmatchedLines.map(line => ({
           lineId: line.id,
-          portalItemCode: line.portalItemCode,
-          portalItemName: line.portalItemName,
+          itemCode: line.tppCode || line.localCode || '',
+          itemName: line.itemName,
         })),
       }, { status: 400 });
     }
 
     // Confirm the order
-    const result = await service.confirmOrder(id, data.userId, data.notes);
+    const result = await service.confirmOrder(id, { notes: data.notes });
 
     return NextResponse.json({
       success: true,
       data: {
         vmiOrderId: id,
-        salesOrderId: result.salesOrderId,
-        salesOrderNumber: result.salesOrderNumber,
-        portalNotified: result.portalNotified,
-        message: 'Order confirmed successfully',
+        salesOrderId: result.salesOrder.id,
+        salesOrderNumber: result.salesOrder.soNumber,
+        message: result.message || 'Order confirmed successfully',
       },
     });
   } catch (error) {
@@ -90,7 +89,7 @@ export async function POST(
       return NextResponse.json({
         success: false,
         error: 'Invalid request body',
-        details: error.errors,
+        details: error.issues,
       }, { status: 400 });
     }
 

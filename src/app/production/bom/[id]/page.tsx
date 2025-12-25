@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -13,7 +13,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
-import { MoreVertical, Edit, Trash2, CheckCircle, XCircle, Archive, Copy, Plus, DollarSign, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown, Settings } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 
 interface BOMLine {
@@ -62,6 +62,7 @@ interface BOMDetail {
   batchUnit: string;
   yieldTarget: number;
   lossAllowance: number;
+  theoreticalYield: number;
   effectiveDate: string;
   expiryDate: string;
   createdAt: string;
@@ -72,6 +73,7 @@ interface BOMDetail {
 export default function BOMDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [bom, setBom] = useState<BOMDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
@@ -102,6 +104,7 @@ export default function BOMDetailPage() {
     batchUnit: '',
     yieldTarget: 0,
     lossAllowance: 0,
+    theoreticalYield: 0,
     effectiveDate: '',
     expiryDate: '',
   });
@@ -158,6 +161,12 @@ export default function BOMDetailPage() {
   const [lineToDelete, setLineToDelete] = useState<BOMLine | null>(null);
   const [deletingLine, setDeletingLine] = useState(false);
 
+  // Invalidate BOM list cache when data changes
+  const invalidateBomCache = () => {
+    queryClient.invalidateQueries({ queryKey: ['bom-list'] });
+    queryClient.invalidateQueries({ queryKey: ['bom-dashboard'] });
+  };
+
   useEffect(() => {
     fetchBOMDetail();
   }, [params.id]);
@@ -198,6 +207,7 @@ export default function BOMDetailPage() {
           batchUnit: result.data.batchUnit || '',
           yieldTarget: result.data.yieldTarget || 0,
           lossAllowance: result.data.lossAllowance || 0,
+          theoreticalYield: result.data.theoreticalYield || 0,
           effectiveDate: result.data.effectiveDate?.split('T')[0] || '',
           expiryDate: result.data.expiryDate?.split('T')[0] || '',
         });
@@ -223,6 +233,7 @@ export default function BOMDetailPage() {
           batchUnit: editForm.batchUnit,
           yieldTarget: editForm.yieldTarget || null,
           lossAllowance: editForm.lossAllowance || null,
+          theoreticalYield: editForm.theoreticalYield || null,
           effectiveDate: editForm.effectiveDate || null,
           expiryDate: editForm.expiryDate || null,
         }),
@@ -231,6 +242,7 @@ export default function BOMDetailPage() {
       if (result.success) {
         setEditDialogOpen(false);
         fetchBOMDetail();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to update BOM:', error);
@@ -248,6 +260,7 @@ export default function BOMDetailPage() {
       });
       const result = await response.json();
       if (result.success) {
+        invalidateBomCache();
         router.push('/production/bom');
       }
     } catch (error) {
@@ -272,6 +285,7 @@ export default function BOMDetailPage() {
         setStatusDialogOpen(false);
         setNewStatus('');
         fetchBOMDetail();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -351,6 +365,7 @@ export default function BOMDetailPage() {
         });
         fetchBOMDetail();
         fetchBOMCost();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to add line:', error);
@@ -388,6 +403,7 @@ export default function BOMDetailPage() {
         setEditingLine(null);
         fetchBOMDetail();
         fetchBOMCost();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to update line:', error);
@@ -414,6 +430,7 @@ export default function BOMDetailPage() {
         setLineToDelete(null);
         fetchBOMDetail();
         fetchBOMCost();
+        invalidateBomCache();
       }
     } catch (error) {
       console.error('Failed to delete line:', error);
@@ -437,24 +454,25 @@ export default function BOMDetailPage() {
     return <Badge variant={variants[type] || 'default'}>{type?.replace('_', ' ') || 'N/A'}</Badge>;
   };
 
+  // Simplified BOM status workflow: draft → approved → obsolete
   const getStatusActions = () => {
     if (!bom) return [];
     const actions: { label: string; status: string; icon: typeof CheckCircle; variant: 'primary' | 'warning' | 'danger' }[] = [];
 
     switch (bom.status) {
       case 'draft':
-        actions.push({ label: 'Activate', status: 'active', icon: CheckCircle, variant: 'primary' });
+        actions.push({ label: 'Approve for Production', status: 'approved', icon: CheckCircle, variant: 'primary' });
         break;
       case 'active':
-        actions.push({ label: 'Approve', status: 'approved', icon: CheckCircle, variant: 'primary' });
+        // Legacy status - allow transition to approved
+        actions.push({ label: 'Approve for Production', status: 'approved', icon: CheckCircle, variant: 'primary' });
         actions.push({ label: 'Set Obsolete', status: 'obsolete', icon: Archive, variant: 'warning' });
         break;
       case 'approved':
         actions.push({ label: 'Set Obsolete', status: 'obsolete', icon: Archive, variant: 'warning' });
-        actions.push({ label: 'Revert to Active', status: 'active', icon: XCircle, variant: 'warning' });
         break;
       case 'obsolete':
-        actions.push({ label: 'Reactivate', status: 'active', icon: CheckCircle, variant: 'primary' });
+        actions.push({ label: 'Reactivate', status: 'approved', icon: CheckCircle, variant: 'primary' });
         break;
     }
 
@@ -552,38 +570,33 @@ export default function BOMDetailPage() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <DxLoadIndicator />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <DxLoadIndicator />
+      </div>
     );
   }
 
   if (!bom) {
     return (
-      <MainLayout>
-        <div className="text-center py-12">
-          <p className="text-gray-500">BOM not found</p>
-          <DxButton
-            text="Back to List"
-            type="normal"
-            stylingMode="outlined"
-            className="mt-4"
-            onClick={() => router.push('/production/bom')}
-          />
-        </div>
-      </MainLayout>
+      <div className="text-center py-12">
+        <p className="text-gray-500">BOM not found</p>
+        <DxButton
+          text="Back to List"
+          type="normal"
+          stylingMode="outlined"
+          className="mt-4"
+          onClick={() => router.push('/production/bom')}
+        />
+      </div>
     );
   }
 
   const statusActions = getStatusActions();
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
               <DxButton
@@ -635,6 +648,14 @@ export default function BOMDetailPage() {
             <p className="text-gray-600 mt-1">{bom.name}</p>
           </div>
           <div className="flex gap-2">
+            <DxButton
+              text="Configuration"
+              icon="preferences"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => router.push(`/production/bom/${bom.id}/configuration`)}
+              hint="Configure rooms, equipment, SOP steps, and QC criteria"
+            />
             <DxButton
               text="Create Work Order"
               type="default"
@@ -704,13 +725,22 @@ export default function BOMDetailPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Batch Size</p>
                 <p className="text-2xl font-bold text-blue-600">{bom.batchSize?.toLocaleString() || 0}</p>
                 <p className="text-xs text-gray-500">{bom.batchUnit}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-600">Theoretical Yield</p>
+                <p className="text-2xl font-bold text-purple-600">{bom.theoreticalYield?.toLocaleString() || '-'}</p>
+                <p className="text-xs text-gray-500">{bom.productUnit}</p>
               </div>
             </CardContent>
           </Card>
@@ -833,7 +863,19 @@ export default function BOMDetailPage() {
               icon="plus"
               type="normal"
               stylingMode="outlined"
-              onClick={() => setAddLineDialogOpen(true)}
+              onClick={() => {
+                // Reset form before opening dialog
+                setNewLine({
+                  itemId: 0,
+                  itemCode: '',
+                  itemName: '',
+                  itemUnit: '',
+                  quantity: 0,
+                  isOptional: false,
+                  notes: '',
+                });
+                setAddLineDialogOpen(true);
+              }}
             />
           </CardHeader>
           <CardContent>
@@ -847,7 +889,6 @@ export default function BOMDetailPage() {
             />
           </CardContent>
         </Card>
-      </div>
 
       {/* Edit Dialog */}
       <DxPopup
@@ -912,7 +953,16 @@ export default function BOMDetailPage() {
                 format="#,##0.#"
               />
             </div>
-            <div></div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Theoretical Yield ({bom?.productUnit || 'unit'})
+              </label>
+              <DxNumberBox
+                value={editForm.theoreticalYield}
+                onValueChange={(value) => setEditForm({ ...editForm, theoreticalYield: value || 0 })}
+                format="#,##0.###"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -1160,6 +1210,7 @@ export default function BOMDetailPage() {
         onSelect={handleSelectItem}
         title="Select Material"
         showPrice="cost"
+        filterType="raw_material"
       />
 
       {/* Edit Line Dialog */}
@@ -1258,6 +1309,6 @@ export default function BOMDetailPage() {
           </div>
         </div>
       </DxPopup>
-    </MainLayout>
+    </div>
   );
 }

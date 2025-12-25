@@ -14,19 +14,22 @@ import {
   RecallDistributionTable,
   RecallNotificationTracker,
   RecallReconciliationForm,
+  RecallDataEntryDialog,
 } from '@/components/recalls';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
-import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
+import { DxTabs } from '@/components/ui/dx-tabs';
+import type { DxTabItem } from '@/components/ui/dx-tabs';
 import {
   AlertTriangle,
   Package,
   Users,
   CheckCircle,
   Link2,
+  FileText,
 } from 'lucide-react';
 import type { RecallDetails, RecallClass } from '@/types/recalls';
 
@@ -63,6 +66,13 @@ async function closeRecall(id: number, assessment?: string): Promise<void> {
   if (!result.success) throw new Error(result.error);
 }
 
+async function generateReport(id: number): Promise<any> {
+  const response = await fetch(`/api/recalls/${id}/report`);
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error);
+  return result.data;
+}
+
 // ============================================
 // Component
 // ============================================
@@ -93,7 +103,9 @@ export default function RecallDetailPage() {
 
   const [activeTab, setActiveTab] = useState(0);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [closureAssessment, setClosureAssessment] = useState('');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Fetch recall details
   const {
@@ -134,6 +146,32 @@ export default function RecallDetailPage() {
     },
   });
 
+  // Handle report generation
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const report = await generateReport(recallId);
+
+      // Download as JSON
+      const dataStr = JSON.stringify(report, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `recall-report-${recall?.recallNumber || recallId}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error generating report:', error);
+      alert('Failed to generate report: ' + errorMessage);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-6">
@@ -161,6 +199,7 @@ export default function RecallDetailPage() {
   const canComplete = recall.status === 'in_progress';
   const canClose = recall.status === 'completed';
   const isOpen = recall.status !== 'closed';
+  const canEdit = recall.status === 'initiated'; // Only allow editing before execution starts
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -171,6 +210,21 @@ export default function RecallDetailPage() {
         onBack={() => router.push('/gmp/recalls')}
         actions={
           <div className="flex items-center gap-2">
+            <DxButton
+              text="Generate Report"
+              icon="export"
+              onClick={handleGenerateReport}
+              stylingMode="outlined"
+              disabled={isGeneratingReport}
+            />
+            {canEdit && (
+              <DxButton
+                text="Edit"
+                icon="edit"
+                onClick={() => setShowEditDialog(true)}
+                stylingMode="outlined"
+              />
+            )}
             {canStart && (
               <DxButton
                 text="Start Execution"
@@ -317,15 +371,14 @@ export default function RecallDetailPage() {
       {/* Tabs */}
       <div className="bg-card border rounded-lg shadow-sm">
         <DxTabs
+          items={[
+            { id: 0, text: 'Distribution', icon: 'globe' },
+            { id: 1, text: 'Notifications', icon: 'message' },
+            { id: 2, text: 'Reconciliation', icon: 'check' },
+          ] as DxTabItem[]}
           selectedIndex={activeTab}
-          onOptionChanged={(e) => {
-            if (e.name === 'selectedIndex') setActiveTab(e.value);
-          }}
-        >
-          <DxTabItem title="Distribution" icon="globe" />
-          <DxTabItem title="Notifications" icon="message" />
-          <DxTabItem title="Reconciliation" icon="check" />
-        </DxTabs>
+          onSelectedIndexChange={setActiveTab}
+        />
 
         <div className="p-6">
           {activeTab === 0 && <RecallDistributionTable recallId={recallId} />}
@@ -396,6 +449,18 @@ export default function RecallDetailPage() {
           </div>
         </div>
       </DxPopup>
+
+      {/* Edit Recall Dialog */}
+      <RecallDataEntryDialog
+        visible={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onSaved={() => {
+          setShowEditDialog(false);
+          refetch();
+        }}
+        recall={recall}
+        mode="edit"
+      />
     </div>
   );
 }

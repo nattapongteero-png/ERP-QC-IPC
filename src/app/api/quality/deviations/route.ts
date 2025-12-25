@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, like, sql, and } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { eq, like, sql, and, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate, getInsertId, parseDbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -29,12 +29,10 @@ export async function GET(request: NextRequest) {
       const search = searchParams.get('search') || '';
       const status = searchParams.get('status') || '';
       const severity = searchParams.get('severity') || '';
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const deviationsTable = useSqlite ? schema.sqliteDeviations : schema.mysqlDeviations;
-      
-      const conditions = [];
+
+      const deviationsTable = getTableRef('deviations');
+
+      const conditions: (SQL | undefined)[] = [];
       if (search) {
         conditions.push(
           like(deviationsTable.deviationNumber, `%${search}%`)
@@ -46,23 +44,27 @@ export async function GET(request: NextRequest) {
       if (severity) {
         conditions.push(eq(deviationsTable.severity, severity));
       }
-      
-      let countQuery = (db as any).select({ count: sql`count(*)` }).from(deviationsTable);
-      if (conditions.length > 0) {
-        countQuery = countQuery.where(and(...conditions));
-      }
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
-      
-      let query = (db as any).select().from(deviationsTable);
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-      
+
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db.select({ count: sql`count(*)` }).from(deviationsTable);
+        if (conditions.length > 0) {
+          countQuery = countQuery.where(and(...conditions));
+        }
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
+
       const offset = (pagination.page - 1) * pagination.limit;
-      const deviations = await query.limit(pagination.limit).offset(offset);
-      
+      const deviations = await executeDbOperation(async (db) => {
+        let query = db.select().from(deviationsTable);
+
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
+
+        return query.limit(pagination.limit).offset(offset);
+      });
+
       return successResponse(createPaginatedResponse(deviations, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);
@@ -93,35 +95,29 @@ export async function POST(request: NextRequest) {
       if (severity && !validSeverities.includes(severity)) {
         return errorResponse(`Severity must be one of: ${validSeverities.join(', ')}`);
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const deviationsTable = useSqlite ? schema.sqliteDeviations : schema.mysqlDeviations;
-      
+
+      const deviationsTable = getTableRef('deviations');
+
       const deviationNumber = generateDeviationNumber();
 
-      // Parse dates for MySQL (needs Date objects) vs SQLite (needs strings)
-      const now = new Date();
-      const parsedDueDate = dueDate
-        ? (useSqlite ? dueDate : new Date(dueDate))
-        : null;
-
-      const result = await (db as any).insert(deviationsTable).values({
-        deviationNumber,
-        title,
-        description,
-        sourceType,
-        sourceId,
-        severity: severity || 'minor',
-        status: 'open',
-        reportedBy: session.userId,
-        assignedTo,
-        dueDate: parsedDueDate,
-        createdAt: useSqlite ? now.toISOString() : now,
-        updatedAt: useSqlite ? now.toISOString() : now,
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(deviationsTable).values({
+          deviationNumber,
+          title,
+          description,
+          sourceType,
+          sourceId,
+          severity: severity || 'minor',
+          status: 'open',
+          reportedBy: session.userId,
+          assignedTo,
+          dueDate: parseDbDate(dueDate),
+          createdAt: dbDate(),
+          updatedAt: dbDate(),
+        });
       });
-      
-      const deviationId = useSqlite ? result.lastInsertRowid : result[0].insertId;
+
+      const deviationId = getInsertId(result);
       
       await createAuditLog({
         userId: session.userId,

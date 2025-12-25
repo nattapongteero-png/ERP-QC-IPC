@@ -56,10 +56,9 @@ export function RecallList({ recalls, loading }: RecallListProps) {
 
   return (
     <DxDataGrid
-      dataSource={recalls}
+      dataSource={recalls as unknown as Record<string, unknown>[]}
       showBorders
       rowAlternationEnabled
-      hoverStateEnabled
       onRowClick={handleRowClick}
       className="cursor-pointer"
       loading={loading}

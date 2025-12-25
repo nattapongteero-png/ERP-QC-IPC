@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, like, or, sql, and } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { eq, like, or, sql, and, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate, getInsertId, parseDbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -23,19 +23,17 @@ function generateWONumber(): string {
 
 // GET /api/production/work-orders - List work orders
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (session) => {
+  return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
       const search = searchParams.get('search') || '';
       const status = searchParams.get('status') || '';
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const workOrdersTable = useSqlite ? schema.sqliteWorkOrders : schema.mysqlWorkOrders;
-      const itemsTable = useSqlite ? schema.sqliteItems : schema.mysqlItems;
-      
-      const conditions = [];
+
+      const workOrdersTable = getTableRef('workOrders');
+      const itemsTable = getTableRef('items');
+
+      const conditions: (SQL | undefined)[] = [];
       if (search) {
         conditions.push(
           or(
@@ -47,44 +45,50 @@ export async function GET(request: NextRequest) {
       if (status) {
         conditions.push(eq(workOrdersTable.status, status));
       }
-      
-      let countQuery = (db as any).select({ count: sql`count(*)` }).from(workOrdersTable);
-      if (conditions.length > 0) {
-        countQuery = countQuery.where(and(...conditions));
-      }
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
-      
-      let query = (db as any)
-        .select({
-          id: workOrdersTable.id,
-          woNumber: workOrdersTable.woNumber,
-          batchNumber: workOrdersTable.batchNumber,
-          plannedQuantity: workOrdersTable.plannedQuantity,
-          actualQuantity: workOrdersTable.actualQuantity,
-          unit: workOrdersTable.unit,
-          status: workOrdersTable.status,
-          priority: workOrdersTable.priority,
-          plannedStartDate: workOrdersTable.plannedStartDate,
-          plannedEndDate: workOrdersTable.plannedEndDate,
-          actualStartDate: workOrdersTable.actualStartDate,
-          actualEndDate: workOrdersTable.actualEndDate,
-          yieldPercentage: workOrdersTable.yieldPercentage,
-          productId: workOrdersTable.productId,
-          productCode: itemsTable.code,
-          productName: itemsTable.nameTh,
-          createdAt: workOrdersTable.createdAt,
-        })
-        .from(workOrdersTable)
-        .leftJoin(itemsTable, eq(workOrdersTable.productId, itemsTable.id));
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-      
+
+      // Count query
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db.select({ count: sql`count(*)` }).from(workOrdersTable);
+        if (conditions.length > 0) {
+          countQuery = countQuery.where(and(...conditions));
+        }
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
+
+      // Data query with product join
       const offset = (pagination.page - 1) * pagination.limit;
-      const workOrders = await query.limit(pagination.limit).offset(offset);
-      
+      const workOrders = await executeDbOperation(async (db) => {
+        let query = db
+          .select({
+            id: workOrdersTable.id,
+            woNumber: workOrdersTable.woNumber,
+            batchNumber: workOrdersTable.batchNumber,
+            plannedQuantity: workOrdersTable.plannedQuantity,
+            actualQuantity: workOrdersTable.actualQuantity,
+            unit: workOrdersTable.unit,
+            status: workOrdersTable.status,
+            priority: workOrdersTable.priority,
+            plannedStartDate: workOrdersTable.plannedStartDate,
+            plannedEndDate: workOrdersTable.plannedEndDate,
+            actualStartDate: workOrdersTable.actualStartDate,
+            actualEndDate: workOrdersTable.actualEndDate,
+            yieldPercentage: workOrdersTable.yieldPercentage,
+            productId: workOrdersTable.productId,
+            productCode: itemsTable.code,
+            productName: itemsTable.nameTh,
+            createdAt: workOrdersTable.createdAt,
+          })
+          .from(workOrdersTable)
+          .leftJoin(itemsTable, eq(workOrdersTable.productId, itemsTable.id));
+
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
+
+        return query.limit(pagination.limit).offset(offset);
+      });
+
       return successResponse(createPaginatedResponse(workOrders, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);
@@ -108,55 +112,117 @@ export async function POST(request: NextRequest) {
         plannedEndDate,
         notes,
       } = body;
-      
+
       if (!bomId || !productId || !batchNumber || !plannedQuantity || !unit) {
         return errorResponse('BOM ID, product ID, batch number, planned quantity, and unit are required');
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const workOrdersTable = useSqlite ? schema.sqliteWorkOrders : schema.mysqlWorkOrders;
 
+      const workOrdersTable = getTableRef('workOrders');
+      const bomTable = getTableRef('bOM');
+      const bomLinesTable = getTableRef('bOMLines');
+      const workOrderMaterialsTable = getTableRef('workOrderMaterials');
       const woNumber = generateWONumber();
 
-      // Parse dates for MySQL (needs Date objects) vs SQLite (needs strings)
-      const now = new Date();
-      const parsedStartDate = plannedStartDate
-        ? (useSqlite ? plannedStartDate : new Date(plannedStartDate))
-        : null;
-      const parsedEndDate = plannedEndDate
-        ? (useSqlite ? plannedEndDate : new Date(plannedEndDate))
-        : null;
-
-      const result = await (db as any).insert(workOrdersTable).values({
-        woNumber,
-        bomId,
-        productId,
-        batchNumber,
-        plannedQuantity,
-        unit,
-        status: 'planned',
-        priority: priority || 5,
-        plannedStartDate: parsedStartDate,
-        plannedEndDate: parsedEndDate,
-        notes,
-        createdBy: session.userId,
-        createdAt: useSqlite ? now.toISOString() : now,
-        updatedAt: useSqlite ? now.toISOString() : now,
+      // Fetch BOM to get batch size for scaling
+      const bomResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: bomTable.id,
+            batchSize: bomTable.batchSize,
+            status: bomTable.status,
+          })
+          .from(bomTable)
+          .where(eq(bomTable.id, bomId));
       });
-      
-      const workOrderId = useSqlite ? result.lastInsertRowid : result[0].insertId;
-      
+
+      if (bomResult.length === 0) {
+        return errorResponse('BOM not found', 404);
+      }
+
+      const bom = bomResult[0];
+
+      // Validate BOM status - only approved BOMs can be used for production
+      if (bom.status !== 'approved' && bom.status !== 'active') {
+        return errorResponse(`Cannot create work order from BOM with status '${bom.status}'. Only approved BOMs can be used.`);
+      }
+
+      const bomBatchSize = Number(bom.batchSize) || 1;
+
+      // Fetch BOM lines (materials)
+      const bomLines = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            itemId: bomLinesTable.itemId,
+            quantity: bomLinesTable.quantity,
+            unit: bomLinesTable.unit,
+            sequence: bomLinesTable.sequence,
+            isOptional: bomLinesTable.isOptional,
+          })
+          .from(bomLinesTable)
+          .where(eq(bomLinesTable.bomId, bomId))
+          .orderBy(bomLinesTable.sequence);
+      });
+
+      // Create work order
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(workOrdersTable).values({
+          woNumber,
+          bomId,
+          productId,
+          batchNumber,
+          plannedQuantity,
+          unit,
+          status: 'planned',
+          priority: priority || 5,
+          plannedStartDate: parseDbDate(plannedStartDate),
+          plannedEndDate: parseDbDate(plannedEndDate),
+          notes,
+          createdBy: session.userId,
+          createdAt: dbDate(),
+          updatedAt: dbDate(),
+        });
+      });
+
+      const workOrderId = getInsertId(result);
+
+      // Auto-populate materials from BOM lines (scaled to planned quantity)
+      const scalingFactor = Number(plannedQuantity) / bomBatchSize;
+      let materialsCreated = 0;
+
+      for (const line of bomLines) {
+        // Skip optional materials - they can be added manually if needed
+        if (line.isOptional) continue;
+
+        const scaledQuantity = Number(line.quantity) * scalingFactor;
+
+        await executeDbOperation(async (db) => {
+          return db.insert(workOrderMaterialsTable).values({
+            workOrderId: Number(workOrderId),
+            itemId: line.itemId,
+            lotId: null, // Lot to be selected later during material issuance
+            plannedQuantity: scaledQuantity,
+            actualQuantity: null,
+            unit: line.unit,
+            status: 'pending',
+          });
+        });
+
+        materialsCreated++;
+      }
+
       await createAuditLog({
         userId: session.userId,
         action: 'CREATE',
         tableName: 'work_orders',
         recordId: Number(workOrderId),
-        newValue: { woNumber, batchNumber, plannedQuantity, status: 'planned' },
+        newValue: { woNumber, batchNumber, plannedQuantity, status: 'planned', materialsFromBom: materialsCreated },
         ipAddress: getClientIP(request),
       });
-      
-      return successResponse({ id: Number(workOrderId), woNumber }, 'Work order created successfully');
+
+      return successResponse(
+        { id: Number(workOrderId), woNumber, materialsCreated },
+        `Work order created successfully with ${materialsCreated} materials from BOM`
+      );
     } catch (error) {
       return serverErrorResponse(error);
     }

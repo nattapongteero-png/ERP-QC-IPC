@@ -64,7 +64,7 @@ export interface ComplaintUpdate {
   status?: ComplaintStatus;
   severity?: ComplaintSeverity;
   regulatoryReportRequired?: boolean;
-  regulatoryReportDate?: string;
+  regulatoryReportDate?: string | null;
 }
 
 export interface ComplaintDetails extends Complaint {
@@ -144,4 +144,40 @@ export interface ComplaintCloseRequest {
 export interface ComplaintTrendsParams {
   period?: 'month' | 'quarter' | 'year';
   groupBy?: 'category' | 'product' | 'severity';
+}
+
+// ============================================
+// Adverse Events
+// ============================================
+
+export type AdverseEventSeverity = 'mild' | 'moderate' | 'severe' | 'life_threatening' | 'fatal';
+
+export interface AdverseEvent {
+  id: number;
+  complaintId: number;
+  eventType: string;
+  eventDate: string;
+  severity: AdverseEventSeverity;
+  description: string;
+  patientOutcome: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdverseEventCreate {
+  eventType: string;
+  eventDate: string;
+  severity: AdverseEventSeverity;
+  description: string;
+  patientOutcome?: string;
+}
+
+// ============================================
+// Regulatory Reporting
+// ============================================
+
+export interface RegulatoryReportingEvaluation {
+  requiresReporting: boolean;
+  reasons: string[];
+  recommendation: string;
 }

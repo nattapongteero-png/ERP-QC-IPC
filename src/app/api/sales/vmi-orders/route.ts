@@ -14,7 +14,7 @@ import { z } from 'zod';
 // Validation schemas
 const listQuerySchema = z.object({
   page: z.coerce.number().min(1).optional().default(1),
-  limit: z.coerce.number().min(1).max(100).optional().default(20),
+  limit: z.coerce.number().min(1).max(1000).optional().default(20),
   portalId: z.coerce.number().optional(),
   status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']).optional(),
   searchTerm: z.string().optional(),
@@ -40,10 +40,9 @@ export async function GET(request: NextRequest) {
       page: query.page,
       limit: query.limit,
       portalId: query.portalId,
-      status: query.status,
-      searchTerm: query.searchTerm,
-      dateFrom: query.dateFrom,
-      dateTo: query.dateTo,
+      localStatus: query.status as 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | undefined,
+      fromDate: query.dateFrom,
+      toDate: query.dateTo,
     });
 
     return NextResponse.json({
@@ -57,7 +56,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Invalid query parameters',
-        details: error.errors,
+        details: error.issues,
       }, { status: 400 });
     }
 
@@ -78,20 +77,16 @@ export async function POST(request: NextRequest) {
     const { portalId } = pollRequestSchema.parse(body);
 
     const service = new VmiSalesOrderService();
-    const results = await service.pollOrders(portalId);
-
-    // Calculate totals
-    const totalNew = results.reduce((sum, r) => sum + r.ordersReceived, 0);
-    const totalErrors = results.filter(r => r.errors && r.errors.length > 0).length;
+    const result = await service.pollOrders(portalId);
 
     return NextResponse.json({
       success: true,
       data: {
-        results,
+        result,
         summary: {
-          portalsPolled: results.length,
-          totalNewOrders: totalNew,
-          portalsWithErrors: totalErrors,
+          portalsPolled: result.portalsPolled,
+          totalNewOrders: result.ordersReceived,
+          portalsWithErrors: result.errors?.length || 0,
         },
       },
     });
@@ -102,7 +97,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Invalid request body',
-        details: error.errors,
+        details: error.issues,
       }, { status: 400 });
     }
 

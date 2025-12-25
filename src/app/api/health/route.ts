@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
-import { isSchemaSynced, useSqlite, getDb } from '@/lib/db';
+import { isSchemaSynced } from '@/lib/db';
+import { isSqlite, executeDbOperation } from '@/lib/db/db-helper';
 
 export async function GET() {
   let dbStatus = 'unknown';
-  let dbType = useSqlite() ? 'sqlite' : 'mysql';
+  const dbType = isSqlite() ? 'sqlite' : 'mysql';
 
   try {
     // Try to get database connection
-    await getDb();
+    await executeDbOperation(async () => {
+      // Simple operation to test connection
+      return true;
+    });
     dbStatus = 'connected';
   } catch {
     dbStatus = 'disconnected';

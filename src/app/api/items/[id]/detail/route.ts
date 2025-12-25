@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
-import { 
-  sqliteItems, sqliteInventoryLots, sqliteWarehouses, sqliteBOM, sqliteBOMLines, sqliteWorkOrders,
-  mysqlItems, mysqlInventoryLots, mysqlWarehouses, mysqlBOM, mysqlBOMLines, mysqlWorkOrders
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { eq, sql } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
 
@@ -11,20 +7,23 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (user) => {
+  return withAuth(request, async () => {
     try {
       const { id } = await params;
-      const db = await getDb();
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
-      const bom = useSqlite() ? sqliteBOM : mysqlBOM;
-      const bomLines = useSqlite() ? sqliteBOMLines : mysqlBOMLines;
-      const workOrders = useSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+      const itemId = parseInt(id);
+
+      const itemsTable = getTableRef('items');
+      const inventoryLotsTable = getTableRef('inventoryLots');
+      const warehousesTable = getTableRef('warehouses');
+      const bomTable = getTableRef('bom');
+      const bomLinesTable = getTableRef('bomLines');
+      const workOrdersTable = getTableRef('workOrders');
 
       // Get item details
-      const itemResult = await db.select().from(items).where(eq(items.id, parseInt(id)));
-      
+      const itemResult = await executeDbOperation(async (db) => {
+        return db.select().from(itemsTable).where(eq(itemsTable.id, itemId));
+      });
+
       if (itemResult.length === 0) {
         return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
       }
@@ -32,83 +31,93 @@ export async function GET(
       const item = itemResult[0];
 
       // Get inventory lots for this item
-      const lotsResult = await db
-        .select({
-          id: inventoryLots.id,
-          lotNumber: inventoryLots.lotNumber,
-          quantity: inventoryLots.quantity,
-          status: inventoryLots.status,
-          expiryDate: inventoryLots.expiryDate,
-          receivedDate: inventoryLots.receivedDate,
-          warehouseId: inventoryLots.warehouseId,
-          warehouseCode: warehouses.code,
-          warehouseName: warehouses.name,
-        })
-        .from(inventoryLots)
-        .leftJoin(warehouses, eq(inventoryLots.warehouseId, warehouses.id))
-        .where(eq(inventoryLots.itemId, parseInt(id)));
+      const lotsResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: inventoryLotsTable.id,
+            lotNumber: inventoryLotsTable.lotNumber,
+            quantity: inventoryLotsTable.quantity,
+            status: inventoryLotsTable.status,
+            expiryDate: inventoryLotsTable.expiryDate,
+            receivedDate: inventoryLotsTable.receivedDate,
+            warehouseId: inventoryLotsTable.warehouseId,
+            warehouseCode: warehousesTable.code,
+            warehouseName: warehousesTable.name,
+          })
+          .from(inventoryLotsTable)
+          .leftJoin(warehousesTable, eq(inventoryLotsTable.warehouseId, warehousesTable.id))
+          .where(eq(inventoryLotsTable.itemId, itemId));
+      });
 
       // Get BOM that produces this item (if this item is a finished product)
-      const bomResult = await db
-        .select({
-          id: bom.id,
-          code: bom.code,
-          name: bom.name,
-          version: bom.version,
-          status: bom.status,
-          batchSize: bom.batchSize,
-          batchUnit: bom.batchUnit,
-        })
-        .from(bom)
-        .where(eq(bom.productId, parseInt(id)));
+      const bomResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: bomTable.id,
+            code: bomTable.code,
+            name: bomTable.name,
+            version: bomTable.version,
+            status: bomTable.status,
+            batchSize: bomTable.batchSize,
+            batchUnit: bomTable.batchUnit,
+          })
+          .from(bomTable)
+          .where(eq(bomTable.productId, itemId));
+      });
 
       // Get BOM lines for each BOM (components)
       const bomWithLines = await Promise.all(
-        bomResult.map(async (b: any) => {
-          const lines = await db
-            .select({
-              id: bomLines.id,
-              itemId: bomLines.itemId,
-              itemCode: items.code,
-              itemName: items.nameTh,
-              itemNameEn: items.nameEn,
-              quantity: bomLines.quantity,
-              unit: bomLines.unit,
-              sequence: bomLines.sequence,
-            })
-            .from(bomLines)
-            .leftJoin(items, eq(bomLines.itemId, items.id))
-            .where(eq(bomLines.bomId, b.id));
+        bomResult.map(async (b: Record<string, unknown>) => {
+          const lines = await executeDbOperation(async (db) => {
+            return db
+              .select({
+                id: bomLinesTable.id,
+                itemId: bomLinesTable.itemId,
+                itemCode: itemsTable.code,
+                itemName: itemsTable.nameTh,
+                itemNameEn: itemsTable.nameEn,
+                quantity: bomLinesTable.quantity,
+                unit: bomLinesTable.unit,
+                sequence: bomLinesTable.sequence,
+              })
+              .from(bomLinesTable)
+              .leftJoin(itemsTable, eq(bomLinesTable.itemId, itemsTable.id))
+              .where(eq(bomLinesTable.bomId, b.id as number));
+          });
           return { ...b, lines };
         })
       );
 
       // Get items that use this item as a component (where used)
-      const whereUsedResult = await db
-        .select({
-          bomLineId: bomLines.id,
-          bomId: bomLines.bomId,
-          bomCode: bom.code,
-          bomName: bom.name,
-          productId: bom.productId,
-          quantity: bomLines.quantity,
-          unit: bomLines.unit,
-        })
-        .from(bomLines)
-        .leftJoin(bom, eq(bomLines.bomId, bom.id))
-        .where(eq(bomLines.itemId, parseInt(id)));
+      const whereUsedResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            bomLineId: bomLinesTable.id,
+            bomId: bomLinesTable.bomId,
+            bomCode: bomTable.code,
+            bomName: bomTable.name,
+            productId: bomTable.productId,
+            quantity: bomLinesTable.quantity,
+            unit: bomLinesTable.unit,
+          })
+          .from(bomLinesTable)
+          .leftJoin(bomTable, eq(bomLinesTable.bomId, bomTable.id))
+          .where(eq(bomLinesTable.itemId, itemId));
+      });
 
       // Enrich where used with product info
       const whereUsedWithProduct = await Promise.all(
-        whereUsedResult.map(async (wu: any) => {
-          const productResult = await db
-            .select({
-              code: items.code,
-              nameTh: items.nameTh,
-              nameEn: items.nameEn,
-            })
-            .from(items)
-            .where(eq(items.id, wu.productId));
+        whereUsedResult.map(async (wu: Record<string, unknown>) => {
+          const productResult = await executeDbOperation(async (db) => {
+            return db
+              .select({
+                code: itemsTable.code,
+                nameTh: itemsTable.nameTh,
+                nameEn: itemsTable.nameEn,
+              })
+              .from(itemsTable)
+              .where(eq(itemsTable.id, wu.productId as number));
+          });
           return {
             ...wu,
             productCode: productResult[0]?.code,
@@ -119,54 +128,56 @@ export async function GET(
       );
 
       // Get recent work orders for this item
-      const workOrdersResult = await db
-        .select({
-          id: workOrders.id,
-          woNumber: workOrders.woNumber,
-          plannedQuantity: workOrders.plannedQuantity,
-          actualQuantity: workOrders.actualQuantity,
-          status: workOrders.status,
-          plannedStartDate: workOrders.plannedStartDate,
-          actualEndDate: workOrders.actualEndDate,
-        })
-        .from(workOrders)
-        .where(eq(workOrders.productId, parseInt(id)))
-        .orderBy(sql`${workOrders.createdAt} DESC`)
-        .limit(10);
+      const workOrdersResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: workOrdersTable.id,
+            woNumber: workOrdersTable.woNumber,
+            plannedQuantity: workOrdersTable.plannedQuantity,
+            actualQuantity: workOrdersTable.actualQuantity,
+            status: workOrdersTable.status,
+            plannedStartDate: workOrdersTable.plannedStartDate,
+            actualEndDate: workOrdersTable.actualEndDate,
+          })
+          .from(workOrdersTable)
+          .where(eq(workOrdersTable.productId, itemId))
+          .orderBy(sql`${workOrdersTable.createdAt} DESC`)
+          .limit(10);
+      });
 
       // Calculate stock summary
-      const totalStock = lotsResult.reduce((sum: number, lot: any) => sum + (lot.quantity || 0), 0);
+      const totalStock = lotsResult.reduce((sum: number, lot: Record<string, unknown>) => sum + ((lot.quantity as number) || 0), 0);
       const availableStock = lotsResult
-        .filter((lot: any) => lot.status === 'released')
-        .reduce((sum: number, lot: any) => sum + (lot.quantity || 0), 0);
+        .filter((lot: Record<string, unknown>) => lot.status === 'released')
+        .reduce((sum: number, lot: Record<string, unknown>) => sum + ((lot.quantity as number) || 0), 0);
       const quarantineStock = lotsResult
-        .filter((lot: any) => lot.status === 'quarantine')
-        .reduce((sum: number, lot: any) => sum + (lot.quantity || 0), 0);
+        .filter((lot: Record<string, unknown>) => lot.status === 'quarantine')
+        .reduce((sum: number, lot: Record<string, unknown>) => sum + ((lot.quantity as number) || 0), 0);
       const rejectedStock = lotsResult
-        .filter((lot: any) => lot.status === 'rejected')
-        .reduce((sum: number, lot: any) => sum + (lot.quantity || 0), 0);
+        .filter((lot: Record<string, unknown>) => lot.status === 'rejected')
+        .reduce((sum: number, lot: Record<string, unknown>) => sum + ((lot.quantity as number) || 0), 0);
 
       // Calculate near expiry
       const now = new Date();
-      const nearExpiryLots = lotsResult.filter((lot: any) => {
+      const nearExpiryLots = lotsResult.filter((lot: Record<string, unknown>) => {
         if (!lot.expiryDate) return false;
-        const expiry = new Date(lot.expiryDate);
+        const expiry = new Date(lot.expiryDate as string);
         const daysUntilExpiry = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
       });
 
       // Stock by warehouse
       const stockByWarehouse: Record<string, { code: string; name: string; quantity: number }> = {};
-      lotsResult.forEach((lot: any) => {
+      lotsResult.forEach((lot: Record<string, unknown>) => {
         const key = lot.warehouseId?.toString() || 'unknown';
         if (!stockByWarehouse[key]) {
           stockByWarehouse[key] = {
-            code: lot.warehouseCode || 'Unknown',
-            name: lot.warehouseName || 'Unknown',
+            code: (lot.warehouseCode as string) || 'Unknown',
+            name: (lot.warehouseName as string) || 'Unknown',
             quantity: 0,
           };
         }
-        stockByWarehouse[key].quantity += lot.quantity || 0;
+        stockByWarehouse[key].quantity += (lot.quantity as number) || 0;
       });
 
       return NextResponse.json({

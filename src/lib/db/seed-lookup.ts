@@ -6,7 +6,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { useSqlite, getSqliteDb, getMysqlDb } from './index';
+import { isSqlite, getSqliteDb, getMysqlDb } from './index';
 import * as schema from './schema';
 
 // Default item categories
@@ -60,7 +60,7 @@ async function isTableEmpty(tableName: string, isSqlite: boolean): Promise<boole
     } else {
       const db = await getMysqlDb();
       const result = await db.execute(sql.raw(`SELECT COUNT(*) as count FROM \`${tableName}\``));
-      return (result[0] as any[])[0]?.count === 0;
+      return (result[0] as unknown as any[])[0]?.count === 0;
     }
   } catch (error) {
     // Table might not exist yet or connection issue - assume empty and try to seed
@@ -181,11 +181,11 @@ export async function seedLookupTables(): Promise<{
   categoriesSeeded: number;
   unitsSeeded: number;
 }> {
-  const isSqlite = useSqlite();
-  console.log(`[Lookup Seed] Starting lookup tables seeding for ${isSqlite ? 'SQLite' : 'MySQL'}...`);
+  const usingSqlite = isSqlite();
+  console.log(`[Lookup Seed] Starting lookup tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 
-  const categoriesSeeded = await seedItemCategories(isSqlite);
-  const unitsSeeded = await seedItemUnits(isSqlite);
+  const categoriesSeeded = await seedItemCategories(usingSqlite);
+  const unitsSeeded = await seedItemUnits(usingSqlite);
 
   console.log(`[Lookup Seed] Lookup tables seeding complete.`);
   console.log(`[Lookup Seed] Categories seeded: ${categoriesSeeded}, Units seeded: ${unitsSeeded}`);

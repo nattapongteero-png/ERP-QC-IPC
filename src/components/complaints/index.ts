@@ -5,5 +5,7 @@
 
 export { ComplaintList } from './ComplaintList';
 export { ComplaintForm } from './ComplaintForm';
+export { ComplaintDataEntryDialog } from './ComplaintDataEntryDialog';
+export type { ComplaintDataEntryDialogProps } from './ComplaintDataEntryDialog';
 export { ComplaintInvestigationForm } from './ComplaintInvestigationForm';
 export { ComplaintTrendsChart } from './ComplaintTrendsChart';

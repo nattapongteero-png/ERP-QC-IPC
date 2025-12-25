@@ -6,15 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVendors,
-  sqliteVMIVendorConfig,
-  sqliteVMITransactions,
-  mysqlVendors,
-  mysqlVMIVendorConfig,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -39,27 +31,23 @@ export async function POST(
         return errorResponse('Invalid vendor ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
+      const vendorsTable = getTableRef('vendors');
+      const vmiConfigTable = getTableRef('vmiVendorConfig');
+      const vmiTransactionsTable = getTableRef('vmiTransactions');
 
       // Check if vendor exists
-      const vendorResult = await db
-        .select()
-        .from(vendors)
-        .where(eq(vendors.id, vendorId));
+      const vendorResult = await executeDbOperation(async (db) => {
+        return db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      });
 
       if (vendorResult.length === 0) {
         return errorResponse('Vendor not found', 404);
       }
 
       // Get VMI config
-      const configResult = await db
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db.select().from(vmiConfigTable).where(eq(vmiConfigTable.vendorId, vendorId));
+      });
 
       if (configResult.length === 0) {
         return errorResponse('VMI configuration not found. Please configure VMI settings first.');
@@ -80,19 +68,20 @@ export async function POST(
           durationMs: number,
           error?: string
         ) {
-          const now = new Date();
-          await db.insert(vmiTransactions).values({
-            vendorId: logVendorId,
-            transactionType,
-            endpoint,
-            method,
-            requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
-            responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
-            httpStatus,
-            durationMs,
-            status: error ? 'error' : 'success',
-            errorMessage: error || null,
-            createdAt: isSqlite ? now.toISOString() : now,
+          await executeDbOperation(async (db) => {
+            return db.insert(vmiTransactionsTable).values({
+              vendorId: logVendorId,
+              transactionType,
+              endpoint,
+              method,
+              requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
+              responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
+              httpStatus,
+              durationMs,
+              status: error ? 'error' : 'success',
+              errorMessage: error || null,
+              createdAt: dbDate(),
+            });
           });
         },
       };
@@ -119,14 +108,16 @@ export async function POST(
           // Return specific error for auth issues
           if (err.code === 'UNAUTHORIZED' || err.code === 'API_KEY_EXPIRED' || err.code === 'API_KEY_REVOKED') {
             // Update config to mark as disconnected
-            await db
-              .update(vmiConfig)
-              .set({
-                isConnected: false,
-                lastConnectionAt: isSqlite ? now.toISOString() : now,
-                updatedAt: isSqlite ? now.toISOString() : now,
-              })
-              .where(eq(vmiConfig.vendorId, vendorId));
+            await executeDbOperation(async (db) => {
+              return db
+                .update(vmiConfigTable)
+                .set({
+                  isConnected: false,
+                  lastConnectionAt: dbDate(),
+                  updatedAt: dbDate(),
+                })
+                .where(eq(vmiConfigTable.vendorId, vendorId));
+            });
 
             return errorResponse(
               `VMI Portal authentication failed: ${errorMessage}`,
@@ -140,14 +131,16 @@ export async function POST(
       }
 
       // Update connection status
-      await db
-        .update(vmiConfig)
-        .set({
-          isConnected,
-          lastConnectionAt: isSqlite ? now.toISOString() : now,
-          updatedAt: isSqlite ? now.toISOString() : now,
-        })
-        .where(eq(vmiConfig.vendorId, vendorId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(vmiConfigTable)
+          .set({
+            isConnected,
+            lastConnectionAt: dbDate(),
+            updatedAt: dbDate(),
+          })
+          .where(eq(vmiConfigTable.vendorId, vendorId));
+      });
 
       // Create audit log
       await createAuditLog({

@@ -43,7 +43,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log('[DEBUG] Calling getComplaintTrends with:', parseResult.data);
     const trends = await getComplaintTrends(parseResult.data);
+    console.log('[DEBUG] Got trends:', JSON.stringify(trends, null, 2));
 
     return NextResponse.json({
       success: true,
@@ -51,6 +53,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching complaint trends:', error);
+    if (error instanceof Error) {
+      console.error('Stack:', error.stack);
+    }
     return NextResponse.json(
       { success: false, error: 'Failed to fetch trends' },
       { status: 500 }

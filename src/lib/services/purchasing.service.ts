@@ -3,7 +3,8 @@
  * Real-world purchasing with VMI integration, vendor management, and AVL
  */
 
-import { db, useSqlite } from '../db';
+import { db, isSqlite } from '../db';
+import { toQueryDate, getTodayStr } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqlitePurchaseOrders,
@@ -73,7 +74,7 @@ export interface VendorEvaluation {
 
 // Get table references based on database type
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       purchaseOrders: sqlitePurchaseOrders,
       purchaseOrderLines: sqlitePurchaseOrderLines,
@@ -173,7 +174,7 @@ export async function getPreferredVendor(itemId: number): Promise<number | null>
   const { avl, vendors } = getTables();
   const database = db();
 
-  const today = new Date().toISOString().split('T')[0];
+  const todayForQuery = toQueryDate(getTodayStr());
 
   // Find preferred vendor from AVL
   const [preferred] = await database
@@ -188,7 +189,7 @@ export async function getPreferredVendor(itemId: number): Promise<number | null>
         eq(vendors.isApproved, true),
         or(
           sql`${avl.expiryDate} IS NULL`,
-          gte(avl.expiryDate, today)
+          gte(avl.expiryDate, todayForQuery)
         )
       )
     );
@@ -209,7 +210,7 @@ export async function getPreferredVendor(itemId: number): Promise<number | null>
         eq(vendors.isApproved, true),
         or(
           sql`${avl.expiryDate} IS NULL`,
-          gte(avl.expiryDate, today)
+          gte(avl.expiryDate, todayForQuery)
         )
       )
     )
@@ -279,14 +280,13 @@ export async function createPurchaseOrder(
     const [item] = await database.select().from(items).where(eq(items.id, line.itemId));
 
     await database.insert(purchaseOrderLines).values({
-      purchaseOrderId: newPO.id,
+      poId: newPO.id,
       itemId: line.itemId,
       quantity: line.quantity,
       unit: item?.primaryUnit || 'EA',
       unitPrice: line.unitPrice,
       totalPrice: line.quantity * line.unitPrice,
-      requiredDate: line.requiredDate,
-      lineNumber: i + 1,
+      expectedDate: line.requiredDate,
     });
   }
 
@@ -669,10 +669,10 @@ export async function evaluateVendorPerformance(
   ];
 
   if (dateFrom) {
-    conditions.push(gte(purchaseOrders.createdAt, dateFrom));
+    conditions.push(gte(purchaseOrders.createdAt, toQueryDate(dateFrom)));
   }
   if (dateTo) {
-    conditions.push(lte(purchaseOrders.createdAt, dateTo));
+    conditions.push(lte(purchaseOrders.createdAt, toQueryDate(dateTo)));
   }
 
   const completedPOs = await database

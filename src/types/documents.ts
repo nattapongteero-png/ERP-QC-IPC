@@ -90,7 +90,12 @@ export interface DocumentVersion {
   documentId: number;
   versionNumber: string;
   content: string | null;
-  filePath: string | null;
+  filePath: string | null; // Legacy - deprecated
+  // BLOB storage fields
+  fileName: string | null; // Original file name
+  fileSize: number | null; // File size in bytes
+  mimeType: string | null; // MIME type (e.g., application/pdf)
+  hasFileData?: boolean; // Indicates if file data is stored in DB
   changeDescription: string | null;
   status: DocumentVersionStatus;
   effectiveDate: string | null;
@@ -104,14 +109,24 @@ export interface DocumentVersion {
 export interface DocumentVersionCreate {
   documentId: number;
   content?: string;
-  filePath?: string;
+  filePath?: string; // Legacy - deprecated
+  // BLOB storage
+  fileData?: Buffer | Uint8Array;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
   changeDescription?: string;
   isMajorRevision?: boolean;
 }
 
 export interface DocumentVersionUpdate {
   content?: string;
-  filePath?: string;
+  filePath?: string; // Legacy - deprecated
+  // BLOB storage
+  fileData?: Buffer | Uint8Array;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
   changeDescription?: string;
   status?: DocumentVersionStatus;
   effectiveDate?: string;

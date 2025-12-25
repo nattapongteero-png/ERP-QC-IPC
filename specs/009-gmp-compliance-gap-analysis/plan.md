@@ -1,41 +1,48 @@
-# Implementation Plan: GMP Compliance Gap Analysis
+# Implementation Plan: GMP Compliance Gap Analysis - Phase 2 (External Auditor Requirements)
 
-**Branch**: `009-gmp-compliance-gap-analysis` | **Date**: 2025-12-22 | **Spec**: [spec.md](./spec.md)
+**Branch**: `009-gmp-compliance-gap-analysis` | **Date**: 2025-12-24 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/009-gmp-compliance-gap-analysis/spec.md`
+**Phase**: 2 - External Auditor Gap Closure (FR-047 to FR-074)
 
 ## Summary
 
-This plan addresses the implementation gaps identified between the current Herbal Medicine ERP codebase and the Thai FDA GMP requirements (INTEL-HERBAL-MANUFACTURING.md). The primary deliverables are 11 new modules/enhancements covering Document Control, CAPA Management, Complaints/Recalls, Sanitation, Stability Program, and Internal Audit - bringing total GMP compliance from ~40% average to 80%+ across all 10 หมวด.
+Phase 2 addresses 21 gaps identified from external auditor questions (docs/AUDIT-QUESTION-P1.md). These include:
+- Dashboard KPIs for RM status, QC summary, production status
+- Inventory detail fields (manufacturer, importer, retest date, documents)
+- Production workflows (line clearance, label verification, BOM enhancements)
+- Quality control improvements (disposition decisions, approval workflows)
+- Electronic signature system for 21 CFR Part 11 alignment
+
+**Total Effort**: 46 days estimated across 4 sub-phases.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x with strict mode enabled
-**Primary Dependencies**: Next.js 16.0.10, React 19.2.1, DevExtreme React 25.1.7, Drizzle ORM 0.45.1, TanStack Query 5.90.12, Zod 4.2.1
-**Storage**: MySQL 8.0 (production), SQLite (testing) via Drizzle ORM dual-schema pattern
-**Testing**: Vitest 4.x with @testing-library/react, DB_TYPE=sqlite for test isolation
-**Target Platform**: Web application (desktop primary, tablet secondary - iPad landscape)
-**Project Type**: Web application with Next.js App Router
-**Performance Goals**: <500ms API response, <3s page load, 50 concurrent users
-**Constraints**: GMP audit trail required, immutable records for QC-approved data, DevExtreme components mandatory
-**Scale/Scope**: ~118 existing tables, 149 API routes, adding ~20 new tables and ~50 new API routes
+**Language/Version**: TypeScript 5.x with Next.js 14+
+**Primary Dependencies**: Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
+**Storage**: MySQL (production), SQLite (testing) via Drizzle dual-schema
+**Testing**: Vitest + React Testing Library for integration tests
+**Target Platform**: Web application (desktop primary, tablet secondary)
+**Project Type**: Full-stack web application (Next.js monolith)
+**Performance Goals**: Dashboard loads <3s, API responses <500ms
+**Constraints**: Must maintain backward compatibility with existing data
+**Scale/Scope**: ~50 concurrent users, 10k+ lots, 100+ work orders/month
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| Principle | Status | Evidence/Notes |
-|-----------|--------|----------------|
-| I. Code Quality Standards | ✅ PASS | TypeScript strict mode, ESLint, Drizzle ORM for type-safe DB |
-| - No Hardcoded Values | ✅ PASS | All config via env vars, DB-driven settings |
-| - Error Verification | ✅ PASS | `pnpm tsc --noEmit` and `pnpm lint` in workflow |
-| - Frequent Commits | ✅ PASS | Commit after each task per constitution |
-| - Reusable Components | ✅ PASS | Shared components in `src/components/shared/` |
-| II. Testing Standards | ✅ PASS | Vitest with SQLite isolation, TDD encouraged |
-| III. UX Consistency | ✅ PASS | DevExtreme components exclusively |
-| IV. Performance | ✅ PASS | Pagination, indexing, <500ms API targets |
-| V. Security & GMP Compliance | ✅ PASS | Audit trail, role-based access, JWT auth |
+| Principle | Requirement | Status | Notes |
+|-----------|-------------|--------|-------|
+| I. Type Safety | Strict TypeScript, no `any` | ✅ PASS | All new code will use Zod schemas |
+| I. No Hardcoded Values | Config in env/database | ✅ PASS | Alert thresholds configurable |
+| I. Reusable Components | Shared dialogs/forms | ✅ PASS | E-signature component reusable |
+| II. Test Coverage | Unit + integration tests | ✅ PASS | Each feature tested with real SQLite |
+| III. DevExtreme Only | No other UI libraries | ✅ PASS | All UI uses DevExtreme |
+| IV. Performance | <3s page load, <500ms API | ✅ PASS | Dashboard uses optimized queries |
+| V. Audit Trail | All changes logged | ✅ PASS | E-signatures provide enhanced audit |
+| V. Data Integrity | Lot data immutable after QC | ✅ PASS | Disposition requires e-signature |
 
-**Gate Result**: PASS - No constitution violations. Proceed to Phase 0.
+**Gate Status**: ✅ PASSED - No violations
 
 ## Project Structure
 
@@ -43,18 +50,13 @@ This plan addresses the implementation gaps identified between the current Herba
 
 ```text
 specs/009-gmp-compliance-gap-analysis/
-├── plan.md              # This file
-├── research.md          # Phase 0 output - design decisions
-├── data-model.md        # Phase 1 output - entity definitions
-├── quickstart.md        # Phase 1 output - implementation guide
-├── contracts/           # Phase 1 output - API specifications
-│   ├── document-control.yaml
-│   ├── capa.yaml
-│   ├── complaints-recalls.yaml
-│   ├── sanitation.yaml
-│   ├── stability.yaml
-│   └── internal-audit.yaml
-└── tasks.md             # Phase 2 output (created by /speckit.tasks)
+├── spec.md              # Updated with FR-047 to FR-074
+├── plan.md              # This file (Phase 2 plan)
+├── research.md          # Updated with Phase 2 research
+├── data-model.md        # Updated with new entities
+├── quickstart.md        # Updated with Phase 2 guide
+├── contracts/           # API contracts for new endpoints
+└── tasks.md             # Phase 2 tasks (generated by /speckit.tasks)
 ```
 
 ### Source Code (repository root)
@@ -63,208 +65,244 @@ specs/009-gmp-compliance-gap-analysis/
 src/
 ├── app/
 │   ├── api/
-│   │   ├── documents/           # NEW: Document Control API
-│   │   │   ├── route.ts
-│   │   │   ├── [id]/
-│   │   │   │   ├── route.ts
-│   │   │   │   ├── versions/route.ts
-│   │   │   │   └── approve/route.ts
-│   │   │   └── types/route.ts
-│   │   ├── capa/                # NEW: CAPA Management API
-│   │   │   ├── route.ts
-│   │   │   ├── [id]/
-│   │   │   │   ├── route.ts
-│   │   │   │   ├── actions/route.ts
-│   │   │   │   └── effectiveness/route.ts
-│   │   │   └── dashboard/route.ts
-│   │   ├── complaints/          # NEW: Complaints API
-│   │   │   ├── route.ts
-│   │   │   ├── [id]/route.ts
-│   │   │   └── trends/route.ts
-│   │   ├── recalls/             # NEW: Recalls API
-│   │   │   ├── route.ts
-│   │   │   ├── [id]/
-│   │   │   │   ├── route.ts
-│   │   │   │   ├── distribution/route.ts
-│   │   │   │   └── reconciliation/route.ts
-│   │   │   └── mock-drill/route.ts
-│   │   ├── sanitation/          # NEW: Sanitation API
-│   │   │   ├── schedules/route.ts
-│   │   │   ├── logs/route.ts
-│   │   │   ├── pest-control/route.ts
-│   │   │   └── trends/route.ts
-│   │   ├── stability/           # NEW: Stability Program API
-│   │   │   ├── studies/route.ts
-│   │   │   ├── protocols/route.ts
-│   │   │   ├── samples/route.ts
-│   │   │   └── trends/route.ts
-│   │   ├── audits/              # NEW: Internal Audit API
-│   │   │   ├── plans/route.ts
-│   │   │   ├── [id]/route.ts
-│   │   │   ├── findings/route.ts
-│   │   │   └── reports/route.ts
-│   │   ├── pqr/                 # NEW: Product Quality Review API
-│   │   │   ├── generate/route.ts
-│   │   │   └── [id]/route.ts
-│   │   ├── contracts/           # NEW: Contract Manufacturing API
-│   │   │   ├── route.ts
-│   │   │   └── [id]/route.ts
-│   │   └── compliance/          # NEW: Compliance Dashboard API
-│   │       └── dashboard/route.ts
-│   ├── documents/               # NEW: Document Control UI
-│   │   ├── page.tsx
-│   │   ├── new/page.tsx
-│   │   └── [id]/page.tsx
-│   ├── capa/                    # NEW: CAPA Management UI
-│   │   ├── page.tsx
-│   │   ├── new/page.tsx
-│   │   └── [id]/page.tsx
-│   ├── complaints/              # NEW: Complaints UI
-│   │   ├── page.tsx
-│   │   └── [id]/page.tsx
-│   ├── recalls/                 # NEW: Recalls UI
-│   │   ├── page.tsx
-│   │   └── [id]/page.tsx
-│   ├── sanitation/              # NEW: Sanitation UI
-│   │   ├── page.tsx
-│   │   ├── schedules/page.tsx
-│   │   ├── logs/page.tsx
-│   │   └── pest-control/page.tsx
-│   ├── stability/               # NEW: Stability Program UI
-│   │   ├── page.tsx
-│   │   ├── studies/page.tsx
-│   │   └── trends/page.tsx
-│   ├── audits/                  # NEW: Internal Audit UI
-│   │   ├── page.tsx
-│   │   ├── plans/page.tsx
-│   │   └── [id]/page.tsx
-│   └── compliance/              # NEW: Compliance Dashboard UI
-│       └── page.tsx
+│   │   ├── dashboard/
+│   │   │   ├── audit-kpis/route.ts        # FR-047 to FR-054
+│   │   │   └── rm-summary/route.ts        # FR-047
+│   │   ├── inventory/
+│   │   │   ├── min-stock-alerts/route.ts  # FR-050
+│   │   │   └── lots/[id]/documents/route.ts  # FR-057
+│   │   ├── production/
+│   │   │   ├── line-clearance/route.ts    # FR-062
+│   │   │   └── label-verification/route.ts  # FR-064/065
+│   │   └── quality/
+│   │       └── disposition/route.ts       # FR-067
+│   ├── dashboard/
+│   │   └── audit/page.tsx                 # Auditor dashboard UI
+│   └── production/
+│       ├── line-clearance/page.tsx        # Line clearance UI
+│       └── label-verification/page.tsx    # Label verification UI
 ├── components/
 │   ├── shared/
-│   │   ├── WorkflowStatusBadge.tsx      # Reusable workflow status display
-│   │   ├── ApprovalChain.tsx            # Reusable approval workflow UI
-│   │   ├── AuditTrailViewer.tsx         # Reusable audit trail display
-│   │   └── TrendChart.tsx               # Reusable trend visualization
-│   ├── documents/               # NEW: Document Control components
-│   ├── capa/                    # NEW: CAPA components
-│   ├── complaints/              # NEW: Complaints components
-│   ├── recalls/                 # NEW: Recalls components
-│   ├── sanitation/              # NEW: Sanitation components
-│   ├── stability/               # NEW: Stability components
-│   └── audits/                  # NEW: Audit components
+│   │   ├── electronic-signature-dialog.tsx  # FR-071
+│   │   └── document-upload.tsx            # FR-057
+│   ├── dashboard/
+│   │   ├── rm-summary-card.tsx            # FR-047
+│   │   ├── rm-status-card.tsx             # FR-048
+│   │   ├── expiry-alert-card.tsx          # FR-049
+│   │   ├── min-stock-alert-card.tsx       # FR-050
+│   │   ├── qc-summary-card.tsx            # FR-051
+│   │   ├── production-status-card.tsx     # FR-052
+│   │   ├── pending-qc-card.tsx            # FR-053
+│   │   └── fg-approved-card.tsx           # FR-054
+│   └── production/
+│       ├── line-clearance-form.tsx        # FR-062
+│       └── label-verification-form.tsx    # FR-064/065
 ├── lib/
 │   ├── db/
-│   │   ├── schema.ts            # EXTEND: Add new tables (~20)
-│   │   └── schema-mysql.ts      # EXTEND: MySQL equivalents
+│   │   └── schema/
+│   │       ├── sqlite/schema.ts           # Updated with new columns/tables
+│   │       └── mysql/schema.ts            # Updated with new columns/tables
 │   └── services/
-│       ├── document-service.ts  # NEW
-│       ├── capa-service.ts      # NEW
-│       ├── complaint-service.ts # NEW
-│       ├── recall-service.ts    # NEW
-│       ├── sanitation-service.ts# NEW
-│       ├── stability-service.ts # NEW
-│       ├── audit-service.ts     # NEW
-│       └── pqr-service.ts       # NEW
+│       ├── dashboard.service.ts           # Audit KPI calculations
+│       ├── electronic-signature.service.ts  # FR-071 to FR-074
+│       └── line-clearance.service.ts      # FR-062
 └── types/
-    ├── documents.ts             # NEW
-    ├── capa.ts                  # NEW
-    ├── complaints.ts            # NEW
-    ├── recalls.ts               # NEW
-    ├── sanitation.ts            # NEW
-    ├── stability.ts             # NEW
-    └── audits.ts                # NEW
+    ├── dashboard.ts                       # Dashboard KPI types
+    └── electronic-signature.ts            # E-signature types
 
 tests/
-├── unit/
+├── integration/
 │   ├── services/
-│   │   ├── document-service.test.ts
-│   │   ├── capa-service.test.ts
-│   │   ├── complaint-service.test.ts
-│   │   ├── recall-service.test.ts
-│   │   ├── sanitation-service.test.ts
-│   │   ├── stability-service.test.ts
-│   │   ├── audit-service.test.ts
-│   │   └── pqr-service.test.ts
-│   └── components/
-└── integration/
-    ├── api/
-    │   ├── documents.test.ts
-    │   ├── capa.test.ts
-    │   ├── complaints.test.ts
-    │   ├── recalls.test.ts
-    │   ├── sanitation.test.ts
-    │   ├── stability.test.ts
-    │   └── audits.test.ts
-    └── workflows/
-        ├── deviation-to-capa.test.ts
-        ├── complaint-to-recall.test.ts
-        └── audit-to-capa.test.ts
+│   │   ├── dashboard-service-real.test.ts
+│   │   ├── electronic-signature-service-real.test.ts
+│   │   └── line-clearance-service-real.test.ts
+│   └── api/
+│       └── dashboard-audit-kpis.test.ts
+└── helpers/
+    └── seed-data.ts                       # Updated with Phase 2 seed data
 ```
 
-**Structure Decision**: Extends existing Next.js App Router structure with new feature modules. Each module follows the established pattern: API routes in `src/app/api/[module]/`, UI pages in `src/app/[module]/`, components in `src/components/[module]/`, services in `src/lib/services/`, and types in `src/types/`.
+**Structure Decision**: Extends existing Next.js monolith structure. New features follow established patterns from Phase 1 modules.
 
-## Complexity Tracking
+---
 
-No constitution violations requiring justification. The design follows existing patterns.
+## Phase 2A: Schema Changes (Week 1-2)
 
-## Implementation Phases
+### New Tables
 
-### Phase 0: Research (Complete)
+| Table | Purpose | FR Reference |
+|-------|---------|--------------|
+| `line_clearance_checklists` | Pre-production verification | FR-062 |
+| `label_verifications` | BMR label attachments (images via existing `attachments` table) | FR-064/065 |
+| `electronic_signatures` | 21 CFR Part 11 signatures | FR-071-074 |
+| `stock_alert_rules` | Configurable alert thresholds | FR-050 |
 
-See [research.md](./research.md) for design decisions.
+**Note**: Lot documents (FR-057) use the existing `attachments` table with `moduleName='inventory_lot'` - no new table needed.
 
-### Phase 1: Design (Complete)
+### Column Additions
 
-See:
-- [data-model.md](./data-model.md) for entity definitions
-- [contracts/](./contracts/) for API specifications
-- [quickstart.md](./quickstart.md) for implementation guide
+| Table | New Columns | FR Reference |
+|-------|-------------|--------------|
+| `inventory_lots` | manufacturerName, manufacturerId, importerName, importerId, countryOfOrigin, retestDate, retestInterval, retestStatus | FR-055, FR-056 |
+| `items` | strength | FR-059 |
+| `quality_tests` | disposition, dispositionBy, dispositionAt, dispositionReason, dispositionApprovedBy, dispositionApprovedAt | FR-067-070 |
+| `bom_lines` | percentageInFormula, weighedQty, weighedBy, verifiedBy, verifiedAt | FR-063 |
+| `work_orders` | lineClearanceRequired, lineClearanceStatus, lineClearanceBy, lineClearanceAt, lineClearanceChecklistId | FR-062 |
 
-### Phase 2: Tasks (Pending)
+---
 
-Run `/speckit.tasks` to generate implementation tasks.
+## Phase 2B: Dashboard & Alerts (Week 2-3)
 
-## Module Priority Order
+### New API Endpoints
 
-Based on dependencies and GMP criticality:
+| Endpoint | Method | Purpose | FR Reference |
+|----------|--------|---------|--------------|
+| `/api/dashboard/audit-kpis` | GET | All 8 KPI cards for audit dashboard | FR-047-054 |
+| `/api/dashboard/rm-summary` | GET | RM received YTD with frequency | FR-047 |
+| `/api/inventory/min-stock-alerts` | GET | Items below reorder point | FR-050 |
+| `/api/quality/qc-summary` | GET | Pass/fail counts with dispositions | FR-051 |
+| `/api/production/status` | GET | Active work orders summary | FR-052 |
+| `/api/quality/pending-release` | GET | FG awaiting QC approval | FR-053 |
 
-| Priority | Module | Dependencies | Est. Tables | Est. APIs |
-|----------|--------|--------------|-------------|-----------|
-| P1.1 | Document Control | None | 3 | 8 |
-| P1.2 | CAPA Management | Deviation (exists), Document Control | 3 | 10 |
-| P1.3 | Change Control | Document Control | 2 | 6 |
-| P1.4 | PQR Generation | CAPA, Deviation, Stability | 2 | 4 |
-| P2.1 | Complaints | CAPA | 2 | 8 |
-| P2.2 | Recalls | Lot Traceability (exists) | 3 | 10 |
-| P2.3 | Stability Program | Quality Tests (exists) | 4 | 12 |
-| P3.1 | Sanitation | None | 3 | 8 |
-| P3.2 | Pest Control | Sanitation | 1 | 4 |
-| P3.3 | Internal Audit | CAPA | 3 | 8 |
-| P3.4 | Contract Repository | None | 2 | 4 |
-| P1.0 | Compliance Dashboard | All above | 0 | 2 |
+### Dashboard Components
 
-**Total New**: ~28 tables, ~84 API endpoints
+8 new KPI cards for the audit dashboard page at `/dashboard/audit`:
+1. RM Received YTD (FR-047)
+2. RM Status Breakdown (FR-048)
+3. Expiry Alerts (FR-049)
+4. Min Stock Alerts (FR-050)
+5. QC Summary (FR-051)
+6. Production Status (FR-052)
+7. Pending QC Release (FR-053)
+8. FG Approved (FR-054)
+
+---
+
+## Phase 2C: Production Workflows (Week 3-4)
+
+### Line Clearance Workflow (FR-062)
+
+**Flow**:
+1. Work order released → Line clearance required
+2. Operator completes checklist (previous product cleared, area clean, equipment clean)
+3. Verifier reviews and signs (e-signature)
+4. Line clearance approved → Production can start
+5. System blocks production if line clearance not complete
+
+### Label Verification Workflow (FR-064/065)
+
+**Flow**:
+1. Packaging step reached → Label verification required
+2. Operator uploads label image
+3. Operator signs (e-signature with meaning: "I verify this label is correct")
+4. Witness countersigns (e-signature)
+5. Label verification attached to batch record
+
+### Electronic Signature System (FR-071-074)
+
+**Components**:
+- `ElectronicSignatureDialog` - Reusable modal for password re-auth
+- `electronicSignatures` table - Stores signature records
+- Signature hash generation using SHA-256
+- Meaning statement capture ("I have performed...", "I verify...")
+
+**Critical Operations Requiring E-Signature**:
+- Line clearance verification
+- Label verification (operator + witness)
+- QC disposition approval
+- Document approval
+- CAPA effectiveness verification
+
+---
+
+## Phase 2D: Testing & Polish (Week 4-5)
+
+### Integration Tests Required
+
+| Test File | Coverage |
+|-----------|----------|
+| `dashboard-service-real.test.ts` | All 8 KPI calculations |
+| `electronic-signature-service-real.test.ts` | Signature creation, verification, hash validation |
+| `line-clearance-service-real.test.ts` | Checklist workflow, blocking logic |
+| `label-verification-service-real.test.ts` | Image upload, dual signature |
+| `qc-disposition-service-real.test.ts` | Disposition workflow, lot status update |
+
+### UI Tests Required
+
+| Test File | Coverage |
+|-----------|----------|
+| `audit-dashboard.test.tsx` | 8 KPI cards render correctly |
+| `line-clearance-form.test.tsx` | Form validation, submission |
+| `electronic-signature-dialog.test.tsx` | Password verification, error states |
+
+---
+
+## Dependencies & Execution Order
+
+```mermaid
+graph TD
+    A[Phase 2A: Schema Changes] --> B[Phase 2B: Dashboard & Alerts]
+    A --> C[Phase 2C: Production Workflows]
+    B --> D[Phase 2D: Testing & Polish]
+    C --> D
+
+    subgraph Phase 2A
+        A1[Add inventory_lots columns] --> A2[Add quality_tests columns]
+        A1 --> A3[Create line_clearance_checklists]
+        A2 --> A4[Create electronic_signatures]
+        A3 --> A4
+    end
+
+    subgraph Phase 2C
+        C1[E-Signature Service] --> C2[Line Clearance Workflow]
+        C1 --> C3[Label Verification Workflow]
+        C2 --> C4[Production Blocking Logic]
+    end
+```
+
+---
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|------|------------|
-| Scope creep from 11 modules | Strict P1/P2/P3 prioritization, MVP per module |
-| Integration with existing deviations | Use existing deviation table, add foreign key to CAPA |
-| Audit trail consistency | Reuse existing audit_log pattern from HR module |
-| DevExtreme learning curve | Copy existing grid/form patterns from inventory module |
-| Test coverage | TDD approach, SQLite isolation for unit tests |
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| E-signature complexity | Medium | High | Start with simple password re-auth, defer PKI |
+| Schema migration breaks production | Low | High | Test migrations on staging first |
+| Dashboard performance with large data | Medium | Medium | Add indexes, use aggregation queries |
+| Label image storage size | Low | Medium | Compress images, use S3 if needed |
+| Dual signature UX complexity | Medium | Medium | Design intuitive operator/witness flow |
 
-## Success Metrics (from Spec)
+---
 
-- SC-001: 80%+ coverage across all 10 GMP chapters
-- SC-002: 100% batch releases require e-authorization
-- SC-003: Deviations closed with CAPA in 30/60 days
-- SC-004: Document retrieval < 30 seconds
-- SC-005: Stability trends available for marketed products
-- SC-006: Recall identifies 100% affected customers in 4 hours
-- SC-007: 100% internal audit completion annually
-- SC-008: Regulatory reports generated in 24 hours
-- SC-009: Training expiry alerts 30 days advance
-- SC-010: Equipment calibration overdue < 2%
+## Success Criteria Verification
+
+| Criterion | Test Method |
+|-----------|-------------|
+| SC-011: Dashboard <3s | Performance test with 10k lots |
+| SC-012: 100% manufacturer recorded | DB constraint + UI validation |
+| SC-013: 100% retest dates tracked | DB constraint for materials with retest |
+| SC-014: 100% lots have COA | Validation rule on lot creation |
+| SC-015: 100% line clearance enforced | Integration test for production blocking |
+| SC-016: 100% label verification | Integration test for packaging step |
+| SC-017: 100% disposition on failed QC | DB constraint + workflow enforcement |
+| SC-018: E-signatures with password | Unit test for signature service |
+
+---
+
+## Next Steps
+
+1. Run `/speckit.tasks` to generate detailed tasks for Phase 2
+2. Execute Phase 2A schema changes first
+3. Deploy to staging for testing
+4. Execute Phase 2B-2D in sequence
+5. Run full integration test suite
+6. Deploy to production
+
+---
+
+## References
+
+- [spec.md](./spec.md) - Full specification with FR-047 to FR-074
+- [research.md](./research.md) - Technical decisions and patterns
+- [data-model.md](./data-model.md) - Entity definitions
+- [docs/AUDIT-QUESTION-P1.md](/docs/AUDIT-QUESTION-P1.md) - Original auditor questions

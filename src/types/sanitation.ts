@@ -135,7 +135,7 @@ export interface PestControlLogUpdate {
   findings?: string;
   recommendations?: string;
   followUpRequired?: boolean;
-  followUpDate?: string;
+  followUpDate?: string | null;
 }
 
 // ============================================
@@ -219,4 +219,47 @@ export interface PestControlLogListResponse {
 export interface SanitationTrendsParams {
   period?: 'week' | 'month' | 'quarter' | 'year';
   areaType?: AreaType;
+}
+
+// ============================================
+// Due Dates Generation (T802)
+// ============================================
+
+export interface DueDateRange {
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface GeneratedDueDate {
+  scheduleId: number;
+  scheduleName: string;
+  areaType: AreaType;
+  frequency: SanitationFrequency;
+  dueDate: string;
+}
+
+// ============================================
+// Pest Control Trends (T806)
+// ============================================
+
+export interface PestControlTrendsParams {
+  period?: 'week' | 'month' | 'quarter' | 'year';
+  areaType?: AreaType;
+}
+
+export interface PestControlTrends {
+  period: string;
+  totalServices: number;
+  averageFindingsPerService: number;
+  followUpRate: number; // Percentage of services requiring follow-up
+  byServiceType: Array<{
+    serviceType: PestControlServiceType;
+    serviceCount: number;
+    averageFindings: number;
+  }>;
+  dataPoints: Array<{
+    date: string;
+    serviceCount: number;
+    findingsCount: number;
+  }>;
 }

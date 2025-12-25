@@ -3,12 +3,12 @@
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 5)
  *
  * POST /api/documents/upload - Upload a file for document version
+ *
+ * Files are stored as BLOB data in the database, not on the filesystem.
+ * This API validates the file and returns base64-encoded data for storage.
  */
 
 import { NextRequest } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
 import {
   successResponse,
   errorResponse,
@@ -67,38 +67,21 @@ export async function POST(request: NextRequest) {
           // Don't reject - some browsers report different MIME types
         }
 
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = join(process.cwd(), 'data', 'uploads', 'documents', documentId);
-        if (!existsSync(uploadsDir)) {
-          await mkdir(uploadsDir, { recursive: true });
-        }
-
-        // Generate unique filename
-        const timestamp = Date.now();
-        const sanitizedName = file.name
-          .replace(/[^a-zA-Z0-9.-]/g, '_')
-          .replace(/__+/g, '_');
-        const filename = `${timestamp}_${sanitizedName}`;
-        const filePath = join(uploadsDir, filename);
-
-        // Convert file to buffer and write
+        // Convert file to buffer and base64 for database storage
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        await writeFile(filePath, buffer);
+        const base64Data = buffer.toString('base64');
 
-        // Return relative path for storage in database
-        const relativePath = `data/uploads/documents/${documentId}/${filename}`;
-
-        console.log(`[Documents] File uploaded: ${relativePath} by user ${session.userId}`);
+        console.log(`[Documents] File prepared for DB storage: ${file.name} (${file.size} bytes) by user ${session.userId}`);
 
         return successResponse(
           {
-            filePath: relativePath,
+            fileData: base64Data,
             fileName: file.name,
             fileSize: file.size,
-            mimeType: file.type,
+            mimeType: file.type || 'application/octet-stream',
           },
-          'File uploaded successfully'
+          'File processed successfully'
         );
       } catch (error) {
         console.error('[Documents] File upload error:', error);

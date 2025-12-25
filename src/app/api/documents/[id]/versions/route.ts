@@ -73,13 +73,34 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           return errorResponse('Validation failed', 400, { errors });
         }
 
-        const version = await createVersion(
-          {
-            documentId,
-            ...parseResult.data,
-          },
-          session.userId
-        );
+        // Convert base64 file data to buffer if provided
+        const versionData: {
+          documentId: number;
+          content?: string;
+          filePath?: string;
+          fileData?: Buffer;
+          fileName?: string;
+          fileSize?: number;
+          mimeType?: string;
+          changeDescription?: string;
+          isMajorRevision?: boolean;
+        } = {
+          documentId,
+          content: parseResult.data.content,
+          filePath: parseResult.data.filePath,
+          fileName: parseResult.data.fileName,
+          fileSize: parseResult.data.fileSize,
+          mimeType: parseResult.data.mimeType,
+          changeDescription: parseResult.data.changeDescription,
+          isMajorRevision: parseResult.data.isMajorRevision,
+        };
+
+        // Convert base64 to buffer for database storage
+        if (parseResult.data.fileData) {
+          versionData.fileData = Buffer.from(parseResult.data.fileData, 'base64');
+        }
+
+        const version = await createVersion(versionData, session.userId);
 
         return successResponse(version, 'Version created successfully');
       } catch (error) {

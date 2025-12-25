@@ -7,6 +7,7 @@
 
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 import { getDb } from '../db';
+import { toDateSafe } from '../db/date-utils';
 import {
   sqliteSanitationSchedules,
   sqliteSanitationLogs,
@@ -34,6 +35,10 @@ import type {
   SanitationTrendsParams,
   AreaType,
   SanitationFrequency,
+  DueDateRange,
+  GeneratedDueDate,
+  PestControlTrendsParams,
+  PestControlTrends,
 } from '@/types/sanitation';
 
 // ============================================
@@ -46,7 +51,8 @@ import type {
 export async function getSanitationSchedules(
   params: SanitationScheduleListParams = {}
 ): Promise<SanitationSchedule[]> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const conditions = [];
 
   if (params.areaType) {
@@ -67,7 +73,7 @@ export async function getSanitationSchedules(
 
   // Enrich with computed fields
   return Promise.all(
-    schedules.map(async (schedule) => {
+    schedules.map(async (schedule: any) => {
       const lastLog = await database
         .select()
         .from(sqliteSanitationLogs)
@@ -107,7 +113,8 @@ export async function getSanitationSchedules(
  * Get a single sanitation schedule by ID
  */
 export async function getSanitationScheduleById(id: number): Promise<SanitationSchedule | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const schedule = await database
     .select()
@@ -157,7 +164,8 @@ export async function createSanitationSchedule(
   data: SanitationScheduleCreate,
   userId: number
 ): Promise<SanitationSchedule> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const result = await database
     .insert(sqliteSanitationSchedules)
@@ -179,8 +187,8 @@ export async function createSanitationSchedule(
   await createAuditLog({
     userId,
     action: 'CREATE',
-    entityType: 'sanitation_schedule',
-    entityId: result[0].id,
+    tableName: 'sanitation_schedule',
+    recordId: result[0].id,
     newValue: result[0],
   });
 
@@ -211,7 +219,8 @@ export async function updateSanitationSchedule(
   data: SanitationScheduleUpdate,
   userId: number
 ): Promise<SanitationSchedule | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getSanitationScheduleById(id);
   if (!existing) return null;
@@ -233,9 +242,9 @@ export async function updateSanitationSchedule(
   await createAuditLog({
     userId,
     action: 'UPDATE',
-    entityType: 'sanitation_schedule',
-    entityId: id,
-    previousValue: existing,
+    tableName: 'sanitation_schedule',
+    recordId: id,
+    oldValue: existing,
     newValue: { ...existing, ...updateData },
   });
 
@@ -249,7 +258,8 @@ export async function deleteSanitationSchedule(
   id: number,
   userId: number
 ): Promise<boolean> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getSanitationScheduleById(id);
   if (!existing) return false;
@@ -262,9 +272,9 @@ export async function deleteSanitationSchedule(
   await createAuditLog({
     userId,
     action: 'DELETE',
-    entityType: 'sanitation_schedule',
-    entityId: id,
-    previousValue: existing,
+    tableName: 'sanitation_schedule',
+    recordId: id,
+    oldValue: existing,
   });
 
   return true;
@@ -280,7 +290,8 @@ export async function deleteSanitationSchedule(
 export async function getSanitationLogs(
   params: SanitationLogListParams = {}
 ): Promise<SanitationLogListResponse> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
@@ -323,7 +334,7 @@ export async function getSanitationLogs(
   let filteredLogs = logs;
   if (params.areaType) {
     filteredLogs = logs.filter(
-      (l) => l.schedule?.areaType === params.areaType
+      (l: any) => l.schedule?.areaType === params.areaType
     );
   }
 
@@ -333,7 +344,7 @@ export async function getSanitationLogs(
     .where(whereClause);
 
   return {
-    logs: filteredLogs.map((row) => ({
+    logs: filteredLogs.map((row: any) => ({
       id: row.log.id,
       scheduleId: row.log.scheduleId || 0,
       scheduleName: row.schedule?.name,
@@ -359,7 +370,8 @@ export async function getSanitationLogs(
  * Get a single sanitation log by ID
  */
 export async function getSanitationLogById(id: number): Promise<SanitationLog | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const logs = await database
     .select({
@@ -406,7 +418,8 @@ export async function createSanitationLog(
   data: SanitationLogCreate,
   userId: number
 ): Promise<SanitationLog> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get the schedule's method if not provided
   let method = data.method;
@@ -433,8 +446,8 @@ export async function createSanitationLog(
   await createAuditLog({
     userId,
     action: 'CREATE',
-    entityType: 'sanitation_log',
-    entityId: result[0].id,
+    tableName: 'sanitation_log',
+    recordId: result[0].id,
     newValue: result[0],
   });
 
@@ -449,7 +462,8 @@ export async function updateSanitationLog(
   data: SanitationLogUpdate,
   userId: number
 ): Promise<SanitationLog | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getSanitationLogById(id);
   if (!existing) return null;
@@ -468,9 +482,9 @@ export async function updateSanitationLog(
   await createAuditLog({
     userId,
     action: 'UPDATE',
-    entityType: 'sanitation_log',
-    entityId: id,
-    previousValue: existing,
+    tableName: 'sanitation_log',
+    recordId: id,
+    oldValue: existing,
     newValue: { ...existing, ...updateData },
   });
 
@@ -484,7 +498,8 @@ export async function verifySanitationLog(
   id: number,
   userId: number
 ): Promise<SanitationLog | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getSanitationLogById(id);
   if (!existing) return null;
@@ -499,10 +514,10 @@ export async function verifySanitationLog(
 
   await createAuditLog({
     userId,
-    action: 'VERIFY',
-    entityType: 'sanitation_log',
-    entityId: id,
-    previousValue: existing,
+    action: 'APPROVE',
+    tableName: 'sanitation_log',
+    recordId: id,
+    oldValue: existing,
   });
 
   return getSanitationLogById(id);
@@ -518,7 +533,8 @@ export async function verifySanitationLog(
 export async function getPestControlLogs(
   params: PestControlLogListParams = {}
 ): Promise<PestControlLogListResponse> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
@@ -555,7 +571,7 @@ export async function getPestControlLogs(
     .where(whereClause);
 
   return {
-    logs: logs.map((row) => ({
+    logs: logs.map((row: any) => ({
       id: row.log.id,
       serviceDate: row.log.serviceDate,
       contractorName: row.log.contractorName || '',
@@ -580,7 +596,8 @@ export async function getPestControlLogs(
  * Get a single pest control log by ID
  */
 export async function getPestControlLogById(id: number): Promise<PestControlLog | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const logs = await database
     .select({
@@ -621,7 +638,8 @@ export async function createPestControlLog(
   data: PestControlLogCreate,
   userId: number
 ): Promise<PestControlLog> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const result = await database
     .insert(sqlitePestControlLogs)
@@ -644,8 +662,8 @@ export async function createPestControlLog(
   await createAuditLog({
     userId,
     action: 'CREATE',
-    entityType: 'pest_control_log',
-    entityId: result[0].id,
+    tableName: 'pest_control_log',
+    recordId: result[0].id,
     newValue: result[0],
   });
 
@@ -660,7 +678,8 @@ export async function updatePestControlLog(
   data: PestControlLogUpdate,
   userId: number
 ): Promise<PestControlLog | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getPestControlLogById(id);
   if (!existing) return null;
@@ -681,9 +700,9 @@ export async function updatePestControlLog(
   await createAuditLog({
     userId,
     action: 'UPDATE',
-    entityType: 'pest_control_log',
-    entityId: id,
-    previousValue: existing,
+    tableName: 'pest_control_log',
+    recordId: id,
+    oldValue: existing,
     newValue: { ...existing, ...updateData },
   });
 
@@ -697,7 +716,8 @@ export async function verifyPestControlLog(
   id: number,
   userId: number
 ): Promise<PestControlLog | null> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const existing = await getPestControlLogById(id);
   if (!existing) return null;
@@ -709,10 +729,10 @@ export async function verifyPestControlLog(
 
   await createAuditLog({
     userId,
-    action: 'VERIFY',
-    entityType: 'pest_control_log',
-    entityId: id,
-    previousValue: existing,
+    action: 'APPROVE',
+    tableName: 'pest_control_log',
+    recordId: id,
+    oldValue: existing,
   });
 
   return getPestControlLogById(id);
@@ -726,7 +746,8 @@ export async function verifyPestControlLog(
  * Get pending sanitation tasks (overdue and upcoming)
  */
 export async function getPendingTasks(daysAhead: number = 7): Promise<PendingTask[]> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const today = new Date();
 
   // Get all active schedules
@@ -777,7 +798,7 @@ export async function getPendingTasks(daysAhead: number = 7): Promise<PendingTas
   // Sort by due date (overdue first)
   return pendingTasks.sort((a, b) => {
     if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    return toDateSafe(a.dueDate).getTime() - toDateSafe(b.dueDate).getTime();
   });
 }
 
@@ -787,7 +808,8 @@ export async function getPendingTasks(daysAhead: number = 7): Promise<PendingTas
 export async function getSanitationTrends(
   params: SanitationTrendsParams = {}
 ): Promise<SanitationTrends> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const period = params.period || 'month';
 
   // Calculate date range
@@ -831,20 +853,20 @@ export async function getSanitationTrends(
 
   // Filter by area type if specified
   const filteredLogs = params.areaType
-    ? logs.filter((l) => l.schedule?.areaType === params.areaType)
+    ? logs.filter((l: any) => l.schedule?.areaType === params.areaType)
     : logs;
 
   // Calculate overall compliance
-  const completedCount = filteredLogs.filter((l) => l.log.status === 'completed').length;
+  const completedCount = filteredLogs.filter((l: any) => l.log.status === 'completed').length;
   const totalCount = filteredLogs.length;
   const overallComplianceRate = totalCount > 0 ? (completedCount / totalCount) * 100 : 100;
 
   // Calculate by area
   const areaTypes: AreaType[] = ['production', 'warehouse', 'lab', 'office'];
-  const byArea = areaTypes.map((areaType) => {
-    const areaLogs = logs.filter((l) => l.schedule?.areaType === areaType);
-    const areaCompleted = areaLogs.filter((l) => l.log.status === 'completed').length;
-    const areaMissed = areaLogs.filter((l) => l.log.status === 'missed').length;
+  const byArea = areaTypes.map((areaType: any) => {
+    const areaLogs = logs.filter((l: any) => l.schedule?.areaType === areaType);
+    const areaCompleted = areaLogs.filter((l: any) => l.log.status === 'completed').length;
+    const areaMissed = areaLogs.filter((l: any) => l.log.status === 'missed').length;
     const areaTotal = areaLogs.length;
 
     return {
@@ -867,7 +889,7 @@ export async function getSanitationTrends(
     )
     .orderBy(sqlitePestControlLogs.serviceDate);
 
-  const pestActivityTrend = pestLogs.map((log) => ({
+  const pestActivityTrend = pestLogs.map((log: any) => ({
     period: log.serviceDate,
     findingsCount: log.findingsCount || 0,
   }));
@@ -883,9 +905,9 @@ export async function getSanitationTrends(
   const currentDate = new Date(startDate);
   while (currentDate <= endDate) {
     const dateStr = currentDate.toISOString().split('T')[0];
-    const dayLogs = filteredLogs.filter((l) => l.log.performedDate === dateStr);
-    const dayCompleted = dayLogs.filter((l) => l.log.status === 'completed').length;
-    const dayMissed = dayLogs.filter((l) => l.log.status === 'missed').length;
+    const dayLogs = filteredLogs.filter((l: any) => l.log.performedDate === dateStr);
+    const dayCompleted = dayLogs.filter((l: any) => l.log.status === 'completed').length;
+    const dayMissed = dayLogs.filter((l: any) => l.log.status === 'missed').length;
     const dayTotal = dayLogs.length;
 
     dataPoints.push({
@@ -971,7 +993,8 @@ function calculateNextDueDate(
  * Calculate compliance rate for a schedule
  */
 async function calculateScheduleCompliance(scheduleId: number): Promise<number> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get logs from the last 30 days
   const thirtyDaysAgo = new Date();
@@ -990,6 +1013,246 @@ async function calculateScheduleCompliance(scheduleId: number): Promise<number> 
 
   if (logs.length === 0) return 100; // No data means assumed compliant
 
-  const completedCount = logs.filter((l) => l.status === 'completed').length;
+  const completedCount = logs.filter((l: any) => l.status === 'completed').length;
   return (completedCount / logs.length) * 100;
+}
+
+// ============================================
+// T802: Generate Due Dates
+// ============================================
+
+/**
+ * Generate expected cleaning dates based on schedule frequency
+ */
+export async function generateDueDates(
+  scheduleId: number,
+  dateRange?: DueDateRange
+): Promise<GeneratedDueDate[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  // Get the schedule
+  const schedule = await database
+    .select()
+    .from(sqliteSanitationSchedules)
+    .where(eq(sqliteSanitationSchedules.id, scheduleId))
+    .limit(1);
+
+  if (!schedule || schedule.length === 0) {
+    return [];
+  }
+
+  const scheduleData = schedule[0];
+
+  // Determine date range (default: today to 30 days from now)
+  const startDate = dateRange?.startDate
+    ? new Date(dateRange.startDate)
+    : new Date();
+  const endDate = dateRange?.endDate
+    ? new Date(dateRange.endDate)
+    : new Date(new Date().getTime() + 30 * 86400000);
+
+  const dueDates: GeneratedDueDate[] = [];
+
+  // Generate due dates based on frequency
+  let currentDate = new Date(startDate);
+
+  switch (scheduleData.frequency) {
+    case 'daily':
+      // Generate daily due dates
+      while (currentDate <= endDate) {
+        dueDates.push({
+          scheduleId: scheduleData.id,
+          scheduleName: scheduleData.name,
+          areaType: scheduleData.areaType,
+          frequency: scheduleData.frequency,
+          dueDate: currentDate.toISOString().split('T')[0],
+        });
+        currentDate = new Date(currentDate.getTime() + 86400000); // Add 1 day
+      }
+      break;
+
+    case 'weekly':
+      // Find all occurrences of dayOfWeek in the date range
+      if (scheduleData.dayOfWeek !== null) {
+        // Move to first occurrence of dayOfWeek
+        while (currentDate.getDay() !== scheduleData.dayOfWeek && currentDate <= endDate) {
+          currentDate = new Date(currentDate.getTime() + 86400000);
+        }
+
+        // Generate weekly occurrences
+        while (currentDate <= endDate) {
+          dueDates.push({
+            scheduleId: scheduleData.id,
+            scheduleName: scheduleData.name,
+            areaType: scheduleData.areaType,
+            frequency: scheduleData.frequency,
+            dueDate: currentDate.toISOString().split('T')[0],
+          });
+          currentDate = new Date(currentDate.getTime() + 7 * 86400000); // Add 7 days
+        }
+      }
+      break;
+
+    case 'monthly':
+      // Find all occurrences of dayOfMonth in the date range
+      if (scheduleData.dayOfMonth !== null) {
+        // Move to first occurrence of dayOfMonth
+        currentDate.setDate(scheduleData.dayOfMonth);
+        if (currentDate < startDate) {
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+
+        // Generate monthly occurrences
+        while (currentDate <= endDate) {
+          dueDates.push({
+            scheduleId: scheduleData.id,
+            scheduleName: scheduleData.name,
+            areaType: scheduleData.areaType,
+            frequency: scheduleData.frequency,
+            dueDate: currentDate.toISOString().split('T')[0],
+          });
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+      }
+      break;
+
+    case 'quarterly':
+      // Find all quarter starts in the date range
+      const startMonth = Math.floor(currentDate.getMonth() / 3) * 3;
+      currentDate.setMonth(startMonth);
+      currentDate.setDate(scheduleData.dayOfMonth || 1);
+
+      if (currentDate < startDate) {
+        currentDate.setMonth(currentDate.getMonth() + 3);
+      }
+
+      // Generate quarterly occurrences
+      while (currentDate <= endDate) {
+        dueDates.push({
+          scheduleId: scheduleData.id,
+          scheduleName: scheduleData.name,
+          areaType: scheduleData.areaType,
+          frequency: scheduleData.frequency,
+          dueDate: currentDate.toISOString().split('T')[0],
+        });
+        currentDate.setMonth(currentDate.getMonth() + 3);
+      }
+      break;
+  }
+
+  return dueDates;
+}
+
+// ============================================
+// T806: Pest Control Trends
+// ============================================
+
+/**
+ * Get pest control trends and statistics
+ */
+export async function getPestControlTrends(
+  params: PestControlTrendsParams = {}
+): Promise<PestControlTrends> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+  const period = params.period || 'month';
+
+  // Calculate date range
+  const endDate = new Date();
+  const startDate = new Date();
+  switch (period) {
+    case 'week':
+      startDate.setDate(startDate.getDate() - 7);
+      break;
+    case 'month':
+      startDate.setMonth(startDate.getMonth() - 1);
+      break;
+    case 'quarter':
+      startDate.setMonth(startDate.getMonth() - 3);
+      break;
+    case 'year':
+      startDate.setFullYear(startDate.getFullYear() - 1);
+      break;
+  }
+
+  const startDateStr = startDate.toISOString().split('T')[0];
+  const endDateStr = endDate.toISOString().split('T')[0];
+
+  // Get all pest control logs in the period
+  const conditions = [
+    gte(sqlitePestControlLogs.serviceDate, startDateStr),
+    lte(sqlitePestControlLogs.serviceDate, endDateStr),
+  ];
+
+  if (params.areaType) {
+    // Note: areasServiced is stored as JSON array, need to use LIKE for SQLite
+    // This is a simplified check - in production might need more sophisticated JSON query
+    conditions.push(
+      sql`${sqlitePestControlLogs.areasServiced} LIKE ${'%' + params.areaType + '%'}`
+    );
+  }
+
+  const logs = await database
+    .select()
+    .from(sqlitePestControlLogs)
+    .where(and(...conditions))
+    .orderBy(sqlitePestControlLogs.serviceDate);
+
+  // Calculate metrics
+  const totalServices = logs.length;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const totalFindings = logs.reduce((sum: number, log: any) => sum + (log.findingsCount || 0), 0);
+  const averageFindingsPerService = totalServices > 0 ? totalFindings / totalServices : 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const followUpCount = logs.filter((log: any) => log.followUpRequired).length;
+  const followUpRate = totalServices > 0 ? (followUpCount / totalServices) * 100 : 0;
+
+  // Group by service type
+  const byServiceTypeMap = new Map<string, { count: number; findings: number }>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  logs.forEach((log: any) => {
+    const type = log.serviceType;
+    const existing = byServiceTypeMap.get(type) || { count: 0, findings: 0 };
+    byServiceTypeMap.set(type, {
+      count: existing.count + 1,
+      findings: existing.findings + (log.findingsCount || 0),
+    });
+  });
+
+   
+  const byServiceType = Array.from(byServiceTypeMap.entries()).map(([type, data]) => ({
+    serviceType: type as any,
+    serviceCount: data.count,
+    averageFindings: data.count > 0 ? data.findings / data.count : 0,
+  }));
+
+  // Generate data points (group by date)
+  const dataPointsMap = new Map<string, { serviceCount: number; findingsCount: number }>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  logs.forEach((log: any) => {
+    const date = log.serviceDate;
+    const existing = dataPointsMap.get(date) || { serviceCount: 0, findingsCount: 0 };
+    dataPointsMap.set(date, {
+      serviceCount: existing.serviceCount + 1,
+      findingsCount: existing.findingsCount + (log.findingsCount || 0),
+    });
+  });
+
+  const dataPoints = Array.from(dataPointsMap.entries())
+    .map(([date, data]) => ({
+      date,
+      serviceCount: data.serviceCount,
+      findingsCount: data.findingsCount,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return {
+    period,
+    totalServices,
+    averageFindingsPerService,
+    followUpRate,
+    byServiceType,
+    dataPoints,
+  };
 }

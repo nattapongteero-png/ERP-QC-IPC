@@ -3,7 +3,8 @@
  * Real-world reporting with traceability, analytics, and GMP compliance reports
  */
 
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
+import { toDateSafe, toQueryDate } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteItems,
@@ -35,7 +36,7 @@ import { generateCOA, getDeviationStatistics } from './quality.service';
 
 // Get table references
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       items: sqliteItems,
       lots: sqliteInventoryLots,
@@ -77,7 +78,8 @@ export async function getInventoryValuationReport(): Promise<{
   items: Array<{ itemCode: string; itemName: string; quantity: number; unit: string; unitCost: number; totalValue: number }>;
 }> {
   const { items, lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const inventoryData = await database
     .select({
@@ -151,7 +153,8 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
   summary: { expiredCount: number; expiredValue: number; nearExpiryCount: number; nearExpiryValue: number };
 }> {
   const { items, lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -189,7 +192,7 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
   for (const lot of lotsData) {
     if (!lot.expiryDate) continue;
 
-    const expiryDate = new Date(lot.expiryDate);
+    const expiryDate = toDateSafe(lot.expiryDate);
     const diffDays = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     const qty = Number(lot.quantity) || 0;
 
@@ -240,13 +243,14 @@ export async function getProductionYieldReport(
   batches: Array<{ woNumber: string; batchNumber: string; productName: string; plannedQty: number; actualQty: number; yieldPercent: number; status: string }>;
 }> {
   const { workOrders, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const conditions = [
     or(eq(workOrders.status, 'completed'), eq(workOrders.status, 'closed')),
   ];
-  if (dateFrom) conditions.push(gte(workOrders.actualEndDate, dateFrom));
-  if (dateTo) conditions.push(lte(workOrders.actualEndDate, dateTo));
+  if (dateFrom) conditions.push(gte(workOrders.actualEndDate, toQueryDate(dateFrom)));
+  if (dateTo) conditions.push(lte(workOrders.actualEndDate, toQueryDate(dateTo)));
 
   const woData = await database
     .select({
@@ -326,7 +330,8 @@ export async function getTraceabilityReport(
   backwardTrace: Array<{ level: number; itemCode: string; itemName: string; lotNumber: string; quantity: number; date?: string; coaNumber?: string }>;
 }> {
   const { lots, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get source lot
   const [sourceLot] = await database
@@ -398,12 +403,13 @@ export async function getQualitySummaryReport(
   byTestType: Array<{ testType: string; total: number; passed: number; failed: number; passRate: number }>;
 }> {
   const { tests, deviations } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   // Get test statistics
   const testConditions = [];
-  if (dateFrom) testConditions.push(gte(tests.createdAt, dateFrom));
-  if (dateTo) testConditions.push(lte(tests.createdAt, dateTo));
+  if (dateFrom) testConditions.push(gte(tests.createdAt, toQueryDate(dateFrom)));
+  if (dateTo) testConditions.push(lte(tests.createdAt, toQueryDate(dateTo)));
 
   const testData = await database
     .select({
@@ -484,13 +490,14 @@ export async function getStockMovementReport(
   }>;
 }> {
   const { transactions, lots, items } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const conditions = [];
-  if (dateFrom) conditions.push(gte(transactions.createdAt, dateFrom));
-  if (dateTo) conditions.push(lte(transactions.createdAt, dateTo));
+  if (dateFrom) conditions.push(gte(transactions.createdAt, toQueryDate(dateFrom)));
+  if (dateTo) conditions.push(lte(transactions.createdAt, toQueryDate(dateTo)));
 
-  let query = database
+  const query = database
     .select({
       createdAt: transactions.createdAt,
       transactionType: transactions.transactionType,
@@ -562,7 +569,8 @@ export async function getVendorPerformanceReport(): Promise<{
   }>;
 }> {
   const { vendors, purchaseOrders, lots } = getTables();
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
 
   const vendorData = await database
     .select({
@@ -656,7 +664,8 @@ export async function logReportExecution(params: {
   errorMessage?: string;
   ipAddress?: string;
 }): Promise<number> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const { reportExecutions } = getTables();
 
   const result = await database.insert(reportExecutions).values({
@@ -763,7 +772,8 @@ export async function getReportExecutions(params: {
   }>;
   total: number;
 }> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const { reportExecutions, reportTemplates } = getTables();
   const limit = params.limit || 50;
   const offset = params.offset || 0;
@@ -836,7 +846,8 @@ export async function getReportExecutionStats(templateId: number): Promise<{
   lastExecuted: string | null;
   exportFormats: Record<string, number>;
 }> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const { reportExecutions } = getTables();
 
   // Get action counts
@@ -956,7 +967,8 @@ export async function getUserReportHistory(params: {
   }>;
   total: number;
 }> {
-  const database = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
   const { reportExecutions, reportTemplates } = getTables();
   const limit = params.limit || 50;
   const offset = params.offset || 0;

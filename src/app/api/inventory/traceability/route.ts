@@ -2,13 +2,7 @@ import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { withAuth, successResponse, errorResponse } from '@/lib/api-utils';
 import { getTraceabilityReport } from '@/lib/services/reports.service';
-import { getDb, useSqlite } from '@/lib/db';
-import { sqliteInventoryLots, mysqlInventoryLots } from '@/lib/db/schema';
-
-// Get the appropriate lots table based on database type
-// eslint-disable-next-line react-hooks/rules-of-hooks
-const isSqlite = useSqlite();
-const lots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 
 // GET - Get traceability for a lot
 export async function GET(request: NextRequest) {
@@ -21,15 +15,17 @@ export async function GET(request: NextRequest) {
 
       // If lotNumber is provided but not lotId, look up the lot by number
       if (!lotId && lotNumber) {
-        const database = await getDb();
-        const [lot] = await database
-          .select({ id: lots.id })
-          .from(lots)
-          .where(eq(lots.lotNumber, lotNumber))
-          .limit(1);
+        const lots = getTableRef('inventoryLots');
+        const result = await executeDbOperation(async (db) => {
+          return db
+            .select({ id: lots.id })
+            .from(lots)
+            .where(eq(lots.lotNumber, lotNumber))
+            .limit(1);
+        });
 
-        if (lot) {
-          lotId = lot.id;
+        if (result.length > 0) {
+          lotId = result[0].id;
         }
       }
 

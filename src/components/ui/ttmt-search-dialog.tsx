@@ -94,27 +94,39 @@ export function TtmtSearchDialog({
     }
   }, []);
 
-  // Initial load when dialog opens
+  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setSearch('');
       setResults([]);
       setHasSearched(false);
-      searchTtmt('');
+      setTotalCount(0);
     }
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [open, searchTtmt]);
+  }, [open]);
 
-  // Debounced search when typing
+  // Debounced search when typing (minimum 3 characters, 500ms delay)
   useEffect(() => {
     if (!open) return;
+
+    // Only search if text has more than 3 characters
+    if (search.trim().length < 3) {
+      // Clear results if search is too short
+      if (search.trim().length > 0) {
+        setResults([]);
+        setTotalCount(0);
+        setHasSearched(false);
+      }
+      return;
+    }
+
     const timer = setTimeout(() => {
       searchTtmt(search);
-    }, 300);
+    }, 500);
     return () => clearTimeout(timer);
   }, [search, open, searchTtmt]);
 
@@ -186,7 +198,7 @@ export function TtmtSearchDialog({
             <DxTextBox
               value={search}
               onValueChange={setSearch}
-              placeholder="Search by TTMT code, ingredient, or trade name..."
+              placeholder="Type at least 3 characters to search..."
               className="pl-10"
               mode="search"
               showClearButton
@@ -212,7 +224,8 @@ export function TtmtSearchDialog({
               ) : (
                 <>
                   <Leaf className="h-8 w-8 mb-2 text-gray-300" />
-                  <p>Enter a search term to find TTMT codes</p>
+                  <p>Type at least 3 characters to search TTMT codes</p>
+                  <p className="text-sm text-gray-400">Search by TTMT code, ingredient, or trade name</p>
                 </>
               )}
             </div>

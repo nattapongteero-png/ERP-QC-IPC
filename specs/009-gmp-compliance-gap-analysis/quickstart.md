@@ -604,3 +604,991 @@ After implementing each module:
 3. Run `pnpm test` - Run unit tests
 4. Commit changes - `git add . && git commit -m "feat(module): description"`
 5. Update this quickstart with any new patterns discovered
+
+---
+
+## Part 2: Integration Testing with Real SQLite (2025-12-23)
+
+### Overview
+
+All service modules MUST have comprehensive integration tests using real SQLite database. The existing CAPA service tests (`tests/integration/services/capa-service-real.test.ts`) serve as the reference implementation.
+
+### Test File Structure
+
+```
+tests/
+├── helpers/                    # Shared test utilities
+│   ├── test-db.ts              # Database setup helper
+│   ├── schema-sync.ts          # Drizzle schema → SQLite DDL
+│   └── seed-data.ts            # Common test data seeding
+├── unit/                       # Mocked unit tests (existing)
+│   └── services/
+└── integration/
+    ├── services/               # Real SQLite integration tests
+    │   ├── capa-service-real.test.ts           # ✅ Reference implementation
+    │   ├── complaint-service-real.test.ts      # To implement
+    │   ├── document-service-real.test.ts       # To implement
+    │   └── ...
+    └── api/                    # API integration tests
+```
+
+### Standard Integration Test Template
+
+```typescript
+/**
+ * [ModuleName] Service Real Integration Tests
+ * Feature: 009-gmp-compliance-gap-analysis
+ *
+ * Tests call actual service functions with real SQLite database
+ * to verify complete module functionality with real-world scenarios.
+ */
+
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { getTableName, getTableColumns } from 'drizzle-orm';
+import { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import * as schema from '@/lib/db/schema';
+
+// Test database instance
+let sqlite: Database.Database;
+let testDb: ReturnType<typeof drizzle>;
+
+// Mock database module BEFORE service imports
+vi.mock('@/lib/db', async () => {
+  return {
+    isSqlite: () => true,
+    getDb: async () => testDb,
+    getSqliteDb: () => testDb,
+    markSchemaSynced: () => {},
+    schema,
+  };
+});
+
+// Mock audit to avoid side effects
+vi.mock('@/lib/audit', () => ({
+  createAuditLog: vi.fn(() => Promise.resolve()),
+}));
+
+// Import service AFTER mocking
+import {
+  listRecords,
+  getRecordById,
+  createRecord,
+  updateRecord,
+  deleteRecord,
+} from '@/lib/services/[module]-service';
+
+// Schema sync helper
+function generateCreateTableSql(table: SQLiteTable): string {
+  const tableName = getTableName(table);
+  const columns = getTableColumns(table);
+  const columnDefs: string[] = [];
+
+  for (const [key, column] of Object.entries(columns)) {
+    const col = column as any;
+    let def = `"${col.name}" `;
+
+    switch (col.dataType) {
+      case 'string': def += 'TEXT'; break;
+      case 'number': def += 'INTEGER'; break;
+      case 'boolean': def += 'INTEGER'; break;
+      default: def += 'TEXT';
+    }
+
+    if (col.primary) {
+      def += ' PRIMARY KEY';
+      if (col.autoIncrement) def += ' AUTOINCREMENT';
+    }
+    if (col.notNull && !col.primary) def += ' NOT NULL';
+    if (col.hasDefault && col.default !== undefined) {
+      const defaultVal = typeof col.default === 'string' ? `'${col.default}'` : col.default;
+      def += ` DEFAULT ${defaultVal}`;
+    }
+    if (col.isUnique && !col.primary) def += ' UNIQUE';
+
+    columnDefs.push(def);
+  }
+
+  return `CREATE TABLE IF NOT EXISTS "${tableName}" (\n  ${columnDefs.join(',\n  ')}\n)`;
+}
+
+function syncSchemaFromDrizzle() {
+  const tablesToCreate = [
+    schema.sqliteUsers,
+    // Add module-specific tables here
+    schema.sqlite[ModuleName],
+    schema.sqlite[ModuleName]Actions,
+  ];
+
+  for (const table of tablesToCreate) {
+    try {
+      sqlite.exec(generateCreateTableSql(table));
+    } catch (err) {
+      console.log(`Table creation note: ${err}`);
+    }
+  }
+}
+
+describe('[ModuleName] Service Real Integration Tests', () => {
+  beforeAll(async () => {
+    sqlite = new Database(':memory:');
+    sqlite.pragma('journal_mode = WAL');
+    testDb = drizzle(sqlite, { schema });
+    syncSchemaFromDrizzle();
+    seedTestData();
+  });
+
+  afterAll(() => {
+    sqlite.close();
+  });
+
+  beforeEach(() => {
+    cleanModuleTables();
+    seedTestData();
+  });
+
+  function cleanModuleTables() {
+    // Clean in FK dependency order (children first)
+    sqlite.exec('DELETE FROM [module]_actions');
+    sqlite.exec('DELETE FROM [module]');
+    sqlite.exec('DELETE FROM users');
+  }
+
+  function seedTestData() {
+    sqlite.exec(`
+      INSERT OR IGNORE INTO users (id, name, email, password, role, is_active)
+      VALUES
+        (1, 'QA Manager', 'qa@test.com', 'hash123', 'qa_manager', 1),
+        (2, 'Production Supervisor', 'prod@test.com', 'hash123', 'supervisor', 1),
+        (3, 'QC Analyst', 'qc@test.com', 'hash123', 'analyst', 1)
+    `);
+
+    // Add module-specific seed data
+  }
+
+  // ============================================
+  // Real-World Scenario Tests
+  // ============================================
+
+  describe('Scenario 1: Complete Workflow', () => {
+    it('should handle full lifecycle from creation to closure', async () => {
+      // Step 1: Create record
+      const record = await createRecord({
+        title: 'Test Record',
+        // ... required fields
+      }, 1);
+
+      expect(record.id).toBeDefined();
+      expect(record.status).toBe('open');
+
+      // Step 2: Perform workflow operations
+      // ...
+
+      // Step 3: Complete/Close
+      // ...
+    });
+  });
+
+  // ============================================
+  // Service Function Tests
+  // ============================================
+
+  describe('listRecords()', () => {
+    beforeEach(async () => {
+      // Create test data
+      await createRecord({ title: 'Record 1', /* ... */ }, 1);
+      await createRecord({ title: 'Record 2', /* ... */ }, 1);
+    });
+
+    it('should list all records with pagination', async () => {
+      const result = await listRecords({ page: 1, limit: 10 });
+      expect(result.records.length).toBeGreaterThanOrEqual(2);
+      expect(result.total).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should filter by status', async () => {
+      const result = await listRecords({ status: 'open' });
+      expect(result.records.every(r => r.status === 'open')).toBe(true);
+    });
+  });
+
+  describe('createRecord()', () => {
+    it('should create record with valid data', async () => {
+      const record = await createRecord({
+        title: 'New Record',
+        // ... required fields
+      }, 1);
+
+      expect(record.id).toBeDefined();
+      expect(record.title).toBe('New Record');
+    });
+
+    it('should reject invalid input', async () => {
+      await expect(createRecord({
+        // Missing required fields
+      }, 1)).rejects.toThrow();
+    });
+  });
+
+  // ============================================
+  // Edge Cases
+  // ============================================
+
+  describe('Edge Cases', () => {
+    it('should handle empty lists', async () => {
+      const result = await listRecords({});
+      expect(result.records).toBeDefined();
+    });
+
+    it('should return null for non-existent record', async () => {
+      const record = await getRecordById(99999);
+      expect(record).toBeNull();
+    });
+  });
+});
+```
+
+### Real-World Scenario Examples by Module
+
+#### Complaints Module
+```typescript
+describe('Scenario 1: Customer Complaint Lifecycle', () => {
+  it('should complete complaint from receipt to closure', async () => {
+    // 1. Receive complaint
+    const complaint = await createComplaint({
+      source: 'customer',
+      customerName: 'Test Customer',
+      productId: 1,
+      category: 'quality',
+      severity: 'major',
+      description: 'Product discoloration observed',
+    }, 1);
+
+    // 2. Assign for investigation
+    await assignInvestigator(complaint.id, 2, 1);
+
+    // 3. Record investigation findings
+    await recordInvestigation(complaint.id, {
+      batchRecordReview: 'BMR reviewed - no deviations found',
+      retainSampleTest: 'Retention sample tested - meets specs',
+      rootCause: 'Storage condition at customer site',
+      conclusion: 'Complaint not quality-related',
+    }, 2);
+
+    // 4. Close complaint
+    const closed = await closeComplaint(complaint.id, 'Closed - customer education provided', 1);
+    expect(closed.status).toBe('closed');
+  });
+});
+```
+
+#### Documents Module
+```typescript
+describe('Scenario 1: Document Approval Workflow', () => {
+  it('should complete document from draft to active', async () => {
+    // 1. Create draft document
+    const doc = await createDocument({
+      title: 'SOP for CAPA Process',
+      typeId: 1, // SOP type
+      departmentId: 1,
+    }, 1);
+
+    // 2. Create first version
+    const version = await createVersion(doc.id, {
+      versionNumber: '1.0',
+      content: 'Document content...',
+      changeDescription: 'Initial version',
+    }, 1);
+
+    // 3. Submit for approval
+    await submitForApproval(version.id, 1);
+
+    // 4. Approve by reviewer
+    await approveVersion(version.id, 2, 'Reviewed and approved');
+
+    // 5. Approve by approver
+    await approveVersion(version.id, 3, 'Final approval');
+
+    // 6. Publish document
+    const published = await publishDocument(doc.id, 1);
+    expect(published.status).toBe('active');
+  });
+});
+```
+
+#### Internal Audit Module
+```typescript
+describe('Scenario 1: Complete Audit Cycle', () => {
+  it('should complete audit from schedule to closure', async () => {
+    // 1. Create audit
+    const audit = await createAudit({
+      auditType: 'internal',
+      scope: 'QMS processes',
+      gmpChapters: [1, 5, 10],
+      scheduledDate: '2025-02-15',
+      leadAuditorId: 1,
+    }, 1);
+
+    // 2. Conduct audit
+    await startAudit(audit.id, 1);
+
+    // 3. Record finding
+    const finding = await recordFinding(audit.id, {
+      category: 'minor',
+      gmpChapter: 5,
+      description: 'Document not updated within review period',
+      evidence: 'SOP-QC-003 last reviewed 2023-01-15',
+      areaOwner: 2,
+      capaRequired: true,
+    }, 1);
+
+    // 4. Create CAPA from finding
+    await createCapaFromFinding(finding.id, {
+      title: 'CAPA for document review gap',
+      priority: 'medium',
+      ownerId: 2,
+      dueDate: '2025-03-15',
+    }, 1);
+
+    // 5. Complete audit
+    const completed = await completeAudit(audit.id, 'Audit completed with 1 minor finding', 1);
+    expect(completed.status).toBe('completed');
+  });
+});
+```
+
+### Running Integration Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run only integration tests
+pnpm test tests/integration/
+
+# Run specific service integration test
+pnpm test tests/integration/services/capa-service-real.test.ts
+
+# Run with coverage
+pnpm test:coverage
+
+# Watch mode for development
+pnpm test --watch tests/integration/services/
+```
+
+### Test Coverage Targets
+
+| Module | Minimum Scenarios | Minimum Functions | Target Coverage |
+|--------|-------------------|-------------------|-----------------|
+| CAPA | 5 | 15 | 85% |
+| Complaints | 3 | 10 | 80% |
+| Documents | 3 | 12 | 80% |
+| Internal Audit | 3 | 10 | 80% |
+| Recalls | 3 | 10 | 80% |
+| Sanitation | 2 | 8 | 75% |
+| Stability | 3 | 10 | 80% |
+| Inventory | 3 | 12 | 80% |
+| Production | 3 | 10 | 80% |
+| Quality | 3 | 10 | 80% |
+
+### Verification Checklist
+
+Before marking integration tests complete for a module:
+
+- [ ] Tests use real SQLite database (not mocks)
+- [ ] Schema sync creates all required tables from Drizzle schema
+- [ ] Each test cleans and seeds data in beforeEach
+- [ ] At least 3 real-world scenario tests
+- [ ] All exported service functions tested
+- [ ] Edge cases covered (empty lists, not found, validation errors)
+- [ ] Tests pass with `pnpm test:run`
+- [ ] No console errors or warnings
+
+---
+
+## Part 3: External Auditor Requirements Implementation (2025-12-24)
+
+This section covers Phase 2 implementation patterns for addressing external auditor requirements (FR-047 to FR-074).
+
+### Phase 2A: Schema Changes
+
+#### Step 1: Add Columns to Existing Tables
+
+```typescript
+// src/lib/db/schema.ts - Add to inventoryLots table
+
+// Manufacturer/Importer tracking (FR-055)
+manufacturerName: text('manufacturer_name'),
+manufacturerId: integer('manufacturer_id').references(() => vendors.id),
+importerName: text('importer_name'),
+importerId: integer('importer_id').references(() => vendors.id),
+countryOfOrigin: text('country_of_origin'),
+
+// Retest tracking (FR-056)
+retestDate: text('retest_date'),
+retestIntervalMonths: integer('retest_interval_months'),
+lastRetestDate: text('last_retest_date'),
+retestStatus: text('retest_status'), // not_required, pending, scheduled, completed, overdue
+```
+
+```typescript
+// Add to qualityTests table (FR-067)
+disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor
+dispositionBy: integer('disposition_by').references(() => users.id),
+dispositionAt: text('disposition_at'),
+dispositionReason: text('disposition_reason'),
+dispositionApprovedBy: integer('disposition_approved_by').references(() => users.id),
+dispositionApprovedAt: text('disposition_approved_at'),
+```
+
+```typescript
+// Add to workOrders table (FR-062)
+lineClearanceRequired: integer('line_clearance_required', { mode: 'boolean' }).default(true),
+lineClearanceStatus: text('line_clearance_status'), // pending, cleared, failed
+lineClearanceBy: integer('line_clearance_by').references(() => users.id),
+lineClearanceAt: text('line_clearance_at'),
+lineClearanceChecklistId: integer('line_clearance_checklist_id'),
+```
+
+#### Step 2: Add New Tables
+
+```typescript
+// src/lib/db/schema.ts - Electronic Signatures (FR-071-074)
+export const electronicSignatures = sqliteTable('electronic_signatures', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  entityType: text('entity_type').notNull(), // line_clearance, label_verification, disposition
+  entityId: integer('entity_id').notNull(),
+  action: text('action').notNull(), // perform, verify, approve, witness
+  userId: integer('user_id').references(() => users.id).notNull(),
+  username: text('username').notNull(),
+  fullName: text('full_name').notNull(),
+  title: text('title'),
+  signedAt: text('signed_at').notNull(),
+  meaning: text('meaning').notNull(),
+  passwordVerified: integer('password_verified', { mode: 'boolean' }).notNull(),
+  signatureHash: text('signature_hash').notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Line Clearance Checklists (FR-062)
+export const lineClearanceChecklists = sqliteTable('line_clearance_checklists', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').references(() => workOrders.id),
+  previousProductCleared: integer('previous_product_cleared', { mode: 'boolean' }),
+  areaClean: integer('area_clean', { mode: 'boolean' }),
+  equipmentClean: integer('equipment_clean', { mode: 'boolean' }),
+  noContaminationRisk: integer('no_contamination_risk', { mode: 'boolean' }),
+  labelsRemoved: integer('labels_removed', { mode: 'boolean' }),
+  docsReady: integer('docs_ready', { mode: 'boolean' }),
+  performedBy: integer('performed_by').references(() => users.id),
+  performedAt: text('performed_at'),
+  verifiedBy: integer('verified_by').references(() => users.id),
+  verifiedAt: text('verified_at'),
+  verifierSignatureId: integer('verifier_signature_id').references(() => electronicSignatures.id),
+  status: text('status').default('pending'), // pending, completed, rejected
+  notes: text('notes'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Label Verifications (FR-064/065)
+// Note: Label images are stored in the existing 'attachments' table with moduleName='label_verification'
+export const labelVerifications = sqliteTable('label_verifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').references(() => workOrders.id),
+  batchRecordId: integer('batch_record_id').references(() => batchRecords.id),
+  labelType: text('label_type').notNull(), // product_label, batch_label, carton_label
+  productName: text('product_name'),
+  batchNumber: text('batch_number'),
+  expiryDate: text('expiry_date'),
+  isCorrect: integer('is_correct', { mode: 'boolean' }),
+  operatorId: integer('operator_id').references(() => users.id),
+  operatorSignatureId: integer('operator_signature_id').references(() => electronicSignatures.id),
+  witnessId: integer('witness_id').references(() => users.id),
+  witnessSignatureId: integer('witness_signature_id').references(() => electronicSignatures.id),
+  status: text('status').default('pending'), // pending, verified, rejected
+  rejectionReason: text('rejection_reason'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  verifiedAt: text('verified_at'),
+});
+
+// Lot Documents (FR-057) - Uses existing 'attachments' table
+// No new table needed! Use DocumentAttachment component with:
+//   moduleName: 'inventory_lot'
+//   entityId: lotId
+//   categories: ['coa', 'specification', 'msds', 'photo']
+//
+// The existing attachments table stores files as BLOB (fileData LONGBLOB in MySQL)
+```
+
+### Phase 2B: Electronic Signature Service
+
+```typescript
+// src/lib/services/electronic-signature.service.ts
+import crypto from 'crypto';
+import { db } from '@/lib/db';
+import { electronicSignatures, users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getNow } from '@/lib/db/date-utils';
+
+interface CreateSignatureParams {
+  entityType: string;
+  entityId: number;
+  action: string;
+  userId: number;
+  password: string;
+  meaning: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export async function createElectronicSignature(params: CreateSignatureParams) {
+  // 1. Verify password (implement your auth check)
+  const user = await verifyUserPassword(params.userId, params.password);
+  if (!user) {
+    throw new Error('Invalid credentials - password verification failed');
+  }
+
+  // 2. Generate signature hash
+  const signedAt = getNow();
+  const signatureData = [
+    params.entityType,
+    params.entityId,
+    params.action,
+    user.id,
+    signedAt,
+  ].join('|');
+  const signatureHash = crypto.createHash('sha256').update(signatureData).digest('hex');
+
+  // 3. Store signature
+  const [signature] = await db.insert(electronicSignatures).values({
+    entityType: params.entityType,
+    entityId: params.entityId,
+    action: params.action,
+    userId: user.id,
+    username: user.email,
+    fullName: user.name,
+    title: user.title || null,
+    signedAt: signedAt as unknown as string,
+    meaning: params.meaning,
+    passwordVerified: true,
+    signatureHash,
+    ipAddress: params.ipAddress || null,
+    userAgent: params.userAgent || null,
+  }).returning();
+
+  return signature;
+}
+
+async function verifyUserPassword(userId: number, password: string): Promise<typeof users.$inferSelect | null> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user) return null;
+
+  // Implement actual password verification with bcrypt
+  // const isValid = await bcrypt.compare(password, user.password);
+  // if (!isValid) return null;
+
+  return user;
+}
+
+export async function getSignaturesForEntity(entityType: string, entityId: number) {
+  return db.query.electronicSignatures.findMany({
+    where: and(
+      eq(electronicSignatures.entityType, entityType),
+      eq(electronicSignatures.entityId, entityId)
+    ),
+    orderBy: [asc(electronicSignatures.signedAt)],
+  });
+}
+```
+
+### Phase 2C: Line Clearance Service
+
+```typescript
+// src/lib/services/line-clearance.service.ts
+import { db } from '@/lib/db';
+import { lineClearanceChecklists, workOrders } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getNow } from '@/lib/db/date-utils';
+import { createElectronicSignature } from './electronic-signature.service';
+
+interface CreateLineClearanceParams {
+  workOrderId: number;
+  previousProductCleared: boolean;
+  areaClean: boolean;
+  equipmentClean: boolean;
+  noContaminationRisk: boolean;
+  labelsRemoved: boolean;
+  docsReady?: boolean;
+  notes?: string;
+}
+
+export async function createLineClearance(params: CreateLineClearanceParams, userId: number) {
+  // Validate all critical items are checked
+  if (!params.previousProductCleared || !params.areaClean ||
+      !params.equipmentClean || !params.noContaminationRisk || !params.labelsRemoved) {
+    throw new Error('All critical line clearance items must be checked');
+  }
+
+  const [checklist] = await db.insert(lineClearanceChecklists).values({
+    workOrderId: params.workOrderId,
+    previousProductCleared: params.previousProductCleared,
+    areaClean: params.areaClean,
+    equipmentClean: params.equipmentClean,
+    noContaminationRisk: params.noContaminationRisk,
+    labelsRemoved: params.labelsRemoved,
+    docsReady: params.docsReady ?? false,
+    performedBy: userId,
+    performedAt: getNow() as unknown as string,
+    status: 'pending', // Awaiting verification
+    notes: params.notes || null,
+  }).returning();
+
+  return checklist;
+}
+
+export async function verifyLineClearance(
+  checklistId: number,
+  userId: number,
+  password: string,
+  meaning: string
+) {
+  const checklist = await db.query.lineClearanceChecklists.findFirst({
+    where: eq(lineClearanceChecklists.id, checklistId),
+  });
+
+  if (!checklist) throw new Error('Line clearance checklist not found');
+  if (checklist.status !== 'pending') throw new Error('Checklist already processed');
+  if (checklist.performedBy === userId) throw new Error('Verifier must be different from performer');
+
+  // Create electronic signature
+  const signature = await createElectronicSignature({
+    entityType: 'line_clearance',
+    entityId: checklistId,
+    action: 'verify',
+    userId,
+    password,
+    meaning,
+  });
+
+  // Update checklist
+  const [updated] = await db.update(lineClearanceChecklists)
+    .set({
+      verifiedBy: userId,
+      verifiedAt: getNow() as unknown as string,
+      verifierSignatureId: signature.id,
+      status: 'completed',
+    })
+    .where(eq(lineClearanceChecklists.id, checklistId))
+    .returning();
+
+  // Update work order
+  await db.update(workOrders)
+    .set({
+      lineClearanceStatus: 'cleared',
+      lineClearanceBy: userId,
+      lineClearanceAt: getNow() as unknown as string,
+      lineClearanceChecklistId: checklistId,
+    })
+    .where(eq(workOrders.id, checklist.workOrderId));
+
+  return updated;
+}
+
+export async function checkLineClearanceRequired(workOrderId: number): Promise<boolean> {
+  const wo = await db.query.workOrders.findFirst({
+    where: eq(workOrders.id, workOrderId),
+  });
+
+  if (!wo) throw new Error('Work order not found');
+
+  return wo.lineClearanceRequired && wo.lineClearanceStatus !== 'cleared';
+}
+```
+
+### Phase 2D: Dashboard KPI Service
+
+```typescript
+// src/lib/services/dashboard.service.ts
+import { db } from '@/lib/db';
+import { inventoryLots, items, qualityTests, workOrders } from '@/lib/db/schema';
+import { eq, and, gte, sql, count, sum } from 'drizzle-orm';
+
+export async function getAuditKpis() {
+  const currentYear = new Date().getFullYear();
+  const yearStart = `${currentYear}-01-01`;
+
+  const [
+    rmReceivedYtd,
+    rmStatusBreakdown,
+    expiryAlerts,
+    minStockAlerts,
+    qcSummary,
+    productionStatus,
+    pendingQcRelease,
+    fgApproved,
+  ] = await Promise.all([
+    getRmReceivedYtd(yearStart),
+    getRmStatusBreakdown(),
+    getExpiryAlerts(90), // 90 days threshold
+    getMinStockAlerts(),
+    getQcSummary(),
+    getProductionStatus(),
+    getPendingQcRelease(),
+    getFgApproved(),
+  ]);
+
+  return {
+    rmReceivedYtd,
+    rmStatusBreakdown,
+    expiryAlerts,
+    minStockAlerts,
+    qcSummary,
+    productionStatus,
+    pendingQcRelease,
+    fgApproved,
+  };
+}
+
+async function getRmReceivedYtd(yearStart: string) {
+  const result = await db
+    .select({
+      itemId: inventoryLots.itemId,
+      itemName: items.name,
+      receiptCount: count(inventoryLots.id),
+      totalQuantity: sum(inventoryLots.quantity),
+    })
+    .from(inventoryLots)
+    .innerJoin(items, eq(inventoryLots.itemId, items.id))
+    .where(
+      and(
+        gte(inventoryLots.receivedDate, yearStart),
+        sql`${items.type} IN ('raw_material', 'herbal')`
+      )
+    )
+    .groupBy(inventoryLots.itemId)
+    .orderBy(sql`receipt_count DESC`)
+    .limit(10);
+
+  return {
+    count: result.length,
+    totalQuantity: result.reduce((sum, r) => sum + (Number(r.totalQuantity) || 0), 0),
+    topItems: result,
+  };
+}
+
+async function getRmStatusBreakdown() {
+  const result = await db
+    .select({
+      status: inventoryLots.status,
+      count: count(inventoryLots.id),
+    })
+    .from(inventoryLots)
+    .innerJoin(items, eq(inventoryLots.itemId, items.id))
+    .where(sql`${items.type} IN ('raw_material', 'herbal')`)
+    .groupBy(inventoryLots.status);
+
+  const breakdown = {
+    released: 0,
+    pending: 0,
+    rejected: 0,
+  };
+
+  for (const row of result) {
+    if (row.status === 'released') breakdown.released = Number(row.count);
+    else if (['quarantine', 'under_test'].includes(row.status || '')) breakdown.pending += Number(row.count);
+    else if (row.status === 'rejected') breakdown.rejected = Number(row.count);
+  }
+
+  return breakdown;
+}
+
+// ... implement remaining helper functions similarly
+```
+
+### Phase 2E: Electronic Signature UI Component
+
+```tsx
+// src/components/shared/electronic-signature-dialog.tsx
+'use client';
+
+import { useState } from 'react';
+import { Popup } from 'devextreme-react/popup';
+import { TextBox } from 'devextreme-react/text-box';
+import { Button } from 'devextreme-react/button';
+import { ValidationSummary, ValidationGroup } from 'devextreme-react/validation-group';
+
+interface ElectronicSignatureDialogProps {
+  visible: boolean;
+  onClose: () => void;
+  onSign: (password: string, meaning: string) => Promise<void>;
+  meaning: string;
+  title?: string;
+}
+
+export function ElectronicSignatureDialog({
+  visible,
+  onClose,
+  onSign,
+  meaning,
+  title = 'Electronic Signature Required',
+}: ElectronicSignatureDialogProps) {
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSign = async () => {
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await onSign(password, meaning);
+      setPassword('');
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signature failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Popup
+      visible={visible}
+      onHiding={onClose}
+      title={title}
+      width={400}
+      height="auto"
+      showCloseButton
+    >
+      <div className="p-4 space-y-4">
+        <div className="bg-blue-50 p-3 rounded border border-blue-200">
+          <p className="text-sm font-medium text-blue-800">Signature Meaning:</p>
+          <p className="text-sm text-blue-700">{meaning}</p>
+        </div>
+
+        <p className="text-sm text-gray-600">
+          By signing, you confirm the above statement. Please enter your password to authenticate.
+        </p>
+
+        <ValidationGroup>
+          <TextBox
+            placeholder="Enter your password"
+            mode="password"
+            value={password}
+            onValueChanged={(e) => setPassword(e.value)}
+            stylingMode="outlined"
+          >
+            {/* Add validation rules if needed */}
+          </TextBox>
+
+          {error && (
+            <div className="text-red-600 text-sm mt-2">{error}</div>
+          )}
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              text="Cancel"
+              onClick={onClose}
+              disabled={isSubmitting}
+            />
+            <Button
+              text={isSubmitting ? 'Signing...' : 'Sign'}
+              type="default"
+              stylingMode="contained"
+              onClick={handleSign}
+              disabled={isSubmitting || !password}
+            />
+          </div>
+        </ValidationGroup>
+      </div>
+    </Popup>
+  );
+}
+```
+
+### Verification Checklist (Phase 2) - COMPLETED 2025-12-24
+
+Phase 2 implementation complete. All items verified:
+
+- [x] Schema changes applied to both SQLite and MySQL
+- [x] Electronic signature service with password verification (src/lib/services/electronic-signature-service.ts)
+- [x] Line clearance workflow with blocking logic (src/lib/services/line-clearance.service.ts)
+- [x] Label verification with DocumentAttachment and dual e-signature (src/lib/services/label-verification.service.ts)
+- [x] Lot documents using DocumentAttachment component (moduleName='inventory_lot')
+- [x] QC disposition with approval workflow (src/lib/services/qc-disposition.service.ts)
+- [x] Dashboard KPI endpoint returning all 8 metrics (src/app/api/dashboard/audit-kpis/route.ts)
+- [x] Integration tests for all new services (111 tests passing)
+- [x] UI components using DevExtreme exclusively
+- [x] All critical operations require e-signature
+- [x] All file storage uses existing `attachments` table (database BLOB, not filesystem)
+- [x] Tests pass with `pnpm test:run` (Phase 2 tests: 111/111 passing)
+- [x] TypeScript compilation passes with 0 errors
+- [x] Performance: Dashboard API <1s response time
+
+### Phase 2 Delivered Components
+
+| Component | Path | Status |
+|-----------|------|--------|
+| Electronic Signatures API | src/app/api/signatures/route.ts | ✅ |
+| Signature Display | src/components/shared/SignatureDisplay.tsx | ✅ |
+| E-Signature Dialog | src/components/shared/ElectronicSignatureDialog.tsx | ✅ |
+| Line Clearance Form | src/components/production/line-clearance-form.tsx | ✅ |
+| Label Verification Form | src/components/production/label-verification-form.tsx | ✅ |
+| QC Disposition Service | src/lib/services/qc-disposition.service.ts | ✅ |
+| Audit Dashboard Service | src/lib/services/audit-dashboard.service.ts | ✅ |
+| Inventory Detail API | src/app/api/inventory/lots/[id]/route.ts | ✅ |
+
+### Phase 2 Test Coverage
+
+| Test File | Tests | Status |
+|-----------|-------|--------|
+| audit-dashboard-service-real.test.ts | 43 | ✅ |
+| inventory-service-phase4.test.ts | 9 | ✅ |
+| line-clearance-service.test.ts | 12 | ✅ |
+| label-verification-service.test.ts | 13 | ✅ |
+| qc-disposition-service.test.ts | 24 | ✅ |
+| electronic-signature-service.test.ts | 10 | ✅ |
+| **Total** | **111** | ✅ |
+
+### DocumentAttachment Component Usage (Phase 2)
+
+For lot documents (FR-057) and label verification images (FR-064/065), use the existing reusable `DocumentAttachment` component:
+
+```tsx
+// For lot documents (COA, Spec, MSDS)
+<DocumentAttachment
+  moduleName="inventory_lot"
+  entityId={lotId}
+  title="Lot Documents"
+  categories={['coa', 'specification', 'msds', 'photo']}
+  allowedExtensions={['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx']}
+/>
+
+// For label verification images
+<DocumentAttachment
+  moduleName="label_verification"
+  entityId={labelVerificationId}
+  title="Label Image"
+  categories={['photo']}
+  allowedExtensions={['.jpg', '.jpeg', '.png', '.webp']}
+  maxFiles={1}
+/>
+```
+
+**Key Points:**
+- All files stored as BLOB in database (`attachments.fileData`)
+- No filesystem storage - enables easy backup/restore
+- Uses existing polymorphic attachments table
+- Component handles upload, preview, and deletion
+- See `docs/DOCUMENT-ATTACHMENT-COMPONENT.md` for full API reference

@@ -1,6 +1,5 @@
-import { sql } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import { sqliteCustomers, mysqlCustomers } from '@/lib/db/schema';
+import { sql, like, desc } from 'drizzle-orm';
+import { db, getTableRef } from '@/lib/db/db-helper';
 import { successResponse, serverErrorResponse, withAuth } from '@/lib/api-utils';
 import { NextRequest } from 'next/server';
 
@@ -8,17 +7,16 @@ import { NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const customers = isSqlite ? sqliteCustomers : mysqlCustomers;
-
-      // Get the highest customer code number
-      const result = await db
-        .select({ code: customers.code })
-        .from(customers)
-        .where(sql`${customers.code} LIKE 'CUS%'`)
-        .orderBy(sql`${customers.code} DESC`)
-        .limit(1);
+      const customersTable = getTableRef('customers');
+      
+      // Get the highest customer code number using the new db helper
+      const result = await db.select({
+        table: 'customers',
+        columns: { code: customersTable.code },
+        where: like(customersTable.code, 'CUS%'),
+        orderBy: desc(customersTable.code),
+        limit: 1,
+      });
 
       let nextNumber = 1;
 

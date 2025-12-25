@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check permission
-    if (!hasPermission(session.role as Role, 'vmi-sync:read')) {
+    if (!hasPermission(session.role as Role, 'vmi-settings:read')) {
       return NextResponse.json(
         { success: false, error: 'Permission denied' },
         { status: 403 }

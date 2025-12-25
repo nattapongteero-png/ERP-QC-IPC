@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -239,17 +239,17 @@ export default function QualitySpecDetailPage() {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      
         <div className="flex items-center justify-center h-64">
           <DxLoadIndicator />
         </div>
-      </MainLayout>
+      
     );
   }
 
   if (!spec) {
     return (
-      <MainLayout>
+      
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold text-gray-900">Specification not found</h2>
           <p className="text-gray-500 mt-2">The specification you are looking for does not exist.</p>
@@ -261,12 +261,12 @@ export default function QualitySpecDetailPage() {
             onClick={() => router.push('/quality/specs')}
           />
         </div>
-      </MainLayout>
+      
     );
   }
 
   return (
-    <MainLayout>
+    
       <div className="space-y-6">
         <PageHeader
           title={spec.testName}
@@ -618,6 +618,6 @@ export default function QualitySpecDetailPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    
   );
 }

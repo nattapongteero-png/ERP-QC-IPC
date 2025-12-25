@@ -5,17 +5,47 @@
  * Feature: 009-gmp-compliance-gap-analysis (หมวด 9)
  *
  * Page for initiating a new product recall.
+ * Uses RecallDataEntryDialog for consistent data entry experience.
  */
 
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { RecallForm } from '@/components/recalls';
+import { useQuery } from '@tanstack/react-query';
+import { RecallDataEntryDialog } from '@/components/recalls';
 import { ResponsivePageHeader } from '@/components/shared';
 import { AlertTriangle } from 'lucide-react';
+
+// Fetch complaint details if linked
+async function fetchComplaint(id: number) {
+  const response = await fetch(`/api/complaints/${id}`);
+  const result = await response.json();
+  if (!result.success) return null;
+  return result.data;
+}
 
 export default function NewRecallPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const complaintId = searchParams.get('complaintId');
+  const [dialogVisible, setDialogVisible] = useState(true);
+
+  // Fetch complaint info if linked
+  const { data: complaint } = useQuery({
+    queryKey: ['complaint', complaintId],
+    queryFn: () => fetchComplaint(parseInt(complaintId!, 10)),
+    enabled: !!complaintId,
+  });
+
+  // Navigate back if dialog is closed without saving
+  const handleClose = () => {
+    setDialogVisible(false);
+    router.push('/gmp/recalls');
+  };
+
+  // Navigate to list after save
+  const handleSaved = () => {
+    router.push('/gmp/recalls');
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -43,16 +73,15 @@ export default function NewRecallPage() {
         </div>
       </div>
 
-      {/* Recall Form */}
-      <div className="max-w-2xl">
-        <div className="bg-card border rounded-lg shadow-sm">
-          <RecallForm
-            complaintId={complaintId ? parseInt(complaintId, 10) : undefined}
-            onSave={() => router.push('/gmp/recalls')}
-            onCancel={() => router.back()}
-          />
-        </div>
-      </div>
+      {/* Recall Data Entry Dialog */}
+      <RecallDataEntryDialog
+        visible={dialogVisible}
+        onClose={handleClose}
+        onSaved={handleSaved}
+        complaintId={complaintId ? parseInt(complaintId, 10) : undefined}
+        complaintNumber={complaint?.complaintNumber}
+        mode="create"
+      />
     </div>
   );
 }

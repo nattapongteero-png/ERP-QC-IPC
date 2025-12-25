@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 const shipOrderSchema = z.object({
   userId: z.number(),
-  shipmentDate: z.string().optional(),
+  shipmentDate: z.string().default(() => new Date().toISOString()),
   trackingNumber: z.string().optional(),
   carrier: z.string().optional(),
   notes: z.string().optional(),
@@ -52,16 +52,17 @@ export async function POST(
     }
 
     // Check if order is in a shippable state
-    if (order.status !== 'confirmed' && order.status !== 'processing') {
+    if (order.localStatus !== 'confirmed' && order.localStatus !== 'processing') {
       return NextResponse.json({
         success: false,
-        error: `Cannot ship order with status '${order.status}'. Only confirmed or processing orders can be shipped.`,
+        error: `Cannot ship order with status '${order.localStatus}'. Only confirmed or processing orders can be shipped.`,
       }, { status: 400 });
     }
 
     // Ship the order
-    const result = await service.shipOrder(id, data.userId, {
+    const result = await service.shipOrder(id, {
       shipmentDate: data.shipmentDate,
+      expectedDeliveryDate: data.shipmentDate,
       trackingNumber: data.trackingNumber,
       carrier: data.carrier,
       notes: data.notes,
@@ -71,10 +72,8 @@ export async function POST(
       success: true,
       data: {
         vmiOrderId: id,
-        shipmentDate: result.shipmentDate,
-        trackingNumber: result.trackingNumber,
-        portalNotified: result.portalNotified,
-        message: 'Order shipped successfully',
+        message: result.message || 'Order shipped successfully',
+        order: result.vmiOrder,
       },
     });
   } catch (error) {
@@ -84,7 +83,7 @@ export async function POST(
       return NextResponse.json({
         success: false,
         error: 'Invalid request body',
-        details: error.errors,
+        details: error.issues,
       }, { status: 400 });
     }
 

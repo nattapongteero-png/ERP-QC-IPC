@@ -7,13 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVendors,
-  sqliteVMIVendorConfig,
-  mysqlVendors,
-  mysqlVMIVendorConfig,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -21,7 +15,7 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
-import { encrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
+import { encrypt } from '@/lib/crypto/encrypt';
 
 // GET /api/vendors/[id]/vmi-config - Get vendor's VMI configuration
 export async function GET(
@@ -37,43 +31,42 @@ export async function GET(
         return errorResponse('Invalid vendor ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
+      const vendorsTable = getTableRef('vendors');
+      const vmiConfigTable = getTableRef('vmiVendorConfig');
 
       // Check if vendor exists
-      const vendorResult = await db
-        .select()
-        .from(vendors)
-        .where(eq(vendors.id, vendorId));
+      const vendorResult = await executeDbOperation(async (db) => {
+        return db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      });
 
       if (vendorResult.length === 0) {
         return errorResponse('Vendor not found', 404);
       }
 
       // Get VMI config for this vendor
-      const configResult = await db
-        .select({
-          id: vmiConfig.id,
-          vendorId: vmiConfig.vendorId,
-          vmiVendorId: vmiConfig.vmiVendorId,
-          baseUrl: vmiConfig.baseUrl,
-          isConnected: vmiConfig.isConnected,
-          lastConnectionAt: vmiConfig.lastConnectionAt,
-          syncItemsEnabled: vmiConfig.syncItemsEnabled,
-          syncPricesEnabled: vmiConfig.syncPricesEnabled,
-          syncInventoryEnabled: vmiConfig.syncInventoryEnabled,
-          orderPollIntervalMinutes: vmiConfig.orderPollIntervalMinutes,
-          lastItemsSyncAt: vmiConfig.lastItemsSyncAt,
-          lastPricesSyncAt: vmiConfig.lastPricesSyncAt,
-          lastInventorySyncAt: vmiConfig.lastInventorySyncAt,
-          lastOrdersPollAt: vmiConfig.lastOrdersPollAt,
-          createdAt: vmiConfig.createdAt,
-          updatedAt: vmiConfig.updatedAt,
-        })
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: vmiConfigTable.id,
+            vendorId: vmiConfigTable.vendorId,
+            vmiVendorId: vmiConfigTable.vmiVendorId,
+            baseUrl: vmiConfigTable.baseUrl,
+            isConnected: vmiConfigTable.isConnected,
+            lastConnectionAt: vmiConfigTable.lastConnectionAt,
+            syncItemsEnabled: vmiConfigTable.syncItemsEnabled,
+            syncPricesEnabled: vmiConfigTable.syncPricesEnabled,
+            syncInventoryEnabled: vmiConfigTable.syncInventoryEnabled,
+            orderPollIntervalMinutes: vmiConfigTable.orderPollIntervalMinutes,
+            lastItemsSyncAt: vmiConfigTable.lastItemsSyncAt,
+            lastPricesSyncAt: vmiConfigTable.lastPricesSyncAt,
+            lastInventorySyncAt: vmiConfigTable.lastInventorySyncAt,
+            lastOrdersPollAt: vmiConfigTable.lastOrdersPollAt,
+            createdAt: vmiConfigTable.createdAt,
+            updatedAt: vmiConfigTable.updatedAt,
+          })
+          .from(vmiConfigTable)
+          .where(eq(vmiConfigTable.vendorId, vendorId));
+      });
 
       if (configResult.length === 0) {
         // Return empty config if not configured
@@ -122,16 +115,13 @@ export async function PUT(
         orderPollIntervalMinutes,
       } = body;
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vendors = isSqlite ? sqliteVendors : mysqlVendors;
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
+      const vendorsTable = getTableRef('vendors');
+      const vmiConfigTable = getTableRef('vmiVendorConfig');
 
       // Check if vendor exists
-      const vendorResult = await db
-        .select()
-        .from(vendors)
-        .where(eq(vendors.id, vendorId));
+      const vendorResult = await executeDbOperation(async (db) => {
+        return db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
+      });
 
       if (vendorResult.length === 0) {
         return errorResponse('Vendor not found', 404);
@@ -143,18 +133,16 @@ export async function PUT(
       }
 
       // Check if config already exists
-      const existingConfig = await db
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const existingConfig = await executeDbOperation(async (db) => {
+        return db.select().from(vmiConfigTable).where(eq(vmiConfigTable.vendorId, vendorId));
+      });
 
-      const now = new Date();
       const isUpdate = existingConfig.length > 0;
 
       if (isUpdate) {
         // Update existing config
         const updateData: Record<string, unknown> = {
-          updatedAt: isSqlite ? now.toISOString() : now,
+          updatedAt: dbDate(),
         };
 
         // Only update API key if provided (allows partial updates)
@@ -173,10 +161,12 @@ export async function PUT(
           updateData.orderPollIntervalMinutes = Math.max(5, Math.min(60, orderPollIntervalMinutes));
         }
 
-        await db
-          .update(vmiConfig)
-          .set(updateData)
-          .where(eq(vmiConfig.vendorId, vendorId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(vmiConfigTable)
+            .set(updateData)
+            .where(eq(vmiConfigTable.vendorId, vendorId));
+        });
 
         await createAuditLog({
           userId: session.userId,
@@ -209,15 +199,15 @@ export async function PUT(
           orderPollIntervalMinutes: orderPollIntervalMinutes
             ? Math.max(5, Math.min(60, orderPollIntervalMinutes))
             : 15,
-          createdAt: isSqlite ? now.toISOString() : now,
-          updatedAt: isSqlite ? now.toISOString() : now,
+          createdAt: dbDate(),
+          updatedAt: dbDate(),
         };
 
-        const result = await db.insert(vmiConfig).values(insertData);
+        const result = await executeDbOperation(async (db) => {
+          return db.insert(vmiConfigTable).values(insertData);
+        });
 
-        const insertedId = isSqlite
-          ? (result as { lastInsertRowid: number }).lastInsertRowid
-          : (result as unknown as [{ insertId: number }])[0].insertId;
+        const insertedId = getInsertId(result);
 
         await createAuditLog({
           userId: session.userId,

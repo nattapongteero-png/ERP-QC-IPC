@@ -1,4 +1,4 @@
-import { getDb, useSqlite, initializeDatabase } from './index';
+import { getDb, isSqlite, initializeDatabase } from './index';
 import { hashPassword } from '../auth';
 import * as schema from './schema';
 
@@ -16,20 +16,20 @@ export async function seedDatabase() {
   await initializeDatabase();
 
   const db = await getDb();
-  const isSqlite = useSqlite();
+  const usingSqlite = isSqlite();
 
-  console.log(`Seeding database (${isSqlite ? 'SQLite' : 'MySQL'})...`);
+  console.log(`Seeding database (${usingSqlite ? 'SQLite' : 'MySQL'})...`);
 
   // Get the appropriate schema tables
-  const usersTable = isSqlite ? schema.sqliteUsers : schema.mysqlUsers;
-  const warehousesTable = isSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
-  const itemsTable = isSqlite ? schema.sqliteItems : schema.mysqlItems;
-  const vendorsTable = isSqlite ? schema.sqliteVendors : schema.mysqlVendors;
+  const usersTable = usingSqlite ? schema.sqliteUsers : schema.mysqlUsers;
+  const warehousesTable = usingSqlite ? schema.sqliteWarehouses : schema.mysqlWarehouses;
+  const itemsTable = usingSqlite ? schema.sqliteItems : schema.mysqlItems;
+  const vendorsTable = usingSqlite ? schema.sqliteVendors : schema.mysqlVendors;
 
   // Create admin user
   const adminPassword = await hashPassword('admin123');
   try {
-    if (isSqlite) {
+    if (usingSqlite) {
       await (db as any).insert(usersTable).values({
         email: 'admin@herbal-erp.com',
         password: adminPassword,
@@ -72,7 +72,7 @@ export async function seedDatabase() {
   // Helper function to insert and ignore duplicates
   async function insertIgnoreDuplicate(table: any, values: any) {
     try {
-      if (isSqlite) {
+      if (usingSqlite) {
         await (db as any).insert(table).values(values).onConflictDoNothing();
       } else {
         await (db as any).insert(table).values(values);
@@ -117,8 +117,8 @@ export async function seedDatabase() {
     { code: 'EX-001', nameTh: 'สารสกัดขมิ้นชัน', nameEn: 'Turmeric Extract', type: 'extract', category: 'Extract', primaryUnit: 'kg' },
     { code: 'PK-001', nameTh: 'แคปซูลเปล่า ขนาด 0', nameEn: 'Empty Capsule Size 0', type: 'packaging', category: 'Capsule', primaryUnit: 'pcs' },
     { code: 'PK-002', nameTh: 'ขวดพลาสติก 100ml', nameEn: 'Plastic Bottle 100ml', type: 'packaging', category: 'Bottle', primaryUnit: 'pcs' },
-    { code: 'FG-001', nameTh: 'แคปซูลขมิ้นชัน 500mg', nameEn: 'Turmeric Capsule 500mg', type: 'finished_product', category: 'Capsule', primaryUnit: 'bottle' },
-    { code: 'FG-002', nameTh: 'แคปซูลฟ้าทะลายโจร 400mg', nameEn: 'Andrographis Capsule 400mg', type: 'finished_product', category: 'Capsule', primaryUnit: 'bottle' },
+    { code: 'FG-001', nameTh: 'แคปซูลขมิ้นชัน 500mg', nameEn: 'Turmeric Capsule 500mg', type: 'finished_goods', category: 'Capsule', primaryUnit: 'bottle' },
+    { code: 'FG-002', nameTh: 'แคปซูลฟ้าทะลายโจร 400mg', nameEn: 'Andrographis Capsule 400mg', type: 'finished_goods', category: 'Capsule', primaryUnit: 'bottle' },
   ];
 
   for (const item of items) {
@@ -153,7 +153,7 @@ export async function seedDatabase() {
   console.log('Sample vendors created');
 
   // Seed report categories
-  const reportCategoriesTable = isSqlite ? schema.sqliteReportCategories : schema.mysqlReportCategories;
+  const reportCategoriesTable = usingSqlite ? schema.sqliteReportCategories : schema.mysqlReportCategories;
   for (const category of reportCategories) {
     await insertIgnoreDuplicate(reportCategoriesTable, {
       ...category,

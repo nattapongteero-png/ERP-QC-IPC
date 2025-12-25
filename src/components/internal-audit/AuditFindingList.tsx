@@ -8,8 +8,7 @@
  */
 
 import { useMemo } from 'react';
-import { DxDataGrid } from '@/components/ui/dx-data-grid';
-import { DxColumn } from '@/components/ui/dx-column';
+import { DxDataGrid, type DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import type { AuditFinding, AuditFindingCategory, AuditFindingStatus } from '@/types/audits';
@@ -144,25 +143,24 @@ export function AuditFindingList({
     );
   };
 
+  // Add actions column
+  const allColumns = [
+    ...columns,
+    {
+      caption: 'Actions',
+      width: 120,
+      cellRender: actionsCellRender,
+    },
+  ];
+
   return (
     <DxDataGrid
-      dataSource={findings}
+      dataSource={findings as unknown as Record<string, unknown>[]}
+      columns={allColumns as DxDataGridColumn[]}
       showBorders
       columnAutoWidth
       rowAlternationEnabled
-      hoverStateEnabled
-      loadPanel={{ enabled: loading }}
-    >
-      {columns.map((col) => (
-        <DxColumn key={col.dataField} {...col} />
-      ))}
-      <DxColumn
-        caption="Actions"
-        width={120}
-        cellRender={actionsCellRender}
-        allowSorting={false}
-        allowFiltering={false}
-      />
-    </DxDataGrid>
+      loading={loading}
+    />
   );
 }

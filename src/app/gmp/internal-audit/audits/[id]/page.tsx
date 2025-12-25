@@ -15,11 +15,11 @@ import { AuditFindingList } from '@/components/internal-audit';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxTextBox } from '@/components/ui/dx-textbox';
-import { DxTextArea } from '@/components/ui/dx-textarea';
-import { DxSelectBox } from '@/components/ui/dx-selectbox';
-import { DxCheckBox } from '@/components/ui/dx-checkbox';
-import { toast } from 'sonner';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { useToast } from '@/components/ui/toast';
 import type { AuditDetails, AuditFinding, AuditFindingCategory } from '@/types/audits';
 import { GMP_CHAPTERS } from '@/types/audits';
 
@@ -93,6 +93,7 @@ export default function AuditDetailPage({ params }: PageProps) {
   const auditId = parseInt(id);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const [showFindingPopup, setShowFindingPopup] = useState(false);
   const [findingForm, setFindingForm] = useState({

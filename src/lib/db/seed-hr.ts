@@ -7,7 +7,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { useSqlite, getSqliteDb, getMysqlDb } from './index';
+import { isSqlite, getSqliteDb, getMysqlDb } from './index';
 import * as schema from './schema';
 
 /**
@@ -1029,7 +1029,7 @@ async function isTableEmpty(tableName: string, isSqlite: boolean): Promise<boole
       const db = await getMysqlDb();
       const result = await db.execute(sql.raw(`SELECT COUNT(*) as count FROM \`${tableName}\``));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (result[0] as any[])[0]?.count === 0;
+      return (result[0] as unknown as any[])[0]?.count === 0;
     }
   } catch {
     console.log(`[HR Seed] Could not check table ${tableName}, will attempt to seed`);
@@ -1086,7 +1086,8 @@ async function seedOrgUnits(isSqlite: boolean): Promise<number> {
         const id = codeToIdMap[orgUnit.code];
         if (parentId && id) {
           if (isSqlite) {
-            await db.run(sql.raw(`UPDATE "${tableName}" SET parent_id = ${parentId} WHERE id = ${id}`));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (db as any).run(sql.raw(`UPDATE "${tableName}" SET parent_id = ${parentId} WHERE id = ${id}`));
           } else {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (db as any).execute(sql.raw(`UPDATE \`${tableName}\` SET parent_id = ${parentId} WHERE id = ${id}`));
@@ -1129,7 +1130,7 @@ async function seedPositions(isSqlite: boolean): Promise<number> {
       const db = await getMysqlDb();
       const result = await db.execute(sql.raw(`SELECT id, code FROM \`hr_org_units\``));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (result[0] as any[]).forEach((row: any) => {
+      (result[0] as unknown as any[]).forEach((row: any) => {
         orgUnitMap[row.code] = row.id;
       });
     }
@@ -1295,15 +1296,15 @@ export async function seedHRTables(): Promise<{
   appRolesSeeded: number;
   appPermissionsSeeded: number;
 }> {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const isSqlite = useSqlite();
-  console.log(`[HR Seed] Starting HR tables seeding for ${isSqlite ? 'SQLite' : 'MySQL'}...`);
+   
+  const usingSqlite = isSqlite();
+  console.log(`[HR Seed] Starting HR tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 
-  const orgUnitsSeeded = await seedOrgUnits(isSqlite);
-  const positionsSeeded = await seedPositions(isSqlite);
-  const trainingCoursesSeeded = await seedTrainingCourses(isSqlite);
-  const appRolesSeeded = await seedAppRoles(isSqlite);
-  const appPermissionsSeeded = await seedAppPermissions(isSqlite);
+  const orgUnitsSeeded = await seedOrgUnits(usingSqlite);
+  const positionsSeeded = await seedPositions(usingSqlite);
+  const trainingCoursesSeeded = await seedTrainingCourses(usingSqlite);
+  const appRolesSeeded = await seedAppRoles(usingSqlite);
+  const appPermissionsSeeded = await seedAppPermissions(usingSqlite);
 
   console.log(`[HR Seed] HR tables seeding complete.`);
   console.log(`[HR Seed] Org units: ${orgUnitsSeeded}, Positions: ${positionsSeeded}, Courses: ${trainingCoursesSeeded}, Roles: ${appRolesSeeded}, Permissions: ${appPermissionsSeeded}`);

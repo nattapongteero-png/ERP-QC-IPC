@@ -164,7 +164,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
 
   // Handle form data change
   const handleFormDataChange = (data: Record<string, unknown>) => {
-    setFormData(data as FormData);
+    setFormData(data as unknown as FormData);
   };
 
   // Handle test connection
@@ -440,7 +440,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Portal Settings</h3>
               <DxForm
-                formData={formData}
+                formData={formData as unknown as Record<string, unknown>}
                 onFormDataChange={handleFormDataChange}
                 colCount={1}
                 labelLocation="top"
@@ -521,7 +521,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Sync Settings</h3>
               <DxForm
-                formData={formData}
+                formData={formData as unknown as Record<string, unknown>}
                 onFormDataChange={handleFormDataChange}
                 colCount={2}
                 labelLocation="top"

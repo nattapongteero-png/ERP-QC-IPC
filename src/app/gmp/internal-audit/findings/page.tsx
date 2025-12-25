@@ -13,8 +13,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { AuditFindingList } from '@/components/internal-audit';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxSelectBox } from '@/components/ui/dx-selectbox';
-import { toast } from 'sonner';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { useToast } from '@/components/ui/toast';
 import type { AuditFinding, AuditFindingStatus, AuditFindingCategory } from '@/types/audits';
 
 // ============================================
@@ -57,6 +57,7 @@ function FindingsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const initialStatus = searchParams.get('status') as AuditFindingStatus | undefined;
   const [statusFilter, setStatusFilter] = useState<AuditFindingStatus | undefined>(initialStatus);

@@ -8,3 +8,4 @@ export { DocumentForm } from './DocumentForm';
 export { DocumentFormDialog } from './DocumentFormDialog';
 export { DocumentVersionHistory } from './DocumentVersionHistory';
 export { DocumentApprovalDialog } from './DocumentApprovalDialog';
+export { DocumentViewer } from './DocumentViewer';

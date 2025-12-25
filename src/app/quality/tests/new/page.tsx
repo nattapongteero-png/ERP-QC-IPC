@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
@@ -175,7 +175,7 @@ function NewQualityTestContent() {
   ];
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-6">
         <PageHeader
           title="New Quality Test"
@@ -397,18 +397,16 @@ function NewQualityTestContent() {
         onSelect={handleSelectLot}
         title="Select Lot for QC Test"
       />
-    </MainLayout>
+    </>
   );
 }
 
 export default function NewQualityTestPage() {
   return (
     <Suspense fallback={
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
     }>
       <NewQualityTestContent />
     </Suspense>

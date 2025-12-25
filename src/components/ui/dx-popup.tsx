@@ -195,6 +195,7 @@ export function DxPopup({
       container={container}
       wrapperAttr={{ ...wrapperAttr, className }}
       toolbarItems={toolbarItems}
+      deferRendering={true}
     >
       {children}
     </Popup>

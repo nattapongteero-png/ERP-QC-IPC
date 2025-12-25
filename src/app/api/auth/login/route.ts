@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { verifyPassword, setSession } from '@/lib/auth';
 import { successResponse, errorResponse, serverErrorResponse } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
@@ -14,28 +14,18 @@ export async function POST(request: NextRequest) {
       return errorResponse('Email and password are required');
     }
 
-    console.log('Login attempt - DB_TYPE:', process.env.DB_TYPE);
-    const db = await getDb();
-    const useSqlite = process.env.DB_TYPE === 'sqlite';
-    console.log('useSqlite:', useSqlite);
+    const usersTable = getTableRef('users');
 
     // Find user
-    let user;
-    if (useSqlite) {
-      const users = await (db as any)
+    const users = await executeDbOperation(async (db) => {
+      return db
         .select()
-        .from(schema.sqliteUsers)
-        .where(eq(schema.sqliteUsers.email, email))
+        .from(usersTable)
+        .where(eq(usersTable.email, email))
         .limit(1);
-      user = users[0];
-    } else {
-      const users = await (db as any)
-        .select()
-        .from(schema.mysqlUsers)
-        .where(eq(schema.mysqlUsers.email, email))
-        .limit(1);
-      user = users[0];
-    }
+    });
+
+    const user = users[0];
 
     if (!user) {
       return errorResponse('Invalid email or password', 401);

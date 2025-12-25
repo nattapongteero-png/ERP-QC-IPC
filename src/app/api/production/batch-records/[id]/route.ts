@@ -1,22 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb, useSqlite } from '@/lib/db';
-import {
-  sqliteBatchRecords,
-  sqliteWorkOrders,
-  sqliteOperations,
-  sqliteItems,
-  sqliteUsers,
-  sqliteWorkOrderMaterials,
-  sqliteQualityTests,
-  mysqlBatchRecords,
-  mysqlWorkOrders,
-  mysqlOperations,
-  mysqlItems,
-  mysqlUsers,
-  mysqlWorkOrderMaterials,
-  mysqlQualityTests,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -35,109 +19,118 @@ export async function GET(
       const { id } = await params;
       const recordId = parseInt(id);
 
-      const db = await getDb();
-      const isSqlite = useSqlite();
-      const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
-      const workOrders = isSqlite ? sqliteWorkOrders : mysqlWorkOrders;
-      const operations = isSqlite ? sqliteOperations : mysqlOperations;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const users = isSqlite ? sqliteUsers : mysqlUsers;
-      const workOrderMaterials = isSqlite ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
-      const qualityTests = isSqlite ? sqliteQualityTests : mysqlQualityTests;
+      const batchRecords = getTableRef('batchRecords');
+      const workOrders = getTableRef('workOrders');
+      const operations = getTableRef('operations');
+      const items = getTableRef('items');
+      const users = getTableRef('users');
+      const workOrderMaterials = getTableRef('workOrderMaterials');
 
       // Get batch record with joins
-      const [record] = await (db as any)
-        .select({
-          id: batchRecords.id,
-          workOrderId: batchRecords.workOrderId,
-          woNumber: workOrders.woNumber,
-          batchNumber: workOrders.batchNumber,
-          woStatus: workOrders.status,
-          productId: workOrders.productId,
-          productCode: items.code,
-          productName: items.nameTh,
-          productUnit: items.primaryUnit,
-          plannedQuantity: workOrders.plannedQuantity,
-          actualQuantity: workOrders.actualQuantity,
-          operationId: batchRecords.operationId,
-          operationName: operations.name,
-          operationDescription: operations.description,
-          standardTime: operations.standardTime,
-          sequence: batchRecords.sequence,
-          stepName: batchRecords.stepName,
-          instructions: batchRecords.instructions,
-          parameters: batchRecords.parameters,
-          actualValues: batchRecords.actualValues,
-          status: batchRecords.status,
-          startTime: batchRecords.startTime,
-          endTime: batchRecords.endTime,
-          performedBy: batchRecords.performedBy,
-          verifiedBy: batchRecords.verifiedBy,
-          verifiedAt: batchRecords.verifiedAt,
-          notes: batchRecords.notes,
-          attachments: batchRecords.attachments,
-          createdAt: batchRecords.createdAt,
-          updatedAt: batchRecords.updatedAt,
-        })
-        .from(batchRecords)
-        .leftJoin(workOrders, eq(batchRecords.workOrderId, workOrders.id))
-        .leftJoin(items, eq(workOrders.productId, items.id))
-        .leftJoin(operations, eq(batchRecords.operationId, operations.id))
-        .where(eq(batchRecords.id, recordId));
+      const recordResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: batchRecords.id,
+            workOrderId: batchRecords.workOrderId,
+            woNumber: workOrders.woNumber,
+            batchNumber: workOrders.batchNumber,
+            woStatus: workOrders.status,
+            productId: workOrders.productId,
+            productCode: items.code,
+            productName: items.nameTh,
+            productUnit: items.primaryUnit,
+            plannedQuantity: workOrders.plannedQuantity,
+            actualQuantity: workOrders.actualQuantity,
+            operationId: batchRecords.operationId,
+            operationName: operations.name,
+            operationDescription: operations.description,
+            standardTime: operations.standardTime,
+            sequence: batchRecords.sequence,
+            stepName: batchRecords.stepName,
+            instructions: batchRecords.instructions,
+            parameters: batchRecords.parameters,
+            actualValues: batchRecords.actualValues,
+            status: batchRecords.status,
+            startTime: batchRecords.startTime,
+            endTime: batchRecords.endTime,
+            performedBy: batchRecords.performedBy,
+            verifiedBy: batchRecords.verifiedBy,
+            verifiedAt: batchRecords.verifiedAt,
+            notes: batchRecords.notes,
+            attachments: batchRecords.attachments,
+            createdAt: batchRecords.createdAt,
+            updatedAt: batchRecords.updatedAt,
+          })
+          .from(batchRecords)
+          .leftJoin(workOrders, eq(batchRecords.workOrderId, workOrders.id))
+          .leftJoin(items, eq(workOrders.productId, items.id))
+          .leftJoin(operations, eq(batchRecords.operationId, operations.id))
+          .where(eq(batchRecords.id, recordId));
+      });
 
-      if (!record) {
+      if (recordResult.length === 0) {
         return errorResponse('Batch record not found', 404);
       }
+
+      const record = recordResult[0];
 
       // Get performer name
       let performerName = null;
       if (record.performedBy) {
-        const [performer] = await (db as any)
-          .select({ name: users.name })
-          .from(users)
-          .where(eq(users.id, record.performedBy));
-        performerName = performer?.name;
+        const performer = await executeDbOperation(async (db) => {
+          return db
+            .select({ name: users.name })
+            .from(users)
+            .where(eq(users.id, record.performedBy as number));
+        });
+        performerName = performer[0]?.name;
       }
 
       // Get verifier name
       let verifierName = null;
       if (record.verifiedBy) {
-        const [verifier] = await (db as any)
-          .select({ name: users.name })
-          .from(users)
-          .where(eq(users.id, record.verifiedBy));
-        verifierName = verifier?.name;
+        const verifier = await executeDbOperation(async (db) => {
+          return db
+            .select({ name: users.name })
+            .from(users)
+            .where(eq(users.id, record.verifiedBy as number));
+        });
+        verifierName = verifier[0]?.name;
       }
 
       // Get all batch records for this work order
-      const allRecords = await (db as any)
-        .select({
-          id: batchRecords.id,
-          sequence: batchRecords.sequence,
-          stepName: batchRecords.stepName,
-          status: batchRecords.status,
-          startTime: batchRecords.startTime,
-          endTime: batchRecords.endTime,
-        })
-        .from(batchRecords)
-        .where(eq(batchRecords.workOrderId, record.workOrderId))
-        .orderBy(batchRecords.sequence);
+      const allRecords = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: batchRecords.id,
+            sequence: batchRecords.sequence,
+            stepName: batchRecords.stepName,
+            status: batchRecords.status,
+            startTime: batchRecords.startTime,
+            endTime: batchRecords.endTime,
+          })
+          .from(batchRecords)
+          .where(eq(batchRecords.workOrderId, record.workOrderId as number))
+          .orderBy(batchRecords.sequence);
+      });
 
       // Get materials for this work order
-      const materials = await (db as any)
-        .select({
-          id: workOrderMaterials.id,
-          itemId: workOrderMaterials.itemId,
-          itemCode: items.code,
-          itemName: items.nameTh,
-          plannedQuantity: workOrderMaterials.plannedQuantity,
-          actualQuantity: workOrderMaterials.actualQuantity,
-          unit: workOrderMaterials.unit,
-          status: workOrderMaterials.status,
-        })
-        .from(workOrderMaterials)
-        .leftJoin(items, eq(workOrderMaterials.itemId, items.id))
-        .where(eq(workOrderMaterials.workOrderId, record.workOrderId));
+      const materials = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: workOrderMaterials.id,
+            itemId: workOrderMaterials.itemId,
+            itemCode: items.code,
+            itemName: items.nameTh,
+            plannedQuantity: workOrderMaterials.plannedQuantity,
+            actualQuantity: workOrderMaterials.actualQuantity,
+            unit: workOrderMaterials.unit,
+            status: workOrderMaterials.status,
+          })
+          .from(workOrderMaterials)
+          .leftJoin(items, eq(workOrderMaterials.itemId, items.id))
+          .where(eq(workOrderMaterials.workOrderId, record.workOrderId as number));
+      });
 
       // Parse JSON fields
       let parameters = null;
@@ -145,10 +138,10 @@ export async function GET(
       let attachments = null;
 
       try {
-        if (record.parameters) parameters = JSON.parse(record.parameters);
-        if (record.actualValues) actualValues = JSON.parse(record.actualValues);
-        if (record.attachments) attachments = JSON.parse(record.attachments);
-      } catch (e) {
+        if (record.parameters) parameters = JSON.parse(record.parameters as string);
+        if (record.actualValues) actualValues = JSON.parse(record.actualValues as string);
+        if (record.attachments) attachments = JSON.parse(record.attachments as string);
+      } catch {
         // Keep as strings if parsing fails
       }
 
@@ -188,23 +181,25 @@ export async function PUT(
         verifiedBy,
       } = body;
 
-      const db = await getDb();
-      const isSqlite = useSqlite();
-      const batchRecords = isSqlite ? sqliteBatchRecords : mysqlBatchRecords;
+      const batchRecords = getTableRef('batchRecords');
 
       // Check if record exists
-      const [existing] = await (db as any)
-        .select()
-        .from(batchRecords)
-        .where(eq(batchRecords.id, recordId));
+      const existing = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(batchRecords)
+          .where(eq(batchRecords.id, recordId));
+      });
 
-      if (!existing) {
+      if (existing.length === 0) {
         return errorResponse('Batch record not found', 404);
       }
 
+      const oldRecord = existing[0];
+
       // Build update object
-      const updateData: Record<string, any> = {
-        updatedAt: isSqlite ? new Date().toISOString() : new Date(),
+      const updateData: Record<string, unknown> = {
+        updatedAt: dbDate(),
       };
 
       if (status !== undefined) updateData.status = status;
@@ -219,25 +214,27 @@ export async function PUT(
       if (performedBy !== undefined) updateData.performedBy = performedBy;
       if (verifiedBy !== undefined) {
         updateData.verifiedBy = verifiedBy;
-        updateData.verifiedAt = isSqlite ? new Date().toISOString() : new Date();
+        updateData.verifiedAt = dbDate();
       }
 
       // Auto-set times based on status
-      if (status === 'in_progress' && !existing.startTime && !startTime) {
-        updateData.startTime = isSqlite ? new Date().toISOString() : new Date();
+      if (status === 'in_progress' && !oldRecord.startTime && !startTime) {
+        updateData.startTime = dbDate();
       }
-      if (status === 'completed' && !existing.endTime && !endTime) {
-        updateData.endTime = isSqlite ? new Date().toISOString() : new Date();
+      if (status === 'completed' && !oldRecord.endTime && !endTime) {
+        updateData.endTime = dbDate();
       }
-      if (status === 'in_progress' && !existing.performedBy && !performedBy) {
+      if (status === 'in_progress' && !oldRecord.performedBy && !performedBy) {
         updateData.performedBy = session.userId;
       }
 
       // Update record
-      await (db as any)
-        .update(batchRecords)
-        .set(updateData)
-        .where(eq(batchRecords.id, recordId));
+      await executeDbOperation(async (db) => {
+        return db
+          .update(batchRecords)
+          .set(updateData)
+          .where(eq(batchRecords.id, recordId));
+      });
 
       // Audit log
       await createAuditLog({
@@ -245,7 +242,7 @@ export async function PUT(
         action: 'UPDATE',
         tableName: 'batch_records',
         recordId,
-        oldValue: existing,
+        oldValue: oldRecord,
         newValue: updateData,
         ipAddress: getClientIP(request),
       });

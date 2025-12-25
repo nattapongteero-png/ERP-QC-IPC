@@ -3,17 +3,15 @@
  * Real-world sales management with ATP calculation and order fulfillment
  */
 
-import { db, useSqlite } from '../db';
+import { db, isSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteSalesOrders,
   sqliteSalesOrderLines,
-  sqliteVendors,
   sqliteItems,
   sqliteInventoryLots,
   mysqlSalesOrders,
   mysqlSalesOrderLines,
-  mysqlVendors,
   mysqlItems,
   mysqlInventoryLots,
 } from '../db/schema';
@@ -31,13 +29,19 @@ export interface ATPResult {
   breakdown: { onHand: number; reserved: number; incoming: number; committed: number };
 }
 
+// Customer details interface (schema uses denormalized customer info)
+export interface CustomerDetails {
+  name: string;
+  contact?: string;
+  address?: string;
+}
+
 // Get table references
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       salesOrders: sqliteSalesOrders,
       salesOrderLines: sqliteSalesOrderLines,
-      customers: sqliteVendors,
       items: sqliteItems,
       lots: sqliteInventoryLots,
     };
@@ -45,7 +49,6 @@ function getTables() {
   return {
     salesOrders: mysqlSalesOrders,
     salesOrderLines: mysqlSalesOrderLines,
-    customers: mysqlVendors,
     items: mysqlItems,
     lots: mysqlInventoryLots,
   };
@@ -91,16 +94,14 @@ export async function checkATP(
  * Create Sales Order
  */
 export async function createSalesOrder(
-  customerId: number,
+  customer: CustomerDetails,
   lines: Array<{ itemId: number; quantity: number; unitPrice: number; requiredDate: string }>,
-  shippingAddress: string,
   userId: number
 ): Promise<{ orderId: number; atpResults: ATPResult[] }> {
-  const { salesOrders, salesOrderLines, items, customers } = getTables();
+  const { salesOrders, salesOrderLines, items } = getTables();
   const database = db();
 
-  const [customer] = await database.select().from(customers).where(eq(customers.id, customerId));
-  if (!customer) throw new Error(`Customer ${customerId} not found`);
+  if (!customer.name) throw new Error('Customer name is required');
 
   const atpResults: ATPResult[] = [];
   for (const line of lines) {
@@ -121,29 +122,36 @@ export async function createSalesOrder(
     sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
   }
   const soNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
-  const totalAmount = lines.reduce((sum: number, l: any) => sum + l.quantity * l.unitPrice, 0);
+  const totalAmount = lines.reduce((sum: number, l: { quantity: number; unitPrice: number }) => sum + l.quantity * l.unitPrice, 0);
 
   const [newSO] = await database
     .insert(salesOrders)
-    .values({ soNumber, customerId, status: 'draft', totalAmount, currency: 'THB', shippingAddress, createdBy: userId })
+    .values({
+      soNumber,
+      customerName: customer.name,
+      customerContact: customer.contact,
+      customerAddress: customer.address,
+      status: 'draft',
+      totalAmount,
+      currency: 'THB',
+      createdBy: userId,
+    })
     .returning({ id: salesOrders.id });
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const [item] = await database.select().from(items).where(eq(items.id, line.itemId));
     await database.insert(salesOrderLines).values({
-      salesOrderId: newSO.id,
+      soId: newSO.id,
       itemId: line.itemId,
       quantity: line.quantity,
       unit: item?.primaryUnit || 'EA',
       unitPrice: line.unitPrice,
       totalPrice: line.quantity * line.unitPrice,
-      requiredDate: line.requiredDate,
-      lineNumber: i + 1,
     });
   }
 
-  await createAuditLog({ userId, action: 'CREATE', tableName: 'sales_orders', recordId: newSO.id, newValue: { soNumber, customerId, totalAmount } });
+  await createAuditLog({ userId, action: 'CREATE', tableName: 'sales_orders', recordId: newSO.id, newValue: { soNumber, customerName: customer.name, totalAmount } });
   return { orderId: newSO.id, atpResults };
 }
 

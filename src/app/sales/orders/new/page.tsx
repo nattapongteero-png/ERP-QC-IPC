@@ -7,12 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
-import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import { CustomerSearchDialog, Customer } from '@/components/ui/customer-search-dialog';
-import { Save, Plus, Trash2, Search, Building2, Phone, Mail, MapPin, X } from 'lucide-react';
+import { Search, Building2, Phone, Mail, MapPin, Trash2 } from 'lucide-react';
 
 interface SOLine {
   itemId: number;
@@ -136,81 +135,6 @@ export default function NewSalesOrderPage() {
     }).format(amount);
   };
 
-  // Define columns for DevExtreme DataGrid
-  const lineColumns: DxDataGridColumn[] = [
-    {
-      dataField: 'itemCode',
-      caption: 'Item Code',
-      width: 120,
-    },
-    {
-      dataField: 'itemName',
-      caption: 'Item Name',
-    },
-    {
-      dataField: 'unit',
-      caption: 'Unit',
-      width: 80,
-    },
-    {
-      dataField: 'quantity',
-      caption: 'Quantity',
-      width: 100,
-      cellRender: (cellInfo) => (
-        <DxTextBox
-          value={cellInfo.data.quantity?.toString() || '0'}
-          onValueChange={(value) => {
-            const index = lines.findIndex(l => l.itemId === cellInfo.data.itemId);
-            if (index !== -1) {
-              handleLineChange(index, 'quantity', parseFloat(value) || 0);
-            }
-          }}
-          width={80}
-        />
-      ),
-    },
-    {
-      dataField: 'unitPrice',
-      caption: 'Unit Price',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <DxTextBox
-          value={cellInfo.data.unitPrice?.toString() || '0'}
-          onValueChange={(value) => {
-            const index = lines.findIndex(l => l.itemId === cellInfo.data.itemId);
-            if (index !== -1) {
-              handleLineChange(index, 'unitPrice', parseFloat(value) || 0);
-            }
-          }}
-          width={100}
-        />
-      ),
-    },
-    {
-      dataField: 'lineTotal',
-      caption: 'Line Total',
-      width: 120,
-      cellRender: (cellInfo) => formatCurrency(cellInfo.data.quantity * cellInfo.data.unitPrice),
-    },
-    {
-      dataField: 'actions',
-      caption: '',
-      width: 80,
-      cellRender: (cellInfo) => (
-        <DxButton
-          icon="trash"
-          type="danger"
-          stylingMode="text"
-          onClick={() => {
-            const index = lines.findIndex(l => l.itemId === cellInfo.data.itemId);
-            if (index !== -1) {
-              handleRemoveLine(index);
-            }
-          }}
-        />
-      ),
-    },
-  ];
 
   return (
     <MainLayout>
@@ -377,14 +301,65 @@ export default function NewSalesOrderPage() {
           <CardContent>
             {lines.length > 0 ? (
               <>
-                <DxDataGrid
-                  dataSource={lines}
-                  keyExpr="itemId"
-                  columns={lineColumns}
-                  showBorders
-                  height={300}
-                  noDataText="ไม่มีรายการสินค้า"
-                />
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Item Code</th>
+                        <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Item Name</th>
+                        <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700">Unit</th>
+                        <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700 w-28">Quantity</th>
+                        <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700 w-32">Unit Price</th>
+                        <th className="text-right px-4 py-3 text-sm font-semibold text-gray-700 w-32">Line Total</th>
+                        <th className="text-center px-4 py-3 text-sm font-semibold text-gray-700 w-16"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.map((line, index) => (
+                        <tr key={line.itemId} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <span className="font-mono text-sm text-blue-600">{line.itemCode}</span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{line.itemName}</td>
+                          <td className="px-4 py-3 text-center text-sm text-gray-600">{line.unit}</td>
+                          <td className="px-4 py-2">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={line.quantity}
+                              onChange={(e) => handleLineChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                              className="w-full px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            />
+                          </td>
+                          <td className="px-4 py-2">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={line.unitPrice}
+                              onChange={(e) => handleLineChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                              className="w-full px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium text-gray-900">
+                            {formatCurrency(line.quantity * line.unitPrice)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLine(index)}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                              title="Remove item"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 <div className="flex justify-end mt-4 pt-4 border-t">
                   <div className="text-right">
                     <p className="text-sm text-gray-500">Total Amount</p>

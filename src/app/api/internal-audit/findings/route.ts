@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     if (!parseResult.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid parameters', details: parseResult.error.errors },
+        { success: false, error: 'Invalid parameters', details: parseResult.error.issues },
         { status: 400 }
       );
     }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     if (!parseResult.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid data', details: parseResult.error.errors },
+        { success: false, error: 'Invalid data', details: parseResult.error.issues },
         { status: 400 }
       );
     }

@@ -129,6 +129,7 @@ export function DxTextBox({
       value={value}
       defaultValue={defaultValue}
       onValueChanged={handleValueChanged}
+      valueChangeEvent="input"
       placeholder={placeholder}
       label={label}
       labelMode={labelMode}

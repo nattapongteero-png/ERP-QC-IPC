@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, like, or, sql, and } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { eq, like, sql, and, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate, getInsertId, parseDbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -23,20 +23,18 @@ function generatePONumber(): string {
 
 // GET /api/purchasing/orders - List purchase orders
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (session) => {
+  return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
       const search = searchParams.get('search') || '';
       const status = searchParams.get('status') || '';
       const vendorId = searchParams.get('vendorId') || '';
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const poTable = useSqlite ? schema.sqlitePurchaseOrders : schema.mysqlPurchaseOrders;
-      const vendorsTable = useSqlite ? schema.sqliteVendors : schema.mysqlVendors;
-      
-      const conditions = [];
+
+      const poTable = getTableRef('purchaseOrders');
+      const vendorsTable = getTableRef('vendors');
+
+      const conditions: (SQL | undefined)[] = [];
       if (search) {
         conditions.push(like(poTable.poNumber, `%${search}%`));
       }
@@ -46,37 +44,43 @@ export async function GET(request: NextRequest) {
       if (vendorId) {
         conditions.push(eq(poTable.vendorId, parseInt(vendorId)));
       }
-      
-      let countQuery = (db as any).select({ count: sql`count(*)` }).from(poTable);
-      if (conditions.length > 0) {
-        countQuery = countQuery.where(and(...conditions));
-      }
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
-      
-      let query = (db as any)
-        .select({
-          id: poTable.id,
-          poNumber: poTable.poNumber,
-          status: poTable.status,
-          orderDate: poTable.orderDate,
-          expectedDate: poTable.expectedDate,
-          totalAmount: poTable.totalAmount,
-          currency: poTable.currency,
-          vendorId: poTable.vendorId,
-          vendorName: vendorsTable.name,
-          createdAt: poTable.createdAt,
-        })
-        .from(poTable)
-        .leftJoin(vendorsTable, eq(poTable.vendorId, vendorsTable.id));
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-      
+
+      // Count query
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db.select({ count: sql`count(*)` }).from(poTable);
+        if (conditions.length > 0) {
+          countQuery = countQuery.where(and(...conditions));
+        }
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
+
+      // Data query
       const offset = (pagination.page - 1) * pagination.limit;
-      const orders = await query.limit(pagination.limit).offset(offset);
-      
+      const orders = await executeDbOperation(async (db) => {
+        let query = db
+          .select({
+            id: poTable.id,
+            poNumber: poTable.poNumber,
+            status: poTable.status,
+            orderDate: poTable.orderDate,
+            expectedDate: poTable.expectedDate,
+            totalAmount: poTable.totalAmount,
+            currency: poTable.currency,
+            vendorId: poTable.vendorId,
+            vendorName: vendorsTable.name,
+            createdAt: poTable.createdAt,
+          })
+          .from(poTable)
+          .leftJoin(vendorsTable, eq(poTable.vendorId, vendorsTable.id));
+
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
+
+        return query.limit(pagination.limit).offset(offset);
+      });
+
       return successResponse(createPaginatedResponse(orders, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);
@@ -97,70 +101,63 @@ export async function POST(request: NextRequest) {
         notes,
         lines,
       } = body;
-      
+
       if (!vendorId) {
         return errorResponse('Vendor ID is required');
       }
-      
+
       if (!lines || !Array.isArray(lines) || lines.length === 0) {
         return errorResponse('At least one line item is required');
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const poTable = useSqlite ? schema.sqlitePurchaseOrders : schema.mysqlPurchaseOrders;
-      const poLinesTable = useSqlite ? schema.sqlitePurchaseOrderLines : schema.mysqlPurchaseOrderLines;
-      
+
+      const poTable = getTableRef('purchaseOrders');
+      const poLinesTable = getTableRef('purchaseOrderLines');
+
       const poNumber = generatePONumber();
 
       // Calculate total
-      const totalAmount = lines.reduce((sum: number, line: any) => {
-        return sum + (line.quantity * line.unitPrice);
+      const totalAmount = lines.reduce((sum: number, line: Record<string, unknown>) => {
+        return sum + ((line.quantity as number) * (line.unitPrice as number));
       }, 0);
 
-      // Parse dates for MySQL (needs Date objects) vs SQLite (needs strings)
-      const now = new Date();
-      const parsedExpectedDate = expectedDate
-        ? (useSqlite ? expectedDate : new Date(expectedDate))
-        : null;
-
       // Create PO
-      const result = await (db as any).insert(poTable).values({
-        poNumber,
-        vendorId,
-        status: 'draft',
-        orderDate: useSqlite ? now.toISOString() : now,
-        expectedDate: parsedExpectedDate,
-        totalAmount,
-        currency: 'THB',
-        paymentTerms,
-        shippingAddress,
-        notes,
-        createdBy: session.userId,
-        createdAt: useSqlite ? now.toISOString() : now,
-        updatedAt: useSqlite ? now.toISOString() : now,
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(poTable).values({
+          poNumber,
+          vendorId,
+          status: 'draft',
+          orderDate: dbDate(),
+          expectedDate: parseDbDate(expectedDate),
+          totalAmount,
+          currency: 'THB',
+          paymentTerms,
+          shippingAddress,
+          notes,
+          createdBy: session.userId,
+          createdAt: dbDate(),
+          updatedAt: dbDate(),
+        });
       });
-      
-      const poId = useSqlite ? result.lastInsertRowid : result[0].insertId;
-      
+
+      const poId = getInsertId(result);
+
       // Create PO lines
       for (const line of lines) {
-        const lineExpectedDate = line.expectedDate
-          ? (useSqlite ? line.expectedDate : new Date(line.expectedDate))
-          : null;
-        await (db as any).insert(poLinesTable).values({
-          poId: Number(poId),
-          itemId: line.itemId,
-          quantity: line.quantity,
-          receivedQuantity: 0,
-          unit: line.unit,
-          unitPrice: line.unitPrice,
-          totalPrice: line.quantity * line.unitPrice,
-          expectedDate: lineExpectedDate,
-          notes: line.notes,
+        await executeDbOperation(async (db) => {
+          return db.insert(poLinesTable).values({
+            poId: Number(poId),
+            itemId: line.itemId,
+            quantity: line.quantity,
+            receivedQuantity: 0,
+            unit: line.unit,
+            unitPrice: line.unitPrice,
+            totalPrice: (line.quantity as number) * (line.unitPrice as number),
+            expectedDate: parseDbDate(line.expectedDate as string | null | undefined),
+            notes: line.notes,
+          });
         });
       }
-      
+
       await createAuditLog({
         userId: session.userId,
         action: 'CREATE',
@@ -169,7 +166,7 @@ export async function POST(request: NextRequest) {
         newValue: { poNumber, vendorId, totalAmount, linesCount: lines.length },
         ipAddress: getClientIP(request),
       });
-      
+
       return successResponse({ id: Number(poId), poNumber }, 'Purchase order created successfully');
     } catch (error) {
       return serverErrorResponse(error);

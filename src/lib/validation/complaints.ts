@@ -78,6 +78,17 @@ export const complaintTrendsParamsSchema = z.object({
   groupBy: complaintTrendsGroupBySchema.optional().default('category'),
 });
 
+// Adverse Event schemas
+export const adverseEventSeveritySchema = z.enum(['mild', 'moderate', 'severe', 'life_threatening', 'fatal']);
+
+export const adverseEventCreateSchema = z.object({
+  eventType: z.string().min(1, 'Event type is required').max(200),
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
+  severity: adverseEventSeveritySchema,
+  description: z.string().min(1, 'Description is required').max(5000),
+  patientOutcome: z.string().max(1000).optional(),
+});
+
 // Type exports
 export type ComplaintCreateInput = z.infer<typeof complaintCreateSchema>;
 export type ComplaintUpdateInput = z.infer<typeof complaintUpdateSchema>;
@@ -87,3 +98,4 @@ export type ComplaintRouteToQCInput = z.infer<typeof complaintRouteToQCSchema>;
 export type ComplaintLinkCapaInput = z.infer<typeof complaintLinkCapaSchema>;
 export type ComplaintListParamsInput = z.infer<typeof complaintListParamsSchema>;
 export type ComplaintTrendsParamsInput = z.infer<typeof complaintTrendsParamsSchema>;
+export type AdverseEventCreateInput = z.infer<typeof adverseEventCreateSchema>;

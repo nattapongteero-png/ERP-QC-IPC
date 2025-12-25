@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
-import * as schema from '@/lib/db/schema';
-import { eq, and, like } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, dbDate, getInsertId } from '@/lib/db/db-helper';
+import { eq, and, like, type SQL } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,24 +14,17 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
     const { searchParams } = new URL(request.url);
 
     const categoryId = searchParams.get('categoryId');
     const isPublished = searchParams.get('isPublished');
     const search = searchParams.get('search');
 
-    const templatesTable = isSqlite
-      ? schema.sqliteReportTemplates
-      : schema.mysqlReportTemplates;
-    const categoriesTable = isSqlite
-      ? schema.sqliteReportCategories
-      : schema.mysqlReportCategories;
+    const templatesTable = getTableRef('reportTemplates');
+    const categoriesTable = getTableRef('reportCategories');
 
     // Build conditions
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [];
 
     if (categoryId) {
       conditions.push(eq(templatesTable.categoryId, parseInt(categoryId)));
@@ -48,26 +40,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Query templates with category info
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
-      .select({
-        id: templatesTable.id,
-        name: templatesTable.name,
-        description: templatesTable.description,
-        code: templatesTable.code,
-        categoryId: templatesTable.categoryId,
-        categoryName: categoriesTable.name,
-        version: templatesTable.version,
-        isPublished: templatesTable.isPublished,
-        isSystem: templatesTable.isSystem,
-        thumbnail: templatesTable.thumbnail,
-        createdAt: templatesTable.createdAt,
-        updatedAt: templatesTable.updatedAt,
-      })
-      .from(templatesTable)
-      .leftJoin(categoriesTable, eq(templatesTable.categoryId, categoriesTable.id))
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(templatesTable.name);
+    const results = await executeDbOperation(async (db) => {
+      return db
+        .select({
+          id: templatesTable.id,
+          name: templatesTable.name,
+          description: templatesTable.description,
+          code: templatesTable.code,
+          categoryId: templatesTable.categoryId,
+          categoryName: categoriesTable.name,
+          version: templatesTable.version,
+          isPublished: templatesTable.isPublished,
+          isSystem: templatesTable.isSystem,
+          thumbnail: templatesTable.thumbnail,
+          createdAt: templatesTable.createdAt,
+          updatedAt: templatesTable.updatedAt,
+        })
+        .from(templatesTable)
+        .leftJoin(categoriesTable, eq(templatesTable.categoryId, categoriesTable.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(templatesTable.name);
+    });
 
     return NextResponse.json({
       success: true,
@@ -89,14 +82,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
     const body = await request.json();
-
-    const templatesTable = isSqlite
-      ? schema.sqliteReportTemplates
-      : schema.mysqlReportTemplates;
+    const templatesTable = getTableRef('reportTemplates');
 
     // Validate required fields
     if (!body.name || !body.code || !body.definition) {
@@ -107,12 +94,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if code already exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existing = await (db as any)
-      .select({ id: templatesTable.id })
-      .from(templatesTable)
-      .where(eq(templatesTable.code, body.code))
-      .limit(1);
+    const existing = await executeDbOperation(async (db) => {
+      return db
+        .select({ id: templatesTable.id })
+        .from(templatesTable)
+        .where(eq(templatesTable.code, body.code))
+        .limit(1);
+    });
 
     if (existing.length > 0) {
       return NextResponse.json(
@@ -139,17 +127,16 @@ export async function POST(request: NextRequest) {
       isSystem: body.isSystem || false,
       thumbnail: body.thumbnail || null,
       createdBy: body.createdBy || 1, // Default to admin user
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: dbDate(),
+      updatedAt: dbDate(),
     };
 
     // Insert template
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (db as any)
-      .insert(templatesTable)
-      .values(insertData);
+    const result = await executeDbOperation(async (db) => {
+      return db.insert(templatesTable).values(insertData);
+    });
 
-    const insertedId = isSqlite ? result.lastInsertRowid : result[0].insertId;
+    const insertedId = getInsertId(result);
 
     return NextResponse.json({
       success: true,

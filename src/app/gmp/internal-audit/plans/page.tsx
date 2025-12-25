@@ -14,10 +14,10 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { AuditPlanList } from '@/components/internal-audit';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxTextBox } from '@/components/ui/dx-textbox';
-import { DxNumberBox } from '@/components/ui/dx-numberbox';
-import { DxTextArea } from '@/components/ui/dx-textarea';
-import { toast } from 'sonner';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { useToast } from '@/components/ui/toast';
 import type { AuditPlan } from '@/types/audits';
 
 // ============================================
@@ -67,6 +67,7 @@ async function approvePlan(planId: number): Promise<void> {
 export default function AuditPlansPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const currentYear = new Date().getFullYear();
 
   const [showCreatePopup, setShowCreatePopup] = useState(false);

@@ -375,7 +375,7 @@ export function CapaActionList({
           <div className="space-y-2">
             <label className="text-sm font-medium">Due Date</label>
             <DxDateBox
-              value={newAction.dueDate ? new Date(newAction.dueDate) : null}
+              value={newAction.dueDate || undefined}
               onValueChange={(value) =>
                 setNewAction((prev) => ({
                   ...prev,

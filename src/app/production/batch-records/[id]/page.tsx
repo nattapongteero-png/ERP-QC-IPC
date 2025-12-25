@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -25,6 +24,8 @@ import {
   ChevronRight,
   Save,
   UserCheck,
+  Tag,
+  XCircle,
 } from 'lucide-react';
 
 interface Parameter {
@@ -91,6 +92,17 @@ interface BatchRecordDetail {
   }[];
 }
 
+interface LabelVerificationItem {
+  label: {
+    id: number;
+    labelType: string;
+    status: 'pending' | 'verified' | 'witnessed' | 'rejected';
+    batchNumber: string | null;
+  };
+  operatorName?: string;
+  witnessName?: string;
+}
+
 const booleanOptions = [
   { value: '', label: 'Select...' },
   { value: 'true', label: 'Yes / Pass' },
@@ -107,6 +119,19 @@ export default function BatchRecordDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [actualValues, setActualValues] = useState<Record<string, any>>({});
   const [notes, setNotes] = useState('');
+  const [labelVerifications, setLabelVerifications] = useState<LabelVerificationItem[]>([]);
+
+  const fetchLabelVerifications = async (batchRecordId: number) => {
+    try {
+      const res = await fetch(`/api/production/batch-records/${batchRecordId}/labels`);
+      const data = await res.json();
+      if (data.success) {
+        setLabelVerifications(data.data?.labels || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch label verifications:', error);
+    }
+  };
 
   const fetchRecord = async () => {
     setIsLoading(true);
@@ -118,6 +143,8 @@ export default function BatchRecordDetailPage() {
         setRecord(data.data);
         setActualValues(data.data.actualValues || {});
         setNotes(data.data.notes || '');
+        // Fetch label verifications for this batch record
+        fetchLabelVerifications(parseInt(id));
       } else {
         console.error('API error:', data.error);
       }
@@ -280,29 +307,25 @@ export default function BatchRecordDetailPage() {
 
   if (isLoading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <DxLoadIndicator />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <DxLoadIndicator />
+      </div>
     );
   }
 
   if (!record) {
     return (
-      <MainLayout>
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold text-gray-900">Batch record not found</h2>
-          <p className="text-gray-500 mt-2">The batch record you are looking for does not exist.</p>
-          <DxButton
-            text="Back to Batch Records"
-            type="normal"
-            stylingMode="outlined"
-            className="mt-4"
-            onClick={() => router.push('/production/batch-records')}
-          />
-        </div>
-      </MainLayout>
+      <div className="text-center py-12">
+        <h2 className="text-xl font-semibold text-gray-900">Batch record not found</h2>
+        <p className="text-gray-500 mt-2">The batch record you are looking for does not exist.</p>
+        <DxButton
+          text="Back to Batch Records"
+          type="normal"
+          stylingMode="outlined"
+          className="mt-4"
+          onClick={() => router.push('/production/batch-records')}
+        />
+      </div>
     );
   }
 
@@ -310,8 +333,7 @@ export default function BatchRecordDetailPage() {
   const nextStep = getNextStep();
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <PageHeader
           title={`Step ${record.sequence}: ${record.stepName}`}
           description={`${record.woNumber} - ${record.batchNumber}`}
@@ -656,6 +678,74 @@ export default function BatchRecordDetailPage() {
               </Card>
             )}
 
+            {/* Label Verifications */}
+            {labelVerifications.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Label Verifications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {labelVerifications.map((item) => (
+                      <div
+                        key={item.label.id}
+                        className="flex items-center justify-between text-sm p-2 rounded-lg border cursor-pointer hover:bg-gray-50"
+                        onClick={() => router.push(`/production/label-verification?labelId=${item.label.id}`)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {item.label.status === 'witnessed' && (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          )}
+                          {item.label.status === 'verified' && (
+                            <Clock className="h-4 w-4 text-blue-600" />
+                          )}
+                          {item.label.status === 'pending' && (
+                            <Clock className="h-4 w-4 text-gray-400" />
+                          )}
+                          {item.label.status === 'rejected' && (
+                            <XCircle className="h-4 w-4 text-red-600" />
+                          )}
+                          <div>
+                            <p className="font-medium">
+                              {item.label.labelType.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                            </p>
+                            {item.operatorName && (
+                              <p className="text-xs text-gray-500">By: {item.operatorName}</p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge
+                          variant={
+                            item.label.status === 'witnessed'
+                              ? 'primary'
+                              : item.label.status === 'verified'
+                              ? 'secondary'
+                              : item.label.status === 'rejected'
+                              ? 'danger'
+                              : 'default'
+                          }
+                          size="sm"
+                        >
+                          {item.label.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                  <DxButton
+                    text="Add Label"
+                    icon="plus"
+                    type="normal"
+                    stylingMode="text"
+                    onClick={() => router.push(`/production/label-verification?workOrderId=${record.workOrderId}`)}
+                    className="mt-2 w-full"
+                  />
+                </CardContent>
+              </Card>
+            )}
+
             {/* All Steps Overview */}
             <Card>
               <CardHeader>
@@ -702,7 +792,6 @@ export default function BatchRecordDetailPage() {
             </Card>
           </div>
         </div>
-      </div>
-    </MainLayout>
+    </div>
   );
 }

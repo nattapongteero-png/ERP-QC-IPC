@@ -2,18 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
+import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
+import { ClipboardCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+
+interface LineClearanceStatus {
+  required: boolean;
+  status: 'not_started' | 'pending' | 'performed' | 'verified' | 'rejected';
+  canStartProduction: boolean;
+  message: string;
+}
 
 interface WorkOrderDetail {
   workOrder: {
@@ -35,6 +44,8 @@ interface WorkOrderDetail {
     notes: string;
     createdAt: string;
     updatedAt: string;
+    lineClearanceRequired?: boolean;
+    lineClearanceStatus?: string;
   };
   materials: Array<{
     id: number;
@@ -86,13 +97,6 @@ interface WorkOrderDetail {
   };
 }
 
-interface Item {
-  id: number;
-  code: string;
-  nameTh: string;
-  primaryUnit: string;
-}
-
 interface Lot {
   id: number;
   lotNumber: string;
@@ -122,15 +126,15 @@ const testTypeOptions = [
 export default function WorkOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const [data, setData] = useState<WorkOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   // Add Material Dialog State
-  const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
-  const [items, setItems] = useState<Item[]>([]);
+  const [itemSearchDialogOpen, setItemSearchDialogOpen] = useState(false);
+  const [materialDetailsDialogOpen, setMaterialDetailsDialogOpen] = useState(false);
   const [lots, setLots] = useState<Lot[]>([]);
-  const [itemSearch, setItemSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
   const [plannedQuantity, setPlannedQuantity] = useState(0);
@@ -144,8 +148,12 @@ export default function WorkOrderDetailPage() {
   const [testNotes, setTestNotes] = useState('');
   const [addingQCTest, setAddingQCTest] = useState(false);
 
+  // Line Clearance State (FR-062)
+  const [lineClearanceStatus, setLineClearanceStatus] = useState<LineClearanceStatus | null>(null);
+
   const tabs: DxTabItem[] = [
     { text: 'Overview', icon: 'info' },
+    { text: 'Execution', icon: 'runner' },
     { text: 'Materials', icon: 'box' },
     { text: 'QC Tests', icon: 'check' },
     { text: 'eBMR', icon: 'doc' },
@@ -153,13 +161,8 @@ export default function WorkOrderDetailPage() {
 
   useEffect(() => {
     fetchWorkOrderDetail();
+    fetchLineClearanceStatus();
   }, [params.id]);
-
-  useEffect(() => {
-    if (materialDialogOpen && itemSearch.length >= 2) {
-      searchItems();
-    }
-  }, [itemSearch, materialDialogOpen]);
 
   useEffect(() => {
     if (selectedItem) {
@@ -168,6 +171,18 @@ export default function WorkOrderDetailPage() {
       setLots([]);
     }
   }, [selectedItem]);
+
+  const fetchLineClearanceStatus = async () => {
+    try {
+      const response = await fetch(`/api/production/work-orders/${params.id}/line-clearance`);
+      const result = await response.json();
+      if (result.success) {
+        setLineClearanceStatus(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch line clearance status:', error);
+    }
+  };
 
   const fetchWorkOrderDetail = async () => {
     try {
@@ -183,18 +198,6 @@ export default function WorkOrderDetailPage() {
     }
   };
 
-  const searchItems = async () => {
-    try {
-      const response = await fetch(`/api/items?search=${encodeURIComponent(itemSearch)}&limit=20`);
-      const result = await response.json();
-      if (result.success) {
-        setItems(result.data.data || []);
-      }
-    } catch (error) {
-      console.error('Failed to search items:', error);
-    }
-  };
-
   const fetchLots = async (itemId: number) => {
     try {
       const response = await fetch(`/api/inventory/lots?itemId=${itemId}&status=released&limit=50`);
@@ -205,6 +208,12 @@ export default function WorkOrderDetailPage() {
     } catch (error) {
       console.error('Failed to fetch lots:', error);
     }
+  };
+
+  const handleSelectItem = (item: Item) => {
+    setSelectedItem(item);
+    setItemSearchDialogOpen(false);
+    setMaterialDetailsDialogOpen(true);
   };
 
   const handleAddMaterial = async () => {
@@ -225,7 +234,7 @@ export default function WorkOrderDetailPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setMaterialDialogOpen(false);
+        setMaterialDetailsDialogOpen(false);
         resetMaterialForm();
         fetchWorkOrderDetail();
       }
@@ -241,8 +250,6 @@ export default function WorkOrderDetailPage() {
     setSelectedLot(null);
     setPlannedQuantity(0);
     setActualQuantity(0);
-    setItemSearch('');
-    setItems([]);
     setLots([]);
   };
 
@@ -280,6 +287,17 @@ export default function WorkOrderDetailPage() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    // FR-062: Check line clearance before starting production
+    if (newStatus === 'in_progress') {
+      if (lineClearanceStatus?.required && !lineClearanceStatus?.canStartProduction) {
+        toast.error(
+          `Cannot start production: ${lineClearanceStatus.message}. ` +
+          `Please complete line clearance first.`
+        );
+        return;
+      }
+    }
+
     try {
       const response = await fetch(`/api/production/work-orders/${params.id}/status`, {
         method: 'PUT',
@@ -288,10 +306,15 @@ export default function WorkOrderDetailPage() {
       });
       const result = await response.json();
       if (result.success) {
+        toast.success(`Work order status updated to ${newStatus}`);
         fetchWorkOrderDetail();
+        fetchLineClearanceStatus();
+      } else {
+        toast.error(result.error || 'Failed to update status');
       }
     } catch (error) {
       console.error('Failed to update status:', error);
+      toast.error('Failed to update status');
     }
   };
 
@@ -420,28 +443,24 @@ export default function WorkOrderDetailPage() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <DxLoadIndicator />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <DxLoadIndicator />
+      </div>
     );
   }
 
   if (!data) {
     return (
-      <MainLayout>
-        <div className="text-center py-12">
-          <p className="text-gray-500">Work Order not found</p>
-          <DxButton
-            text="Back to List"
-            type="normal"
-            stylingMode="outlined"
-            className="mt-4"
-            onClick={() => router.push('/production/work-orders')}
-          />
-        </div>
-      </MainLayout>
+      <div className="text-center py-12">
+        <p className="text-gray-500">Work Order not found</p>
+        <DxButton
+          text="Back to List"
+          type="normal"
+          stylingMode="outlined"
+          className="mt-4"
+          onClick={() => router.push('/production/work-orders')}
+        />
+      </div>
     );
   }
 
@@ -449,8 +468,7 @@ export default function WorkOrderDetailPage() {
   const nextStatus = getNextStatus(workOrder.status);
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -470,11 +488,22 @@ export default function WorkOrderDetailPage() {
             <p className="text-gray-600 mt-1">Batch: {workOrder.batchNumber || 'N/A'}</p>
           </div>
           <div className="flex gap-2">
+            {/* Line Clearance Button (FR-062) - Show when in released status */}
+            {workOrder.status === 'released' && lineClearanceStatus?.required && (
+              <DxButton
+                text="Line Clearance"
+                icon="check"
+                type={lineClearanceStatus?.canStartProduction ? 'success' : 'danger'}
+                stylingMode={lineClearanceStatus?.canStartProduction ? 'outlined' : 'contained'}
+                onClick={() => router.push(`/production/line-clearance?workOrderId=${workOrder.id}`)}
+              />
+            )}
             {nextStatus && (
               <DxButton
                 text={`Advance to ${getStatusLabel(nextStatus)}`}
                 type="default"
                 onClick={() => handleStatusChange(nextStatus)}
+                disabled={nextStatus === 'in_progress' && lineClearanceStatus?.required && !lineClearanceStatus?.canStartProduction}
               />
             )}
             <DxButton
@@ -539,6 +568,40 @@ export default function WorkOrderDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Line Clearance Status Card (FR-062) */}
+        {lineClearanceStatus?.required && workOrder.status === 'released' && (
+          <Card className={`border-2 ${lineClearanceStatus.canStartProduction ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${lineClearanceStatus.canStartProduction ? 'bg-green-100' : 'bg-amber-100'}`}>
+                    {lineClearanceStatus.canStartProduction ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <ClipboardCheck className="h-5 w-5 text-amber-600" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className={`font-medium ${lineClearanceStatus.canStartProduction ? 'text-green-800' : 'text-amber-800'}`}>
+                      Line Clearance {lineClearanceStatus.canStartProduction ? 'Complete' : 'Required'}
+                    </h3>
+                    <p className={`text-sm ${lineClearanceStatus.canStartProduction ? 'text-green-600' : 'text-amber-600'}`}>
+                      {lineClearanceStatus.message}
+                    </p>
+                  </div>
+                </div>
+                {!lineClearanceStatus.canStartProduction && (
+                  <DxButton
+                    text="Complete Line Clearance"
+                    type="default"
+                    onClick={() => router.push(`/production/line-clearance?workOrderId=${workOrder.id}`)}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabs */}
         <DxTabs
@@ -627,6 +690,72 @@ export default function WorkOrderDetailPage() {
         {activeTabIndex === 1 && (
           <Card>
             <CardHeader>
+              <CardTitle>Production Execution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">
+                  Access the detailed production execution workflow including material weighing,
+                  SOP execution, environmental monitoring, cleaning checklists, and quality control.
+                </p>
+                <DxButton
+                  text="Open Execution Dashboard"
+                  type="default"
+                  icon="runner"
+                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/execution`)}
+                />
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+                <button
+                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/material-weighing`)}
+                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
+                >
+                  <div className="text-lg font-medium text-gray-900">Material Weighing</div>
+                  <div className="text-sm text-gray-500">Record actual weights</div>
+                </button>
+                <button
+                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/sop-execution`)}
+                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
+                >
+                  <div className="text-lg font-medium text-gray-900">SOP Execution</div>
+                  <div className="text-sm text-gray-500">Execute production steps</div>
+                </button>
+                <button
+                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/environmental-monitoring`)}
+                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
+                >
+                  <div className="text-lg font-medium text-gray-900">Environmental</div>
+                  <div className="text-sm text-gray-500">Monitor temp/humidity</div>
+                </button>
+                <button
+                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/cleaning`)}
+                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
+                >
+                  <div className="text-lg font-medium text-gray-900">Cleaning</div>
+                  <div className="text-sm text-gray-500">Room/equipment checklists</div>
+                </button>
+                <button
+                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/packaging-qc`)}
+                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
+                >
+                  <div className="text-lg font-medium text-gray-900">Packaging QC</div>
+                  <div className="text-sm text-gray-500">Weight & integrity checks</div>
+                </button>
+                <button
+                  onClick={() => router.push(`/production/work-orders/${workOrder.id}/finished-inspection`)}
+                  className="p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors"
+                >
+                  <div className="text-lg font-medium text-gray-900">Final Inspection</div>
+                  <div className="text-sm text-gray-500">15-point checklist</div>
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTabIndex === 2 && (
+          <Card>
+            <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Material Consumption</CardTitle>
                 <DxButton
@@ -634,7 +763,7 @@ export default function WorkOrderDetailPage() {
                   icon="plus"
                   type="normal"
                   stylingMode="outlined"
-                  onClick={() => setMaterialDialogOpen(true)}
+                  onClick={() => setItemSearchDialogOpen(true)}
                 />
               </div>
             </CardHeader>
@@ -651,7 +780,7 @@ export default function WorkOrderDetailPage() {
           </Card>
         )}
 
-        {activeTabIndex === 2 && (
+        {activeTabIndex === 3 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -678,7 +807,7 @@ export default function WorkOrderDetailPage() {
           </Card>
         )}
 
-        {activeTabIndex === 3 && (
+        {activeTabIndex === 4 && (
           <div className="space-y-6 print:space-y-4" id="ebmr-content">
             {/* eBMR Header */}
             <Card>
@@ -856,67 +985,44 @@ export default function WorkOrderDetailPage() {
             </Card>
           </div>
         )}
-      </div>
 
-      {/* Add Material Dialog */}
+      {/* Item Search Dialog */}
+      <ItemSearchDialog
+        open={itemSearchDialogOpen}
+        onOpenChange={setItemSearchDialogOpen}
+        onSelect={handleSelectItem}
+        title="Select Material"
+        excludeType="finished_goods"
+      />
+
+      {/* Material Details Dialog */}
       <DxPopup
-        visible={materialDialogOpen}
-        onHiding={() => { setMaterialDialogOpen(false); resetMaterialForm(); }}
-        title="Add Material"
-        width={500}
+        visible={materialDetailsDialogOpen}
+        onHiding={() => { setMaterialDetailsDialogOpen(false); resetMaterialForm(); }}
+        title="Material Details"
+        width={450}
         height="auto"
         showCloseButton
       >
         <div className="space-y-4 p-4">
-          <p className="text-sm text-gray-500">
-            Add a material to this work order. Search for an item and optionally select a lot.
-          </p>
-          {/* Item Search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Item <span className="text-red-500">*</span>
-            </label>
-            {selectedItem ? (
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                <div>
-                  <p className="font-medium">{selectedItem.code}</p>
-                  <p className="text-sm text-gray-500">{selectedItem.nameTh}</p>
-                </div>
-                <DxButton
-                  text="Change"
-                  type="normal"
-                  stylingMode="outlined"
-                  onClick={() => setSelectedItem(null)}
-                />
-              </div>
-            ) : (
+          {/* Selected Item Display */}
+          {selectedItem && (
+            <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
               <div>
-                <DxTextBox
-                  placeholder="Search item code or name..."
-                  value={itemSearch}
-                  onValueChange={setItemSearch}
-                />
-                {items.length > 0 && (
-                  <div className="mt-2 max-h-40 overflow-auto border rounded-lg">
-                    {items.map((item) => (
-                      <button
-                        key={item.id}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
-                        onClick={() => {
-                          setSelectedItem(item);
-                          setItems([]);
-                          setItemSearch('');
-                        }}
-                      >
-                        <p className="font-medium">{item.code}</p>
-                        <p className="text-sm text-gray-500">{item.nameTh}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <p className="font-medium text-emerald-800">{selectedItem.code}</p>
+                <p className="text-sm text-emerald-600">{selectedItem.nameTh}</p>
               </div>
-            )}
-          </div>
+              <DxButton
+                text="Change"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => {
+                  setMaterialDetailsDialogOpen(false);
+                  setItemSearchDialogOpen(true);
+                }}
+              />
+            </div>
+          )}
 
           {/* Lot Selection */}
           {selectedItem && (
@@ -982,7 +1088,7 @@ export default function WorkOrderDetailPage() {
               text="Cancel"
               type="normal"
               stylingMode="outlined"
-              onClick={() => { setMaterialDialogOpen(false); resetMaterialForm(); }}
+              onClick={() => { setMaterialDetailsDialogOpen(false); resetMaterialForm(); }}
             />
             <DxButton
               text={addingMaterial ? 'Adding...' : 'Add Material'}
@@ -1060,6 +1166,6 @@ export default function WorkOrderDetailPage() {
           </div>
         </div>
       </DxPopup>
-    </MainLayout>
+    </div>
   );
 }

@@ -29,12 +29,95 @@ const mockFrom = vi.fn(() => ({
   }))
 }));
 
-vi.mock('@/lib/db', () => ({
-  db: vi.fn(() => ({
-    select: vi.fn(() => ({
-      from: vi.fn((table: unknown) => {
-        // Return array for dashboard queries (no where clause needed)
-        return {
+vi.mock('@/lib/db', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  
+  // Track query types to return different data
+  let queryType = 'dashboard';
+  
+  return {
+    ...actual,
+    isSqlite: vi.fn(() => true),
+    getDb: vi.fn(() => Promise.resolve({
+      select: vi.fn(() => ({
+        from: vi.fn(() => {
+          // Create a thenable object that can track query type
+          const thenable = {
+            where: vi.fn(() => {
+              queryType = 'where';
+              return thenable;
+            }),
+            leftJoin: vi.fn(() => {
+              queryType = 'join';
+              return thenable;
+            }),
+            orderBy: vi.fn(() => {
+              queryType = 'orderBy';
+              return thenable;
+            }),
+            limit: vi.fn(() => {
+              queryType = 'limit';
+              return thenable;
+            }),
+            offset: vi.fn(() => {
+              queryType = 'offset';
+              return thenable;
+            }),
+            then: (resolve: (value: unknown[]) => void) => {
+              // Return different data based on query type
+              if (queryType === 'dashboard') {
+                // Dashboard query - return mock capa data
+                resolve([
+                  { 
+                    status: 'open', 
+                    priority: 'high', 
+                    dueDate: '2024-01-01', 
+                    closedDate: null, 
+                    createdAt: '2024-01-01T00:00:00.000Z' 
+                  },
+                  { 
+                    status: 'closed', 
+                    priority: 'medium', 
+                    dueDate: '2024-01-01', 
+                    closedDate: '2024-01-15T00:00:00.000Z', 
+                    createdAt: '2024-01-01T00:00:00.000Z' 
+                  },
+                  { 
+                    status: 'open', 
+                    priority: 'low', 
+                    dueDate: '2024-01-01', 
+                    closedDate: null, 
+                    createdAt: '2024-01-01T00:00:00.000Z' 
+                  }
+                ]);
+              } else if (queryType === 'orderBy' || queryType === 'limit') {
+                // For generateCapaNumber and other queries that need empty or specific data
+                resolve([]);
+              } else {
+                // Default empty array
+                resolve([]);
+              }
+              queryType = 'dashboard'; // Reset for next query
+            }
+          };
+          return thenable;
+        })
+      })),
+      insert: vi.fn(() => ({
+        values: vi.fn(() => Promise.resolve([{ id: 1 }]))
+      })),
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(() => Promise.resolve([{ id: 1 }]))
+        }))
+      })),
+      delete: vi.fn(() => ({
+        where: vi.fn(() => Promise.resolve([{ id: 1 }]))
+      }))
+    })),
+    db: vi.fn(() => ({
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
           where: vi.fn(() => ({
             orderBy: vi.fn(() => ({
               limit: vi.fn(() => Promise.resolve([]))
@@ -57,22 +140,24 @@ vi.mock('@/lib/db', () => ({
           })),
           // Direct call to from() returns an array (for dashboard queries)
           then: (resolve: (value: unknown[]) => void) => resolve([])
-        };
-      })
-    })),
-    insert: vi.fn(() => ({
-      values: vi.fn(() => ({
-        returning: vi.fn(() => Promise.resolve([{ id: 1 }]))
-      }))
-    })),
-    update: vi.fn(() => ({
-      set: vi.fn(() => ({
+        }))
+      })),
+      insert: vi.fn(() => ({
+        values: vi.fn(() => ({
+          returning: vi.fn(() => Promise.resolve([{ id: 1 }]))
+        }))
+      })),
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(() => Promise.resolve([]))
+        }))
+      })),
+      delete: vi.fn(() => ({
         where: vi.fn(() => Promise.resolve([]))
       }))
     }))
-  })),
-  useSqlite: vi.fn(() => true)
-}));
+  };
+});
 
 vi.mock('@/lib/audit', () => ({
   createAuditLog: vi.fn(() => Promise.resolve())

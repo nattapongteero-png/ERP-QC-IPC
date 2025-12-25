@@ -199,7 +199,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
       <div className="space-y-2">
         <label className="text-sm font-medium">Product *</label>
         <DxSelectBox
-          dataSource={products}
+          dataSource={products as unknown as Record<string, unknown>[]}
           valueExpr="id"
           displayExpr="name"
           value={formData.productId || null}
@@ -217,7 +217,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
       <div className="space-y-2">
         <label className="text-sm font-medium">Affected Lots *</label>
         <DxTagBox
-          dataSource={lots}
+          dataSource={lots as unknown as Record<string, unknown>[]}
           valueExpr="id"
           displayExpr="lotNumber"
           value={formData.affectedLots}
@@ -250,7 +250,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
       <div className="space-y-2">
         <label className="text-sm font-medium">Recall Coordinator *</label>
         <DxSelectBox
-          dataSource={users}
+          dataSource={users as unknown as Record<string, unknown>[]}
           valueExpr="id"
           displayExpr="name"
           value={formData.coordinatorId || null}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useVmiAutoSync } from '@/hooks/use-vmi-auto-sync';
 
 interface User {
   id: number;
@@ -52,6 +53,9 @@ export function MainLayout({ children }: MainLayoutProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // VMI Auto Sync - runs every 15 minutes when user is authenticated
+  useVmiAutoSync({ enabled: !!user });
 
   const handleLogout = async () => {
     try {
@@ -128,7 +132,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen max-w-full overflow-x-hidden">
         {/* Mobile/Tablet Header */}
         <header
           className={cn(
@@ -182,10 +186,11 @@ export function MainLayout({ children }: MainLayoutProps) {
           className={cn(
             'flex-1 flex flex-col',
             'p-4 md:p-4 lg:p-6',
+            'min-w-0 max-w-full',
             // On tablet, fit content to viewport height (minus header)
             'md:h-[calc(100vh-56px)] md:overflow-hidden',
-            // On desktop, allow scrolling
-            'lg:h-auto lg:overflow-visible',
+            // On desktop, allow vertical scrolling but prevent horizontal overflow
+            'lg:h-auto lg:overflow-y-auto lg:overflow-x-hidden',
             'animate-fade-in motion-reduce:animate-none',
             'focus:outline-none'
           )}

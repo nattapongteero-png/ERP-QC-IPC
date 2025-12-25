@@ -4,7 +4,7 @@
  */
 
 import { getSession } from '@/lib/auth';
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
@@ -32,13 +32,13 @@ export async function checkReportPermission(
     }
 
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+     
+    const usingSqlite = isSqlite();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
-    const permissionsTable = isSqlite
+    const permissionsTable = usingSqlite
       ? schema.sqliteReportPermissions
       : schema.mysqlReportPermissions;
 
@@ -144,13 +144,13 @@ export async function getUserTemplatePermissions(
 ): Promise<{ canView: boolean; canExport: boolean; canDesign: boolean }> {
   try {
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+     
+    const usingSqlite = isSqlite();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
-    const permissionsTable = isSqlite
+    const permissionsTable = usingSqlite
       ? schema.sqliteReportPermissions
       : schema.mysqlReportPermissions;
 

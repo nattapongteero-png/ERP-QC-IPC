@@ -1,55 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
-import { 
-  sqliteWorkOrders, sqliteWorkOrderMaterials, sqliteItems, sqliteInventoryLots, sqliteUsers, sqliteQualityTests,
-  mysqlWorkOrders, mysqlWorkOrderMaterials, mysqlItems, mysqlInventoryLots, mysqlUsers, mysqlQualityTests
-} from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { eq } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (user) => {
+  return withAuth(request, async () => {
     try {
       const { id } = await params;
-      const db = await getDb();
-      const workOrders = useSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
-      const workOrderMaterials = useSqlite() ? sqliteWorkOrderMaterials : mysqlWorkOrderMaterials;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const inventoryLots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const users = useSqlite() ? sqliteUsers : mysqlUsers;
-      const qualityTests = useSqlite() ? sqliteQualityTests : mysqlQualityTests;
+
+      const workOrders = getTableRef('workOrders');
+      const workOrderMaterials = getTableRef('workOrderMaterials');
+      const items = getTableRef('items');
+      const inventoryLots = getTableRef('inventoryLots');
+      const qualityTests = getTableRef('qualityTests');
 
       // Get work order details
-      const woResult = await db
-        .select({
-          id: workOrders.id,
-          woNumber: workOrders.woNumber,
-          productId: workOrders.productId,
-          productCode: items.code,
-          productName: items.nameTh,
-          productNameEn: items.nameEn,
-          productUnit: items.primaryUnit,
-          batchNumber: workOrders.batchNumber,
-          plannedQuantity: workOrders.plannedQuantity,
-          actualQuantity: workOrders.actualQuantity,
-          unit: workOrders.unit,
-          status: workOrders.status,
-          priority: workOrders.priority,
-          plannedStartDate: workOrders.plannedStartDate,
-          plannedEndDate: workOrders.plannedEndDate,
-          actualStartDate: workOrders.actualStartDate,
-          actualEndDate: workOrders.actualEndDate,
-          yieldPercentage: workOrders.yieldPercentage,
-          notes: workOrders.notes,
-          createdAt: workOrders.createdAt,
-          updatedAt: workOrders.updatedAt,
-        })
-        .from(workOrders)
-        .leftJoin(items, eq(workOrders.productId, items.id))
-        .where(eq(workOrders.id, parseInt(id)));
+      const woResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: workOrders.id,
+            woNumber: workOrders.woNumber,
+            productId: workOrders.productId,
+            productCode: items.code,
+            productName: items.nameTh,
+            productNameEn: items.nameEn,
+            productUnit: items.primaryUnit,
+            batchNumber: workOrders.batchNumber,
+            plannedQuantity: workOrders.plannedQuantity,
+            actualQuantity: workOrders.actualQuantity,
+            unit: workOrders.unit,
+            status: workOrders.status,
+            priority: workOrders.priority,
+            plannedStartDate: workOrders.plannedStartDate,
+            plannedEndDate: workOrders.plannedEndDate,
+            actualStartDate: workOrders.actualStartDate,
+            actualEndDate: workOrders.actualEndDate,
+            yieldPercentage: workOrders.yieldPercentage,
+            notes: workOrders.notes,
+            createdAt: workOrders.createdAt,
+            updatedAt: workOrders.updatedAt,
+          })
+          .from(workOrders)
+          .leftJoin(items, eq(workOrders.productId, items.id))
+          .where(eq(workOrders.id, parseInt(id)));
+      });
 
       if (woResult.length === 0) {
         return NextResponse.json({ success: false, error: 'Work order not found' }, { status: 404 });
@@ -58,35 +55,39 @@ export async function GET(
       const workOrder = woResult[0];
 
       // Get work order materials
-      const materialsResult = await db
-        .select({
-          id: workOrderMaterials.id,
-          itemId: workOrderMaterials.itemId,
-          itemCode: items.code,
-          itemName: items.nameTh,
-          itemNameEn: items.nameEn,
-          itemUnit: items.primaryUnit,
-          plannedQuantity: workOrderMaterials.plannedQuantity,
-          actualQuantity: workOrderMaterials.actualQuantity,
-          unit: workOrderMaterials.unit,
-          status: workOrderMaterials.status,
-          lotId: workOrderMaterials.lotId,
-        })
-        .from(workOrderMaterials)
-        .leftJoin(items, eq(workOrderMaterials.itemId, items.id))
-        .where(eq(workOrderMaterials.workOrderId, parseInt(id)));
+      const materialsResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: workOrderMaterials.id,
+            itemId: workOrderMaterials.itemId,
+            itemCode: items.code,
+            itemName: items.nameTh,
+            itemNameEn: items.nameEn,
+            itemUnit: items.primaryUnit,
+            plannedQuantity: workOrderMaterials.plannedQuantity,
+            actualQuantity: workOrderMaterials.actualQuantity,
+            unit: workOrderMaterials.unit,
+            status: workOrderMaterials.status,
+            lotId: workOrderMaterials.lotId,
+          })
+          .from(workOrderMaterials)
+          .leftJoin(items, eq(workOrderMaterials.itemId, items.id))
+          .where(eq(workOrderMaterials.workOrderId, parseInt(id)));
+      });
 
       // Get lot information for each material
       const materialsWithLots = await Promise.all(
-        materialsResult.map(async (material: any) => {
+        materialsResult.map(async (material: Record<string, unknown>) => {
           if (material.lotId) {
-            const lotResult = await db
-              .select({
-                lotNumber: inventoryLots.lotNumber,
-                expiryDate: inventoryLots.expiryDate,
-              })
-              .from(inventoryLots)
-              .where(eq(inventoryLots.id, material.lotId));
+            const lotResult = await executeDbOperation(async (db) => {
+              return db
+                .select({
+                  lotNumber: inventoryLots.lotNumber,
+                  expiryDate: inventoryLots.expiryDate,
+                })
+                .from(inventoryLots)
+                .where(eq(inventoryLots.id, material.lotId as number));
+            });
             return {
               ...material,
               lotNumber: lotResult[0]?.lotNumber || null,
@@ -98,44 +99,49 @@ export async function GET(
       );
 
       // Get QC tests for lots associated with this work order
-      const qcTestsResult = await db
-        .select({
-          id: qualityTests.id,
-          lotId: qualityTests.lotId,
-          testType: qualityTests.testType,
-          status: qualityTests.status,
-          result: qualityTests.result,
-          testDate: qualityTests.testDate,
-        })
-        .from(qualityTests);
+      const qcTestsResult = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: qualityTests.id,
+            lotId: qualityTests.lotId,
+            testType: qualityTests.testType,
+            status: qualityTests.status,
+            result: qualityTests.result,
+            testDate: qualityTests.testDate,
+          })
+          .from(qualityTests);
+      });
 
       // Filter QC tests related to this work order's lots
       const relatedLotIds = materialsWithLots
-        .filter((m: any) => m.lotId)
-        .map((m: any) => m.lotId);
-      const relatedQcTests = qcTestsResult.filter((t: any) => relatedLotIds.includes(t.lotId));
+        .filter((m: Record<string, unknown>) => m.lotId)
+        .map((m: Record<string, unknown>) => m.lotId);
+      const relatedQcTests = qcTestsResult.filter((t: Record<string, unknown>) => relatedLotIds.includes(t.lotId));
 
       // Calculate yield
       const yieldPercent = workOrder.plannedQuantity && workOrder.actualQuantity
-        ? Math.round((workOrder.actualQuantity / workOrder.plannedQuantity) * 100 * 100) / 100
+        ? Math.round(((workOrder.actualQuantity as number) / (workOrder.plannedQuantity as number)) * 100 * 100) / 100
         : workOrder.yieldPercentage || null;
 
       // Calculate material consumption
-      const materialConsumption = materialsWithLots.map((material: any) => ({
+      // Map field names for UI compatibility (UI expects plannedQty/actualQty)
+      const materialConsumption = materialsWithLots.map((material: Record<string, unknown>) => ({
         ...material,
+        plannedQty: material.plannedQuantity,
+        actualQty: material.actualQuantity,
         consumptionPercent: material.plannedQuantity && material.actualQuantity
-          ? Math.round((material.actualQuantity / material.plannedQuantity) * 100 * 100) / 100
+          ? Math.round(((material.actualQuantity as number) / (material.plannedQuantity as number)) * 100 * 100) / 100
           : null,
         variance: material.plannedQuantity && material.actualQuantity
-          ? material.actualQuantity - material.plannedQuantity
+          ? (material.actualQuantity as number) - (material.plannedQuantity as number)
           : null,
       }));
 
       // Calculate production time
       let productionTimeHours = null;
       if (workOrder.actualStartDate && workOrder.actualEndDate) {
-        const start = new Date(workOrder.actualStartDate);
-        const end = new Date(workOrder.actualEndDate);
+        const start = new Date(workOrder.actualStartDate as string);
+        const end = new Date(workOrder.actualEndDate as string);
         productionTimeHours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60) * 10) / 10;
       }
 
@@ -171,7 +177,7 @@ export async function GET(
             productionTimeHours,
             materialCount: materialsWithLots.length,
             qcTestCount: relatedQcTests.length,
-            qcPassCount: relatedQcTests.filter((t: any) => t.status === 'pass').length,
+            qcPassCount: relatedQcTests.filter((t: Record<string, unknown>) => t.status === 'pass').length,
           },
         },
       });

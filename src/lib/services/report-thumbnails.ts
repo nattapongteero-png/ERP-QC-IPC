@@ -3,7 +3,7 @@
  * Handles generation and caching of report template thumbnails
  */
 
-import { getDb, useSqlite } from '@/lib/db';
+import { getDb, isSqlite } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -123,10 +123,10 @@ export async function getReportThumbnail(
 
   try {
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+     
+    const usingSqlite = isSqlite();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 
@@ -183,10 +183,10 @@ export async function updateReportThumbnail(
 ): Promise<boolean> {
   try {
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+     
+    const usingSqlite = isSqlite();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 
@@ -219,10 +219,10 @@ export async function updateReportThumbnail(
 export async function generateMissingThumbnails(): Promise<number> {
   try {
     const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
+     
+    const usingSqlite = isSqlite();
 
-    const templatesTable = isSqlite
+    const templatesTable = usingSqlite
       ? schema.sqliteReportTemplates
       : schema.mysqlReportTemplates;
 

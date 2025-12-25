@@ -47,8 +47,9 @@ interface FormData {
 
 interface Product {
   id: number;
-  name: string;
-  sku: string;
+  code: string;
+  nameTh: string;
+  nameEn?: string | null;
 }
 
 interface Lot {
@@ -62,7 +63,7 @@ interface Lot {
 // ============================================
 
 async function fetchProducts(): Promise<Product[]> {
-  const response = await fetch('/api/items?type=finished_good&limit=100');
+  const response = await fetch('/api/items?type=finished_goods&limit=100');
   const result = await response.json();
   if (!result.success) return [];
   return result.data?.items || [];
@@ -72,7 +73,8 @@ async function fetchLots(productId: number): Promise<Lot[]> {
   const response = await fetch(`/api/inventory/lots?itemId=${productId}`);
   const result = await response.json();
   if (!result.success) return [];
-  return result.data || [];
+  // API returns paginated response: { items: [...], total, page, limit }
+  return result.data?.items || [];
 }
 
 async function createComplaint(data: ComplaintCreate): Promise<Complaint> {
@@ -259,7 +261,7 @@ export function ComplaintForm({
             Received Date <span className="text-destructive">*</span>
           </label>
           <DxDateBox
-            value={formData.receivedDate ? new Date(formData.receivedDate) : null}
+            value={formData.receivedDate || undefined}
             onValueChange={(value) =>
               setFormData((prev) => ({
                 ...prev,
@@ -316,7 +318,7 @@ export function ComplaintForm({
             Product <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
-            items={(products || []).map((p) => ({ value: p.id, label: `${p.name} (${p.sku})` }))}
+            items={(products || []).map((p) => ({ value: p.id, label: `${p.nameTh} (${p.code})` }))}
             value={formData.productId}
             valueExpr="value"
             displayExpr="label"

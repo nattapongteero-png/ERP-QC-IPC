@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/vmi-sync/scheduled/inventory",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/vmi-sync/scheduled/items",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/vmi-sync/scheduled/prices",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

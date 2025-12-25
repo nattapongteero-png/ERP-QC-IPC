@@ -6,15 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVMIVendorConfig,
-  sqliteVMIOrders,
-  sqliteVMITransactions,
-  mysqlVMIVendorConfig,
-  mysqlVMIOrders,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -38,17 +30,17 @@ export async function GET(
         return errorResponse('Invalid order ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiOrders = isSqlite ? sqliteVMIOrders : mysqlVMIOrders;
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
+      const vmiOrders = getTableRef('vMIOrders');
+      const vmiConfig = getTableRef('vMIVendorConfig');
+      const vmiTransactions = getTableRef('vMITransactions');
 
       // Get order
-      const orderResult = await db
-        .select()
-        .from(vmiOrders)
-        .where(eq(vmiOrders.id, orderId));
+      const orderResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(vmiOrders)
+          .where(eq(vmiOrders.id, orderId));
+      });
 
       if (orderResult.length === 0) {
         return errorResponse('Order not found', 404);
@@ -71,10 +63,12 @@ export async function GET(
       }
 
       // Get vendor config
-      const configResult = await db
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, order.vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(vmiConfig)
+          .where(eq(vmiConfig.vendorId, order.vendorId));
+      });
 
       if (configResult.length === 0) {
         return errorResponse('VMI configuration not found');
@@ -95,19 +89,20 @@ export async function GET(
           durationMs: number,
           error?: string
         ) {
-          const now = new Date();
-          await db.insert(vmiTransactions).values({
-            vendorId: logVendorId,
-            transactionType,
-            endpoint,
-            method,
-            requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
-            responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
-            httpStatus,
-            durationMs,
-            status: error ? 'error' : 'success',
-            errorMessage: error || null,
-            createdAt: isSqlite ? now.toISOString() : now,
+          await executeDbOperation(async (db) => {
+            return db.insert(vmiTransactions).values({
+              vendorId: logVendorId,
+              transactionType,
+              endpoint,
+              method,
+              requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
+              responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
+              httpStatus,
+              durationMs,
+              status: error ? 'error' : 'success',
+              errorMessage: error || null,
+              createdAt: dbDate(),
+            });
           });
         },
       };
@@ -127,15 +122,16 @@ export async function GET(
 
         // If received (complete receipt), update local order
         if (receiptStatus.receiptStatus === 'complete' && order.status !== 'received') {
-          const now = new Date();
-          await db
-            .update(vmiOrders)
-            .set({
-              status: 'received',
-              receivedAt: isSqlite ? now.toISOString() : now,
-              updatedAt: isSqlite ? now.toISOString() : now,
-            })
-            .where(eq(vmiOrders.id, orderId));
+          await executeDbOperation(async (db) => {
+            return db
+              .update(vmiOrders)
+              .set({
+                status: 'received',
+                receivedAt: dbDate(),
+                updatedAt: dbDate(),
+              })
+              .where(eq(vmiOrders.id, orderId));
+          });
         }
 
         return successResponse({

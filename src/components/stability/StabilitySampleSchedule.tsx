@@ -141,11 +141,31 @@ export function StabilitySampleSchedule({
   const renderOOSCell = (cellData: { data: StabilitySample }) => {
     const sample = cellData.data;
     if (sample.status !== 'tested') return '-';
-    return sample.oosDetected ? (
-      <span className="text-red-600 font-medium">Yes</span>
-    ) : (
-      <span className="text-green-600">No</span>
-    );
+
+    if (sample.oosDetected) {
+      // T713: Link to deviation if exists
+      if (sample.oosInvestigationId) {
+        return (
+          <a
+            href={`/gmp/quality/deviations/${sample.oosInvestigationId}`}
+            className="inline-flex items-center gap-1 text-red-600 font-medium hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <AlertTriangle className="h-3 w-3" />
+            <span>Yes (DEV)</span>
+          </a>
+        );
+      }
+      return (
+        <span className="inline-flex items-center gap-1 text-red-600 font-medium">
+          <AlertTriangle className="h-3 w-3" />
+          <span>Yes</span>
+        </span>
+      );
+    }
+
+    return <span className="text-green-600">No</span>;
   };
 
   const renderActionsCell = (cellData: { data: StabilitySample }) => {

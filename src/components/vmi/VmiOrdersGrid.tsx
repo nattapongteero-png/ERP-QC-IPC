@@ -303,7 +303,7 @@ export function VmiOrdersGrid({
         paging
         pageSize={20}
         sorting
-        filtering
+        filterRow
         columnChooser
         noDataText="No VMI orders found"
         onRowClick={(e) => {

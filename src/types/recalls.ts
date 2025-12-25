@@ -179,3 +179,46 @@ export interface RecallCloseRequest {
   effectivenessAssessment?: string;
   regulatoryReportPath?: string;
 }
+
+// ============================================
+// Recall Report for Regulatory Submission
+// ============================================
+
+export interface RecallReport {
+  generatedAt: string;
+  recall: {
+    recallNumber: string;
+    recallClass: string;
+    initiatedDate: string;
+    reason: string;
+    status: string;
+    coordinatorName: string;
+  };
+  product: {
+    name: string;
+    code: string;
+    affectedLots: { lotNumber: string; quantity: number; expiryDate: string }[];
+  };
+  distribution: {
+    totalDistributed: number;
+    customerCount: number;
+    customers: { name: string; contact: string; quantity: number; shipDate: string }[];
+  };
+  notifications: {
+    totalSent: number;
+    acknowledged: number;
+    pending: number;
+    unresponsive: number;
+    timeline: { date: string; action: string; customer: string }[];
+  };
+  reconciliation: {
+    totalDistributed: number;
+    returned: number;
+    destroyed: number;
+    accounted: number;
+    unaccounted: number;
+    effectivenessRate: number;
+  };
+  timeline: { date: string; event: string; details: string }[];
+  regulatoryNotes: string;
+}

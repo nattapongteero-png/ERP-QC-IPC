@@ -1,34 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
-import { 
-  sqliteInventoryLots, sqliteInventoryTransactions, sqliteItems, sqliteWarehouses, sqliteUsers,
-  mysqlInventoryLots, mysqlInventoryTransactions, mysqlItems, mysqlWarehouses, mysqlUsers
-} from '@/lib/db/schema';
-import { eq, desc, and, like, or, gte, lte, sql } from 'drizzle-orm';
-import { withAuth, successResponse, errorResponse, createPaginatedResponse, serverErrorResponse } from '@/lib/api-utils';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
+import { eq, desc, and, gte, lte, sql, type SQL } from 'drizzle-orm';
+import { withAuth, createPaginatedResponse } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (user) => {
+  return withAuth(request, async () => {
     try {
-      const db = await getDb();
       const searchParams = request.nextUrl.searchParams;
       const page = parseInt(searchParams.get('page') || '1');
       const limit = parseInt(searchParams.get('limit') || '20');
-      const search = searchParams.get('search') || '';
       const type = searchParams.get('type') || '';
       const dateFrom = searchParams.get('dateFrom') || '';
       const dateTo = searchParams.get('dateTo') || '';
       const offset = (page - 1) * limit;
 
-      const transactions = useSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
-      const lots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
-      const items = useSqlite() ? sqliteItems : mysqlItems;
-      const warehouses = useSqlite() ? sqliteWarehouses : mysqlWarehouses;
-      const users = useSqlite() ? sqliteUsers : mysqlUsers;
+      const transactions = getTableRef('inventoryTransactions');
+      const lots = getTableRef('inventoryLots');
+      const items = getTableRef('items');
+      const warehouses = getTableRef('warehouses');
+      const users = getTableRef('users');
 
       // Build conditions
-      const conditions = [];
+      const conditions: (SQL | undefined)[] = [];
       if (type) {
         conditions.push(eq(transactions.transactionType, type));
       }
@@ -40,54 +34,66 @@ export async function GET(request: NextRequest) {
       }
 
       // Get transactions with joins
-      const result = await db
-        .select({
-          id: transactions.id,
-          transactionNumber: transactions.referenceNumber,
-          type: transactions.transactionType,
-          lotId: transactions.lotId,
-          lotNumber: lots.lotNumber,
-          itemCode: items.code,
-          itemName: items.nameTh,
-          quantity: transactions.quantity,
-          unit: lots.unit,
-          fromWarehouseId: transactions.fromWarehouseId,
-          toWarehouseId: transactions.toWarehouseId,
-          referenceType: transactions.referenceType,
-          referenceId: transactions.referenceId,
-          notes: transactions.reason,
-          createdBy: transactions.performedBy,
-          createdAt: transactions.createdAt,
-        })
-        .from(transactions)
-        .leftJoin(lots, eq(transactions.lotId, lots.id))
-        .leftJoin(items, eq(lots.itemId, items.id))
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(transactions.createdAt))
-        .limit(limit)
-        .offset(offset);
+      const result = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: transactions.id,
+            transactionNumber: transactions.referenceNumber,
+            type: transactions.transactionType,
+            lotId: transactions.lotId,
+            lotNumber: lots.lotNumber,
+            itemCode: items.code,
+            itemName: items.nameTh,
+            quantity: transactions.quantity,
+            unit: lots.unit,
+            fromWarehouseId: transactions.fromWarehouseId,
+            toWarehouseId: transactions.toWarehouseId,
+            referenceType: transactions.referenceType,
+            referenceId: transactions.referenceId,
+            notes: transactions.reason,
+            createdBy: transactions.performedBy,
+            createdAt: transactions.createdAt,
+          })
+          .from(transactions)
+          .leftJoin(lots, eq(transactions.lotId, lots.id))
+          .leftJoin(items, eq(lots.itemId, items.id))
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(desc(transactions.createdAt))
+          .limit(limit)
+          .offset(offset);
+      });
 
       // Get warehouse names
-      const warehouseList = await db.select().from(warehouses);
-      const warehouseMap = new Map(warehouseList.map((w: any) => [w.id, w.name]));
+      const warehouseList = await executeDbOperation(async (db) => {
+        return db.select().from(warehouses);
+      });
+      const warehouseMap = new Map(warehouseList.map((w: { id: number; name: string }) => [w.id, w.name]));
 
       // Get user names
-      const userList = await db.select({ id: users.id, name: users.name }).from(users);
-      const userMap = new Map(userList.map((u: any) => [u.id, u.name]));
+      const userList = await executeDbOperation(async (db) => {
+        return db.select({ id: users.id, name: users.name }).from(users);
+      });
+      const userMap = new Map(userList.map((u: { id: number; name: string }) => [u.id, u.name]));
 
       // Enrich results
-      const enrichedResult = result.map((t: any) => ({
+      const enrichedResult = result.map((t: {
+        fromWarehouseId: number | null;
+        toWarehouseId: number | null;
+        createdBy: number | null;
+      }) => ({
         ...t,
         fromWarehouseName: t.fromWarehouseId ? warehouseMap.get(t.fromWarehouseId) : null,
         toWarehouseName: t.toWarehouseId ? warehouseMap.get(t.toWarehouseId) : null,
-        createdByName: userMap.get(t.createdBy) || 'Unknown',
+        createdByName: t.createdBy ? userMap.get(t.createdBy) || 'Unknown' : 'Unknown',
       }));
 
       // Get total count
-      const countResult = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(transactions)
-        .where(conditions.length > 0 ? and(...conditions) : undefined);
+      const countResult = await executeDbOperation(async (db) => {
+        return db
+          .select({ count: sql<number>`count(*)` })
+          .from(transactions)
+          .where(conditions.length > 0 ? and(...conditions) : undefined);
+      });
 
       const total = Number(countResult[0]?.count || 0);
 
@@ -102,29 +108,32 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return withAuth(request, async (user) => {
     try {
-      const db = await getDb();
       const body = await request.json();
-      const { type, lotId, quantity, fromWarehouseId, toWarehouseId, referenceType, referenceNumber, notes } = body;
+      const { type, lotId, quantity, fromWarehouseId, toWarehouseId, referenceType, notes } = body;
 
       if (!type || !lotId || !quantity) {
         return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
       }
 
-      const transactions = useSqlite() ? sqliteInventoryTransactions : mysqlInventoryTransactions;
-      const lots = useSqlite() ? sqliteInventoryLots : mysqlInventoryLots;
+      const transactions = getTableRef('inventoryTransactions');
+      const lots = getTableRef('inventoryLots');
 
       // Get the lot
-      const [lot] = await db.select().from(lots).where(eq(lots.id, lotId));
-      if (!lot) {
+      const lotResult = await executeDbOperation(async (db) => {
+        return db.select().from(lots).where(eq(lots.id, lotId));
+      });
+
+      if (lotResult.length === 0) {
         return NextResponse.json({ success: false, error: 'Lot not found' }, { status: 404 });
       }
+      const lot = lotResult[0];
 
       // Validate quantity for issue/transfer/scrap
       if (['ISSUE', 'TRANSFER', 'SCRAP'].includes(type)) {
         const availableQty = lot.quantity - (lot.reservedQuantity || 0);
         if (quantity > availableQty) {
           return NextResponse.json(
-            { success: false, error: `Insufficient quantity. Available: ${availableQty}` }, 
+            { success: false, error: `Insufficient quantity. Available: ${availableQty}` },
             { status: 400 }
           );
         }
@@ -132,27 +141,30 @@ export async function POST(request: NextRequest) {
 
       // Generate transaction number
       const now = new Date();
-      const isSqlite = useSqlite();
       const prefix = type.substring(0, 3);
       const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
       const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
       const transactionNumber = `${prefix}-${dateStr}-${random}`;
 
       // Create transaction
-      const [newTransaction] = await db.insert(transactions).values({
-        referenceNumber: transactionNumber,
-        transactionType: type,
-        lotId,
-        quantity,
-        unit: lot.unit || 'unit',
-        fromWarehouseId: fromWarehouseId || null,
-        toWarehouseId: toWarehouseId || null,
-        referenceType: referenceType || null,
-        referenceId: null,
-        reason: notes || null,
-        performedBy: user.userId,
-        createdAt: isSqlite ? now.toISOString() : now,
-      }).returning();
+      const insertResult = await executeDbOperation(async (db) => {
+        return db.insert(transactions).values({
+          referenceNumber: transactionNumber,
+          transactionType: type,
+          lotId,
+          quantity,
+          unit: lot.unit || 'unit',
+          fromWarehouseId: fromWarehouseId || null,
+          toWarehouseId: toWarehouseId || null,
+          referenceType: referenceType || null,
+          referenceId: null,
+          reason: notes || null,
+          performedBy: user.userId,
+          createdAt: dbDate(),
+        }).returning();
+      });
+
+      const newTransaction = insertResult[0];
 
       // Update lot quantity based on transaction type
       let newQuantity = lot.quantity;
@@ -178,11 +190,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Update lot
-      await db.update(lots).set({
-        quantity: newQuantity,
-        warehouseId: newWarehouseId,
-        updatedAt: isSqlite ? now.toISOString() : now,
-      }).where(eq(lots.id, lotId));
+      await executeDbOperation(async (db) => {
+        return db.update(lots).set({
+          quantity: newQuantity,
+          warehouseId: newWarehouseId,
+          updatedAt: dbDate(),
+        }).where(eq(lots.id, lotId));
+      });
 
       // Log audit
       await createAuditLog({

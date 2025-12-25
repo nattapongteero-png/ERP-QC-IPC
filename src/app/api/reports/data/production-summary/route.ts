@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, useSqlite } from '@/lib/db';
-import * as schema from '@/lib/db/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { eq, and, gte, lte, type SQL } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +14,6 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const db = await getDb();
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isSqlite = useSqlite();
     const { searchParams } = new URL(request.url);
 
     const startDate = searchParams.get('startDate');
@@ -25,12 +21,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     // Get the appropriate schema tables
-    const itemsTable = isSqlite ? schema.sqliteItems : schema.mysqlItems;
-    const workOrdersTable = isSqlite ? schema.sqliteWorkOrders : schema.mysqlWorkOrders;
-    const bomTable = isSqlite ? schema.sqliteBOM : schema.mysqlBOM;
+    const itemsTable = getTableRef('items');
+    const workOrdersTable = getTableRef('workOrders');
+    const bomTable = getTableRef('bom');
 
     // Build conditions
-    const conditions = [];
+    const conditions: (SQL | undefined)[] = [];
 
     if (startDate) {
       conditions.push(gte(workOrdersTable.plannedStartDate, startDate));
@@ -45,30 +41,31 @@ export async function GET(request: NextRequest) {
     }
 
     // Query work orders with product details
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
-      .select({
-        woNumber: workOrdersTable.woNumber,
-        productCode: itemsTable.code,
-        productName: itemsTable.nameTh,
-        productNameEn: itemsTable.nameEn,
-        bomCode: bomTable.code,
-        bomName: bomTable.name,
-        plannedQuantity: workOrdersTable.plannedQuantity,
-        actualQuantity: workOrdersTable.actualQuantity,
-        status: workOrdersTable.status,
-        priority: workOrdersTable.priority,
-        plannedStartDate: workOrdersTable.plannedStartDate,
-        plannedEndDate: workOrdersTable.plannedEndDate,
-        actualStartDate: workOrdersTable.actualStartDate,
-        actualEndDate: workOrdersTable.actualEndDate,
-        batchNumber: workOrdersTable.batchNumber,
-      })
-      .from(workOrdersTable)
-      .innerJoin(bomTable, eq(workOrdersTable.bomId, bomTable.id))
-      .innerJoin(itemsTable, eq(bomTable.productId, itemsTable.id))
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(workOrdersTable.plannedStartDate);
+    const results = await executeDbOperation(async (db) => {
+      return db
+        .select({
+          woNumber: workOrdersTable.woNumber,
+          productCode: itemsTable.code,
+          productName: itemsTable.nameTh,
+          productNameEn: itemsTable.nameEn,
+          bomCode: bomTable.code,
+          bomName: bomTable.name,
+          plannedQuantity: workOrdersTable.plannedQuantity,
+          actualQuantity: workOrdersTable.actualQuantity,
+          status: workOrdersTable.status,
+          priority: workOrdersTable.priority,
+          plannedStartDate: workOrdersTable.plannedStartDate,
+          plannedEndDate: workOrdersTable.plannedEndDate,
+          actualStartDate: workOrdersTable.actualStartDate,
+          actualEndDate: workOrdersTable.actualEndDate,
+          batchNumber: workOrdersTable.batchNumber,
+        })
+        .from(workOrdersTable)
+        .innerJoin(bomTable, eq(workOrdersTable.bomId, bomTable.id))
+        .innerJoin(itemsTable, eq(bomTable.productId, itemsTable.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(workOrdersTable.plannedStartDate);
+    });
 
     // Calculate yield percentage and format data
     const productionData = results.map((row: {

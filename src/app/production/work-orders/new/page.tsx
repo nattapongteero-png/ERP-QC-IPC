@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -11,7 +10,7 @@ import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
-import { ArrowLeft, Package, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Package, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 
 interface BOM {
   id: number;
@@ -81,14 +80,14 @@ function NewWorkOrderContent() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fetch BOMs
+  // Fetch BOMs - Only approved BOMs can be used for work orders
   const fetchBoms = async (search = '', includeAllStatuses = false) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ limit: '100' });
-      // Only filter by active status if not loading a specific BOM and not searching
+      // Only approved BOMs can be used for production work orders
       if (!includeAllStatuses) {
-        params.set('status', 'active');
+        params.set('status', 'approved');
       }
       if (search) params.set('search', search);
 
@@ -277,20 +276,19 @@ function NewWorkOrderContent() {
   ];
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title="Create Work Order"
-          description="สร้างใบสั่งผลิตใหม่"
-          backButton={
-            <DxButton
-              icon="back"
-              type="normal"
-              stylingMode="text"
-              onClick={() => router.push('/production/work-orders')}
-            />
-          }
-        />
+    <div className="p-4 md:p-6 space-y-6">
+      <PageHeader
+        title="Create Work Order"
+        description="สร้างใบสั่งผลิตใหม่"
+        backButton={
+          <DxButton
+            icon="back"
+            type="normal"
+            stylingMode="text"
+            onClick={() => router.push('/production/work-orders')}
+          />
+        }
+      />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
@@ -653,19 +651,16 @@ function NewWorkOrderContent() {
             </Card>
           </div>
         </div>
-      </div>
-    </MainLayout>
+    </div>
   );
 }
 
 export default function NewWorkOrderPage() {
   return (
     <Suspense fallback={
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
     }>
       <NewWorkOrderContent />
     </Suspense>

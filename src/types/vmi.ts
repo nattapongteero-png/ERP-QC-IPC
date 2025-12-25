@@ -567,6 +567,8 @@ export interface VmiSalesOrderLine {
 
 export interface VmiSalesOrderDetail extends VmiSalesOrder {
   portalName?: string;
+  lineCount?: number;
+  unmatchedLineCount?: number;
   customer?: {
     id: number;
     code: string;

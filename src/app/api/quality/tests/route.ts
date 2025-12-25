@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { eq, sql, and } from 'drizzle-orm';
-import { getDb, schema } from '@/lib/db';
+import { eq, sql, and, type SQL } from 'drizzle-orm';
+import { getTableRef, executeDbOperation, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -20,14 +20,13 @@ export async function GET(request: NextRequest) {
       const lotId = searchParams.get('lotId') || '';
       const testType = searchParams.get('testType') || '';
       const status = searchParams.get('status') || '';
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const testsTable = useSqlite ? schema.sqliteQualityTests : schema.mysqlQualityTests;
-      const specsTable = useSqlite ? schema.sqliteQualitySpecs : schema.mysqlQualitySpecs;
-      const lotsTable = useSqlite ? schema.sqliteInventoryLots : schema.mysqlInventoryLots;
-      
-      const conditions = [];
+
+      const testsTable = getTableRef('qualityTests');
+      const specsTable = getTableRef('qualitySpecs');
+      const lotsTable = getTableRef('inventoryLots');
+      const itemsTable = getTableRef('items');
+
+      const conditions: (SQL | undefined)[] = [];
       if (lotId) {
         conditions.push(eq(testsTable.lotId, parseInt(lotId)));
       }
@@ -37,44 +36,52 @@ export async function GET(request: NextRequest) {
       if (status) {
         conditions.push(eq(testsTable.status, status));
       }
-      
-      let countQuery = (db as any).select({ count: sql`count(*)` }).from(testsTable);
-      if (conditions.length > 0) {
-        countQuery = countQuery.where(and(...conditions));
-      }
-      const countResult = await countQuery;
-      const total = Number(countResult[0]?.count || 0);
-      
-      let query = (db as any)
-        .select({
-          id: testsTable.id,
-          lotId: testsTable.lotId,
-          lotNumber: lotsTable.lotNumber,
-          specId: testsTable.specId,
-          testName: specsTable.testName,
-          testMethod: specsTable.testMethod,
-          specification: specsTable.specification,
-          minValue: specsTable.minValue,
-          maxValue: specsTable.maxValue,
-          testType: testsTable.testType,
-          sampleNumber: testsTable.sampleNumber,
-          testDate: testsTable.testDate,
-          result: testsTable.result,
-          numericResult: testsTable.numericResult,
-          status: testsTable.status,
-          createdAt: testsTable.createdAt,
-        })
-        .from(testsTable)
-        .leftJoin(specsTable, eq(testsTable.specId, specsTable.id))
-        .leftJoin(lotsTable, eq(testsTable.lotId, lotsTable.id));
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-      
+
+      const total = await executeDbOperation(async (db) => {
+        let countQuery = db.select({ count: sql`count(*)` }).from(testsTable);
+        if (conditions.length > 0) {
+          countQuery = countQuery.where(and(...conditions));
+        }
+        const countResult = await countQuery;
+        return Number(countResult[0]?.count || 0);
+      });
+
       const offset = (pagination.page - 1) * pagination.limit;
-      const tests = await query.limit(pagination.limit).offset(offset);
-      
+      const tests = await executeDbOperation(async (db) => {
+        let query = db
+          .select({
+            id: testsTable.id,
+            lotId: testsTable.lotId,
+            lotNumber: lotsTable.lotNumber,
+            itemId: lotsTable.itemId,
+            itemCode: itemsTable.code,
+            itemName: itemsTable.nameTh,
+            specId: testsTable.specId,
+            testName: specsTable.testName,
+            testMethod: specsTable.testMethod,
+            specification: specsTable.specification,
+            minValue: specsTable.minValue,
+            maxValue: specsTable.maxValue,
+            testType: testsTable.testType,
+            sampleNumber: testsTable.sampleNumber,
+            testDate: testsTable.testDate,
+            result: testsTable.result,
+            numericResult: testsTable.numericResult,
+            status: testsTable.status,
+            createdAt: testsTable.createdAt,
+          })
+          .from(testsTable)
+          .leftJoin(specsTable, eq(testsTable.specId, specsTable.id))
+          .leftJoin(lotsTable, eq(testsTable.lotId, lotsTable.id))
+          .leftJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id));
+
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
+
+        return query.limit(pagination.limit).offset(offset);
+      });
+
       return successResponse(createPaginatedResponse(tests, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);
@@ -102,20 +109,20 @@ export async function POST(request: NextRequest) {
       if (!validTestTypes.includes(testType)) {
         return errorResponse(`Test type must be one of: ${validTestTypes.join(', ')}`);
       }
-      
-      const db = await getDb();
-      const useSqlite = process.env.DB_TYPE === 'sqlite';
-      const testsTable = useSqlite ? schema.sqliteQualityTests : schema.mysqlQualityTests;
-      
-      const result = await (db as any).insert(testsTable).values({
-        lotId,
-        specId,
-        testType,
-        sampleNumber,
-        status: 'pending',
+
+      const testsTable = getTableRef('qualityTests');
+
+      const result = await executeDbOperation(async (db) => {
+        return db.insert(testsTable).values({
+          lotId,
+          specId,
+          testType,
+          sampleNumber,
+          status: 'pending',
+        });
       });
-      
-      const testId = useSqlite ? result.lastInsertRowid : result[0].insertId;
+
+      const testId = getInsertId(result);
       
       await createAuditLog({
         userId: session.userId,

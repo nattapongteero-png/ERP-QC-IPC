@@ -55,8 +55,11 @@ export interface Audit {
   auditType: AuditType;
   scope: string;
   gmpChapters: number[]; // หมวด covered (1-10)
+  objectives?: string | null; // Audit objectives
   scheduledDate: string;
   actualDate: string | null;
+  startedAt?: string | null; // When audit started
+  completedAt?: string | null; // When audit completed
   leadAuditorId: number;
   leadAuditorName?: string;
   auditTeam: number[]; // User IDs
@@ -241,4 +244,31 @@ export interface AuditFindingListResponse {
 
 export interface AuditReportsParams {
   year?: number;
+}
+
+// ============================================
+// T902: Audit Schedule Generation
+// ============================================
+
+export interface GenerateAuditScheduleOptions {
+  auditorId?: number;
+}
+
+// ============================================
+// T905: CAPA from Finding
+// ============================================
+
+export interface CreateCapaFromFindingOptions {
+  assignedTo?: number;
+  dueDate?: string;
+}
+
+// ============================================
+// T906: Verify Finding Closure
+// ============================================
+
+export interface FindingClosureVerification {
+  canClose: boolean;
+  reason?: string;
+  capaStatus?: string;
 }

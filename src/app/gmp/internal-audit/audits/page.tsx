@@ -14,12 +14,12 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { AuditList } from '@/components/internal-audit';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxTextBox } from '@/components/ui/dx-textbox';
-import { DxTextArea } from '@/components/ui/dx-textarea';
-import { DxDateBox } from '@/components/ui/dx-datebox';
-import { DxSelectBox } from '@/components/ui/dx-selectbox';
-import { DxTagBox } from '@/components/ui/dx-tagbox';
-import { toast } from 'sonner';
+import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { DxTagBox } from '@/components/ui/dx-tag-box';
+import { useToast } from '@/components/ui/toast';
 import type { Audit, AuditType } from '@/types/audits';
 import { GMP_CHAPTERS } from '@/types/audits';
 
@@ -85,6 +85,7 @@ function AuditsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const planId = searchParams.get('planId') ? parseInt(searchParams.get('planId')!) : undefined;
   const showNew = searchParams.get('new') === '1';

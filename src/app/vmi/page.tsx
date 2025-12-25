@@ -9,25 +9,655 @@
  * Feature: 008-vmi-vendor-sync
  */
 
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
-import { PageHeader } from '@/components/ui/page-header';
-import { VmiDashboard } from '@/components/vmi/VmiDashboard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DxButton } from '@/components/ui/dx-button';
+import { cn } from '@/lib/utils/cn';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Package,
+  ShoppingCart,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  RefreshCw,
+  ArrowRight,
+  Link2,
+  Database,
+  DollarSign,
+  Truck,
+  Building2,
+  Settings,
+  Activity,
+  BarChart3,
+  Zap,
+  Server,
+  Globe,
+  Bell,
+  FileText,
+  Users,
+} from 'lucide-react';
+import Link from 'next/link';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface DashboardStats {
+  sync: {
+    lastInventorySync?: string;
+    lastItemsSync?: string;
+    lastPricesSync?: string;
+    inventorySyncStatus?: string;
+    itemsSyncStatus?: string;
+    pricesSyncStatus?: string;
+  };
+  orders: {
+    pendingOrders: number;
+    confirmedOrders: number;
+    processingOrders: number;
+    shippedToday: number;
+    unmatchedItems: number;
+    urgentOrders: number;
+    totalOrders: number;
+    deliveredOrders: number;
+  };
+  portals: {
+    activePortals: number;
+    totalPortals: number;
+  };
+}
+
+// ============================================================================
+// API Functions
+// ============================================================================
+
+async function fetchDashboardStats(): Promise<DashboardStats> {
+  const [syncResponse, ordersResponse, portalsResponse] = await Promise.all([
+    fetch('/api/vmi-sync/status?limit=3'),
+    fetch('/api/sales/vmi-orders?limit=500'),
+    fetch('/api/settings/vmi'),
+  ]);
+
+  const syncData = await syncResponse.json();
+  const ordersData = await ordersResponse.json();
+  const portalsData = await portalsResponse.json();
+
+  // Process sync data
+  const syncItems = syncData.success ? syncData.data?.items || [] : [];
+  const lastInventorySync = syncItems.find((s: { syncType: string }) => s.syncType === 'inventory');
+  const lastItemsSync = syncItems.find((s: { syncType: string }) => s.syncType === 'items');
+  const lastPricesSync = syncItems.find((s: { syncType: string }) => s.syncType === 'prices');
+
+  // Process orders data
+  const orders = ordersData.success ? ordersData.data?.items || [] : [];
+  const pendingOrders = orders.filter((o: { status: string }) => o.status === 'pending').length;
+  const confirmedOrders = orders.filter((o: { status: string }) => o.status === 'confirmed').length;
+  const processingOrders = orders.filter((o: { status: string }) => o.status === 'processing').length;
+  const deliveredOrders = orders.filter((o: { status: string }) => o.status === 'delivered').length;
+  const today = new Date().toISOString().split('T')[0];
+  const shippedToday = orders.filter((o: { status: string; shippedAt?: string }) =>
+    o.status === 'shipped' && o.shippedAt?.startsWith(today)
+  ).length;
+  const unmatchedItems = orders
+    .filter((o: { status: string }) => o.status === 'pending')
+    .reduce((sum: number, o: { unmatchedItems?: number }) => sum + (o.unmatchedItems || 0), 0);
+  const urgentOrders = orders.filter((o: { priority: string; status: string }) =>
+    o.priority === 'urgent' && o.status !== 'shipped' && o.status !== 'delivered' && o.status !== 'cancelled'
+  ).length;
+
+  // Process portals data
+  const portals = portalsData.success ? portalsData.data || [] : [];
+  const activePortals = portals.filter((p: { isActive: boolean }) => p.isActive).length;
+
+  return {
+    sync: {
+      lastInventorySync: lastInventorySync?.startedAt,
+      lastItemsSync: lastItemsSync?.startedAt,
+      lastPricesSync: lastPricesSync?.startedAt,
+      inventorySyncStatus: lastInventorySync?.status,
+      itemsSyncStatus: lastItemsSync?.status,
+      pricesSyncStatus: lastPricesSync?.status,
+    },
+    orders: {
+      pendingOrders,
+      confirmedOrders,
+      processingOrders,
+      shippedToday,
+      unmatchedItems,
+      urgentOrders,
+      totalOrders: orders.length,
+      deliveredOrders,
+    },
+    portals: {
+      activePortals,
+      totalPortals: portals.length,
+    },
+  };
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+const formatTimeAgo = (dateString?: string) => {
+  if (!dateString) return 'ไม่เคย';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'เมื่อสักครู่';
+  if (diffMins < 60) return `${diffMins} นาทีที่แล้ว`;
+  if (diffHours < 24) return `${diffHours} ชั่วโมงที่แล้ว`;
+  return `${diffDays} วันที่แล้ว`;
+};
+
+const getSyncStatusConfig = (status?: string) => {
+  if (!status) return { icon: Clock, color: 'text-gray-400', bg: 'bg-gray-100', label: 'ไม่ทราบ' };
+  if (status === 'completed') return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100', label: 'สำเร็จ' };
+  if (status === 'running') return { icon: RefreshCw, color: 'text-blue-600', bg: 'bg-blue-100', label: 'กำลังทำงาน', animate: true };
+  if (status === 'failed') return { icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100', label: 'ล้มเหลว' };
+  return { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-100', label: 'มีปัญหา' };
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export default function VmiPage() {
+  const { data: stats, isLoading, refetch } = useQuery({
+    queryKey: ['vmi-dashboard'],
+    queryFn: fetchDashboardStats,
+    refetchInterval: 60000,
+  });
+
+  // ============================================================================
+  // Loading State
+  // ============================================================================
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="space-y-6">
+          <div className="h-40 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl animate-pulse" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-xl animate-pulse" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="h-80 bg-gray-200 rounded-xl animate-pulse" />
+            <div className="h-80 bg-gray-200 rounded-xl animate-pulse" />
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const totalActiveOrders = (stats?.orders.pendingOrders || 0) +
+    (stats?.orders.confirmedOrders || 0) +
+    (stats?.orders.processingOrders || 0);
+
+  // ============================================================================
+  // Main Render
+  // ============================================================================
+
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title="VMI Integration"
-          description="Manage your Vendor Managed Inventory integration with hospital VMI Portals."
-          breadcrumb={
-            <nav className="flex text-sm text-gray-500">
-              <span className="text-gray-900">VMI</span>
-            </nav>
-          }
-        />
+      <div className="flex flex-col h-full gap-4">
+        {/* Hero Header */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600">
+          <div className="absolute inset-0 bg-black/10" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-24 -translate-x-24" />
 
-        <VmiDashboard />
+          <div className="relative z-10 p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <Link2 className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">VMI Integration</h1>
+                  <p className="text-white/80 text-sm">Vendor Managed Inventory - เชื่อมต่อกับระบบโรงพยาบาล</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => refetch()}
+                  className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center text-white transition-colors"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+                <Link href="/vmi/sync">
+                  <DxButton
+                    text="จัดการ Sync"
+                    icon="refresh"
+                    type="default"
+                  />
+                </Link>
+                <Link href="/sales/vmi-orders">
+                  <DxButton
+                    text="ดูคำสั่งซื้อ"
+                    icon="cart"
+                    type="success"
+                  />
+                </Link>
+              </div>
+            </div>
+
+            {/* Quick Stats in Header */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
+                <p className="text-white/70 text-xs">Portal ที่เชื่อมต่อ</p>
+                <p className="text-2xl font-bold text-white">
+                  {stats?.portals.activePortals || 0}/{stats?.portals.totalPortals || 0}
+                </p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
+                <p className="text-white/70 text-xs">คำสั่งซื้อรอดำเนินการ</p>
+                <p className="text-2xl font-bold text-white">{totalActiveOrders}</p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
+                <p className="text-white/70 text-xs">ส่งวันนี้</p>
+                <p className="text-2xl font-bold text-white">{stats?.orders.shippedToday || 0}</p>
+              </div>
+              <div className={cn(
+                'backdrop-blur-sm rounded-lg p-3',
+                (stats?.orders.urgentOrders || 0) > 0 ? 'bg-red-500/50' : 'bg-white/20'
+              )}>
+                <p className="text-white/70 text-xs">คำสั่งซื้อเร่งด่วน</p>
+                <p className="text-2xl font-bold text-white">{stats?.orders.urgentOrders || 0}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Order Status Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-amber-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">รอยืนยัน</p>
+                      <p className="text-lg font-bold text-amber-600">{stats?.orders.pendingOrders || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-blue-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">ยืนยันแล้ว</p>
+                      <p className="text-lg font-bold text-blue-600">{stats?.orders.confirmedOrders || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-violet-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-violet-100 rounded-lg flex items-center justify-center">
+                      <Package className="h-5 w-5 text-violet-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">กำลังจัดเตรียม</p>
+                      <p className="text-lg font-bold text-violet-600">{stats?.orders.processingOrders || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-cyan-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Truck className="h-5 w-5 text-cyan-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">ส่งวันนี้</p>
+                      <p className="text-lg font-bold text-cyan-600">{stats?.orders.shippedToday || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className="w-1 bg-green-500" />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 bg-green-100 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">ส่งมอบแล้ว</p>
+                      <p className="text-lg font-bold text-green-600">{stats?.orders.deliveredOrders || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card elevation="raised" className={cn(
+            'overflow-hidden',
+            (stats?.orders.unmatchedItems || 0) > 0 && 'ring-2 ring-red-200'
+          )}>
+            <CardContent className="p-0">
+              <div className="flex items-stretch">
+                <div className={cn('w-1', (stats?.orders.unmatchedItems || 0) > 0 ? 'bg-red-500' : 'bg-gray-300')} />
+                <div className="flex-1 p-3">
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      'h-9 w-9 rounded-lg flex items-center justify-center',
+                      (stats?.orders.unmatchedItems || 0) > 0 ? 'bg-red-100' : 'bg-gray-100'
+                    )}>
+                      <AlertTriangle className={cn(
+                        'h-5 w-5',
+                        (stats?.orders.unmatchedItems || 0) > 0 ? 'text-red-600' : 'text-gray-400'
+                      )} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">รอจับคู่สินค้า</p>
+                      <p className={cn(
+                        'text-lg font-bold',
+                        (stats?.orders.unmatchedItems || 0) > 0 ? 'text-red-600' : 'text-gray-400'
+                      )}>
+                        {stats?.orders.unmatchedItems || 0}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
+          {/* Sync Status */}
+          <Card elevation="raised" className="lg:col-span-1">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Activity className="h-5 w-5 text-cyan-500" />
+                  สถานะการ Sync
+                </CardTitle>
+                <button
+                  onClick={() => refetch()}
+                  className="h-8 w-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+                >
+                  <RefreshCw className="h-4 w-4 text-gray-500" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              {/* Inventory Sync */}
+              {(() => {
+                const config = getSyncStatusConfig(stats?.sync.inventorySyncStatus);
+                const Icon = config.icon;
+                return (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border">
+                    <div className="flex items-center gap-3">
+                      <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', config.bg)}>
+                        <Icon className={cn('h-5 w-5', config.color, config.animate && 'animate-spin')} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Inventory</p>
+                        <p className="text-xs text-gray-500">สต็อกสินค้า</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={cn('text-sm font-medium', config.color)}>{config.label}</p>
+                      <p className="text-xs text-gray-400">{formatTimeAgo(stats?.sync.lastInventorySync)}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Items Sync */}
+              {(() => {
+                const config = getSyncStatusConfig(stats?.sync.itemsSyncStatus);
+                const Icon = config.icon;
+                return (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border">
+                    <div className="flex items-center gap-3">
+                      <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', config.bg)}>
+                        <Icon className={cn('h-5 w-5', config.color, config.animate && 'animate-spin')} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Items</p>
+                        <p className="text-xs text-gray-500">รายการสินค้า</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={cn('text-sm font-medium', config.color)}>{config.label}</p>
+                      <p className="text-xs text-gray-400">{formatTimeAgo(stats?.sync.lastItemsSync)}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Prices Sync */}
+              {(() => {
+                const config = getSyncStatusConfig(stats?.sync.pricesSyncStatus);
+                const Icon = config.icon;
+                return (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border">
+                    <div className="flex items-center gap-3">
+                      <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', config.bg)}>
+                        <Icon className={cn('h-5 w-5', config.color, config.animate && 'animate-spin')} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Prices</p>
+                        <p className="text-xs text-gray-500">ราคาสินค้า</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={cn('text-sm font-medium', config.color)}>{config.label}</p>
+                      <p className="text-xs text-gray-400">{formatTimeAgo(stats?.sync.lastPricesSync)}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Portal Status */}
+              <div className="mt-4 p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border border-cyan-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Globe className="h-5 w-5 text-cyan-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">VMI Portals</p>
+                      <p className="text-xs text-gray-500">เชื่อมต่อโรงพยาบาล</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-cyan-600">
+                      {stats?.portals.activePortals || 0}
+                      <span className="text-sm font-normal text-gray-500">/{stats?.portals.totalPortals || 0}</span>
+                    </p>
+                    <p className="text-xs text-gray-500">พอร์ทัลที่ใช้งาน</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions & Recent Activity */}
+          <Card elevation="raised" className="lg:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Zap className="h-5 w-5 text-amber-500" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <Link href="/sales/vmi-orders" className="block">
+                  <div className="p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all group">
+                    <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <ShoppingCart className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <p className="font-semibold text-gray-900">จัดการคำสั่งซื้อ</p>
+                    <p className="text-xs text-gray-500 mt-1">ดูและจัดการ VMI Orders</p>
+                    <div className="flex items-center gap-1 text-blue-600 text-xs mt-2">
+                      <span>ดูรายการ</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/vmi/sync" className="block">
+                  <div className="p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all group">
+                    <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <RefreshCw className="h-6 w-6 text-green-600" />
+                    </div>
+                    <p className="font-semibold text-gray-900">Sync Management</p>
+                    <p className="text-xs text-gray-500 mt-1">จัดการการ Sync ข้อมูล</p>
+                    <div className="flex items-center gap-1 text-green-600 text-xs mt-2">
+                      <span>ไปที่หน้า Sync</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/settings/vmi" className="block">
+                  <div className="p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all group">
+                    <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Settings className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <p className="font-semibold text-gray-900">Portal Settings</p>
+                    <p className="text-xs text-gray-500 mt-1">ตั้งค่าการเชื่อมต่อ Portal</p>
+                    <div className="flex items-center gap-1 text-purple-600 text-xs mt-2">
+                      <span>ตั้งค่า</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/inventory/items" className="block">
+                  <div className="p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
+                    <div className="h-12 w-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Database className="h-6 w-6 text-indigo-600" />
+                    </div>
+                    <p className="font-semibold text-gray-900">Item Mapping</p>
+                    <p className="text-xs text-gray-500 mt-1">จับคู่รหัสสินค้า</p>
+                    <div className="flex items-center gap-1 text-indigo-600 text-xs mt-2">
+                      <span>จัดการสินค้า</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/inventory/lots" className="block">
+                  <div className="p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 transition-all group">
+                    <div className="h-12 w-12 bg-cyan-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Package className="h-6 w-6 text-cyan-600" />
+                    </div>
+                    <p className="font-semibold text-gray-900">Inventory Lots</p>
+                    <p className="text-xs text-gray-500 mt-1">จัดการ Lot สินค้า</p>
+                    <div className="flex items-center gap-1 text-cyan-600 text-xs mt-2">
+                      <span>ดู Lots</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </Link>
+
+                <Link href="/sales/customers" className="block">
+                  <div className="p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-amber-300 hover:bg-amber-50 transition-all group">
+                    <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Building2 className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <p className="font-semibold text-gray-900">Hospital Partners</p>
+                    <p className="text-xs text-gray-500 mt-1">จัดการคู่ค้าโรงพยาบาล</p>
+                    <div className="flex items-center gap-1 text-amber-600 text-xs mt-2">
+                      <span>ดูรายการ</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </Link>
+              </div>
+
+              {/* Alert Section */}
+              {((stats?.orders.unmatchedItems || 0) > 0 || (stats?.orders.urgentOrders || 0) > 0) && (
+                <div className="mt-4 space-y-3">
+                  {(stats?.orders.unmatchedItems || 0) > 0 && (
+                    <div className="flex items-center gap-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                      <div className="h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <AlertTriangle className="h-6 w-6 text-red-500" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-red-800">รายการรอจับคู่สินค้า</p>
+                        <p className="text-sm text-red-600">
+                          มี {stats?.orders.unmatchedItems} รายการที่ต้องจับคู่รหัสสินค้าก่อนดำเนินการ
+                        </p>
+                      </div>
+                      <Link href="/sales/vmi-orders?filter=unmatched">
+                        <DxButton text="ดูรายการ" type="danger" stylingMode="outlined" />
+                      </Link>
+                    </div>
+                  )}
+
+                  {(stats?.orders.urgentOrders || 0) > 0 && (
+                    <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <div className="h-12 w-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                        <Bell className="h-6 w-6 text-amber-500" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-amber-800">คำสั่งซื้อเร่งด่วน</p>
+                        <p className="text-sm text-amber-600">
+                          มี {stats?.orders.urgentOrders} คำสั่งซื้อที่ต้องดำเนินการเร่งด่วน
+                        </p>
+                      </div>
+                      <Link href="/sales/vmi-orders?priority=urgent">
+                        <DxButton text="ดูรายการ" type="default" stylingMode="outlined" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </MainLayout>
   );

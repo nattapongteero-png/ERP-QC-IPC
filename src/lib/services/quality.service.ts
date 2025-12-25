@@ -3,7 +3,8 @@
  * Real-world quality control with specifications, testing, deviations, and COA generation
  */
 
-import { db, useSqlite } from '../db';
+import { db, isSqlite } from '../db';
+import { toQueryDate } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteQualityTests,
@@ -85,7 +86,7 @@ export interface SamplingPlan {
 
 // Get table references based on database type
 function getTables() {
-  if (useSqlite()) {
+  if (isSqlite()) {
     return {
       tests: sqliteQualityTests,
       specs: sqliteQualitySpecs,
@@ -266,7 +267,7 @@ export async function recordTestResult(
   resultText: string | null,
   userId: number
 ): Promise<{ status: 'pass' | 'fail'; deviationId?: number }> {
-  const { tests, specs, lots, deviations } = getTables();
+  const { tests, specs, deviations } = getTables();
   const database = db();
 
   // Get test with specification
@@ -299,15 +300,22 @@ export async function recordTestResult(
       testStatus = evaluateTestResult(resultValue, resultText, spec);
 
       if (testStatus === 'fail') {
+        // Generate deviation number
+        const today = new Date();
+        const prefix = `DEV-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        const deviationNumber = `${prefix}-${random}`;
+
         // Create OOS deviation
         const [deviation] = await database
           .insert(deviations)
           .values({
+            deviationNumber,
+            description: `Out of Specification: ${test.testType}. Expected: ${formatSpec(spec)}, Actual: ${resultValue ?? resultText}`,
             lotId: test.lotId,
             type: 'OOS',
             severity: 'major',
             status: 'open',
-            description: `Out of Specification: ${test.testType}. Expected: ${formatSpec(spec)}, Actual: ${resultValue ?? resultText}`,
             reportedBy: userId,
             reportedAt: new Date().toISOString(),
           })
@@ -318,12 +326,12 @@ export async function recordTestResult(
     }
   }
 
-  // Update test record
+  // Update test record - map to schema column names
   await database
     .update(tests)
     .set({
-      resultValue,
-      resultText,
+      numericResult: resultValue,
+      result: resultText,
       status: testStatus === 'pass' ? 'passed' : 'failed',
       testedBy: userId,
       testedAt: new Date().toISOString(),
@@ -337,8 +345,8 @@ export async function recordTestResult(
     tableName: 'quality_tests',
     recordId: testId,
     newValue: {
-      resultValue,
-      resultText,
+      numericResult: resultValue,
+      result: resultText,
       status: testStatus,
     },
   });
@@ -348,64 +356,74 @@ export async function recordTestResult(
 
 /**
  * Evaluate test result against specification
+ * Infers spec type from minValue/maxValue/specification fields
  */
 function evaluateTestResult(
   resultValue: number | null,
   resultText: string | null,
-  spec: { specType: string; minValue?: number | null; maxValue?: number | null; targetValue?: number | null; textValue?: string | null }
+  spec: { minValue?: number | null; maxValue?: number | null; specification?: string | null }
 ): 'pass' | 'fail' {
-  switch (spec.specType) {
-    case 'range':
-      if (resultValue === null) return 'fail';
-      return (resultValue >= (spec.minValue ?? -Infinity) && 
-              resultValue <= (spec.maxValue ?? Infinity)) ? 'pass' : 'fail';
-    
-    case 'min':
-      if (resultValue === null) return 'fail';
-      return resultValue >= (spec.minValue ?? 0) ? 'pass' : 'fail';
-    
-    case 'max':
-      if (resultValue === null) return 'fail';
-      return resultValue <= (spec.maxValue ?? Infinity) ? 'pass' : 'fail';
-    
-    case 'target':
-      if (resultValue === null) return 'fail';
-      const tolerance = (spec.targetValue ?? 0) * 0.05; // 5% tolerance
-      return Math.abs(resultValue - (spec.targetValue ?? 0)) <= tolerance ? 'pass' : 'fail';
-    
-    case 'text':
-      return resultText?.toLowerCase() === spec.textValue?.toLowerCase() ? 'pass' : 'fail';
-    
-    case 'pass_fail':
-      return resultText?.toLowerCase() === 'pass' ? 'pass' : 'fail';
-    
-    default:
-      return 'pass';
+  // Infer spec type from available fields
+  const hasMin = spec.minValue !== null && spec.minValue !== undefined;
+  const hasMax = spec.maxValue !== null && spec.maxValue !== undefined;
+
+  // Range check: has both min and max
+  if (hasMin && hasMax) {
+    if (resultValue === null) return 'fail';
+    return (resultValue >= spec.minValue! && resultValue <= spec.maxValue!) ? 'pass' : 'fail';
   }
+
+  // Min only check: has min but no max
+  if (hasMin && !hasMax) {
+    if (resultValue === null) return 'fail';
+    return resultValue >= spec.minValue! ? 'pass' : 'fail';
+  }
+
+  // Max only check: has max but no min
+  if (!hasMin && hasMax) {
+    if (resultValue === null) return 'fail';
+    return resultValue <= spec.maxValue! ? 'pass' : 'fail';
+  }
+
+  // Text-based check: compare specification with result text
+  if (spec.specification && resultText) {
+    return resultText.toLowerCase().includes(spec.specification.toLowerCase()) ? 'pass' : 'fail';
+  }
+
+  // No spec constraints - pass by default
+  return 'pass';
 }
 
 /**
  * Format specification for display
+ * Infers format from minValue/maxValue/specification fields
  */
-function formatSpec(spec: { specType: string; minValue?: number | null; maxValue?: number | null; targetValue?: number | null; textValue?: string | null; unit?: string | null }): string {
+function formatSpec(spec: { minValue?: number | null; maxValue?: number | null; specification?: string | null; unit?: string | null }): string {
   const unit = spec.unit || '';
-  
-  switch (spec.specType) {
-    case 'range':
-      return `${spec.minValue} - ${spec.maxValue} ${unit}`.trim();
-    case 'min':
-      return `≥ ${spec.minValue} ${unit}`.trim();
-    case 'max':
-      return `≤ ${spec.maxValue} ${unit}`.trim();
-    case 'target':
-      return `${spec.targetValue} ± 5% ${unit}`.trim();
-    case 'text':
-      return spec.textValue || '';
-    case 'pass_fail':
-      return 'Pass/Fail';
-    default:
-      return '';
+  const hasMin = spec.minValue !== null && spec.minValue !== undefined;
+  const hasMax = spec.maxValue !== null && spec.maxValue !== undefined;
+
+  // Range: has both min and max
+  if (hasMin && hasMax) {
+    return `${spec.minValue} - ${spec.maxValue} ${unit}`.trim();
   }
+
+  // Min only
+  if (hasMin) {
+    return `≥ ${spec.minValue} ${unit}`.trim();
+  }
+
+  // Max only
+  if (hasMax) {
+    return `≤ ${spec.maxValue} ${unit}`.trim();
+  }
+
+  // Text specification
+  if (spec.specification) {
+    return spec.specification;
+  }
+
+  return '';
 }
 
 /**
@@ -775,10 +793,10 @@ export async function getDeviationStatistics(
 
   const conditions = [];
   if (dateFrom) {
-    conditions.push(gte(deviations.createdAt, dateFrom));
+    conditions.push(gte(deviations.createdAt, toQueryDate(dateFrom)));
   }
   if (dateTo) {
-    conditions.push(lte(deviations.createdAt, dateTo));
+    conditions.push(lte(deviations.createdAt, toQueryDate(dateTo)));
   }
 
   const allDeviations = await database

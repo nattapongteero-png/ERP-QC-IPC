@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef } from 'react';
 import SelectBox from 'devextreme-react/select-box';
 import Validator, { RequiredRule } from 'devextreme-react/validator';
 import type { SelectBoxTypes } from 'devextreme-react/select-box';
@@ -29,10 +30,10 @@ export interface DxSelectBoxProps<T = string> {
   onValueChanged?: (e: SelectBoxTypes.ValueChangedEvent) => void;
   /** Options array */
   items?: DxSelectBoxOption<T>[];
-  /** Data source (alternative to items) */
-  dataSource?: T[] | DxSelectBoxOption<T>[];
+  /** Data source (alternative to items) - accepts any array of objects */
+  dataSource?: T[] | DxSelectBoxOption<T>[] | Record<string, unknown>[];
   /** Display expression (field name for display text) */
-  displayExpr?: string | ((item: DxSelectBoxOption<T>) => string);
+  displayExpr?: string | ((item: DxSelectBoxOption<T> | Record<string, unknown>) => string);
   /** Value expression (field name for value) */
   valueExpr?: string;
   /** Placeholder text */
@@ -128,14 +129,24 @@ export function DxSelectBox<T = string>({
   dropDownOptions,
   noDataText = 'ไม่พบข้อมูล',
 }: DxSelectBoxProps<T>) {
-  const handleValueChanged = (e: SelectBoxTypes.ValueChangedEvent) => {
-    if (onValueChange) {
-      onValueChange(e.value as T);
+  // Use refs to store latest callbacks to avoid infinite re-renders
+  // DevExtreme-React can trigger re-renders when callback references change
+  const onValueChangeRef = useRef(onValueChange);
+  const onValueChangedRef = useRef(onValueChanged);
+  onValueChangeRef.current = onValueChange;
+  onValueChangedRef.current = onValueChanged;
+
+  // Stable callback that never changes reference
+  // Only trigger if value actually changed to prevent infinite loops
+  const handleValueChanged = useCallback((e: SelectBoxTypes.ValueChangedEvent) => {
+    if (e.previousValue === e.value) return;
+    if (onValueChangeRef.current) {
+      onValueChangeRef.current(e.value as T);
     }
-    if (onValueChanged) {
-      onValueChanged(e);
+    if (onValueChangedRef.current) {
+      onValueChangedRef.current(e);
     }
-  };
+  }, []);
 
   return (
     <SelectBox

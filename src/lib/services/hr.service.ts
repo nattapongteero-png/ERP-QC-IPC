@@ -4,7 +4,8 @@
 import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
 import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
 import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
-import { getDb, useSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
+import { getNow, toDbDate, getTodayStr, toDateSafe } from '../db/date-utils';
 import { createAuditLog } from '../audit';
 import {
   sqliteHROrgUnits,
@@ -105,27 +106,27 @@ import type {
 // ============================================
 
 function getHRTables() {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const isSqlite = useSqlite();
+   
+  const usingSqlite = isSqlite();
   return {
-    orgUnits: isSqlite ? sqliteHROrgUnits : mysqlHROrgUnits,
-    positions: isSqlite ? sqliteHRPositions : mysqlHRPositions,
-    jobDescriptions: isSqlite ? sqliteHRJobDescriptions : mysqlHRJobDescriptions,
-    employees: isSqlite ? sqliteHREmployees : mysqlHREmployees,
-    employeeAssignments: isSqlite ? sqliteHREmployeeAssignments : mysqlHREmployeeAssignments,
-    trainingCourses: isSqlite ? sqliteHRTrainingCourses : mysqlHRTrainingCourses,
-    trainingSessions: isSqlite ? sqliteHRTrainingSessions : mysqlHRTrainingSessions,
-    trainingRecords: isSqlite ? sqliteHRTrainingRecords : mysqlHRTrainingRecords,
-    authorizations: isSqlite ? sqliteHRAuthorizations : mysqlHRAuthorizations,
-    delegations: isSqlite ? sqliteHRDelegations : mysqlHRDelegations,
-    healthRecords: isSqlite ? sqliteHRHealthRecords : mysqlHRHealthRecords,
-    appRoles: isSqlite ? sqliteHRAppRoles : mysqlHRAppRoles,
-    appPermissions: isSqlite ? sqliteHRAppPermissions : mysqlHRAppPermissions,
-    rolePermissions: isSqlite ? sqliteHRRolePermissions : mysqlHRRolePermissions,
-    employeeRoles: isSqlite ? sqliteHREmployeeRoles : mysqlHREmployeeRoles,
-    notifications: isSqlite ? sqliteHRNotifications : mysqlHRNotifications,
-    auditLog: isSqlite ? sqliteHRAuditLog : mysqlHRAuditLog,
-    isSqlite,
+    orgUnits: usingSqlite ? sqliteHROrgUnits : mysqlHROrgUnits,
+    positions: usingSqlite ? sqliteHRPositions : mysqlHRPositions,
+    jobDescriptions: usingSqlite ? sqliteHRJobDescriptions : mysqlHRJobDescriptions,
+    employees: usingSqlite ? sqliteHREmployees : mysqlHREmployees,
+    employeeAssignments: usingSqlite ? sqliteHREmployeeAssignments : mysqlHREmployeeAssignments,
+    trainingCourses: usingSqlite ? sqliteHRTrainingCourses : mysqlHRTrainingCourses,
+    trainingSessions: usingSqlite ? sqliteHRTrainingSessions : mysqlHRTrainingSessions,
+    trainingRecords: usingSqlite ? sqliteHRTrainingRecords : mysqlHRTrainingRecords,
+    authorizations: usingSqlite ? sqliteHRAuthorizations : mysqlHRAuthorizations,
+    delegations: usingSqlite ? sqliteHRDelegations : mysqlHRDelegations,
+    healthRecords: usingSqlite ? sqliteHRHealthRecords : mysqlHRHealthRecords,
+    appRoles: usingSqlite ? sqliteHRAppRoles : mysqlHRAppRoles,
+    appPermissions: usingSqlite ? sqliteHRAppPermissions : mysqlHRAppPermissions,
+    rolePermissions: usingSqlite ? sqliteHRRolePermissions : mysqlHRRolePermissions,
+    employeeRoles: usingSqlite ? sqliteHREmployeeRoles : mysqlHREmployeeRoles,
+    notifications: usingSqlite ? sqliteHRNotifications : mysqlHRNotifications,
+    auditLog: usingSqlite ? sqliteHRAuditLog : mysqlHRAuditLog,
+    isSqlite: usingSqlite,
   };
 }
 
@@ -140,7 +141,8 @@ async function checkSeparationOfDuties(
   if (!parentId) return;
 
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Check if this is a QC/QA unit
   const isQcQa = QC_QA_CODES.some((code) =>
@@ -191,7 +193,8 @@ export async function getOrgUnits(filters?: {
   search?: string;
 }): Promise<OrgUnit[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions = [];
 
@@ -232,7 +235,8 @@ export async function getOrgUnits(filters?: {
 
 export async function getOrgUnitById(id: number): Promise<OrgUnit | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const results = await db
     .select()
@@ -245,7 +249,8 @@ export async function getOrgUnitById(id: number): Promise<OrgUnit | null> {
 
 export async function getOrgUnitChildren(parentId: number): Promise<OrgUnit[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const results = await db
     .select()
@@ -287,7 +292,8 @@ export async function getOrgUnitTree(): Promise<OrgUnitTreeNode[]> {
 
 export async function createOrgUnit(data: OrgUnitCreate): Promise<OrgUnit> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // GMP: Check separation of duties
   await checkSeparationOfDuties(data.code, data.parentId);
@@ -333,8 +339,8 @@ export async function createOrgUnit(data: OrgUnitCreate): Promise<OrgUnit> {
     parentId: data.parentId || null,
     siteId: data.siteId || null,
     isGmpCritical: data.isGmpCritical ?? false,
-    effectiveFrom: new Date(data.effectiveFrom),
-    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
+    effectiveFrom: toDbDate(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? toDbDate(data.effectiveTo) : null,
     isActive: true,
   };
 
@@ -360,7 +366,8 @@ export async function updateOrgUnit(
   data: OrgUnitUpdate
 ): Promise<OrgUnit> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getOrgUnitById(id);
   if (!existing) {
@@ -402,7 +409,8 @@ export async function updateOrgUnit(
 
 export async function deactivateOrgUnit(id: number): Promise<void> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Check for active children
   const children = await getOrgUnits({ parentId: id, isActive: true });
@@ -448,7 +456,8 @@ export async function getPositions(filters?: {
   search?: string;
 }): Promise<Position[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions = [];
 
@@ -479,7 +488,8 @@ export async function getPositions(filters?: {
 
 export async function getPositionById(id: number): Promise<Position | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const results = await db
     .select()
@@ -512,7 +522,8 @@ export async function getPositionWithDetails(
 
 export async function createPosition(data: PositionCreate): Promise<Position> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Validate org unit exists
   const orgUnit = await getOrgUnitById(data.orgUnitId);
@@ -554,7 +565,8 @@ export async function updatePosition(
   data: PositionUpdate
 ): Promise<Position> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getPositionById(id);
   if (!existing) {
@@ -611,7 +623,8 @@ export async function getEmployees(filters?: {
   take?: number;
 }): Promise<EmployeeWithDetails[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions = [];
 
@@ -708,7 +721,8 @@ export async function getEmployeeById(
   options: { decryptSensitive?: boolean } = {}
 ): Promise<Employee | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const results = await db
     .select()
@@ -739,7 +753,8 @@ export async function getEmployeeProfile(
 
   // Get authorizations
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
   const authorizations = await db
     .select()
     .from(tables.authorizations)
@@ -760,7 +775,8 @@ export async function getEmployeeProfile(
 
 export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Check for duplicate employee code
   const existing = await db
@@ -811,7 +827,7 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
     // Personal Identification (encrypted)
     thaiCid: thaiCidEncrypted,
     thaiCidHash: thaiCidHash,
-    dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+    dateOfBirth: data.dateOfBirth ? toDbDate(data.dateOfBirth) : null,
     gender: data.gender || null,
     bloodType: data.bloodType || null,
     religion: data.religion || null,
@@ -868,7 +884,7 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
     positionId: data.positionId || null,
     orgUnitId: data.orgUnitId || null,
     siteId: data.siteId || null,
-    hireDate: new Date(data.hireDate),
+    hireDate: toDbDate(data.hireDate),
     status: 'active',
   };
 
@@ -896,7 +912,8 @@ export async function updateEmployee(
   data: EmployeeUpdate
 ): Promise<Employee> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getEmployeeById(id);
   if (!existing) {
@@ -949,7 +966,7 @@ export async function updateEmployee(
 
   // Personal identification
   if (data.dateOfBirth !== undefined)
-    updateData.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+    updateData.dateOfBirth = data.dateOfBirth ? toDbDate(data.dateOfBirth) : null;
   if (data.gender !== undefined) updateData.gender = data.gender;
   if (data.bloodType !== undefined) updateData.bloodType = data.bloodType;
   if (data.religion !== undefined) updateData.religion = data.religion;
@@ -1023,7 +1040,7 @@ export async function updateEmployee(
   if (data.siteId !== undefined) updateData.siteId = data.siteId;
   if (data.status !== undefined) updateData.status = data.status;
   if (data.terminationDate !== undefined)
-    updateData.terminationDate = new Date(data.terminationDate);
+    updateData.terminationDate = toDbDate(data.terminationDate);
 
   if (Object.keys(updateData).length > 0) {
     await db
@@ -1073,7 +1090,8 @@ export async function getEmployeeCountByOrgUnit(
   orgUnitId: number
 ): Promise<number> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const result = await db
     .select({ count: sql`count(*)` })
@@ -1092,7 +1110,8 @@ export async function getEmployeeCountByPosition(
   positionId: number
 ): Promise<number> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const result = await db
     .select({ count: sql`count(*)` })
@@ -1129,7 +1148,8 @@ export async function getEmployeeAssignments(
   employeeId: number
 ): Promise<EmployeeAssignmentWithDetails[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const assignments = await db
     .select()
@@ -1175,7 +1195,8 @@ export async function createEmployeeAssignment(data: {
   reason?: string;
 }): Promise<EmployeeAssignmentWithDetails> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // If marking as primary, set other assignments to non-primary
   if (data.isPrimary) {
@@ -1190,7 +1211,7 @@ export async function createEmployeeAssignment(data: {
     positionId: data.positionId || null,
     orgUnitId: data.orgUnitId || null,
     isPrimary: data.isPrimary ?? true,
-    effectiveFrom: new Date(data.effectiveFrom),
+    effectiveFrom: toDbDate(data.effectiveFrom),
     reason: data.reason || null,
   };
 
@@ -1216,7 +1237,8 @@ export async function getJobDescriptions(filters?: {
   status?: JobDescriptionStatus;
 }): Promise<JobDescription[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions = [];
 
@@ -1238,7 +1260,8 @@ export async function getJobDescriptions(filters?: {
 
 export async function getJobDescriptionById(id: number): Promise<JobDescription | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const results = await db
     .select()
@@ -1251,7 +1274,8 @@ export async function getJobDescriptionById(id: number): Promise<JobDescription 
 
 export async function getCurrentJobDescription(positionId: number): Promise<JobDescription | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Get the most recent approved JD for this position
   const results = await db
@@ -1271,7 +1295,8 @@ export async function getCurrentJobDescription(positionId: number): Promise<JobD
 
 export async function getNextJDVersion(positionId: number): Promise<string> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Get all JDs for this position to determine next version
   const existing = await db
@@ -1295,7 +1320,8 @@ export async function getNextJDVersion(positionId: number): Promise<string> {
 
 export async function createJobDescription(data: JobDescriptionCreate): Promise<JobDescription> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Validate position exists
   const position = await getPositionById(data.positionId);
@@ -1344,7 +1370,8 @@ export async function updateJobDescription(
   data: Partial<JobDescriptionCreate>
 ): Promise<JobDescription> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getJobDescriptionById(id);
   if (!existing) {
@@ -1383,7 +1410,8 @@ export async function updateJobDescription(
 
 export async function submitJobDescriptionForApproval(id: number): Promise<JobDescription> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getJobDescriptionById(id);
   if (!existing) {
@@ -1417,7 +1445,8 @@ export async function approveJobDescription(
   effectiveFrom: string
 ): Promise<JobDescription> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getJobDescriptionById(id);
   if (!existing) {
@@ -1473,7 +1502,8 @@ export async function approveJobDescription(
 
 export async function rejectJobDescription(id: number): Promise<JobDescription> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getJobDescriptionById(id);
   if (!existing) {
@@ -1517,7 +1547,8 @@ export async function getTrainingCourses(
   filters?: TrainingCourseFilters
 ): Promise<TrainingCourse[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
 
@@ -1553,7 +1584,8 @@ export async function getTrainingCourseById(
   id: number
 ): Promise<TrainingCourse | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [course] = await db
     .select()
@@ -1567,7 +1599,8 @@ export async function createTrainingCourse(
   data: TrainingCourseCreate
 ): Promise<TrainingCourse> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const insertData = {
     code: data.code,
@@ -1583,7 +1616,7 @@ export async function createTrainingCourse(
   };
 
   const result = await db.insert(tables.trainingCourses).values(insertData);
-  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+  const id = isSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
 
   // Audit log
   await createAuditLog({
@@ -1601,7 +1634,8 @@ export async function updateTrainingCourse(
   data: Partial<TrainingCourseCreate>
 ): Promise<TrainingCourse> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getTrainingCourseById(id);
   if (!existing) {
@@ -1641,7 +1675,8 @@ export async function updateTrainingCourse(
 
 export async function deactivateTrainingCourse(id: number): Promise<TrainingCourse> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getTrainingCourseById(id);
   if (!existing) {
@@ -1688,7 +1723,8 @@ export async function getTrainingSessions(
   filters?: TrainingSessionFilters
 ): Promise<TrainingSessionWithDetails[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
 
@@ -1748,7 +1784,8 @@ export async function getTrainingSessionById(
   id: number
 ): Promise<TrainingSessionWithDetails | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [session] = await db
     .select()
@@ -1784,7 +1821,8 @@ export async function createTrainingSession(
   data: TrainingSessionCreate
 ): Promise<TrainingSession> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Verify course exists
   const course = await getTrainingCourseById(data.courseId);
@@ -1794,7 +1832,7 @@ export async function createTrainingSession(
 
   const insertData = {
     courseId: data.courseId,
-    sessionDate: new Date(data.sessionDate),
+    sessionDate: toDbDate(data.sessionDate),
     startTime: data.startTime || null,
     endTime: data.endTime || null,
     location: data.location || null,
@@ -1806,7 +1844,7 @@ export async function createTrainingSession(
   };
 
   const result = await db.insert(tables.trainingSessions).values(insertData);
-  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+  const id = isSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
 
   // Audit log
   await createAuditLog({
@@ -1824,7 +1862,8 @@ export async function updateTrainingSession(
   data: Partial<TrainingSessionCreate & { status?: TrainingSessionStatus; notes?: string }>
 ): Promise<TrainingSession> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getTrainingSessionById(id);
   if (!existing) {
@@ -1920,7 +1959,8 @@ export async function getTrainingRecords(
   filters?: TrainingRecordFilters
 ): Promise<TrainingRecordWithStatus[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
 
@@ -1970,7 +2010,8 @@ export async function getTrainingRecordById(
   id: number
 ): Promise<TrainingRecordWithStatus | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [record] = await db
     .select()
@@ -1995,7 +2036,8 @@ export async function createTrainingRecord(
   data: TrainingRecordCreate
 ): Promise<TrainingRecord> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Verify employee exists
   const employee = await getEmployeeById(data.employeeId);
@@ -2016,8 +2058,8 @@ export async function createTrainingRecord(
     employeeId: data.employeeId,
     sessionId: data.sessionId || null,
     courseId: data.courseId,
-    completionDate: new Date(data.completionDate),
-    expiryDate: expiryDate ? new Date(expiryDate) : null,
+    completionDate: toDbDate(data.completionDate),
+    expiryDate: expiryDate ? toDbDate(expiryDate) : null,
     result: data.result,
     score: data.score || null,
     assessedBy: data.assessedBy || null,
@@ -2026,7 +2068,7 @@ export async function createTrainingRecord(
   };
 
   const result = await db.insert(tables.trainingRecords).values(insertData);
-  const id = useSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
+  const id = isSqlite() ? Number(result.lastInsertRowid) : Number(result[0].insertId);
 
   // Audit log
   await createAuditLog({
@@ -2048,7 +2090,8 @@ export async function updateTrainingRecord(
   data: Partial<TrainingRecordCreate>
 ): Promise<TrainingRecord> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getTrainingRecordById(id);
   if (!existing) {
@@ -2100,7 +2143,8 @@ export async function getEmployeeCompetencyMatrix(
   employeeId: number
 ): Promise<CompetencyMatrix | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const employee = await getEmployeeById(employeeId);
   if (!employee) return null;
@@ -2162,7 +2206,8 @@ export async function getCompetencyMatrixGrid(
   courseIds?: number[]
 ): Promise<CompetencyMatrix[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Get employees
   let employees: Employee[];
@@ -2214,7 +2259,8 @@ export async function getExpiringTrainingRecords(
   withinDays: number = 30
 ): Promise<ExpiringTrainingRecord[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const now = new Date();
   const futureDate = new Date();
@@ -2240,7 +2286,7 @@ export async function getExpiringTrainingRecords(
     const course = await getTrainingCourseById(record.courseId);
 
     if (employee && course && record.expiryDate) {
-      const expiryDate = new Date(record.expiryDate);
+      const expiryDate = toDateSafe(record.expiryDate);
       const daysUntilExpiry = Math.ceil(
         (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -2267,7 +2313,8 @@ export async function getExpiringTrainingRecords(
  */
 export async function getExpiredTrainingRecords(): Promise<ExpiringTrainingRecord[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const now = new Date().toISOString().split('T')[0];
 
@@ -2291,7 +2338,7 @@ export async function getExpiredTrainingRecords(): Promise<ExpiringTrainingRecor
     const course = await getTrainingCourseById(record.courseId);
 
     if (employee && course && record.expiryDate) {
-      const expiryDate = new Date(record.expiryDate);
+      const expiryDate = toDateSafe(record.expiryDate);
       const daysUntilExpiry = Math.ceil(
         (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -2364,7 +2411,8 @@ export async function getAuthorizations(
   filters?: AuthorizationFilters
 ): Promise<AuthorizationWithDetails[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
   const now = new Date().toISOString().split('T')[0];
@@ -2427,7 +2475,8 @@ export async function getAuthorizations(
  */
 export async function getAuthorizationById(id: number): Promise<AuthorizationWithDetails | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [authorization] = await db
     .select()
@@ -2456,7 +2505,8 @@ export async function createAuthorization(
   grantedBy: number
 ): Promise<Authorization> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const now = new Date();
 
@@ -2466,8 +2516,8 @@ export async function createAuthorization(
     scopeSiteId: data.scopeSiteId || null,
     scopeOrgUnitId: data.scopeOrgUnitId || null,
     scopeProductLines: data.scopeProductLines ? JSON.stringify(data.scopeProductLines) : null,
-    effectiveFrom: new Date(data.effectiveFrom),
-    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
+    effectiveFrom: toDbDate(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? toDbDate(data.effectiveTo) : null,
     grantedBy,
     grantedAt: now,
     isActive: true,
@@ -2502,7 +2552,8 @@ export async function updateAuthorization(
   data: AuthorizationUpdate
 ): Promise<Authorization> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getAuthorizationById(id);
   if (!existing) {
@@ -2546,7 +2597,8 @@ export async function revokeAuthorization(
   revokedBy: number
 ): Promise<Authorization> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getAuthorizationById(id);
   if (!existing) {
@@ -2601,7 +2653,8 @@ export async function checkAuthorization(
   }
 
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
   const now = new Date().toISOString().split('T')[0];
 
   // Check direct authorization
@@ -2740,7 +2793,8 @@ export async function getExpiringAuthorizations(
   withinDays: number = 30
 ): Promise<AuthorizationWithDetails[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const now = new Date();
   const futureDate = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
@@ -2812,7 +2866,8 @@ export async function getDelegations(
   filters?: DelegationFilters
 ): Promise<DelegationWithDetails[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
   const now = new Date().toISOString().split('T')[0];
@@ -2868,7 +2923,8 @@ export async function getDelegations(
  */
 export async function getDelegationById(id: number): Promise<DelegationWithDetails | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [delegation] = await db
     .select()
@@ -2900,7 +2956,8 @@ export async function createDelegation(
   delegatorId: number
 ): Promise<Delegation> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Validate dates
   validateDelegationDates(data.effectiveFrom, data.effectiveTo);
@@ -2937,8 +2994,8 @@ export async function createDelegation(
     delegatorId,
     delegateId: data.delegateId,
     reason: data.reason || null,
-    effectiveFrom: new Date(data.effectiveFrom),
-    effectiveTo: new Date(data.effectiveTo),
+    effectiveFrom: toDbDate(data.effectiveFrom),
+    effectiveTo: toDbDate(data.effectiveTo),
     createdAt: now,
     updatedAt: now,
   };
@@ -2964,7 +3021,8 @@ export async function createDelegation(
  */
 export async function cancelDelegation(id: number): Promise<Delegation> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getDelegationById(id);
   if (!existing) {
@@ -3058,7 +3116,8 @@ export async function getHealthRecords(
   includePrivate: boolean = false
 ): Promise<HealthRecordWithDetails[] | HealthRecordPublic[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
 
@@ -3123,7 +3182,8 @@ export async function getHealthRecordById(
   includePrivate: boolean = false
 ): Promise<HealthRecordWithDetails | HealthRecordPublic | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [record] = await db
     .select()
@@ -3161,7 +3221,8 @@ export async function createHealthRecord(
   recordedBy: number
 ): Promise<HealthRecord> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Verify employee exists
   const employee = await getEmployeeById(data.employeeId);
@@ -3169,13 +3230,13 @@ export async function createHealthRecord(
     throw new Error('Employee not found');
   }
 
-  const now = new Date();
+  const now = getNow();
 
   const insertData = {
     employeeId: data.employeeId,
     examinationType: data.examinationType,
-    examinationDate: new Date(data.examinationDate),
-    nextExamDue: data.nextExamDue ? new Date(data.nextExamDue) : null,
+    examinationDate: toDbDate(data.examinationDate),
+    nextExamDue: data.nextExamDue ? toDbDate(data.nextExamDue) : null,
     fitnessStatus: data.fitnessStatus,
     restrictions: data.restrictions || null,
     affectedAreas: data.affectedAreas ? JSON.stringify(data.affectedAreas) : null,
@@ -3218,7 +3279,8 @@ export async function updateHealthRecord(
   data: Partial<HealthRecordCreate>
 ): Promise<HealthRecord> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getHealthRecordById(id, true);
   if (!existing) {
@@ -3276,7 +3338,8 @@ export async function getEmployeeHealthStatus(
   employeeId: number
 ): Promise<{ fitnessStatus: FitnessStatus; restrictions: string | null; lastExamDate: string } | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [record] = await db
     .select({
@@ -3315,7 +3378,8 @@ export async function getHealthChecksDue(
   withinDays: number = 30
 ): Promise<UpcomingHealthCheck[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const now = new Date();
   const futureDate = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
@@ -3369,7 +3433,8 @@ export async function getHealthChecksDue(
  */
 export async function getOverdueHealthChecks(): Promise<UpcomingHealthCheck[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const nowStr = new Date().toISOString().split('T')[0];
   const now = new Date();
@@ -3421,7 +3486,8 @@ export async function getEmployeesByFitnessStatus(
   status: FitnessStatus
 ): Promise<{ employeeId: number; employeeName: string; restrictions?: string | null }[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Get all active employees
   const activeEmployees = await getEmployees({ status: 'active' });
@@ -3468,7 +3534,8 @@ export async function getAppRoles(
   filters?: AppRoleFilters
 ): Promise<AppRoleWithPermissions[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
 
@@ -3517,7 +3584,8 @@ export async function getAppRoles(
  */
 export async function getAppRoleById(id: number): Promise<AppRoleWithPermissions | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [role] = await db
     .select()
@@ -3554,7 +3622,8 @@ export async function getAppRoleById(id: number): Promise<AppRoleWithPermissions
  */
 export async function createAppRole(data: AppRoleCreate): Promise<AppRole> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Check for duplicate code
   const [existing] = await db
@@ -3600,7 +3669,8 @@ export async function updateAppRole(
   data: Partial<AppRoleCreate & { isActive?: boolean }>
 ): Promise<AppRole> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const existing = await getAppRoleById(id);
   if (!existing) {
@@ -3650,7 +3720,8 @@ export async function deactivateAppRole(id: number): Promise<AppRole> {
  */
 export async function getAppPermissions(): Promise<AppPermission[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const permissions = await db
     .select()
@@ -3665,7 +3736,8 @@ export async function getAppPermissions(): Promise<AppPermission[]> {
  */
 export async function getRolePermissions(roleId: number): Promise<AppPermission[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const rolePermissionIds = await db
     .select({ permissionId: tables.rolePermissions.permissionId })
@@ -3691,7 +3763,8 @@ export async function updateRolePermissions(
   permissionIds: number[]
 ): Promise<void> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const role = await getAppRoleById(roleId);
   if (!role) {
@@ -3739,7 +3812,8 @@ export async function getEmployeeRoles(
   employeeId: number
 ): Promise<EmployeeRoleWithDetails[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const roles = await db
     .select()
@@ -3796,7 +3870,8 @@ export async function assignEmployeeRole(
   assignedBy: number
 ): Promise<EmployeeRole> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   // Verify employee exists
   const employee = await getEmployeeById(data.employeeId);
@@ -3821,8 +3896,8 @@ export async function assignEmployeeRole(
     roleId: data.roleId,
     scopeSiteId: data.scopeSiteId || null,
     scopeOrgUnitId: data.scopeOrgUnitId || null,
-    effectiveFrom: new Date(data.effectiveFrom),
-    effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
+    effectiveFrom: toDbDate(data.effectiveFrom),
+    effectiveTo: data.effectiveTo ? toDbDate(data.effectiveTo) : null,
     assignedBy,
     createdAt: now,
     updatedAt: now,
@@ -3850,7 +3925,8 @@ export async function assignEmployeeRole(
  */
 export async function revokeEmployeeRole(id: number): Promise<EmployeeRole> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const [existing] = await db
     .select()
@@ -3893,7 +3969,8 @@ export async function getEmployeePermissions(
   employeeId: number
 ): Promise<AppPermission[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -3952,7 +4029,8 @@ export async function getEmployeesByRole(
   roleId: number
 ): Promise<{ employeeId: number; employeeName: string; isActive: boolean }[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -4027,7 +4105,8 @@ export async function getHRAuditLogs(
   filters?: AuditLogFilters
 ): Promise<{ data: HRAuditLogWithDetails[]; total: number }> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
 
@@ -4231,7 +4310,8 @@ export async function getAuditSummary(
   toDate?: string
 ): Promise<AuditSummary[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [];
 
@@ -4297,7 +4377,8 @@ export async function createNotification(
   data: HRNotificationCreate
 ): Promise<HRNotification> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const result = await db.insert(tables.notifications).values({
     employeeId: data.employeeId,
@@ -4311,8 +4392,8 @@ export async function createNotification(
     createdAt: new Date().toISOString(),
   });
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const insertedId = useSqlite()
+   
+  const insertedId = isSqlite()
     ? Number(result.lastInsertRowid)
     : Number((result as unknown as { insertId: number }).insertId);
 
@@ -4330,7 +4411,8 @@ export async function getNotificationById(
   id: number
 ): Promise<HRNotification | null> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const result = await db
     .select()
@@ -4362,7 +4444,8 @@ export async function getEmployeeNotifications(
   options?: { unreadOnly?: boolean; limit?: number }
 ): Promise<HRNotification[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [eq(tables.notifications.employeeId, employeeId)];
 
@@ -4403,7 +4486,8 @@ export async function getUnreadNotificationCount(
   employeeId: number
 ): Promise<number> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const result = await db
     .select({ count: sql<number>`COUNT(*)` })
@@ -4423,7 +4507,8 @@ export async function getUnreadNotificationCount(
  */
 export async function markNotificationRead(id: number): Promise<void> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   await db
     .update(tables.notifications)
@@ -4439,7 +4524,8 @@ export async function markNotificationRead(id: number): Promise<void> {
  */
 export async function markAllNotificationsRead(employeeId: number): Promise<void> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   await db
     .update(tables.notifications)
@@ -4460,7 +4546,8 @@ export async function markAllNotificationsRead(employeeId: number): Promise<void
  */
 export async function deleteNotification(id: number): Promise<void> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   await db
     .delete(tables.notifications)
@@ -4475,9 +4562,10 @@ export async function checkTrainingExpirations(
   withinDays: number = 30
 ): Promise<{ created: number; notifications: HRNotification[] }> {
   const tables = getHRTables();
-  const db = await getDb();
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const isSqlite = useSqlite();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
+   
+  const usingSqlite = isSqlite();
 
   const today = new Date();
   const futureDate = new Date(today.getTime() + withinDays * 24 * 60 * 60 * 1000);
@@ -4487,7 +4575,7 @@ export async function checkTrainingExpirations(
   // Find training records expiring within the specified days
   // and that don't already have a notification
   let expiringRecords;
-  if (isSqlite) {
+  if (tables.isSqlite) {
     expiringRecords = await db
       .select({
         id: tables.trainingRecords.id,
@@ -4582,7 +4670,8 @@ export async function checkTrainingExpired(): Promise<{
   notifications: HRNotification[];
 }> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -4655,7 +4744,8 @@ export async function checkHealthChecksDue(
   withinDays: number = 30
 ): Promise<{ created: number; notifications: HRNotification[] }> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const today = new Date();
   const futureDate = new Date(today.getTime() + withinDays * 24 * 60 * 60 * 1000);
@@ -4739,7 +4829,8 @@ export async function checkHealthChecksOverdue(): Promise<{
   notifications: HRNotification[];
 }> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -4811,7 +4902,8 @@ export async function getAllPendingNotifications(
   options?: { limit?: number; type?: NotificationType }
 ): Promise<HRNotificationWithEmployee[]> {
   const tables = getHRTables();
-  const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
 
   const conditions: SQL[] = [eq(tables.notifications.isRead, false)];
 

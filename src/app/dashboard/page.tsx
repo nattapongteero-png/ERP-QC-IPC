@@ -9,6 +9,8 @@ import { CardSkeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KPICard, KPICardSkeleton } from '@/components/ui/kpi-card';
 import { StatCard, StatCardSkeleton } from '@/components/ui/stat-card';
+import { ModuleKpiTabs } from '@/components/dashboard/module-kpi-tabs';
+import type { DashboardModuleKpis } from '@/lib/services/dashboard.service';
 import {
   Package,
   Factory,
@@ -85,6 +87,7 @@ interface DashboardData {
     lotCount: number;
     totalQuantity: number;
   }>;
+  moduleKpis: DashboardModuleKpis | null;
 }
 
 export default function DashboardPage() {
@@ -126,6 +129,9 @@ export default function DashboardPage() {
                 <StatCardSkeleton key={i} size="md" />
               ))}
             </div>
+
+            {/* Module KPIs Skeleton */}
+            <CardSkeleton lines={6} />
 
             {/* Cards Skeleton */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -233,6 +239,12 @@ export default function DashboardPage() {
                 style={{ animationDelay: '350ms' }}
               />
             </div>
+
+            {/* Module KPIs Tabs */}
+            <ModuleKpiTabs
+              data={data?.moduleKpis || null}
+              isLoading={isLoading}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Work Orders */}

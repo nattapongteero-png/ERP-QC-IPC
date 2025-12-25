@@ -376,7 +376,7 @@ export function VmiOrdersGrid({
           <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900">No VMI Orders</h3>
           <p className="text-gray-500 mt-1">
-            Click "Poll Orders" to fetch new orders from VMI Portal
+            Click &quot;Poll Orders&quot; to fetch new orders from VMI Portal
           </p>
         </div>
       )}

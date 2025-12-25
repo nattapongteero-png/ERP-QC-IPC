@@ -1,12 +1,6 @@
 import { NextRequest } from 'next/server';
 import { eq, desc, sql } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteCustomers,
-  sqliteSalesOrders,
-  mysqlCustomers,
-  mysqlSalesOrders,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -29,16 +23,13 @@ export async function GET(
         return errorResponse('Invalid customer ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const customers = isSqlite ? sqliteCustomers : mysqlCustomers;
-      const salesOrders = isSqlite ? sqliteSalesOrders : mysqlSalesOrders;
+      const customersTable = getTableRef('customers');
+      const salesOrdersTable = getTableRef('salesOrders');
 
       // Get customer details
-      const customerResult = await db
-        .select()
-        .from(customers)
-        .where(eq(customers.id, customerId));
+      const customerResult = await executeDbOperation(async (db) => {
+        return db.select().from(customersTable).where(eq(customersTable.id, customerId));
+      });
 
       if (customerResult.length === 0) {
         return errorResponse('Customer not found', 404);
@@ -47,38 +38,41 @@ export async function GET(
       const customer = customerResult[0];
 
       // Get recent sales orders for this customer
-      const recentSOs = await db
-        .select({
-          id: salesOrders.id,
-          soNumber: salesOrders.soNumber,
-          orderDate: salesOrders.orderDate,
-          requiredDate: salesOrders.requiredDate,
-          status: salesOrders.status,
-          totalAmount: salesOrders.totalAmount,
-          currency: salesOrders.currency,
+      const recentSOs = await executeDbOperation(async (db) => {
+        return db.select({
+          id: salesOrdersTable.id,
+          soNumber: salesOrdersTable.soNumber,
+          orderDate: salesOrdersTable.orderDate,
+          requiredDate: salesOrdersTable.requiredDate,
+          status: salesOrdersTable.status,
+          totalAmount: salesOrdersTable.totalAmount,
+          currency: salesOrdersTable.currency,
         })
-        .from(salesOrders)
-        .where(eq(salesOrders.customerName, customer.name))
-        .orderBy(desc(salesOrders.createdAt))
+        .from(salesOrdersTable)
+        .where(eq(salesOrdersTable.customerName, customer.name))
+        .orderBy(desc(salesOrdersTable.createdAt))
         .limit(10);
+      });
 
       // Get summary statistics
-      const soStats = await db
-        .select({
+      const soStats = await executeDbOperation(async (db) => {
+        return db.select({
           totalOrders: sql<number>`count(*)`,
-          totalAmount: sql<number>`sum(${salesOrders.totalAmount})`,
+          totalAmount: sql<number>`sum(${salesOrdersTable.totalAmount})`,
         })
-        .from(salesOrders)
-        .where(eq(salesOrders.customerName, customer.name));
+        .from(salesOrdersTable)
+        .where(eq(salesOrdersTable.customerName, customer.name));
+      });
 
-      const statusCounts = await db
-        .select({
-          status: salesOrders.status,
+      const statusCounts = await executeDbOperation(async (db) => {
+        return db.select({
+          status: salesOrdersTable.status,
           count: sql<number>`count(*)`,
         })
-        .from(salesOrders)
-        .where(eq(salesOrders.customerName, customer.name))
-        .groupBy(salesOrders.status);
+        .from(salesOrdersTable)
+        .where(eq(salesOrdersTable.customerName, customer.name))
+        .groupBy(salesOrdersTable.status);
+      });
 
       const summary = {
         totalOrders: Number(soStats[0]?.totalOrders) || 0,
@@ -141,50 +135,46 @@ export async function PUT(
         return errorResponse('Code and name are required');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const customers = isSqlite ? sqliteCustomers : mysqlCustomers;
+      const customersTable = getTableRef('customers');
 
       // Check if customer exists
-      const existing = await db
-        .select()
-        .from(customers)
-        .where(eq(customers.id, customerId));
+      const existing = await executeDbOperation(async (db) => {
+        return db.select().from(customersTable).where(eq(customersTable.id, customerId));
+      });
 
       if (existing.length === 0) {
         return errorResponse('Customer not found', 404);
       }
 
       // Check if code is unique (excluding current customer)
-      const codeCheck = await db
-        .select()
-        .from(customers)
-        .where(eq(customers.code, code));
+      const codeCheck = await executeDbOperation(async (db) => {
+        return db.select().from(customersTable).where(eq(customersTable.code, code));
+      });
 
       if (codeCheck.length > 0 && codeCheck[0].id !== customerId) {
         return errorResponse('Customer code already exists');
       }
 
-      const now = new Date();
-      await db
-        .update(customers)
-        .set({
-          code,
-          name,
-          contactPerson,
-          phone,
-          email,
-          address,
-          taxId,
-          customerType: customerType ?? existing[0].customerType,
-          creditLimit,
-          creditTermDays,
-          paymentTerms,
-          notes,
-          isActive: isActive ?? existing[0].isActive,
-          updatedAt: isSqlite ? now.toISOString() : now,
-        })
-        .where(eq(customers.id, customerId));
+      await executeDbOperation(async (db) => {
+        return db.update(customersTable)
+          .set({
+            code,
+            name,
+            contactPerson,
+            phone,
+            email,
+            address,
+            taxId,
+            customerType: customerType ?? existing[0].customerType,
+            creditLimit,
+            creditTermDays,
+            paymentTerms,
+            notes,
+            isActive: isActive ?? existing[0].isActive,
+            updatedAt: dbDate(),
+          })
+          .where(eq(customersTable.id, customerId));
+      });
 
       await createAuditLog({
         userId: session.userId,
@@ -217,37 +207,35 @@ export async function DELETE(
         return errorResponse('Invalid customer ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const customers = isSqlite ? sqliteCustomers : mysqlCustomers;
-      const salesOrders = isSqlite ? sqliteSalesOrders : mysqlSalesOrders;
+      const customersTable = getTableRef('customers');
+      const salesOrdersTable = getTableRef('salesOrders');
 
       // Check if customer exists
-      const existing = await db
-        .select()
-        .from(customers)
-        .where(eq(customers.id, customerId));
+      const existing = await executeDbOperation(async (db) => {
+        return db.select().from(customersTable).where(eq(customersTable.id, customerId));
+      });
 
       if (existing.length === 0) {
         return errorResponse('Customer not found', 404);
       }
 
       // Check if customer has any sales orders
-      const soCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(salesOrders)
-        .where(eq(salesOrders.customerName, existing[0].name));
+      const soCount = await executeDbOperation(async (db) => {
+        return db.select({ count: sql<number>`count(*)` })
+          .from(salesOrdersTable)
+          .where(eq(salesOrdersTable.customerName, existing[0].name));
+      });
 
       if (Number(soCount[0]?.count) > 0) {
         // Soft delete - deactivate instead of hard delete
-        const now = new Date();
-        await db
-          .update(customers)
-          .set({
-            isActive: false,
-            updatedAt: isSqlite ? now.toISOString() : now,
-          })
-          .where(eq(customers.id, customerId));
+        await executeDbOperation(async (db) => {
+          return db.update(customersTable)
+            .set({
+              isActive: false,
+              updatedAt: dbDate(),
+            })
+            .where(eq(customersTable.id, customerId));
+        });
 
         await createAuditLog({
           userId: session.userId,
@@ -266,8 +254,9 @@ export async function DELETE(
       }
 
       // Hard delete if no related records
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (db as any).delete(customers).where(eq(customers.id, customerId));
+      await executeDbOperation(async (db) => {
+        return db.delete(customersTable).where(eq(customersTable.id, customerId));
+      });
 
       await createAuditLog({
         userId: session.userId,

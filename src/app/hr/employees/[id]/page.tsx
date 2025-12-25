@@ -534,7 +534,7 @@ export default function EmployeeProfilePage() {
                     <div className="flex-1 min-w-0">
                       <h2 className="text-xl lg:text-2xl font-bold text-gray-900">{fullName}</h2>
                       {profile.nickname && (
-                        <p className="text-gray-500 text-sm mt-0.5">"{profile.nickname}"</p>
+                        <p className="text-gray-500 text-sm mt-0.5">&quot;{profile.nickname}&quot;</p>
                       )}
                       {fullNameEn && (
                         <p className="text-gray-500 flex items-center gap-1.5 mt-1">

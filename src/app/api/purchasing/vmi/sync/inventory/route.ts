@@ -7,17 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { eq, and, or, isNotNull, sql } from 'drizzle-orm';
-import { getDb } from '@/lib/db';
-import {
-  sqliteVMIVendorConfig,
-  sqliteItems,
-  sqliteInventoryLots,
-  sqliteVMITransactions,
-  mysqlVMIVendorConfig,
-  mysqlItems,
-  mysqlInventoryLots,
-  mysqlVMITransactions,
-} from '@/lib/db/schema';
+import { getTableRef, executeDbOperation, dbDate } from '@/lib/db/db-helper';
 import {
   successResponse,
   errorResponse,
@@ -44,17 +34,17 @@ export async function GET(request: NextRequest) {
         return errorResponse('Invalid vendor ID');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
+      const vmiConfig = getTableRef('vMIVendorConfig');
+      const items = getTableRef('items');
+      const inventoryLots = getTableRef('inventoryLots');
 
       // Verify vendor has VMI configuration
-      const configResult = await db
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(vmiConfig)
+          .where(eq(vmiConfig.vendorId, vendorId));
+      });
 
       if (configResult.length === 0) {
         return errorResponse('VMI configuration not found for vendor');
@@ -63,41 +53,45 @@ export async function GET(request: NextRequest) {
       const config = configResult[0];
 
       // Get items with TPP or TTMT codes
-      const vmiItems = await db
-        .select({
-          id: items.id,
-          code: items.code,
-          nameTh: items.nameTh,
-          nameEn: items.nameEn,
-          tppCode: items.tppCode,
-          ttmtCode: items.ttmtCode,
-          primaryUnit: items.primaryUnit,
-        })
-        .from(items)
-        .where(
-          and(
-            eq(items.isActive, true),
-            or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
-          )
-        );
+      const vmiItems = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: items.id,
+            code: items.code,
+            nameTh: items.nameTh,
+            nameEn: items.nameEn,
+            tppCode: items.tppCode,
+            ttmtCode: items.ttmtCode,
+            primaryUnit: items.primaryUnit,
+          })
+          .from(items)
+          .where(
+            and(
+              eq(items.isActive, true),
+              or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
+            )
+          );
+      });
 
       // Get inventory for each item
       type VmiItemType = { id: number; code: string; nameTh: string; nameEn: string | null; tppCode: string | null; ttmtCode: string | null; primaryUnit: string };
       const inventoryData = await Promise.all(
         vmiItems.map(async (item: VmiItemType) => {
           // Get total available quantity from inventory lots
-          const lotsResult = await db
-            .select({
-              totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
-              reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
-            })
-            .from(inventoryLots)
-            .where(
-              and(
-                eq(inventoryLots.itemId, item.id),
-                eq(inventoryLots.status, 'available')
-              )
-            );
+          const lotsResult = await executeDbOperation(async (db) => {
+            return db
+              .select({
+                totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
+                reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
+              })
+              .from(inventoryLots)
+              .where(
+                and(
+                  eq(inventoryLots.itemId, item.id),
+                  eq(inventoryLots.status, 'available')
+                )
+              );
+          });
 
           const totalQuantity = Number(lotsResult[0]?.totalQuantity || 0);
           const reservedQuantity = Number(lotsResult[0]?.reservedQuantity || 0);
@@ -147,18 +141,18 @@ export async function POST(request: NextRequest) {
         return errorResponse('Vendor ID is required');
       }
 
-      const db = await getDb();
-      const isSqlite = process.env.DB_TYPE === 'sqlite';
-      const vmiConfig = isSqlite ? sqliteVMIVendorConfig : mysqlVMIVendorConfig;
-      const items = isSqlite ? sqliteItems : mysqlItems;
-      const inventoryLots = isSqlite ? sqliteInventoryLots : mysqlInventoryLots;
-      const vmiTransactions = isSqlite ? sqliteVMITransactions : mysqlVMITransactions;
+      const vmiConfig = getTableRef('vMIVendorConfig');
+      const items = getTableRef('items');
+      const inventoryLots = getTableRef('inventoryLots');
+      const vmiTransactions = getTableRef('vMITransactions');
 
       // Get vendor config
-      const configResult = await db
-        .select()
-        .from(vmiConfig)
-        .where(eq(vmiConfig.vendorId, vendorId));
+      const configResult = await executeDbOperation(async (db) => {
+        return db
+          .select()
+          .from(vmiConfig)
+          .where(eq(vmiConfig.vendorId, vendorId));
+      });
 
       if (configResult.length === 0) {
         return errorResponse('VMI configuration not found for vendor');
@@ -171,21 +165,23 @@ export async function POST(request: NextRequest) {
       }
 
       // Get VMI items
-      let vmiItems = await db
-        .select({
-          id: items.id,
-          code: items.code,
-          tppCode: items.tppCode,
-          ttmtCode: items.ttmtCode,
-          primaryUnit: items.primaryUnit,
-        })
-        .from(items)
-        .where(
-          and(
-            eq(items.isActive, true),
-            or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
-          )
-        );
+      let vmiItems = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: items.id,
+            code: items.code,
+            tppCode: items.tppCode,
+            ttmtCode: items.ttmtCode,
+            primaryUnit: items.primaryUnit,
+          })
+          .from(items)
+          .where(
+            and(
+              eq(items.isActive, true),
+              or(isNotNull(items.tppCode), isNotNull(items.ttmtCode))
+            )
+          );
+      });
 
       // Filter by requested IDs if provided
       if (itemIds && itemIds.length > 0) {
@@ -203,18 +199,20 @@ export async function POST(request: NextRequest) {
       type VmiItemPostType = { id: number; code: string; tppCode: string | null; ttmtCode: string | null; primaryUnit: string };
       const inventoryPayloads: VmiInventoryItem[] = await Promise.all(
         vmiItems.map(async (item: VmiItemPostType) => {
-          const lotsResult = await db
-            .select({
-              totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
-              reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
-            })
-            .from(inventoryLots)
-            .where(
-              and(
-                eq(inventoryLots.itemId, item.id),
-                eq(inventoryLots.status, 'available')
-              )
-            );
+          const lotsResult = await executeDbOperation(async (db) => {
+            return db
+              .select({
+                totalQuantity: sql<number>`COALESCE(SUM(${inventoryLots.quantity}), 0)`,
+                reservedQuantity: sql<number>`COALESCE(SUM(${inventoryLots.reservedQuantity}), 0)`,
+              })
+              .from(inventoryLots)
+              .where(
+                and(
+                  eq(inventoryLots.itemId, item.id),
+                  eq(inventoryLots.status, 'available')
+                )
+              );
+          });
 
           const totalQuantity = Number(lotsResult[0]?.totalQuantity || 0);
           const reservedQuantity = Number(lotsResult[0]?.reservedQuantity || 0);
@@ -241,19 +239,20 @@ export async function POST(request: NextRequest) {
           durationMs: number,
           error?: string
         ) {
-          const now = new Date();
-          await db.insert(vmiTransactions).values({
-            vendorId: logVendorId,
-            transactionType,
-            endpoint,
-            method,
-            requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
-            responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
-            httpStatus,
-            durationMs,
-            status: error ? 'error' : 'success',
-            errorMessage: error || null,
-            createdAt: isSqlite ? now.toISOString() : now,
+          await executeDbOperation(async (db) => {
+            return db.insert(vmiTransactions).values({
+              vendorId: logVendorId,
+              transactionType,
+              endpoint,
+              method,
+              requestPayload: requestPayload ? JSON.stringify(requestPayload) : null,
+              responsePayload: responsePayload ? JSON.stringify(responsePayload) : null,
+              httpStatus,
+              durationMs,
+              status: error ? 'error' : 'success',
+              errorMessage: error || null,
+              createdAt: dbDate(),
+            });
           });
         },
       };
@@ -274,13 +273,15 @@ export async function POST(request: NextRequest) {
         const now = new Date();
 
         // Update last sync time
-        await db
-          .update(vmiConfig)
-          .set({
-            lastInventorySyncAt: isSqlite ? now.toISOString() : now,
-            updatedAt: isSqlite ? now.toISOString() : now,
-          })
-          .where(eq(vmiConfig.vendorId, vendorId));
+        await executeDbOperation(async (db) => {
+          return db
+            .update(vmiConfig)
+            .set({
+              lastInventorySyncAt: dbDate(),
+              updatedAt: dbDate(),
+            })
+            .where(eq(vmiConfig.vendorId, vendorId));
+        });
 
         const syncedCount = result.summary.updated + result.summary.inserted;
         const failedCount = result.summary.failed;

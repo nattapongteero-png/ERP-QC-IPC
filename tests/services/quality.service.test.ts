@@ -103,7 +103,7 @@ describe('Quality Service', () => {
       const [spec] = await db
         .select()
         .from(schema.sqliteQualitySpecs)
-        .where(eq(schema.sqliteQualitySpecs.id, test.specId));
+        .where(eq(schema.sqliteQualitySpecs.id, test.specId!));
 
       const isWithinSpec = test.numericResult! >= spec.minValue! && test.numericResult! <= spec.maxValue!;
       expect(isWithinSpec).toBe(true);

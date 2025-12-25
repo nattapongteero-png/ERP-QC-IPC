@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
+import { DocumentAttachment } from '@/components/ui/document-attachment';
 
 interface LotDetail {
   id: number;
@@ -91,7 +92,7 @@ export default function LotDetailPage() {
   const [lot, setLot] = useState<LotDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'info' | 'transactions' | 'qc' | 'traceability'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'documents' | 'transactions' | 'qc' | 'traceability'>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     batchNumber: '',
@@ -502,6 +503,7 @@ export default function LotDetailPage() {
           <nav className="-mb-px flex space-x-8">
             {[
               { id: 'info', label: 'Lot Information' },
+              { id: 'documents', label: 'Documents' },
               { id: 'transactions', label: 'Transaction History' },
               { id: 'qc', label: 'QC Tests' },
               { id: 'traceability', label: 'Traceability' },
@@ -719,6 +721,19 @@ export default function LotDetailPage() {
                 )}
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {activeTab === 'documents' && (
+          <div className="space-y-6">
+            {/* FR-057: COA/MSDS Document Attachments */}
+            <DocumentAttachment
+              moduleName="inventory_lot"
+              entityId={lot.id}
+              title="เอกสารแนบ (COA, MSDS, Specification)"
+              categories={['coa', 'msds', 'specification', 'certificate', 'lab_result', 'photo', 'other']}
+              showPreview
+            />
           </div>
         )}
 
