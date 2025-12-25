@@ -67,27 +67,20 @@ export async function POST(
     }
 
     // Verify item exists
-    const { isSqlite, db, getSqliteDb } = await import('@/lib/db');
+    const { isSqlite, getDb } = await import('@/lib/db');
     const { sqliteItems, mysqlItems, sqliteVmiSalesOrderLines, mysqlVmiSalesOrderLines } = await import('@/lib/db/schema');
     const { eq } = await import('drizzle-orm');
 
-    let item;
-    if (isSqlite()) {
-      const sqliteDb = getSqliteDb();
-      const items = await sqliteDb
-        .select()
-        .from(sqliteItems)
-        .where(eq(sqliteItems.id, data.itemId))
-        .limit(1);
-      item = items[0];
-    } else {
-      const items = await db
-        .select()
-        .from(mysqlItems)
-        .where(eq(mysqlItems.id, data.itemId))
-        .limit(1);
-      item = items[0];
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const database = (await getDb()) as any;
+    const itemsTable = isSqlite() ? sqliteItems : mysqlItems;
+
+    const items = await database
+      .select()
+      .from(itemsTable)
+      .where(eq(itemsTable.id, data.itemId))
+      .limit(1);
+    const item = items[0];
 
     if (!item) {
       return NextResponse.json({
@@ -97,28 +90,23 @@ export async function POST(
     }
 
     // Update the line with the matched item
-    if (isSqlite()) {
-      const sqliteDb = getSqliteDb();
-      await sqliteDb
-        .update(sqliteVmiSalesOrderLines)
-        .set({
-          matchedItemId: data.itemId,
-          matchMethod: 'manual',
-          unitPrice: item.sellingPrice,
-          lineTotal: item.sellingPrice ? item.sellingPrice * line.quantity : null,
-        })
-        .where(eq(sqliteVmiSalesOrderLines.id, lineIdNum));
-    } else {
-      await db
-        .update(mysqlVmiSalesOrderLines)
-        .set({
-          matchedItemId: data.itemId,
-          matchMethod: 'manual',
-          unitPrice: item.sellingPrice ? String(item.sellingPrice) : null,
-          lineTotal: item.sellingPrice ? String(Number(item.sellingPrice) * line.quantity) : null,
-        })
-        .where(eq(mysqlVmiSalesOrderLines.id, lineIdNum));
-    }
+    const linesTable = isSqlite() ? sqliteVmiSalesOrderLines : mysqlVmiSalesOrderLines;
+    const unitPriceValue = isSqlite()
+      ? item.sellingPrice
+      : (item.sellingPrice ? String(item.sellingPrice) : null);
+    const lineTotalValue = isSqlite()
+      ? (item.sellingPrice ? item.sellingPrice * line.quantity : null)
+      : (item.sellingPrice ? String(Number(item.sellingPrice) * line.quantity) : null);
+
+    await database
+      .update(linesTable)
+      .set({
+        matchedItemId: data.itemId,
+        matchMethod: 'manual',
+        unitPrice: unitPriceValue,
+        lineTotal: lineTotalValue,
+      })
+      .where(eq(linesTable.id, lineIdNum));
 
     // Get updated order
     const updatedOrder = await service.getOrderById(orderIdNum);
