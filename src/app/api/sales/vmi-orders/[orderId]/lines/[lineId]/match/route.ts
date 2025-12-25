@@ -67,13 +67,13 @@ export async function POST(
     }
 
     // Verify item exists
-    const { useSqlite, db, sqliteDb } = await import('@/lib/db');
+    const { isSqlite, db, getSqliteDb } = await import('@/lib/db');
     const { sqliteItems, mysqlItems, sqliteVmiSalesOrderLines, mysqlVmiSalesOrderLines } = await import('@/lib/db/schema');
     const { eq } = await import('drizzle-orm');
 
     let item;
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (useSqlite()) {
+    if (isSqlite()) {
+      const sqliteDb = getSqliteDb();
       const items = await sqliteDb
         .select()
         .from(sqliteItems)
@@ -97,8 +97,8 @@ export async function POST(
     }
 
     // Update the line with the matched item
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (useSqlite()) {
+    if (isSqlite()) {
+      const sqliteDb = getSqliteDb();
       await sqliteDb
         .update(sqliteVmiSalesOrderLines)
         .set({
