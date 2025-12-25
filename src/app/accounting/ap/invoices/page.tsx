@@ -34,12 +34,17 @@ import Form, {
   SimpleItem,
   GroupItem,
   RequiredRule,
-  PatternRule,
 } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+  AccountingStatusBadge,
+} from '@/components/accounting';
 
 // Types
 interface APInvoice {
@@ -152,7 +157,7 @@ export default function APInvoicesPage() {
   });
 
   // Queries
-  const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
+  const { data: invoices = [] } = useQuery({
     queryKey: ['ap-invoices', statusFilter],
     queryFn: () => fetchAPInvoices({ status: statusFilter || undefined }),
   });
@@ -285,30 +290,20 @@ export default function APInvoicesPage() {
     return Math.round(lineTotal * 0.07 * 100) / 100;
   }, [lineTotal]);
 
-  // Status badge render
+  // Status badge render using AccountingStatusBadge
   const statusCellRender = useCallback((cellData: any) => {
-    const statusMap: Record<string, { label: string; color: string }> = {
-      draft: { label: 'ร่าง', color: '#6c757d' },
-      approved: { label: 'อนุมัติ', color: '#28a745' },
-      posted: { label: 'ลงบัญชี', color: '#17a2b8' },
-      partial: { label: 'ชำระบางส่วน', color: '#ffc107' },
-      paid: { label: 'ชำระแล้ว', color: '#28a745' },
-      cancelled: { label: 'ยกเลิก', color: '#dc3545' },
+    const statusValue = cellData.value as 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'approved';
+    // Map AP-specific statuses to badge statuses
+    const statusMap: Record<string, 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'approved'> = {
+      draft: 'draft',
+      approved: 'approved',
+      posted: 'posted',
+      partial: 'partial',
+      paid: 'paid',
+      cancelled: 'cancelled',
     };
-    const status = statusMap[cellData.value] || { label: cellData.value, color: '#6c757d' };
-    return (
-      <span
-        style={{
-          backgroundColor: status.color,
-          color: 'white',
-          padding: '2px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-        }}
-      >
-        {status.label}
-      </span>
-    );
+    const mappedStatus = statusMap[statusValue] || 'draft';
+    return <AccountingStatusBadge status={mappedStatus} />;
   }, []);
 
   // Action buttons render
@@ -341,67 +336,99 @@ export default function APInvoicesPage() {
     [handleApprove]
   );
 
+  // Calculate stats
+  const stats = useMemo(() => {
+    const total = invoices.length;
+    const pending = invoices.filter((i) => i.status === 'draft').length;
+    const outstanding = invoices.filter((i) => ['posted', 'partial'].includes(i.status)).length;
+    const paid = invoices.filter((i) => i.status === 'paid').length;
+    const totalAmount = invoices.reduce((sum, i) => sum + i.totalAmount, 0);
+    const outstandingAmount = invoices
+      .filter((i) => ['posted', 'partial'].includes(i.status))
+      .reduce((sum, i) => sum + (i.totalAmount - i.paidAmount), 0);
+
+    return { total, pending, outstanding, paid, totalAmount, outstandingAmount };
+  }, [invoices]);
+
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">ใบแจ้งหนี้ซื้อ</h1>
-        <p className="text-gray-600">AP Invoices</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      {/* Professional Header */}
+      <AccountingPageHeader
+        title="ใบแจ้งหนี้ซื้อ"
+        subtitle="AP Invoices"
+        icon="receipt"
+        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ap-invoices'] })}
+        actions={
+          <Button
+            text="เพิ่มใบแจ้งหนี้"
+            icon="plus"
+            type="success"
+            onClick={handleOpenDialog}
+          />
+        }
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="text-gray-600 text-sm">รายการทั้งหมด</div>
-          <div className="text-2xl font-bold">{invoices.length}</div>
+      <div className="p-6 space-y-6">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <AccountingKPICard
+            label="รายการทั้งหมด"
+            value={stats.total.toLocaleString('th-TH')}
+            subtitle={`฿${stats.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
+            icon="file-text"
+            variant="info"
+          />
+          <AccountingKPICard
+            label="รอดำเนินการ"
+            value={stats.pending.toLocaleString('th-TH')}
+            subtitle="รอการอนุมัติ"
+            icon="clock"
+            variant="warning"
+          />
+          <AccountingKPICard
+            label="ค้างชำระ"
+            value={stats.outstanding.toLocaleString('th-TH')}
+            subtitle={`฿${stats.outstandingAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
+            icon="credit-card"
+            variant="danger"
+          />
+          <AccountingKPICard
+            label="ชำระแล้ว"
+            value={stats.paid.toLocaleString('th-TH')}
+            subtitle="เสร็จสมบูรณ์"
+            icon="check-circle"
+            variant="success"
+          />
         </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-          <div className="text-gray-600 text-sm">รอดำเนินการ</div>
-          <div className="text-2xl font-bold">
-            {invoices.filter((i) => i.status === 'draft').length}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-orange-500">
-          <div className="text-gray-600 text-sm">ค้างชำระ</div>
-          <div className="text-2xl font-bold">
-            {invoices.filter((i) => ['posted', 'partial'].includes(i.status)).length}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-          <div className="text-gray-600 text-sm">ชำระแล้ว</div>
-          <div className="text-2xl font-bold">
-            {invoices.filter((i) => i.status === 'paid').length}
-          </div>
-        </div>
-      </div>
 
-      {/* Filter */}
-      <div className="mb-4 flex items-center gap-4">
-        <SelectBox
-          dataSource={[
-            { value: '', label: 'ทั้งหมด' },
-            { value: 'draft', label: 'ร่าง' },
-            { value: 'posted', label: 'ลงบัญชี' },
-            { value: 'partial', label: 'ชำระบางส่วน' },
-            { value: 'paid', label: 'ชำระแล้ว' },
-          ]}
-          displayExpr="label"
-          valueExpr="value"
-          value={statusFilter}
-          onValueChanged={(e) => setStatusFilter(e.value)}
-          placeholder="กรองสถานะ"
-          width={180}
-        />
-        <Button
-          text="เพิ่มใบแจ้งหนี้"
-          icon="plus"
-          type="success"
-          onClick={handleOpenDialog}
-        />
-      </div>
+        {/* Filter Panel */}
+        <AccountingFilterPanel>
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                สถานะ
+              </label>
+              <SelectBox
+                dataSource={[
+                  { value: '', label: 'ทั้งหมด' },
+                  { value: 'draft', label: 'ร่าง' },
+                  { value: 'posted', label: 'ลงบัญชี' },
+                  { value: 'partial', label: 'ชำระบางส่วน' },
+                  { value: 'paid', label: 'ชำระแล้ว' },
+                ]}
+                displayExpr="label"
+                valueExpr="value"
+                value={statusFilter}
+                onValueChanged={(e) => setStatusFilter(e.value)}
+                placeholder="กรองสถานะ"
+                width={200}
+              />
+            </div>
+          </div>
+        </AccountingFilterPanel>
 
-      {/* Data Grid */}
-      <div className="bg-white rounded-lg shadow">
+        {/* Data Grid */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <DataGrid
           dataSource={invoices}
           keyExpr="id"
@@ -478,18 +505,18 @@ export default function APInvoicesPage() {
             </TotalItem>
           </Summary>
         </DataGrid>
-      </div>
+        </div>
 
-      {/* Add Invoice Dialog */}
-      <Popup
-        visible={isDialogOpen}
-        onHiding={handleCloseDialog}
-        title="เพิ่มใบแจ้งหนี้ซื้อ"
-        width={800}
-        height="auto"
-        showCloseButton={true}
-        dragEnabled={true}
-      >
+        {/* Add Invoice Dialog */}
+        <Popup
+          visible={isDialogOpen}
+          onHiding={handleCloseDialog}
+          title="เพิ่มใบแจ้งหนี้ซื้อ"
+          width={800}
+          height="auto"
+          showCloseButton={true}
+          dragEnabled={true}
+        >
         <div className="p-4">
           <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
             <GroupItem colCount={3}>
@@ -675,7 +702,8 @@ export default function APInvoicesPage() {
             />
           </div>
         </div>
-      </Popup>
+        </Popup>
+      </div>
     </div>
   );
 }
