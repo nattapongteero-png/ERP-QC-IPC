@@ -5,13 +5,17 @@
 // User Story 7: Manage Fixed Assets and Depreciation
 
 import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
-import DataGrid, { Column, Export, Summary, TotalItem, Paging, FilterRow, SearchPanel } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Export, Summary, TotalItem, Paging, FilterRow, SearchPanel, Sorting, HeaderFilter, ColumnChooser, Toolbar, Item as ToolbarItem } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { Package, Building2, TrendingDown, Calculator } from 'lucide-react';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+  AccountingStatusBadge,
+} from '@/components/accounting';
 import type { FixedAsset, AssetCategory } from '@/lib/db/schema';
 
 const statusOptions = [
@@ -65,6 +69,7 @@ async function fetchCategories(): Promise<AssetCategory[]> {
 }
 
 export default function FixedAssetsPage() {
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
 
   const { data: assets = [], isLoading } = useQuery({
@@ -99,52 +104,88 @@ export default function FixedAssetsPage() {
     return category?.nameEn || 'Unknown';
   };
 
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['fixed-assets'] });
+    queryClient.invalidateQueries({ queryKey: ['fixed-assets-summary'] });
+  }, [queryClient]);
+
+  // Status badge render
+  const statusCellRender = useCallback((cellData: { value: string }) => {
+    const statusMap: Record<string, 'active' | 'inactive'> = {
+      active: 'active',
+      disposed: 'inactive',
+      fully_depreciated: 'inactive',
+    };
+    const status = statusMap[cellData.value] || 'active';
+    return <AccountingStatusBadge status={status} />;
+  }, []);
+
   return (
-    <div className="flex flex-col gap-6">
-      <ResponsivePageHeader
-        title="Fixed Assets"
-        subtitle="Thai Revenue Code compliant fixed asset management"
-        icon={Package}
-        iconColor="text-blue-600"
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <AccountingPageHeader
+        title="ทรัพย์สินถาวร"
+        subtitle="Fixed Assets"
+        icon="building"
+        onRefresh={handleRefresh}
+        actions={
+          <>
+            <Button
+              text="เพิ่มทรัพย์สิน"
+              icon="plus"
+              type="success"
+              onClick={() => notify('Add Asset dialog - coming soon', 'info', 3000)}
+            />
+            <Button
+              text="คำนวณค่าเสื่อม"
+              icon="calculator"
+              type="default"
+              stylingMode="outlined"
+              onClick={() => notify('Run Depreciation dialog - coming soon', 'info', 3000)}
+            />
+          </>
+        }
       />
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Assets"
-          value={summary?.totalAssets?.toString() || '-'}
-          icon={Package}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
-        />
-        <StatCard
-          label="Active Assets"
-          value={summary?.activeAssets?.toString() || '-'}
-          icon={Building2}
-          iconColor="text-green-500"
-          accentColor="border-green-500"
-        />
-        <StatCard
-          label="Total Cost"
-          value={summary ? formatCurrency(summary.totalAcquisitionCost) : '-'}
-          icon={Calculator}
-          iconColor="text-purple-500"
-          accentColor="border-purple-500"
-        />
-        <StatCard
-          label="Net Book Value"
-          value={summary ? formatCurrency(summary.totalNetBookValue) : '-'}
-          icon={TrendingDown}
-          iconColor="text-orange-500"
-          accentColor="border-orange-500"
-        />
-      </div>
+      <div className="p-4 md:p-6 space-y-6">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <AccountingKPICard
+            label="ทรัพย์สินทั้งหมด"
+            value={summary?.totalAssets || 0}
+            subtitle="Total Assets"
+            icon="package"
+            variant="info"
+          />
+          <AccountingKPICard
+            label="ใช้งาน"
+            value={summary?.activeAssets || 0}
+            subtitle="Active"
+            icon="check-circle"
+            variant="success"
+          />
+          <AccountingKPICard
+            label="ราคาทุน"
+            value={summary ? formatCurrency(summary.totalAcquisitionCost) : '-'}
+            subtitle="Total Cost"
+            icon="wallet"
+            variant="default"
+          />
+          <AccountingKPICard
+            label="มูลค่าสุทธิ"
+            value={summary ? formatCurrency(summary.totalNetBookValue) : '-'}
+            subtitle="Net Book Value"
+            icon="trending-up"
+            variant="warning"
+          />
+        </div>
 
-      {/* Filters and Actions */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Status</label>
+        {/* Filter Panel */}
+        <AccountingFilterPanel>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              สถานะ
+            </label>
             <SelectBox
               items={statusOptions}
               value={statusFilter}
@@ -152,93 +193,105 @@ export default function FixedAssetsPage() {
               valueExpr="value"
               displayExpr="text"
               width={200}
+              placeholder="กรองสถานะ"
             />
           </div>
-          <Button
-            text="Add Asset"
-            type="default"
-            stylingMode="contained"
-            icon="plus"
-            onClick={() => notify('Add Asset dialog - coming soon', 'info', 3000)}
-          />
-          <Button
-            text="Run Depreciation"
-            type="normal"
-            stylingMode="outlined"
-            onClick={() => notify('Run Depreciation dialog - coming soon', 'info', 3000)}
-          />
-          {assets.length > 0 && (
-            <Button
-              text="Export JSON"
-              type="normal"
-              stylingMode="outlined"
-              onClick={handleExportJSON}
-            />
+          <div className="flex gap-2">
+            {assets.length > 0 && (
+              <Button
+                text="Export JSON"
+                icon="export"
+                type="normal"
+                stylingMode="outlined"
+                onClick={handleExportJSON}
+              />
+            )}
+          </div>
+        </AccountingFilterPanel>
+
+        {/* Assets Grid */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200">
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">กำลังโหลดข้อมูลทรัพย์สิน...</p>
+            </div>
+          ) : (
+            <DataGrid
+              dataSource={assets}
+              keyExpr="id"
+              showBorders={false}
+              showRowLines={true}
+              showColumnLines={false}
+              rowAlternationEnabled={true}
+              allowColumnReordering={true}
+              allowColumnResizing={true}
+              columnAutoWidth={true}
+              hoverStateEnabled={true}
+            >
+              <Paging defaultPageSize={20} />
+              <FilterRow visible={true} />
+              <HeaderFilter visible={true} />
+              <SearchPanel visible={true} placeholder="ค้นหา..." />
+              <Sorting mode="multiple" />
+              <ColumnChooser enabled={true} />
+              <Export enabled={true} allowExportSelectedData={true} />
+
+              <Toolbar>
+                <ToolbarItem name="searchPanel" location="before" />
+                <ToolbarItem name="exportButton" location="after" />
+                <ToolbarItem name="columnChooserButton" location="after" />
+              </Toolbar>
+
+              <Column dataField="assetCode" caption="รหัสทรัพย์สิน" width={150} />
+              <Column dataField="nameTh" caption="ชื่อ (TH)" minWidth={200} />
+              <Column dataField="nameEn" caption="ชื่อ (EN)" minWidth={200} />
+              <Column
+                dataField="categoryId"
+                caption="หมวดหมู่"
+                calculateCellValue={(rowData: FixedAsset) => getCategoryName(rowData.categoryId)}
+                width={150}
+              />
+              <Column dataField="acquisitionDate" caption="วันที่ได้มา" dataType="date" width={120} />
+              <Column
+                dataField="acquisitionCost"
+                caption="ราคาทุน"
+                dataType="number"
+                format="#,##0.00"
+                width={130}
+                alignment="right"
+              />
+              <Column
+                dataField="accumulatedDepreciation"
+                caption="ค่าเสื่อมสะสม"
+                dataType="number"
+                format="#,##0.00"
+                width={130}
+                alignment="right"
+              />
+              <Column
+                dataField="netBookValue"
+                caption="มูลค่าสุทธิ"
+                dataType="number"
+                format="#,##0.00"
+                width={130}
+                alignment="right"
+              />
+              <Column
+                dataField="status"
+                caption="สถานะ"
+                width={100}
+                cellRender={statusCellRender}
+              />
+              <Column dataField="location" caption="สถานที่" width={150} />
+
+              <Summary>
+                <TotalItem column="acquisitionCost" summaryType="sum" valueFormat="#,##0.00" displayFormat="รวม: {0}" />
+                <TotalItem column="accumulatedDepreciation" summaryType="sum" valueFormat="#,##0.00" displayFormat="รวม: {0}" />
+                <TotalItem column="netBookValue" summaryType="sum" valueFormat="#,##0.00" displayFormat="รวม: {0}" />
+              </Summary>
+            </DataGrid>
           )}
         </div>
-      </div>
-
-      {/* Assets Grid */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Fixed Assets Register
-        </h3>
-        {isLoading ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Loading fixed assets...</p>
-          </div>
-        ) : (
-          <DataGrid
-            dataSource={assets}
-            showBorders
-            columnAutoWidth
-            allowColumnResizing
-            rowAlternationEnabled
-            hoverStateEnabled
-          >
-            <FilterRow visible />
-            <SearchPanel visible width={250} />
-            <Paging defaultPageSize={20} />
-            <Column dataField="assetCode" caption="Asset Code" width={150} />
-            <Column dataField="nameTh" caption="Name (TH)" />
-            <Column dataField="nameEn" caption="Name (EN)" />
-            <Column
-              dataField="categoryId"
-              caption="Category"
-              calculateCellValue={(rowData: FixedAsset) => getCategoryName(rowData.categoryId)}
-            />
-            <Column dataField="acquisitionDate" caption="Acq. Date" dataType="date" width={120} />
-            <Column
-              dataField="acquisitionCost"
-              caption="Cost"
-              dataType="number"
-              format="#,##0.00"
-              width={130}
-            />
-            <Column
-              dataField="accumulatedDepreciation"
-              caption="Acc. Dep."
-              dataType="number"
-              format="#,##0.00"
-              width={130}
-            />
-            <Column
-              dataField="netBookValue"
-              caption="Net Book Value"
-              dataType="number"
-              format="#,##0.00"
-              width={130}
-            />
-            <Column dataField="status" caption="Status" width={120} />
-            <Column dataField="location" caption="Location" />
-            <Export enabled allowExportSelectedData />
-            <Summary>
-              <TotalItem column="acquisitionCost" summaryType="sum" valueFormat="#,##0.00" />
-              <TotalItem column="accumulatedDepreciation" summaryType="sum" valueFormat="#,##0.00" />
-              <TotalItem column="netBookValue" summaryType="sum" valueFormat="#,##0.00" />
-            </Summary>
-          </DataGrid>
-        )}
       </div>
     </div>
   );
