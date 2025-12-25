@@ -283,7 +283,8 @@ export class VendorErpDataService {
         .offset(offset);
 
       const today = new Date();
-      const items: HospitalStockItem[] = results.map(r => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items: HospitalStockItem[] = results.map((r: any) => {
         const expiryDate = r.expiryDate ? formatDateFromDb(r.expiryDate) : null;
         let daysUntilExpiry: number | null = null;
 
@@ -388,7 +389,8 @@ export class VendorErpDataService {
         .limit(pageSize)
         .offset(offset);
 
-      const items: ConsumptionItem[] = results.map(r => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items: ConsumptionItem[] = results.map((r: any) => ({
         hospitalCode: '10001',
         hospitalName: 'โรงพยาบาลสมุนไพร',
         warehouseCode: r.warehouseCode,

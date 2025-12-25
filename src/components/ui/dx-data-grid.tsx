@@ -17,6 +17,7 @@ import DataGrid, {
   Item,
   Summary,
   TotalItem,
+  Editing,
 } from 'devextreme-react/data-grid';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 
@@ -38,6 +39,7 @@ export {
   Item as DxItem,
   Summary as DxSummary,
   TotalItem as DxTotalItem,
+  Editing as DxEditing,
 };
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import { Workbook } from 'exceljs';
@@ -86,6 +88,17 @@ export interface DxDataGridColumn {
   hideOnMobile?: boolean;
   /** Hide this column on tablets (768px - 1024px) */
   hideOnTablet?: boolean;
+  /** Column type (e.g., 'buttons' for action columns) */
+  type?: 'buttons' | 'selection' | 'adaptive';
+  /** Button definitions for type='buttons' columns */
+  buttons?: Array<{
+    name?: string;
+    hint?: string;
+    icon?: string;
+    text?: string;
+    visible?: boolean | ((options: { row?: { data: unknown } }) => boolean);
+    onClick?: (e: { row?: { data: unknown } }) => void;
+  }>;
 }
 
 export interface DxDataGridProps<T = Record<string, unknown>> {

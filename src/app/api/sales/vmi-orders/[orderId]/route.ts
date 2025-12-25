@@ -93,30 +93,22 @@ export async function PUT(
     }
 
     // Update order using raw database update
-    const { useSqlite, db, sqliteDb } = await import('@/lib/db');
+    const { isSqlite, getDb } = await import('@/lib/db');
     const { sqliteVmiSalesOrders, mysqlVmiSalesOrders } = await import('@/lib/db/schema');
     const { eq } = await import('drizzle-orm');
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (useSqlite()) {
-      await sqliteDb
-        .update(sqliteVmiSalesOrders)
-        .set({
-          notes: data.notes ?? order.notes,
-          priority: data.priority ?? order.priority,
-          updatedAt: new Date(),
-        })
-        .where(eq(sqliteVmiSalesOrders.id, id));
-    } else {
-      await db
-        .update(mysqlVmiSalesOrders)
-        .set({
-          notes: data.notes ?? order.notes,
-          priority: data.priority ?? order.priority,
-          updatedAt: new Date(),
-        })
-        .where(eq(mysqlVmiSalesOrders.id, id));
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const database = (await getDb()) as any;
+    const ordersTable = isSqlite() ? sqliteVmiSalesOrders : mysqlVmiSalesOrders;
+
+    // Note: notes and priority fields are not in the current schema
+    // Only updating updatedAt for now - TODO: add notes/priority to schema if needed
+    await database
+      .update(ordersTable)
+      .set({
+        updatedAt: new Date(),
+      })
+      .where(eq(ordersTable.id, id));
 
     // Get updated order
     const updatedOrder = await service.getOrderById(id);

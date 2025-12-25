@@ -16,7 +16,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxTabs } from '@/components/ui/dx-tabs';
-import type { DxTabItem } from '@/components/ui/dx-tabs';
+import type { DxTabItemData } from '@/components/ui/dx-tabs';
 import { DxDataGrid, DxColumn } from '@/components/ui/dx-data-grid';
 import type { DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -321,9 +321,9 @@ export default function CapaDetailPage() {
     },
   });
 
-  // Tabs configuration - using numeric IDs as required by DxTabItem
+  // Tabs configuration - using numeric IDs as required by DxTabItemData
   // 0: overview, 1: actions, 2: effectiveness, 3: risk, 4: attachments, 5: approvals
-  const tabs: DxTabItem[] = useMemo(() => [
+  const tabs: DxTabItemData[] = useMemo(() => [
     { id: 0, text: 'ภาพรวม', icon: 'home' },
     { id: 1, text: `การดำเนินการ (${capa?.actions?.length || 0})`, icon: 'checklist' },
     { id: 2, text: `ประสิทธิผล (${capa?.effectivenessChecks?.length || 0})`, icon: 'chart' },
