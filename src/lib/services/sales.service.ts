@@ -3,7 +3,7 @@
  * Real-world sales management with ATP calculation and order fulfillment
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteSalesOrders,
@@ -67,7 +67,7 @@ export async function checkATP(
   requestedQuantity: number
 ): Promise<ATPResult> {
   const { items, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const [item] = await database.select().from(items).where(eq(items.id, itemId));
   if (!item) throw new Error(`Item ${itemId} not found`);
@@ -104,7 +104,7 @@ export async function createSalesOrder(
   userId: number
 ): Promise<{ orderId: number; atpResults: ATPResult[] }> {
   const { salesOrders, salesOrderLines, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   if (!customer.name) throw new Error('Customer name is required');
 
@@ -165,7 +165,7 @@ export async function createSalesOrder(
  */
 export async function allocateLotsForOrder(soId: number, userId: number) {
   const { salesOrders, salesOrderLines, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const [so] = await database.select().from(salesOrders).where(eq(salesOrders.id, soId));
   if (!so) throw new Error(`Sales Order ${soId} not found`);
@@ -216,7 +216,7 @@ export async function fulfillSalesOrderLine(
   userId: number
 ): Promise<FulfillmentResult> {
   const { salesOrders, salesOrderLines, salesDeliveries, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get SO line
   const [soLine] = await database
