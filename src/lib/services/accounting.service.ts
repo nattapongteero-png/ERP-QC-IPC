@@ -380,12 +380,13 @@ export async function createJournalEntry(input: CreateJournalEntryInput): Promis
     updatedAt: getNow(),
   };
 
-  const [insertedEntry] = await database
+  const insertResult = await database
     .insert(journalEntries)
-    .values(entryValues as any)
-    .$returningId();
+    .values(entryValues as any);
 
-  const journalEntryId = insertedEntry.id;
+  const journalEntryId = isSqlite()
+    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
 
   // Insert journal lines
   const lineValues = input.lines.map((line, index) => ({
@@ -911,21 +912,24 @@ export async function createGLAccount(
     updatedAt: getNow(),
   };
 
-  const [inserted] = await database
+  const insertResult = await database
     .insert(glAccounts)
-    .values(values as any)
-    .$returningId();
+    .values(values as any);
+
+  const insertedId = isSqlite()
+    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
 
   await createAuditLog({
     action: 'create',
     entityType: 'gl_account',
-    entityId: inserted.id,
+    entityId: insertedId,
     userId: createdBy,
     details: { code: input.code, nameTh: input.nameTh },
   });
 
   const accounts = await listGLAccounts({ search: input.code });
-  return accounts.find((a) => a.id === inserted.id)!;
+  return accounts.find((a) => a.id === insertedId)!;
 }
 
 // ============================================
@@ -969,10 +973,13 @@ export async function createFiscalYear(
     updatedAt: getNow(),
   };
 
-  const [insertedYear] = await database
+  const insertResult = await database
     .insert(fiscalYears)
-    .values(yearValues as any)
-    .$returningId();
+    .values(yearValues as any);
+
+  const insertedYearId = isSqlite()
+    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
 
   // Generate 12 monthly periods
   const startDate = new Date(input.startDate);
@@ -990,7 +997,7 @@ export async function createFiscalYear(
     periodEnd.setDate(periodEnd.getDate() - 1);
 
     const periodValues = {
-      fiscalYearId: insertedYear.id,
+      fiscalYearId: insertedYearId,
       periodNumber: i + 1,
       periodName: monthNames[periodStart.getMonth()],
       startDate: toDbDate(periodStart.toISOString().split('T')[0]),
@@ -1006,13 +1013,13 @@ export async function createFiscalYear(
   await createAuditLog({
     action: 'create',
     entityType: 'fiscal_year',
-    entityId: insertedYear.id,
+    entityId: insertedYearId,
     userId: createdBy,
     details: { yearCode: input.yearCode, startDate: input.startDate, endDate: input.endDate },
   });
 
   // Return the created year
-  return await getFiscalYearById(insertedYear.id);
+  return await getFiscalYearById(insertedYearId);
 }
 
 /**
