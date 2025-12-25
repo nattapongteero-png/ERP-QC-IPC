@@ -1509,3 +1509,847 @@ export async function exportChartOfAccounts(
     count: exportedAccounts.length,
   };
 }
+
+// ============================================
+// AP Invoice Service Functions (User Story 2)
+// ============================================
+
+export interface APInvoice {
+  id: number;
+  invoiceNumber: string;
+  vendorId: number;
+  purchaseOrderId: number | null;
+  invoiceDate: string;
+  dueDate: string;
+  receivedDate: string;
+  description: string | null;
+  subtotal: number;
+  vatAmount: number;
+  whtAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  currency: string;
+  exchangeRate: number;
+  status: 'draft' | 'approved' | 'posted' | 'partial' | 'paid' | 'cancelled';
+  approvedBy: number | null;
+  approvedAt: string | null;
+  journalEntryId: number | null;
+  createdBy: number | null;
+  createdAt: string;
+  updatedAt: string;
+  lines?: APInvoiceLine[];
+  vendor?: { id: number; name: string; taxId?: string; };
+}
+
+export interface APInvoiceLine {
+  id: number;
+  apInvoiceId: number;
+  lineNumber: number;
+  description: string;
+  itemId: number | null;
+  glAccountId: number;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  vatAmount: number;
+  isCapitalizable: boolean;
+  createdAt: string;
+}
+
+export interface CreateAPInvoiceInput {
+  invoiceNumber: string;
+  vendorId: number;
+  purchaseOrderId?: number | null;
+  invoiceDate: string;
+  dueDate: string;
+  receivedDate: string;
+  description?: string | null;
+  currency?: string;
+  exchangeRate?: number;
+  lines: {
+    description: string;
+    itemId?: number | null;
+    glAccountId: number;
+    quantity: number;
+    unitPrice: number;
+    isCapitalizable?: boolean;
+  }[];
+}
+
+/**
+ * Generate AP invoice number in format AP-YYYYMM-NNNNNN
+ * @param invoiceDate - The date of the invoice
+ * @returns Unique invoice number string
+ */
+export async function generateAPInvoiceNumber(invoiceDate: string | Date): Promise<string> {
+  const { apInvoices } = getAccountingTables();
+  const database = db();
+
+  const date = typeof invoiceDate === 'string' ? new Date(invoiceDate) : invoiceDate;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const prefix = `AP-${year}${month}-`;
+
+  const result = await database
+    .select({ invoiceNumber: apInvoices.invoiceNumber })
+    .from(apInvoices)
+    .where(sql`${apInvoices.invoiceNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(apInvoices.invoiceNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (result.length > 0 && result[0].invoiceNumber) {
+    const lastNumber = result[0].invoiceNumber;
+    const lastSequence = parseInt(lastNumber.replace(prefix, ''), 10);
+    if (!isNaN(lastSequence)) {
+      sequence = lastSequence + 1;
+    }
+  }
+
+  return `${prefix}${String(sequence).padStart(6, '0')}`;
+}
+
+/**
+ * Create a new AP invoice manually
+ * @param input - Invoice data with lines
+ * @param createdBy - User ID creating the invoice
+ * @returns Created AP invoice with lines
+ */
+export async function createAPInvoice(
+  input: CreateAPInvoiceInput,
+  createdBy: number
+): Promise<APInvoice> {
+  const { apInvoices, apInvoiceLines } = getAccountingTables();
+  const database = db();
+
+  // Calculate line amounts and totals
+  const processedLines = input.lines.map((line, index) => {
+    const amount = line.quantity * line.unitPrice;
+    const vatCalc = calculateVAT(amount);
+    return {
+      ...line,
+      lineNumber: index + 1,
+      amount,
+      vatAmount: vatCalc.vatAmount,
+    };
+  });
+
+  const subtotal = processedLines.reduce((sum, line) => sum + line.amount, 0);
+  const vatAmount = processedLines.reduce((sum, line) => sum + line.vatAmount, 0);
+  const totalAmount = subtotal + vatAmount;
+
+  // Insert invoice
+  const invoiceValues = {
+    invoiceNumber: input.invoiceNumber,
+    vendorId: input.vendorId,
+    purchaseOrderId: input.purchaseOrderId || null,
+    invoiceDate: toDbDate(input.invoiceDate),
+    dueDate: toDbDate(input.dueDate),
+    receivedDate: toDbDate(input.receivedDate),
+    description: input.description || null,
+    subtotal,
+    vatAmount,
+    whtAmount: 0,
+    totalAmount,
+    paidAmount: 0,
+    currency: input.currency || 'THB',
+    exchangeRate: input.exchangeRate || 1,
+    status: 'draft' as const,
+    createdBy,
+    createdAt: getNow(),
+    updatedAt: getNow(),
+  };
+
+  const insertResult = await database
+    .insert(apInvoices)
+    .values(invoiceValues as any);
+
+  const apInvoiceId = isSqlite()
+    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+
+  // Insert invoice lines
+  const lineValues = processedLines.map((line) => ({
+    apInvoiceId,
+    lineNumber: line.lineNumber,
+    description: line.description,
+    itemId: line.itemId || null,
+    glAccountId: line.glAccountId,
+    quantity: line.quantity,
+    unitPrice: line.unitPrice,
+    amount: line.amount,
+    vatAmount: line.vatAmount,
+    isCapitalizable: line.isCapitalizable || false,
+    createdAt: getNow(),
+  }));
+
+  await database.insert(apInvoiceLines).values(lineValues as any);
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'ap_invoice',
+    recordId: apInvoiceId,
+    userId: createdBy,
+    newValue: {
+      invoiceNumber: input.invoiceNumber,
+      vendorId: input.vendorId,
+      totalAmount,
+    },
+  });
+
+  return await getAPInvoiceById(apInvoiceId);
+}
+
+/**
+ * Get AP invoice by ID with lines
+ * @param id - AP invoice ID
+ * @returns AP invoice with lines
+ */
+export async function getAPInvoiceById(id: number): Promise<APInvoice> {
+  const { apInvoices, apInvoiceLines } = getAccountingTables();
+  const database = db();
+
+  const [invoice] = await database
+    .select()
+    .from(apInvoices)
+    .where(eq(apInvoices.id, id));
+
+  if (!invoice) {
+    throw new Error(`AP invoice with ID ${id} not found`);
+  }
+
+  const lines = await database
+    .select()
+    .from(apInvoiceLines)
+    .where(eq(apInvoiceLines.apInvoiceId, id))
+    .orderBy(asc(apInvoiceLines.lineNumber));
+
+  return {
+    id: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    vendorId: invoice.vendorId,
+    purchaseOrderId: invoice.purchaseOrderId,
+    invoiceDate: formatDateFromDb(invoice.invoiceDate),
+    dueDate: formatDateFromDb(invoice.dueDate),
+    receivedDate: formatDateFromDb(invoice.receivedDate),
+    description: invoice.description,
+    subtotal: Number(invoice.subtotal),
+    vatAmount: Number(invoice.vatAmount),
+    whtAmount: Number(invoice.whtAmount),
+    totalAmount: Number(invoice.totalAmount),
+    paidAmount: Number(invoice.paidAmount),
+    currency: invoice.currency,
+    exchangeRate: Number(invoice.exchangeRate),
+    status: invoice.status as APInvoice['status'],
+    approvedBy: invoice.approvedBy,
+    approvedAt: invoice.approvedAt ? formatDateFromDb(invoice.approvedAt) : null,
+    journalEntryId: invoice.journalEntryId,
+    createdBy: invoice.createdBy,
+    createdAt: formatDateFromDb(invoice.createdAt),
+    updatedAt: formatDateFromDb(invoice.updatedAt),
+    lines: lines.map((line: (typeof lines)[number]) => ({
+      id: line.id,
+      apInvoiceId: line.apInvoiceId,
+      lineNumber: line.lineNumber,
+      description: line.description,
+      itemId: line.itemId,
+      glAccountId: line.glAccountId,
+      quantity: Number(line.quantity),
+      unitPrice: Number(line.unitPrice),
+      amount: Number(line.amount),
+      vatAmount: Number(line.vatAmount),
+      isCapitalizable: Boolean(line.isCapitalizable),
+      createdAt: formatDateFromDb(line.createdAt),
+    })),
+  };
+}
+
+/**
+ * List AP invoices with optional filters
+ * @param filters - Query filters
+ * @returns List of AP invoices
+ */
+export async function listAPInvoices(filters?: {
+  vendorId?: number;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}): Promise<APInvoice[]> {
+  const { apInvoices } = getAccountingTables();
+  const database = db();
+
+  const conditions: any[] = [];
+
+  if (filters?.vendorId) {
+    conditions.push(eq(apInvoices.vendorId, filters.vendorId));
+  }
+
+  if (filters?.status) {
+    conditions.push(eq(apInvoices.status, filters.status));
+  }
+
+  if (filters?.dateFrom) {
+    conditions.push(gte(apInvoices.invoiceDate, toQueryDate(filters.dateFrom)));
+  }
+
+  if (filters?.dateTo) {
+    conditions.push(lte(apInvoices.invoiceDate, toQueryDate(filters.dateTo)));
+  }
+
+  if (filters?.search) {
+    const searchTerm = `%${filters.search}%`;
+    conditions.push(
+      or(
+        sql`${apInvoices.invoiceNumber} LIKE ${searchTerm}`,
+        sql`${apInvoices.description} LIKE ${searchTerm}`
+      )
+    );
+  }
+
+  const result = await database
+    .select()
+    .from(apInvoices)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(apInvoices.invoiceDate));
+
+  return result.map((inv: (typeof result)[number]) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber,
+    vendorId: inv.vendorId,
+    purchaseOrderId: inv.purchaseOrderId,
+    invoiceDate: formatDateFromDb(inv.invoiceDate),
+    dueDate: formatDateFromDb(inv.dueDate),
+    receivedDate: formatDateFromDb(inv.receivedDate),
+    description: inv.description,
+    subtotal: Number(inv.subtotal),
+    vatAmount: Number(inv.vatAmount),
+    whtAmount: Number(inv.whtAmount),
+    totalAmount: Number(inv.totalAmount),
+    paidAmount: Number(inv.paidAmount),
+    currency: inv.currency,
+    exchangeRate: Number(inv.exchangeRate),
+    status: inv.status as APInvoice['status'],
+    approvedBy: inv.approvedBy,
+    approvedAt: inv.approvedAt ? formatDateFromDb(inv.approvedAt) : null,
+    journalEntryId: inv.journalEntryId,
+    createdBy: inv.createdBy,
+    createdAt: formatDateFromDb(inv.createdAt),
+    updatedAt: formatDateFromDb(inv.updatedAt),
+  }));
+}
+
+/**
+ * Update AP invoice (only draft status)
+ * @param id - AP invoice ID
+ * @param input - Update data
+ * @param updatedBy - User ID making the update
+ * @returns Updated AP invoice
+ */
+export async function updateAPInvoice(
+  id: number,
+  input: {
+    invoiceNumber?: string;
+    invoiceDate?: string;
+    dueDate?: string;
+    description?: string | null;
+  },
+  updatedBy: number
+): Promise<APInvoice> {
+  const { apInvoices } = getAccountingTables();
+  const database = db();
+
+  const existing = await getAPInvoiceById(id);
+  if (existing.status !== 'draft') {
+    throw new Error('Can only update draft invoices');
+  }
+
+  const updateValues: Record<string, unknown> = {
+    updatedAt: getNow(),
+  };
+
+  if (input.invoiceNumber !== undefined) updateValues.invoiceNumber = input.invoiceNumber;
+  if (input.invoiceDate !== undefined) updateValues.invoiceDate = toDbDate(input.invoiceDate);
+  if (input.dueDate !== undefined) updateValues.dueDate = toDbDate(input.dueDate);
+  if (input.description !== undefined) updateValues.description = input.description;
+
+  await database
+    .update(apInvoices)
+    .set(updateValues)
+    .where(eq(apInvoices.id, id));
+
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'ap_invoice',
+    recordId: id,
+    userId: updatedBy,
+    newValue: { invoiceNumber: existing.invoiceNumber, changes: input },
+  });
+
+  return await getAPInvoiceById(id);
+}
+
+/**
+ * Approve AP invoice and create journal entry
+ * @param id - AP invoice ID
+ * @param approvedBy - User ID approving the invoice
+ * @returns Approved AP invoice with journal entry
+ */
+export async function approveAPInvoice(
+  id: number,
+  approvedBy: number
+): Promise<APInvoice> {
+  const { apInvoices, apInvoiceLines, glAccounts } = getAccountingTables();
+  const database = db();
+
+  const invoice = await getAPInvoiceById(id);
+  if (invoice.status !== 'draft') {
+    throw new Error(`Cannot approve invoice with status '${invoice.status}'`);
+  }
+
+  if (!invoice.lines || invoice.lines.length === 0) {
+    throw new Error('Invoice has no lines');
+  }
+
+  // Find AP liability account (code 2111 - Accounts Payable)
+  const [apAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '2111'))
+    .limit(1);
+
+  if (!apAccount) {
+    throw new Error('Accounts Payable GL account (2111) not found');
+  }
+
+  // Find Input VAT account (code 1141 - Input VAT Receivable)
+  const [vatAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1141'))
+    .limit(1);
+
+  // Build journal entry lines
+  const journalLines: JournalLineCreate[] = [];
+
+  // Debit expense/asset accounts from invoice lines
+  for (const line of invoice.lines) {
+    journalLines.push({
+      glAccountId: line.glAccountId,
+      debit: line.amount,
+      credit: 0,
+      description: line.description,
+    });
+  }
+
+  // Debit Input VAT account if VAT amount exists and account exists
+  if (invoice.vatAmount > 0 && vatAccount) {
+    journalLines.push({
+      glAccountId: vatAccount.id,
+      debit: invoice.vatAmount,
+      credit: 0,
+      description: 'Input VAT',
+    });
+  }
+
+  // Credit AP account for total amount
+  journalLines.push({
+    glAccountId: apAccount.id,
+    debit: 0,
+    credit: invoice.totalAmount,
+    description: `AP Invoice ${invoice.invoiceNumber}`,
+  });
+
+  // Create and post journal entry
+  const journalEntry = await createJournalEntry({
+    entryDate: invoice.invoiceDate,
+    description: `AP Invoice: ${invoice.invoiceNumber}`,
+    sourceType: 'PO_RECEIPT',
+    sourceId: invoice.id,
+    lines: journalLines,
+    createdBy: approvedBy,
+  });
+
+  // Post the journal entry
+  await postJournalEntry(journalEntry.id, approvedBy);
+
+  // Update invoice status
+  await database
+    .update(apInvoices)
+    .set({
+      status: 'posted',
+      approvedBy,
+      approvedAt: getNow(),
+      journalEntryId: journalEntry.id,
+      updatedAt: getNow(),
+    })
+    .where(eq(apInvoices.id, id));
+
+  // Create VAT transaction for Input VAT
+  if (invoice.vatAmount > 0) {
+    await createVATTransaction({
+      transactionType: 'input',
+      apInvoiceId: invoice.id,
+      vendorId: invoice.vendorId,
+      taxInvoiceNumber: invoice.invoiceNumber,
+      taxInvoiceDate: invoice.invoiceDate,
+      taxableAmount: invoice.subtotal,
+      vatAmount: invoice.vatAmount,
+    });
+  }
+
+  await createAuditLog({
+    action: 'APPROVE',
+    tableName: 'ap_invoice',
+    recordId: id,
+    userId: approvedBy,
+    newValue: {
+      invoiceNumber: invoice.invoiceNumber,
+      journalEntryId: journalEntry.id,
+      previousStatus: 'draft',
+      newStatus: 'posted',
+    },
+  });
+
+  return await getAPInvoiceById(id);
+}
+
+/**
+ * Record payment for AP invoice (supports partial payments)
+ * @param apInvoiceId - AP invoice ID
+ * @param input - Payment data
+ * @param recordedBy - User ID recording the payment
+ * @returns Payment info and updated invoice
+ */
+export async function recordAPPayment(
+  apInvoiceId: number,
+  input: {
+    paymentDate: string;
+    bankAccountId: number;
+    paymentMethod: 'cash' | 'check' | 'transfer' | 'other';
+    referenceNumber?: string;
+    amount: number;
+    whtRate?: number; // WHT percentage if applicable
+    description?: string;
+  },
+  recordedBy: number
+): Promise<{ payment: any; invoice: APInvoice }> {
+  const { apInvoices, payments, paymentAllocations, glAccounts } = getAccountingTables();
+  const database = db();
+
+  const invoice = await getAPInvoiceById(apInvoiceId);
+
+  if (!['posted', 'partial'].includes(invoice.status)) {
+    throw new Error(`Cannot record payment for invoice with status '${invoice.status}'`);
+  }
+
+  const outstandingAmount = invoice.totalAmount - invoice.paidAmount;
+  if (input.amount > outstandingAmount) {
+    throw new Error(`Payment amount ${input.amount} exceeds outstanding amount ${outstandingAmount}`);
+  }
+
+  // Calculate WHT if applicable
+  let whtAmount = 0;
+  let netPayment = input.amount;
+  if (input.whtRate && input.whtRate > 0) {
+    const whtCalc = calculateWHT(input.amount, input.whtRate);
+    whtAmount = whtCalc.whtAmount;
+    netPayment = whtCalc.netPayment;
+  }
+
+  // Generate payment number
+  const paymentDate = new Date(input.paymentDate);
+  const year = paymentDate.getFullYear();
+  const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
+  const paymentPrefix = `PY-${year}${month}-`;
+
+  const [lastPayment] = await database
+    .select({ paymentNumber: payments.paymentNumber })
+    .from(payments)
+    .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
+    .orderBy(desc(payments.paymentNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (lastPayment?.paymentNumber) {
+    const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
+    if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+  }
+  const paymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
+
+  // Insert payment record
+  const paymentValues = {
+    paymentNumber,
+    paymentType: 'ap' as const,
+    paymentDate: toDbDate(input.paymentDate),
+    vendorId: invoice.vendorId,
+    customerId: null,
+    bankAccountId: input.bankAccountId,
+    paymentMethod: input.paymentMethod,
+    referenceNumber: input.referenceNumber || null,
+    amount: netPayment,
+    whtAmount,
+    description: input.description || `Payment for ${invoice.invoiceNumber}`,
+    status: 'completed' as const,
+    createdBy: recordedBy,
+    createdAt: getNow(),
+    updatedAt: getNow(),
+  };
+
+  const insertResult = await database
+    .insert(payments)
+    .values(paymentValues as any);
+
+  const paymentId = isSqlite()
+    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+
+  // Create payment allocation
+  await database
+    .insert(paymentAllocations)
+    .values({
+      paymentId,
+      apInvoiceId,
+      arInvoiceId: null,
+      allocatedAmount: input.amount,
+      createdAt: getNow(),
+    } as any);
+
+  // Find AP account
+  const [apAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '2111'))
+    .limit(1);
+
+  // Find WHT payable account if WHT applied
+  let whtAccountId = null;
+  if (whtAmount > 0) {
+    const [whtAccount] = await database
+      .select({ id: glAccounts.id })
+      .from(glAccounts)
+      .where(eq(glAccounts.code, '2143')) // WHT Payable
+      .limit(1);
+    whtAccountId = whtAccount?.id;
+  }
+
+  // Create journal entry for payment
+  const journalLines: JournalLineCreate[] = [
+    // Debit AP (reduce liability)
+    {
+      glAccountId: apAccount!.id,
+      debit: input.amount,
+      credit: 0,
+      description: `Payment for ${invoice.invoiceNumber}`,
+    },
+    // Credit Bank (cash out)
+    {
+      glAccountId: input.bankAccountId,
+      debit: 0,
+      credit: netPayment,
+      description: `Payment to vendor`,
+    },
+  ];
+
+  // If WHT, credit WHT payable
+  if (whtAmount > 0 && whtAccountId) {
+    journalLines.push({
+      glAccountId: whtAccountId,
+      debit: 0,
+      credit: whtAmount,
+      description: 'Withholding tax',
+    });
+  }
+
+  const paymentJE = await createJournalEntry({
+    entryDate: input.paymentDate,
+    description: `Payment: ${paymentNumber} for ${invoice.invoiceNumber}`,
+    sourceType: 'AP_PAYMENT',
+    sourceId: paymentId,
+    lines: journalLines,
+    createdBy: recordedBy,
+  });
+
+  await postJournalEntry(paymentJE.id, recordedBy);
+
+  // Update payment with journal entry ID
+  await database
+    .update(payments)
+    .set({ journalEntryId: paymentJE.id })
+    .where(eq(payments.id, paymentId));
+
+  // Update invoice paid amount and status
+  const newPaidAmount = invoice.paidAmount + input.amount;
+  const newStatus = newPaidAmount >= invoice.totalAmount ? 'paid' : 'partial';
+
+  await database
+    .update(apInvoices)
+    .set({
+      paidAmount: newPaidAmount,
+      whtAmount: invoice.whtAmount + whtAmount,
+      status: newStatus,
+      updatedAt: getNow(),
+    })
+    .where(eq(apInvoices.id, apInvoiceId));
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'payment',
+    recordId: paymentId,
+    userId: recordedBy,
+    newValue: {
+      paymentNumber,
+      apInvoiceId,
+      amount: input.amount,
+      whtAmount,
+      netPayment,
+    },
+  });
+
+  const updatedInvoice = await getAPInvoiceById(apInvoiceId);
+
+  return {
+    payment: {
+      id: paymentId,
+      paymentNumber,
+      amount: input.amount,
+      whtAmount,
+      netPayment,
+      journalEntryId: paymentJE.id,
+    },
+    invoice: updatedInvoice,
+  };
+}
+
+/**
+ * Create VAT transaction record for tax reporting
+ * @param input - VAT transaction data
+ * @returns Created VAT transaction
+ */
+export async function createVATTransaction(input: {
+  transactionType: 'input' | 'output';
+  apInvoiceId?: number | null;
+  arInvoiceId?: number | null;
+  vendorId?: number | null;
+  customerId?: number | null;
+  taxInvoiceNumber: string;
+  taxInvoiceDate: string;
+  taxableAmount: number;
+  vatAmount: number;
+  partyName?: string;
+  partyTaxId?: string;
+  branchCode?: string;
+}): Promise<{ id: number }> {
+  const { vatTransactions } = getAccountingTables();
+  const database = db();
+
+  // Determine tax period from invoice date
+  const invoiceDate = new Date(input.taxInvoiceDate);
+  const taxPeriod = `${invoiceDate.getFullYear()}${String(invoiceDate.getMonth() + 1).padStart(2, '0')}`;
+
+  const vatValues = {
+    transactionType: input.transactionType,
+    taxInvoiceNumber: input.taxInvoiceNumber,
+    taxInvoiceDate: toDbDate(input.taxInvoiceDate),
+    taxPeriod,
+    vendorId: input.vendorId || null,
+    customerId: input.customerId || null,
+    partyName: input.partyName || 'Unknown',
+    partyTaxId: input.partyTaxId || '0000000000000',
+    branchCode: input.branchCode || '00000',
+    taxableAmount: input.taxableAmount,
+    vatRate: THAI_VAT_RATE * 100, // Store as percentage
+    vatAmount: input.vatAmount,
+    totalAmount: input.taxableAmount + input.vatAmount,
+    apInvoiceId: input.apInvoiceId || null,
+    arInvoiceId: input.arInvoiceId || null,
+    createdAt: getNow(),
+  };
+
+  const insertResult = await database
+    .insert(vatTransactions)
+    .values(vatValues as any);
+
+  const vatId = isSqlite()
+    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+
+  return { id: vatId };
+}
+
+/**
+ * List journal entries with optional filters
+ * @param filters - Query filters
+ * @returns List of journal entries
+ */
+export async function listJournalEntries(filters?: {
+  fiscalPeriodId?: number;
+  status?: string;
+  sourceType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}): Promise<JournalEntry[]> {
+  const { journalEntries } = getAccountingTables();
+  const database = db();
+
+  const conditions: any[] = [];
+
+  if (filters?.fiscalPeriodId) {
+    conditions.push(eq(journalEntries.fiscalPeriodId, filters.fiscalPeriodId));
+  }
+
+  if (filters?.status) {
+    conditions.push(eq(journalEntries.status, filters.status));
+  }
+
+  if (filters?.sourceType) {
+    conditions.push(eq(journalEntries.sourceType, filters.sourceType));
+  }
+
+  if (filters?.dateFrom) {
+    conditions.push(gte(journalEntries.entryDate, toQueryDate(filters.dateFrom)));
+  }
+
+  if (filters?.dateTo) {
+    conditions.push(lte(journalEntries.entryDate, toQueryDate(filters.dateTo)));
+  }
+
+  if (filters?.search) {
+    const searchTerm = `%${filters.search}%`;
+    conditions.push(
+      or(
+        sql`${journalEntries.entryNumber} LIKE ${searchTerm}`,
+        sql`${journalEntries.description} LIKE ${searchTerm}`
+      )
+    );
+  }
+
+  const result = await database
+    .select()
+    .from(journalEntries)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(journalEntries.entryDate), desc(journalEntries.entryNumber));
+
+  return result.map((entry: (typeof result)[number]) => ({
+    id: entry.id,
+    entryNumber: entry.entryNumber,
+    entryDate: formatDateFromDb(entry.entryDate),
+    fiscalPeriodId: entry.fiscalPeriodId,
+    description: entry.description,
+    sourceType: entry.sourceType as JournalSourceType | null,
+    sourceId: entry.sourceId,
+    status: entry.status as JournalEntryStatus,
+    totalDebit: Number(entry.totalDebit),
+    totalCredit: Number(entry.totalCredit),
+    postedBy: entry.postedBy,
+    postedAt: entry.postedAt ? formatDateFromDb(entry.postedAt) : null,
+    reversedBy: entry.reversedBy,
+    reversedAt: entry.reversedAt ? formatDateFromDb(entry.reversedAt) : null,
+    reversalEntryId: entry.reversalEntryId,
+    createdBy: entry.createdBy,
+    createdAt: formatDateFromDb(entry.createdAt),
+    updatedAt: formatDateFromDb(entry.updatedAt),
+    lines: [],
+  }));
+}

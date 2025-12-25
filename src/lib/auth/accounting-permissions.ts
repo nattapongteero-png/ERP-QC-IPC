@@ -61,6 +61,7 @@ export const ACCOUNTING_PERMISSIONS = {
   'accounting:ap_invoices:delete': ACCOUNTING_ADMIN,
   'accounting:ap_invoices:approve': ACCOUNTING_FULL,
   'accounting:ap_invoices:post': ACCOUNTING_FULL,
+  'accounting:ap_invoices:pay': [...ACCOUNTING_FULL, ACCOUNTING_ROLES.AP_CLERK],
 
   // Accounts Receivable (AR)
   'accounting:ar_invoices:read': [...ACCOUNTING_FULL, ACCOUNTING_ROLES.AR_CLERK, ACCOUNTING_ROLES.AUDITOR, ROLES.SALES],
