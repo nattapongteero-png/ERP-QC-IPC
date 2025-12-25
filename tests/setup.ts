@@ -1,4 +1,5 @@
 import { beforeAll, afterAll, beforeEach } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 
 // Set test environment
 process.env.DB_TYPE = 'sqlite';
