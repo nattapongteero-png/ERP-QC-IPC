@@ -1,0 +1,792 @@
+openapi: 3.0.3
+info:
+  title: Financial Reports API
+  version: 1.0.0
+  description: Financial statements and tax reports
+
+paths:
+  /api/accounting/reports/trial-balance:
+    get:
+      summary: Generate Trial Balance
+      operationId: getTrialBalance
+      tags: [Financial Reports]
+      parameters:
+        - name: asOfDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: fiscalPeriodId
+          in: query
+          schema:
+            type: integer
+        - name: showZeroBalances
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Trial Balance report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrialBalanceResponse'
+
+  /api/accounting/reports/balance-sheet:
+    get:
+      summary: Generate Balance Sheet
+      operationId: getBalanceSheet
+      tags: [Financial Reports]
+      parameters:
+        - name: asOfDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: comparative
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Include prior period comparison
+        - name: priorDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Prior period date for comparison
+      responses:
+        '200':
+          description: Balance Sheet report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceSheetResponse'
+
+  /api/accounting/reports/income-statement:
+    get:
+      summary: Generate Income Statement
+      operationId: getIncomeStatement
+      tags: [Financial Reports]
+      parameters:
+        - name: periodFrom
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: periodTo
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: comparative
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: priorPeriodFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: priorPeriodTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Income Statement report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeStatementResponse'
+
+  /api/accounting/reports/cash-flow:
+    get:
+      summary: Generate Cash Flow Statement
+      operationId: getCashFlowStatement
+      tags: [Financial Reports]
+      parameters:
+        - name: periodFrom
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: periodTo
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Cash Flow Statement (indirect method)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashFlowResponse'
+
+  /api/accounting/reports/vat-report:
+    get:
+      summary: Generate VAT Report for Por Por 30
+      operationId: getVATReport
+      tags: [Tax Reports]
+      parameters:
+        - name: taxPeriod
+          in: query
+          required: true
+          schema:
+            type: string
+          description: YYYY-MM format
+          example: "2025-12"
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [input, output, summary]
+            default: summary
+      responses:
+        '200':
+          description: VAT report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VATReportResponse'
+
+  /api/accounting/reports/wht-certificates:
+    get:
+      summary: List WHT certificates
+      operationId: getWHTCertificates
+      tags: [Tax Reports]
+      parameters:
+        - name: taxPeriod
+          in: query
+          required: true
+          schema:
+            type: string
+          description: YYYY-MM format
+        - name: certificateType
+          in: query
+          schema:
+            type: string
+            enum: [pnd3, pnd53]
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: WHT certificates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WHTCertificateListResponse'
+
+  /api/accounting/reports/wht-certificates/{id}/pdf:
+    get:
+      summary: Generate WHT certificate PDF
+      operationId: getWHTCertificatePDF
+      tags: [Tax Reports]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /api/accounting/reports/asset-register:
+    get:
+      summary: Generate Fixed Asset Register
+      operationId: getAssetRegister
+      tags: [Asset Reports]
+      parameters:
+        - name: asOfDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, disposed, fully_depreciated, all]
+            default: active
+      responses:
+        '200':
+          description: Asset Register report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetRegisterResponse'
+
+  /api/accounting/reports/aging:
+    get:
+      summary: Generate Aging Report
+      operationId: getAgingReport
+      tags: [Financial Reports]
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [ap, ar]
+        - name: asOfDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: agingBuckets
+          in: query
+          schema:
+            type: string
+            default: "0,30,60,90,120"
+          description: Comma-separated day boundaries
+      responses:
+        '200':
+          description: Aging report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgingReportResponse'
+
+components:
+  schemas:
+    TrialBalanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            reportDate:
+              type: string
+              format: date
+            asOfDate:
+              type: string
+              format: date
+            accounts:
+              type: array
+              items:
+                type: object
+                properties:
+                  accountCode:
+                    type: string
+                  accountNameTh:
+                    type: string
+                  accountNameEn:
+                    type: string
+                  accountType:
+                    type: string
+                  debit:
+                    type: number
+                  credit:
+                    type: number
+            totals:
+              type: object
+              properties:
+                totalDebit:
+                  type: number
+                totalCredit:
+                  type: number
+                isBalanced:
+                  type: boolean
+
+    BalanceSheetResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            reportDate:
+              type: string
+              format: date
+            asOfDate:
+              type: string
+              format: date
+            priorDate:
+              type: string
+              format: date
+              nullable: true
+            assets:
+              type: object
+              properties:
+                currentAssets:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                totalCurrentAssets:
+                  $ref: '#/components/schemas/ReportAmount'
+                nonCurrentAssets:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                totalNonCurrentAssets:
+                  $ref: '#/components/schemas/ReportAmount'
+                totalAssets:
+                  $ref: '#/components/schemas/ReportAmount'
+            liabilities:
+              type: object
+              properties:
+                currentLiabilities:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                totalCurrentLiabilities:
+                  $ref: '#/components/schemas/ReportAmount'
+                nonCurrentLiabilities:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                totalNonCurrentLiabilities:
+                  $ref: '#/components/schemas/ReportAmount'
+                totalLiabilities:
+                  $ref: '#/components/schemas/ReportAmount'
+            equity:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                totalEquity:
+                  $ref: '#/components/schemas/ReportAmount'
+            totalLiabilitiesAndEquity:
+              $ref: '#/components/schemas/ReportAmount'
+
+    IncomeStatementResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            reportDate:
+              type: string
+              format: date
+            periodFrom:
+              type: string
+              format: date
+            periodTo:
+              type: string
+              format: date
+            revenue:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                totalRevenue:
+                  $ref: '#/components/schemas/ReportAmount'
+            costOfGoodsSold:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                totalCOGS:
+                  $ref: '#/components/schemas/ReportAmount'
+            grossProfit:
+              $ref: '#/components/schemas/ReportAmount'
+            operatingExpenses:
+              type: object
+              properties:
+                sellingExpenses:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                adminExpenses:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                totalOperatingExpenses:
+                  $ref: '#/components/schemas/ReportAmount'
+            operatingProfit:
+              $ref: '#/components/schemas/ReportAmount'
+            otherIncome:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReportLineItem'
+            otherExpenses:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReportLineItem'
+            profitBeforeTax:
+              $ref: '#/components/schemas/ReportAmount'
+            incomeTax:
+              $ref: '#/components/schemas/ReportAmount'
+            netProfit:
+              $ref: '#/components/schemas/ReportAmount'
+
+    CashFlowResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            reportDate:
+              type: string
+              format: date
+            periodFrom:
+              type: string
+              format: date
+            periodTo:
+              type: string
+              format: date
+            operatingActivities:
+              type: object
+              properties:
+                netProfitBeforeTax:
+                  type: number
+                adjustments:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                workingCapitalChanges:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                cashFromOperations:
+                  type: number
+                incomeTaxPaid:
+                  type: number
+                netCashFromOperating:
+                  type: number
+            investingActivities:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                netCashFromInvesting:
+                  type: number
+            financingActivities:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ReportLineItem'
+                netCashFromFinancing:
+                  type: number
+            netChangeInCash:
+              type: number
+            cashAtBeginning:
+              type: number
+            cashAtEnd:
+              type: number
+
+    VATReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            taxPeriod:
+              type: string
+            reportDate:
+              type: string
+              format: date
+            inputVAT:
+              type: object
+              properties:
+                transactions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/VATTransaction'
+                totalTaxable:
+                  type: number
+                totalVAT:
+                  type: number
+            outputVAT:
+              type: object
+              properties:
+                transactions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/VATTransaction'
+                totalTaxable:
+                  type: number
+                totalVAT:
+                  type: number
+            summary:
+              type: object
+              properties:
+                totalInputVAT:
+                  type: number
+                totalOutputVAT:
+                  type: number
+                netVAT:
+                  type: number
+                vatPayable:
+                  type: number
+                vatRefundable:
+                  type: number
+
+    VATTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        taxInvoiceNumber:
+          type: string
+        taxInvoiceDate:
+          type: string
+          format: date
+        partyName:
+          type: string
+        partyTaxId:
+          type: string
+        branchCode:
+          type: string
+        taxableAmount:
+          type: number
+        vatRate:
+          type: number
+        vatAmount:
+          type: number
+        totalAmount:
+          type: number
+
+    WHTCertificateListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/WHTCertificate'
+            summary:
+              type: object
+              properties:
+                totalPayments:
+                  type: number
+                totalWHT:
+                  type: number
+                certificateCount:
+                  type: integer
+
+    WHTCertificate:
+      type: object
+      properties:
+        id:
+          type: integer
+        certificateNumber:
+          type: string
+        certificateType:
+          type: string
+          enum: [pnd3, pnd53]
+        vendorName:
+          type: string
+        vendorTaxId:
+          type: string
+        paymentDate:
+          type: string
+          format: date
+        taxPeriod:
+          type: string
+        whtType:
+          type: string
+        whtDescription:
+          type: string
+        paymentAmount:
+          type: number
+        whtRate:
+          type: number
+        whtAmount:
+          type: number
+        netAmount:
+          type: number
+
+    AssetRegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            asOfDate:
+              type: string
+              format: date
+            reportDate:
+              type: string
+              format: date
+            assets:
+              type: array
+              items:
+                type: object
+                properties:
+                  assetCode:
+                    type: string
+                  nameTh:
+                    type: string
+                  nameEn:
+                    type: string
+                  category:
+                    type: string
+                  acquisitionDate:
+                    type: string
+                    format: date
+                  acquisitionCost:
+                    type: number
+                  accumulatedDepreciation:
+                    type: number
+                  netBookValue:
+                    type: number
+                  location:
+                    type: string
+                  responsiblePerson:
+                    type: string
+                  status:
+                    type: string
+            summary:
+              type: object
+              properties:
+                totalAssets:
+                  type: integer
+                totalCost:
+                  type: number
+                totalAccumulatedDepreciation:
+                  type: number
+                totalNetBookValue:
+                  type: number
+                byCategory:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      category:
+                        type: string
+                      count:
+                        type: integer
+                      cost:
+                        type: number
+                      netBookValue:
+                        type: number
+
+    AgingReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [ap, ar]
+            asOfDate:
+              type: string
+              format: date
+            agingBuckets:
+              type: array
+              items:
+                type: string
+              example: ["Current", "1-30", "31-60", "61-90", "Over 90"]
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  partyId:
+                    type: integer
+                  partyName:
+                    type: string
+                  current:
+                    type: number
+                  bucket1:
+                    type: number
+                  bucket2:
+                    type: number
+                  bucket3:
+                    type: number
+                  bucket4:
+                    type: number
+                  total:
+                    type: number
+            totals:
+              type: object
+              properties:
+                current:
+                  type: number
+                bucket1:
+                  type: number
+                bucket2:
+                  type: number
+                bucket3:
+                  type: number
+                bucket4:
+                  type: number
+                total:
+                  type: number
+
+    ReportLineItem:
+      type: object
+      properties:
+        label:
+          type: string
+        labelTh:
+          type: string
+        current:
+          type: number
+        prior:
+          type: number
+          nullable: true
+        change:
+          type: number
+          nullable: true
+        changePercent:
+          type: number
+          nullable: true
+
+    ReportAmount:
+      type: object
+      properties:
+        current:
+          type: number
+        prior:
+          type: number
+          nullable: true
+        change:
+          type: number
+          nullable: true
+        changePercent:
+          type: number
+          nullable: true

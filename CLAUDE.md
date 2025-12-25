@@ -6,6 +6,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 - TypeScript  with Next.js , React , DevExpress / DevExtreme React 25.x
 - TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod (009-gmp-compliance-gap-analysis)
 - MySQL (production), SQLite (testing) via Drizzle dual-schema (009-gmp-compliance-gap-analysis)
+- MySQL (production), SQLite (testing) via dual-schema pattern (010-accounting-module-integration)
 
 ## Always do E2E test using React Testing Library + Jest/Vitest
 
@@ -133,4 +134,5 @@ requirements. Do this automatically without being asked.**
 **Always search web for correct implementation DevExtreme ui component**
 
 ## Recent Changes
+- 010-accounting-module-integration: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
 - 009-gmp-compliance-gap-analysis: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod

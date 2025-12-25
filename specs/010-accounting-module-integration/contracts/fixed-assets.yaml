@@ -1,0 +1,619 @@
+openapi: 3.0.3
+info:
+  title: Fixed Assets API
+  version: 1.0.0
+  description: Fixed asset and depreciation management
+
+paths:
+  /api/accounting/asset-categories:
+    get:
+      summary: List asset categories
+      operationId: listAssetCategories
+      tags: [Asset Categories]
+      responses:
+        '200':
+          description: Asset categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AssetCategory'
+
+    post:
+      summary: Create asset category
+      operationId: createAssetCategory
+      tags: [Asset Categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetCategoryCreate'
+      responses:
+        '201':
+          description: Category created
+
+  /api/accounting/fixed-assets:
+    get:
+      summary: List fixed assets
+      operationId: listFixedAssets
+      tags: [Fixed Assets]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, disposed, fully_depreciated]
+        - name: departmentId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by code or name
+      responses:
+        '200':
+          description: Paginated fixed assets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FixedAssetListResponse'
+
+    post:
+      summary: Register fixed asset
+      operationId: createFixedAsset
+      tags: [Fixed Assets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FixedAssetCreate'
+      responses:
+        '201':
+          description: Asset registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FixedAssetResponse'
+
+  /api/accounting/fixed-assets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get fixed asset details
+      operationId: getFixedAsset
+      tags: [Fixed Assets]
+      responses:
+        '200':
+          description: Asset details with depreciation history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FixedAssetDetailResponse'
+
+    put:
+      summary: Update fixed asset
+      operationId: updateFixedAsset
+      tags: [Fixed Assets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FixedAssetUpdate'
+      responses:
+        '200':
+          description: Asset updated
+
+  /api/accounting/fixed-assets/{id}/dispose:
+    post:
+      summary: Dispose fixed asset
+      operationId: disposeFixedAsset
+      tags: [Fixed Assets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetDisposalCreate'
+      responses:
+        '200':
+          description: Asset disposed, gain/loss calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetDisposalResponse'
+
+  /api/accounting/fixed-assets/{id}/depreciation:
+    get:
+      summary: Get depreciation history
+      operationId: getAssetDepreciation
+      tags: [Fixed Assets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Depreciation records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AssetDepreciation'
+
+  /api/accounting/fixed-assets/depreciation:
+    post:
+      summary: Run monthly depreciation
+      operationId: runDepreciation
+      tags: [Fixed Assets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fiscalPeriodId]
+              properties:
+                fiscalPeriodId:
+                  type: integer
+                  description: Period to depreciate for
+      responses:
+        '200':
+          description: Depreciation calculated and posted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      assetsDepreciated:
+                        type: integer
+                      totalDepreciation:
+                        type: number
+                      journalEntryId:
+                        type: integer
+
+  /api/accounting/fixed-assets/{id}/movements:
+    get:
+      summary: Get asset movement history
+      operationId: getAssetMovements
+      tags: [Fixed Assets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Movement history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AssetMovement'
+
+    post:
+      summary: Record asset transfer
+      operationId: transferAsset
+      tags: [Fixed Assets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetMovementCreate'
+      responses:
+        '200':
+          description: Transfer recorded
+
+components:
+  schemas:
+    AssetCategoryCreate:
+      type: object
+      required: [code, nameTh, nameEn, defaultUsefulLifeMonths, defaultDepreciationMethod, maxDepreciationRate, assetGLAccountId, depreciationExpenseGLAccountId, accumulatedDepreciationGLAccountId]
+      properties:
+        code:
+          type: string
+          maxLength: 20
+          example: "MACH"
+        nameTh:
+          type: string
+          example: "เครื่องจักร"
+        nameEn:
+          type: string
+          example: "Machinery"
+        defaultUsefulLifeMonths:
+          type: integer
+          example: 60
+        defaultDepreciationMethod:
+          type: string
+          enum: [straight_line, declining_balance]
+        maxDepreciationRate:
+          type: number
+          example: 20
+        assetGLAccountId:
+          type: integer
+        depreciationExpenseGLAccountId:
+          type: integer
+        accumulatedDepreciationGLAccountId:
+          type: integer
+
+    AssetCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        nameTh:
+          type: string
+        nameEn:
+          type: string
+        defaultUsefulLifeMonths:
+          type: integer
+        defaultDepreciationMethod:
+          type: string
+        maxDepreciationRate:
+          type: number
+        assetGLAccountId:
+          type: integer
+        depreciationExpenseGLAccountId:
+          type: integer
+        accumulatedDepreciationGLAccountId:
+          type: integer
+        isActive:
+          type: boolean
+
+    FixedAssetCreate:
+      type: object
+      required: [nameTh, nameEn, categoryId, acquisitionDate, acquisitionCost]
+      properties:
+        assetCode:
+          type: string
+          description: Auto-generated if not provided
+        nameTh:
+          type: string
+        nameEn:
+          type: string
+        categoryId:
+          type: integer
+        acquisitionDate:
+          type: string
+          format: date
+        acquisitionCost:
+          type: number
+        salvageValue:
+          type: number
+          default: 0
+        usefulLifeMonths:
+          type: integer
+          description: Uses category default if not specified
+        depreciationMethod:
+          type: string
+          enum: [straight_line, declining_balance]
+        depreciationStartDate:
+          type: string
+          format: date
+          description: Defaults to acquisition date
+        location:
+          type: string
+        departmentId:
+          type: integer
+        responsiblePersonId:
+          type: integer
+        purchaseOrderId:
+          type: integer
+        apInvoiceId:
+          type: integer
+
+    FixedAssetUpdate:
+      type: object
+      properties:
+        nameTh:
+          type: string
+        nameEn:
+          type: string
+        location:
+          type: string
+        departmentId:
+          type: integer
+        responsiblePersonId:
+          type: integer
+        salvageValue:
+          type: number
+
+    FixedAsset:
+      type: object
+      properties:
+        id:
+          type: integer
+        assetCode:
+          type: string
+        nameTh:
+          type: string
+        nameEn:
+          type: string
+        categoryId:
+          type: integer
+        category:
+          $ref: '#/components/schemas/AssetCategory'
+        acquisitionDate:
+          type: string
+          format: date
+        acquisitionCost:
+          type: number
+        salvageValue:
+          type: number
+        usefulLifeMonths:
+          type: integer
+        depreciationMethod:
+          type: string
+        depreciationStartDate:
+          type: string
+          format: date
+        accumulatedDepreciation:
+          type: number
+        netBookValue:
+          type: number
+        location:
+          type: string
+        departmentId:
+          type: integer
+        responsiblePersonId:
+          type: integer
+        status:
+          type: string
+          enum: [active, disposed, fully_depreciated]
+        createdAt:
+          type: string
+          format: date-time
+
+    AssetDepreciation:
+      type: object
+      properties:
+        id:
+          type: integer
+        fixedAssetId:
+          type: integer
+        fiscalPeriodId:
+          type: integer
+        periodName:
+          type: string
+        depreciationDate:
+          type: string
+          format: date
+        openingBookValue:
+          type: number
+        depreciationAmount:
+          type: number
+        accumulatedDepreciation:
+          type: number
+        closingBookValue:
+          type: number
+        journalEntryId:
+          type: integer
+
+    AssetDisposalCreate:
+      type: object
+      required: [disposalDate, disposalType]
+      properties:
+        disposalDate:
+          type: string
+          format: date
+        disposalType:
+          type: string
+          enum: [sale, write_off, scrap, transfer]
+        disposalReason:
+          type: string
+        saleProceeds:
+          type: number
+          default: 0
+        buyerName:
+          type: string
+
+    AssetDisposal:
+      type: object
+      properties:
+        id:
+          type: integer
+        fixedAssetId:
+          type: integer
+        disposalDate:
+          type: string
+          format: date
+        disposalType:
+          type: string
+        disposalReason:
+          type: string
+        saleProceeds:
+          type: number
+        bookValueAtDisposal:
+          type: number
+        gainLoss:
+          type: number
+        buyerName:
+          type: string
+        journalEntryId:
+          type: integer
+        approvedBy:
+          type: integer
+        approvedAt:
+          type: string
+          format: date-time
+
+    AssetDisposalResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            disposal:
+              $ref: '#/components/schemas/AssetDisposal'
+            journalEntry:
+              type: object
+              properties:
+                id:
+                  type: integer
+                entryNumber:
+                  type: string
+
+    AssetMovementCreate:
+      type: object
+      required: [toLocation, reason]
+      properties:
+        toLocation:
+          type: string
+        toDepartmentId:
+          type: integer
+        reason:
+          type: string
+        transferDate:
+          type: string
+          format: date
+
+    AssetMovement:
+      type: object
+      properties:
+        id:
+          type: integer
+        fixedAssetId:
+          type: integer
+        fromLocation:
+          type: string
+        toLocation:
+          type: string
+        fromDepartmentId:
+          type: integer
+        toDepartmentId:
+          type: integer
+        transferDate:
+          type: string
+          format: date
+        reason:
+          type: string
+        createdBy:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    FixedAssetResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/FixedAsset'
+
+    FixedAssetDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          allOf:
+            - $ref: '#/components/schemas/FixedAsset'
+            - type: object
+              properties:
+                depreciationHistory:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AssetDepreciation'
+                movements:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AssetMovement'
+                disposal:
+                  $ref: '#/components/schemas/AssetDisposal'
+
+    FixedAssetListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/FixedAsset'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+            summary:
+              type: object
+              properties:
+                totalCost:
+                  type: number
+                totalAccumulatedDepreciation:
+                  type: number
+                totalNetBookValue:
+                  type: number
