@@ -3946,3 +3946,421 @@ export async function getWHTCertificateById(
     createdAt: formatDateFromDb(result.createdAt),
   };
 }
+
+// ============================================
+// Payroll Accounting (US10)
+// ============================================
+
+import type {
+  PayrollEntry,
+  PayrollBatch,
+  PayrollJournalResult,
+  StatutoryLiabilitiesResult,
+  PayrollAccountConfig,
+} from '@/types/accounting';
+
+/**
+ * Create a journal entry from payroll data
+ * Creates debit entries for salary/wage expenses and employer SSO
+ * Creates credit entries for SSO payable, WHT payable, and net pay (cash or payable)
+ */
+export async function createPayrollJournalEntry(
+  payrollBatch: PayrollBatch,
+  accountConfig: PayrollAccountConfig,
+  createdBy: number
+): Promise<PayrollJournalResult> {
+  const tables = getAccountingTables();
+  const database = db();
+
+  // Calculate totals
+  let totalGrossPay = 0;
+  let totalNetPay = 0;
+  let totalSSOEmployee = 0;
+  let totalSSOEmployer = 0;
+  let totalWHT = 0;
+  let totalOtherDeductions = 0;
+
+  // Group by cost center for allocation
+  const costCenterMap = new Map<number, {
+    costCenterId: number;
+    costCenterCode: string | null;
+    salaryExpense: number;
+    ssoEmployerExpense: number;
+  }>();
+
+  for (const entry of payrollBatch.entries) {
+    totalGrossPay += entry.grossPay;
+    totalNetPay += entry.netPay;
+    totalSSOEmployee += entry.ssoEmployee;
+    totalSSOEmployer += entry.ssoEmployer;
+    totalWHT += entry.whtAmount;
+    totalOtherDeductions += entry.otherDeductions;
+
+    // Aggregate by cost center
+    const ccId = entry.costCenterId || 0;
+    const existing = costCenterMap.get(ccId);
+    if (existing) {
+      existing.salaryExpense += entry.grossPay;
+      existing.ssoEmployerExpense += entry.ssoEmployer;
+    } else {
+      costCenterMap.set(ccId, {
+        costCenterId: ccId,
+        costCenterCode: entry.costCenterCode || null,
+        salaryExpense: entry.grossPay,
+        ssoEmployerExpense: entry.ssoEmployer,
+      });
+    }
+  }
+
+  // Calculate total expense (salary + employer SSO)
+  const totalSalaryExpense = totalGrossPay;
+  const totalEmployerExpense = totalSSOEmployer;
+
+  // Prepare journal lines
+  const journalLines: JournalLineCreate[] = [];
+
+  // DEBIT: Salary/Wages Expense - one line per cost center for proper allocation
+  for (const [ccId, allocation] of costCenterMap) {
+    if (allocation.salaryExpense > 0) {
+      journalLines.push({
+        accountId: accountConfig.salaryExpenseAccountId,
+        debit: allocation.salaryExpense,
+        credit: 0,
+        description: `Salary expense - ${allocation.costCenterCode || 'General'}`,
+        costCenterId: ccId > 0 ? ccId : undefined,
+      });
+    }
+
+    // DEBIT: SSO Employer Expense per cost center
+    if (allocation.ssoEmployerExpense > 0) {
+      journalLines.push({
+        accountId: accountConfig.ssoEmployerExpenseAccountId,
+        debit: allocation.ssoEmployerExpense,
+        credit: 0,
+        description: `SSO employer contribution - ${allocation.costCenterCode || 'General'}`,
+        costCenterId: ccId > 0 ? ccId : undefined,
+      });
+    }
+  }
+
+  // CREDIT: SSO Payable (employee + employer)
+  const totalSSOPayable = totalSSOEmployee + totalSSOEmployer;
+  if (totalSSOPayable > 0) {
+    journalLines.push({
+      accountId: accountConfig.ssoPayableAccountId,
+      debit: 0,
+      credit: totalSSOPayable,
+      description: `Social Security payable - ${payrollBatch.payrollPeriod}`,
+    });
+  }
+
+  // CREDIT: WHT Payable
+  if (totalWHT > 0) {
+    journalLines.push({
+      accountId: accountConfig.whtPayableAccountId,
+      debit: 0,
+      credit: totalWHT,
+      description: `Withholding tax payable - ${payrollBatch.payrollPeriod}`,
+    });
+  }
+
+  // CREDIT: Net pay - to Cash or Salary Payable
+  if (totalNetPay > 0) {
+    journalLines.push({
+      accountId: accountConfig.cashAccountId,
+      debit: 0,
+      credit: totalNetPay,
+      description: `Net salary payment - ${payrollBatch.payrollPeriod}`,
+    });
+  }
+
+  // Verify the entry balances
+  const totalDebits = journalLines.reduce((sum, l) => sum + l.debit, 0);
+  const totalCredits = journalLines.reduce((sum, l) => sum + l.credit, 0);
+
+  if (Math.abs(totalDebits - totalCredits) > 0.01) {
+    return {
+      success: false,
+      journalEntryId: null,
+      entryNumber: null,
+      message: `Journal entry does not balance. Debits: ${totalDebits}, Credits: ${totalCredits}`,
+      totals: {
+        totalGrossPay,
+        totalNetPay,
+        totalSSOEmployee,
+        totalSSOEmployer,
+        totalWHT,
+        totalOtherDeductions,
+      },
+      costCenterAllocations: [],
+    };
+  }
+
+  // Create the journal entry
+  const description = payrollBatch.description ||
+    `Payroll for ${payrollBatch.payrollPeriod}${payrollBatch.payrollNumber ? ` (${payrollBatch.payrollNumber})` : ''}`;
+
+  const journalEntry = await createJournalEntry(
+    {
+      entryDate: payrollBatch.payrollDate,
+      description,
+      reference: payrollBatch.payrollNumber || `PAYROLL-${payrollBatch.payrollPeriod}`,
+      source: 'PAYROLL' as JournalSourceType,
+      sourceId: null,
+      lines: journalLines,
+    },
+    createdBy
+  );
+
+  // Convert cost center map to array
+  const costCenterAllocations = Array.from(costCenterMap.values()).map(cc => ({
+    costCenterId: cc.costCenterId,
+    costCenterCode: cc.costCenterCode,
+    salaryExpense: cc.salaryExpense,
+    ssoEmployerExpense: cc.ssoEmployerExpense,
+    totalExpense: cc.salaryExpense + cc.ssoEmployerExpense,
+  }));
+
+  return {
+    success: true,
+    journalEntryId: journalEntry.id,
+    entryNumber: journalEntry.entryNumber,
+    message: `Created payroll journal entry for ${payrollBatch.entries.length} employees`,
+    totals: {
+      totalGrossPay,
+      totalNetPay,
+      totalSSOEmployee,
+      totalSSOEmployer,
+      totalWHT,
+      totalOtherDeductions,
+    },
+    costCenterAllocations,
+  };
+}
+
+/**
+ * Allocate payroll costs to cost centers
+ * Returns a breakdown of payroll expenses by cost center/department
+ */
+export async function allocatePayrollToCostCenters(
+  payrollBatch: PayrollBatch
+): Promise<Array<{
+  costCenterId: number | null;
+  costCenterCode: string | null;
+  employeeCount: number;
+  baseSalary: number;
+  overtime: number;
+  bonuses: number;
+  allowances: number;
+  grossPay: number;
+  ssoEmployee: number;
+  ssoEmployer: number;
+  whtAmount: number;
+  netPay: number;
+  totalCost: number;
+}>> {
+  // Group entries by cost center
+  const allocationMap = new Map<number | null, {
+    costCenterId: number | null;
+    costCenterCode: string | null;
+    employeeCount: number;
+    baseSalary: number;
+    overtime: number;
+    bonuses: number;
+    allowances: number;
+    grossPay: number;
+    ssoEmployee: number;
+    ssoEmployer: number;
+    whtAmount: number;
+    netPay: number;
+  }>();
+
+  for (const entry of payrollBatch.entries) {
+    const ccId = entry.costCenterId ?? null;
+    const existing = allocationMap.get(ccId);
+
+    if (existing) {
+      existing.employeeCount += 1;
+      existing.baseSalary += entry.baseSalary;
+      existing.overtime += entry.overtime;
+      existing.bonuses += entry.bonuses;
+      existing.allowances += entry.allowances;
+      existing.grossPay += entry.grossPay;
+      existing.ssoEmployee += entry.ssoEmployee;
+      existing.ssoEmployer += entry.ssoEmployer;
+      existing.whtAmount += entry.whtAmount;
+      existing.netPay += entry.netPay;
+    } else {
+      allocationMap.set(ccId, {
+        costCenterId: ccId,
+        costCenterCode: entry.costCenterCode || null,
+        employeeCount: 1,
+        baseSalary: entry.baseSalary,
+        overtime: entry.overtime,
+        bonuses: entry.bonuses,
+        allowances: entry.allowances,
+        grossPay: entry.grossPay,
+        ssoEmployee: entry.ssoEmployee,
+        ssoEmployer: entry.ssoEmployer,
+        whtAmount: entry.whtAmount,
+        netPay: entry.netPay,
+      });
+    }
+  }
+
+  // Convert to array with total cost calculation
+  return Array.from(allocationMap.values()).map(allocation => ({
+    ...allocation,
+    // Total cost = Gross pay + Employer SSO
+    totalCost: allocation.grossPay + allocation.ssoEmployer,
+  }));
+}
+
+/**
+ * Record statutory liabilities from payroll (SSO and WHT)
+ * Creates or updates the liability journal entries for the period
+ */
+export async function recordStatutoryLiabilities(
+  payrollPeriod: string,
+  payrollBatch: PayrollBatch,
+  accountConfig: PayrollAccountConfig,
+  createdBy: number
+): Promise<StatutoryLiabilitiesResult> {
+  // Calculate total statutory liabilities
+  let totalSSOEmployee = 0;
+  let totalSSOEmployer = 0;
+  let totalWHT = 0;
+
+  for (const entry of payrollBatch.entries) {
+    totalSSOEmployee += entry.ssoEmployee;
+    totalSSOEmployer += entry.ssoEmployer;
+    totalWHT += entry.whtAmount;
+  }
+
+  const totalSSOPayable = totalSSOEmployee + totalSSOEmployer;
+  const totalPayable = totalSSOPayable + totalWHT;
+
+  // Check if there are any liabilities to record
+  if (totalPayable === 0) {
+    return {
+      success: true,
+      journalEntryId: null,
+      message: 'No statutory liabilities to record',
+      ssoPayable: 0,
+      whtPayable: 0,
+      totalPayable: 0,
+    };
+  }
+
+  // The liabilities are already recorded in createPayrollJournalEntry
+  // This function returns a summary for tracking purposes
+  return {
+    success: true,
+    journalEntryId: null, // Liabilities are part of the main payroll JE
+    message: `Statutory liabilities for ${payrollPeriod}: SSO ${totalSSOPayable.toFixed(2)} THB, WHT ${totalWHT.toFixed(2)} THB`,
+    ssoPayable: totalSSOPayable,
+    whtPayable: totalWHT,
+    totalPayable,
+  };
+}
+
+/**
+ * Calculate Thai Social Security contribution
+ * Rate: 5% of salary, capped at maximum wage base of 15,000 THB (max 750 THB)
+ */
+export function calculateThaiSSO(salary: number): {
+  employeeContribution: number;
+  employerContribution: number;
+  total: number;
+} {
+  // Import constants from types
+  const SSO_RATE = 0.05;
+  const MAX_WAGE_BASE = 15000;
+  const MAX_CONTRIBUTION = MAX_WAGE_BASE * SSO_RATE; // 750 THB
+
+  // Apply the cap
+  const wageBase = Math.min(salary, MAX_WAGE_BASE);
+  const contribution = wageBase * SSO_RATE;
+
+  return {
+    employeeContribution: Math.min(contribution, MAX_CONTRIBUTION),
+    employerContribution: Math.min(contribution, MAX_CONTRIBUTION),
+    total: Math.min(contribution * 2, MAX_CONTRIBUTION * 2),
+  };
+}
+
+/**
+ * Get payroll summary for a fiscal period
+ */
+export async function getPayrollSummary(
+  fiscalPeriodId: number
+): Promise<{
+  periodId: number;
+  periodName: string | null;
+  totalGrossPay: number;
+  totalNetPay: number;
+  totalSSOPayable: number;
+  totalWHTPayable: number;
+  totalEmployerCost: number;
+  journalEntryCount: number;
+}> {
+  const tables = getAccountingTables();
+  const database = db();
+
+  // Get the fiscal period
+  const [period] = await database
+    .select()
+    .from(tables.fiscalPeriods)
+    .where(eq(tables.fiscalPeriods.id, fiscalPeriodId))
+    .limit(1);
+
+  if (!period) {
+    return {
+      periodId: fiscalPeriodId,
+      periodName: null,
+      totalGrossPay: 0,
+      totalNetPay: 0,
+      totalSSOPayable: 0,
+      totalWHTPayable: 0,
+      totalEmployerCost: 0,
+      journalEntryCount: 0,
+    };
+  }
+
+  // Get payroll journal entries for this period
+  const payrollEntries = await database
+    .select({
+      id: tables.journalEntries.id,
+      totalDebits: sql<number>`SUM(${tables.journalLines.debit})`,
+      totalCredits: sql<number>`SUM(${tables.journalLines.credit})`,
+    })
+    .from(tables.journalEntries)
+    .innerJoin(tables.journalLines, eq(tables.journalEntries.id, tables.journalLines.journalEntryId))
+    .where(
+      and(
+        eq(tables.journalEntries.fiscalPeriodId, fiscalPeriodId),
+        eq(tables.journalEntries.source, 'PAYROLL')
+      )
+    )
+    .groupBy(tables.journalEntries.id);
+
+  // Calculate totals from journal entries
+  const journalEntryCount = payrollEntries.length;
+  let totalGrossPay = 0;
+
+  for (const entry of payrollEntries) {
+    // Gross pay is approximated from total debits (salary expenses)
+    totalGrossPay += Number(entry.totalDebits) || 0;
+  }
+
+  return {
+    periodId: fiscalPeriodId,
+    periodName: period.periodName,
+    totalGrossPay,
+    totalNetPay: 0, // Would need more detail tracking
+    totalSSOPayable: 0, // Would need account-specific tracking
+    totalWHTPayable: 0, // Would need account-specific tracking
+    totalEmployerCost: totalGrossPay,
+    journalEntryCount,
+  };
+}

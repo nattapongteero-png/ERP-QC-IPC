@@ -1267,3 +1267,107 @@ export interface VATSummaryReport {
   netVATPayable: number; // Positive = pay, Negative = refund
   vatPayable: boolean;
 }
+
+// ============================================
+// Payroll Accounting (US10)
+// ============================================
+
+/**
+ * Thai statutory rates for payroll deductions
+ */
+export const THAI_SSO_EMPLOYEE_RATE = 0.05; // 5% of wage (max 750 THB/month)
+export const THAI_SSO_EMPLOYER_RATE = 0.05; // 5% of wage (max 750 THB/month)
+export const THAI_SSO_MAX_WAGE_BASE = 15000; // Maximum wage for SSO calculation
+
+/**
+ * Payroll entry for creating journal entries
+ */
+export interface PayrollEntry {
+  employeeId: number;
+  employeeName: string;
+  costCenterId?: number;
+  costCenterCode?: string;
+
+  // Earnings
+  baseSalary: number;
+  overtime: number;
+  bonuses: number;
+  allowances: number;
+  otherEarnings: number;
+  grossPay: number;
+
+  // Deductions
+  ssoEmployee: number;     // Social Security (employee portion)
+  whtAmount: number;       // Withholding tax
+  otherDeductions: number;
+  totalDeductions: number;
+
+  // Net
+  netPay: number;
+
+  // Employer contributions
+  ssoEmployer: number;     // Social Security (employer portion)
+}
+
+/**
+ * Payroll batch for processing multiple employees
+ */
+export interface PayrollBatch {
+  payrollPeriod: string;      // YYYY-MM format
+  payrollDate: string;        // Payment date
+  payrollNumber?: string;     // Reference number
+  description?: string;
+  entries: PayrollEntry[];
+}
+
+/**
+ * Result from creating payroll journal entry
+ */
+export interface PayrollJournalResult {
+  success: boolean;
+  journalEntryId: number | null;
+  entryNumber: string | null;
+  message: string;
+  totals: {
+    totalGrossPay: number;
+    totalNetPay: number;
+    totalSSOEmployee: number;
+    totalSSOEmployer: number;
+    totalWHT: number;
+    totalOtherDeductions: number;
+  };
+  costCenterAllocations: Array<{
+    costCenterId: number;
+    costCenterCode: string | null;
+    salaryExpense: number;
+    ssoEmployerExpense: number;
+    totalExpense: number;
+  }>;
+}
+
+/**
+ * Statutory liabilities result
+ */
+export interface StatutoryLiabilitiesResult {
+  success: boolean;
+  journalEntryId: number | null;
+  message: string;
+  ssoPayable: number;
+  whtPayable: number;
+  totalPayable: number;
+}
+
+/**
+ * Payroll configuration with GL account mappings
+ */
+export interface PayrollAccountConfig {
+  salaryExpenseAccountId: number;
+  wagesExpenseAccountId?: number;
+  bonusExpenseAccountId?: number;
+  overtimeExpenseAccountId?: number;
+  ssoEmployerExpenseAccountId: number;
+  ssoPayableAccountId: number;
+  whtPayableAccountId: number;
+  salaryPayableAccountId: number;
+  cashAccountId: number;
+}

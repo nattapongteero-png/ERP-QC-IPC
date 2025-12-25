@@ -4956,3 +4956,290 @@ export async function getAllPendingNotifications(
     employeeCode: r.employeeCode,
   }));
 }
+
+// ============================================
+// Payroll Accounting Integration (US10)
+// ============================================
+
+import type {
+  PayrollEntry,
+  PayrollBatch,
+  PayrollJournalResult,
+  PayrollAccountConfig,
+} from '@/types/accounting';
+import {
+  createPayrollJournalEntry,
+  allocatePayrollToCostCenters,
+  calculateThaiSSO,
+} from './accounting.service';
+
+/**
+ * Get employee payroll data for accounting integration
+ * Returns employee details with cost center assignments for payroll processing
+ */
+export async function getEmployeesForPayroll(
+  options?: {
+    orgUnitId?: number;
+    status?: 'active' | 'on_leave' | 'all';
+  }
+): Promise<Array<{
+  employeeId: number;
+  employeeCode: string;
+  employeeName: string;
+  orgUnitId: number | null;
+  orgUnitCode: string | null;
+  orgUnitName: string | null;
+  positionTitle: string | null;
+}>> {
+  const tables = getHRTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
+
+  const conditions: SQL[] = [];
+
+  // Filter by status (default to active only)
+  const status = options?.status ?? 'active';
+  if (status !== 'all') {
+    conditions.push(eq(tables.employees.status, status));
+  }
+
+  // Filter by org unit if specified
+  if (options?.orgUnitId) {
+    conditions.push(eq(tables.employeeAssignments.orgUnitId, options.orgUnitId));
+  }
+
+  // Only get primary assignments
+  conditions.push(eq(tables.employeeAssignments.isPrimary, true));
+
+  const query = db
+    .select({
+      employeeId: tables.employees.id,
+      employeeCode: tables.employees.employeeCode,
+      firstName: tables.employees.firstName,
+      lastName: tables.employees.lastName,
+      orgUnitId: tables.employeeAssignments.orgUnitId,
+      orgUnitCode: tables.orgUnits.code,
+      orgUnitName: tables.orgUnits.name,
+      positionTitle: tables.positions.title,
+    })
+    .from(tables.employees)
+    .leftJoin(
+      tables.employeeAssignments,
+      and(
+        eq(tables.employeeAssignments.employeeId, tables.employees.id),
+        eq(tables.employeeAssignments.isPrimary, true)
+      )
+    )
+    .leftJoin(
+      tables.orgUnits,
+      eq(tables.employeeAssignments.orgUnitId, tables.orgUnits.id)
+    )
+    .leftJoin(
+      tables.positions,
+      eq(tables.employeeAssignments.positionId, tables.positions.id)
+    )
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+  const results = await query;
+
+  return results.map((r: typeof results[number]) => ({
+    employeeId: r.employeeId,
+    employeeCode: r.employeeCode,
+    employeeName: `${r.firstName} ${r.lastName}`,
+    orgUnitId: r.orgUnitId || null,
+    orgUnitCode: r.orgUnitCode || null,
+    orgUnitName: r.orgUnitName || null,
+    positionTitle: r.positionTitle || null,
+  }));
+}
+
+/**
+ * Create payroll entries with automatic SSO calculation
+ * This is a hook for HR systems to create payroll data for accounting
+ */
+export async function createPayrollEntriesFromHR(
+  payrollData: Array<{
+    employeeId: number;
+    baseSalary: number;
+    overtime?: number;
+    bonuses?: number;
+    allowances?: number;
+    otherEarnings?: number;
+    whtAmount?: number;
+    otherDeductions?: number;
+  }>,
+  payrollPeriod: string,
+  payrollDate: string
+): Promise<{
+  success: boolean;
+  entries: PayrollEntry[];
+  totals: {
+    totalGrossPay: number;
+    totalNetPay: number;
+    totalSSOEmployee: number;
+    totalSSOEmployer: number;
+    totalWHT: number;
+  };
+}> {
+  const tables = getHRTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
+
+  const entries: PayrollEntry[] = [];
+  let totalGrossPay = 0;
+  let totalNetPay = 0;
+  let totalSSOEmployee = 0;
+  let totalSSOEmployer = 0;
+  let totalWHT = 0;
+
+  for (const data of payrollData) {
+    // Get employee details with org unit
+    const [employee] = await db
+      .select({
+        id: tables.employees.id,
+        employeeCode: tables.employees.employeeCode,
+        firstName: tables.employees.firstName,
+        lastName: tables.employees.lastName,
+        orgUnitId: tables.employeeAssignments.orgUnitId,
+        orgUnitCode: tables.orgUnits.code,
+      })
+      .from(tables.employees)
+      .leftJoin(
+        tables.employeeAssignments,
+        and(
+          eq(tables.employeeAssignments.employeeId, tables.employees.id),
+          eq(tables.employeeAssignments.isPrimary, true)
+        )
+      )
+      .leftJoin(
+        tables.orgUnits,
+        eq(tables.employeeAssignments.orgUnitId, tables.orgUnits.id)
+      )
+      .where(eq(tables.employees.id, data.employeeId))
+      .limit(1);
+
+    if (!employee) {
+      continue; // Skip if employee not found
+    }
+
+    // Calculate gross pay
+    const baseSalary = data.baseSalary;
+    const overtime = data.overtime || 0;
+    const bonuses = data.bonuses || 0;
+    const allowances = data.allowances || 0;
+    const otherEarnings = data.otherEarnings || 0;
+    const grossPay = baseSalary + overtime + bonuses + allowances + otherEarnings;
+
+    // Calculate SSO contributions
+    const sso = calculateThaiSSO(baseSalary);
+    const ssoEmployee = sso.employeeContribution;
+    const ssoEmployer = sso.employerContribution;
+
+    // Get WHT and other deductions
+    const whtAmount = data.whtAmount || 0;
+    const otherDeductions = data.otherDeductions || 0;
+    const totalDeductions = ssoEmployee + whtAmount + otherDeductions;
+
+    // Calculate net pay
+    const netPay = grossPay - totalDeductions;
+
+    // Create payroll entry
+    const entry: PayrollEntry = {
+      employeeId: employee.id,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      costCenterId: employee.orgUnitId || undefined,
+      costCenterCode: employee.orgUnitCode || undefined,
+      baseSalary,
+      overtime,
+      bonuses,
+      allowances,
+      otherEarnings,
+      grossPay,
+      ssoEmployee,
+      whtAmount,
+      otherDeductions,
+      totalDeductions,
+      netPay,
+      ssoEmployer,
+    };
+
+    entries.push(entry);
+
+    // Update totals
+    totalGrossPay += grossPay;
+    totalNetPay += netPay;
+    totalSSOEmployee += ssoEmployee;
+    totalSSOEmployer += ssoEmployer;
+    totalWHT += whtAmount;
+  }
+
+  return {
+    success: true,
+    entries,
+    totals: {
+      totalGrossPay,
+      totalNetPay,
+      totalSSOEmployee,
+      totalSSOEmployer,
+      totalWHT,
+    },
+  };
+}
+
+/**
+ * Process payroll and create accounting entries
+ * Main integration hook that combines HR payroll data with accounting
+ */
+export async function processPayrollToAccounting(
+  payrollData: Array<{
+    employeeId: number;
+    baseSalary: number;
+    overtime?: number;
+    bonuses?: number;
+    allowances?: number;
+    otherEarnings?: number;
+    whtAmount?: number;
+    otherDeductions?: number;
+  }>,
+  payrollPeriod: string,
+  payrollDate: string,
+  accountConfig: PayrollAccountConfig,
+  createdBy: number
+): Promise<PayrollJournalResult> {
+  // Create payroll entries with SSO calculation
+  const { entries } = await createPayrollEntriesFromHR(
+    payrollData,
+    payrollPeriod,
+    payrollDate
+  );
+
+  if (entries.length === 0) {
+    return {
+      success: false,
+      journalEntryId: null,
+      entryNumber: null,
+      message: 'No valid payroll entries to process',
+      totals: {
+        totalGrossPay: 0,
+        totalNetPay: 0,
+        totalSSOEmployee: 0,
+        totalSSOEmployer: 0,
+        totalWHT: 0,
+        totalOtherDeductions: 0,
+      },
+      costCenterAllocations: [],
+    };
+  }
+
+  // Create payroll batch
+  const payrollBatch: PayrollBatch = {
+    payrollPeriod,
+    payrollDate,
+    payrollNumber: `PAY-${payrollPeriod}`,
+    description: `Payroll for period ${payrollPeriod}`,
+    entries,
+  };
+
+  // Create journal entry through accounting service
+  return createPayrollJournalEntry(payrollBatch, accountConfig, createdBy);
+}
