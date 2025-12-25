@@ -2353,3 +2353,712 @@ export async function listJournalEntries(filters?: {
     lines: [],
   }));
 }
+
+// ============================================
+// AR Invoice Service Functions (User Story 3)
+// ============================================
+
+export interface ARInvoice {
+  id: number;
+  invoiceNumber: string;
+  taxInvoiceNumber: string;
+  customerId: number;
+  salesOrderId: number | null;
+  invoiceDate: string;
+  dueDate: string;
+  description: string | null;
+  subtotal: number;
+  vatAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  currency: string;
+  exchangeRate: number;
+  status: 'draft' | 'confirmed' | 'posted' | 'partial' | 'paid' | 'cancelled';
+  confirmedBy: number | null;
+  confirmedAt: string | null;
+  journalEntryId: number | null;
+  createdBy: number | null;
+  createdAt: string;
+  updatedAt: string;
+  lines?: ARInvoiceLine[];
+  customer?: { id: number; name: string; taxId?: string; };
+}
+
+export interface ARInvoiceLine {
+  id: number;
+  arInvoiceId: number;
+  lineNumber: number;
+  description: string;
+  itemId: number | null;
+  glAccountId: number;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  vatAmount: number;
+  lotId: number | null;
+  createdAt: string;
+}
+
+export interface CreateARInvoiceInput {
+  invoiceNumber: string;
+  taxInvoiceNumber: string;
+  customerId: number;
+  salesOrderId?: number | null;
+  invoiceDate: string;
+  dueDate: string;
+  description?: string | null;
+  currency?: string;
+  exchangeRate?: number;
+  lines: {
+    description: string;
+    itemId?: number | null;
+    glAccountId: number;
+    quantity: number;
+    unitPrice: number;
+    lotId?: number | null;
+  }[];
+}
+
+/**
+ * Generate Thai Tax Invoice Number in format T-YYYYMM-NNNNNN
+ * @param invoiceDate - The date of the invoice
+ * @returns Unique tax invoice number string
+ */
+export async function generateTaxInvoiceNumber(invoiceDate: string | Date): Promise<string> {
+  const { arInvoices } = getAccountingTables();
+  const database = db();
+
+  const date = typeof invoiceDate === 'string' ? new Date(invoiceDate) : invoiceDate;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const prefix = `T-${year}${month}-`;
+
+  const result = await database
+    .select({ taxInvoiceNumber: arInvoices.taxInvoiceNumber })
+    .from(arInvoices)
+    .where(sql`${arInvoices.taxInvoiceNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(arInvoices.taxInvoiceNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (result.length > 0 && result[0].taxInvoiceNumber) {
+    const lastNumber = result[0].taxInvoiceNumber;
+    const lastSequence = parseInt(lastNumber.replace(prefix, ''), 10);
+    if (!isNaN(lastSequence)) {
+      sequence = lastSequence + 1;
+    }
+  }
+
+  return `${prefix}${String(sequence).padStart(6, '0')}`;
+}
+
+/**
+ * Generate AR invoice number in format AR-YYYYMM-NNNNNN
+ * @param invoiceDate - The date of the invoice
+ * @returns Unique invoice number string
+ */
+export async function generateARInvoiceNumber(invoiceDate: string | Date): Promise<string> {
+  const { arInvoices } = getAccountingTables();
+  const database = db();
+
+  const date = typeof invoiceDate === 'string' ? new Date(invoiceDate) : invoiceDate;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const prefix = `AR-${year}${month}-`;
+
+  const result = await database
+    .select({ invoiceNumber: arInvoices.invoiceNumber })
+    .from(arInvoices)
+    .where(sql`${arInvoices.invoiceNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(arInvoices.invoiceNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (result.length > 0 && result[0].invoiceNumber) {
+    const lastNumber = result[0].invoiceNumber;
+    const lastSequence = parseInt(lastNumber.replace(prefix, ''), 10);
+    if (!isNaN(lastSequence)) {
+      sequence = lastSequence + 1;
+    }
+  }
+
+  return `${prefix}${String(sequence).padStart(6, '0')}`;
+}
+
+/**
+ * Create a new AR invoice manually
+ * @param input - Invoice data with lines
+ * @param createdBy - User ID creating the invoice
+ * @returns Created AR invoice with lines
+ */
+export async function createARInvoice(
+  input: CreateARInvoiceInput,
+  createdBy: number
+): Promise<ARInvoice> {
+  const { arInvoices, arInvoiceLines } = getAccountingTables();
+  const database = db();
+
+  // Calculate line amounts and totals
+  const processedLines = input.lines.map((line, index) => {
+    const amount = line.quantity * line.unitPrice;
+    const vatCalc = calculateVAT(amount);
+    return {
+      ...line,
+      lineNumber: index + 1,
+      amount,
+      vatAmount: vatCalc.vatAmount,
+    };
+  });
+
+  const subtotal = processedLines.reduce((sum, line) => sum + line.amount, 0);
+  const vatAmount = processedLines.reduce((sum, line) => sum + line.vatAmount, 0);
+  const totalAmount = subtotal + vatAmount;
+
+  // Insert invoice
+  const invoiceValues = {
+    invoiceNumber: input.invoiceNumber,
+    taxInvoiceNumber: input.taxInvoiceNumber,
+    customerId: input.customerId,
+    salesOrderId: input.salesOrderId || null,
+    invoiceDate: toDbDate(input.invoiceDate),
+    dueDate: toDbDate(input.dueDate),
+    description: input.description || null,
+    subtotal,
+    vatAmount,
+    totalAmount,
+    paidAmount: 0,
+    currency: input.currency || 'THB',
+    exchangeRate: input.exchangeRate || 1,
+    status: 'draft' as const,
+    createdBy,
+    createdAt: getNow(),
+    updatedAt: getNow(),
+  };
+
+  const insertResult = await database
+    .insert(arInvoices)
+    .values(invoiceValues as any);
+
+  const arInvoiceId = isSqlite()
+    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+
+  // Insert invoice lines
+  const lineValues = processedLines.map((line) => ({
+    arInvoiceId,
+    lineNumber: line.lineNumber,
+    description: line.description,
+    itemId: line.itemId || null,
+    glAccountId: line.glAccountId,
+    quantity: line.quantity,
+    unitPrice: line.unitPrice,
+    amount: line.amount,
+    vatAmount: line.vatAmount,
+    lotId: line.lotId || null,
+    createdAt: getNow(),
+  }));
+
+  await database.insert(arInvoiceLines).values(lineValues as any);
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'ar_invoice',
+    recordId: arInvoiceId,
+    userId: createdBy,
+    newValue: {
+      invoiceNumber: input.invoiceNumber,
+      taxInvoiceNumber: input.taxInvoiceNumber,
+      customerId: input.customerId,
+      totalAmount,
+    },
+  });
+
+  return await getARInvoiceById(arInvoiceId);
+}
+
+/**
+ * Get AR invoice by ID with lines
+ * @param id - AR invoice ID
+ * @returns AR invoice with lines
+ */
+export async function getARInvoiceById(id: number): Promise<ARInvoice> {
+  const { arInvoices, arInvoiceLines } = getAccountingTables();
+  const database = db();
+
+  const [invoice] = await database
+    .select()
+    .from(arInvoices)
+    .where(eq(arInvoices.id, id));
+
+  if (!invoice) {
+    throw new Error(`AR invoice with ID ${id} not found`);
+  }
+
+  const lines = await database
+    .select()
+    .from(arInvoiceLines)
+    .where(eq(arInvoiceLines.arInvoiceId, id))
+    .orderBy(asc(arInvoiceLines.lineNumber));
+
+  return {
+    id: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    taxInvoiceNumber: invoice.taxInvoiceNumber,
+    customerId: invoice.customerId,
+    salesOrderId: invoice.salesOrderId,
+    invoiceDate: formatDateFromDb(invoice.invoiceDate),
+    dueDate: formatDateFromDb(invoice.dueDate),
+    description: invoice.description,
+    subtotal: Number(invoice.subtotal),
+    vatAmount: Number(invoice.vatAmount),
+    totalAmount: Number(invoice.totalAmount),
+    paidAmount: Number(invoice.paidAmount),
+    currency: invoice.currency,
+    exchangeRate: Number(invoice.exchangeRate),
+    status: invoice.status as ARInvoice['status'],
+    confirmedBy: invoice.confirmedBy,
+    confirmedAt: invoice.confirmedAt ? formatDateFromDb(invoice.confirmedAt) : null,
+    journalEntryId: invoice.journalEntryId,
+    createdBy: invoice.createdBy,
+    createdAt: formatDateFromDb(invoice.createdAt),
+    updatedAt: formatDateFromDb(invoice.updatedAt),
+    lines: lines.map((line: (typeof lines)[number]) => ({
+      id: line.id,
+      arInvoiceId: line.arInvoiceId,
+      lineNumber: line.lineNumber,
+      description: line.description,
+      itemId: line.itemId,
+      glAccountId: line.glAccountId,
+      quantity: Number(line.quantity),
+      unitPrice: Number(line.unitPrice),
+      amount: Number(line.amount),
+      vatAmount: Number(line.vatAmount),
+      lotId: line.lotId,
+      createdAt: formatDateFromDb(line.createdAt),
+    })),
+  };
+}
+
+/**
+ * List AR invoices with optional filters
+ * @param filters - Query filters
+ * @returns List of AR invoices
+ */
+export async function listARInvoices(filters?: {
+  customerId?: number;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}): Promise<ARInvoice[]> {
+  const { arInvoices } = getAccountingTables();
+  const database = db();
+
+  const conditions: any[] = [];
+
+  if (filters?.customerId) {
+    conditions.push(eq(arInvoices.customerId, filters.customerId));
+  }
+
+  if (filters?.status) {
+    conditions.push(eq(arInvoices.status, filters.status));
+  }
+
+  if (filters?.dateFrom) {
+    conditions.push(gte(arInvoices.invoiceDate, toQueryDate(filters.dateFrom)));
+  }
+
+  if (filters?.dateTo) {
+    conditions.push(lte(arInvoices.invoiceDate, toQueryDate(filters.dateTo)));
+  }
+
+  if (filters?.search) {
+    const searchTerm = `%${filters.search}%`;
+    conditions.push(
+      or(
+        sql`${arInvoices.invoiceNumber} LIKE ${searchTerm}`,
+        sql`${arInvoices.taxInvoiceNumber} LIKE ${searchTerm}`,
+        sql`${arInvoices.description} LIKE ${searchTerm}`
+      )
+    );
+  }
+
+  const result = await database
+    .select()
+    .from(arInvoices)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(arInvoices.invoiceDate));
+
+  return result.map((inv: (typeof result)[number]) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber,
+    taxInvoiceNumber: inv.taxInvoiceNumber,
+    customerId: inv.customerId,
+    salesOrderId: inv.salesOrderId,
+    invoiceDate: formatDateFromDb(inv.invoiceDate),
+    dueDate: formatDateFromDb(inv.dueDate),
+    description: inv.description,
+    subtotal: Number(inv.subtotal),
+    vatAmount: Number(inv.vatAmount),
+    totalAmount: Number(inv.totalAmount),
+    paidAmount: Number(inv.paidAmount),
+    currency: inv.currency,
+    exchangeRate: Number(inv.exchangeRate),
+    status: inv.status as ARInvoice['status'],
+    confirmedBy: inv.confirmedBy,
+    confirmedAt: inv.confirmedAt ? formatDateFromDb(inv.confirmedAt) : null,
+    journalEntryId: inv.journalEntryId,
+    createdBy: inv.createdBy,
+    createdAt: formatDateFromDb(inv.createdAt),
+    updatedAt: formatDateFromDb(inv.updatedAt),
+  }));
+}
+
+/**
+ * Update AR invoice (only draft status)
+ * @param id - AR invoice ID
+ * @param input - Update data
+ * @param updatedBy - User ID making the update
+ * @returns Updated AR invoice
+ */
+export async function updateARInvoice(
+  id: number,
+  input: {
+    invoiceNumber?: string;
+    taxInvoiceNumber?: string;
+    invoiceDate?: string;
+    dueDate?: string;
+    description?: string | null;
+  },
+  updatedBy: number
+): Promise<ARInvoice> {
+  const { arInvoices } = getAccountingTables();
+  const database = db();
+
+  const existing = await getARInvoiceById(id);
+  if (existing.status !== 'draft') {
+    throw new Error('Can only update draft invoices');
+  }
+
+  const updateValues: Record<string, unknown> = {
+    updatedAt: getNow(),
+  };
+
+  if (input.invoiceNumber !== undefined) updateValues.invoiceNumber = input.invoiceNumber;
+  if (input.taxInvoiceNumber !== undefined) updateValues.taxInvoiceNumber = input.taxInvoiceNumber;
+  if (input.invoiceDate !== undefined) updateValues.invoiceDate = toDbDate(input.invoiceDate);
+  if (input.dueDate !== undefined) updateValues.dueDate = toDbDate(input.dueDate);
+  if (input.description !== undefined) updateValues.description = input.description;
+
+  await database
+    .update(arInvoices)
+    .set(updateValues)
+    .where(eq(arInvoices.id, id));
+
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'ar_invoice',
+    recordId: id,
+    userId: updatedBy,
+    newValue: { invoiceNumber: existing.invoiceNumber, changes: input },
+  });
+
+  return await getARInvoiceById(id);
+}
+
+/**
+ * Confirm AR invoice and create journal entry
+ * @param id - AR invoice ID
+ * @param confirmedBy - User ID confirming the invoice
+ * @returns Confirmed AR invoice with journal entry
+ */
+export async function confirmARInvoice(
+  id: number,
+  confirmedBy: number
+): Promise<ARInvoice> {
+  const { arInvoices, glAccounts } = getAccountingTables();
+  const database = db();
+
+  const invoice = await getARInvoiceById(id);
+  if (invoice.status !== 'draft') {
+    throw new Error(`Cannot confirm invoice with status '${invoice.status}'`);
+  }
+
+  if (!invoice.lines || invoice.lines.length === 0) {
+    throw new Error('Invoice has no lines');
+  }
+
+  // Find AR receivable account (code 1121 - Accounts Receivable)
+  const [arAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1121'))
+    .limit(1);
+
+  if (!arAccount) {
+    throw new Error('Accounts Receivable GL account (1121) not found');
+  }
+
+  // Find Output VAT account (code 2131 - Output VAT Payable)
+  const [vatAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '2131'))
+    .limit(1);
+
+  // Build journal entry lines
+  const journalLines: JournalLineCreate[] = [];
+
+  // Debit AR account for total amount
+  journalLines.push({
+    glAccountId: arAccount.id,
+    debit: invoice.totalAmount,
+    credit: 0,
+    description: `AR Invoice ${invoice.invoiceNumber}`,
+  });
+
+  // Credit revenue accounts from invoice lines
+  for (const line of invoice.lines) {
+    journalLines.push({
+      glAccountId: line.glAccountId,
+      debit: 0,
+      credit: line.amount,
+      description: line.description,
+    });
+  }
+
+  // Credit Output VAT account if VAT amount exists and account exists
+  if (invoice.vatAmount > 0 && vatAccount) {
+    journalLines.push({
+      glAccountId: vatAccount.id,
+      debit: 0,
+      credit: invoice.vatAmount,
+      description: 'Output VAT',
+    });
+  }
+
+  // Create and post journal entry
+  const journalEntry = await createJournalEntry({
+    entryDate: invoice.invoiceDate,
+    description: `AR Invoice: ${invoice.invoiceNumber}`,
+    sourceType: 'SO_SHIPMENT',
+    sourceId: invoice.id,
+    lines: journalLines,
+    createdBy: confirmedBy,
+  });
+
+  // Post the journal entry
+  await postJournalEntry(journalEntry.id, confirmedBy);
+
+  // Update invoice status
+  await database
+    .update(arInvoices)
+    .set({
+      status: 'posted',
+      confirmedBy,
+      confirmedAt: getNow(),
+      journalEntryId: journalEntry.id,
+      updatedAt: getNow(),
+    })
+    .where(eq(arInvoices.id, id));
+
+  // Create VAT transaction for Output VAT
+  if (invoice.vatAmount > 0) {
+    await createVATTransaction({
+      transactionType: 'output',
+      arInvoiceId: invoice.id,
+      customerId: invoice.customerId,
+      taxInvoiceNumber: invoice.taxInvoiceNumber,
+      taxInvoiceDate: invoice.invoiceDate,
+      taxableAmount: invoice.subtotal,
+      vatAmount: invoice.vatAmount,
+    });
+  }
+
+  await createAuditLog({
+    action: 'CONFIRM',
+    tableName: 'ar_invoice',
+    recordId: id,
+    userId: confirmedBy,
+    newValue: {
+      invoiceNumber: invoice.invoiceNumber,
+      journalEntryId: journalEntry.id,
+      previousStatus: 'draft',
+      newStatus: 'posted',
+    },
+  });
+
+  return await getARInvoiceById(id);
+}
+
+/**
+ * Record payment received for AR invoice (supports partial payments)
+ * @param arInvoiceId - AR invoice ID
+ * @param input - Payment data
+ * @param recordedBy - User ID recording the payment
+ * @returns Payment info and updated invoice
+ */
+export async function recordARPayment(
+  arInvoiceId: number,
+  input: {
+    paymentDate: string;
+    bankAccountId: number;
+    paymentMethod: 'cash' | 'check' | 'transfer' | 'other';
+    referenceNumber?: string;
+    amount: number;
+    description?: string;
+  },
+  recordedBy: number
+): Promise<{ payment: any; invoice: ARInvoice }> {
+  const { arInvoices, payments, paymentAllocations, glAccounts } = getAccountingTables();
+  const database = db();
+
+  const invoice = await getARInvoiceById(arInvoiceId);
+
+  if (!['posted', 'partial'].includes(invoice.status)) {
+    throw new Error(`Cannot record payment for invoice with status '${invoice.status}'`);
+  }
+
+  const outstandingAmount = invoice.totalAmount - invoice.paidAmount;
+  if (input.amount > outstandingAmount) {
+    throw new Error(`Payment amount ${input.amount} exceeds outstanding amount ${outstandingAmount}`);
+  }
+
+  // Generate receipt/payment number
+  const paymentDate = new Date(input.paymentDate);
+  const year = paymentDate.getFullYear();
+  const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
+  const paymentPrefix = `RC-${year}${month}-`;
+
+  const [lastPayment] = await database
+    .select({ paymentNumber: payments.paymentNumber })
+    .from(payments)
+    .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
+    .orderBy(desc(payments.paymentNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (lastPayment?.paymentNumber) {
+    const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
+    if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+  }
+  const paymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
+
+  // Insert payment record
+  const paymentValues = {
+    paymentNumber,
+    paymentType: 'ar' as const,
+    paymentDate: toDbDate(input.paymentDate),
+    vendorId: null,
+    customerId: invoice.customerId,
+    bankAccountId: input.bankAccountId,
+    paymentMethod: input.paymentMethod,
+    referenceNumber: input.referenceNumber || null,
+    amount: input.amount,
+    whtAmount: 0,
+    description: input.description || `Receipt for ${invoice.invoiceNumber}`,
+    status: 'completed' as const,
+    createdBy: recordedBy,
+    createdAt: getNow(),
+    updatedAt: getNow(),
+  };
+
+  const insertResult = await database
+    .insert(payments)
+    .values(paymentValues as any);
+
+  const paymentId = isSqlite()
+    ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+    : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+
+  // Create payment allocation
+  await database
+    .insert(paymentAllocations)
+    .values({
+      paymentId,
+      apInvoiceId: null,
+      arInvoiceId,
+      allocatedAmount: input.amount,
+      createdAt: getNow(),
+    } as any);
+
+  // Find AR account
+  const [arAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1121'))
+    .limit(1);
+
+  // Create journal entry for receipt
+  const journalLines: JournalLineCreate[] = [
+    // Debit Bank (cash in)
+    {
+      glAccountId: input.bankAccountId,
+      debit: input.amount,
+      credit: 0,
+      description: `Receipt from customer`,
+    },
+    // Credit AR (reduce receivable)
+    {
+      glAccountId: arAccount!.id,
+      debit: 0,
+      credit: input.amount,
+      description: `Receipt for ${invoice.invoiceNumber}`,
+    },
+  ];
+
+  const receiptJE = await createJournalEntry({
+    entryDate: input.paymentDate,
+    description: `Receipt: ${paymentNumber} for ${invoice.invoiceNumber}`,
+    sourceType: 'AR_RECEIPT',
+    sourceId: paymentId,
+    lines: journalLines,
+    createdBy: recordedBy,
+  });
+
+  await postJournalEntry(receiptJE.id, recordedBy);
+
+  // Update payment with journal entry ID
+  await database
+    .update(payments)
+    .set({ journalEntryId: receiptJE.id })
+    .where(eq(payments.id, paymentId));
+
+  // Update invoice paid amount and status
+  const newPaidAmount = invoice.paidAmount + input.amount;
+  const newStatus = newPaidAmount >= invoice.totalAmount ? 'paid' : 'partial';
+
+  await database
+    .update(arInvoices)
+    .set({
+      paidAmount: newPaidAmount,
+      status: newStatus,
+      updatedAt: getNow(),
+    })
+    .where(eq(arInvoices.id, arInvoiceId));
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'payment',
+    recordId: paymentId,
+    userId: recordedBy,
+    newValue: {
+      paymentNumber,
+      arInvoiceId,
+      amount: input.amount,
+      type: 'receipt',
+    },
+  });
+
+  const updatedInvoice = await getARInvoiceById(arInvoiceId);
+
+  return {
+    payment: {
+      id: paymentId,
+      paymentNumber,
+      amount: input.amount,
+      journalEntryId: receiptJE.id,
+    },
+    invoice: updatedInvoice,
+  };
+}
