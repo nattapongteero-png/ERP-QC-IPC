@@ -130,7 +130,7 @@ export async function POST(
       return NextResponse.json({
         success: false,
         error: 'Invalid request body',
-        details: error.errors,
+        details: error.issues,
       }, { status: 400 });
     }
 
