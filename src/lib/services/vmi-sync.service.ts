@@ -202,8 +202,8 @@ export class VmiSyncService {
     this.log(`Found ${portals.length} enabled portal(s) for inventory sync`);
 
     if (portals.length === 0) {
-      this.logError('No enabled portals found for inventory sync', { request });
-      throw new VmiSyncError('NO_PORTALS', 'No enabled portals found for inventory sync', 404);
+      this.log('No enabled portals found for inventory sync - skipping');
+      return [];
     }
 
     const results: SyncResult[] = [];
@@ -433,8 +433,8 @@ export class VmiSyncService {
     this.log(`Found ${portals.length} enabled portal(s) for items sync`);
 
     if (portals.length === 0) {
-      this.logError('No enabled portals found for items sync', { request });
-      throw new VmiSyncError('NO_PORTALS', 'No enabled portals found for items sync', 404);
+      this.log('No enabled portals found for items sync - skipping');
+      return [];
     }
 
     const results: SyncResult[] = [];
@@ -640,8 +640,8 @@ export class VmiSyncService {
     this.log(`Found ${portals.length} enabled portal(s) for prices sync`);
 
     if (portals.length === 0) {
-      this.logError('No enabled portals found for prices sync', { request });
-      throw new VmiSyncError('NO_PORTALS', 'No enabled portals found for prices sync', 404);
+      this.log('No enabled portals found for prices sync - skipping');
+      return [];
     }
 
     const results: SyncResult[] = [];

@@ -358,7 +358,13 @@ export class VmiSalesOrderService {
     const portals = await this.getEnabledPortals(portalId);
 
     if (portals.length === 0) {
-      throw new VmiSalesOrderError('NO_PORTALS', 'No enabled portals found for order polling', 404);
+      // No enabled portals - return empty result without error
+      return {
+        portalsPolled: 0,
+        ordersReceived: 0,
+        orders: [],
+        errors: [],
+      };
     }
 
     let ordersReceived = 0;
