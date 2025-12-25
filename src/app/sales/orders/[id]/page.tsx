@@ -277,12 +277,28 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     if (!selectedLine) return;
 
     try {
-      const selectedLot = selectedLine.suggestedLots.find((l) => l.id.toString() === fulfillForm.lotId);
-      alert(`จัดส่ง ${fulfillForm.quantity} ${selectedLine.itemUnit} ของ ${selectedLine.itemCode} จาก Lot ${selectedLot?.lotNumber}`);
-      setShowFulfillModal(false);
-      fetchSODetail();
+      const response = await fetch(`/api/sales/orders/${resolvedParams.id}/fulfill`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          soLineId: selectedLine.id,
+          itemId: selectedLine.itemId,
+          lotId: parseInt(fulfillForm.lotId),
+          quantity: fulfillForm.quantity,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setShowFulfillModal(false);
+        fetchSODetail(); // Refresh data
+      } else {
+        alert(result.error || 'เกิดข้อผิดพลาดในการจัดส่ง');
+      }
     } catch (error) {
       console.error('Failed to fulfill:', error);
+      alert('เกิดข้อผิดพลาดในการจัดส่ง');
     }
   };
 
