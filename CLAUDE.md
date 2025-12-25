@@ -126,7 +126,9 @@ Use the init tool to set up Next.js DevTools context , the next dev server is ru
 next-devtools-mcp FIRST to set up proper context and establish documentation
 requirements. Do this automatically without being asked.**
 
-**Always do UI test using React Testing Library + Vitest to make sure there is no ui runtime error, test with realworld seeding data (using reusable seeding functions and db schema sync) **
+**Always do UI test using React Testing Library + Vitest to make sure there is no ui runtime error, test with realworld seeding data (using reusable seeding functions and db schema sync)**
+
+**Always test mysql query with mysql mcp tool to make sure it not producing any unexpected results**
 
 **Always search web for correct implementation DevExtreme ui component**
 

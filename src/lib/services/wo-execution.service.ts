@@ -124,7 +124,7 @@ export async function getWOEnvironmentalLogs(workOrderId: number, phase?: string
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    let query = db
+    const query = db
       .select({
         id: tables.woEnvironmentalLogs.id,
         workOrderId: tables.woEnvironmentalLogs.workOrderId,
