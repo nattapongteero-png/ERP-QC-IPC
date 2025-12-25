@@ -126,7 +126,7 @@ export async function getHRKpis(): Promise<HRKpis> {
         .where(
           and(
             eq(healthRecordsTable.fitnessStatus, 'fit'),
-            lte(healthRecordsTable.nextExamDate, toQueryDate(today))
+            lte(healthRecordsTable.nextExamDue, toQueryDate(today))
           )
         );
       return Number(result[0]?.count || 0);
@@ -136,7 +136,7 @@ export async function getHRKpis(): Promise<HRKpis> {
       const result = await db
         .select({ count: sql`count(DISTINCT ${authorizationsTable.employeeId})` })
         .from(authorizationsTable)
-        .where(eq(authorizationsTable.status, 'active'));
+        .where(eq(authorizationsTable.isActive, true));
       return Number(result[0]?.count || 0);
     }),
     // Pending notifications
@@ -214,12 +214,12 @@ export async function getPurchaseKpis(): Promise<PurchaseKpis> {
         .where(eq(vendorsTable.isActive, true));
       return Number(result[0]?.count || 0);
     }),
-    // AVL entries count
+    // AVL entries count (entries with approval date = approved items)
     executeDbOperation(async (db) => {
       const result = await db
         .select({ count: sql`count(DISTINCT ${avlTable.itemId})` })
         .from(avlTable)
-        .where(eq(avlTable.status, 'approved'));
+        .where(sql`${avlTable.approvalDate} IS NOT NULL`);
       return Number(result[0]?.count || 0);
     }),
     // Total items count
