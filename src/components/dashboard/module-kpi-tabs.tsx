@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import TabPanel, { Item } from 'devextreme-react/tab-panel';
+import TabPanel from 'devextreme-react/tab-panel';
 import { Card, CardContent } from '@/components/ui/card';
 import { HRKpiSection } from './hr-kpi-section';
 import { PurchaseKpiSection } from './purchase-kpi-section';
