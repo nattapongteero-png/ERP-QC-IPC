@@ -347,6 +347,17 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   status: text('status').notNull().default('pending'), // pending, issued, returned
   issuedBy: integer('issued_by').references(() => sqliteUsers.id),
   issuedAt: text('issued_at'),
+  // Phase 3: Enhanced material weighing fields (BMPR Form)
+  bomLineId: integer('bom_line_id').references(() => sqliteBOMLines.id), // Reference to BOM formula
+  weighedQty: real('weighed_qty'), // Actual weight recorded
+  weighedBy: integer('weighed_by').references(() => sqliteUsers.id), // Operator who weighed
+  weighedAt: text('weighed_at'),
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id), // Verifier
+  verifiedAt: text('verified_at'),
+  // Water-specific fields (for water material)
+  waterDate: text('water_date'),
+  waterConductivity: real('water_conductivity'), // µS·cm⁻¹
+  waterTemperature: real('water_temperature'), // °C
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1016,6 +1027,269 @@ export const sqliteHRAuditLog = sqliteTable('hr_audit_log', {
 });
 
 // ============================================
+// GMP Production Master Data (Phase 3 - BMPR Form)
+// ============================================
+
+// Production Rooms (Master Data) - Lookup table for production rooms/areas
+export const sqliteProductionRooms = sqliteTable('production_rooms', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  nameTh: text('name_th').notNull(),
+  roomType: text('room_type').notNull(), // weighing, mixing, packaging, storage
+  description: text('description'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Production Equipment (Master Data) - Lookup table for production equipment
+export const sqliteProductionEquipment = sqliteTable('production_equipment', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  nameTh: text('name_th').notNull(),
+  equipmentType: text('equipment_type').notNull(), // scale, mixer, hotplate, container, tool, filler
+  capacity: text('capacity'), // e.g., "200 kg", "120 liters"
+  roomId: integer('room_id').references(() => sqliteProductionRooms.id), // Default room
+  description: text('description'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Environmental Conditions (Master Data) - Lookup table for environmental condition profiles
+export const sqliteEnvironmentalConditions = sqliteTable('environmental_conditions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  temperatureMin: real('temperature_min').notNull().default(20),
+  temperatureMax: real('temperature_max').notNull().default(30),
+  humidityMax: real('humidity_max').notNull().default(60),
+  monitoringIntervalMinutes: integer('monitoring_interval_minutes').notNull().default(60),
+  notes: text('notes'), // e.g., "Humidity may exceed during boiling process"
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// SOP Step Templates (Master Data) - Lookup table for reusable SOP step templates
+export const sqliteSOPStepTemplates = sqliteTable('sop_step_templates', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  nameTh: text('name_th').notNull(),
+  category: text('category').notNull(), // preparation, mixing, heating, cooling, packaging
+  instructions: text('instructions'),
+  instructionsTh: text('instructions_th'),
+  defaultParameters: text('default_parameters'), // JSON: { temperature: 75, mixingSpeed: 45, duration: 5 }
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Packaging QC Criteria (Master Data) - Lookup table for packaging weight/inspection criteria
+export const sqlitePackagingQCCriteria = sqliteTable('packaging_qc_criteria', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  // Weight control
+  weightMin: real('weight_min').notNull(),
+  weightMax: real('weight_max').notNull(),
+  sampleSize: integer('sample_size').notNull().default(20),
+  maxFailures: integer('max_failures').notNull().default(2),
+  checkIntervalMinutes: integer('check_interval_minutes').notNull().default(30),
+  // Packaging
+  unitsPerPack: integer('units_per_pack').notNull().default(12),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// BOM Configuration Tables (Phase 3 - BMPR Form)
+// ============================================
+
+// BOM Room Requirements - Link rooms to BOM for each phase
+export const sqliteBOMRooms = sqliteTable('bom_rooms', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
+  roomId: integer('room_id').notNull().references(() => sqliteProductionRooms.id),
+  phase: text('phase').notNull(), // pre_production, production, post_production, pre_packaging, packaging
+  sequence: integer('sequence').notNull().default(1),
+  isRequired: integer('is_required', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// BOM Equipment Requirements - Link equipment to BOM for each phase
+export const sqliteBOMEquipment = sqliteTable('bom_equipment', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
+  equipmentId: integer('equipment_id').notNull().references(() => sqliteProductionEquipment.id),
+  phase: text('phase').notNull(), // pre_production, production, post_production, pre_packaging, packaging
+  sequence: integer('sequence').notNull().default(1),
+  isRequired: integer('is_required', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// BOM Environmental Conditions - Link environmental conditions to BOM phases
+export const sqliteBOMEnvironmentalConditions = sqliteTable('bom_environmental_conditions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
+  conditionId: integer('condition_id').notNull().references(() => sqliteEnvironmentalConditions.id),
+  phase: text('phase').notNull(), // production, packaging
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// BOM SOP Steps - Detailed SOP steps for BOM with parameters
+export const sqliteBOMSOPSteps = sqliteTable('bom_sop_steps', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
+  templateId: integer('template_id').references(() => sqliteSOPStepTemplates.id),
+  sequence: integer('sequence').notNull(),
+  stepName: text('step_name').notNull(),
+  stepNameTh: text('step_name_th'),
+  instructions: text('instructions'),
+  instructionsTh: text('instructions_th'),
+  // Step-specific parameters (override template defaults)
+  parameters: text('parameters'), // JSON: { temperature: 75, mixingSpeed: 45, duration: 5 }
+  // Required equipment for this step
+  equipmentIds: text('equipment_ids'), // JSON array of equipment IDs
+  // Verification requirements
+  requiresVerification: integer('requires_verification', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// BOM Packaging QC - Link packaging QC criteria to BOM
+export const sqliteBOMPackagingQC = sqliteTable('bom_packaging_qc', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqlitePackagingQCCriteria.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// Work Order Execution Tables (Phase 3 - BMPR Form)
+// ============================================
+
+// Work Order Environmental Logs - Actual environmental readings during production
+export const sqliteWOEnvironmentalLogs = sqliteTable('wo_environmental_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  bomConditionId: integer('bom_condition_id').references(() => sqliteBOMEnvironmentalConditions.id),
+  phase: text('phase').notNull(), // production, packaging
+  recordedDate: text('recorded_date').notNull(),
+  recordedTime: text('recorded_time').notNull(),
+  temperature: real('temperature').notNull(),
+  humidity: real('humidity').notNull(),
+  isNormal: integer('is_normal', { mode: 'boolean' }).notNull(),
+  operatorId: integer('operator_id').notNull().references(() => sqliteUsers.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Work Order Cleaning Logs - Actual cleaning records per room/equipment
+export const sqliteWOCleaningLogs = sqliteTable('wo_cleaning_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  phase: text('phase').notNull(), // pre_production, post_production, pre_packaging
+  itemType: text('item_type').notNull(), // room, equipment
+  // Reference to master data (dynamic selection)
+  roomId: integer('room_id').references(() => sqliteProductionRooms.id),
+  equipmentId: integer('equipment_id').references(() => sqliteProductionEquipment.id),
+  isClean: integer('is_clean', { mode: 'boolean' }).notNull(),
+  operatorId: integer('operator_id').notNull().references(() => sqliteUsers.id),
+  performedAt: text('performed_at').notNull(),
+  verifierId: integer('verifier_id').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Work Order SOP Execution - Actual execution of SOP steps
+export const sqliteWOSOPExecution = sqliteTable('wo_sop_execution', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  bomStepId: integer('bom_step_id').notNull().references(() => sqliteBOMSOPSteps.id),
+  sequence: integer('sequence').notNull(),
+  isCompleted: integer('is_completed', { mode: 'boolean' }).notNull().default(false),
+  // Actual parameter values captured
+  actualParameters: text('actual_parameters'), // JSON: { actualTemp: 74.5, actualSpeed: 45, actualDuration: 5.2 }
+  // Operator tracking
+  operatorId: integer('operator_id').references(() => sqliteUsers.id),
+  startedAt: text('started_at'),
+  completedAt: text('completed_at'),
+  // Verification
+  verifierId: integer('verifier_id').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
+  status: text('status').notNull().default('pending'), // pending, in_progress, completed, deviation
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Work Order Packaging Weight Logs - Actual weight sampling during packaging
+export const sqliteWOPackagingWeightLogs = sqliteTable('wo_packaging_weight_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  bomQCId: integer('bom_qc_id').references(() => sqliteBOMPackagingQC.id), // Get criteria from BOM
+  checkTime: text('check_time').notNull(),
+  sampleWeights: text('sample_weights').notNull(), // JSON array of weights
+  failedCount: integer('failed_count').notNull().default(0),
+  isPass: integer('is_pass', { mode: 'boolean' }).notNull(),
+  operatorId: integer('operator_id').notNull().references(() => sqliteUsers.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Work Order Packaging Integrity Logs - Actual integrity checks during packaging
+export const sqliteWOPackagingIntegrityLogs = sqliteTable('wo_packaging_integrity_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  checkTime: text('check_time').notNull(),
+  tubeCapComplete: integer('tube_cap_complete', { mode: 'boolean' }).notNull(),
+  lotNumberCorrect: integer('lot_number_correct', { mode: 'boolean' }).notNull(),
+  packingCorrect: integer('packing_correct', { mode: 'boolean' }).notNull(),
+  operatorId: integer('operator_id').notNull().references(() => sqliteUsers.id),
+  inspectorId: integer('inspector_id').notNull().references(() => sqliteUsers.id),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Work Order Finished Product Inspection - Final inspection checklist
+export const sqliteWOFinishedInspection = sqliteTable('wo_finished_inspection', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  sampleDate: text('sample_date').notNull(),
+  samplerId: integer('sampler_id').notNull().references(() => sqliteUsers.id),
+  sampleQtyForTest: integer('sample_qty_for_test').notNull().default(50),
+  sampleQtyForRetention: integer('sample_qty_for_retention').notNull().default(3),
+  // 15 checklist items stored as JSON for flexibility
+  checklistResults: text('checklist_results').notNull(), // JSON: { medicineCorrect: true, ... }
+  inspectorId: integer('inspector_id').references(() => sqliteUsers.id),
+  inspectedAt: text('inspected_at'),
+  reInspectorId: integer('re_inspector_id').references(() => sqliteUsers.id),
+  reInspectedAt: text('re_inspected_at'),
+  status: text('status').notNull().default('pending'), // pending, pass, fail, re_inspected
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Work Order Packaging Materials - Packaging material consumption
+export const sqliteWOPackagingMaterials = sqliteTable('wo_packaging_materials', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  itemId: integer('item_id').references(() => sqliteItems.id), // Reference to inventory item
+  materialName: text('material_name').notNull(),
+  qtyRequisitioned: real('qty_requisitioned').notNull(),
+  qtyUsed: real('qty_used'),
+  qtyReturned: real('qty_returned'),
+  unit: text('unit').notNull(),
+  operatorId: integer('operator_id').references(() => sqliteUsers.id),
+  verifierId: integer('verifier_id').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
 // MySQL Schema (for production)
 // ============================================
 
@@ -1347,6 +1621,17 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   issuedBy: int('issued_by').references(() => mysqlUsers.id),
   issuedAt: datetime('issued_at'),
+  // Phase 3: Enhanced material weighing fields (BMPR Form)
+  bomLineId: int('bom_line_id').references(() => mysqlBOMLines.id), // Reference to BOM formula
+  weighedQty: decimal('weighed_qty', { precision: 15, scale: 4 }), // Actual weight recorded
+  weighedBy: int('weighed_by').references(() => mysqlUsers.id), // Operator who weighed
+  weighedAt: datetime('weighed_at'),
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id), // Verifier
+  verifiedAt: datetime('verified_at'),
+  // Water-specific fields (for water material)
+  waterDate: varchar('water_date', { length: 20 }),
+  waterConductivity: decimal('water_conductivity', { precision: 10, scale: 4 }), // µS·cm⁻¹
+  waterTemperature: decimal('water_temperature', { precision: 5, scale: 2 }), // °C
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -3680,6 +3965,269 @@ export const mysqlStockAlertRules = mysqlTable('stock_alert_rules', {
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
 
+// ============================================
+// GMP Production Master Data (Phase 3 - BMPR Form) - MySQL
+// ============================================
+
+// Production Rooms (Master Data) - MySQL
+export const mysqlProductionRooms = mysqlTable('production_rooms', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  nameTh: varchar('name_th', { length: 255 }).notNull(),
+  roomType: varchar('room_type', { length: 50 }).notNull(), // weighing, mixing, packaging, storage
+  description: mysqlText('description'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Production Equipment (Master Data) - MySQL
+export const mysqlProductionEquipment = mysqlTable('production_equipment', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  nameTh: varchar('name_th', { length: 255 }).notNull(),
+  equipmentType: varchar('equipment_type', { length: 50 }).notNull(), // scale, mixer, hotplate, container, tool, filler
+  capacity: varchar('capacity', { length: 100 }), // e.g., "200 kg", "120 liters"
+  roomId: int('room_id').references(() => mysqlProductionRooms.id), // Default room
+  description: mysqlText('description'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Environmental Conditions (Master Data) - MySQL
+export const mysqlEnvironmentalConditions = mysqlTable('environmental_conditions', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  temperatureMin: decimal('temperature_min', { precision: 5, scale: 2 }).notNull().default('20'),
+  temperatureMax: decimal('temperature_max', { precision: 5, scale: 2 }).notNull().default('30'),
+  humidityMax: decimal('humidity_max', { precision: 5, scale: 2 }).notNull().default('60'),
+  monitoringIntervalMinutes: int('monitoring_interval_minutes').notNull().default(60),
+  notes: mysqlText('notes'), // e.g., "Humidity may exceed during boiling process"
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// SOP Step Templates (Master Data) - MySQL
+export const mysqlSOPStepTemplates = mysqlTable('sop_step_templates', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  nameTh: varchar('name_th', { length: 255 }).notNull(),
+  category: varchar('category', { length: 50 }).notNull(), // preparation, mixing, heating, cooling, packaging
+  instructions: mysqlText('instructions'),
+  instructionsTh: mysqlText('instructions_th'),
+  defaultParameters: mysqlText('default_parameters'), // JSON: { temperature: 75, mixingSpeed: 45, duration: 5 }
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Packaging QC Criteria (Master Data) - MySQL
+export const mysqlPackagingQCCriteria = mysqlTable('packaging_qc_criteria', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  // Weight control
+  weightMin: decimal('weight_min', { precision: 10, scale: 4 }).notNull(),
+  weightMax: decimal('weight_max', { precision: 10, scale: 4 }).notNull(),
+  sampleSize: int('sample_size').notNull().default(20),
+  maxFailures: int('max_failures').notNull().default(2),
+  checkIntervalMinutes: int('check_interval_minutes').notNull().default(30),
+  // Packaging
+  unitsPerPack: int('units_per_pack').notNull().default(12),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// BOM Configuration Tables (Phase 3 - BMPR Form) - MySQL
+// ============================================
+
+// BOM Room Requirements - MySQL
+export const mysqlBOMRooms = mysqlTable('bom_rooms', {
+  id: int('id').primaryKey().autoincrement(),
+  bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
+  roomId: int('room_id').notNull().references(() => mysqlProductionRooms.id),
+  phase: varchar('phase', { length: 50 }).notNull(), // pre_production, production, post_production, pre_packaging, packaging
+  sequence: int('sequence').notNull().default(1),
+  isRequired: mysqlBoolean('is_required').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// BOM Equipment Requirements - MySQL
+export const mysqlBOMEquipment = mysqlTable('bom_equipment', {
+  id: int('id').primaryKey().autoincrement(),
+  bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
+  equipmentId: int('equipment_id').notNull().references(() => mysqlProductionEquipment.id),
+  phase: varchar('phase', { length: 50 }).notNull(), // pre_production, production, post_production, pre_packaging, packaging
+  sequence: int('sequence').notNull().default(1),
+  isRequired: mysqlBoolean('is_required').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// BOM Environmental Conditions - MySQL
+export const mysqlBOMEnvironmentalConditions = mysqlTable('bom_environmental_conditions', {
+  id: int('id').primaryKey().autoincrement(),
+  bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
+  conditionId: int('condition_id').notNull().references(() => mysqlEnvironmentalConditions.id),
+  phase: varchar('phase', { length: 50 }).notNull(), // production, packaging
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// BOM SOP Steps - MySQL
+export const mysqlBOMSOPSteps = mysqlTable('bom_sop_steps', {
+  id: int('id').primaryKey().autoincrement(),
+  bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
+  templateId: int('template_id').references(() => mysqlSOPStepTemplates.id),
+  sequence: int('sequence').notNull(),
+  stepName: varchar('step_name', { length: 255 }).notNull(),
+  stepNameTh: varchar('step_name_th', { length: 255 }),
+  instructions: mysqlText('instructions'),
+  instructionsTh: mysqlText('instructions_th'),
+  // Step-specific parameters (override template defaults)
+  parameters: mysqlText('parameters'), // JSON: { temperature: 75, mixingSpeed: 45, duration: 5 }
+  // Required equipment for this step
+  equipmentIds: mysqlText('equipment_ids'), // JSON array of equipment IDs
+  // Verification requirements
+  requiresVerification: mysqlBoolean('requires_verification').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// BOM Packaging QC - MySQL
+export const mysqlBOMPackagingQC = mysqlTable('bom_packaging_qc', {
+  id: int('id').primaryKey().autoincrement(),
+  bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlPackagingQCCriteria.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// ============================================
+// Work Order Execution Tables (Phase 3 - BMPR Form) - MySQL
+// ============================================
+
+// Work Order Environmental Logs - MySQL
+export const mysqlWOEnvironmentalLogs = mysqlTable('wo_environmental_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  bomConditionId: int('bom_condition_id').references(() => mysqlBOMEnvironmentalConditions.id),
+  phase: varchar('phase', { length: 50 }).notNull(), // production, packaging
+  recordedDate: varchar('recorded_date', { length: 20 }).notNull(),
+  recordedTime: varchar('recorded_time', { length: 20 }).notNull(),
+  temperature: decimal('temperature', { precision: 5, scale: 2 }).notNull(),
+  humidity: decimal('humidity', { precision: 5, scale: 2 }).notNull(),
+  isNormal: mysqlBoolean('is_normal').notNull(),
+  operatorId: int('operator_id').notNull().references(() => mysqlUsers.id),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Work Order Cleaning Logs - MySQL
+export const mysqlWOCleaningLogs = mysqlTable('wo_cleaning_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  phase: varchar('phase', { length: 50 }).notNull(), // pre_production, post_production, pre_packaging
+  itemType: varchar('item_type', { length: 50 }).notNull(), // room, equipment
+  // Reference to master data (dynamic selection)
+  roomId: int('room_id').references(() => mysqlProductionRooms.id),
+  equipmentId: int('equipment_id').references(() => mysqlProductionEquipment.id),
+  isClean: mysqlBoolean('is_clean').notNull(),
+  operatorId: int('operator_id').notNull().references(() => mysqlUsers.id),
+  performedAt: datetime('performed_at').notNull(),
+  verifierId: int('verifier_id').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Work Order SOP Execution - MySQL
+export const mysqlWOSOPExecution = mysqlTable('wo_sop_execution', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  bomStepId: int('bom_step_id').notNull().references(() => mysqlBOMSOPSteps.id),
+  sequence: int('sequence').notNull(),
+  isCompleted: mysqlBoolean('is_completed').notNull().default(false),
+  // Actual parameter values captured
+  actualParameters: mysqlText('actual_parameters'), // JSON: { actualTemp: 74.5, actualSpeed: 45, actualDuration: 5.2 }
+  // Operator tracking
+  operatorId: int('operator_id').references(() => mysqlUsers.id),
+  startedAt: datetime('started_at'),
+  completedAt: datetime('completed_at'),
+  // Verification
+  verifierId: int('verifier_id').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
+  status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, in_progress, completed, deviation
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Work Order Packaging Weight Logs - MySQL
+export const mysqlWOPackagingWeightLogs = mysqlTable('wo_packaging_weight_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  bomQCId: int('bom_qc_id').references(() => mysqlBOMPackagingQC.id), // Get criteria from BOM
+  checkTime: varchar('check_time', { length: 20 }).notNull(),
+  sampleWeights: mysqlText('sample_weights').notNull(), // JSON array of weights
+  failedCount: int('failed_count').notNull().default(0),
+  isPass: mysqlBoolean('is_pass').notNull(),
+  operatorId: int('operator_id').notNull().references(() => mysqlUsers.id),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Work Order Packaging Integrity Logs - MySQL
+export const mysqlWOPackagingIntegrityLogs = mysqlTable('wo_packaging_integrity_logs', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  checkTime: varchar('check_time', { length: 20 }).notNull(),
+  tubeCapComplete: mysqlBoolean('tube_cap_complete').notNull(),
+  lotNumberCorrect: mysqlBoolean('lot_number_correct').notNull(),
+  packingCorrect: mysqlBoolean('packing_correct').notNull(),
+  operatorId: int('operator_id').notNull().references(() => mysqlUsers.id),
+  inspectorId: int('inspector_id').notNull().references(() => mysqlUsers.id),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Work Order Finished Product Inspection - MySQL
+export const mysqlWOFinishedInspection = mysqlTable('wo_finished_inspection', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  sampleDate: varchar('sample_date', { length: 20 }).notNull(),
+  samplerId: int('sampler_id').notNull().references(() => mysqlUsers.id),
+  sampleQtyForTest: int('sample_qty_for_test').notNull().default(50),
+  sampleQtyForRetention: int('sample_qty_for_retention').notNull().default(3),
+  // 15 checklist items stored as JSON for flexibility
+  checklistResults: mysqlText('checklist_results').notNull(), // JSON: { medicineCorrect: true, ... }
+  inspectorId: int('inspector_id').references(() => mysqlUsers.id),
+  inspectedAt: datetime('inspected_at'),
+  reInspectorId: int('re_inspector_id').references(() => mysqlUsers.id),
+  reInspectedAt: datetime('re_inspected_at'),
+  status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, pass, fail, re_inspected
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Work Order Packaging Materials - MySQL
+export const mysqlWOPackagingMaterials = mysqlTable('wo_packaging_materials', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  itemId: int('item_id').references(() => mysqlItems.id), // Reference to inventory item
+  materialName: varchar('material_name', { length: 255 }).notNull(),
+  qtyRequisitioned: decimal('qty_requisitioned', { precision: 15, scale: 4 }).notNull(),
+  qtyUsed: decimal('qty_used', { precision: 15, scale: 4 }),
+  qtyReturned: decimal('qty_returned', { precision: 15, scale: 4 }),
+  unit: varchar('unit', { length: 50 }).notNull(),
+  operatorId: int('operator_id').references(() => mysqlUsers.id),
+  verifierId: int('verifier_id').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -3856,3 +4404,43 @@ export type LabelVerification = typeof sqliteLabelVerifications.$inferSelect;
 export type NewLabelVerification = typeof sqliteLabelVerifications.$inferInsert;
 export type StockAlertRule = typeof sqliteStockAlertRules.$inferSelect;
 export type NewStockAlertRule = typeof sqliteStockAlertRules.$inferInsert;
+
+// Phase 3: GMP Production Master Data (BMPR Form)
+export type ProductionRoom = typeof sqliteProductionRooms.$inferSelect;
+export type NewProductionRoom = typeof sqliteProductionRooms.$inferInsert;
+export type ProductionEquipment = typeof sqliteProductionEquipment.$inferSelect;
+export type NewProductionEquipment = typeof sqliteProductionEquipment.$inferInsert;
+export type EnvironmentalCondition = typeof sqliteEnvironmentalConditions.$inferSelect;
+export type NewEnvironmentalCondition = typeof sqliteEnvironmentalConditions.$inferInsert;
+export type SOPStepTemplate = typeof sqliteSOPStepTemplates.$inferSelect;
+export type NewSOPStepTemplate = typeof sqliteSOPStepTemplates.$inferInsert;
+export type PackagingQCCriteria = typeof sqlitePackagingQCCriteria.$inferSelect;
+export type NewPackagingQCCriteria = typeof sqlitePackagingQCCriteria.$inferInsert;
+
+// Phase 3: BOM Configuration (BMPR Form)
+export type BOMRoom = typeof sqliteBOMRooms.$inferSelect;
+export type NewBOMRoom = typeof sqliteBOMRooms.$inferInsert;
+export type BOMEquipmentConfig = typeof sqliteBOMEquipment.$inferSelect;
+export type NewBOMEquipmentConfig = typeof sqliteBOMEquipment.$inferInsert;
+export type BOMEnvironmentalCondition = typeof sqliteBOMEnvironmentalConditions.$inferSelect;
+export type NewBOMEnvironmentalCondition = typeof sqliteBOMEnvironmentalConditions.$inferInsert;
+export type BOMSOPStep = typeof sqliteBOMSOPSteps.$inferSelect;
+export type NewBOMSOPStep = typeof sqliteBOMSOPSteps.$inferInsert;
+export type BOMPackagingQC = typeof sqliteBOMPackagingQC.$inferSelect;
+export type NewBOMPackagingQC = typeof sqliteBOMPackagingQC.$inferInsert;
+
+// Phase 3: Work Order Execution (BMPR Form)
+export type WOEnvironmentalLog = typeof sqliteWOEnvironmentalLogs.$inferSelect;
+export type NewWOEnvironmentalLog = typeof sqliteWOEnvironmentalLogs.$inferInsert;
+export type WOCleaningLog = typeof sqliteWOCleaningLogs.$inferSelect;
+export type NewWOCleaningLog = typeof sqliteWOCleaningLogs.$inferInsert;
+export type WOSOPExecution = typeof sqliteWOSOPExecution.$inferSelect;
+export type NewWOSOPExecution = typeof sqliteWOSOPExecution.$inferInsert;
+export type WOPackagingWeightLog = typeof sqliteWOPackagingWeightLogs.$inferSelect;
+export type NewWOPackagingWeightLog = typeof sqliteWOPackagingWeightLogs.$inferInsert;
+export type WOPackagingIntegrityLog = typeof sqliteWOPackagingIntegrityLogs.$inferSelect;
+export type NewWOPackagingIntegrityLog = typeof sqliteWOPackagingIntegrityLogs.$inferInsert;
+export type WOFinishedInspection = typeof sqliteWOFinishedInspection.$inferSelect;
+export type NewWOFinishedInspection = typeof sqliteWOFinishedInspection.$inferInsert;
+export type WOPackagingMaterial = typeof sqliteWOPackagingMaterials.$inferSelect;
+export type NewWOPackagingMaterial = typeof sqliteWOPackagingMaterials.$inferInsert;
