@@ -3,7 +3,8 @@
  * Real-world purchasing with VMI integration, vendor management, and AVL
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { toQueryDate, getTodayStr } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
@@ -117,7 +118,7 @@ export async function checkVendorApproval(
   itemId: number
 ): Promise<{ approved: boolean; message: string; isPreferred: boolean }> {
   const { avl, vendors } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Check if vendor exists and is active
   const [vendor] = await database
@@ -172,7 +173,7 @@ export async function checkVendorApproval(
  */
 export async function getPreferredVendor(itemId: number): Promise<number | null> {
   const { avl, vendors } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const todayForQuery = toQueryDate(getTodayStr());
 
@@ -228,7 +229,7 @@ export async function createPurchaseOrder(
   userId: number
 ): Promise<number> {
   const { purchaseOrders, purchaseOrderLines, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Validate vendor approval for all items
   for (const line of lines) {
@@ -262,17 +263,33 @@ export async function createPurchaseOrder(
   const totalAmount = lines.reduce((sum: number, line) => sum + (line.quantity * line.unitPrice), 0);
 
   // Create PO header
-  const [newPO] = await database
-    .insert(purchaseOrders)
-    .values({
-      poNumber,
-      vendorId,
-      status: 'draft',
-      totalAmount,
-      currency: 'THB',
-      createdBy: userId,
-    })
-    .returning({ id: purchaseOrders.id });
+  let newPOId: number;
+  if (isSqlite()) {
+    const [newPO] = await database
+      .insert(purchaseOrders)
+      .values({
+        poNumber,
+        vendorId,
+        status: 'draft',
+        totalAmount,
+        currency: 'THB',
+        createdBy: userId,
+      })
+      .returning({ id: purchaseOrders.id });
+    newPOId = newPO.id;
+  } else {
+    const result = await database
+      .insert(purchaseOrders)
+      .values({
+        poNumber,
+        vendorId,
+        status: 'draft',
+        totalAmount,
+        currency: 'THB',
+        createdBy: userId,
+      });
+    newPOId = getInsertId(result);
+  }
 
   // Create PO lines
   for (let i = 0; i < lines.length; i++) {
@@ -280,7 +297,7 @@ export async function createPurchaseOrder(
     const [item] = await database.select().from(items).where(eq(items.id, line.itemId));
 
     await database.insert(purchaseOrderLines).values({
-      poId: newPO.id,
+      poId: newPOId,
       itemId: line.itemId,
       quantity: line.quantity,
       unit: item?.primaryUnit || 'EA',
@@ -295,7 +312,7 @@ export async function createPurchaseOrder(
     userId,
     action: 'CREATE',
     tableName: 'purchase_orders',
-    recordId: newPO.id,
+    recordId: newPOId,
     newValue: {
       poNumber,
       vendorId,
@@ -304,7 +321,7 @@ export async function createPurchaseOrder(
     },
   });
 
-  return newPO.id;
+  return newPOId;
 }
 
 /**
@@ -317,7 +334,7 @@ export async function updatePurchaseOrderStatus(
   reason?: string
 ): Promise<boolean> {
   const { purchaseOrders } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get current PO
   const [po] = await database
@@ -386,7 +403,7 @@ export async function receivePurchaseOrder(
   userId: number
 ): Promise<number[]> {
   const { purchaseOrders, purchaseOrderLines, items } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get PO
   const [po] = await database
@@ -481,7 +498,7 @@ export async function receivePurchaseOrder(
  */
 export async function generateVMISnapshot(vendorId: number): Promise<VMISnapshot> {
   const { vendors, avl, items, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get vendor
   const [vendor] = await database
@@ -579,7 +596,7 @@ export async function processVMIASN(
   userId: number
 ): Promise<{ poId: number; lotIds: number[] }> {
   const { items, vendors } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Validate vendor
   const [vendor] = await database
@@ -650,7 +667,7 @@ export async function evaluateVendorPerformance(
   dateTo?: string
 ): Promise<VendorEvaluation> {
   const { vendors, purchaseOrders, purchaseOrderLines, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get vendor
   const [vendor] = await database
@@ -753,7 +770,7 @@ export async function addToAVL(
   userId: number
 ): Promise<number> {
   const { avl } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Check if already exists
   const [existing] = await database
@@ -789,24 +806,39 @@ export async function addToAVL(
   }
 
   // Create new AVL entry
-  const [newAVL] = await database
-    .insert(avl)
-    .values({
-      vendorId,
-      itemId,
-      isPreferred,
-      approvalDate: new Date().toISOString().split('T')[0],
-      expiryDate,
-    })
-    .returning({ id: avl.id });
+  let newAVLId: number;
+  if (isSqlite()) {
+    const [newAVL] = await database
+      .insert(avl)
+      .values({
+        vendorId,
+        itemId,
+        isPreferred,
+        approvalDate: new Date().toISOString().split('T')[0],
+        expiryDate,
+      })
+      .returning({ id: avl.id });
+    newAVLId = newAVL.id;
+  } else {
+    const result = await database
+      .insert(avl)
+      .values({
+        vendorId,
+        itemId,
+        isPreferred,
+        approvalDate: new Date().toISOString().split('T')[0],
+        expiryDate,
+      });
+    newAVLId = getInsertId(result);
+  }
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'approved_vendor_list',
-    recordId: newAVL.id,
+    recordId: newAVLId,
     newValue: { vendorId, itemId, isPreferred  },
   });
 
-  return newAVL.id;
+  return newAVLId;
 }

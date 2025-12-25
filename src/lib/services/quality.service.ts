@@ -3,7 +3,8 @@
  * Real-world quality control with specifications, testing, deviations, and COA generation
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { toQueryDate } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
@@ -184,7 +185,7 @@ export async function createQCTestRequest(
   userId: number
 ): Promise<number[]> {
   const { tests, lots, items, specs } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get lot and item details
   const [lot] = await database
@@ -220,20 +221,37 @@ export async function createQCTestRequest(
       );
 
     // Create test record
-    const [newTest] = await database
-      .insert(tests)
-      .values({
-        lotId,
-        testType,
-        specId: spec?.id,
-        sampleSize: samplingPlan.sampleSize,
-        status: 'pending',
-        requestedBy: userId,
-        requestedAt: new Date().toISOString(),
-      })
-      .returning({ id: tests.id });
+    let newTestId: number;
+    if (isSqlite()) {
+      const [newTest] = await database
+        .insert(tests)
+        .values({
+          lotId,
+          testType,
+          specId: spec?.id,
+          sampleSize: samplingPlan.sampleSize,
+          status: 'pending',
+          requestedBy: userId,
+          requestedAt: new Date().toISOString(),
+        })
+        .returning({ id: tests.id });
+      newTestId = newTest.id;
+    } else {
+      const result = await database
+        .insert(tests)
+        .values({
+          lotId,
+          testType,
+          specId: spec?.id,
+          sampleSize: samplingPlan.sampleSize,
+          status: 'pending',
+          requestedBy: userId,
+          requestedAt: new Date().toISOString(),
+        });
+      newTestId = getInsertId(result);
+    }
 
-    testIds.push(newTest.id);
+    testIds.push(newTestId);
   }
 
   // Update lot status to under_test
@@ -268,7 +286,7 @@ export async function recordTestResult(
   userId: number
 ): Promise<{ status: 'pass' | 'fail'; deviationId?: number }> {
   const { tests, specs, deviations } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get test with specification
   const [test] = await database
@@ -307,21 +325,36 @@ export async function recordTestResult(
         const deviationNumber = `${prefix}-${random}`;
 
         // Create OOS deviation
-        const [deviation] = await database
-          .insert(deviations)
-          .values({
-            deviationNumber,
-            description: `Out of Specification: ${test.testType}. Expected: ${formatSpec(spec)}, Actual: ${resultValue ?? resultText}`,
-            lotId: test.lotId,
-            type: 'OOS',
-            severity: 'major',
-            status: 'open',
-            reportedBy: userId,
-            reportedAt: new Date().toISOString(),
-          })
-          .returning({ id: deviations.id });
-
-        deviationId = deviation.id;
+        if (isSqlite()) {
+          const [deviation] = await database
+            .insert(deviations)
+            .values({
+              deviationNumber,
+              description: `Out of Specification: ${test.testType}. Expected: ${formatSpec(spec)}, Actual: ${resultValue ?? resultText}`,
+              lotId: test.lotId,
+              type: 'OOS',
+              severity: 'major',
+              status: 'open',
+              reportedBy: userId,
+              reportedAt: new Date().toISOString(),
+            })
+            .returning({ id: deviations.id });
+          deviationId = deviation.id;
+        } else {
+          const result = await database
+            .insert(deviations)
+            .values({
+              deviationNumber,
+              description: `Out of Specification: ${test.testType}. Expected: ${formatSpec(spec)}, Actual: ${resultValue ?? resultText}`,
+              lotId: test.lotId,
+              type: 'OOS',
+              severity: 'major',
+              status: 'open',
+              reportedBy: userId,
+              reportedAt: new Date().toISOString(),
+            });
+          deviationId = getInsertId(result);
+        }
       }
     }
   }
@@ -434,7 +467,7 @@ export async function evaluateLotRelease(
   userId: number
 ): Promise<{ canRelease: boolean; status: string; failedTests: string[]; pendingTests: string[] }> {
   const { tests, lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get all tests for this lot
   const lotTests = await database
@@ -482,7 +515,7 @@ export async function releaseLot(
   coaNumber?: string
 ): Promise<boolean> {
   const { lots } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Evaluate release eligibility
   const evaluation = await evaluateLotRelease(lotId, userId);
@@ -519,7 +552,7 @@ async function generateCOANumber(): Promise<string> {
  */
 export async function generateCOA(lotId: number): Promise<COADocument> {
   const { tests, specs, lots, items, users } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get lot details
   const [lot] = await database
@@ -624,7 +657,7 @@ export async function createDeviation(
   userId: number
 ): Promise<number> {
   const { deviations } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Generate deviation number
   const today = new Date();
@@ -633,27 +666,46 @@ export async function createDeviation(
   const deviationNumber = `${prefix}-${random}`;
 
   // Create deviation
-  const [deviation] = await database
-    .insert(deviations)
-    .values({
-      deviationNumber,
-      lotId,
-      workOrderId,
-      type,
-      severity,
-      status: 'open',
-      description,
-      reportedBy: userId,
-      reportedAt: new Date().toISOString(),
-    })
-    .returning({ id: deviations.id });
+  let deviationId: number;
+  if (isSqlite()) {
+    const [deviation] = await database
+      .insert(deviations)
+      .values({
+        deviationNumber,
+        lotId,
+        workOrderId,
+        type,
+        severity,
+        status: 'open',
+        description,
+        reportedBy: userId,
+        reportedAt: new Date().toISOString(),
+      })
+      .returning({ id: deviations.id });
+    deviationId = deviation.id;
+  } else {
+    const result = await database
+      .insert(deviations)
+      .values({
+        deviationNumber,
+        lotId,
+        workOrderId,
+        type,
+        severity,
+        status: 'open',
+        description,
+        reportedBy: userId,
+        reportedAt: new Date().toISOString(),
+      });
+    deviationId = getInsertId(result);
+  }
 
   // Create audit log
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'deviations',
-    recordId: deviation.id,
+    recordId: deviationId,
     newValue: {
       deviationNumber,
       type,
@@ -662,7 +714,7 @@ export async function createDeviation(
     },
   });
 
-  return deviation.id;
+  return deviationId;
 }
 
 /**
@@ -678,7 +730,7 @@ export async function updateDeviationInvestigation(
   userId: number
 ): Promise<boolean> {
   const { deviations } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get current deviation
   const [deviation] = await database
@@ -731,7 +783,7 @@ export async function closeDeviation(
   userId: number
 ): Promise<boolean> {
   const { deviations } = getTables();
-  const database = db();
+  const database = await getDb();
 
   // Get current deviation
   const [deviation] = await database
@@ -789,7 +841,7 @@ export async function getDeviationStatistics(
   averageClosureTime: number;
 }> {
   const { deviations } = getTables();
-  const database = db();
+  const database = await getDb();
 
   const conditions = [];
   if (dateFrom) {
