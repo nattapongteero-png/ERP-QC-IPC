@@ -76,6 +76,9 @@ export const ROLES = {
   HR_ADMIN: 'hr_admin',
   HR_STAFF: 'hr_staff',
   HEALTH_STAFF: 'health_staff',
+  // Finance/Accounting roles
+  FINANCE: 'finance',
+  ACCOUNTANT: 'accountant',
 } as const;
 
 export type Role = typeof ROLES[keyof typeof ROLES];
@@ -185,6 +188,19 @@ export const PERMISSIONS = {
   'change_control:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
   'change_control:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'change_control:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+
+  // Accounting Module
+  'accounting:gl_accounts:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:gl_accounts:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:gl_accounts:delete': [ROLES.ADMIN, ROLES.FINANCE],
+  'accounting:gl_account_types:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:gl_account_types:write': [ROLES.ADMIN, ROLES.FINANCE],
+  'accounting:journal_entries:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:journal_entries:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:journal_entries:post': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:fiscal_periods:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:fiscal_periods:write': [ROLES.ADMIN, ROLES.FINANCE],
+  'accounting:reports:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

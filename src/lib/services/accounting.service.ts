@@ -404,11 +404,11 @@ export async function createJournalEntry(input: CreateJournalEntryInput): Promis
 
   // Create audit log
   await createAuditLog({
-    action: 'create',
-    entityType: 'journal_entry',
-    entityId: journalEntryId,
+    action: 'CREATE',
+    tableName: 'journal_entry',
+    recordId: journalEntryId,
     userId: input.createdBy,
-    details: {
+    newValue: {
       entryNumber,
       totalDebit,
       totalCredit,
@@ -480,7 +480,7 @@ export async function getJournalEntryById(id: number): Promise<JournalEntry> {
     createdBy: entry.createdBy,
     createdAt: formatDateFromDb(entry.createdAt),
     updatedAt: formatDateFromDb(entry.updatedAt),
-    lines: lines.map((line) => ({
+    lines: lines.map((line: (typeof lines)[number]) => ({
       id: line.id,
       journalEntryId: line.journalEntryId,
       lineNumber: line.lineNumber,
@@ -547,11 +547,11 @@ export async function postJournalEntry(id: number, postedBy: number): Promise<Jo
 
   // Create audit log
   await createAuditLog({
-    action: 'post',
-    entityType: 'journal_entry',
-    entityId: id,
+    action: 'APPROVE',
+    tableName: 'journal_entry',
+    recordId: id,
     userId: postedBy,
-    details: {
+    newValue: {
       entryNumber: entry.entryNumber,
       previousStatus: entry.status,
       newStatus: 'posted',
@@ -609,12 +609,12 @@ export async function reverseJournalEntry(
     ? `Reversal of ${originalEntry.entryNumber}: ${reason}`
     : `Reversal of ${originalEntry.entryNumber}`;
 
-  const reversalLines: JournalLineCreate[] = (originalEntry.lines || []).map((line) => ({
+  const reversalLines: JournalLineCreate[] = (originalEntry.lines || []).map((line: JournalLine) => ({
     glAccountId: line.glAccountId,
     debit: line.credit, // Swap: original credit becomes reversal debit
     credit: line.debit, // Swap: original debit becomes reversal credit
     description: `Reversal: ${line.description || ''}`.trim(),
-    costCenterId: line.costCenterId,
+    costCenterId: line.costCenterId ?? undefined,
   }));
 
   // Create the reversing entry
@@ -645,11 +645,11 @@ export async function reverseJournalEntry(
 
   // Create audit log for the reversal
   await createAuditLog({
-    action: 'reverse',
-    entityType: 'journal_entry',
-    entityId: id,
+    action: 'UPDATE',
+    tableName: 'journal_entry',
+    recordId: id,
     userId: reversedBy,
-    details: {
+    newValue: {
       originalEntryNumber: originalEntry.entryNumber,
       reversalEntryNumber: postedReversalEntry.entryNumber,
       reversalEntryId: postedReversalEntry.id,
@@ -729,7 +729,7 @@ export async function listGLAccountTypes(): Promise<GLAccountType[]> {
     .from(glAccountTypes)
     .orderBy(asc(glAccountTypes.displayOrder));
 
-  return result.map((type) => ({
+  return result.map((type: (typeof result)[number]) => ({
     id: type.id,
     code: type.code,
     nameTh: type.nameTh,
@@ -824,7 +824,7 @@ export async function listGLAccounts(filters?: {
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(asc(glAccounts.code));
 
-  return result.map((acc) => ({
+  return result.map((acc: (typeof result)[number]) => ({
     id: acc.id,
     code: acc.code,
     nameTh: acc.nameTh,
@@ -921,11 +921,11 @@ export async function createGLAccount(
     : (insertResult as unknown as [{ insertId: number }])[0].insertId;
 
   await createAuditLog({
-    action: 'create',
-    entityType: 'gl_account',
-    entityId: insertedId,
+    action: 'CREATE',
+    tableName: 'gl_account',
+    recordId: insertedId,
     userId: createdBy,
-    details: { code: input.code, nameTh: input.nameTh },
+    newValue: { code: input.code, nameTh: input.nameTh },
   });
 
   const accounts = await listGLAccounts({ search: input.code });
@@ -1011,11 +1011,11 @@ export async function createFiscalYear(
   }
 
   await createAuditLog({
-    action: 'create',
-    entityType: 'fiscal_year',
-    entityId: insertedYearId,
+    action: 'CREATE',
+    tableName: 'fiscal_year',
+    recordId: insertedYearId,
     userId: createdBy,
-    details: { yearCode: input.yearCode, startDate: input.startDate, endDate: input.endDate },
+    newValue: { yearCode: input.yearCode, startDate: input.startDate, endDate: input.endDate },
   });
 
   // Return the created year
@@ -1057,7 +1057,7 @@ export async function getFiscalYearById(id: number): Promise<FiscalYear> {
     closedAt: year.closedAt ? formatDateFromDb(year.closedAt) : null,
     createdAt: formatDateFromDb(year.createdAt),
     updatedAt: formatDateFromDb(year.updatedAt),
-    periods: periods.map((p) => ({
+    periods: periods.map((p: (typeof periods)[number]) => ({
       id: p.id,
       fiscalYearId: p.fiscalYearId,
       periodNumber: p.periodNumber,
@@ -1086,7 +1086,7 @@ export async function listFiscalYears(): Promise<FiscalYear[]> {
     .from(fiscalYears)
     .orderBy(desc(fiscalYears.startDate));
 
-  return years.map((year) => ({
+  return years.map((year: (typeof years)[number]) => ({
     id: year.id,
     yearCode: year.yearCode,
     startDate: formatDateFromDb(year.startDate),
@@ -1098,4 +1098,414 @@ export async function listFiscalYears(): Promise<FiscalYear[]> {
     createdAt: formatDateFromDb(year.createdAt),
     updatedAt: formatDateFromDb(year.updatedAt),
   }));
+}
+
+// ============================================
+// GL Account Management (User Story 1)
+// ============================================
+
+/**
+ * Get a GL account by ID
+ * @param id - GL account ID
+ * @returns GL account or null
+ */
+export async function getGLAccountById(id: number): Promise<GLAccount | null> {
+  const { glAccounts, glAccountTypes } = getAccountingTables();
+  const database = db();
+
+  const [account] = await database
+    .select({
+      id: glAccounts.id,
+      code: glAccounts.code,
+      nameTh: glAccounts.nameTh,
+      nameEn: glAccounts.nameEn,
+      accountTypeId: glAccounts.accountTypeId,
+      parentId: glAccounts.parentId,
+      level: glAccounts.level,
+      isPostable: glAccounts.isPostable,
+      isBankAccount: glAccounts.isBankAccount,
+      bankName: glAccounts.bankName,
+      bankAccountNumber: glAccounts.bankAccountNumber,
+      description: glAccounts.description,
+      isActive: glAccounts.isActive,
+      createdBy: glAccounts.createdBy,
+      createdAt: glAccounts.createdAt,
+      updatedAt: glAccounts.updatedAt,
+    })
+    .from(glAccounts)
+    .where(eq(glAccounts.id, id))
+    .limit(1);
+
+  if (!account) return null;
+
+  return {
+    id: account.id,
+    code: account.code,
+    nameTh: account.nameTh,
+    nameEn: account.nameEn,
+    accountTypeId: account.accountTypeId,
+    parentId: account.parentId,
+    level: account.level,
+    isPostable: Boolean(account.isPostable),
+    isBankAccount: Boolean(account.isBankAccount),
+    bankName: account.bankName,
+    bankAccountNumber: account.bankAccountNumber,
+    description: account.description,
+    isActive: Boolean(account.isActive),
+    createdBy: account.createdBy!,
+    createdAt: formatDateFromDb(account.createdAt),
+    updatedAt: formatDateFromDb(account.updatedAt),
+  };
+}
+
+interface UpdateGLAccountInput {
+  nameTh?: string;
+  nameEn?: string;
+  description?: string;
+  isActive?: boolean;
+  isBankAccount?: boolean;
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+}
+
+/**
+ * Update a GL account
+ * @param id - GL account ID
+ * @param input - Update data
+ * @param updatedBy - User ID making the update
+ * @returns Updated GL account
+ */
+export async function updateGLAccount(
+  id: number,
+  input: UpdateGLAccountInput,
+  updatedBy: number
+): Promise<GLAccount> {
+  const { glAccounts } = getAccountingTables();
+  const database = db();
+
+  // Check if account exists
+  const existing = await getGLAccountById(id);
+  if (!existing) {
+    throw new Error('GL account not found');
+  }
+
+  // Cannot change code or type after creation
+  const updateValues: Record<string, unknown> = {
+    updatedAt: getNow(),
+  };
+
+  if (input.nameTh !== undefined) updateValues.nameTh = input.nameTh;
+  if (input.nameEn !== undefined) updateValues.nameEn = input.nameEn;
+  if (input.description !== undefined) updateValues.description = input.description;
+  if (input.isActive !== undefined) updateValues.isActive = input.isActive;
+  if (input.isBankAccount !== undefined) updateValues.isBankAccount = input.isBankAccount;
+  if (input.bankName !== undefined) updateValues.bankName = input.bankName;
+  if (input.bankAccountNumber !== undefined) updateValues.bankAccountNumber = input.bankAccountNumber;
+
+  await database
+    .update(glAccounts)
+    .set(updateValues)
+    .where(eq(glAccounts.id, id));
+
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'gl_account',
+    recordId: id,
+    userId: updatedBy,
+    newValue: { code: existing.code, changes: input },
+  });
+
+  return (await getGLAccountById(id))!;
+}
+
+/**
+ * Deactivate a GL account (soft delete)
+ * @param id - GL account ID
+ * @param deactivatedBy - User ID making the deactivation
+ * @returns Deactivated GL account
+ */
+export async function deactivateGLAccount(
+  id: number,
+  deactivatedBy: number
+): Promise<GLAccount> {
+  const { glAccounts, journalLines } = getAccountingTables();
+  const database = db();
+
+  // Check if account exists
+  const existing = await getGLAccountById(id);
+  if (!existing) {
+    throw new Error('GL account not found');
+  }
+
+  // Check for balance - if there's any transaction, check if balanced
+  const [balanceResult] = await database
+    .select({
+      totalDebit: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
+      totalCredit: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
+    })
+    .from(journalLines)
+    .where(eq(journalLines.glAccountId, id));
+
+  const balance = Number(balanceResult?.totalDebit || 0) - Number(balanceResult?.totalCredit || 0);
+  if (Math.abs(balance) > 0.01) {
+    throw new Error(`Cannot deactivate account with non-zero balance: ${balance.toFixed(2)}`);
+  }
+
+  // Check for child accounts
+  const [childCount] = await database
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(glAccounts)
+    .where(and(eq(glAccounts.parentId, id), eq(glAccounts.isActive, true)));
+
+  if (Number(childCount?.count || 0) > 0) {
+    throw new Error('Cannot deactivate account with active child accounts');
+  }
+
+  await database
+    .update(glAccounts)
+    .set({ isActive: false, updatedAt: getNow() })
+    .where(eq(glAccounts.id, id));
+
+  await createAuditLog({
+    action: 'UPDATE',
+    tableName: 'gl_account',
+    recordId: id,
+    userId: deactivatedBy,
+    newValue: { code: existing.code },
+  });
+
+  return (await getGLAccountById(id))!;
+}
+
+/**
+ * Delete a GL account (hard delete - only if no transactions)
+ * @param id - GL account ID
+ * @param deletedBy - User ID making the deletion
+ */
+export async function deleteGLAccount(
+  id: number,
+  deletedBy: number
+): Promise<void> {
+  const { glAccounts, journalLines } = getAccountingTables();
+  const database = db();
+
+  // Check if account exists
+  const existing = await getGLAccountById(id);
+  if (!existing) {
+    throw new Error('GL account not found');
+  }
+
+  // Check for any transactions
+  const [txCount] = await database
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(journalLines)
+    .where(eq(journalLines.glAccountId, id));
+
+  if (Number(txCount?.count || 0) > 0) {
+    throw new Error('Cannot delete account with existing transactions. Use deactivate instead.');
+  }
+
+  // Check for child accounts
+  const [childCount] = await database
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(glAccounts)
+    .where(eq(glAccounts.parentId, id));
+
+  if (Number(childCount?.count || 0) > 0) {
+    throw new Error('Cannot delete account with child accounts');
+  }
+
+  await database
+    .delete(glAccounts)
+    .where(eq(glAccounts.id, id));
+
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'gl_account',
+    recordId: id,
+    userId: deletedBy,
+    newValue: { code: existing.code, nameTh: existing.nameTh },
+  });
+}
+
+interface GLAccountTreeNode extends GLAccount {
+  children: GLAccountTreeNode[];
+}
+
+/**
+ * Get GL accounts as a hierarchical tree
+ * @returns Tree structure of GL accounts
+ */
+export async function getGLAccountTree(): Promise<GLAccountTreeNode[]> {
+  const accounts = await listGLAccounts({ isActive: true });
+
+  // Build a map for quick lookup
+  const accountMap = new Map<number, GLAccountTreeNode>();
+  accounts.forEach((account) => {
+    accountMap.set(account.id, { ...account, children: [] });
+  });
+
+  // Build the tree
+  const rootNodes: GLAccountTreeNode[] = [];
+  accountMap.forEach((node) => {
+    if (node.parentId) {
+      const parent = accountMap.get(node.parentId);
+      if (parent) {
+        parent.children.push(node);
+      } else {
+        // Parent not found or inactive, treat as root
+        rootNodes.push(node);
+      }
+    } else {
+      rootNodes.push(node);
+    }
+  });
+
+  // Sort children by code at each level
+  const sortChildren = (nodes: GLAccountTreeNode[]) => {
+    nodes.sort((a, b) => a.code.localeCompare(b.code));
+    nodes.forEach((node) => sortChildren(node.children));
+  };
+  sortChildren(rootNodes);
+
+  return rootNodes;
+}
+
+interface GLAccountBalance {
+  accountId: number;
+  accountCode: string;
+  accountName: string;
+  debitTotal: number;
+  creditTotal: number;
+  balance: number;
+  normalBalance: 'debit' | 'credit';
+  asOfDate: string;
+}
+
+/**
+ * Get GL account balance as of a specific date
+ * @param accountId - GL account ID
+ * @param asOfDate - Date to calculate balance as of (defaults to today)
+ * @returns Account balance information
+ */
+export async function getGLAccountBalance(
+  accountId: number,
+  asOfDate?: string
+): Promise<GLAccountBalance> {
+  const { journalEntries, journalLines, glAccounts, glAccountTypes } = getAccountingTables();
+  const database = db();
+
+  // Get account details
+  const [account] = await database
+    .select({
+      id: glAccounts.id,
+      code: glAccounts.code,
+      nameTh: glAccounts.nameTh,
+      normalBalance: glAccountTypes.normalBalance,
+    })
+    .from(glAccounts)
+    .leftJoin(glAccountTypes, eq(glAccounts.accountTypeId, glAccountTypes.id))
+    .where(eq(glAccounts.id, accountId))
+    .limit(1);
+
+  if (!account) {
+    throw new Error('GL account not found');
+  }
+
+  const effectiveDate = asOfDate || getTodayStr();
+
+  // Calculate totals from posted journal entries up to the date
+  const [totals] = await database
+    .select({
+      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
+      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
+    })
+    .from(journalLines)
+    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+    .where(
+      and(
+        eq(journalLines.glAccountId, accountId),
+        eq(journalEntries.status, 'posted'),
+        lte(journalEntries.entryDate, toQueryDate(effectiveDate))
+      )
+    );
+
+  const debitTotal = Number(totals?.debitTotal || 0);
+  const creditTotal = Number(totals?.creditTotal || 0);
+  const normalBalance = (account.normalBalance as 'debit' | 'credit') || 'debit';
+
+  // Calculate balance based on normal balance
+  const balance = normalBalance === 'debit'
+    ? debitTotal - creditTotal
+    : creditTotal - debitTotal;
+
+  return {
+    accountId: account.id,
+    accountCode: account.code,
+    accountName: account.nameTh,
+    debitTotal: Math.round(debitTotal * 100) / 100,
+    creditTotal: Math.round(creditTotal * 100) / 100,
+    balance: Math.round(balance * 100) / 100,
+    normalBalance,
+    asOfDate: effectiveDate,
+  };
+}
+
+interface ExportCOAOptions {
+  includeInactive?: boolean;
+  format?: 'json' | 'csv';
+}
+
+interface ExportedCOAAccount {
+  code: string;
+  nameTh: string;
+  nameEn: string | null;
+  typeCode: string | undefined;
+  typeName: string | undefined;
+  parentCode: string | null;
+  level: number;
+  isPostable: boolean;
+  isActive: boolean;
+  description: string | null;
+}
+
+/**
+ * Export Chart of Accounts for auditor review
+ * @param options - Export options
+ * @returns Exported COA data
+ */
+export async function exportChartOfAccounts(
+  options: ExportCOAOptions = {}
+): Promise<{ accounts: ExportedCOAAccount[]; exportedAt: string; count: number }> {
+  const accounts = await listGLAccounts({
+    isActive: options.includeInactive ? undefined : true,
+  });
+
+  // Build a code lookup for parent references
+  const codeMap = new Map<number, string>();
+  accounts.forEach((account) => {
+    codeMap.set(account.id, account.code);
+  });
+
+  const exportedAccounts: ExportedCOAAccount[] = accounts.map((account) => ({
+    code: account.code,
+    nameTh: account.nameTh,
+    nameEn: account.nameEn,
+    typeCode: account.accountType?.code,
+    typeName: account.accountType?.nameTh,
+    parentCode: account.parentId ? (codeMap.get(account.parentId) || null) : null,
+    level: account.level,
+    isPostable: account.isPostable,
+    isActive: account.isActive,
+    description: account.description,
+  }));
+
+  // Sort by code
+  exportedAccounts.sort((a, b) => a.code.localeCompare(b.code));
+
+  return {
+    accounts: exportedAccounts,
+    exportedAt: new Date().toISOString(),
+    count: exportedAccounts.length,
+  };
 }
