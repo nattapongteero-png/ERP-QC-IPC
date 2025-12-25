@@ -40,6 +40,12 @@ import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+  AccountingStatusBadge,
+} from '@/components/accounting';
 
 // Types
 interface JournalLine {
@@ -112,7 +118,19 @@ async function fetchGLAccounts(): Promise<GLAccount[]> {
   return json.data;
 }
 
-async function createJournalEntry(data: any): Promise<JournalEntry> {
+interface CreateJournalEntryData {
+  entryDate: string;
+  description: string | null;
+  sourceType: string;
+  lines: {
+    glAccountId: number;
+    debit: number;
+    credit: number;
+    description: string;
+  }[];
+}
+
+async function createJournalEntry(data: CreateJournalEntryData): Promise<JournalEntry> {
   const res = await fetch('/api/accounting/journal-entries', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -164,7 +182,7 @@ export default function JournalEntriesPage() {
   });
 
   // Queries
-  const { data: entries = [], isLoading } = useQuery({
+  const { data: entries = [] } = useQuery({
     queryKey: ['journal-entries', statusFilter, sourceTypeFilter],
     queryFn: () =>
       fetchJournalEntries({
@@ -301,7 +319,7 @@ export default function JournalEntriesPage() {
     }));
   }, []);
 
-  const updateLine = useCallback((index: number, field: string, value: any) => {
+  const updateLine = useCallback((index: number, field: string, value: number | string | null) => {
     setFormData((prev) => ({
       ...prev,
       lines: prev.lines.map((line, i) =>
@@ -324,30 +342,12 @@ export default function JournalEntriesPage() {
   }, [totalDebit, totalCredit]);
 
   // Status badge render
-  const statusCellRender = useCallback((cellData: any) => {
-    const statusMap: Record<string, { label: string; color: string }> = {
-      draft: { label: 'ร่าง', color: '#6c757d' },
-      posted: { label: 'ผ่านแล้ว', color: '#28a745' },
-      reversed: { label: 'กลับรายการ', color: '#dc3545' },
-    };
-    const status = statusMap[cellData.value] || { label: cellData.value, color: '#6c757d' };
-    return (
-      <span
-        style={{
-          backgroundColor: status.color,
-          color: 'white',
-          padding: '2px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-        }}
-      >
-        {status.label}
-      </span>
-    );
+  const statusCellRender = useCallback((cellData: { value: 'draft' | 'posted' | 'reversed' }) => {
+    return <AccountingStatusBadge status={cellData.value} />;
   }, []);
 
   // Source type label
-  const sourceTypeCellRender = useCallback((cellData: any) => {
+  const sourceTypeCellRender = useCallback((cellData: { value: string | null }) => {
     const typeMap: Record<string, string> = {
       MANUAL: 'บันทึกมือ',
       PO_RECEIPT: 'รับสินค้า',
@@ -364,7 +364,7 @@ export default function JournalEntriesPage() {
 
   // Action buttons render
   const actionsCellRender = useCallback(
-    (cellData: any) => {
+    (cellData: { data: JournalEntry }) => {
       const entry = cellData.data as JournalEntry;
       return (
         <div style={{ display: 'flex', gap: '4px' }}>
@@ -393,99 +393,131 @@ export default function JournalEntriesPage() {
   );
 
   // Master-detail for journal lines
-  const renderDetail = useCallback((props: any) => {
+  const renderDetail = useCallback((props: { data: { key: number } }) => {
     const { key } = props.data;
     return <JournalLinesDetail entryId={key} />;
   }, []);
 
+  // Calculate stats
+  const stats = useMemo(() => {
+    const total = entries.length;
+    const draft = entries.filter((e) => e.status === 'draft').length;
+    const posted = entries.filter((e) => e.status === 'posted').length;
+    const reversed = entries.filter((e) => e.status === 'reversed').length;
+
+    return { total, draft, posted, reversed };
+  }, [entries]);
+
+  // Handle refresh
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+  }, [queryClient]);
+
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">รายการบันทึกบัญชี</h1>
-        <p className="text-gray-600">Journal Entries</p>
-      </div>
+      <AccountingPageHeader
+        title="รายการบันทึกบัญชี"
+        subtitle="Journal Entries"
+        icon="file-text"
+        onRefresh={handleRefresh}
+        actions={
+          <Button
+            text="เพิ่มรายการ"
+            icon="plus"
+            type="success"
+            onClick={handleOpenDialog}
+          />
+        }
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="text-gray-600 text-sm">รายการทั้งหมด</div>
-          <div className="text-2xl font-bold">{entries.length}</div>
+      <div className="p-4 md:p-6 space-y-6">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <AccountingKPICard
+            label="รายการทั้งหมด"
+            value={stats.total}
+            icon="file-text"
+            variant="info"
+          />
+          <AccountingKPICard
+            label="ร่าง"
+            value={stats.draft}
+            icon="clock"
+            variant="default"
+          />
+          <AccountingKPICard
+            label="ผ่านแล้ว"
+            value={stats.posted}
+            icon="check-circle"
+            variant="success"
+          />
+          <AccountingKPICard
+            label="กลับรายการ"
+            value={stats.reversed}
+            icon="arrow-down"
+            variant="danger"
+          />
         </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-gray-500">
-          <div className="text-gray-600 text-sm">ร่าง</div>
-          <div className="text-2xl font-bold">
-            {entries.filter((e) => e.status === 'draft').length}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-          <div className="text-gray-600 text-sm">ผ่านแล้ว</div>
-          <div className="text-2xl font-bold">
-            {entries.filter((e) => e.status === 'posted').length}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-          <div className="text-gray-600 text-sm">กลับรายการ</div>
-          <div className="text-2xl font-bold">
-            {entries.filter((e) => e.status === 'reversed').length}
-          </div>
-        </div>
-      </div>
 
-      {/* Filters */}
-      <div className="mb-4 flex items-center gap-4">
-        <SelectBox
-          dataSource={[
-            { value: '', label: 'ทั้งหมด' },
-            { value: 'draft', label: 'ร่าง' },
-            { value: 'posted', label: 'ผ่านแล้ว' },
-            { value: 'reversed', label: 'กลับรายการ' },
-          ]}
-          displayExpr="label"
-          valueExpr="value"
-          value={statusFilter}
-          onValueChanged={(e) => setStatusFilter(e.value)}
-          placeholder="กรองสถานะ"
-          width={150}
-        />
-        <SelectBox
-          dataSource={[
-            { value: '', label: 'ทุกประเภท' },
-            { value: 'MANUAL', label: 'บันทึกมือ' },
-            { value: 'PO_RECEIPT', label: 'รับสินค้า' },
-            { value: 'SO_SHIPMENT', label: 'ส่งสินค้า' },
-            { value: 'AP_PAYMENT', label: 'จ่ายเงิน' },
-            { value: 'AR_RECEIPT', label: 'รับเงิน' },
-          ]}
-          displayExpr="label"
-          valueExpr="value"
-          value={sourceTypeFilter}
-          onValueChanged={(e) => setSourceTypeFilter(e.value)}
-          placeholder="กรองประเภท"
-          width={150}
-        />
-        <Button
-          text="เพิ่มรายการ"
-          icon="plus"
-          type="success"
-          onClick={handleOpenDialog}
-        />
-      </div>
+        {/* Filter Panel */}
+        <AccountingFilterPanel>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              สถานะ
+            </label>
+            <SelectBox
+              dataSource={[
+                { value: '', label: 'ทั้งหมด' },
+                { value: 'draft', label: 'ร่าง' },
+                { value: 'posted', label: 'ผ่านแล้ว' },
+                { value: 'reversed', label: 'กลับรายการ' },
+              ]}
+              displayExpr="label"
+              valueExpr="value"
+              value={statusFilter}
+              onValueChanged={(e) => setStatusFilter(e.value)}
+              placeholder="กรองสถานะ"
+              width={150}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              ประเภท
+            </label>
+            <SelectBox
+              dataSource={[
+                { value: '', label: 'ทุกประเภท' },
+                { value: 'MANUAL', label: 'บันทึกมือ' },
+                { value: 'PO_RECEIPT', label: 'รับสินค้า' },
+                { value: 'SO_SHIPMENT', label: 'ส่งสินค้า' },
+                { value: 'AP_PAYMENT', label: 'จ่ายเงิน' },
+                { value: 'AR_RECEIPT', label: 'รับเงิน' },
+              ]}
+              displayExpr="label"
+              valueExpr="value"
+              value={sourceTypeFilter}
+              onValueChanged={(e) => setSourceTypeFilter(e.value)}
+              placeholder="กรองประเภท"
+              width={180}
+            />
+          </div>
+        </AccountingFilterPanel>
 
-      {/* Data Grid */}
-      <div className="bg-white rounded-lg shadow">
-        <DataGrid
-          dataSource={entries}
-          keyExpr="id"
-          showBorders={true}
-          showRowLines={true}
-          showColumnLines={false}
-          rowAlternationEnabled={true}
-          allowColumnReordering={true}
-          allowColumnResizing={true}
-          columnAutoWidth={true}
-          wordWrapEnabled={true}
-        >
+        {/* Data Grid */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200">
+          <DataGrid
+            dataSource={entries}
+            keyExpr="id"
+            showBorders={false}
+            showRowLines={true}
+            showColumnLines={false}
+            rowAlternationEnabled={true}
+            allowColumnReordering={true}
+            allowColumnResizing={true}
+            columnAutoWidth={true}
+            wordWrapEnabled={true}
+          >
           <Paging defaultPageSize={20} />
           <Pager
             visible={true}
@@ -558,7 +590,8 @@ export default function JournalEntriesPage() {
               <Format type="fixedPoint" precision={2} />
             </TotalItem>
           </Summary>
-        </DataGrid>
+          </DataGrid>
+        </div>
       </div>
 
       {/* Add Entry Dialog */}
