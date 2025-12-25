@@ -4,6 +4,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteSalesOrders,
@@ -129,25 +130,43 @@ export async function createSalesOrder(
   const soNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
   const totalAmount = lines.reduce((sum: number, l: { quantity: number; unitPrice: number }) => sum + l.quantity * l.unitPrice, 0);
 
-  const [newSO] = await database
-    .insert(salesOrders)
-    .values({
-      soNumber,
-      customerName: customer.name,
-      customerContact: customer.contact,
-      customerAddress: customer.address,
-      status: 'draft',
-      totalAmount,
-      currency: 'THB',
-      createdBy: userId,
-    })
-    .returning({ id: salesOrders.id });
+  let newSOId: number;
+  if (isSqlite()) {
+    const [newSO] = await database
+      .insert(salesOrders)
+      .values({
+        soNumber,
+        customerName: customer.name,
+        customerContact: customer.contact,
+        customerAddress: customer.address,
+        status: 'draft',
+        totalAmount,
+        currency: 'THB',
+        createdBy: userId,
+      })
+      .returning({ id: salesOrders.id });
+    newSOId = newSO.id;
+  } else {
+    const result = await database
+      .insert(salesOrders)
+      .values({
+        soNumber,
+        customerName: customer.name,
+        customerContact: customer.contact,
+        customerAddress: customer.address,
+        status: 'draft',
+        totalAmount,
+        currency: 'THB',
+        createdBy: userId,
+      });
+    newSOId = getInsertId(result);
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const [item] = await database.select().from(items).where(eq(items.id, line.itemId));
     await database.insert(salesOrderLines).values({
-      soId: newSO.id,
+      soId: newSOId,
       itemId: line.itemId,
       quantity: line.quantity,
       unit: item?.primaryUnit || 'EA',
@@ -156,8 +175,8 @@ export async function createSalesOrder(
     });
   }
 
-  await createAuditLog({ userId, action: 'CREATE', tableName: 'sales_orders', recordId: newSO.id, newValue: { soNumber, customerName: customer.name, totalAmount } });
-  return { orderId: newSO.id, atpResults };
+  await createAuditLog({ userId, action: 'CREATE', tableName: 'sales_orders', recordId: newSOId, newValue: { soNumber, customerName: customer.name, totalAmount } });
+  return { orderId: newSOId, atpResults };
 }
 
 /**
@@ -273,23 +292,45 @@ export async function fulfillSalesOrderLine(
   );
 
   // Create delivery record
-  const [newDelivery] = await database
-    .insert(salesDeliveries)
-    .values({
-      soId: input.soId,
-      soLineId: input.soLineId,
-      itemId: input.itemId,
-      lotId: input.lotId,
-      lotNumber: lot.lotNumber,
-      quantity: input.quantity,
-      unit: soLine.unit,
-      deliveryDate: getNow(),
-      deliveryNumber,
-      status: 'shipped',
-      notes: input.notes,
-      createdBy: userId,
-    })
-    .returning({ id: salesDeliveries.id });
+  let newDeliveryId: number;
+  if (isSqlite()) {
+    const [newDelivery] = await database
+      .insert(salesDeliveries)
+      .values({
+        soId: input.soId,
+        soLineId: input.soLineId,
+        itemId: input.itemId,
+        lotId: input.lotId,
+        lotNumber: lot.lotNumber,
+        quantity: input.quantity,
+        unit: soLine.unit,
+        deliveryDate: getNow(),
+        deliveryNumber,
+        status: 'shipped',
+        notes: input.notes,
+        createdBy: userId,
+      })
+      .returning({ id: salesDeliveries.id });
+    newDeliveryId = newDelivery.id;
+  } else {
+    const result = await database
+      .insert(salesDeliveries)
+      .values({
+        soId: input.soId,
+        soLineId: input.soLineId,
+        itemId: input.itemId,
+        lotId: input.lotId,
+        lotNumber: lot.lotNumber,
+        quantity: input.quantity,
+        unit: soLine.unit,
+        deliveryDate: getNow(),
+        deliveryNumber,
+        status: 'shipped',
+        notes: input.notes,
+        createdBy: userId,
+      });
+    newDeliveryId = getInsertId(result);
+  }
 
   // Update SO line shipped quantity
   const newShippedQty = Number(soLine.shippedQuantity || 0) + input.quantity;
@@ -328,12 +369,12 @@ export async function fulfillSalesOrderLine(
     userId,
     action: 'SHIP',
     tableName: 'sales_deliveries',
-    recordId: newDelivery.id,
+    recordId: newDeliveryId,
     newValue: { deliveryNumber, soId: input.soId, lotNumber: lot.lotNumber, quantity: input.quantity },
   });
 
   return {
-    deliveryId: newDelivery.id,
+    deliveryId: newDeliveryId,
     deliveryNumber,
     shippedQuantity: input.quantity,
   };
