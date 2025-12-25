@@ -5,8 +5,8 @@
  * User Story 5: Generate Financial Statements
  */
 
-import { db } from '../db';
-import { eq, and, sql, gte, lte, inArray, lt } from 'drizzle-orm';
+import { db, isSqlite } from '../db';
+import { eq, and, sql, gte, lte, inArray, lt, desc } from 'drizzle-orm';
 import { toQueryDate, formatDateFromDb } from '../db/date-utils';
 import { getAccountingTables } from './accounting.service';
 import type {
@@ -19,6 +19,13 @@ import type {
   AgingReportEntry,
   AgingBucket,
   AccountCategory,
+  VATReport,
+  VATReportEntry,
+  WHTCertificateSummary,
+  WHTCertificateEntry,
+  WHTCertificatePDFData,
+  VATSummaryReport,
+  WHTCertificateType,
 } from '@/types/accounting';
 
 // ============================================
@@ -1097,5 +1104,291 @@ export async function generateAgingReport(
     entries,
     buckets,
     totals,
+  };
+}
+
+// ============================================
+// VAT Report - Por Por 30 Format (T145)
+// ============================================
+
+/**
+ * Generate VAT Report (Por Por 30) for a tax period
+ * Lists all input and output VAT transactions for filing
+ * @param taxPeriod - Tax period in YYYY-MM format
+ * @returns VAT report with input and output VAT sections
+ */
+export async function generateVATReport(taxPeriod: string): Promise<VATReport> {
+  const { vatTransactions } = getAccountingTables();
+  const database = db();
+
+  // Get all VAT transactions for the period
+  const transactions = await database
+    .select({
+      id: vatTransactions.id,
+      transactionType: vatTransactions.transactionType,
+      taxInvoiceNumber: vatTransactions.taxInvoiceNumber,
+      taxInvoiceDate: vatTransactions.taxInvoiceDate,
+      partyName: vatTransactions.partyName,
+      partyTaxId: vatTransactions.partyTaxId,
+      branchCode: vatTransactions.branchCode,
+      taxableAmount: vatTransactions.taxableAmount,
+      vatAmount: vatTransactions.vatAmount,
+      totalAmount: vatTransactions.totalAmount,
+    })
+    .from(vatTransactions)
+    .where(eq(vatTransactions.taxPeriod, taxPeriod))
+    .orderBy(vatTransactions.taxInvoiceDate);
+
+  // Separate input and output VAT
+  const inputEntries: VATReportEntry[] = [];
+  const outputEntries: VATReportEntry[] = [];
+
+  for (const tx of transactions) {
+    const entry: VATReportEntry = {
+      taxInvoiceNumber: tx.taxInvoiceNumber,
+      taxInvoiceDate: formatDateFromDb(tx.taxInvoiceDate),
+      partyName: tx.partyName,
+      partyTaxId: tx.partyTaxId,
+      branchCode: tx.branchCode,
+      taxableAmount: Number(tx.taxableAmount),
+      vatAmount: Number(tx.vatAmount),
+      totalAmount: Number(tx.totalAmount),
+    };
+
+    if (tx.transactionType === 'input') {
+      inputEntries.push(entry);
+    } else {
+      outputEntries.push(entry);
+    }
+  }
+
+  // Calculate totals
+  const inputTotalTaxable = inputEntries.reduce((sum, e) => sum + e.taxableAmount, 0);
+  const inputTotalVAT = inputEntries.reduce((sum, e) => sum + e.vatAmount, 0);
+  const outputTotalTaxable = outputEntries.reduce((sum, e) => sum + e.taxableAmount, 0);
+  const outputTotalVAT = outputEntries.reduce((sum, e) => sum + e.vatAmount, 0);
+
+  // Net VAT = Output VAT - Input VAT
+  const netVAT = outputTotalVAT - inputTotalVAT;
+
+  return {
+    taxPeriod,
+    inputVAT: {
+      entries: inputEntries,
+      totalTaxableAmount: inputTotalTaxable,
+      totalVATAmount: inputTotalVAT,
+    },
+    outputVAT: {
+      entries: outputEntries,
+      totalTaxableAmount: outputTotalTaxable,
+      totalVATAmount: outputTotalVAT,
+    },
+    netVAT,
+  };
+}
+
+// ============================================
+// WHT Certificate Summary Report (T146)
+// ============================================
+
+/**
+ * Generate WHT Certificate Summary for a tax period
+ * Lists all WHT certificates issued for PND 3 or PND 53 filing
+ * @param taxPeriod - Tax period in YYYY-MM format
+ * @param certificateType - PND 3 (individuals) or PND 53 (companies)
+ * @returns WHT certificate summary report
+ */
+export async function generateWHTCertificateSummary(
+  taxPeriod: string,
+  certificateType: WHTCertificateType
+): Promise<WHTCertificateSummary> {
+  const { whtTransactions } = getAccountingTables();
+  const database = db();
+
+  // Get vendors table
+  const vendorsTable = isSqlite()
+    ? (await import('../db/schema')).sqliteVendors
+    : (await import('../db/schema')).mysqlVendors;
+
+  // Get all WHT transactions for the period and certificate type
+  const transactions = await database
+    .select({
+      id: whtTransactions.id,
+      certificateNumber: whtTransactions.certificateNumber,
+      certificateType: whtTransactions.certificateType,
+      paymentDate: whtTransactions.paymentDate,
+      vendorName: vendorsTable.name,
+      vendorTaxId: vendorsTable.taxId,
+      whtType: whtTransactions.whtType,
+      whtDescription: whtTransactions.whtDescription,
+      paymentAmount: whtTransactions.paymentAmount,
+      whtRate: whtTransactions.whtRate,
+      whtAmount: whtTransactions.whtAmount,
+      netAmount: whtTransactions.netAmount,
+    })
+    .from(whtTransactions)
+    .innerJoin(vendorsTable, eq(whtTransactions.vendorId, vendorsTable.id))
+    .where(
+      and(
+        eq(whtTransactions.taxPeriod, taxPeriod),
+        eq(whtTransactions.certificateType, certificateType)
+      )
+    )
+    .orderBy(whtTransactions.paymentDate);
+
+  const entries: WHTCertificateEntry[] = transactions.map((tx) => ({
+    id: tx.id,
+    certificateNumber: tx.certificateNumber,
+    certificateType: tx.certificateType as WHTCertificateType,
+    paymentDate: formatDateFromDb(tx.paymentDate),
+    vendorName: tx.vendorName,
+    vendorTaxId: tx.vendorTaxId,
+    whtType: tx.whtType,
+    whtDescription: tx.whtDescription,
+    paymentAmount: Number(tx.paymentAmount),
+    whtRate: Number(tx.whtRate),
+    whtAmount: Number(tx.whtAmount),
+    netAmount: Number(tx.netAmount),
+  }));
+
+  // Calculate totals
+  const totalPaymentAmount = entries.reduce((sum, e) => sum + e.paymentAmount, 0);
+  const totalWHTAmount = entries.reduce((sum, e) => sum + e.whtAmount, 0);
+  const totalNetAmount = entries.reduce((sum, e) => sum + e.netAmount, 0);
+
+  return {
+    taxPeriod,
+    certificateType,
+    entries,
+    totalPaymentAmount,
+    totalWHTAmount,
+    totalNetAmount,
+    certificateCount: entries.length,
+  };
+}
+
+// ============================================
+// WHT Certificate PDF Data (T146)
+// ============================================
+
+/**
+ * Generate WHT Certificate PDF data for a specific certificate
+ * Used to generate PND 3/53 withholding tax certificate
+ * @param certificateId - WHT transaction ID
+ * @returns PDF data for certificate generation
+ */
+export async function generateWHTCertificatePDF(
+  certificateId: number
+): Promise<WHTCertificatePDFData | null> {
+  const { whtTransactions } = getAccountingTables();
+  const database = db();
+
+  // Get vendors table
+  const vendorsTable = isSqlite()
+    ? (await import('../db/schema')).sqliteVendors
+    : (await import('../db/schema')).mysqlVendors;
+
+  // Get WHT transaction with vendor details
+  const [transaction] = await database
+    .select({
+      id: whtTransactions.id,
+      certificateNumber: whtTransactions.certificateNumber,
+      certificateType: whtTransactions.certificateType,
+      paymentDate: whtTransactions.paymentDate,
+      taxPeriod: whtTransactions.taxPeriod,
+      vendorName: vendorsTable.name,
+      vendorTaxId: vendorsTable.taxId,
+      vendorAddress: vendorsTable.address,
+      whtType: whtTransactions.whtType,
+      whtDescription: whtTransactions.whtDescription,
+      paymentAmount: whtTransactions.paymentAmount,
+      whtRate: whtTransactions.whtRate,
+      whtAmount: whtTransactions.whtAmount,
+    })
+    .from(whtTransactions)
+    .innerJoin(vendorsTable, eq(whtTransactions.vendorId, vendorsTable.id))
+    .where(eq(whtTransactions.id, certificateId))
+    .limit(1);
+
+  if (!transaction) {
+    return null;
+  }
+
+  // TODO: Get company info from settings/configuration
+  // For now, use placeholder company info
+  const companyInfo = {
+    name: 'Herbal Medicine Co., Ltd.',
+    nameTh: 'บริษัท สมุนไพรไทย จำกัด',
+    taxId: '0105555000001',
+    address: '123 Sukhumvit Road, Bangkok 10110, Thailand',
+    branch: '00000', // Head office
+  };
+
+  return {
+    companyName: companyInfo.name,
+    companyNameTh: companyInfo.nameTh,
+    companyTaxId: companyInfo.taxId,
+    companyAddress: companyInfo.address,
+    companyBranch: companyInfo.branch,
+    vendorName: transaction.vendorName,
+    vendorTaxId: transaction.vendorTaxId || '',
+    vendorAddress: transaction.vendorAddress || '',
+    certificateNumber: transaction.certificateNumber,
+    certificateType: transaction.certificateType as WHTCertificateType,
+    paymentDate: formatDateFromDb(transaction.paymentDate),
+    taxPeriod: transaction.taxPeriod,
+    items: [
+      {
+        whtType: transaction.whtType,
+        whtDescription: transaction.whtDescription,
+        paymentDate: formatDateFromDb(transaction.paymentDate),
+        paymentAmount: Number(transaction.paymentAmount),
+        whtRate: Number(transaction.whtRate),
+        whtAmount: Number(transaction.whtAmount),
+      },
+    ],
+    totalPaymentAmount: Number(transaction.paymentAmount),
+    totalWHTAmount: Number(transaction.whtAmount),
+  };
+}
+
+// ============================================
+// VAT Summary Report (Enhanced Por Por 30) (T145)
+// ============================================
+
+/**
+ * Generate VAT Summary Report with company info
+ * Enhanced version for Por Por 30 filing
+ * @param taxPeriod - Tax period in YYYY-MM format
+ * @returns VAT summary report with company info
+ */
+export async function generateVATSummaryReport(
+  taxPeriod: string
+): Promise<VATSummaryReport> {
+  // Get base VAT report
+  const vatReport = await generateVATReport(taxPeriod);
+
+  // TODO: Get company info from settings/configuration
+  const companyInfo = {
+    name: 'Herbal Medicine Co., Ltd.',
+    taxId: '0105555000001',
+  };
+
+  const netVATPayable = vatReport.netVAT;
+
+  return {
+    taxPeriod,
+    companyName: companyInfo.name,
+    companyTaxId: companyInfo.taxId,
+    outputVAT: {
+      ...vatReport.outputVAT,
+      count: vatReport.outputVAT.entries.length,
+    },
+    inputVAT: {
+      ...vatReport.inputVAT,
+      count: vatReport.inputVAT.entries.length,
+    },
+    netVATPayable,
+    vatPayable: netVATPayable > 0,
   };
 }

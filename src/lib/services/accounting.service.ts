@@ -3664,3 +3664,285 @@ export async function getBatchCostBreakdown(
     journalEntries: journalEntriesDetails,
   };
 }
+
+// ============================================
+// Withholding Tax (WHT) Transactions (US6)
+// ============================================
+
+/**
+ * Input for creating a WHT transaction
+ */
+export interface CreateWHTTransactionInput {
+  certificateType: 'pnd3' | 'pnd53';
+  paymentId: number;
+  vendorId: number;
+  paymentDate: string;
+  whtType: string;
+  whtDescription: string;
+  paymentAmount: number;
+  whtRate: number;
+}
+
+/**
+ * Generate WHT certificate number in format WHT-YYYYMM-NNNNNN
+ * @param certificateType - PND 3 or PND 53
+ * @param paymentDate - Date of the payment
+ * @returns Unique certificate number
+ */
+export async function generateWHTCertificateNumber(
+  certificateType: 'pnd3' | 'pnd53',
+  paymentDate: string
+): Promise<string> {
+  const { whtTransactions } = getAccountingTables();
+  const database = db();
+
+  const date = new Date(paymentDate);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const typePrefix = certificateType === 'pnd3' ? '3' : '53';
+  const prefix = `WHT${typePrefix}-${year}${month}-`;
+
+  // Find the highest sequence number for this prefix
+  const result = await database
+    .select({ certificateNumber: whtTransactions.certificateNumber })
+    .from(whtTransactions)
+    .where(sql`${whtTransactions.certificateNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(whtTransactions.certificateNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (result.length > 0) {
+    const lastNumber = result[0].certificateNumber;
+    const lastSequence = parseInt(lastNumber.slice(-6), 10);
+    sequence = lastSequence + 1;
+  }
+
+  return prefix + String(sequence).padStart(6, '0');
+}
+
+/**
+ * Create a WHT transaction record
+ * Called when making an AP payment with withholding tax
+ * @param input - WHT transaction details
+ * @returns Created WHT transaction
+ */
+export async function createWHTTransaction(
+  input: CreateWHTTransactionInput
+): Promise<{ id: number; certificateNumber: string }> {
+  const { whtTransactions } = getAccountingTables();
+  const database = db();
+
+  // Generate certificate number
+  const certificateNumber = await generateWHTCertificateNumber(
+    input.certificateType,
+    input.paymentDate
+  );
+
+  // Calculate WHT amount and net payment
+  const whtAmount = (input.paymentAmount * input.whtRate) / 100;
+  const netAmount = input.paymentAmount - whtAmount;
+
+  // Determine tax period (YYYY-MM format)
+  const taxPeriod = input.paymentDate.substring(0, 7);
+
+  const values = {
+    certificateNumber,
+    certificateType: input.certificateType,
+    paymentId: input.paymentId,
+    vendorId: input.vendorId,
+    paymentDate: toDbDate(input.paymentDate),
+    taxPeriod,
+    whtType: input.whtType,
+    whtDescription: input.whtDescription,
+    paymentAmount: input.paymentAmount,
+    whtRate: input.whtRate,
+    whtAmount,
+    netAmount,
+    createdAt: getNow(),
+  };
+
+  const [inserted] = await database
+    .insert(whtTransactions)
+    .values(values)
+    .$returningId();
+
+  return {
+    id: inserted.id,
+    certificateNumber,
+  };
+}
+
+/**
+ * WHT transaction with vendor details
+ */
+export interface WHTTransactionWithVendor {
+  id: number;
+  certificateNumber: string;
+  certificateType: 'pnd3' | 'pnd53';
+  paymentId: number;
+  vendorId: number;
+  vendorName: string;
+  vendorTaxId: string | null;
+  paymentDate: string;
+  taxPeriod: string;
+  whtType: string;
+  whtDescription: string;
+  paymentAmount: number;
+  whtRate: number;
+  whtAmount: number;
+  netAmount: number;
+  createdAt: string;
+}
+
+/**
+ * List WHT certificates/transactions with filters
+ * @param filters - Optional filters
+ * @returns List of WHT transactions with vendor details
+ */
+export async function listWHTCertificates(filters?: {
+  certificateType?: 'pnd3' | 'pnd53';
+  taxPeriod?: string;
+  vendorId?: number;
+  startDate?: string;
+  endDate?: string;
+}): Promise<WHTTransactionWithVendor[]> {
+  const { whtTransactions } = getAccountingTables();
+  const database = db();
+
+  // Get vendors table
+  const vendorsTable = isSqlite()
+    ? (await import('../db/schema')).sqliteVendors
+    : (await import('../db/schema')).mysqlVendors;
+
+  // Build query
+  let query = database
+    .select({
+      id: whtTransactions.id,
+      certificateNumber: whtTransactions.certificateNumber,
+      certificateType: whtTransactions.certificateType,
+      paymentId: whtTransactions.paymentId,
+      vendorId: whtTransactions.vendorId,
+      vendorName: vendorsTable.name,
+      vendorTaxId: vendorsTable.taxId,
+      paymentDate: whtTransactions.paymentDate,
+      taxPeriod: whtTransactions.taxPeriod,
+      whtType: whtTransactions.whtType,
+      whtDescription: whtTransactions.whtDescription,
+      paymentAmount: whtTransactions.paymentAmount,
+      whtRate: whtTransactions.whtRate,
+      whtAmount: whtTransactions.whtAmount,
+      netAmount: whtTransactions.netAmount,
+      createdAt: whtTransactions.createdAt,
+    })
+    .from(whtTransactions)
+    .innerJoin(vendorsTable, eq(whtTransactions.vendorId, vendorsTable.id));
+
+  // Apply filters
+  const conditions: ReturnType<typeof eq>[] = [];
+
+  if (filters?.certificateType) {
+    conditions.push(eq(whtTransactions.certificateType, filters.certificateType));
+  }
+
+  if (filters?.taxPeriod) {
+    conditions.push(eq(whtTransactions.taxPeriod, filters.taxPeriod));
+  }
+
+  if (filters?.vendorId) {
+    conditions.push(eq(whtTransactions.vendorId, filters.vendorId));
+  }
+
+  if (filters?.startDate) {
+    conditions.push(gte(whtTransactions.paymentDate, toQueryDate(filters.startDate)));
+  }
+
+  if (filters?.endDate) {
+    conditions.push(lte(whtTransactions.paymentDate, toQueryDate(filters.endDate)));
+  }
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  const results = await query.orderBy(desc(whtTransactions.paymentDate));
+
+  return results.map((r) => ({
+    id: r.id,
+    certificateNumber: r.certificateNumber,
+    certificateType: r.certificateType as 'pnd3' | 'pnd53',
+    paymentId: r.paymentId,
+    vendorId: r.vendorId,
+    vendorName: r.vendorName,
+    vendorTaxId: r.vendorTaxId,
+    paymentDate: formatDateFromDb(r.paymentDate),
+    taxPeriod: r.taxPeriod,
+    whtType: r.whtType,
+    whtDescription: r.whtDescription,
+    paymentAmount: Number(r.paymentAmount),
+    whtRate: Number(r.whtRate),
+    whtAmount: Number(r.whtAmount),
+    netAmount: Number(r.netAmount),
+    createdAt: formatDateFromDb(r.createdAt),
+  }));
+}
+
+/**
+ * Get a single WHT certificate by ID
+ * @param id - WHT transaction ID
+ * @returns WHT transaction with vendor details
+ */
+export async function getWHTCertificateById(
+  id: number
+): Promise<WHTTransactionWithVendor | null> {
+  const { whtTransactions } = getAccountingTables();
+  const database = db();
+
+  const vendorsTable = isSqlite()
+    ? (await import('../db/schema')).sqliteVendors
+    : (await import('../db/schema')).mysqlVendors;
+
+  const [result] = await database
+    .select({
+      id: whtTransactions.id,
+      certificateNumber: whtTransactions.certificateNumber,
+      certificateType: whtTransactions.certificateType,
+      paymentId: whtTransactions.paymentId,
+      vendorId: whtTransactions.vendorId,
+      vendorName: vendorsTable.name,
+      vendorTaxId: vendorsTable.taxId,
+      paymentDate: whtTransactions.paymentDate,
+      taxPeriod: whtTransactions.taxPeriod,
+      whtType: whtTransactions.whtType,
+      whtDescription: whtTransactions.whtDescription,
+      paymentAmount: whtTransactions.paymentAmount,
+      whtRate: whtTransactions.whtRate,
+      whtAmount: whtTransactions.whtAmount,
+      netAmount: whtTransactions.netAmount,
+      createdAt: whtTransactions.createdAt,
+    })
+    .from(whtTransactions)
+    .innerJoin(vendorsTable, eq(whtTransactions.vendorId, vendorsTable.id))
+    .where(eq(whtTransactions.id, id))
+    .limit(1);
+
+  if (!result) return null;
+
+  return {
+    id: result.id,
+    certificateNumber: result.certificateNumber,
+    certificateType: result.certificateType as 'pnd3' | 'pnd53',
+    paymentId: result.paymentId,
+    vendorId: result.vendorId,
+    vendorName: result.vendorName,
+    vendorTaxId: result.vendorTaxId,
+    paymentDate: formatDateFromDb(result.paymentDate),
+    taxPeriod: result.taxPeriod,
+    whtType: result.whtType,
+    whtDescription: result.whtDescription,
+    paymentAmount: Number(result.paymentAmount),
+    whtRate: Number(result.whtRate),
+    whtAmount: Number(result.whtAmount),
+    netAmount: Number(result.netAmount),
+    createdAt: formatDateFromDb(result.createdAt),
+  };
+}

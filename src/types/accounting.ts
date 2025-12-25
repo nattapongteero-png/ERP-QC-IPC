@@ -1171,3 +1171,99 @@ export const WHT_RATES: WHTRate[] = [
   { code: '5', description: 'Transport', descriptionTh: 'ค่าขนส่ง', rate: 1 },
   { code: '6', description: 'Advertising', descriptionTh: 'ค่าโฆษณา', rate: 2 },
 ];
+
+// ============================================
+// WHT Certificate Report Types (User Story 6)
+// ============================================
+
+export interface WHTCertificateEntry {
+  id: number;
+  certificateNumber: string;
+  certificateType: WHTCertificateType;
+  paymentDate: string;
+  vendorName: string;
+  vendorTaxId: string | null;
+  vendorAddress?: string;
+  whtType: string;
+  whtDescription: string;
+  paymentAmount: number;
+  whtRate: number;
+  whtAmount: number;
+  netAmount: number;
+}
+
+export interface WHTCertificateSummary {
+  taxPeriod: string;
+  certificateType: WHTCertificateType;
+  entries: WHTCertificateEntry[];
+  totalPaymentAmount: number;
+  totalWHTAmount: number;
+  totalNetAmount: number;
+  certificateCount: number;
+}
+
+/**
+ * WHT Certificate PDF data for generating PND 3/53 form
+ */
+export interface WHTCertificatePDFData {
+  // Company (Payer) Info
+  companyName: string;
+  companyNameTh: string;
+  companyTaxId: string;
+  companyAddress: string;
+  companyBranch: string;
+
+  // Vendor (Payee) Info
+  vendorName: string;
+  vendorTaxId: string;
+  vendorAddress: string;
+
+  // Certificate Details
+  certificateNumber: string;
+  certificateType: WHTCertificateType;
+  paymentDate: string;
+  taxPeriod: string;
+
+  // Payment Details
+  items: Array<{
+    whtType: string;
+    whtDescription: string;
+    paymentDate: string;
+    paymentAmount: number;
+    whtRate: number;
+    whtAmount: number;
+  }>;
+
+  // Totals
+  totalPaymentAmount: number;
+  totalWHTAmount: number;
+}
+
+/**
+ * VAT Summary Report (Por Por 30 format)
+ */
+export interface VATSummaryReport {
+  taxPeriod: string;
+  companyName: string;
+  companyTaxId: string;
+
+  // Output VAT (Sales)
+  outputVAT: {
+    entries: VATReportEntry[];
+    totalTaxableAmount: number;
+    totalVATAmount: number;
+    count: number;
+  };
+
+  // Input VAT (Purchases)
+  inputVAT: {
+    entries: VATReportEntry[];
+    totalTaxableAmount: number;
+    totalVATAmount: number;
+    count: number;
+  };
+
+  // Net VAT calculation
+  netVATPayable: number; // Positive = pay, Negative = refund
+  vatPayable: boolean;
+}
