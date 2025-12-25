@@ -52,7 +52,7 @@ describe('PeriodClosePage', () => {
     await waitFor(() => {
       const filterPanel = screen.getByTestId('filter-panel');
       expect(filterPanel).toBeInTheDocument();
-      expect(filterPanel).toHaveClass('backdrop-blur');
+      expect(filterPanel).toHaveClass('backdrop-blur-md');
     });
   });
 

@@ -14,7 +14,6 @@ import {
   AccountingPageHeader,
   AccountingKPICard,
   AccountingFilterPanel,
-  AccountingStatusBadge,
 } from '@/components/accounting';
 import { Lock, Unlock, CheckCircle2, AlertTriangle, XCircle, Calendar } from 'lucide-react';
 import type { FiscalPeriod, FiscalYear, FiscalPeriodStatus } from '@/types/accounting';
@@ -45,13 +44,6 @@ function formatDate(dateStr: string | Date | null): string {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
   return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('th-TH', {
-    style: 'currency',
-    currency: 'THB',
-  }).format(value);
 }
 
 async function fetchFiscalYears(): Promise<FiscalYear[]> {
