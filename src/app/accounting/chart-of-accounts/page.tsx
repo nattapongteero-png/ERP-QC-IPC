@@ -11,26 +11,17 @@ import TreeList, {
   SearchPanel,
   HeaderFilter,
   Selection,
-  Toolbar,
-  Item,
 } from 'devextreme-react/tree-list';
 import { Popup } from 'devextreme-react/popup';
 import Form, { SimpleItem, GroupItem, RequiredRule, StringLengthRule, PatternRule } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
-import { Badge } from '@/components/ui/badge';
 import {
   AccountingPageHeader,
   AccountingKPICard,
   AccountingFilterPanel,
   AccountingStatusBadge,
 } from '@/components/accounting';
-import {
-  BookOpen,
-  Wallet,
-  TrendingUp,
-  CreditCard,
-} from 'lucide-react';
 import type { GLAccount, GLAccountType, GLAccountCreate, GLAccountUpdate } from '@/types/accounting';
 
 // API functions
@@ -106,14 +97,6 @@ interface GLAccountFormData {
   isActive: boolean;
 }
 
-// Type colors for badges
-const TYPE_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  '1': 'default', // Assets
-  '2': 'destructive', // Liabilities
-  '3': 'secondary', // Equity
-  '4': 'outline', // Revenue
-  '5': 'destructive', // Expenses
-};
 
 // Default form data factory
 const getDefaultFormData = (parentAccount?: GLAccount | null): GLAccountFormData => ({
@@ -319,13 +302,8 @@ export default function ChartOfAccountsPage() {
   ], [accounts]);
 
   // Render type badge
-  const renderTypeBadge = useCallback((cellInfo: { value: string; data: { typeCode: string } }) => {
-    const typeCode = cellInfo.data?.typeCode;
-    return (
-      <Badge variant={TYPE_COLORS[typeCode] || 'default'}>
-        {cellInfo.value}
-      </Badge>
-    );
+  const renderTypeBadge = useCallback((cellInfo: { value: string }) => {
+    return <span className="text-sm font-medium">{cellInfo.value}</span>;
   }, []);
 
   // Render status
@@ -397,24 +375,13 @@ export default function ChartOfAccountsPage() {
             label="บัญชีธนาคาร"
             value={stats.bankAccounts}
             icon="credit-card"
-            variant="warning"
+            variant="info"
           />
         </div>
 
         {/* Filter Panel */}
         <AccountingFilterPanel>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              ค้นหา
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="ค้นหารหัสหรือชื่อบัญชี..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
+          <div className="flex-1" />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               การดำเนินการ
@@ -444,7 +411,7 @@ export default function ChartOfAccountsPage() {
             height={600}
             onRowDblClick={handleRowDblClick}
           >
-            <SearchPanel visible={false} />
+            <SearchPanel visible={true} width={240} placeholder="ค้นหารหัสหรือชื่อบัญชี..." />
             <HeaderFilter visible={true} />
             <Selection mode="single" />
 
