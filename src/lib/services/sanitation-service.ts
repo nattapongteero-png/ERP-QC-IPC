@@ -6,7 +6,8 @@
  */
 
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
-import { getDb } from '../db';
+import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { toDateSafe } from '../db/date-utils';
 import {
   sqliteSanitationSchedules,
@@ -167,47 +168,64 @@ export async function createSanitationSchedule(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
 
-  const result = await database
-    .insert(sqliteSanitationSchedules)
-    .values({
-      name: data.name,
-      areaType: data.areaType,
-      areaId: data.areaId || null,
-      equipmentId: data.equipmentId || null,
-      frequency: data.frequency,
-      dayOfWeek: data.dayOfWeek || null,
-      dayOfMonth: data.dayOfMonth || null,
-      method: data.method,
-      verificationRequired: data.verificationRequired ?? true,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    })
-    .returning();
+  const values = {
+    name: data.name,
+    areaType: data.areaType,
+    areaId: data.areaId || null,
+    equipmentId: data.equipmentId || null,
+    frequency: data.frequency,
+    dayOfWeek: data.dayOfWeek || null,
+    dayOfMonth: data.dayOfMonth || null,
+    method: data.method,
+    verificationRequired: data.verificationRequired ?? true,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
+
+  let recordId: number;
+  if (isSqlite()) {
+    const [result] = await database
+      .insert(sqliteSanitationSchedules)
+      .values(values)
+      .returning({ id: sqliteSanitationSchedules.id });
+    recordId = result.id;
+  } else {
+    const result = await database
+      .insert(sqliteSanitationSchedules)
+      .values(values);
+    recordId = getInsertId(result);
+  }
+
+  // Refetch the record
+  const [record] = await database
+    .select()
+    .from(sqliteSanitationSchedules)
+    .where(eq(sqliteSanitationSchedules.id, recordId));
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'sanitation_schedule',
-    recordId: result[0].id,
-    newValue: result[0],
+    recordId: record.id,
+    newValue: record,
   });
 
   return {
-    id: result[0].id,
-    name: result[0].name,
-    areaType: result[0].areaType as AreaType,
-    areaId: result[0].areaId,
-    equipmentId: result[0].equipmentId,
-    frequency: result[0].frequency as SanitationFrequency,
-    dayOfWeek: result[0].dayOfWeek,
-    dayOfMonth: result[0].dayOfMonth,
-    method: result[0].method || '',
-    verificationRequired: result[0].verificationRequired ?? true,
-    isActive: result[0].isActive ?? true,
+    id: record.id,
+    name: record.name,
+    areaType: record.areaType as AreaType,
+    areaId: record.areaId,
+    equipmentId: record.equipmentId,
+    frequency: record.frequency as SanitationFrequency,
+    dayOfWeek: record.dayOfWeek,
+    dayOfMonth: record.dayOfMonth,
+    method: record.method || '',
+    verificationRequired: record.verificationRequired ?? true,
+    isActive: record.isActive ?? true,
     lastCompleted: null,
-    nextDue: calculateNextDueDate(result[0]),
+    nextDue: calculateNextDueDate(record),
     complianceRate: 100,
-    createdAt: result[0].createdAt,
+    createdAt: record.createdAt,
   };
 }
 
@@ -428,30 +446,47 @@ export async function createSanitationLog(
     method = schedule?.method || '';
   }
 
-  const result = await database
-    .insert(sqliteSanitationLogs)
-    .values({
-      scheduleId: data.scheduleId,
-      scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
-      performedDate: data.performedDate,
-      performedBy: userId,
-      method: method || '',
-      chemicalsUsed: data.chemicalsUsed || null,
-      status: data.status,
-      notes: data.notes || null,
-      createdAt: new Date().toISOString(),
-    })
-    .returning();
+  const values = {
+    scheduleId: data.scheduleId,
+    scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
+    performedDate: data.performedDate,
+    performedBy: userId,
+    method: method || '',
+    chemicalsUsed: data.chemicalsUsed || null,
+    status: data.status,
+    notes: data.notes || null,
+    createdAt: new Date().toISOString(),
+  };
+
+  let recordId: number;
+  if (isSqlite()) {
+    const [result] = await database
+      .insert(sqliteSanitationLogs)
+      .values(values)
+      .returning({ id: sqliteSanitationLogs.id });
+    recordId = result.id;
+  } else {
+    const result = await database
+      .insert(sqliteSanitationLogs)
+      .values(values);
+    recordId = getInsertId(result);
+  }
+
+  // Refetch for audit log
+  const [record] = await database
+    .select()
+    .from(sqliteSanitationLogs)
+    .where(eq(sqliteSanitationLogs.id, recordId));
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'sanitation_log',
-    recordId: result[0].id,
-    newValue: result[0],
+    recordId: record.id,
+    newValue: record,
   });
 
-  return getSanitationLogById(result[0].id) as Promise<SanitationLog>;
+  return getSanitationLogById(record.id) as Promise<SanitationLog>;
 }
 
 /**
@@ -641,33 +676,50 @@ export async function createPestControlLog(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
 
-  const result = await database
-    .insert(sqlitePestControlLogs)
-    .values({
-      serviceDate: data.serviceDate,
-      contractorName: data.contractorName,
-      technicianName: data.technicianName || null,
-      serviceType: data.serviceType,
-      areasServiced: JSON.stringify(data.areasServiced),
-      treatmentMethod: data.treatmentMethod || null,
-      findingsCount: data.findingsCount || 0,
-      findings: data.findings || null,
-      recommendations: data.recommendations || null,
-      followUpRequired: data.followUpRequired ?? false,
-      followUpDate: data.followUpDate || null,
-      createdAt: new Date().toISOString(),
-    })
-    .returning();
+  const values = {
+    serviceDate: data.serviceDate,
+    contractorName: data.contractorName,
+    technicianName: data.technicianName || null,
+    serviceType: data.serviceType,
+    areasServiced: JSON.stringify(data.areasServiced),
+    treatmentMethod: data.treatmentMethod || null,
+    findingsCount: data.findingsCount || 0,
+    findings: data.findings || null,
+    recommendations: data.recommendations || null,
+    followUpRequired: data.followUpRequired ?? false,
+    followUpDate: data.followUpDate || null,
+    createdAt: new Date().toISOString(),
+  };
+
+  let recordId: number;
+  if (isSqlite()) {
+    const [result] = await database
+      .insert(sqlitePestControlLogs)
+      .values(values)
+      .returning({ id: sqlitePestControlLogs.id });
+    recordId = result.id;
+  } else {
+    const result = await database
+      .insert(sqlitePestControlLogs)
+      .values(values);
+    recordId = getInsertId(result);
+  }
+
+  // Refetch for audit log
+  const [record] = await database
+    .select()
+    .from(sqlitePestControlLogs)
+    .where(eq(sqlitePestControlLogs.id, recordId));
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'pest_control_log',
-    recordId: result[0].id,
-    newValue: result[0],
+    recordId: record.id,
+    newValue: record,
   });
 
-  return getPestControlLogById(result[0].id) as Promise<PestControlLog>;
+  return getPestControlLogById(record.id) as Promise<PestControlLog>;
 }
 
 /**

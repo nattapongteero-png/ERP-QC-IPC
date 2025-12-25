@@ -5,6 +5,7 @@ import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
 import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
 import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
 import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { getNow, toDbDate, getTodayStr, toDateSafe } from '../db/date-utils';
 import { createAuditLog } from '../audit';
 import {
@@ -2525,7 +2526,17 @@ export async function createAuthorization(
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.authorizations).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.authorizations).values(insertData).returning({ id: tables.authorizations.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.authorizations).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.authorizations).where(eq(tables.authorizations.id, recordId));
 
   // Clear cache for this employee
   clearAuthorizationCache(data.employeeId);
@@ -2565,11 +2576,21 @@ export async function updateAuthorization(
     updatedAt: new Date().toISOString(),
   };
 
-  const [result] = await db
-    .update(tables.authorizations)
-    .set(updateData)
-    .where(eq(tables.authorizations.id, id))
-    .returning();
+  if (isSqlite()) {
+    await db
+      .update(tables.authorizations)
+      .set(updateData)
+      .where(eq(tables.authorizations.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.authorizations)
+      .set(updateData)
+      .where(eq(tables.authorizations.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.authorizations).where(eq(tables.authorizations.id, id));
 
   // Clear cache for this employee
   clearAuthorizationCache(existing.employeeId);
@@ -2607,16 +2628,28 @@ export async function revokeAuthorization(
 
   const now = new Date();
 
-  const [result] = await db
-    .update(tables.authorizations)
-    .set({
-      isActive: false,
-      revokedBy,
-      revokedAt: now,
-      updatedAt: now,
-    })
-    .where(eq(tables.authorizations.id, id))
-    .returning();
+  const updateData = {
+    isActive: false,
+    revokedBy,
+    revokedAt: now,
+    updatedAt: now,
+  };
+
+  if (isSqlite()) {
+    await db
+      .update(tables.authorizations)
+      .set(updateData)
+      .where(eq(tables.authorizations.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.authorizations)
+      .set(updateData)
+      .where(eq(tables.authorizations.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.authorizations).where(eq(tables.authorizations.id, id));
 
   // Clear cache for this employee
   clearAuthorizationCache(existing.employeeId);
@@ -3000,7 +3033,17 @@ export async function createDelegation(
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.delegations).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.delegations).values(insertData).returning({ id: tables.delegations.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.delegations).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.delegations).where(eq(tables.delegations.id, recordId));
 
   // Clear cache for delegate
   clearAuthorizationCache(data.delegateId);
@@ -3032,14 +3075,26 @@ export async function cancelDelegation(id: number): Promise<Delegation> {
   // Set effectiveTo to now to cancel
   const now = new Date().toISOString().split('T')[0];
 
-  const [result] = await db
-    .update(tables.delegations)
-    .set({
-      effectiveTo: now,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(tables.delegations.id, id))
-    .returning();
+  const updateData = {
+    effectiveTo: now,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isSqlite()) {
+    await db
+      .update(tables.delegations)
+      .set(updateData)
+      .where(eq(tables.delegations.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.delegations)
+      .set(updateData)
+      .where(eq(tables.delegations.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.delegations).where(eq(tables.delegations.id, id));
 
   // Clear cache for delegate
   clearAuthorizationCache(existing.delegateId);
@@ -3248,7 +3303,17 @@ export async function createHealthRecord(
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.healthRecords).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.healthRecords).values(insertData).returning({ id: tables.healthRecords.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.healthRecords).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.healthRecords).where(eq(tables.healthRecords.id, recordId));
 
   // Audit log (without sensitive medical details)
   await createAuditLog({
@@ -3303,11 +3368,21 @@ export async function updateHealthRecord(
   if (data.examinerName !== undefined) updateData.examinerName = data.examinerName || null;
   if (data.examinerNotes !== undefined) updateData.examinerNotes = data.examinerNotes || null;
 
-  const [result] = await db
-    .update(tables.healthRecords)
-    .set(updateData)
-    .where(eq(tables.healthRecords.id, id))
-    .returning();
+  if (isSqlite()) {
+    await db
+      .update(tables.healthRecords)
+      .set(updateData)
+      .where(eq(tables.healthRecords.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.healthRecords)
+      .set(updateData)
+      .where(eq(tables.healthRecords.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.healthRecords).where(eq(tables.healthRecords.id, id));
 
   // Audit log (without sensitive details)
   await createAuditLog({
@@ -3648,7 +3723,17 @@ export async function createAppRole(data: AppRoleCreate): Promise<AppRole> {
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.appRoles).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.appRoles).values(insertData).returning({ id: tables.appRoles.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.appRoles).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.appRoles).where(eq(tables.appRoles.id, recordId));
 
   // Audit log
   await createAuditLog({
@@ -3690,11 +3775,21 @@ export async function updateAppRole(
   if (data.description !== undefined) updateData.description = data.description || null;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
-  const [result] = await db
-    .update(tables.appRoles)
-    .set(updateData)
-    .where(eq(tables.appRoles.id, id))
-    .returning();
+  if (isSqlite()) {
+    await db
+      .update(tables.appRoles)
+      .set(updateData)
+      .where(eq(tables.appRoles.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.appRoles)
+      .set(updateData)
+      .where(eq(tables.appRoles.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.appRoles).where(eq(tables.appRoles.id, id));
 
   // Audit log
   await createAuditLog({
@@ -3903,7 +3998,17 @@ export async function assignEmployeeRole(
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.employeeRoles).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.employeeRoles).values(insertData).returning({ id: tables.employeeRoles.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.employeeRoles).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.employeeRoles).where(eq(tables.employeeRoles.id, recordId));
 
   // Audit log
   await createAuditLog({
@@ -3941,14 +4046,26 @@ export async function revokeEmployeeRole(id: number): Promise<EmployeeRole> {
   // Set effectiveTo to now to revoke
   const now = new Date().toISOString().split('T')[0];
 
-  const [result] = await db
-    .update(tables.employeeRoles)
-    .set({
-      effectiveTo: now,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(tables.employeeRoles.id, id))
-    .returning();
+  const updateData = {
+    effectiveTo: now,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isSqlite()) {
+    await db
+      .update(tables.employeeRoles)
+      .set(updateData)
+      .where(eq(tables.employeeRoles.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.employeeRoles)
+      .set(updateData)
+      .where(eq(tables.employeeRoles.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.employeeRoles).where(eq(tables.employeeRoles.id, id));
 
   // Audit log
   await createAuditLog({
