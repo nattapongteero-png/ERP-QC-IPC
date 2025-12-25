@@ -4,6 +4,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { toQueryDate, getTodayStr } from '../db/date-utils';
 import { eq, and, gte, lte, desc, asc, sql, or } from 'drizzle-orm';
 import {
@@ -301,28 +302,48 @@ export async function issueMaterial(
     .where(eq(lots.id, lotId));
 
   // Create transaction record
-  const [txn] = await database
-    .insert(transactions)
-    .values({
-      lotId,
-      transactionType: 'issue',
-      quantity: -quantity, // Negative for issue
-      unit: lot.unit,
-      referenceType,
-      referenceId,
-      referenceNumber,
-      fromWarehouseId: lot.warehouseId,
-      reason,
-      performedBy: userId,
-    })
-    .returning({ id: transactions.id });
+  let txnId: number;
+  if (isSqlite()) {
+    const [txn] = await database
+      .insert(transactions)
+      .values({
+        lotId,
+        transactionType: 'issue',
+        quantity: -quantity, // Negative for issue
+        unit: lot.unit,
+        referenceType,
+        referenceId,
+        referenceNumber,
+        fromWarehouseId: lot.warehouseId,
+        reason,
+        performedBy: userId,
+      })
+      .returning({ id: transactions.id });
+    txnId = txn.id;
+  } else {
+    const result = await database
+      .insert(transactions)
+      .values({
+        lotId,
+        transactionType: 'issue',
+        quantity: -quantity, // Negative for issue
+        unit: lot.unit,
+        referenceType,
+        referenceId,
+        referenceNumber,
+        fromWarehouseId: lot.warehouseId,
+        reason,
+        performedBy: userId,
+      });
+    txnId = getInsertId(result);
+  }
 
   // Create audit log
   await createAuditLog({
     userId,
     action: 'ISSUE',
     tableName: 'inventory_transactions',
-    recordId: txn.id,
+    recordId: txnId,
     newValue: {
       lotId,
       lotNumber: lot.lotNumber,
@@ -367,7 +388,7 @@ export async function issueMaterial(
     }, userId);
   }
 
-  return txn.id;
+  return txnId;
 }
 
 /**
@@ -389,44 +410,80 @@ export async function receiveMaterial(
   const database = (await getDb()) as any;
 
   // Create new lot in quarantine status
-  const [newLot] = await database
-    .insert(lots)
-    .values({
-      itemId,
-      lotNumber,
-      warehouseId,
-      quantity,
-      reservedQuantity: 0,
-      unit,
-      status: 'quarantine', // Always start in quarantine
-      expiryDate,
-      receivedDate: new Date().toISOString().split('T')[0],
-      vendorId,
-      poNumber,
-    })
-    .returning({ id: lots.id });
+  let newLotId: number;
+  if (isSqlite()) {
+    const [newLot] = await database
+      .insert(lots)
+      .values({
+        itemId,
+        lotNumber,
+        warehouseId,
+        quantity,
+        reservedQuantity: 0,
+        unit,
+        status: 'quarantine', // Always start in quarantine
+        expiryDate,
+        receivedDate: new Date().toISOString().split('T')[0],
+        vendorId,
+        poNumber,
+      })
+      .returning({ id: lots.id });
+    newLotId = newLot.id;
+  } else {
+    const result = await database
+      .insert(lots)
+      .values({
+        itemId,
+        lotNumber,
+        warehouseId,
+        quantity,
+        reservedQuantity: 0,
+        unit,
+        status: 'quarantine', // Always start in quarantine
+        expiryDate,
+        receivedDate: new Date().toISOString().split('T')[0],
+        vendorId,
+        poNumber,
+      });
+    newLotId = getInsertId(result);
+  }
 
   // Create transaction record
-  const [txn] = await database
-    .insert(transactions)
-    .values({
-      lotId: newLot.id,
-      transactionType: 'receive',
-      quantity,
-      unit,
-      referenceType: 'PO',
-      referenceNumber: poNumber,
-      toWarehouseId: warehouseId,
-      performedBy: userId,
-    })
-    .returning({ id: transactions.id });
+  if (isSqlite()) {
+    await database
+      .insert(transactions)
+      .values({
+        lotId: newLotId,
+        transactionType: 'receive',
+        quantity,
+        unit,
+        referenceType: 'PO',
+        referenceNumber: poNumber,
+        toWarehouseId: warehouseId,
+        performedBy: userId,
+      })
+      .returning({ id: transactions.id });
+  } else {
+    await database
+      .insert(transactions)
+      .values({
+        lotId: newLotId,
+        transactionType: 'receive',
+        quantity,
+        unit,
+        referenceType: 'PO',
+        referenceNumber: poNumber,
+        toWarehouseId: warehouseId,
+        performedBy: userId,
+      });
+  }
 
   // Create audit log
   await createAuditLog({
     userId,
     action: 'RECEIVE',
     tableName: 'inventory_lots',
-    recordId: newLot.id,
+    recordId: newLotId,
     newValue: {
       lotNumber,
       quantity,
@@ -435,7 +492,7 @@ export async function receiveMaterial(
     },
   });
 
-  return newLot.id;
+  return newLotId;
 }
 
 /**
@@ -833,19 +890,37 @@ export async function adjustInventory(
     .where(eq(lots.id, lotId));
 
   // Create transaction record
-  const [txn] = await database
-    .insert(transactions)
-    .values({
-      lotId,
-      transactionType: 'adjust',
-      quantity: adjustmentQty,
-      unit: lot.unit,
-      referenceType: 'ADJUST',
-      reason,
-      performedBy: userId,
-      approvedBy,
-    })
-    .returning({ id: transactions.id });
+  let txnId: number;
+  if (isSqlite()) {
+    const [txn] = await database
+      .insert(transactions)
+      .values({
+        lotId,
+        transactionType: 'adjust',
+        quantity: adjustmentQty,
+        unit: lot.unit,
+        referenceType: 'ADJUST',
+        reason,
+        performedBy: userId,
+        approvedBy,
+      })
+      .returning({ id: transactions.id });
+    txnId = txn.id;
+  } else {
+    const result = await database
+      .insert(transactions)
+      .values({
+        lotId,
+        transactionType: 'adjust',
+        quantity: adjustmentQty,
+        unit: lot.unit,
+        referenceType: 'ADJUST',
+        reason,
+        performedBy: userId,
+        approvedBy,
+      });
+    txnId = getInsertId(result);
+  }
 
   // Create audit log
   await createAuditLog({
@@ -857,7 +932,7 @@ export async function adjustInventory(
     newValue: { quantity: newQuantity, reason },
   });
 
-  return txn.id;
+  return txnId;
 }
 
 /**
@@ -899,41 +974,84 @@ export async function transferInventory(
     .where(eq(lots.id, lotId));
 
   // Create new lot in destination warehouse
-  const [newLot] = await database
-    .insert(lots)
-    .values({
-      itemId: lot.itemId,
-      lotNumber: lot.lotNumber,
-      batchNumber: lot.batchNumber,
-      warehouseId: toWarehouseId,
-      quantity,
-      reservedQuantity: 0,
-      unit: lot.unit,
-      status: lot.status,
-      manufacturingDate: lot.manufacturingDate,
-      expiryDate: lot.expiryDate,
-      receivedDate: lot.receivedDate,
-      vendorId: lot.vendorId,
-      poNumber: lot.poNumber,
-      coaNumber: lot.coaNumber,
-    })
-    .returning({ id: lots.id });
+  let newLotId: number;
+  if (isSqlite()) {
+    const [newLot] = await database
+      .insert(lots)
+      .values({
+        itemId: lot.itemId,
+        lotNumber: lot.lotNumber,
+        batchNumber: lot.batchNumber,
+        warehouseId: toWarehouseId,
+        quantity,
+        reservedQuantity: 0,
+        unit: lot.unit,
+        status: lot.status,
+        manufacturingDate: lot.manufacturingDate,
+        expiryDate: lot.expiryDate,
+        receivedDate: lot.receivedDate,
+        vendorId: lot.vendorId,
+        poNumber: lot.poNumber,
+        coaNumber: lot.coaNumber,
+      })
+      .returning({ id: lots.id });
+    newLotId = newLot.id;
+  } else {
+    const result = await database
+      .insert(lots)
+      .values({
+        itemId: lot.itemId,
+        lotNumber: lot.lotNumber,
+        batchNumber: lot.batchNumber,
+        warehouseId: toWarehouseId,
+        quantity,
+        reservedQuantity: 0,
+        unit: lot.unit,
+        status: lot.status,
+        manufacturingDate: lot.manufacturingDate,
+        expiryDate: lot.expiryDate,
+        receivedDate: lot.receivedDate,
+        vendorId: lot.vendorId,
+        poNumber: lot.poNumber,
+        coaNumber: lot.coaNumber,
+      });
+    newLotId = getInsertId(result);
+  }
 
   // Create transaction record
-  const [txn] = await database
-    .insert(transactions)
-    .values({
-      lotId: newLot.id,
-      transactionType: 'transfer',
-      quantity,
-      unit: lot.unit,
-      referenceType: 'TRANSFER',
-      fromWarehouseId: lot.warehouseId,
-      toWarehouseId,
-      reason,
-      performedBy: userId,
-    })
-    .returning({ id: transactions.id });
+  let txnId: number;
+  if (isSqlite()) {
+    const [txn] = await database
+      .insert(transactions)
+      .values({
+        lotId: newLotId,
+        transactionType: 'transfer',
+        quantity,
+        unit: lot.unit,
+        referenceType: 'TRANSFER',
+        fromWarehouseId: lot.warehouseId,
+        toWarehouseId,
+        reason,
+        performedBy: userId,
+      })
+      .returning({ id: transactions.id });
+    txnId = txn.id;
+  } else {
+    const result = await database
+      .insert(transactions)
+      .values({
+        lotId: newLotId,
+        transactionType: 'transfer',
+        quantity,
+        unit: lot.unit,
+        referenceType: 'TRANSFER',
+        fromWarehouseId: lot.warehouseId,
+        toWarehouseId,
+        reason,
+        performedBy: userId,
+      });
+    txnId = getInsertId(result);
+  }
 
   // Create audit log
   await createAuditLog({
@@ -945,11 +1063,11 @@ export async function transferInventory(
       fromWarehouse: lot.warehouseId,
       toWarehouse: toWarehouseId,
       quantity,
-      newLotId: newLot.id,
+      newLotId,
     },
   });
 
-  return { newLotId: newLot.id, transactionId: txn.id };
+  return { newLotId, transactionId: txnId };
 }
 
 /**
@@ -1006,16 +1124,25 @@ export async function receiveMaterialExtended(
     retestStatus,
   };
 
-  const [newLot] = await database
-    .insert(lots)
-    .values(insertData)
-    .returning({ id: lots.id });
+  let newLotId: number;
+  if (isSqlite()) {
+    const [newLot] = await database
+      .insert(lots)
+      .values(insertData)
+      .returning({ id: lots.id });
+    newLotId = newLot.id;
+  } else {
+    const result = await database
+      .insert(lots)
+      .values(insertData);
+    newLotId = getInsertId(result);
+  }
 
   // Create transaction record
   await database
     .insert(transactions)
     .values({
-      lotId: newLot.id,
+      lotId: newLotId,
       transactionType: 'receive',
       quantity: data.quantity,
       unit: data.unit,
@@ -1030,7 +1157,7 @@ export async function receiveMaterialExtended(
     userId,
     action: 'RECEIVE',
     tableName: 'inventory_lots',
-    recordId: newLot.id,
+    recordId: newLotId,
     newValue: {
       lotNumber: data.lotNumber,
       quantity: data.quantity,
@@ -1043,7 +1170,7 @@ export async function receiveMaterialExtended(
     },
   });
 
-  return newLot.id;
+  return newLotId;
 }
 
 /**
