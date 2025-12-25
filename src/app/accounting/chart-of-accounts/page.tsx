@@ -19,7 +19,12 @@ import Form, { SimpleItem, GroupItem, RequiredRule, StringLengthRule, PatternRul
 import { Button } from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
 import { Badge } from '@/components/ui/badge';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+  AccountingStatusBadge,
+} from '@/components/accounting';
 import {
   BookOpen,
   Wallet,
@@ -326,9 +331,9 @@ export default function ChartOfAccountsPage() {
   // Render status
   const renderStatus = useCallback((cellInfo: { value: boolean }) => {
     return cellInfo.value ? (
-      <Badge variant="default">ใช้งาน</Badge>
+      <AccountingStatusBadge status="active" />
     ) : (
-      <Badge variant="secondary">ไม่ใช้งาน</Badge>
+      <AccountingStatusBadge status="inactive" />
     );
   }, []);
 
@@ -351,53 +356,87 @@ export default function ChartOfAccountsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <ResponsivePageHeader
-        title="ผังบัญชี (Chart of Accounts)"
-        subtitle="จัดการผังบัญชีตามมาตรฐานการบัญชีไทย (TAS)"
-        icon={BookOpen}
+      <AccountingPageHeader
+        title="ผังบัญชี"
+        subtitle="Chart of Accounts"
+        icon="book"
+        onRefresh={handleRefresh}
+        actions={
+          <Button
+            text="ส่งออก"
+            icon="export"
+            onClick={handleExport}
+            stylingMode="outlined"
+            className="gap-2 bg-white/80 backdrop-blur-sm"
+          />
+        }
       />
 
       <div className="p-4 md:p-6 space-y-6">
-        {/* Stats Cards */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard
+          <AccountingKPICard
             label="บัญชีทั้งหมด"
             value={stats.total}
-            icon={BookOpen}
-            iconColor="text-blue-500"
-            accentColor="border-blue-500"
+            icon="file-text"
+            variant="info"
           />
-          <StatCard
+          <AccountingKPICard
             label="ใช้งาน"
             value={stats.active}
-            icon={TrendingUp}
-            iconColor="text-green-500"
-            accentColor="border-green-500"
+            icon="check-circle"
+            variant="success"
           />
-          <StatCard
+          <AccountingKPICard
             label="ลงบัญชีได้"
             value={stats.postable}
-            icon={Wallet}
-            iconColor="text-purple-500"
-            accentColor="border-purple-500"
+            icon="wallet"
+            variant="default"
           />
-          <StatCard
+          <AccountingKPICard
             label="บัญชีธนาคาร"
             value={stats.bankAccounts}
-            icon={CreditCard}
-            iconColor="text-orange-500"
-            accentColor="border-orange-500"
+            icon="credit-card"
+            variant="warning"
           />
         </div>
 
+        {/* Filter Panel */}
+        <AccountingFilterPanel>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              ค้นหา
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="ค้นหารหัสหรือชื่อบัญชี..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              การดำเนินการ
+            </label>
+            <Button
+              icon="add"
+              text="เพิ่มบัญชี"
+              type="default"
+              stylingMode="contained"
+              onClick={() => handleOpenAddDialog()}
+            />
+          </div>
+        </AccountingFilterPanel>
+
         {/* TreeList */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200">
           <TreeList
             dataSource={treeData}
             keyExpr="id"
             parentIdExpr="parentId"
             rootValue={0}
-            showBorders={true}
+            showBorders={false}
             showRowLines={true}
             columnAutoWidth={true}
             autoExpandAll={false}
@@ -405,34 +444,9 @@ export default function ChartOfAccountsPage() {
             height={600}
             onRowDblClick={handleRowDblClick}
           >
-            <SearchPanel visible={true} placeholder="ค้นหา..." />
+            <SearchPanel visible={false} />
             <HeaderFilter visible={true} />
             <Selection mode="single" />
-
-            <Toolbar>
-              <Item location="before">
-                <Button
-                  icon="add"
-                  text="เพิ่มบัญชี"
-                  type="default"
-                  stylingMode="contained"
-                  onClick={() => handleOpenAddDialog()}
-                />
-              </Item>
-              <Item location="after">
-                <Button
-                  icon="export"
-                  text="ส่งออก"
-                  onClick={handleExport}
-                />
-              </Item>
-              <Item location="after">
-                <Button
-                  icon="refresh"
-                  onClick={handleRefresh}
-                />
-              </Item>
-            </Toolbar>
 
             <Column dataField="code" caption="รหัสบัญชี" width={120} />
             <Column dataField="nameTh" caption="ชื่อบัญชี (ไทย)" width={250} />
