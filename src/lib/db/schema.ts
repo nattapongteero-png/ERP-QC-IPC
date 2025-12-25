@@ -5390,3 +5390,19 @@ export type AcctMaintenanceSchedule = typeof sqliteAcctMaintenanceSchedules.$inf
 export type NewAcctMaintenanceSchedule = typeof sqliteAcctMaintenanceSchedules.$inferInsert;
 export type AcctMaintenanceRecord = typeof sqliteAcctMaintenanceRecords.$inferSelect;
 export type NewAcctMaintenanceRecord = typeof sqliteAcctMaintenanceRecords.$inferInsert;
+
+// ============================================
+// Template Module (ERP Prototype)
+// ============================================
+export {
+  // SQLite tables
+  sqliteTemplateCategories,
+  sqliteTemplateItems,
+  sqliteTemplateCategoriesRelations,
+  sqliteTemplateItemsRelations,
+  // MySQL tables
+  mysqlTemplateCategories,
+  mysqlTemplateItems,
+  mysqlTemplateCategoriesRelations,
+  mysqlTemplateItemsRelations,
+} from './schema-template';
