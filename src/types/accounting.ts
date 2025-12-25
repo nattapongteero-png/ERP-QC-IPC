@@ -1,0 +1,1142 @@
+// Accounting Module - TypeScript Types
+// Feature: 010-accounting-module-integration
+
+// ============================================
+// Enums
+// ============================================
+
+export type AccountCategory = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+
+export type NormalBalance = 'debit' | 'credit';
+
+export type JournalEntryStatus = 'draft' | 'posted' | 'reversed';
+
+export type JournalSourceType =
+  | 'PO_RECEIPT'
+  | 'SO_SHIPMENT'
+  | 'AP_PAYMENT'
+  | 'AR_RECEIPT'
+  | 'DEPRECIATION'
+  | 'PAYROLL'
+  | 'COST_ALLOCATION'
+  | 'PERIOD_CLOSE'
+  | 'MANUAL';
+
+export type APInvoiceStatus = 'draft' | 'approved' | 'posted' | 'partial' | 'paid' | 'cancelled';
+
+export type ARInvoiceStatus = 'draft' | 'confirmed' | 'posted' | 'partial' | 'paid' | 'cancelled';
+
+export type PaymentType = 'ap' | 'ar';
+
+export type PaymentMethod = 'cash' | 'check' | 'transfer' | 'other';
+
+export type PaymentStatus = 'pending' | 'completed' | 'cancelled';
+
+export type FiscalPeriodStatus = 'open' | 'soft_closed' | 'closed';
+
+export type FiscalYearStatus = 'open' | 'closed';
+
+export type VATTransactionType = 'input' | 'output';
+
+export type WHTCertificateType = 'pnd3' | 'pnd53';
+
+export type DepreciationMethod = 'straight_line' | 'declining_balance';
+
+export type AssetStatus = 'active' | 'disposed' | 'fully_depreciated';
+
+export type DisposalType = 'sale' | 'write_off' | 'scrap' | 'transfer';
+
+export type MaintenanceIntervalType = 'days' | 'weeks' | 'months' | 'hours' | 'units';
+
+export type MaintenanceType = 'preventive' | 'corrective' | 'emergency';
+
+// ============================================
+// GL Account Types
+// ============================================
+
+export interface GLAccountType {
+  id: number;
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  category: AccountCategory;
+  normalBalance: NormalBalance;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GLAccountTypeCreate {
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  category: AccountCategory;
+  normalBalance: NormalBalance;
+  displayOrder?: number;
+}
+
+// ============================================
+// GL Account (Chart of Accounts)
+// ============================================
+
+export interface GLAccount {
+  id: number;
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  accountTypeId: number;
+  parentId: number | null;
+  level: number;
+  isActive: boolean;
+  isPostable: boolean;
+  isBankAccount: boolean;
+  bankName: string | null;
+  bankAccountNumber: string | null;
+  description: string | null;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  accountType?: GLAccountType;
+  parent?: GLAccount | null;
+  children?: GLAccount[];
+}
+
+export interface GLAccountCreate {
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  accountTypeId: number;
+  parentId?: number | null;
+  isPostable?: boolean;
+  isBankAccount?: boolean;
+  bankName?: string;
+  bankAccountNumber?: string;
+  description?: string;
+}
+
+export interface GLAccountUpdate {
+  nameTh?: string;
+  nameEn?: string;
+  accountTypeId?: number;
+  parentId?: number | null;
+  isActive?: boolean;
+  isPostable?: boolean;
+  isBankAccount?: boolean;
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+  description?: string | null;
+}
+
+export interface GLAccountTreeNode extends GLAccount {
+  children: GLAccountTreeNode[];
+  balance?: number;
+}
+
+export interface GLAccountBalance {
+  accountId: number;
+  accountCode: string;
+  accountName: string;
+  debitTotal: number;
+  creditTotal: number;
+  balance: number;
+  asOfDate: string;
+}
+
+// ============================================
+// Journal Entry
+// ============================================
+
+export interface JournalEntry {
+  id: number;
+  entryNumber: string;
+  entryDate: string;
+  fiscalPeriodId: number;
+  description: string | null;
+  sourceType: JournalSourceType | null;
+  sourceId: number | null;
+  status: JournalEntryStatus;
+  totalDebit: number;
+  totalCredit: number;
+  postedBy: number | null;
+  postedAt: string | null;
+  reversedBy: number | null;
+  reversedAt: string | null;
+  reversalEntryId: number | null;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  lines?: JournalLine[];
+  fiscalPeriod?: FiscalPeriod;
+}
+
+export interface JournalEntryCreate {
+  entryDate: string;
+  fiscalPeriodId?: number;
+  description?: string;
+  sourceType?: JournalSourceType;
+  sourceId?: number;
+  lines: JournalLineCreate[];
+}
+
+export interface JournalEntryUpdate {
+  entryDate?: string;
+  description?: string;
+  lines?: JournalLineCreate[];
+}
+
+export interface JournalLine {
+  id: number;
+  journalEntryId: number;
+  lineNumber: number;
+  glAccountId: number;
+  debit: number;
+  credit: number;
+  description: string | null;
+  costCenterId: number | null;
+  createdAt: string;
+  // Populated fields
+  glAccount?: GLAccount;
+}
+
+export interface JournalLineCreate {
+  glAccountId: number;
+  debit: number;
+  credit: number;
+  description?: string;
+  costCenterId?: number;
+}
+
+// ============================================
+// Fiscal Year and Period
+// ============================================
+
+export interface FiscalYear {
+  id: number;
+  yearCode: string;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  status: FiscalYearStatus;
+  closedBy: number | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  periods?: FiscalPeriod[];
+}
+
+export interface FiscalYearCreate {
+  yearCode: string;
+  startDate: string;
+  endDate: string;
+  isCurrent?: boolean;
+}
+
+export interface FiscalPeriod {
+  id: number;
+  fiscalYearId: number;
+  periodNumber: number;
+  periodName: string;
+  startDate: string;
+  endDate: string;
+  status: FiscalPeriodStatus;
+  closedBy: number | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  fiscalYear?: FiscalYear;
+}
+
+export interface FiscalPeriodCreate {
+  fiscalYearId: number;
+  periodNumber: number;
+  periodName: string;
+  startDate: string;
+  endDate: string;
+}
+
+// ============================================
+// Accounts Payable (AP) Invoice
+// ============================================
+
+export interface APInvoice {
+  id: number;
+  invoiceNumber: string;
+  vendorId: number;
+  purchaseOrderId: number | null;
+  invoiceDate: string;
+  dueDate: string;
+  receivedDate: string;
+  description: string | null;
+  subtotal: number;
+  vatAmount: number;
+  whtAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  currency: string;
+  exchangeRate: number;
+  status: APInvoiceStatus;
+  approvedBy: number | null;
+  approvedAt: string | null;
+  journalEntryId: number | null;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  lines?: APInvoiceLine[];
+  vendor?: { id: number; name: string };
+  journalEntry?: JournalEntry;
+}
+
+export interface APInvoiceCreate {
+  invoiceNumber: string;
+  vendorId: number;
+  purchaseOrderId?: number;
+  invoiceDate: string;
+  dueDate: string;
+  receivedDate: string;
+  description?: string;
+  currency?: string;
+  exchangeRate?: number;
+  lines: APInvoiceLineCreate[];
+}
+
+export interface APInvoiceUpdate {
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  dueDate?: string;
+  description?: string;
+  lines?: APInvoiceLineCreate[];
+}
+
+export interface APInvoiceLine {
+  id: number;
+  apInvoiceId: number;
+  lineNumber: number;
+  description: string;
+  itemId: number | null;
+  glAccountId: number;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  vatAmount: number;
+  isCapitalizable: boolean;
+  createdAt: string;
+  // Populated fields
+  item?: { id: number; name: string };
+  glAccount?: GLAccount;
+}
+
+export interface APInvoiceLineCreate {
+  description: string;
+  itemId?: number;
+  glAccountId: number;
+  quantity: number;
+  unitPrice: number;
+  isCapitalizable?: boolean;
+}
+
+// ============================================
+// Accounts Receivable (AR) Invoice
+// ============================================
+
+export interface ARInvoice {
+  id: number;
+  invoiceNumber: string;
+  taxInvoiceNumber: string;
+  customerId: number;
+  salesOrderId: number | null;
+  invoiceDate: string;
+  dueDate: string;
+  description: string | null;
+  subtotal: number;
+  vatAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  currency: string;
+  exchangeRate: number;
+  status: ARInvoiceStatus;
+  confirmedBy: number | null;
+  confirmedAt: string | null;
+  journalEntryId: number | null;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  lines?: ARInvoiceLine[];
+  customer?: { id: number; name: string };
+  journalEntry?: JournalEntry;
+}
+
+export interface ARInvoiceCreate {
+  invoiceNumber: string;
+  customerId: number;
+  salesOrderId?: number;
+  invoiceDate: string;
+  dueDate: string;
+  description?: string;
+  currency?: string;
+  exchangeRate?: number;
+  lines: ARInvoiceLineCreate[];
+}
+
+export interface ARInvoiceUpdate {
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  dueDate?: string;
+  description?: string;
+  lines?: ARInvoiceLineCreate[];
+}
+
+export interface ARInvoiceLine {
+  id: number;
+  arInvoiceId: number;
+  lineNumber: number;
+  description: string;
+  itemId: number | null;
+  glAccountId: number;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  vatAmount: number;
+  lotId: number | null;
+  createdAt: string;
+  // Populated fields
+  item?: { id: number; name: string };
+  glAccount?: GLAccount;
+}
+
+export interface ARInvoiceLineCreate {
+  description: string;
+  itemId?: number;
+  glAccountId: number;
+  quantity: number;
+  unitPrice: number;
+  lotId?: number;
+}
+
+// ============================================
+// Payment
+// ============================================
+
+export interface Payment {
+  id: number;
+  paymentNumber: string;
+  paymentType: PaymentType;
+  paymentDate: string;
+  vendorId: number | null;
+  customerId: number | null;
+  bankAccountId: number;
+  paymentMethod: PaymentMethod;
+  referenceNumber: string | null;
+  amount: number;
+  whtAmount: number;
+  description: string | null;
+  status: PaymentStatus;
+  journalEntryId: number | null;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  allocations?: PaymentAllocation[];
+  bankAccount?: GLAccount;
+  journalEntry?: JournalEntry;
+}
+
+export interface PaymentCreate {
+  paymentType: PaymentType;
+  paymentDate: string;
+  vendorId?: number;
+  customerId?: number;
+  bankAccountId: number;
+  paymentMethod: PaymentMethod;
+  referenceNumber?: string;
+  amount: number;
+  whtAmount?: number;
+  description?: string;
+  allocations: PaymentAllocationCreate[];
+}
+
+export interface PaymentAllocation {
+  id: number;
+  paymentId: number;
+  apInvoiceId: number | null;
+  arInvoiceId: number | null;
+  allocatedAmount: number;
+  createdAt: string;
+}
+
+export interface PaymentAllocationCreate {
+  apInvoiceId?: number;
+  arInvoiceId?: number;
+  allocatedAmount: number;
+}
+
+// ============================================
+// VAT Transaction
+// ============================================
+
+export interface VATTransaction {
+  id: number;
+  transactionType: VATTransactionType;
+  taxInvoiceNumber: string;
+  taxInvoiceDate: string;
+  taxPeriod: string;
+  vendorId: number | null;
+  customerId: number | null;
+  partyName: string;
+  partyTaxId: string;
+  branchCode: string;
+  taxableAmount: number;
+  vatRate: number;
+  vatAmount: number;
+  totalAmount: number;
+  apInvoiceId: number | null;
+  arInvoiceId: number | null;
+  createdAt: string;
+}
+
+export interface VATTransactionCreate {
+  transactionType: VATTransactionType;
+  taxInvoiceNumber: string;
+  taxInvoiceDate: string;
+  taxPeriod: string;
+  vendorId?: number;
+  customerId?: number;
+  partyName: string;
+  partyTaxId: string;
+  branchCode?: string;
+  taxableAmount: number;
+  vatRate: number;
+  apInvoiceId?: number;
+  arInvoiceId?: number;
+}
+
+// ============================================
+// Withholding Tax (WHT)
+// ============================================
+
+export interface WHTTransaction {
+  id: number;
+  certificateNumber: string;
+  certificateType: WHTCertificateType;
+  paymentId: number;
+  vendorId: number;
+  paymentDate: string;
+  taxPeriod: string;
+  whtType: string;
+  whtDescription: string;
+  paymentAmount: number;
+  whtRate: number;
+  whtAmount: number;
+  netAmount: number;
+  createdAt: string;
+  // Populated fields
+  vendor?: { id: number; name: string; taxId?: string };
+}
+
+export interface WHTTransactionCreate {
+  certificateType: WHTCertificateType;
+  paymentId: number;
+  vendorId: number;
+  paymentDate: string;
+  taxPeriod: string;
+  whtType: string;
+  whtDescription: string;
+  paymentAmount: number;
+  whtRate: number;
+}
+
+// ============================================
+// Asset Category
+// ============================================
+
+export interface AssetCategory {
+  id: number;
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  defaultUsefulLifeMonths: number;
+  defaultDepreciationMethod: DepreciationMethod;
+  maxDepreciationRate: number;
+  assetGLAccountId: number;
+  depreciationExpenseGLAccountId: number;
+  accumulatedDepreciationGLAccountId: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  assetGLAccount?: GLAccount;
+  depreciationExpenseGLAccount?: GLAccount;
+  accumulatedDepreciationGLAccount?: GLAccount;
+}
+
+export interface AssetCategoryCreate {
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  defaultUsefulLifeMonths: number;
+  defaultDepreciationMethod: DepreciationMethod;
+  maxDepreciationRate: number;
+  assetGLAccountId: number;
+  depreciationExpenseGLAccountId: number;
+  accumulatedDepreciationGLAccountId: number;
+}
+
+export interface AssetCategoryUpdate {
+  nameTh?: string;
+  nameEn?: string;
+  defaultUsefulLifeMonths?: number;
+  defaultDepreciationMethod?: DepreciationMethod;
+  maxDepreciationRate?: number;
+  assetGLAccountId?: number;
+  depreciationExpenseGLAccountId?: number;
+  accumulatedDepreciationGLAccountId?: number;
+  isActive?: boolean;
+}
+
+// ============================================
+// Fixed Asset
+// ============================================
+
+export interface FixedAsset {
+  id: number;
+  assetCode: string;
+  nameTh: string;
+  nameEn: string;
+  categoryId: number;
+  acquisitionDate: string;
+  acquisitionCost: number;
+  salvageValue: number;
+  usefulLifeMonths: number;
+  depreciationMethod: DepreciationMethod;
+  depreciationStartDate: string;
+  accumulatedDepreciation: number;
+  netBookValue: number;
+  location: string | null;
+  departmentId: number | null;
+  responsiblePersonId: number | null;
+  purchaseOrderId: number | null;
+  apInvoiceId: number | null;
+  status: AssetStatus;
+  disposalDate: string | null;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  category?: AssetCategory;
+  equipment?: Equipment;
+  depreciationHistory?: AssetDepreciation[];
+  disposal?: AssetDisposal;
+}
+
+export interface FixedAssetCreate {
+  nameTh: string;
+  nameEn: string;
+  categoryId: number;
+  acquisitionDate: string;
+  acquisitionCost: number;
+  salvageValue?: number;
+  usefulLifeMonths?: number;
+  depreciationMethod?: DepreciationMethod;
+  depreciationStartDate?: string;
+  location?: string;
+  departmentId?: number;
+  responsiblePersonId?: number;
+  purchaseOrderId?: number;
+  apInvoiceId?: number;
+}
+
+export interface FixedAssetUpdate {
+  nameTh?: string;
+  nameEn?: string;
+  location?: string;
+  departmentId?: number;
+  responsiblePersonId?: number;
+}
+
+// ============================================
+// Asset Depreciation
+// ============================================
+
+export interface AssetDepreciation {
+  id: number;
+  fixedAssetId: number;
+  fiscalPeriodId: number;
+  depreciationDate: string;
+  openingBookValue: number;
+  depreciationAmount: number;
+  accumulatedDepreciation: number;
+  closingBookValue: number;
+  journalEntryId: number | null;
+  createdAt: string;
+  // Populated fields
+  fiscalPeriod?: FiscalPeriod;
+  journalEntry?: JournalEntry;
+}
+
+// ============================================
+// Asset Disposal
+// ============================================
+
+export interface AssetDisposal {
+  id: number;
+  fixedAssetId: number;
+  disposalDate: string;
+  disposalType: DisposalType;
+  disposalReason: string | null;
+  saleProceeds: number;
+  bookValueAtDisposal: number;
+  gainLoss: number;
+  buyerName: string | null;
+  journalEntryId: number | null;
+  approvedBy: number | null;
+  approvedAt: string | null;
+  createdBy: number;
+  createdAt: string;
+}
+
+export interface AssetDisposalCreate {
+  fixedAssetId: number;
+  disposalDate: string;
+  disposalType: DisposalType;
+  disposalReason?: string;
+  saleProceeds?: number;
+  buyerName?: string;
+}
+
+// ============================================
+// Asset Movement
+// ============================================
+
+export interface AssetMovement {
+  id: number;
+  fixedAssetId: number;
+  movementDate: string;
+  fromLocation: string | null;
+  toLocation: string | null;
+  fromDepartmentId: number | null;
+  toDepartmentId: number | null;
+  fromResponsiblePersonId: number | null;
+  toResponsiblePersonId: number | null;
+  reason: string | null;
+  createdBy: number;
+  createdAt: string;
+}
+
+export interface AssetMovementCreate {
+  fixedAssetId: number;
+  movementDate: string;
+  toLocation?: string;
+  toDepartmentId?: number;
+  toResponsiblePersonId?: number;
+  reason?: string;
+}
+
+// ============================================
+// Equipment
+// ============================================
+
+export interface Equipment {
+  id: number;
+  fixedAssetId: number;
+  serialNumber: string | null;
+  manufacturer: string | null;
+  model: string | null;
+  specifications: string | null;
+  warrantyStartDate: string | null;
+  warrantyEndDate: string | null;
+  operatingHours: number;
+  operatingUnits: number;
+  lastMeterReading: number;
+  lastMeterReadingDate: string | null;
+  assignedOperatorId: number | null;
+  productionLineId: number | null;
+  isAvailable: boolean;
+  lastMaintenanceDate: string | null;
+  nextMaintenanceDue: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  fixedAsset?: FixedAsset;
+  maintenanceSchedules?: MaintenanceSchedule[];
+  maintenanceRecords?: MaintenanceRecord[];
+}
+
+export interface EquipmentCreate {
+  fixedAssetId: number;
+  serialNumber?: string;
+  manufacturer?: string;
+  model?: string;
+  specifications?: string;
+  warrantyStartDate?: string;
+  warrantyEndDate?: string;
+  assignedOperatorId?: number;
+  productionLineId?: number;
+}
+
+export interface EquipmentUpdate {
+  serialNumber?: string;
+  manufacturer?: string;
+  model?: string;
+  specifications?: string;
+  warrantyStartDate?: string;
+  warrantyEndDate?: string;
+  assignedOperatorId?: number;
+  productionLineId?: number;
+  isAvailable?: boolean;
+}
+
+// ============================================
+// Maintenance Schedule
+// ============================================
+
+export interface MaintenanceSchedule {
+  id: number;
+  equipmentId: number;
+  maintenanceType: string;
+  description: string | null;
+  intervalType: MaintenanceIntervalType;
+  intervalValue: number;
+  lastPerformed: string | null;
+  lastPerformedHours: number | null;
+  nextDue: string;
+  nextDueHours: number | null;
+  alertDaysBefore: number;
+  isActive: boolean;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MaintenanceScheduleCreate {
+  equipmentId: number;
+  maintenanceType: string;
+  description?: string;
+  intervalType: MaintenanceIntervalType;
+  intervalValue: number;
+  nextDue: string;
+  nextDueHours?: number;
+  alertDaysBefore?: number;
+}
+
+export interface MaintenanceScheduleUpdate {
+  maintenanceType?: string;
+  description?: string;
+  intervalType?: MaintenanceIntervalType;
+  intervalValue?: number;
+  nextDue?: string;
+  nextDueHours?: number;
+  alertDaysBefore?: number;
+  isActive?: boolean;
+}
+
+// ============================================
+// Maintenance Record
+// ============================================
+
+export interface MaintenanceRecord {
+  id: number;
+  equipmentId: number;
+  maintenanceScheduleId: number | null;
+  maintenanceDate: string;
+  maintenanceType: MaintenanceType;
+  description: string;
+  hoursAtMaintenance: number | null;
+  partsUsed: string | null;
+  partsCost: number;
+  laborHours: number;
+  laborCost: number;
+  externalServiceCost: number;
+  totalCost: number;
+  downtimeHours: number;
+  isCritical: boolean;
+  rootCause: string | null;
+  isCapitalized: boolean;
+  journalEntryId: number | null;
+  performedBy: string | null;
+  approvedBy: number | null;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  // Populated fields
+  equipment?: Equipment;
+  maintenanceSchedule?: MaintenanceSchedule;
+  journalEntry?: JournalEntry;
+}
+
+export interface MaintenanceRecordCreate {
+  equipmentId: number;
+  maintenanceScheduleId?: number;
+  maintenanceDate: string;
+  maintenanceType: MaintenanceType;
+  description: string;
+  hoursAtMaintenance?: number;
+  partsUsed?: string;
+  partsCost?: number;
+  laborHours?: number;
+  laborCost?: number;
+  externalServiceCost?: number;
+  downtimeHours?: number;
+  isCritical?: boolean;
+  rootCause?: string;
+  isCapitalized?: boolean;
+  performedBy?: string;
+}
+
+// ============================================
+// Report Types
+// ============================================
+
+export interface TrialBalanceEntry {
+  accountCode: string;
+  accountName: string;
+  accountType: string;
+  category: AccountCategory;
+  openingDebit: number;
+  openingCredit: number;
+  periodDebit: number;
+  periodCredit: number;
+  closingDebit: number;
+  closingCredit: number;
+}
+
+export interface TrialBalanceReport {
+  asOfDate: string;
+  fiscalPeriod: string;
+  entries: TrialBalanceEntry[];
+  totals: {
+    openingDebit: number;
+    openingCredit: number;
+    periodDebit: number;
+    periodCredit: number;
+    closingDebit: number;
+    closingCredit: number;
+  };
+}
+
+export interface BalanceSheetSection {
+  title: string;
+  accounts: Array<{
+    code: string;
+    name: string;
+    amount: number;
+    isSubtotal?: boolean;
+  }>;
+  subtotal: number;
+}
+
+export interface BalanceSheetReport {
+  asOfDate: string;
+  assets: {
+    currentAssets: BalanceSheetSection;
+    nonCurrentAssets: BalanceSheetSection;
+    totalAssets: number;
+  };
+  liabilities: {
+    currentLiabilities: BalanceSheetSection;
+    nonCurrentLiabilities: BalanceSheetSection;
+    totalLiabilities: number;
+  };
+  equity: {
+    section: BalanceSheetSection;
+    totalEquity: number;
+  };
+  totalLiabilitiesAndEquity: number;
+  isBalanced: boolean;
+}
+
+export interface IncomeStatementSection {
+  title: string;
+  accounts: Array<{
+    code: string;
+    name: string;
+    amount: number;
+    isSubtotal?: boolean;
+  }>;
+  subtotal: number;
+}
+
+export interface IncomeStatementReport {
+  periodStart: string;
+  periodEnd: string;
+  revenue: IncomeStatementSection;
+  costOfGoodsSold: IncomeStatementSection;
+  grossProfit: number;
+  operatingExpenses: IncomeStatementSection;
+  operatingIncome: number;
+  otherIncomeExpenses: IncomeStatementSection;
+  netIncomeBeforeTax: number;
+  incomeTax: number;
+  netIncome: number;
+}
+
+export interface AgingBucket {
+  range: string;
+  count: number;
+  amount: number;
+}
+
+export interface AgingReportEntry {
+  entityId: number;
+  entityName: string;
+  current: number;
+  days1to30: number;
+  days31to60: number;
+  days61to90: number;
+  over90: number;
+  total: number;
+}
+
+export interface AgingReport {
+  reportType: 'AP' | 'AR';
+  asOfDate: string;
+  entries: AgingReportEntry[];
+  buckets: AgingBucket[];
+  totals: {
+    current: number;
+    days1to30: number;
+    days31to60: number;
+    days61to90: number;
+    over90: number;
+    total: number;
+  };
+}
+
+export interface VATReportEntry {
+  taxInvoiceNumber: string;
+  taxInvoiceDate: string;
+  partyName: string;
+  partyTaxId: string;
+  branchCode: string;
+  taxableAmount: number;
+  vatAmount: number;
+  totalAmount: number;
+}
+
+export interface VATReport {
+  taxPeriod: string;
+  inputVAT: {
+    entries: VATReportEntry[];
+    totalTaxableAmount: number;
+    totalVATAmount: number;
+  };
+  outputVAT: {
+    entries: VATReportEntry[];
+    totalTaxableAmount: number;
+    totalVATAmount: number;
+  };
+  netVAT: number;
+}
+
+export interface AssetRegisterEntry {
+  assetCode: string;
+  assetName: string;
+  category: string;
+  location: string | null;
+  acquisitionDate: string;
+  acquisitionCost: number;
+  accumulatedDepreciation: number;
+  netBookValue: number;
+  status: AssetStatus;
+}
+
+export interface AssetRegisterReport {
+  asOfDate: string;
+  entries: AssetRegisterEntry[];
+  totals: {
+    acquisitionCost: number;
+    accumulatedDepreciation: number;
+    netBookValue: number;
+  };
+}
+
+// ============================================
+// Filter/Query Types
+// ============================================
+
+export interface GLAccountFilter {
+  accountTypeId?: number;
+  parentId?: number | null;
+  isActive?: boolean;
+  isPostable?: boolean;
+  isBankAccount?: boolean;
+  search?: string;
+}
+
+export interface JournalEntryFilter {
+  fiscalPeriodId?: number;
+  status?: JournalEntryStatus;
+  sourceType?: JournalSourceType;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}
+
+export interface APInvoiceFilter {
+  vendorId?: number;
+  status?: APInvoiceStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  dueDateFrom?: string;
+  dueDateTo?: string;
+  search?: string;
+}
+
+export interface ARInvoiceFilter {
+  customerId?: number;
+  status?: ARInvoiceStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  dueDateFrom?: string;
+  dueDateTo?: string;
+  search?: string;
+}
+
+export interface FixedAssetFilter {
+  categoryId?: number;
+  status?: AssetStatus;
+  departmentId?: number;
+  location?: string;
+  search?: string;
+}
+
+export interface MaintenanceFilter {
+  equipmentId?: number;
+  maintenanceType?: MaintenanceType;
+  dateFrom?: string;
+  dateTo?: string;
+  isOverdue?: boolean;
+  isDue?: boolean;
+}
+
+// ============================================
+// Thai VAT Configuration
+// ============================================
+
+export const THAI_VAT_RATE = 0.07; // 7%
+export const THAI_BRANCH_CODE_HEAD_OFFICE = '00000';
+
+// WHT Rate Configuration
+export interface WHTRate {
+  code: string;
+  description: string;
+  descriptionTh: string;
+  rate: number;
+}
+
+export const WHT_RATES: WHTRate[] = [
+  { code: '40(1)', description: 'Salary, wages', descriptionTh: 'เงินเดือน ค่าจ้าง', rate: 0 },
+  { code: '40(2)', description: 'Hire of work', descriptionTh: 'ค่าจ้างทำของ', rate: 3 },
+  { code: '40(4)a', description: 'Interest', descriptionTh: 'ดอกเบี้ย', rate: 15 },
+  { code: '40(4)b', description: 'Dividend', descriptionTh: 'เงินปันผล', rate: 10 },
+  { code: '40(6)', description: 'Liberal profession', descriptionTh: 'วิชาชีพอิสระ', rate: 3 },
+  { code: '40(7)', description: 'Contract of work', descriptionTh: 'รับเหมาก่อสร้าง', rate: 3 },
+  { code: '40(8)', description: 'Rent', descriptionTh: 'ค่าเช่า', rate: 5 },
+  { code: '3', description: 'Service', descriptionTh: 'ค่าบริการ', rate: 3 },
+  { code: '5', description: 'Transport', descriptionTh: 'ค่าขนส่ง', rate: 1 },
+  { code: '6', description: 'Advertising', descriptionTh: 'ค่าโฆษณา', rate: 2 },
+];
