@@ -53,6 +53,9 @@ import {
   Wrench,
   CalendarCheck,
   DollarSign,
+  LayoutGrid,
+  FolderTree,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -187,6 +190,18 @@ const navigation: NavItem[] = [
       { name: 'Roles', href: '/hr/roles', icon: UserCheck },
       { name: 'Notifications', href: '/hr/notifications', icon: Bell },
       { name: 'Audit Trail', href: '/hr/audit', icon: History },
+    ],
+  },
+  {
+    name: 'Template',
+    href: '/template',
+    icon: LayoutGrid,
+    roles: [], // Accessible to all authenticated users
+    children: [
+      { name: 'Dashboard', href: '/template', icon: LayoutDashboard },
+      { name: 'Items', href: '/template/items', icon: Package },
+      { name: 'New Item', href: '/template/items/new', icon: Plus },
+      { name: 'Categories', href: '/template/categories', icon: FolderTree },
     ],
   },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
