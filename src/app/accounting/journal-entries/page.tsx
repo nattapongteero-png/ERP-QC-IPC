@@ -254,9 +254,14 @@ export default function JournalEntriesPage() {
   }, []);
 
   const handleSave = useCallback(() => {
-    const validLines = formData.lines.filter(
-      (l) => l.glAccountId && (l.debit > 0 || l.credit > 0)
-    );
+    const validLines = formData.lines
+      .filter((l) => l.glAccountId && (l.debit > 0 || l.credit > 0))
+      .map((l) => ({
+        glAccountId: l.glAccountId as number,
+        debit: l.debit,
+        credit: l.credit,
+        description: l.description,
+      }));
 
     if (validLines.length < 2) {
       notify('กรุณาเพิ่มรายการอย่างน้อย 2 รายการ', 'warning', 3000);
@@ -359,7 +364,8 @@ export default function JournalEntriesPage() {
       COST_ALLOCATION: 'จัดสรรต้นทุน',
       PERIOD_CLOSE: 'ปิดงวด',
     };
-    return typeMap[cellData.value] || cellData.value || '-';
+    const value = cellData.value;
+    return value ? (typeMap[value] || value) : '-';
   }, []);
 
   // Action buttons render

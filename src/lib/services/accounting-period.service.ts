@@ -209,7 +209,7 @@ export async function validatePeriodClose(periodId: number): Promise<PeriodClose
       eq(journalEntries.status, 'posted')
     ));
 
-  const jeIds = postedJEs.map(je => je.id);
+  const jeIds = postedJEs.map((je: { id: number }) => je.id);
 
   let totalDebits = 0;
   let totalCredits = 0;
@@ -553,13 +553,13 @@ export async function validateYearClose(fiscalYearId: number): Promise<YearClose
     .from(fiscalPeriods)
     .where(eq(fiscalPeriods.fiscalYearId, fiscalYearId));
 
-  const periodIds = periods.map(p => p.id);
+  const periodIds = periods.map((p: { id: number }) => p.id);
 
   // Get all posted journal entries for the year
   let netIncome = 0;
 
   if (periodIds.length > 0 && incomeStatementAccounts.length > 0) {
-    const accountIds = incomeStatementAccounts.map(a => a.accountId);
+    const accountIds = incomeStatementAccounts.map((a: { accountId: number }) => a.accountId);
 
     // Calculate net income (Revenue - Expenses)
     for (const account of incomeStatementAccounts) {
@@ -667,7 +667,7 @@ export async function closeYearEnd(
     .from(fiscalPeriods)
     .where(eq(fiscalPeriods.fiscalYearId, fiscalYearId));
 
-  const periodIds = periods.map(p => p.id);
+  const periodIds = periods.map((p: { id: number }) => p.id);
 
   // Get all revenue and expense accounts with their balances
   const incomeStatementAccounts = await database
@@ -770,7 +770,8 @@ export async function closeYearEnd(
         description: `Year-end closing entry for FY ${year.yearCode}`,
         sourceType: 'PERIOD_CLOSE',
         lines: closingLines,
-      }, closedBy);
+        createdBy: closedBy,
+      });
 
       closingJournalEntryId = closingEntry.id;
 
@@ -890,7 +891,7 @@ export async function createOpeningBalances(
     .from(fiscalPeriods)
     .where(eq(fiscalPeriods.fiscalYearId, previousFiscalYearId));
 
-  const prevPeriodIds = prevPeriods.map(p => p.id);
+  const prevPeriodIds = prevPeriods.map((p: { id: number }) => p.id);
 
   if (prevPeriodIds.length === 0) {
     throw new Error('No periods found in previous fiscal year');
@@ -967,7 +968,8 @@ export async function createOpeningBalances(
     description: `Opening balances for FY ${newYear.yearCode} (from FY ${prevYear.yearCode})`,
     sourceType: 'PERIOD_CLOSE',
     lines: openingLines,
-  }, createdBy);
+    createdBy,
+  });
 
   // Post the opening entry
   await postJournalEntry(openingEntry.id, createdBy);
@@ -1034,7 +1036,7 @@ export async function listFiscalPeriods(
 
   const results = await query.orderBy(desc(fiscalYears.startDate), asc(fiscalPeriods.periodNumber));
 
-  return results.map(row => ({
+  return results.map((row: { period: FiscalPeriod; year: FiscalYear }) => ({
     ...(row.period as unknown as FiscalPeriod),
     fiscalYear: row.year as unknown as FiscalYear,
   }));
@@ -1080,7 +1082,7 @@ export async function listFiscalYears(status?: FiscalYearStatus): Promise<Fiscal
 
   const results = await query.orderBy(desc(fiscalYears.startDate));
 
-  return results.map(row => ({
+  return results.map((row: FiscalYear) => ({
     ...(row as unknown as FiscalYear),
   }));
 }
@@ -1110,6 +1112,6 @@ export async function getFiscalYearById(id: number): Promise<(FiscalYear & { per
 
   return {
     ...year,
-    periods: periodsResult.map(p => p as unknown as FiscalPeriod),
+    periods: periodsResult.map((p: FiscalPeriod) => p as unknown as FiscalPeriod),
   };
 }

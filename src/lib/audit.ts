@@ -2,12 +2,16 @@ import { getDb, isSqlite, schema } from './db';
 
 export interface AuditLogEntry {
   userId?: number;
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'APPROVE' | 'REJECT' | 'RESERVE' | 'ISSUE' | 'RECEIVE' | 'TRANSFER' | 'ADJUST' | 'RELEASE' | 'BLOCK' | 'SYNC';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'APPROVE' | 'REJECT' | 'RESERVE' | 'ISSUE' | 'RECEIVE' | 'TRANSFER' | 'ADJUST' | 'RELEASE' | 'BLOCK' | 'SYNC' | 'PERIOD_CLOSE' | 'PERIOD_SOFT_CLOSE' | 'PERIOD_REOPEN' | 'YEAR_CLOSE' | 'OPENING_BALANCES_CREATED' | 'CONFIRM' | 'SHIP';
   tableName?: string;
   recordId?: number;
   oldValue?: Record<string, any>;
   newValue?: Record<string, any>;
   ipAddress?: string;
+  // Additional properties for accounting module
+  entity?: string;
+  entityId?: number;
+  details?: string;
 }
 
 export async function createAuditLog(entry: AuditLogEntry): Promise<void> {

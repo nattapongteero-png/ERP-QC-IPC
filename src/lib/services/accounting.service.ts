@@ -1854,9 +1854,17 @@ export async function updateAPInvoice(
   id: number,
   input: {
     invoiceNumber?: string;
-    invoiceDate?: string;
-    dueDate?: string;
+    invoiceDate?: string | null;
+    dueDate?: string | null;
     description?: string | null;
+    lines?: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      glAccountId: number;
+      isCapitalizable?: boolean;
+      itemId?: number | null;
+    }>;
   },
   updatedBy: number
 ): Promise<APInvoice> {
@@ -1873,8 +1881,8 @@ export async function updateAPInvoice(
   };
 
   if (input.invoiceNumber !== undefined) updateValues.invoiceNumber = input.invoiceNumber;
-  if (input.invoiceDate !== undefined) updateValues.invoiceDate = toDbDate(input.invoiceDate);
-  if (input.dueDate !== undefined) updateValues.dueDate = toDbDate(input.dueDate);
+  if (input.invoiceDate !== undefined) updateValues.invoiceDate = input.invoiceDate ? toDbDate(input.invoiceDate) : null;
+  if (input.dueDate !== undefined) updateValues.dueDate = input.dueDate ? toDbDate(input.dueDate) : null;
   if (input.description !== undefined) updateValues.description = input.description;
 
   await database
@@ -2876,9 +2884,17 @@ export async function updateARInvoice(
   input: {
     invoiceNumber?: string;
     taxInvoiceNumber?: string;
-    invoiceDate?: string;
-    dueDate?: string;
+    invoiceDate?: string | null;
+    dueDate?: string | null;
     description?: string | null;
+    lines?: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      glAccountId: number;
+      itemId?: number | null;
+      lotId?: number | null;
+    }>;
   },
   updatedBy: number
 ): Promise<ARInvoice> {
@@ -2896,8 +2912,8 @@ export async function updateARInvoice(
 
   if (input.invoiceNumber !== undefined) updateValues.invoiceNumber = input.invoiceNumber;
   if (input.taxInvoiceNumber !== undefined) updateValues.taxInvoiceNumber = input.taxInvoiceNumber;
-  if (input.invoiceDate !== undefined) updateValues.invoiceDate = toDbDate(input.invoiceDate);
-  if (input.dueDate !== undefined) updateValues.dueDate = toDbDate(input.dueDate);
+  if (input.invoiceDate !== undefined) updateValues.invoiceDate = input.invoiceDate ? toDbDate(input.invoiceDate) : null;
+  if (input.dueDate !== undefined) updateValues.dueDate = input.dueDate ? toDbDate(input.dueDate) : null;
   if (input.description !== undefined) updateValues.description = input.description;
 
   await database
@@ -3572,7 +3588,7 @@ export async function transferToFinishedGoods(
       )
     );
 
-  const totalCost = costEntries.reduce((sum, entry) => sum + (entry.totalDebit || 0), 0);
+  const totalCost = costEntries.reduce((sum: number, entry: { totalDebit?: number }) => sum + (entry.totalDebit || 0), 0);
 
   // Also need to calculate from WIP debit lines for accuracy
   const wipAccountResult = await database
@@ -3598,7 +3614,7 @@ export async function transferToFinishedGoods(
         )
       );
 
-    const totalWipDebit = wipLines.reduce((sum, line) => sum + (line.debit || 0), 0);
+    const totalWipDebit = wipLines.reduce((sum: number, line: { debit?: number }) => sum + (line.debit || 0), 0);
     if (totalWipDebit > 0) {
       wipTotalCost = totalWipDebit;
     }
@@ -3736,7 +3752,7 @@ export async function getBatchCostBreakdown(
       sql`${glAccounts.code} IN ('1131', '5210', '5220', '1133')`
     );
 
-  const accountMap = new Map(accounts.map((a) => [a.code, a.id]));
+  const accountMap = new Map<string, number>(accounts.map((a: { code: string; id: number }) => [a.code, a.id]));
   const rawMaterialId = accountMap.get('1131');
   const laborId = accountMap.get('5210');
   const overheadId = accountMap.get('5220');
@@ -4012,7 +4028,24 @@ export async function listWHTCertificates(filters?: {
 
   const results = await query.orderBy(desc(whtTransactions.paymentDate));
 
-  return results.map((r) => ({
+  return results.map((r: {
+    id: number;
+    certificateNumber: string;
+    certificateType: string;
+    paymentId: number | null;
+    vendorId: number;
+    vendorName: string;
+    vendorTaxId: string;
+    paymentDate: string | Date;
+    taxPeriod: string;
+    whtType: string;
+    whtDescription: string | null;
+    paymentAmount: number | string;
+    whtRate: number | string;
+    whtAmount: number | string;
+    netAmount: number | string;
+    createdAt: string | Date;
+  }) => ({
     id: r.id,
     certificateNumber: r.certificateNumber,
     certificateType: r.certificateType as 'pnd3' | 'pnd53',
@@ -4169,7 +4202,7 @@ export async function createPayrollJournalEntry(
   for (const [ccId, allocation] of costCenterMap) {
     if (allocation.salaryExpense > 0) {
       journalLines.push({
-        accountId: accountConfig.salaryExpenseAccountId,
+        glAccountId: accountConfig.salaryExpenseAccountId,
         debit: allocation.salaryExpense,
         credit: 0,
         description: `Salary expense - ${allocation.costCenterCode || 'General'}`,
@@ -4180,7 +4213,7 @@ export async function createPayrollJournalEntry(
     // DEBIT: SSO Employer Expense per cost center
     if (allocation.ssoEmployerExpense > 0) {
       journalLines.push({
-        accountId: accountConfig.ssoEmployerExpenseAccountId,
+        glAccountId: accountConfig.ssoEmployerExpenseAccountId,
         debit: allocation.ssoEmployerExpense,
         credit: 0,
         description: `SSO employer contribution - ${allocation.costCenterCode || 'General'}`,
@@ -4193,7 +4226,7 @@ export async function createPayrollJournalEntry(
   const totalSSOPayable = totalSSOEmployee + totalSSOEmployer;
   if (totalSSOPayable > 0) {
     journalLines.push({
-      accountId: accountConfig.ssoPayableAccountId,
+      glAccountId: accountConfig.ssoPayableAccountId,
       debit: 0,
       credit: totalSSOPayable,
       description: `Social Security payable - ${payrollBatch.payrollPeriod}`,
@@ -4203,7 +4236,7 @@ export async function createPayrollJournalEntry(
   // CREDIT: WHT Payable
   if (totalWHT > 0) {
     journalLines.push({
-      accountId: accountConfig.whtPayableAccountId,
+      glAccountId: accountConfig.whtPayableAccountId,
       debit: 0,
       credit: totalWHT,
       description: `Withholding tax payable - ${payrollBatch.payrollPeriod}`,
@@ -4213,7 +4246,7 @@ export async function createPayrollJournalEntry(
   // CREDIT: Net pay - to Cash or Salary Payable
   if (totalNetPay > 0) {
     journalLines.push({
-      accountId: accountConfig.cashAccountId,
+      glAccountId: accountConfig.cashAccountId,
       debit: 0,
       credit: totalNetPay,
       description: `Net salary payment - ${payrollBatch.payrollPeriod}`,
@@ -4246,17 +4279,14 @@ export async function createPayrollJournalEntry(
   const description = payrollBatch.description ||
     `Payroll for ${payrollBatch.payrollPeriod}${payrollBatch.payrollNumber ? ` (${payrollBatch.payrollNumber})` : ''}`;
 
-  const journalEntry = await createJournalEntry(
-    {
-      entryDate: payrollBatch.payrollDate,
-      description,
-      reference: payrollBatch.payrollNumber || `PAYROLL-${payrollBatch.payrollPeriod}`,
-      source: 'PAYROLL' as JournalSourceType,
-      sourceId: null,
-      lines: journalLines,
-    },
-    createdBy
-  );
+  const journalEntry = await createJournalEntry({
+    entryDate: payrollBatch.payrollDate,
+    description,
+    sourceType: 'PAYROLL' as JournalSourceType,
+    sourceId: undefined,
+    lines: journalLines,
+    createdBy,
+  });
 
   // Convert cost center map to array
   const costCenterAllocations = Array.from(costCenterMap.values()).map(cc => ({
@@ -4485,7 +4515,7 @@ export async function getPayrollSummary(
     .where(
       and(
         eq(tables.journalEntries.fiscalPeriodId, fiscalPeriodId),
-        eq(tables.journalEntries.source, 'PAYROLL')
+        eq(tables.journalEntries.sourceType, 'PAYROLL')
       )
     )
     .groupBy(tables.journalEntries.id);

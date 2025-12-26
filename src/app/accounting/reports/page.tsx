@@ -114,9 +114,11 @@ export default function ReportsPage() {
     refetch();
   }, [refetch]);
 
-  const handleReportChange = useCallback((e: { value: ReportType }) => {
-    setSelectedReport(e.value);
-    setGenerateReport(false);
+  const handleReportChange = useCallback((e: { value?: ReportType }) => {
+    if (e.value) {
+      setSelectedReport(e.value);
+      setGenerateReport(false);
+    }
   }, []);
 
   const handleExport = useCallback(() => {

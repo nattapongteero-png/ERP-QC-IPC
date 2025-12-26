@@ -46,7 +46,7 @@ export async function POST(
           quantity: parsed.data.quantity,
           notes: parsed.data.notes,
         },
-        user.id
+        user.userId
       );
 
       return NextResponse.json({

@@ -410,7 +410,7 @@ export async function runMonthlyDepreciation(
       .set({
         accumulatedDepreciation: record.accumulatedDepreciation,
         netBookValue: record.netBookValue,
-        status: record.netBookValue <= (activeAssets.find(a => a.id === record.fixedAssetId)?.salvageValue || 0)
+        status: record.netBookValue <= (activeAssets.find((a: FixedAsset) => a.id === record.fixedAssetId)?.salvageValue || 0)
           ? 'fully_depreciated'
           : 'active',
         updatedAt: getNow(),
@@ -443,7 +443,7 @@ export async function getAssetDepreciationHistory(
     .select()
     .from(assetDepreciations)
     .where(eq(assetDepreciations.fixedAssetId, fixedAssetId))
-    .orderBy(desc(assetDepreciations.depreciationMonth));
+    .orderBy(desc(assetDepreciations.depreciationDate));
 
   return result as AssetDepreciation[];
 }
@@ -701,7 +701,16 @@ export async function getAssetsByCategory(): Promise<Array<{
     .groupBy(assetCategories.id)
     .orderBy(asc(assetCategories.code));
 
-  return result.map(row => ({
+  return result.map((row: {
+    categoryId: number;
+    categoryCode: string;
+    categoryNameTh: string;
+    categoryNameEn: string | null;
+    assetCount: number;
+    totalAcquisitionCost: number;
+    totalAccumulatedDepreciation: number;
+    totalNetBookValue: number;
+  }) => ({
     categoryId: Number(row.categoryId),
     categoryCode: row.categoryCode,
     categoryNameTh: row.categoryNameTh,

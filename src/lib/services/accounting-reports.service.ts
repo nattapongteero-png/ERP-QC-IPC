@@ -7,7 +7,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { eq, and, sql, gte, lte, inArray, lt, desc } from 'drizzle-orm';
-import { toQueryDate, formatDateFromDb } from '../db/date-utils';
+import { toQueryDate, formatDateFromDb, getTodayStr } from '../db/date-utils';
 import { getAccountingTables } from './accounting.service';
 import type {
   TrialBalanceReport,
@@ -1236,7 +1236,20 @@ export async function generateWHTCertificateSummary(
     )
     .orderBy(whtTransactions.paymentDate);
 
-  const entries: WHTCertificateEntry[] = transactions.map((tx) => ({
+  const entries: WHTCertificateEntry[] = transactions.map((tx: {
+    id: number;
+    certificateNumber: string;
+    certificateType: string;
+    paymentDate: string | Date;
+    vendorName: string;
+    vendorTaxId: string;
+    whtType: string;
+    whtDescription: string | null;
+    paymentAmount: number | string;
+    whtRate: number | string;
+    whtAmount: number | string;
+    netAmount: number | string;
+  }) => ({
     id: tx.id,
     certificateNumber: tx.certificateNumber,
     certificateType: tx.certificateType as WHTCertificateType,
@@ -1482,12 +1495,26 @@ export async function generateAssetRegister(
   const assets = await query;
 
   // Map entries
-  const entries: AssetRegisterEntry[] = assets.map(a => ({
+  const entries: AssetRegisterEntry[] = assets.map((a: {
+    assetCode: string;
+    nameTh: string;
+    nameEn?: string | null;
+    categoryCode?: string;
+    categoryName?: string;
+    acquisitionDate: string | Date;
+    acquisitionCost: number | string;
+    usefulLifeMonths: number;
+    depreciationMethod: string;
+    accumulatedDepreciation: number | string;
+    netBookValue: number | string;
+    status: string;
+    location?: string | null;
+  }) => ({
     assetCode: a.assetCode,
     nameTh: a.nameTh,
     nameEn: a.nameEn || '',
-    categoryCode: a.categoryCode,
-    categoryName: a.categoryName,
+    categoryCode: a.categoryCode || '',
+    categoryName: a.categoryName || '',
     acquisitionDate: formatDateFromDb(a.acquisitionDate),
     acquisitionCost: Number(a.acquisitionCost),
     usefulLifeMonths: Number(a.usefulLifeMonths),

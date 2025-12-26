@@ -185,7 +185,7 @@ export async function createQCTestRequest(
   userId: number
 ): Promise<number[]> {
   const { tests, lots, items, specs } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get lot and item details
   const [lot] = await database
@@ -286,7 +286,7 @@ export async function recordTestResult(
   userId: number
 ): Promise<{ status: 'pass' | 'fail'; deviationId?: number }> {
   const { tests, specs, deviations } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get test with specification
   const [test] = await database
@@ -467,7 +467,7 @@ export async function evaluateLotRelease(
   userId: number
 ): Promise<{ canRelease: boolean; status: string; failedTests: string[]; pendingTests: string[] }> {
   const { tests, lots } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get all tests for this lot
   const lotTests = await database
@@ -515,7 +515,7 @@ export async function releaseLot(
   coaNumber?: string
 ): Promise<boolean> {
   const { lots } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Evaluate release eligibility
   const evaluation = await evaluateLotRelease(lotId, userId);
@@ -552,7 +552,7 @@ async function generateCOANumber(): Promise<string> {
  */
 export async function generateCOA(lotId: number): Promise<COADocument> {
   const { tests, specs, lots, items, users } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get lot details
   const [lot] = await database
@@ -657,7 +657,7 @@ export async function createDeviation(
   userId: number
 ): Promise<number> {
   const { deviations } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Generate deviation number
   const today = new Date();
@@ -730,7 +730,7 @@ export async function updateDeviationInvestigation(
   userId: number
 ): Promise<boolean> {
   const { deviations } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get current deviation
   const [deviation] = await database
@@ -783,7 +783,7 @@ export async function closeDeviation(
   userId: number
 ): Promise<boolean> {
   const { deviations } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get current deviation
   const [deviation] = await database
@@ -841,7 +841,7 @@ export async function getDeviationStatistics(
   averageClosureTime: number;
 }> {
   const { deviations } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   const conditions = [];
   if (dateFrom) {

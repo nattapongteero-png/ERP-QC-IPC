@@ -133,7 +133,7 @@ export async function listEquipment(
   const conditions = [];
 
   if (filters?.isAvailable !== undefined) {
-    conditions.push(eq(equipment.isAvailable, filters.isAvailable));
+    conditions.push(eq(equipment.isAvailable, filters.isAvailable === 'true'));
   }
 
   if (filters?.manufacturer) {
@@ -146,7 +146,7 @@ export async function listEquipment(
 
   const result = await query.orderBy(desc(equipment.createdAt));
 
-  return result.map(row => ({
+  return result.map((row: { equipment: AccountingEquipment; assetCode: string | null; assetName: string | null }) => ({
     ...(row.equipment as AccountingEquipment),
     assetCode: row.assetCode || undefined,
     assetName: row.assetName || undefined,
@@ -526,7 +526,7 @@ export async function getUpcomingMaintenance(
     .where(and(...conditions))
     .orderBy(asc(maintenanceSchedules.nextDue));
 
-  return result.map(row => {
+  return result.map((row: { schedule: AcctMaintenanceSchedule; equipment: AccountingEquipment }) => {
     const schedule = row.schedule as AcctMaintenanceSchedule;
     const nextDue = formatDateFromDb(schedule.nextDue);
     const daysUntilDue = Math.ceil(
@@ -575,7 +575,7 @@ export async function getOverdueMaintenance(
     .where(and(...conditions))
     .orderBy(asc(maintenanceSchedules.nextDue));
 
-  return result.map(row => {
+  return result.map((row: { schedule: AcctMaintenanceSchedule; equipment: AccountingEquipment }) => {
     const schedule = row.schedule as AcctMaintenanceSchedule;
     const nextDue = formatDateFromDb(schedule.nextDue);
     const daysOverdue = Math.ceil(
@@ -666,7 +666,7 @@ export async function calculateMTBF(
 
   // Calculate total downtime (MTTR calculation)
   const totalDowntimeHours = failures.reduce(
-    (sum, f) => sum + (Number((f as AcctMaintenanceRecord).downtimeHours) || 0),
+    (sum: number, f: AcctMaintenanceRecord) => sum + (Number(f.downtimeHours) || 0),
     0
   );
 

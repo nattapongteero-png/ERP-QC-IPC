@@ -472,7 +472,7 @@ async function seedAssetCategories(usingSqlite: boolean): Promise<number> {
   try {
     // Get GL accounts for mapping by code
     const accounts = await (db as any).select().from(accountTable);
-    const accountCodeToId = new Map(accounts.map((a: any) => [a.code, a.id]));
+    const accountCodeToId = new Map<string, number>(accounts.map((a: any) => [a.code, a.id]));
 
     let seededCount = 0;
 

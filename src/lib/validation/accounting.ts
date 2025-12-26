@@ -580,6 +580,8 @@ export const fixedAssetQuerySchema = z.object({
   departmentId: z.coerce.number().int().positive().optional(),
   location: z.string().optional(),
   search: z.string().optional(),
+  acquisitionDateFrom: dateStringSchema.optional(),
+  acquisitionDateTo: dateStringSchema.optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
@@ -640,6 +642,7 @@ export const equipmentUpdateSchema = z.object({
 
 export const equipmentQuerySchema = z.object({
   isAvailable: z.enum(['true', 'false']).optional(),
+  manufacturer: z.string().optional(),
   productionLineId: z.coerce.number().int().positive().optional(),
   assignedOperatorId: z.coerce.number().int().positive().optional(),
   search: z.string().optional(),

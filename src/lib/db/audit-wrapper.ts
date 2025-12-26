@@ -46,7 +46,6 @@
  */
 
 import { eq } from 'drizzle-orm';
-import { getDb } from './index';
 import { getTableRef, getInsertId, executeDbOperation } from './db-helper';
 import { createAuditLog, type AuditLogEntry } from '../audit';
 import { getNow } from './date-utils';
@@ -121,8 +120,9 @@ async function fetchRecordById(
 ): Promise<Record<string, unknown> | null> {
   try {
     const tableRef = getTableRef(table);
-    const db = await getDb();
-    const results = await db.select().from(tableRef).where(eq(tableRef.id, id)).limit(1);
+    const results = await executeDbOperation(async (db) => {
+      return db.select().from(tableRef).where(eq(tableRef.id, id)).limit(1);
+    });
     return results[0] || null;
   } catch (error) {
     console.error(`Failed to fetch record for audit (${table}:${id}):`, error);

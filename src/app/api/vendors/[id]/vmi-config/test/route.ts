@@ -122,7 +122,7 @@ export async function POST(
             return errorResponse(
               `VMI Portal authentication failed: ${errorMessage}`,
               401,
-              err
+              { error: err instanceof Error ? err.message : String(err) }
             );
           }
         } else {

@@ -19,7 +19,7 @@ Object.defineProperty(window, 'getComputedStyle', {
       return {
         getPropertyValue: () => '',
         fontFamily: '',
-      } as CSSStyleDeclaration;
+      } as unknown as CSSStyleDeclaration;
     }
   },
 });

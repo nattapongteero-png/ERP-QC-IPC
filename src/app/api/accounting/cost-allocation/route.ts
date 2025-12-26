@@ -92,10 +92,10 @@ export async function POST(request: NextRequest) {
                 workOrderId: data.workOrderId,
                 batchNumber: data.batchNumber,
                 finishedGoodsItemId: data.finishedGoodsItemId,
-                producedQuantity: data.producedQuantity,
+                quantity: data.producedQuantity,
+                lotNumber: `LOT-${data.batchNumber}`,
                 transferDate: data.transferDate,
                 description: data.description ?? undefined,
-                lotId: data.lotId ?? undefined,
               },
               session.userId
             );

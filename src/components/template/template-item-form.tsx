@@ -11,7 +11,7 @@ import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
 import type { TemplateItem, TemplateCategory, TemplateItemCreate, TemplateItemUpdate } from '@/types/template';
 
 // DevExtreme imports
-import Form, { Item, Label, RequiredRule, PatternRule } from 'devextreme-react/form';
+import Form, { Item, Label, RequiredRule, PatternRule, FormRef } from 'devextreme-react/form';
 import SelectBox from 'devextreme-react/select-box';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
@@ -198,7 +198,7 @@ export function TemplateItemForm({
 }: TemplateItemFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const formRef = React.useRef<Form>(null);
+  const formRef = React.useRef<FormRef>(null);
   const [formData, setFormData] = React.useState<FormData>(defaultFormData);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [isGeneratingCode, setIsGeneratingCode] = React.useState(false);

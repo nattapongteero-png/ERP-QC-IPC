@@ -68,7 +68,7 @@ export async function checkATP(
   requestedQuantity: number
 ): Promise<ATPResult> {
   const { items, lots } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   const [item] = await database.select().from(items).where(eq(items.id, itemId));
   if (!item) throw new Error(`Item ${itemId} not found`);
@@ -105,7 +105,7 @@ export async function createSalesOrder(
   userId: number
 ): Promise<{ orderId: number; atpResults: ATPResult[] }> {
   const { salesOrders, salesOrderLines, items } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   if (!customer.name) throw new Error('Customer name is required');
 
@@ -184,7 +184,7 @@ export async function createSalesOrder(
  */
 export async function allocateLotsForOrder(soId: number, userId: number) {
   const { salesOrders, salesOrderLines, items } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   const [so] = await database.select().from(salesOrders).where(eq(salesOrders.id, soId));
   if (!so) throw new Error(`Sales Order ${soId} not found`);
@@ -235,7 +235,7 @@ export async function fulfillSalesOrderLine(
   userId: number
 ): Promise<FulfillmentResult> {
   const { salesOrders, salesOrderLines, salesDeliveries, lots } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get SO line
   const [soLine] = await database
@@ -349,7 +349,7 @@ export async function fulfillSalesOrderLine(
     .where(eq(salesOrderLines.soId, input.soId));
 
   const allShipped = allLines.every(
-    (line) => Number(line.shippedQuantity || 0) >= Number(line.quantity)
+    (line: { quantity: number | string | null; shippedQuantity: number | string | null }) => Number(line.shippedQuantity || 0) >= Number(line.quantity)
   );
 
   if (allShipped) {

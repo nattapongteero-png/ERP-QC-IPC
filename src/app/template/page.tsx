@@ -390,9 +390,9 @@ export default function TemplateDashboardPage() {
                   visible={true}
                   verticalAlignment="bottom"
                   horizontalAlignment="center"
-                  customizeText={(arg: { item: { index: number } }) => {
+                  customizeText={(arg: { item: { index?: number } }) => {
                     const labels = ['Active', 'Draft', 'Archived'];
-                    return labels[arg.item.index];
+                    return labels[arg.item.index ?? 0];
                   }}
                 />
               </BarGauge>
@@ -440,8 +440,8 @@ export default function TemplateDashboardPage() {
                 <Legend visible={false} />
                 <Tooltip
                   enabled={true}
-                  customizeTooltip={(arg: { argumentText: string; valueText: string; percentText: string }) => ({
-                    text: `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`,
+                  customizeTooltip={(arg: { argumentText?: string; valueText?: string; percentText?: string }) => ({
+                    text: `${arg.argumentText ?? ''}: ${arg.valueText ?? ''} (${arg.percentText ?? ''})`,
                   })}
                 />
               </PieChart>
@@ -495,8 +495,8 @@ export default function TemplateDashboardPage() {
                 <ChartLegend visible={false} />
                 <ChartTooltip
                   enabled={true}
-                  customizeTooltip={(arg: { argumentText: string; valueText: string }) => ({
-                    text: `${arg.argumentText}: ${arg.valueText} items`,
+                  customizeTooltip={(arg: { argumentText?: string; valueText?: string }) => ({
+                    text: `${arg.argumentText ?? ''}: ${arg.valueText ?? ''} items`,
                   })}
                 />
               </Chart>
@@ -598,8 +598,8 @@ export default function TemplateDashboardPage() {
                 visible={true}
                 position="inside"
                 backgroundColor="none"
-                customizeText={(info: { item: { argument: string; value: number; percent: number } }) =>
-                  `${info.item.argument}: ${info.item.value}`
+                customizeText={(info: { item: { argument?: string | number | Date; value?: number; percent?: number } }) =>
+                  `${info.item.argument ?? ''}: ${info.item.value ?? 0}`
                 }
               />
               <Item>
@@ -607,8 +607,8 @@ export default function TemplateDashboardPage() {
               </Item>
               <FunnelTooltip
                 enabled={true}
-                customizeTooltip={(info: { item: { argument: string; value: number; percent: number } }) => ({
-                  text: `${info.item.argument}\nCount: ${info.item.value}\nConversion: ${(info.item.percent * 100).toFixed(1)}%`,
+                customizeTooltip={(info: { item: { argument?: string | number | Date; value?: number; percent?: number } }) => ({
+                  text: `${info.item.argument ?? ''}\nCount: ${info.item.value ?? 0}\nConversion: ${((info.item.percent ?? 0) * 100).toFixed(1)}%`,
                 })}
               />
             </Funnel>
@@ -647,8 +647,8 @@ export default function TemplateDashboardPage() {
               </PolarValueAxis>
               <Tooltip
                 enabled={true}
-                customizeTooltip={(arg: { argumentText: string; valueText: string }) => ({
-                  text: `${arg.argumentText}: ${arg.valueText}%`,
+                customizeTooltip={(arg: { argumentText?: string; valueText?: string }) => ({
+                  text: `${arg.argumentText ?? ''}: ${arg.valueText ?? ''}%`,
                 })}
               />
               <Legend visible={false} />

@@ -118,7 +118,7 @@ export async function checkVendorApproval(
   itemId: number
 ): Promise<{ approved: boolean; message: string; isPreferred: boolean }> {
   const { avl, vendors } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Check if vendor exists and is active
   const [vendor] = await database
@@ -173,7 +173,7 @@ export async function checkVendorApproval(
  */
 export async function getPreferredVendor(itemId: number): Promise<number | null> {
   const { avl, vendors } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   const todayForQuery = toQueryDate(getTodayStr());
 
@@ -229,7 +229,7 @@ export async function createPurchaseOrder(
   userId: number
 ): Promise<number> {
   const { purchaseOrders, purchaseOrderLines, items } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Validate vendor approval for all items
   for (const line of lines) {
@@ -334,7 +334,7 @@ export async function updatePurchaseOrderStatus(
   reason?: string
 ): Promise<boolean> {
   const { purchaseOrders } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get current PO
   const [po] = await database
@@ -403,7 +403,7 @@ export async function receivePurchaseOrder(
   userId: number
 ): Promise<number[]> {
   const { purchaseOrders, purchaseOrderLines, items } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get PO
   const [po] = await database
@@ -498,7 +498,7 @@ export async function receivePurchaseOrder(
  */
 export async function generateVMISnapshot(vendorId: number): Promise<VMISnapshot> {
   const { vendors, avl, items, lots } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get vendor
   const [vendor] = await database
@@ -596,7 +596,7 @@ export async function processVMIASN(
   userId: number
 ): Promise<{ poId: number; lotIds: number[] }> {
   const { items, vendors } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Validate vendor
   const [vendor] = await database
@@ -667,7 +667,7 @@ export async function evaluateVendorPerformance(
   dateTo?: string
 ): Promise<VendorEvaluation> {
   const { vendors, purchaseOrders, purchaseOrderLines, lots } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Get vendor
   const [vendor] = await database
@@ -770,7 +770,7 @@ export async function addToAVL(
   userId: number
 ): Promise<number> {
   const { avl } = getTables();
-  const database = await getDb();
+  const database = (await getDb()) as any;
 
   // Check if already exists
   const [existing] = await database
