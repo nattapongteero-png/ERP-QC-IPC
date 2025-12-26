@@ -7,10 +7,22 @@
  * Similar to DocumentAttachment but for audit trails.
  *
  * Features:
- * - Shows chronological change history
- * - Intelligent filtering by user, action, date range
- * - Field-level diff display
- * - Thai language support
+ * - Intelligent Filtering: Filter by user, action type, date range, text search
+ * - Field-Level Diff: Expandable view showing exact field changes (old → new values)
+ * - Thai Language: Full Thai support for action labels and UI
+ * - Timeline View: Visual timeline with action icons and colors
+ * - Pagination: Page size selector (10/20/50/100) with navigation controls
+ *
+ * Usage:
+ * ```tsx
+ * <AuditLogViewerDialog
+ *   entityType="templateItems"
+ *   entityId={itemId}
+ *   visible={showDialog}
+ *   onClose={() => setShowDialog(false)}
+ *   fieldLabels={{ nameTh: 'ชื่อ (ไทย)', status: 'สถานะ' }}
+ * />
+ * ```
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -23,8 +35,6 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import {
   History,
   Clock,
-  User,
-  Filter,
   ChevronDown,
   ChevronUp,
   PlusCircle,
@@ -37,8 +47,6 @@ import {
   Eye,
   Download,
   AlertCircle,
-  Search,
-  X,
 } from 'lucide-react';
 import type {
   AuditLog,
@@ -298,6 +306,10 @@ export function AuditLogViewerDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
   const [filterUser, setFilterUser] = useState<number | null>(null);
@@ -326,7 +338,8 @@ export function AuditLogViewerDialog({
       const params = new URLSearchParams();
       params.set('tableName', entityType);
       params.set('recordId', String(entityId));
-      params.set('limit', '100');
+      params.set('limit', String(pageSize));
+      params.set('offset', String((currentPage - 1) * pageSize));
 
       if (filterUser) params.set('userId', String(filterUser));
       if (filterAction) params.set('action', filterAction);
@@ -349,7 +362,15 @@ export function AuditLogViewerDialog({
     } finally {
       setIsLoading(false);
     }
-  }, [entityType, entityId, filterUser, filterAction, filterFromDate, filterToDate, searchText]);
+  }, [entityType, entityId, filterUser, filterAction, filterFromDate, filterToDate, searchText, currentPage, pageSize]);
+
+  // Total pages calculation
+  const totalPages = Math.ceil(total / pageSize);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterUser, filterAction, filterFromDate, filterToDate, searchText]);
 
   // Fetch filter options
   const fetchFilterOptions = useCallback(async () => {
@@ -627,8 +648,73 @@ export function AuditLogViewerDialog({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="border-t px-4 py-3 flex justify-end">
+        {/* Footer with pagination */}
+        <div className="border-t px-4 py-3 flex items-center justify-between">
+          {/* Pagination info and controls */}
+          {total > 0 && (
+            <div className="flex items-center gap-4">
+              {/* Page size selector */}
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>แสดง</span>
+                <DxSelectBox
+                  value={pageSize}
+                  onValueChange={(val) => {
+                    setPageSize(val);
+                    setCurrentPage(1);
+                  }}
+                  dataSource={[10, 20, 50, 100]}
+                  width={70}
+                />
+                <span>รายการ</span>
+              </div>
+
+              {/* Page navigation */}
+              <div className="flex items-center gap-1">
+                <DxButton
+                  icon="chevrondoubleleft"
+                  type="normal"
+                  stylingMode="text"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                  hint="หน้าแรก"
+                />
+                <DxButton
+                  icon="chevronleft"
+                  type="normal"
+                  stylingMode="text"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  hint="หน้าก่อน"
+                />
+                <span className="px-3 text-sm text-gray-600">
+                  หน้า {currentPage} / {totalPages || 1}
+                </span>
+                <DxButton
+                  icon="chevronright"
+                  type="normal"
+                  stylingMode="text"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  hint="หน้าถัดไป"
+                />
+                <DxButton
+                  icon="chevrondoubleright"
+                  type="normal"
+                  stylingMode="text"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(totalPages)}
+                  hint="หน้าสุดท้าย"
+                />
+              </div>
+
+              {/* Total count */}
+              <span className="text-sm text-gray-500">
+                (ทั้งหมด {total} รายการ)
+              </span>
+            </div>
+          )}
+
+          {/* Close button */}
           <DxButton
             text="ปิด"
             type="normal"
