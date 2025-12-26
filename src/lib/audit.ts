@@ -1,4 +1,4 @@
-import { getDb, schema } from './db';
+import { getDb, isSqlite, schema } from './db';
 
 export interface AuditLogEntry {
   userId?: number;
@@ -13,31 +13,17 @@ export interface AuditLogEntry {
 export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
   try {
     const db = await getDb();
-    const useSqlite = process.env.NODE_ENV === 'test';
-    
-    if (useSqlite) {
-      // SQLite
-      await (db as any).insert(schema.sqliteAuditTrail).values({
-        userId: entry.userId,
-        action: entry.action,
-        tableName: entry.tableName,
-        recordId: entry.recordId,
-        oldValue: entry.oldValue ? JSON.stringify(entry.oldValue) : null,
-        newValue: entry.newValue ? JSON.stringify(entry.newValue) : null,
-        ipAddress: entry.ipAddress,
-      });
-    } else {
-      // MySQL
-      await (db as any).insert(schema.mysqlAuditTrail).values({
-        userId: entry.userId,
-        action: entry.action,
-        tableName: entry.tableName,
-        recordId: entry.recordId,
-        oldValue: entry.oldValue ? JSON.stringify(entry.oldValue) : null,
-        newValue: entry.newValue ? JSON.stringify(entry.newValue) : null,
-        ipAddress: entry.ipAddress,
-      });
-    }
+    const auditTable = isSqlite() ? schema.sqliteAuditTrail : schema.mysqlAuditTrail;
+
+    await (db as any).insert(auditTable).values({
+      userId: entry.userId,
+      action: entry.action,
+      tableName: entry.tableName,
+      recordId: entry.recordId,
+      oldValue: entry.oldValue ? JSON.stringify(entry.oldValue) : null,
+      newValue: entry.newValue ? JSON.stringify(entry.newValue) : null,
+      ipAddress: entry.ipAddress,
+    });
   } catch (error) {
     console.error('Failed to create audit log:', error);
     // Don't throw - audit logging should not break the main operation
