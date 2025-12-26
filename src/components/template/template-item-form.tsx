@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
 import { Wand2 } from 'lucide-react';
+import { DocumentAttachment } from '@/components/ui/document-attachment';
 import type { TemplateItem, TemplateCategory, TemplateItemCreate, TemplateItemUpdate } from '@/types/template';
 
 // DevExtreme imports
@@ -670,6 +671,16 @@ export function TemplateItemForm({
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Document Attachments - only show in edit mode */}
+          {mode === 'edit' && itemId && (
+            <DocumentAttachment
+              moduleName="template-items"
+              entityId={itemId}
+              title="เอกสารแนบ"
+              categories={['photo', 'report', 'specification', 'certificate', 'other']}
+            />
           )}
         </div>
       </div>
