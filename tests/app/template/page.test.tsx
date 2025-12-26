@@ -101,7 +101,7 @@ describe('Template Dashboard Page', () => {
 
     // Check that the page title is rendered
     expect(screen.getByText('Template Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('ERP Module Prototype')).toBeInTheDocument();
+    expect(screen.getByText('DevExtreme Charts Showcase - ERP Module Demo')).toBeInTheDocument();
   });
 
   it('renders KPI cards section', async () => {
