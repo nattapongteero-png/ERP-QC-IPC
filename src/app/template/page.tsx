@@ -36,7 +36,7 @@ import {
 } from 'recharts';
 import { KPICard, KPICardSkeleton } from '@/components/ui/kpi-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button } from 'devextreme-react/button';
 import { TemplatePageHeader, TemplateStatusBadge, TemplatePriorityBadge } from '@/components/template';
 import type { TemplateDashboardMetrics, TemplateItem } from '@/types/template';
 
@@ -143,12 +143,12 @@ export default function TemplateDashboardPage() {
         onRefresh={() => refetch()}
         isRefreshing={isFetching}
         actions={
-          <Link href="/template/items/new">
-            <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4" />
-              New Item
-            </Button>
-          </Link>
+          <Button
+            text="New Item"
+            icon="add"
+            type="success"
+            onClick={() => window.location.href = '/template/items/new'}
+          />
         }
       />
 

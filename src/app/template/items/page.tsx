@@ -5,7 +5,6 @@
 
 import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Package,
@@ -30,11 +29,10 @@ import DataGrid, {
   Toolbar,
   Item as ToolbarItem,
 } from 'devextreme-react/data-grid';
-import { Button as DxButton } from 'devextreme-react/button';
+import { Button } from 'devextreme-react/button';
 import SelectBox from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { TemplatePageHeader, TemplateStatusBadge, TemplatePriorityBadge } from '@/components/template';
 import type { TemplateItem, TemplateCategory } from '@/types/template';
 
@@ -210,12 +208,12 @@ export default function TemplateItemsPage() {
         onRefresh={() => refetch()}
         isRefreshing={isFetching}
         actions={
-          <Link href="/template/items/new">
-            <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4" />
-              New Item
-            </Button>
-          </Link>
+          <Button
+            text="New Item"
+            icon="add"
+            type="success"
+            onClick={() => router.push('/template/items/new')}
+          />
         }
       />
 
@@ -232,23 +230,20 @@ export default function TemplateItemsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  variant="outline"
-                  size="sm"
+                  text="Cancel"
+                  stylingMode="outlined"
                   onClick={() => {
                     setShowDeleteConfirm(false);
                     setSelectedItem(null);
                   }}
-                >
-                  Cancel
-                </Button>
+                />
                 <Button
-                  size="sm"
+                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  icon={deleteMutation.isPending ? 'spindown' : 'trash'}
+                  type="danger"
                   onClick={confirmDelete}
                   disabled={deleteMutation.isPending}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-                </Button>
+                />
               </div>
             </div>
           </CardContent>
@@ -285,15 +280,13 @@ export default function TemplateItemsPage() {
             </div>
             {(statusFilter || categoryFilter) && (
               <Button
-                variant="ghost"
-                size="sm"
+                text="Clear Filters"
+                stylingMode="text"
                 onClick={() => {
                   setStatusFilter('');
                   setCategoryFilter(null);
                 }}
-              >
-                Clear Filters
-              </Button>
+              />
             )}
           </div>
         </CardContent>

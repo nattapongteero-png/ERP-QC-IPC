@@ -4,8 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Save, X, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import { Button } from 'devextreme-react/button';
 import type { TemplateItem, TemplateCategory, TemplateItemCreate, TemplateItemUpdate } from '@/types/template';
 
 // DevExtreme imports
@@ -14,6 +13,7 @@ import SelectBox from 'devextreme-react/select-box';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
 import NumberBox from 'devextreme-react/number-box';
+import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 
 export interface TemplateItemFormProps {
@@ -254,7 +254,7 @@ export function TemplateItemForm({
       <Card>
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3 text-gray-500">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <LoadIndicator height={24} width={24} />
             <span>Loading item...</span>
           </div>
         </CardContent>
@@ -270,14 +270,11 @@ export function TemplateItemForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
-            variant="ghost"
-            size="sm"
+            text="Back"
+            icon="back"
+            stylingMode="text"
             onClick={handleCancel}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
+          />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900">
             {mode === 'create' ? 'Create New Item' : `Edit: ${existingItem?.nameTh}`}
@@ -286,43 +283,28 @@ export function TemplateItemForm({
         <div className="flex items-center gap-2">
           {mode === 'edit' && (
             <Button
-              variant="outline"
-              size="sm"
+              text="Delete"
+              icon={isDeleting ? 'spindown' : 'trash'}
+              type="danger"
+              stylingMode="outlined"
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
-              className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              {isDeleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              Delete
-            </Button>
+            />
           )}
           <Button
-            variant="outline"
-            size="sm"
+            text="Cancel"
+            icon="close"
+            stylingMode="outlined"
             onClick={handleCancel}
             disabled={isSubmitting}
-            className="gap-2"
-          >
-            <X className="h-4 w-4" />
-            Cancel
-          </Button>
+          />
           <Button
-            size="sm"
+            text={mode === 'create' ? 'Create' : 'Save Changes'}
+            icon={isSubmitting ? 'spindown' : 'save'}
+            type="success"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="gap-2 bg-blue-600 hover:bg-blue-700"
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {mode === 'create' ? 'Create' : 'Save Changes'}
-          </Button>
+          />
         </div>
       </div>
 
@@ -339,19 +321,16 @@ export function TemplateItemForm({
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  variant="outline"
-                  size="sm"
+                  text="Cancel"
+                  stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
-                >
-                  Cancel
-                </Button>
+                />
                 <Button
-                  size="sm"
+                  text="Delete"
+                  icon="trash"
+                  type="danger"
                   onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </Button>
+                />
               </div>
             </div>
           </CardContent>

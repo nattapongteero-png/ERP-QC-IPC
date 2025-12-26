@@ -7,12 +7,17 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DateBox } from 'devextreme-react/date-box';
-import { Button } from 'devextreme-react/button';
+import { Button as DxButton } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
-import DataGrid, { Column, Export, Summary, TotalItem, Paging, FilterRow, SearchPanel } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Export, Summary, TotalItem } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { FileText, Users, Building2, Receipt } from 'lucide-react';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+} from '@/components/accounting';
+import { Download, Calendar, FileText, Receipt, DollarSign } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { WHTCertificateDialog } from '@/components/accounting/wht-certificate-dialog';
 import type { WHTCertificateSummary, WHTCertificateEntry, WHTCertificateType } from '@/types/accounting';
 
@@ -90,177 +95,254 @@ export default function WHTReportPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6">
-      <ResponsivePageHeader
-        title="WHT Certificates"
-        subtitle={`${certificateType === 'pnd3' ? 'PND 3' : 'PND 53'} - Withholding tax certificates for tax filing`}
-        icon={FileText}
-        iconColor="text-blue-600"
+    <div className="flex flex-col gap-6 pb-8">
+      {/* Professional Page Header */}
+      <AccountingPageHeader
+        title="หนังสือรับรองภาษีหัก ณ ที่จ่าย"
+        subtitle="WHT Certificates Report - Withholding tax certificates for tax filing"
+        icon="file-text"
       />
 
-      {/* Quick Stats */}
+      {/* WHT Summary KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
-          label="Tax Period"
+        <AccountingKPICard
+          label="งวดภาษี"
+          subtitle="Tax Period"
           value={formatTaxPeriod(taxPeriod)}
-          icon={Receipt}
-          iconColor="text-blue-500"
-          accentColor="border-blue-500"
+          icon="calendar"
+          variant="info"
         />
-        <StatCard
-          label="Certificate Type"
+        <AccountingKPICard
+          label="ประเภทแบบ"
+          subtitle="Certificate Type"
           value={certificateType === 'pnd3' ? 'PND 3' : 'PND 53'}
-          icon={certificateType === 'pnd3' ? Users : Building2}
-          iconColor="text-purple-500"
-          accentColor="border-purple-500"
+          icon={certificateType === 'pnd3' ? 'users' : 'building'}
+          variant="primary"
         />
-        <StatCard
-          label="Certificates"
+        <AccountingKPICard
+          label="จำนวนหนังสือ"
+          subtitle="Certificates Count"
           value={report ? report.certificateCount.toString() : '-'}
-          icon={FileText}
-          iconColor="text-green-500"
-          accentColor="border-green-500"
+          icon="file-text"
+          variant="success"
+          trend={report && report.certificateCount > 0 ? 'up' : 'neutral'}
         />
-        <StatCard
-          label="Total WHT"
+        <AccountingKPICard
+          label="ภาษีหัก ณ ที่จ่าย"
+          subtitle="Total WHT Amount"
           value={report ? formatCurrency(report.totalWHTAmount) : '-'}
-          icon={Receipt}
-          iconColor="text-orange-500"
-          accentColor="border-orange-500"
+          icon="dollar-sign"
+          variant="warning"
+          trend={report && report.totalWHTAmount > 0 ? 'up' : 'neutral'}
         />
       </div>
 
-      {/* Report Controls */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Tax Period</label>
-            <DateBox
-              value={taxPeriod}
-              onValueChanged={(e) => setTaxPeriod(e.value)}
-              type="date"
-              displayFormat="MMMM yyyy"
-              calendarOptions={{ maxZoomLevel: 'year', minZoomLevel: 'decade' }}
-              width={200}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Certificate Type</label>
-            <SelectBox
-              items={certificateTypeOptions}
-              value={certificateType}
-              onValueChanged={(e) => setCertificateType(e.value)}
-              valueExpr="value"
-              displayExpr="text"
-              width={200}
-            />
-          </div>
-          <Button
-            text="Generate Report"
+      {/* Report Controls with Glassmorphism */}
+      <AccountingFilterPanel>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            เลือกงวดภาษี
+          </label>
+          <DateBox
+            value={taxPeriod}
+            onValueChanged={(e) => setTaxPeriod(e.value)}
+            type="date"
+            displayFormat="MMMM yyyy"
+            calendarOptions={{ maxZoomLevel: 'year', minZoomLevel: 'decade' }}
+            width={200}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            ประเภทแบบ
+          </label>
+          <SelectBox
+            items={certificateTypeOptions}
+            value={certificateType}
+            onValueChanged={(e) => setCertificateType(e.value)}
+            valueExpr="value"
+            displayExpr="text"
+            width={220}
+          />
+        </div>
+        <div className="flex gap-2">
+          <DxButton
+            text="สร้างรายงาน"
             type="default"
             stylingMode="contained"
             onClick={handleGenerateReport}
             disabled={isLoading}
+            icon="check"
           />
           {report && (
             <Button
-              text="Export JSON"
-              type="normal"
-              stylingMode="outlined"
+              variant="outline"
               onClick={handleExportJSON}
-            />
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              ส่งออก JSON
+            </Button>
           )}
         </div>
-      </div>
+      </AccountingFilterPanel>
 
       {/* Report Content */}
       {isLoading && (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500">Loading WHT certificates...</p>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-500"></div>
+            <p className="text-gray-600 font-medium">กำลังสร้างรายงานหนังสือรับรอง...</p>
+          </div>
         </div>
       )}
 
       {!reportGenerated && !isLoading && (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">
-            Select a tax period and certificate type, then click &quot;Generate Report&quot; to view WHT certificates.
-          </p>
+        <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-xl border border-blue-100 shadow-sm p-12 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="p-4 bg-blue-100 rounded-full w-fit mx-auto mb-4">
+              <FileText className="h-12 w-12 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">เลือกงวดภาษีและประเภทแบบ</h3>
+            <p className="text-gray-500">
+              เลือกงวดภาษีและประเภทแบบ (PND 3 / PND 53) จากด้านบนแล้วคลิก &quot;สร้างรายงาน&quot; เพื่อดูรายการหนังสือรับรองภาษีหัก ณ ที่จ่าย
+            </p>
+          </div>
         </div>
       )}
 
       {report && (
         <div className="space-y-6">
           {/* Certificates Grid */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              WHT Certificates - {certificateType === 'pnd3' ? 'PND 3' : 'PND 53'} ({formatTaxPeriod(taxPeriod)})
-            </h3>
-            <DataGrid
-              dataSource={report.entries}
-              showBorders
-              columnAutoWidth
-              allowColumnResizing
-              rowAlternationEnabled
-              onRowClick={handleViewCertificate}
-              hoverStateEnabled
-            >
-              <FilterRow visible />
-              <SearchPanel visible width={250} />
-              <Paging defaultPageSize={20} />
-              <Column dataField="certificateNumber" caption="Certificate No." />
-              <Column dataField="paymentDate" caption="Payment Date" dataType="date" />
-              <Column dataField="vendorName" caption="Vendor Name" />
-              <Column dataField="vendorTaxId" caption="Tax ID" />
-              <Column dataField="whtType" caption="WHT Type" />
-              <Column dataField="whtDescription" caption="Description" />
-              <Column
-                dataField="paymentAmount"
-                caption="Payment Amount"
-                dataType="number"
-                format="#,##0.00"
-              />
-              <Column dataField="whtRate" caption="Rate (%)" dataType="number" format="#0.00" />
-              <Column
-                dataField="whtAmount"
-                caption="WHT Amount"
-                dataType="number"
-                format="#,##0.00"
-              />
-              <Column
-                dataField="netAmount"
-                caption="Net Amount"
-                dataType="number"
-                format="#,##0.00"
-              />
-              <Export enabled allowExportSelectedData />
-              <Summary>
-                <TotalItem column="paymentAmount" summaryType="sum" valueFormat="#,##0.00" />
-                <TotalItem column="whtAmount" summaryType="sum" valueFormat="#,##0.00" />
-                <TotalItem column="netAmount" summaryType="sum" valueFormat="#,##0.00" />
-              </Summary>
-            </DataGrid>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 rounded-lg">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      หนังสือรับรองภาษีหัก ณ ที่จ่าย - {certificateType === 'pnd3' ? 'PND 3' : 'PND 53'}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      WHT Certificates - {formatTaxPeriod(taxPeriod)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">จำนวนหนังสือ</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    {report.certificateCount} ฉบับ
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4">
+              <DataGrid
+                dataSource={report.entries}
+                showBorders
+                columnAutoWidth
+                allowColumnResizing
+                rowAlternationEnabled
+                onRowClick={handleViewCertificate}
+                hoverStateEnabled
+              >
+                <Column dataField="certificateNumber" caption="เลขที่หนังสือรับรอง" width={150} />
+                <Column dataField="paymentDate" caption="วันที่จ่าย" dataType="date" width={120} />
+                <Column dataField="vendorName" caption="ชื่อผู้รับเงิน" />
+                <Column dataField="vendorTaxId" caption="เลขประจำตัวผู้เสียภาษี" width={150} />
+                <Column dataField="whtType" caption="ประเภทเงินได้" width={100} />
+                <Column dataField="whtDescription" caption="รายละเอียด" />
+                <Column
+                  dataField="paymentAmount"
+                  caption="จำนวนเงิน"
+                  dataType="number"
+                  format="#,##0.00"
+                  width={120}
+                />
+                <Column
+                  dataField="whtRate"
+                  caption="อัตราภาษี (%)"
+                  dataType="number"
+                  format="#0.00"
+                  width={100}
+                />
+                <Column
+                  dataField="whtAmount"
+                  caption="ภาษีหัก ณ ที่จ่าย"
+                  dataType="number"
+                  format="#,##0.00"
+                  width={130}
+                />
+                <Column
+                  dataField="netAmount"
+                  caption="จำนวนเงินสุทธิ"
+                  dataType="number"
+                  format="#,##0.00"
+                  width={130}
+                />
+                <Export enabled allowExportSelectedData />
+                <Summary>
+                  <TotalItem column="paymentAmount" summaryType="sum" valueFormat="#,##0.00" />
+                  <TotalItem column="whtAmount" summaryType="sum" valueFormat="#,##0.00" />
+                  <TotalItem column="netAmount" summaryType="sum" valueFormat="#,##0.00" />
+                </Summary>
+              </DataGrid>
+            </div>
           </div>
 
-          {/* Summary Section */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">WHT Summary</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Total Certificates</p>
-                <p className="text-2xl font-bold text-gray-900">{report.certificateCount}</p>
+          {/* Enhanced WHT Summary Panel */}
+          <div className="bg-gradient-to-br from-white to-orange-50/30 rounded-xl border border-orange-200 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-600 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                  <DollarSign className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">สรุปภาษีหัก ณ ที่จ่าย</h3>
+                  <p className="text-sm text-orange-100">
+                    WHT Summary - {certificateType === 'pnd3' ? 'PND 3 (บุคคลธรรมดา)' : 'PND 53 (นิติบุคคล)'} - {formatTaxPeriod(taxPeriod)}
+                  </p>
+                </div>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Total Payment Amount</p>
-                <p className="text-xl font-bold text-gray-900">{formatCurrency(report.totalPaymentAmount)}</p>
-              </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-600">Total WHT Withheld</p>
-                <p className="text-xl font-bold text-blue-700">{formatCurrency(report.totalWHTAmount)}</p>
-              </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-600">Total Net Paid</p>
-                <p className="text-xl font-bold text-green-700">{formatCurrency(report.totalNetAmount)}</p>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <p className="text-sm text-blue-700 font-medium">จำนวนหนังสือรับรอง</p>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-900">{report.certificateCount}</p>
+                  <p className="text-xs text-blue-600 mt-1">ฉบับ</p>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Receipt className="h-5 w-5 text-green-600" />
+                    <p className="text-sm text-green-700 font-medium">จำนวนเงินจ่าย</p>
+                  </div>
+                  <p className="text-xl font-bold text-green-900">{formatCurrency(report.totalPaymentAmount)}</p>
+                  <p className="text-xs text-green-600 mt-1">Payment Amount</p>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="h-5 w-5 text-orange-600" />
+                    <p className="text-sm text-orange-700 font-medium">ภาษีหัก ณ ที่จ่าย</p>
+                  </div>
+                  <p className="text-xl font-bold text-orange-900">{formatCurrency(report.totalWHTAmount)}</p>
+                  <p className="text-xs text-orange-600 mt-1">WHT Withheld</p>
+                </div>
+                <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Receipt className="h-5 w-5 text-purple-600" />
+                    <p className="text-sm text-purple-700 font-medium">จำนวนเงินสุทธิ</p>
+                  </div>
+                  <p className="text-xl font-bold text-purple-900">{formatCurrency(report.totalNetAmount)}</p>
+                  <p className="text-xs text-purple-600 mt-1">Net Amount Paid</p>
+                </div>
               </div>
             </div>
           </div>

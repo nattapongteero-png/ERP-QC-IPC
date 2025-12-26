@@ -54,7 +54,6 @@ import {
   CalendarCheck,
   DollarSign,
   LayoutGrid,
-  FolderTree,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -199,7 +198,6 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Dashboard', href: '/template', icon: LayoutDashboard },
       { name: 'Items', href: '/template/items', icon: Package },
-      { name: 'Categories', href: '/template/categories', icon: FolderTree },
     ],
   },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
