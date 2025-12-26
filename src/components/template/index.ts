@@ -9,3 +9,6 @@ export type { TemplatePriorityBadgeProps } from './template-priority-badge';
 
 export { TemplateItemForm } from './template-item-form';
 export type { TemplateItemFormProps } from './template-item-form';
+
+export { TemplateCategoryForm } from './template-category-form';
+export type { TemplateCategoryFormProps } from './template-category-form';

@@ -276,3 +276,101 @@ describe('Template New Item Page', () => {
     expect(screen.getByText('Quantity & Pricing')).toBeInTheDocument();
   });
 });
+
+describe('Template Categories List Page', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    // Mock categories list response
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          { id: 1, code: 'CAT-001', nameTh: 'Category A', nameEn: 'Category A EN', color: '#3B82F6', sortOrder: 1, isActive: true },
+          { id: 2, code: 'CAT-002', nameTh: 'Category B', nameEn: 'Category B EN', color: '#10B981', sortOrder: 2, isActive: true },
+          { id: 3, code: 'CAT-003', nameTh: 'Category C', nameEn: 'Category C EN', color: '#EF4444', sortOrder: 3, isActive: false },
+        ],
+      }),
+    });
+  });
+
+  it('renders categories list page without crashing', async () => {
+    const TemplateCategoriesPage = (await import('@/app/template/categories/page')).default;
+
+    render(
+      <TestWrapper>
+        <TemplateCategoriesPage />
+      </TestWrapper>
+    );
+
+    // Check that the page title is rendered
+    expect(screen.getByText('Template Categories')).toBeInTheDocument();
+    expect(screen.getByText('Manage categories for organizing items')).toBeInTheDocument();
+  });
+
+  it('renders filter section', async () => {
+    const TemplateCategoriesPage = (await import('@/app/template/categories/page')).default;
+
+    render(
+      <TestWrapper>
+        <TemplateCategoriesPage />
+      </TestWrapper>
+    );
+
+    // Check for filter elements
+    expect(screen.getByText('Filters:')).toBeInTheDocument();
+  });
+
+  it('renders summary section', async () => {
+    const TemplateCategoriesPage = (await import('@/app/template/categories/page')).default;
+
+    render(
+      <TestWrapper>
+        <TemplateCategoriesPage />
+      </TestWrapper>
+    );
+
+    // Check for summary labels
+    expect(screen.getByText('Total Categories')).toBeInTheDocument();
+  });
+});
+
+describe('Template New Category Page', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
+    });
+  });
+
+  it('renders new category form without crashing', async () => {
+    const TemplateNewCategoryPage = (await import('@/app/template/categories/new/page')).default;
+
+    render(
+      <TestWrapper>
+        <TemplateNewCategoryPage />
+      </TestWrapper>
+    );
+
+    // Check that the form elements are rendered
+    expect(screen.getByText('Create New Category')).toBeInTheDocument();
+    expect(screen.getByText('Basic Information')).toBeInTheDocument();
+    expect(screen.getByText('Category Color')).toBeInTheDocument();
+  });
+
+  it('renders form fields', async () => {
+    const TemplateNewCategoryPage = (await import('@/app/template/categories/new/page')).default;
+
+    render(
+      <TestWrapper>
+        <TemplateNewCategoryPage />
+      </TestWrapper>
+    );
+
+    // Check for form field labels
+    expect(screen.getByText('Code')).toBeInTheDocument();
+    expect(screen.getByText('Name (Thai)')).toBeInTheDocument();
+    expect(screen.getByText('Quick Colors')).toBeInTheDocument();
+    expect(screen.getByText('Preview')).toBeInTheDocument();
+  });
+});
