@@ -12,8 +12,6 @@ import {
   Receipt,
   FileText,
   CreditCard,
-  Clock,
-  CheckCircle2,
   AlertTriangle,
   TrendingUp,
   BarChart3,
