@@ -45,7 +45,7 @@ import type {
   AuditLogViewerDialogProps,
 } from '@/types/audit-log';
 import { ACTION_LABELS_TH } from '@/types/audit-log';
-import { parseFieldChanges } from '@/lib/services/audit-log.service';
+import { parseFieldChanges } from '@/lib/utils/audit-utils';
 
 // Action icon and color configuration
 interface ActionConfig {
