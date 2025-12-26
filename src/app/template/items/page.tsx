@@ -275,6 +275,7 @@ export default function TemplateItemsPage() {
                 <TextBox
                   value={searchText}
                   onValueChanged={(e) => setSearchText(e.value || '')}
+                  valueChangeEvent="keyup"
                   placeholder="Search items..."
                   showClearButton
                   mode="search"
