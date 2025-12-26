@@ -3,8 +3,10 @@
 // HR Positions Management Page - Redesigned
 // Feature: 007-hr-personnel-management
 // Professional layout with KPI dashboard, multiple view modes, and analytics
+// Updated Task 4: Template Pattern Alignment - Page-based navigation
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -173,6 +175,7 @@ async function createJobDescription(positionId: number, data: Partial<JobDescrip
 }
 
 export default function PositionsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -379,13 +382,14 @@ export default function PositionsPage() {
   }, []);
 
   const handleRowClick = useCallback((e: { data: Position }) => {
-    setSelectedPosition(e.data);
-    setShowDetailPanel(true);
-  }, []);
+    // Navigate to position detail page (page-based navigation pattern)
+    router.push(`/hr/positions/${e.data.id}`);
+  }, [router]);
 
   const handleRowDblClick = useCallback((e: { data: Position }) => {
-    openEditPopup(e.data);
-  }, [openEditPopup]);
+    // Navigate to position detail page on double-click (same as single click)
+    router.push(`/hr/positions/${e.data.id}`);
+  }, [router]);
 
   const handleCreateJD = useCallback(() => {
     if (!selectedPosition) return;
@@ -547,10 +551,7 @@ export default function PositionsPage() {
       <div
         key={position.id}
         className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-all cursor-pointer"
-        onClick={() => {
-          setSelectedPosition(position);
-          setShowDetailPanel(true);
-        }}
+        onClick={() => router.push(`/hr/positions/${position.id}`)}
       >
         <div className="flex items-start gap-3">
           {/* Position Avatar */}
@@ -624,10 +625,7 @@ export default function PositionsPage() {
               text="เพิ่มตำแหน่ง"
               icon="add"
               type="default"
-              onClick={() => {
-                setFormData(emptyFormData);
-                setShowCreatePopup(true);
-              }}
+              onClick={() => router.push('/hr/positions/new')}
             />
           </div>
         }
