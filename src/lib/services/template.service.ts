@@ -5,6 +5,7 @@
 import { eq, and, like, desc, asc, sql, count } from 'drizzle-orm';
 import { getNow, toDbDate } from '../db/date-utils';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
+import { auditedInsert, auditedUpdate, auditedDelete } from '../db/audit-wrapper';
 import type {
   TemplateItem,
   TemplateCategory,
@@ -294,14 +295,16 @@ export async function createTemplateItem(data: TemplateItemCreate, userId?: numb
       dueTime: data.dueTime || null,
       notes: data.notes || null,
       isActive: true,
-      createdAt: now,
-      updatedAt: now,
       createdBy: userId || null,
       updatedBy: userId || null,
     };
 
-    const result = await db.insert(tables.items).values(insertData);
-    const insertId = getInsertId(result);
+    // Use audited insert for automatic audit logging
+    const insertId = await auditedInsert({
+      table: 'templateItems',
+      data: insertData,
+      userId,
+    });
 
     // Fetch and return the created item with category
     const created = await db
@@ -376,7 +379,13 @@ export async function updateTemplateItem(id: number, data: TemplateItemUpdate, u
     if (data.unitPrice !== undefined) updateData.unitPrice = data.unitPrice;
     updateData.totalValue = quantity * unitPrice;
 
-    await db.update(tables.items).set(updateData).where(eq(tables.items.id, id));
+    // Use audited update for automatic audit logging
+    await auditedUpdate({
+      table: 'templateItems',
+      id,
+      data: updateData,
+      userId,
+    });
 
     // Fetch and return the updated item with category
     const updated = await db
@@ -398,24 +407,14 @@ export async function updateTemplateItem(id: number, data: TemplateItemUpdate, u
   });
 }
 
-export async function deleteTemplateItem(id: number) {
-  return executeDbOperation(async (db) => {
-    const tables = getTemplateTables();
-
-    // Check if item exists
-    const existing = await db
-      .select()
-      .from(tables.items)
-      .where(eq(tables.items.id, id))
-      .limit(1);
-
-    if (existing.length === 0) {
-      throw new Error('Item not found');
-    }
-
-    await db.delete(tables.items).where(eq(tables.items.id, id));
-    return true;
+export async function deleteTemplateItem(id: number, userId?: number) {
+  // Use audited delete for automatic audit logging
+  await auditedDelete({
+    table: 'templateItems',
+    id,
+    userId,
   });
+  return true;
 }
 
 // ============================================
