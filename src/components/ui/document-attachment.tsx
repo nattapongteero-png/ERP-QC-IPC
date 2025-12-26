@@ -6,6 +6,7 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
+import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
 import { cn } from '@/lib/utils/cn';
 import {
   FileText,
@@ -18,6 +19,7 @@ import {
   AlertCircle,
   CheckCircle,
   Paperclip,
+  History,
 } from 'lucide-react';
 import {
   ATTACHMENT_CATEGORIES,
@@ -156,6 +158,10 @@ export function DocumentAttachment({
   const [editingAttachment, setEditingAttachment] = useState<Attachment | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [editCategory, setEditCategory] = useState<string>('');
+
+  // Audit log dialog state
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const [auditAttachmentId, setAuditAttachmentId] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -496,6 +502,16 @@ export function DocumentAttachment({
                     >
                       <Download className="h-4 w-4" />
                     </button>
+                    <button
+                      onClick={() => {
+                        setAuditAttachmentId(attachment.id);
+                        setShowAuditLog(true);
+                      }}
+                      className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-purple-600"
+                      title="ประวัติการเปลี่ยนแปลง"
+                    >
+                      <History className="h-4 w-4" />
+                    </button>
                     {!readOnly && (
                       <>
                         <button
@@ -599,6 +615,29 @@ export function DocumentAttachment({
           </div>
         </div>
       </DxPopup>
+
+      {/* Audit Log Dialog */}
+      {auditAttachmentId && (
+        <AuditLogViewerDialog
+          visible={showAuditLog}
+          onClose={() => {
+            setShowAuditLog(false);
+            setAuditAttachmentId(null);
+          }}
+          entityType="attachments"
+          entityId={auditAttachmentId}
+          title={`ประวัติเอกสารแนบ #${auditAttachmentId}`}
+          fieldLabels={{
+            fileName: 'ชื่อไฟล์',
+            fileSize: 'ขนาดไฟล์',
+            mimeType: 'ประเภทไฟล์',
+            description: 'คำอธิบาย',
+            category: 'หมวดหมู่',
+            moduleName: 'โมดูล',
+            entityId: 'รหัสข้อมูล',
+          }}
+        />
+      )}
     </div>
   );
 }

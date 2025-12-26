@@ -444,7 +444,7 @@ export function AuditLogViewerDialog({
   // User options for select
   const userOptions = useMemo(
     () =>
-      availableUsers.map((u) => ({
+      (availableUsers || []).map((u) => ({
         id: u.userId,
         name: u.userName,
       })),
@@ -454,7 +454,7 @@ export function AuditLogViewerDialog({
   // Action options for select
   const actionOptions = useMemo(
     () =>
-      availableActions.map((action) => ({
+      (availableActions || []).map((action) => ({
         id: action,
         name: ACTION_LABELS_TH[action] || action,
       })),
@@ -565,8 +565,8 @@ export function AuditLogViewerDialog({
                     ตั้งแต่วันที่
                   </label>
                   <DxDateBox
-                    value={filterFromDate}
-                    onValueChange={setFilterFromDate}
+                    value={filterFromDate ? filterFromDate.toISOString().split('T')[0] : undefined}
+                    onValueChange={(val) => setFilterFromDate(val ? new Date(val) : null)}
                     type="date"
                     displayFormat="dd/MM/yyyy"
                     showClearButton
@@ -578,8 +578,8 @@ export function AuditLogViewerDialog({
                     ถึงวันที่
                   </label>
                   <DxDateBox
-                    value={filterToDate}
-                    onValueChange={setFilterToDate}
+                    value={filterToDate ? filterToDate.toISOString().split('T')[0] : undefined}
+                    onValueChange={(val) => setFilterToDate(val ? new Date(val) : null)}
                     type="date"
                     displayFormat="dd/MM/yyyy"
                     showClearButton
