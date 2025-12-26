@@ -21,16 +21,14 @@ import DataGrid, {
   Paging,
   Pager,
   FilterRow,
-  SearchPanel,
   Sorting,
   Selection,
   HeaderFilter,
   LoadPanel,
-  Toolbar,
-  Item as ToolbarItem,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import SelectBox from 'devextreme-react/select-box';
+import TextBox from 'devextreme-react/text-box';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
 import { TemplatePageHeader, TemplateStatusBadge, TemplatePriorityBadge } from '@/components/template';
@@ -90,6 +88,7 @@ const statusOptions = [
 export default function TemplateItemsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [searchText, setSearchText] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState<number | null>(null);
   const [selectedItem, setSelectedItem] = React.useState<TemplateItem | null>(null);
@@ -122,7 +121,19 @@ export default function TemplateItemsPage() {
     },
   });
 
-  const items = itemsData?.items || [];
+  // Filter items based on search text (client-side filtering)
+  const items = React.useMemo(() => {
+    const allItems = itemsData?.items || [];
+    if (!searchText.trim()) return allItems;
+
+    const searchLower = searchText.toLowerCase().trim();
+    return allItems.filter((item) =>
+      item.code?.toLowerCase().includes(searchLower) ||
+      item.nameTh?.toLowerCase().includes(searchLower) ||
+      item.nameEn?.toLowerCase().includes(searchLower) ||
+      item.description?.toLowerCase().includes(searchLower)
+    );
+  }, [itemsData?.items, searchText]);
 
   const handleRowClick = (e: { data: TemplateItem }) => {
     router.push(`/template/items/${e.data.id}`);
@@ -258,6 +269,15 @@ export default function TemplateItemsPage() {
               <Filter className="h-4 w-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">Filters:</span>
             </div>
+            <div className="w-64">
+              <TextBox
+                value={searchText}
+                onValueChanged={(e) => setSearchText(e.value || '')}
+                placeholder="Search items..."
+                showClearButton
+                mode="search"
+              />
+            </div>
             <div className="w-48">
               <SelectBox
                 dataSource={statusOptions}
@@ -278,11 +298,12 @@ export default function TemplateItemsPage() {
                 placeholder="Category"
               />
             </div>
-            {(statusFilter || categoryFilter) && (
+            {(searchText || statusFilter || categoryFilter) && (
               <Button
                 text="Clear Filters"
                 stylingMode="text"
                 onClick={() => {
+                  setSearchText('');
                   setStatusFilter('');
                   setCategoryFilter(null);
                 }}
@@ -306,7 +327,6 @@ export default function TemplateItemsPage() {
             className="min-h-[400px]"
           >
             <LoadPanel enabled={isLoading} />
-            <SearchPanel visible placeholder="Search items..." width={250} />
             <FilterRow visible />
             <HeaderFilter visible />
             <Sorting mode="multiple" />
