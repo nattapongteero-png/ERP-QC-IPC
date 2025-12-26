@@ -76,8 +76,15 @@ async function createItem(data: TemplateItemCreate): Promise<TemplateItem> {
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || error.message || 'Failed to create item');
+    const errorData = await res.json();
+    // Format validation errors if available
+    if (errorData.errors && Array.isArray(errorData.errors)) {
+      const errorMessages = errorData.errors
+        .map((e: { field: string; message: string }) => `${e.field}: ${e.message}`)
+        .join(', ');
+      throw new Error(`Validation failed: ${errorMessages}`);
+    }
+    throw new Error(errorData.error || errorData.message || 'Failed to create item');
   }
   const result = await res.json();
   return result.data;
@@ -90,8 +97,15 @@ async function updateItem(id: number, data: TemplateItemUpdate): Promise<Templat
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || error.message || 'Failed to update item');
+    const errorData = await res.json();
+    // Format validation errors if available
+    if (errorData.errors && Array.isArray(errorData.errors)) {
+      const errorMessages = errorData.errors
+        .map((e: { field: string; message: string }) => `${e.field}: ${e.message}`)
+        .join(', ');
+      throw new Error(`Validation failed: ${errorMessages}`);
+    }
+    throw new Error(errorData.error || errorData.message || 'Failed to update item');
   }
   const result = await res.json();
   return result.data;
