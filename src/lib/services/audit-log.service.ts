@@ -84,7 +84,7 @@ export async function getAuditLogs(
       .select({
         id: tables.auditTrail.id,
         userId: tables.auditTrail.userId,
-        userName: tables.users.fullName,
+        userName: tables.users.name,
         userRole: tables.users.role,
         action: tables.auditTrail.action,
         tableName: tables.auditTrail.tableName,
@@ -162,7 +162,7 @@ export async function getEntityModifiers(
     const results = await db
       .select({
         userId: tables.auditTrail.userId,
-        userName: tables.users.fullName,
+        userName: tables.users.name,
         lastModified: sql<string>`MAX(${tables.auditTrail.createdAt})`,
       })
       .from(tables.auditTrail)
@@ -173,7 +173,7 @@ export async function getEntityModifiers(
           eq(tables.auditTrail.recordId, recordId)
         )
       )
-      .groupBy(tables.auditTrail.userId, tables.users.fullName);
+      .groupBy(tables.auditTrail.userId, tables.users.name);
 
     return results.map((row: any) => ({
       userId: row.userId,

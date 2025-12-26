@@ -90,10 +90,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching audit logs:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch audit logs',
+        debug: error instanceof Error ? { stack: error.stack } : undefined,
       },
       { status: 500 }
     );
