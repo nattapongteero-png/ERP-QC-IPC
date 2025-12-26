@@ -261,54 +261,81 @@ export default function TemplateItemsPage() {
         </Card>
       )}
 
-      {/* Filters */}
+      {/* Filters & Statistics */}
       <Card>
-        <CardContent className="py-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filters:</span>
+        <CardContent className="py-3">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Filters:</span>
+              </div>
+              <div className="w-56">
+                <TextBox
+                  value={searchText}
+                  onValueChanged={(e) => setSearchText(e.value || '')}
+                  placeholder="Search items..."
+                  showClearButton
+                  mode="search"
+                  height={32}
+                />
+              </div>
+              <div className="w-36">
+                <SelectBox
+                  dataSource={statusOptions}
+                  displayExpr="label"
+                  valueExpr="value"
+                  value={statusFilter}
+                  onValueChanged={(e) => setStatusFilter(e.value)}
+                  placeholder="Status"
+                  height={32}
+                />
+              </div>
+              <div className="w-40">
+                <SelectBox
+                  dataSource={categoryOptions}
+                  displayExpr="nameTh"
+                  valueExpr="id"
+                  value={categoryFilter}
+                  onValueChanged={(e) => setCategoryFilter(e.value)}
+                  placeholder="Category"
+                  height={32}
+                />
+              </div>
+              {(searchText || statusFilter || categoryFilter) && (
+                <Button
+                  text="Clear"
+                  stylingMode="text"
+                  onClick={() => {
+                    setSearchText('');
+                    setStatusFilter('');
+                    setCategoryFilter(null);
+                  }}
+                  height={32}
+                />
+              )}
             </div>
-            <div className="w-64">
-              <TextBox
-                value={searchText}
-                onValueChanged={(e) => setSearchText(e.value || '')}
-                placeholder="Search items..."
-                showClearButton
-                mode="search"
-              />
+
+            {/* Compact Statistics */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 rounded">
+                <span className="text-gray-500">Total:</span>
+                <span className="font-semibold text-gray-900">{itemsData?.total || 0}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 rounded">
+                <span className="text-blue-600">Active:</span>
+                <span className="font-semibold text-blue-700">{items.filter((i) => i.status === 'active').length}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded">
+                <span className="text-gray-500">Draft:</span>
+                <span className="font-semibold text-gray-700">{items.filter((i) => i.status === 'draft').length}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded">
+                <span className="text-emerald-600">Value:</span>
+                <span className="font-semibold text-emerald-700">{formatCurrency(items.reduce((sum, i) => sum + (i.totalValue || 0), 0))}</span>
+              </div>
             </div>
-            <div className="w-48">
-              <SelectBox
-                dataSource={statusOptions}
-                displayExpr="label"
-                valueExpr="value"
-                value={statusFilter}
-                onValueChanged={(e) => setStatusFilter(e.value)}
-                placeholder="Status"
-              />
-            </div>
-            <div className="w-48">
-              <SelectBox
-                dataSource={categoryOptions}
-                displayExpr="nameTh"
-                valueExpr="id"
-                value={categoryFilter}
-                onValueChanged={(e) => setCategoryFilter(e.value)}
-                placeholder="Category"
-              />
-            </div>
-            {(searchText || statusFilter || categoryFilter) && (
-              <Button
-                text="Clear Filters"
-                stylingMode="text"
-                onClick={() => {
-                  setSearchText('');
-                  setStatusFilter('');
-                  setCategoryFilter(null);
-                }}
-              />
-            )}
           </div>
         </CardContent>
       </Card>
@@ -397,35 +424,6 @@ export default function TemplateItemsPage() {
         </CardContent>
       </Card>
 
-      {/* Summary Footer */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{itemsData?.total || 0}</p>
-              <p className="text-sm text-gray-500">Total Items</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">
-                {items.filter((i) => i.status === 'active').length}
-              </p>
-              <p className="text-sm text-gray-500">Active</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-600">
-                {items.filter((i) => i.status === 'draft').length}
-              </p>
-              <p className="text-sm text-gray-500">Draft</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-emerald-600">
-                {formatCurrency(items.reduce((sum, i) => sum + (i.totalValue || 0), 0))}
-              </p>
-              <p className="text-sm text-gray-500">Total Value</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
