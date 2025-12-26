@@ -2019,6 +2019,152 @@ export async function approveAPInvoice(
 }
 
 /**
+ * List payments with optional filters
+ * @param filters - Optional filters for payment type, method, date range
+ * @returns List of payments with vendor/customer names and invoice info
+ */
+export async function listPayments(filters?: {
+  paymentType?: 'ap' | 'ar';
+  paymentMethod?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  vendorId?: number;
+  customerId?: number;
+}): Promise<any[]> {
+  const { payments, paymentAllocations, apInvoices, arInvoices, glAccounts } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  // Dynamically import vendors and customers tables
+  const vendors = isSqlite()
+    ? (await import('../db/schema')).sqliteVendors
+    : (await import('../db/schema')).mysqlVendors;
+  const customers = isSqlite()
+    ? (await import('../db/schema')).sqliteCustomers
+    : (await import('../db/schema')).mysqlCustomers;
+
+  const conditions: any[] = [];
+
+  if (filters?.paymentType) {
+    conditions.push(eq(payments.paymentType, filters.paymentType));
+  }
+
+  if (filters?.paymentMethod) {
+    conditions.push(eq(payments.paymentMethod, filters.paymentMethod));
+  }
+
+  if (filters?.dateFrom) {
+    conditions.push(gte(payments.paymentDate, toQueryDate(filters.dateFrom)));
+  }
+
+  if (filters?.dateTo) {
+    conditions.push(lte(payments.paymentDate, toQueryDate(filters.dateTo)));
+  }
+
+  if (filters?.vendorId) {
+    conditions.push(eq(payments.vendorId, filters.vendorId));
+  }
+
+  if (filters?.customerId) {
+    conditions.push(eq(payments.customerId, filters.customerId));
+  }
+
+  // Select payments with joins for vendor/customer names and bank account info
+  const result = await database
+    .select({
+      id: payments.id,
+      paymentNumber: payments.paymentNumber,
+      paymentType: payments.paymentType,
+      paymentDate: payments.paymentDate,
+      vendorId: payments.vendorId,
+      vendorName: vendors.name,
+      customerId: payments.customerId,
+      customerName: customers.name,
+      bankAccountId: payments.bankAccountId,
+      bankAccountCode: glAccounts.code,
+      bankAccountName: glAccounts.nameTh,
+      paymentMethod: payments.paymentMethod,
+      referenceNumber: payments.referenceNumber,
+      amount: payments.amount,
+      whtAmount: payments.whtAmount,
+      description: payments.description,
+      status: payments.status,
+    })
+    .from(payments)
+    .leftJoin(vendors, eq(payments.vendorId, vendors.id))
+    .leftJoin(customers, eq(payments.customerId, customers.id))
+    .leftJoin(glAccounts, eq(payments.bankAccountId, glAccounts.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(payments.paymentDate));
+
+  // For each payment, get invoice information from allocations
+  const paymentsWithInvoices = await Promise.all(
+    result.map(async (payment: any) => {
+      // Get first allocation to find invoice number
+      const [allocation] = await database
+        .select({
+          apInvoiceId: paymentAllocations.apInvoiceId,
+          arInvoiceId: paymentAllocations.arInvoiceId,
+        })
+        .from(paymentAllocations)
+        .where(eq(paymentAllocations.paymentId, payment.id))
+        .limit(1);
+
+      let invoiceNumber = null;
+      let invoiceId = null;
+
+      if (allocation) {
+        if (allocation.apInvoiceId) {
+          const [invoice] = await database
+            .select({ invoiceNumber: apInvoices.invoiceNumber })
+            .from(apInvoices)
+            .where(eq(apInvoices.id, allocation.apInvoiceId))
+            .limit(1);
+          if (invoice) {
+            invoiceNumber = invoice.invoiceNumber;
+            invoiceId = allocation.apInvoiceId;
+          }
+        } else if (allocation.arInvoiceId) {
+          const [invoice] = await database
+            .select({ invoiceNumber: arInvoices.invoiceNumber })
+            .from(arInvoices)
+            .where(eq(arInvoices.id, allocation.arInvoiceId))
+            .limit(1);
+          if (invoice) {
+            invoiceNumber = invoice.invoiceNumber;
+            invoiceId = allocation.arInvoiceId;
+          }
+        }
+      }
+
+      return {
+        id: payment.id,
+        paymentNumber: payment.paymentNumber,
+        paymentType: payment.paymentType,
+        paymentDate: formatDateFromDb(payment.paymentDate),
+        vendorId: payment.vendorId,
+        vendorName: payment.vendorName,
+        customerId: payment.customerId,
+        customerName: payment.customerName,
+        bankAccountId: payment.bankAccountId,
+        bankAccountCode: payment.bankAccountCode,
+        bankAccountName: payment.bankAccountName,
+        paymentMethod: payment.paymentMethod,
+        referenceNumber: payment.referenceNumber,
+        amount: Number(payment.amount),
+        whtAmount: Number(payment.whtAmount),
+        description: payment.description,
+        status: payment.status,
+        invoiceNumber,
+        apInvoiceId: payment.paymentType === 'ap' ? invoiceId : undefined,
+        arInvoiceId: payment.paymentType === 'ar' ? invoiceId : undefined,
+      };
+    })
+  );
+
+  return paymentsWithInvoices;
+}
+
+/**
  * Record payment for AP invoice (supports partial payments)
  * @param apInvoiceId - AP invoice ID
  * @param input - Payment data

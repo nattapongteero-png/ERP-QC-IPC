@@ -150,12 +150,14 @@ export function TemplateCategoryForm({
     mutationFn: createCategory,
     onSuccess: (category) => {
       queryClient.invalidateQueries({ queryKey: ['template-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['template-categories-list'] });
       queryClient.invalidateQueries({ queryKey: ['template-dashboard'] });
       notify('Category created successfully', 'success', 3000);
       if (onSuccess) {
         onSuccess(category);
       } else {
-        router.push(`/template/categories/${category.id}`);
+        // Navigate back to list page after creation
+        router.push('/template/categories');
       }
     },
     onError: (error: Error) => {
@@ -168,11 +170,15 @@ export function TemplateCategoryForm({
     mutationFn: (data: TemplateCategoryUpdate) => updateCategory(categoryId!, data),
     onSuccess: (category) => {
       queryClient.invalidateQueries({ queryKey: ['template-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['template-categories-list'] });
       queryClient.invalidateQueries({ queryKey: ['template-category', categoryId] });
       queryClient.invalidateQueries({ queryKey: ['template-dashboard'] });
       notify('Category updated successfully', 'success', 3000);
       if (onSuccess) {
         onSuccess(category);
+      } else {
+        // Navigate back to list page after update
+        router.push('/template/categories');
       }
     },
     onError: (error: Error) => {

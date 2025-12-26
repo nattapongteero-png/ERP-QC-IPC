@@ -230,7 +230,8 @@ export function TemplateItemForm({
       if (onSuccess) {
         onSuccess(item);
       } else {
-        router.push(`/template/items/${item.id}`);
+        // Navigate back to list page after creation
+        router.push('/template/items');
       }
     },
     onError: (error: Error) => {
@@ -248,6 +249,9 @@ export function TemplateItemForm({
       notify('Item updated successfully', 'success', 3000);
       if (onSuccess) {
         onSuccess(item);
+      } else {
+        // Navigate back to list page after update
+        router.push('/template/items');
       }
     },
     onError: (error: Error) => {

@@ -1,0 +1,675 @@
+'use client';
+
+/**
+ * AP Payments Page
+ * Feature: 010-accounting-module-integration
+ * Shows payment records for Accounts Payable with filtering and payment recording
+ */
+
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+import DataGrid, {
+  Column,
+  Paging,
+  Pager,
+  FilterRow,
+  HeaderFilter,
+  SearchPanel,
+  Toolbar,
+  Item,
+  Selection,
+  Export,
+  ColumnChooser,
+  Sorting,
+  Summary,
+  TotalItem,
+  Format,
+} from 'devextreme-react/data-grid';
+import { Popup } from 'devextreme-react/popup';
+import Form, {
+  SimpleItem,
+  GroupItem,
+  RequiredRule,
+} from 'devextreme-react/form';
+import { Button } from 'devextreme-react/button';
+import { SelectBox } from 'devextreme-react/select-box';
+import { DateBox } from 'devextreme-react/date-box';
+import notify from 'devextreme/ui/notify';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingFilterPanel,
+  AccountingStatusBadge,
+} from '@/components/accounting';
+
+// Types
+interface Payment {
+  id: number;
+  paymentNumber: string;
+  paymentType: 'ap' | 'ar';
+  paymentDate: string;
+  vendorId: number | null;
+  vendorName?: string;
+  customerId: number | null;
+  customerName?: string;
+  bankAccountId: number;
+  bankAccountCode?: string;
+  bankAccountName?: string;
+  paymentMethod: 'cash' | 'check' | 'transfer' | 'other';
+  referenceNumber: string | null;
+  amount: number;
+  whtAmount: number;
+  description: string | null;
+  status: 'pending' | 'completed' | 'cancelled';
+  invoiceNumber?: string;
+  apInvoiceId?: number;
+}
+
+interface APInvoice {
+  id: number;
+  invoiceNumber: string;
+  vendorId: number;
+  vendorName?: string;
+  totalAmount: number;
+  paidAmount: number;
+  status: 'draft' | 'approved' | 'posted' | 'partial' | 'paid' | 'cancelled';
+}
+
+interface GLAccount {
+  id: number;
+  code: string;
+  nameTh: string;
+  nameEn: string;
+}
+
+interface PaymentFormData {
+  apInvoiceId: number | null;
+  paymentDate: string;
+  bankAccountId: number | null;
+  paymentMethod: 'cash' | 'check' | 'transfer' | 'other';
+  referenceNumber: string;
+  amount: number;
+  whtRate: number;
+  description: string;
+}
+
+// API functions
+async function fetchPayments(filters?: {
+  paymentMethod?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<Payment[]> {
+  const params = new URLSearchParams();
+  params.append('paymentType', 'ap');
+  if (filters?.paymentMethod) params.append('paymentMethod', filters.paymentMethod);
+  if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+  if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+
+  const res = await fetch(`/api/accounting/payments?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch payments');
+  const json = await res.json();
+  return json.data;
+}
+
+async function fetchAPInvoices(): Promise<APInvoice[]> {
+  const res = await fetch('/api/accounting/ap-invoices?status=posted&status=partial');
+  if (!res.ok) throw new Error('Failed to fetch invoices');
+  const json = await res.json();
+  return json.data;
+}
+
+async function fetchBankAccounts(): Promise<GLAccount[]> {
+  const res = await fetch('/api/accounting/gl-accounts?isActive=true&accountType=asset');
+  if (!res.ok) throw new Error('Failed to fetch bank accounts');
+  const json = await res.json();
+  // Filter for bank/cash accounts (typically codes starting with 11)
+  return json.data.filter((acc: GLAccount) => acc.code.startsWith('11'));
+}
+
+async function recordPayment(
+  invoiceId: number,
+  data: {
+    paymentDate: string;
+    bankAccountId: number;
+    paymentMethod: 'cash' | 'check' | 'transfer' | 'other';
+    referenceNumber?: string;
+    amount: number;
+    whtRate?: number;
+    description?: string;
+  }
+): Promise<{ payment: { paymentNumber: string }; invoice: APInvoice }> {
+  const res = await fetch(`/api/accounting/ap-invoices/${invoiceId}/pay`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to record payment');
+  }
+  return (await res.json()).data;
+}
+
+export default function APPaymentsPage() {
+  const queryClient = useQueryClient();
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<APInvoice | null>(null);
+  const [formData, setFormData] = useState<PaymentFormData>({
+    apInvoiceId: null,
+    paymentDate: new Date().toISOString().split('T')[0],
+    bankAccountId: null,
+    paymentMethod: 'transfer',
+    referenceNumber: '',
+    amount: 0,
+    whtRate: 0,
+    description: '',
+  });
+
+  // Build filter object
+  const filters = useMemo(() => {
+    const f: { paymentMethod?: string; dateFrom?: string; dateTo?: string } = {};
+    if (paymentMethodFilter) f.paymentMethod = paymentMethodFilter;
+    if (dateFrom) f.dateFrom = dateFrom.toISOString().split('T')[0];
+    if (dateTo) f.dateTo = dateTo.toISOString().split('T')[0];
+    return f;
+  }, [paymentMethodFilter, dateFrom, dateTo]);
+
+  // Queries
+  const { data: payments = [] } = useQuery({
+    queryKey: ['payments', 'ap', filters],
+    queryFn: () => fetchPayments(filters),
+  });
+
+  const { data: apInvoices = [] } = useQuery({
+    queryKey: ['ap-invoices-payable'],
+    queryFn: fetchAPInvoices,
+    enabled: isDialogOpen,
+  });
+
+  const { data: bankAccounts = [] } = useQuery({
+    queryKey: ['bank-accounts'],
+    queryFn: fetchBankAccounts,
+    enabled: isDialogOpen,
+  });
+
+  // Mutations
+  const paymentMutation = useMutation({
+    mutationFn: ({ invoiceId, data }: { invoiceId: number; data: Parameters<typeof recordPayment>[1] }) =>
+      recordPayment(invoiceId, data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['ap-invoices'] });
+      notify(`บันทึกการจ่ายเงินสำเร็จ (Payment: ${result.payment.paymentNumber})`, 'success', 3000);
+      setIsDialogOpen(false);
+      setSelectedInvoice(null);
+      resetForm();
+    },
+    onError: (error: Error) => {
+      notify(error.message || 'ไม่สามารถบันทึกการจ่ายเงินได้', 'error', 4000);
+    },
+  });
+
+  // Handlers
+  const resetForm = useCallback(() => {
+    setFormData({
+      apInvoiceId: null,
+      paymentDate: new Date().toISOString().split('T')[0],
+      bankAccountId: null,
+      paymentMethod: 'transfer',
+      referenceNumber: '',
+      amount: 0,
+      whtRate: 0,
+      description: '',
+    });
+    setSelectedInvoice(null);
+  }, []);
+
+  const handleOpenDialog = useCallback(() => {
+    resetForm();
+    setIsDialogOpen(true);
+  }, [resetForm]);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsDialogOpen(false);
+    resetForm();
+  }, [resetForm]);
+
+  const handleInvoiceChange = useCallback((invoiceId: number | null) => {
+    const invoice = apInvoices.find((inv) => inv.id === invoiceId);
+    setSelectedInvoice(invoice || null);
+    if (invoice) {
+      const outstanding = invoice.totalAmount - invoice.paidAmount;
+      setFormData((prev) => ({
+        ...prev,
+        apInvoiceId: invoiceId,
+        amount: outstanding,
+        description: `Payment for ${invoice.invoiceNumber}`,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        apInvoiceId: null,
+        amount: 0,
+        description: '',
+      }));
+    }
+  }, [apInvoices]);
+
+  const handleRecordPayment = useCallback(() => {
+    if (!formData.apInvoiceId || !formData.bankAccountId) {
+      notify('กรุณาเลือกใบแจ้งหนี้และบัญชีจ่าย', 'warning', 3000);
+      return;
+    }
+
+    if (formData.amount <= 0) {
+      notify('จำนวนเงินต้องมากกว่า 0', 'warning', 3000);
+      return;
+    }
+
+    paymentMutation.mutate({
+      invoiceId: formData.apInvoiceId,
+      data: {
+        paymentDate: formData.paymentDate,
+        bankAccountId: formData.bankAccountId,
+        paymentMethod: formData.paymentMethod,
+        referenceNumber: formData.referenceNumber || undefined,
+        amount: formData.amount,
+        whtRate: formData.whtRate > 0 ? formData.whtRate : undefined,
+        description: formData.description || undefined,
+      },
+    });
+  }, [formData, paymentMutation]);
+
+  const handleClearDateFilter = useCallback(() => {
+    setDateFrom(null);
+    setDateTo(null);
+  }, []);
+
+  // Status badge render
+  const statusCellRender = useCallback((cellData: { value: string }) => {
+    const statusValue = cellData.value as 'pending' | 'completed' | 'cancelled';
+    // Map payment statuses to badge statuses
+    const statusMap: Record<string, 'draft' | 'posted' | 'paid' | 'cancelled'> = {
+      pending: 'draft',
+      completed: 'paid',
+      cancelled: 'cancelled',
+    };
+    const mappedStatus = statusMap[statusValue] || 'draft';
+    return <AccountingStatusBadge status={mappedStatus} />;
+  }, []);
+
+  // Payment method render
+  const paymentMethodCellRender = useCallback((cellData: { value: string }) => {
+    const methodLabels: Record<string, string> = {
+      cash: 'เงินสด',
+      check: 'เช็ค',
+      transfer: 'โอนเงิน',
+      other: 'อื่นๆ',
+    };
+    return <span>{methodLabels[cellData.value] || cellData.value}</span>;
+  }, []);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const total = payments.length;
+
+    // Calculate this month's date range
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthStr = firstDayOfMonth.toISOString().split('T')[0];
+
+    const paidThisMonth = payments
+      .filter((p) => p.status === 'completed' && p.paymentDate >= monthStr)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    const pending = payments.filter((p) => p.status === 'pending').length;
+
+    // Outstanding is calculated from invoices, not payments
+    // We'll need to fetch this from the invoices API
+    const outstanding = 0; // Placeholder - would need to query AP invoices
+
+    return { total, paidThisMonth, pending, outstanding };
+  }, [payments]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      {/* Professional Header */}
+      <AccountingPageHeader
+        title="AP Payments"
+        subtitle="Vendor Payment Records"
+        icon="credit-card"
+        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['payments'] })}
+        actions={
+          <Button
+            text="Record Payment"
+            icon="plus"
+            type="success"
+            onClick={handleOpenDialog}
+          />
+        }
+      />
+
+      <div className="p-6 space-y-6">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <AccountingKPICard
+            label="Total Payments"
+            value={stats.total.toLocaleString('th-TH')}
+            subtitle="All payment records"
+            icon="file-text"
+            variant="info"
+          />
+          <AccountingKPICard
+            label="Paid This Month"
+            value={`฿${stats.paidThisMonth.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
+            subtitle="Current month"
+            icon="check-circle"
+            variant="success"
+          />
+          <AccountingKPICard
+            label="Pending Payments"
+            value={stats.pending.toLocaleString('th-TH')}
+            subtitle="Awaiting processing"
+            icon="clock"
+            variant="warning"
+          />
+          <AccountingKPICard
+            label="Outstanding to Pay"
+            value={`฿${stats.outstanding.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
+            subtitle="From unpaid invoices"
+            icon="trending-up"
+            variant="danger"
+          />
+        </div>
+
+        {/* Filter Panel */}
+        <AccountingFilterPanel>
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Method
+              </label>
+              <SelectBox
+                dataSource={[
+                  { value: '', label: 'All' },
+                  { value: 'cash', label: 'Cash' },
+                  { value: 'check', label: 'Check' },
+                  { value: 'transfer', label: 'Transfer' },
+                  { value: 'other', label: 'Other' },
+                ]}
+                displayExpr="label"
+                valueExpr="value"
+                value={paymentMethodFilter}
+                onValueChanged={(e) => setPaymentMethodFilter(e.value)}
+                placeholder="Filter by method"
+                width={200}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date From
+              </label>
+              <DateBox
+                value={dateFrom}
+                onValueChanged={(e) => setDateFrom(e.value)}
+                type="date"
+                displayFormat="dd/MM/yyyy"
+                width={150}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date To
+              </label>
+              <DateBox
+                value={dateTo}
+                onValueChanged={(e) => setDateTo(e.value)}
+                type="date"
+                displayFormat="dd/MM/yyyy"
+                width={150}
+              />
+            </div>
+            {(dateFrom || dateTo) && (
+              <div className="self-end">
+                <Button
+                  text="Clear Dates"
+                  icon="clear"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={handleClearDateFilter}
+                />
+              </div>
+            )}
+          </div>
+        </AccountingFilterPanel>
+
+        {/* Data Grid */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <DataGrid
+            dataSource={payments}
+            keyExpr="id"
+            showBorders={true}
+            showRowLines={true}
+            showColumnLines={false}
+            rowAlternationEnabled={true}
+            allowColumnReordering={true}
+            allowColumnResizing={true}
+            columnAutoWidth={true}
+            wordWrapEnabled={true}
+          >
+            <Paging defaultPageSize={20} />
+            <Pager
+              visible={true}
+              showPageSizeSelector={true}
+              allowedPageSizes={[10, 20, 50]}
+              showInfo={true}
+            />
+            <FilterRow visible={true} />
+            <HeaderFilter visible={true} />
+            <SearchPanel visible={true} placeholder="Search..." />
+            <Sorting mode="multiple" />
+            <Selection mode="single" />
+            <ColumnChooser enabled={true} />
+            <Export enabled={true} />
+
+            <Toolbar>
+              <Item name="searchPanel" location="before" />
+              <Item name="exportButton" location="after" />
+              <Item name="columnChooserButton" location="after" />
+            </Toolbar>
+
+            <Column dataField="paymentNumber" caption="Payment Number" width={150} />
+            <Column dataField="invoiceNumber" caption="Invoice Number" width={150} />
+            <Column dataField="vendorName" caption="Vendor Name" minWidth={180} />
+            <Column dataField="paymentDate" caption="Payment Date" dataType="date" width={120} />
+            <Column
+              dataField="amount"
+              caption="Amount"
+              dataType="number"
+              width={120}
+              alignment="right"
+            >
+              <Format type="fixedPoint" precision={2} />
+            </Column>
+            <Column
+              dataField="whtAmount"
+              caption="WHT Amount"
+              dataType="number"
+              width={120}
+              alignment="right"
+            >
+              <Format type="fixedPoint" precision={2} />
+            </Column>
+            <Column
+              dataField="paymentMethod"
+              caption="Payment Method"
+              width={130}
+              cellRender={paymentMethodCellRender}
+            />
+            <Column dataField="referenceNumber" caption="Reference Number" width={150} />
+            <Column
+              dataField="status"
+              caption="Status"
+              width={100}
+              cellRender={statusCellRender}
+            />
+
+            <Summary>
+              <TotalItem column="amount" summaryType="sum" displayFormat="Total: {0}">
+                <Format type="fixedPoint" precision={2} />
+              </TotalItem>
+              <TotalItem column="whtAmount" summaryType="sum" displayFormat="WHT: {0}">
+                <Format type="fixedPoint" precision={2} />
+              </TotalItem>
+            </Summary>
+          </DataGrid>
+        </div>
+
+        {/* Record Payment Dialog */}
+        <Popup
+          visible={isDialogOpen}
+          onHiding={handleCloseDialog}
+          title="Record Vendor Payment"
+          width={600}
+          height="auto"
+          showCloseButton={true}
+          dragEnabled={true}
+        >
+          <div className="p-4">
+            {selectedInvoice && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>Invoice Number:</div>
+                  <div className="font-semibold">{selectedInvoice.invoiceNumber}</div>
+                  <div>Total Amount:</div>
+                  <div className="font-semibold">
+                    {selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB
+                  </div>
+                  <div>Paid Amount:</div>
+                  <div className="font-semibold">
+                    {selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB
+                  </div>
+                  <div>Outstanding:</div>
+                  <div className="font-bold text-orange-600">
+                    {(selectedInvoice.totalAmount - selectedInvoice.paidAmount).toLocaleString('th-TH', {
+                      minimumFractionDigits: 2,
+                    })}{' '}
+                    THB
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
+              <SimpleItem
+                dataField="apInvoiceId"
+                editorType="dxSelectBox"
+                label={{ text: 'AP Invoice' }}
+                editorOptions={{
+                  dataSource: apInvoices,
+                  displayExpr: (item: APInvoice) =>
+                    item ? `${item.invoiceNumber} - ${item.vendorName || 'Unknown'} (Outstanding: ${(item.totalAmount - item.paidAmount).toFixed(2)})` : '',
+                  valueExpr: 'id',
+                  searchEnabled: true,
+                  onValueChanged: (e: { value: number | null }) => handleInvoiceChange(e.value),
+                }}
+              >
+                <RequiredRule message="Please select an invoice" />
+              </SimpleItem>
+              <GroupItem colCount={2}>
+                <SimpleItem
+                  dataField="paymentDate"
+                  editorType="dxDateBox"
+                  label={{ text: 'Payment Date' }}
+                  editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
+                >
+                  <RequiredRule message="Please select payment date" />
+                </SimpleItem>
+                <SimpleItem
+                  dataField="paymentMethod"
+                  editorType="dxSelectBox"
+                  label={{ text: 'Payment Method' }}
+                  editorOptions={{
+                    dataSource: [
+                      { value: 'transfer', label: 'Transfer' },
+                      { value: 'cash', label: 'Cash' },
+                      { value: 'check', label: 'Check' },
+                      { value: 'other', label: 'Other' },
+                    ],
+                    displayExpr: 'label',
+                    valueExpr: 'value',
+                  }}
+                />
+              </GroupItem>
+              <SimpleItem
+                dataField="bankAccountId"
+                editorType="dxSelectBox"
+                label={{ text: 'Bank Account' }}
+                editorOptions={{
+                  dataSource: bankAccounts,
+                  displayExpr: (item: GLAccount) => item ? `${item.code} - ${item.nameTh}` : '',
+                  valueExpr: 'id',
+                  searchEnabled: true,
+                }}
+              >
+                <RequiredRule message="Please select bank account" />
+              </SimpleItem>
+              <GroupItem colCount={2}>
+                <SimpleItem
+                  dataField="amount"
+                  editorType="dxNumberBox"
+                  label={{ text: 'Amount (THB)' }}
+                  editorOptions={{
+                    format: '#,##0.00',
+                    min: 0.01,
+                    max: selectedInvoice ? selectedInvoice.totalAmount - selectedInvoice.paidAmount : undefined,
+                  }}
+                >
+                  <RequiredRule message="Please enter amount" />
+                </SimpleItem>
+                <SimpleItem
+                  dataField="whtRate"
+                  editorType="dxNumberBox"
+                  label={{ text: 'WHT Rate (%)' }}
+                  editorOptions={{
+                    format: '#,##0.00',
+                    min: 0,
+                    max: 100,
+                  }}
+                />
+              </GroupItem>
+              <SimpleItem
+                dataField="referenceNumber"
+                label={{ text: 'Reference Number' }}
+                editorOptions={{ placeholder: 'Check No. / Transfer Ref.' }}
+              />
+              <SimpleItem
+                dataField="description"
+                editorType="dxTextArea"
+                label={{ text: 'Description' }}
+                editorOptions={{ height: 60 }}
+              />
+            </Form>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button text="Cancel" type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
+              <Button
+                text="Record Payment"
+                type="success"
+                onClick={handleRecordPayment}
+                disabled={paymentMutation.isPending}
+              />
+            </div>
+          </div>
+        </Popup>
+      </div>
+    </div>
+  );
+}
