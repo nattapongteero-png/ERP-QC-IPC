@@ -5,6 +5,7 @@
  * - GL Account Types (5 categories: Assets, Liabilities, Equity, Revenue, Expenses)
  * - Default Chart of Accounts template for manufacturing/herbal medicine industry
  * - Default fiscal year and periods
+ * - Asset Categories with Thai Revenue Code depreciation rates
  *
  * Runs during server startup after schema sync.
  */
@@ -13,6 +14,8 @@ import { sql } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from './index';
 import { getNow, toDbDate, getTodayStr } from './date-utils';
 import * as schema from './schema';
+import { ASSET_CATEGORIES, type AssetCategoryConfig } from './seeds/asset-categories';
+import { WHT_RATES, THAI_VAT_RATE, WHT_MINIMUM_THRESHOLD } from './seeds/wht-rates';
 
 // ============================================
 // GL Account Types following Thai Accounting Standards
@@ -343,8 +346,12 @@ async function seedChartOfAccounts(usingSqlite: boolean): Promise<number> {
         updatedAt: getNow(),
       };
 
-      const [inserted] = await (db as any).insert(accountTable).values(values).$returningId();
-      codeToIdMap.set(account.code, inserted.id);
+      const result = await (db as any).insert(accountTable).values(values);
+      // Get the inserted ID - SQLite uses lastInsertRowid, MySQL uses insertId
+      const insertedId = usingSqlite
+        ? (result as any).lastInsertRowid as number
+        : (result as any)[0]?.insertId as number;
+      codeToIdMap.set(account.code, insertedId);
     }
 
     // Second pass: update parent references
@@ -405,7 +412,11 @@ async function seedFiscalYear(usingSqlite: boolean): Promise<number> {
       updatedAt: getNow(),
     };
 
-    const [insertedYear] = await (db as any).insert(yearTable).values(yearValues).$returningId();
+    const yearResult = await (db as any).insert(yearTable).values(yearValues);
+    // Get the inserted ID - SQLite uses lastInsertRowid, MySQL uses insertId
+    const insertedYearId = usingSqlite
+      ? (yearResult as any).lastInsertRowid as number
+      : (yearResult as any)[0]?.insertId as number;
 
     // Create 12 monthly periods
     const monthNames = [
@@ -418,7 +429,7 @@ async function seedFiscalYear(usingSqlite: boolean): Promise<number> {
       const periodEnd = new Date(currentYear, i + 1, 0); // Last day of month
 
       const periodValues = {
-        fiscalYearId: insertedYear.id,
+        fiscalYearId: insertedYearId,
         periodNumber: i + 1,
         periodName: monthNames[i],
         startDate: toDbDate(periodStart.toISOString().split('T')[0]),
@@ -439,12 +450,157 @@ async function seedFiscalYear(usingSqlite: boolean): Promise<number> {
   }
 }
 
+/**
+ * Seed Asset Categories
+ * Uses Thai Revenue Code depreciation rates
+ */
+async function seedAssetCategories(usingSqlite: boolean): Promise<number> {
+  const tableName = 'asset_categories';
+  const isEmpty = await isTableEmpty(tableName, usingSqlite);
+
+  if (!isEmpty) {
+    console.log(`[Accounting Seed] Table ${tableName} already has data, skipping seed`);
+    return 0;
+  }
+
+  console.log(`[Accounting Seed] Seeding ${tableName}...`);
+
+  const categoryTable = usingSqlite ? schema.sqliteAssetCategories : schema.mysqlAssetCategories;
+  const accountTable = usingSqlite ? schema.sqliteGLAccounts : schema.mysqlGLAccounts;
+  const db = usingSqlite ? getSqliteDb() : await getMysqlDb();
+
+  try {
+    // Get GL accounts for mapping by code
+    const accounts = await (db as any).select().from(accountTable);
+    const accountCodeToId = new Map(accounts.map((a: any) => [a.code, a.id]));
+
+    let seededCount = 0;
+
+    for (const category of ASSET_CATEGORIES) {
+      // Find GL account IDs - use closest match or default accounts
+      const assetGLAccountId = findAccountIdByCode(accountCodeToId, category.assetGLAccountCode, '1210');
+      const depExpGLAccountId = findAccountIdByCode(accountCodeToId, category.depreciationExpenseGLAccountCode, '6270');
+      const accumDepGLAccountId = findAccountIdByCode(accountCodeToId, category.accumulatedDepreciationGLAccountCode, '1220');
+
+      if (!assetGLAccountId || !depExpGLAccountId || !accumDepGLAccountId) {
+        console.warn(`[Accounting Seed] Skipping asset category ${category.code} - missing GL accounts`);
+        continue;
+      }
+
+      const values = {
+        code: category.code,
+        nameTh: category.nameTh,
+        nameEn: category.nameEn,
+        defaultUsefulLifeMonths: category.defaultUsefulLifeMonths,
+        defaultDepreciationMethod: category.defaultDepreciationMethod,
+        maxDepreciationRate: category.maxDepreciationRate,
+        assetGLAccountId,
+        depreciationExpenseGLAccountId: depExpGLAccountId,
+        accumulatedDepreciationGLAccountId: accumDepGLAccountId,
+        isActive: true,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      };
+
+      try {
+        await (db as any).insert(categoryTable).values(values);
+        seededCount++;
+      } catch (err) {
+        console.warn(`[Accounting Seed] Failed to insert asset category ${category.code}:`, err);
+      }
+    }
+
+    console.log(`[Accounting Seed] Seeded ${seededCount} asset categories`);
+    return seededCount;
+  } catch (error) {
+    console.error(`[Accounting Seed] Failed to seed ${tableName}:`, error);
+    return 0;
+  }
+}
+
+/**
+ * Helper to find GL account ID by code with fallback
+ */
+function findAccountIdByCode(
+  accountCodeToId: Map<string, number>,
+  primaryCode: string,
+  fallbackCode: string
+): number | undefined {
+  // Try exact match first
+  if (accountCodeToId.has(primaryCode)) {
+    return accountCodeToId.get(primaryCode);
+  }
+  // Try fallback
+  if (accountCodeToId.has(fallbackCode)) {
+    return accountCodeToId.get(fallbackCode);
+  }
+  // Try to find any account starting with the first 3 digits
+  const prefix = primaryCode.substring(0, 3);
+  for (const [code, id] of accountCodeToId.entries()) {
+    if (code.startsWith(prefix)) {
+      return id;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Seed default bank accounts
+ * Links bank GL accounts to actual bank account records
+ */
+async function seedDefaultBankAccounts(usingSqlite: boolean): Promise<number> {
+  // Bank accounts are already in Chart of Accounts with isBankAccount flag
+  // This function updates them with bank details if needed
+
+  const accountTable = usingSqlite ? schema.sqliteGLAccounts : schema.mysqlGLAccounts;
+  const db = usingSqlite ? getSqliteDb() : await getMysqlDb();
+
+  // Default bank account details for seeding
+  const bankAccountDetails = [
+    { code: '1112', bankName: 'ธนาคารกรุงเทพ (Bangkok Bank)', bankAccountNumber: 'XXX-X-XXXXX-X' },
+    { code: '1113', bankName: 'ธนาคารกสิกรไทย (Kasikorn Bank)', bankAccountNumber: 'XXX-X-XXXXX-X' },
+  ];
+
+  let updatedCount = 0;
+
+  for (const bank of bankAccountDetails) {
+    try {
+      // Check if account exists and needs update
+      const accounts = await (db as any)
+        .select()
+        .from(accountTable)
+        .where(sql`code = ${bank.code}`);
+
+      if (accounts.length > 0 && !accounts[0].bankName) {
+        await (db as any)
+          .update(accountTable)
+          .set({
+            bankName: bank.bankName,
+            bankAccountNumber: bank.bankAccountNumber,
+            updatedAt: getNow(),
+          })
+          .where(sql`code = ${bank.code}`);
+        updatedCount++;
+      }
+    } catch (err) {
+      // Ignore errors for bank account updates
+    }
+  }
+
+  if (updatedCount > 0) {
+    console.log(`[Accounting Seed] Updated ${updatedCount} bank account details`);
+  }
+
+  return updatedCount;
+}
+
 // ============================================
 // Main Seed Function
 // ============================================
 
 /**
  * Seed all accounting tables
+ * Called automatically during server startup
  */
 export async function seedAccountingTables(): Promise<void> {
   const usingSqlite = isSqlite();
@@ -452,10 +608,21 @@ export async function seedAccountingTables(): Promise<void> {
 
   let totalSeeded = 0;
 
-  // Seed in order (dependencies)
+  // Seed in order (dependencies matter!)
+  // 1. GL Account Types first (no dependencies)
   totalSeeded += await seedGLAccountTypes(usingSqlite);
+
+  // 2. Chart of Accounts (depends on GL Account Types)
   totalSeeded += await seedChartOfAccounts(usingSqlite);
+
+  // 3. Fiscal Year and Periods (no dependencies)
   totalSeeded += await seedFiscalYear(usingSqlite);
+
+  // 4. Asset Categories (depends on Chart of Accounts for GL account references)
+  totalSeeded += await seedAssetCategories(usingSqlite);
+
+  // 5. Bank Account Details (updates existing GL accounts)
+  totalSeeded += await seedDefaultBankAccounts(usingSqlite);
 
   console.log(`[Accounting Seed] Accounting seed complete. Total records: ${totalSeeded}`);
 }
