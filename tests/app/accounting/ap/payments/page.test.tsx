@@ -197,10 +197,10 @@ describe('APPaymentsPage', () => {
   ];
 
   it('should render page header with title and subtitle', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: [] }),
-    });
+    } as Response);
 
     renderPage();
 
@@ -211,10 +211,10 @@ describe('APPaymentsPage', () => {
   });
 
   it('should display KPI cards with payment stats', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: mockPaymentsData }),
-    });
+    } as Response);
 
     renderPage();
 
@@ -237,10 +237,10 @@ describe('APPaymentsPage', () => {
   });
 
   it('should fetch and display payment records', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: mockPaymentsData }),
-    });
+    } as Response);
 
     renderPage();
 
@@ -253,10 +253,10 @@ describe('APPaymentsPage', () => {
   });
 
   it('should show filter panel with payment method and date range filters', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: [] }),
-    });
+    } as Response);
 
     renderPage();
 
@@ -269,10 +269,10 @@ describe('APPaymentsPage', () => {
   });
 
   it('should handle empty payment list gracefully', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: [] }),
-    });
+    } as Response);
 
     renderPage();
 
@@ -285,7 +285,7 @@ describe('APPaymentsPage', () => {
   });
 
   it('should handle API error gracefully', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(
+    vi.mocked(global.fetch).mockRejectedValueOnce(
       new Error('Network error')
     );
 
