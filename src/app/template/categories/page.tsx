@@ -18,7 +18,6 @@ import DataGrid, {
   Paging,
   Pager,
   FilterRow,
-  SearchPanel,
   Sorting,
   Selection,
   HeaderFilter,
@@ -26,6 +25,7 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import SelectBox from 'devextreme-react/select-box';
+import TextBox from 'devextreme-react/text-box';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
 import { TemplatePageHeader } from '@/components/template';
@@ -60,16 +60,30 @@ const statusOptions = [
 export default function TemplateCategoriesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [searchText, setSearchText] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<TemplateCategory | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
-  const { data: categories = [], isLoading, refetch, isFetching } = useQuery({
+  const { data: categoriesData = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ['template-categories-list', statusFilter],
     queryFn: () => fetchCategories({
       isActive: statusFilter === '' ? undefined : statusFilter === 'true',
     }),
   });
+
+  // Filter categories based on search text (client-side filtering)
+  const categories = React.useMemo(() => {
+    if (!searchText.trim()) return categoriesData;
+
+    const searchLower = searchText.toLowerCase().trim();
+    return categoriesData.filter((cat) =>
+      cat.code?.toLowerCase().includes(searchLower) ||
+      cat.nameTh?.toLowerCase().includes(searchLower) ||
+      cat.nameEn?.toLowerCase().includes(searchLower) ||
+      cat.description?.toLowerCase().includes(searchLower)
+    );
+  }, [categoriesData, searchText]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteCategory,
@@ -228,31 +242,78 @@ export default function TemplateCategoriesPage() {
         </Card>
       )}
 
-      {/* Filters */}
+      {/* Filters & Statistics */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filters:</span>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Filters:</span>
+              </div>
+              <div className="w-56">
+                <TextBox
+                  value={searchText}
+                  onValueChanged={(e) => setSearchText(e.value || '')}
+                  valueChangeEvent="keyup"
+                  placeholder="Search categories..."
+                  showClearButton
+                  mode="search"
+                />
+              </div>
+              <div className="w-40">
+                <SelectBox
+                  dataSource={statusOptions}
+                  displayExpr="label"
+                  valueExpr="value"
+                  value={statusFilter}
+                  onValueChanged={(e) => setStatusFilter(e.value)}
+                  placeholder="Status"
+                />
+              </div>
+              {(searchText || statusFilter) && (
+                <Button
+                  text="Clear"
+                  stylingMode="text"
+                  onClick={() => {
+                    setSearchText('');
+                    setStatusFilter('');
+                  }}
+                />
+              )}
             </div>
-            <div className="w-48">
-              <SelectBox
-                dataSource={statusOptions}
-                displayExpr="label"
-                valueExpr="value"
-                value={statusFilter}
-                onValueChanged={(e) => setStatusFilter(e.value)}
-                placeholder="Status"
-              />
+
+            {/* Compact Statistics */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
+                <span className="text-gray-500">Total:</span>
+                <span className="font-semibold text-gray-900">{categoriesData.length}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-md">
+                <span className="text-green-600">Active:</span>
+                <span className="font-semibold text-green-700">{categories.filter((c) => c.isActive).length}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-md">
+                <span className="text-gray-500">Inactive:</span>
+                <span className="font-semibold text-gray-700">{categories.filter((c) => !c.isActive).length}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 rounded-md">
+                <div className="flex -space-x-1">
+                  {categories.slice(0, 4).map((cat) => (
+                    <div
+                      key={cat.id}
+                      className="w-4 h-4 rounded-full border border-white"
+                      style={{ backgroundColor: cat.color }}
+                      title={cat.nameTh}
+                    />
+                  ))}
+                </div>
+                {categories.length > 4 && (
+                  <span className="text-purple-600 text-xs">+{categories.length - 4}</span>
+                )}
+              </div>
             </div>
-            {statusFilter && (
-              <Button
-                text="Clear Filters"
-                stylingMode="text"
-                onClick={() => setStatusFilter('')}
-              />
-            )}
           </div>
         </CardContent>
       </Card>
@@ -271,7 +332,6 @@ export default function TemplateCategoriesPage() {
             className="min-h-[400px]"
           >
             <LoadPanel enabled={isLoading} />
-            <SearchPanel visible placeholder="Search categories..." width={250} />
             <FilterRow visible />
             <HeaderFilter visible />
             <Sorting mode="multiple" />
@@ -325,47 +385,6 @@ export default function TemplateCategoriesPage() {
         </CardContent>
       </Card>
 
-      {/* Summary Footer */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{categories.length}</p>
-              <p className="text-sm text-gray-500">Total Categories</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">
-                {categories.filter((c) => c.isActive).length}
-              </p>
-              <p className="text-sm text-gray-500">Active</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-600">
-                {categories.filter((c) => !c.isActive).length}
-              </p>
-              <p className="text-sm text-gray-500">Inactive</p>
-            </div>
-            <div className="text-center">
-              <div className="flex justify-center gap-1">
-                {categories.slice(0, 6).map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
-                    style={{ backgroundColor: cat.color }}
-                    title={cat.nameTh}
-                  />
-                ))}
-                {categories.length > 6 && (
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
-                    +{categories.length - 6}
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-gray-500 mt-1">Colors</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

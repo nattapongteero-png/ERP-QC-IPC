@@ -320,7 +320,7 @@ describe('Template Categories List Page', () => {
     expect(screen.getByText('Filters:')).toBeInTheDocument();
   });
 
-  it('renders summary section', async () => {
+  it('renders statistics in filter bar', async () => {
     const TemplateCategoriesPage = (await import('@/app/template/categories/page')).default;
 
     render(
@@ -329,8 +329,9 @@ describe('Template Categories List Page', () => {
       </TestWrapper>
     );
 
-    // Check for summary labels
-    expect(screen.getByText('Total Categories')).toBeInTheDocument();
+    // Check for compact statistics labels
+    expect(screen.getByText('Total:')).toBeInTheDocument();
+    expect(screen.getByText('Active:')).toBeInTheDocument();
   });
 });
 
