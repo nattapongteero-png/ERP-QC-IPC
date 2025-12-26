@@ -7,7 +7,6 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
-  Calculator,
   FileText,
   Receipt,
   DollarSign,
@@ -19,14 +18,9 @@ import {
   AlertTriangle,
   Clock,
   Landmark,
-  ArrowUpRight,
-  ArrowDownRight,
-  Activity,
-  Wallet,
   CreditCard,
   PiggyBank,
   ChevronRight,
-  RefreshCcw,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -43,9 +37,12 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-import { KPICard, KPICardSkeleton } from '@/components/ui/kpi-card';
+import {
+  AccountingPageHeader,
+  AccountingKPICard,
+  AccountingKPICardSkeleton,
+} from '@/components/accounting';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 interface DashboardMetrics {
   totalAccounts: number;
@@ -304,43 +301,14 @@ export default function AccountingDashboardPage() {
   return (
     <div className="space-y-6 p-1">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
-            <Calculator className="h-7 w-7 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Accounting Dashboard</h1>
-            <p className="text-sm text-gray-500">Financial management and reporting</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-            <CalendarCheck className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium">
-              {metrics?.currentPeriod || 'No Active Period'}
-            </span>
-            {metrics?.periodStatus && (
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                metrics.periodStatus === 'open'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-yellow-100 text-yellow-700'
-              }`}>
-                {metrics.periodStatus}
-              </span>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            className="gap-2"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+      <AccountingPageHeader
+        title="Accounting Dashboard"
+        subtitle="Financial management and reporting"
+        icon="calculator"
+        currentPeriod={metrics?.currentPeriod || undefined}
+        periodStatus={metrics?.periodStatus as 'open' | 'closed' | 'soft_closed' | undefined}
+        onRefresh={() => refetch()}
+      />
 
       {/* Alerts Section */}
       {hasAlerts && (
@@ -392,44 +360,40 @@ export default function AccountingDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {isLoading ? (
           <>
-            <KPICardSkeleton />
-            <KPICardSkeleton />
-            <KPICardSkeleton />
-            <KPICardSkeleton />
+            <AccountingKPICardSkeleton />
+            <AccountingKPICardSkeleton />
+            <AccountingKPICardSkeleton />
+            <AccountingKPICardSkeleton />
           </>
         ) : (
           <>
-            <KPICard
+            <AccountingKPICard
               label="Cash Balance"
               value={formatCurrency(metrics?.cashBalance || 0)}
               subtitle="Available cash"
-              icon={<Wallet className="h-6 w-6" />}
-              iconBgColor="bg-emerald-100"
-              iconColor="text-emerald-600"
+              icon="wallet"
+              variant="success"
             />
-            <KPICard
+            <AccountingKPICard
               label="Accounts Receivable"
               value={formatCurrency(metrics?.arBalance || 0)}
               subtitle="Due from customers"
-              icon={<ArrowUpRight className="h-6 w-6" />}
-              iconBgColor="bg-blue-100"
-              iconColor="text-blue-600"
+              icon="arrow-up"
+              variant="info"
             />
-            <KPICard
+            <AccountingKPICard
               label="Accounts Payable"
               value={formatCurrency(metrics?.apBalance || 0)}
               subtitle="Due to vendors"
-              icon={<ArrowDownRight className="h-6 w-6" />}
-              iconBgColor="bg-orange-100"
-              iconColor="text-orange-600"
+              icon="arrow-down"
+              variant="warning"
             />
-            <KPICard
+            <AccountingKPICard
               label="Net Income (YTD)"
               value={formatCurrency(metrics?.netIncomeYtd || 0)}
               subtitle="Year to date"
-              icon={<Activity className="h-6 w-6" />}
-              iconBgColor={(metrics?.netIncomeYtd || 0) >= 0 ? "bg-green-100" : "bg-red-100"}
-              iconColor={(metrics?.netIncomeYtd || 0) >= 0 ? "text-green-600" : "text-red-600"}
+              icon="activity"
+              variant={(metrics?.netIncomeYtd || 0) >= 0 ? "success" : "danger"}
               trend={(metrics?.netIncomeYtd || 0) >= 0 ? 'up' : 'down'}
               trendValue={(metrics?.netIncomeYtd || 0) >= 0 ? 'Profit' : 'Loss'}
             />

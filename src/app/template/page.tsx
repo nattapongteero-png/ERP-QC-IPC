@@ -17,23 +17,18 @@ import {
   Layers,
   FileEdit,
   CheckCircle,
-  Archive,
 } from 'lucide-react';
+// DevExtreme Chart imports
+import { PieChart, Series, Label, Legend, Tooltip, Connector } from 'devextreme-react/pie-chart';
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  Legend,
-} from 'recharts';
+  Chart,
+  CommonSeriesSettings,
+  Series as ChartSeries,
+  ArgumentAxis,
+  ValueAxis,
+  Legend as ChartLegend,
+  Tooltip as ChartTooltip,
+} from 'devextreme-react/chart';
 import { KPICard, KPICardSkeleton } from '@/components/ui/kpi-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
@@ -97,13 +92,13 @@ const quickLinks = [
   },
 ];
 
-const STATUS_COLORS = {
+const STATUS_COLORS: Record<string, string> = {
   draft: '#6B7280',
   active: '#22C55E',
   archived: '#F59E0B',
 };
 
-const PRIORITY_COLORS = {
+const PRIORITY_COLORS: Record<string, string> = {
   low: '#94A3B8',
   medium: '#3B82F6',
   high: '#F97316',
@@ -118,18 +113,20 @@ export default function TemplateDashboardPage() {
     refetchInterval: 5 * 60 * 1000,
   });
 
+  // Prepare chart data for DevExtreme
   const statusChartData = metrics?.itemsByStatus.map((item) => ({
-    name: item.status.charAt(0).toUpperCase() + item.status.slice(1),
-    value: item.count,
-    fill: STATUS_COLORS[item.status as keyof typeof STATUS_COLORS] || '#6B7280',
+    status: item.status.charAt(0).toUpperCase() + item.status.slice(1),
+    count: item.count,
+    color: STATUS_COLORS[item.status] || '#6B7280',
   })) || [];
 
   const priorityChartData = metrics?.itemsByPriority.map((item) => ({
-    name: item.priority.charAt(0).toUpperCase() + item.priority.slice(1),
+    priority: item.priority.charAt(0).toUpperCase() + item.priority.slice(1),
     count: item.count,
-    fill: PRIORITY_COLORS[item.priority as keyof typeof PRIORITY_COLORS] || '#6B7280',
+    color: PRIORITY_COLORS[item.priority] || '#6B7280',
   })) || [];
 
+  const trendChartData = metrics?.monthlyTrend || [];
   const categoryChartData = metrics?.itemsByCategory.slice(0, 5) || [];
 
   return (
@@ -203,7 +200,7 @@ export default function TemplateDashboardPage() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Distribution */}
+        {/* Status Distribution - DevExtreme PieChart */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -213,55 +210,48 @@ export default function TemplateDashboardPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="h-[200px] flex items-center justify-center">
+              <div className="h-[250px] flex items-center justify-center">
                 <div className="animate-pulse text-gray-400">Loading...</div>
               </div>
             ) : statusChartData.length > 0 ? (
-              <>
-                <div className="h-[180px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={statusChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={70}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {statusChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="space-y-2 mt-2">
-                  {statusChartData.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: item.fill }}
-                        />
-                        <span className="text-sm text-gray-600">{item.name}</span>
-                      </div>
-                      <span className="font-semibold">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
+              <PieChart
+                id="status-pie-chart"
+                dataSource={statusChartData}
+                type="doughnut"
+                innerRadius={0.6}
+                palette={statusChartData.map(d => d.color)}
+              >
+                <Series argumentField="status" valueField="count">
+                  <Label
+                    visible={true}
+                    position="inside"
+                    customizeText={(e: { valueText: string }) => e.valueText}
+                  >
+                    <Connector visible={false} />
+                  </Label>
+                </Series>
+                <Legend
+                  visible={true}
+                  horizontalAlignment="center"
+                  verticalAlignment="bottom"
+                  itemTextPosition="right"
+                />
+                <Tooltip
+                  enabled={true}
+                  customizeTooltip={(arg: { argumentText: string; valueText: string }) => ({
+                    text: `${arg.argumentText}: ${arg.valueText}`,
+                  })}
+                />
+              </PieChart>
             ) : (
-              <div className="h-[200px] flex items-center justify-center text-gray-400">
+              <div className="h-[250px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Priority Distribution */}
+        {/* Priority Distribution - DevExtreme Bar Chart */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -271,34 +261,45 @@ export default function TemplateDashboardPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="h-[200px] flex items-center justify-center">
+              <div className="h-[250px] flex items-center justify-center">
                 <div className="animate-pulse text-gray-400">Loading...</div>
               </div>
             ) : priorityChartData.length > 0 ? (
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={priorityChartData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis type="number" tick={{ fontSize: 12 }} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={60} />
-                    <Tooltip />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                      {priorityChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <Chart
+                id="priority-bar-chart"
+                dataSource={priorityChartData}
+                rotated={true}
+              >
+                <CommonSeriesSettings
+                  type="bar"
+                  argumentField="priority"
+                  valueField="count"
+                  barWidth={25}
+                />
+                <ChartSeries
+                  name="Count"
+                  color="#3B82F6"
+                  hoverMode="allArgumentPoints"
+                />
+                <ArgumentAxis />
+                <ValueAxis />
+                <ChartLegend visible={false} />
+                <ChartTooltip
+                  enabled={true}
+                  customizeTooltip={(arg: { argumentText: string; valueText: string }) => ({
+                    text: `${arg.argumentText}: ${arg.valueText} items`,
+                  })}
+                />
+              </Chart>
             ) : (
-              <div className="h-[200px] flex items-center justify-center text-gray-400">
+              <div className="h-[250px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Monthly Trend */}
+        {/* Monthly Trend - DevExtreme Area Chart */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -311,31 +312,31 @@ export default function TemplateDashboardPage() {
               <div className="h-[250px] flex items-center justify-center">
                 <div className="animate-pulse text-gray-400">Loading...</div>
               </div>
-            ) : (metrics?.monthlyTrend?.length || 0) > 0 ? (
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={metrics?.monthlyTrend || []}>
-                    <defs>
-                      <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} />
-                    <YAxis tick={{ fontSize: 12 }} tickLine={false} />
-                    <Tooltip />
-                    <Area
-                      type="monotone"
-                      dataKey="count"
-                      name="Items"
-                      stroke="#3B82F6"
-                      strokeWidth={2}
-                      fill="url(#valueGradient)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+            ) : trendChartData.length > 0 ? (
+              <Chart
+                id="trend-area-chart"
+                dataSource={trendChartData}
+              >
+                <CommonSeriesSettings
+                  type="area"
+                  argumentField="month"
+                  valueField="count"
+                />
+                <ChartSeries
+                  name="Items"
+                  color="#10B981"
+                  opacity={0.6}
+                />
+                <ArgumentAxis />
+                <ValueAxis />
+                <ChartLegend visible={false} />
+                <ChartTooltip
+                  enabled={true}
+                  customizeTooltip={(arg: { argumentText: string; valueText: string }) => ({
+                    text: `${arg.argumentText}: ${arg.valueText} items`,
+                  })}
+                />
+              </Chart>
             ) : (
               <div className="h-[250px] flex items-center justify-center text-gray-400">
                 No data available

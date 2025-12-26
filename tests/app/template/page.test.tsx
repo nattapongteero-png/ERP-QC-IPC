@@ -5,6 +5,36 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// Mock DevExtreme charts (require canvas which jsdom doesn't support)
+const MockPieChart = ({ children }: { children?: React.ReactNode }) => (
+  <div data-testid="mock-pie-chart">{children}</div>
+);
+
+const MockChart = ({ children }: { children?: React.ReactNode }) => (
+  <div data-testid="mock-chart">{children}</div>
+);
+
+vi.mock('devextreme-react/pie-chart', () => ({
+  default: MockPieChart,
+  PieChart: MockPieChart,
+  Series: () => null,
+  Label: () => null,
+  Legend: () => null,
+  Tooltip: () => null,
+  Connector: () => null,
+}));
+
+vi.mock('devextreme-react/chart', () => ({
+  default: MockChart,
+  Chart: MockChart,
+  CommonSeriesSettings: () => null,
+  Series: () => null,
+  ArgumentAxis: () => null,
+  ValueAxis: () => null,
+  Legend: () => null,
+  Tooltip: () => null,
+}));
+
 // Mock Next.js navigation
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
