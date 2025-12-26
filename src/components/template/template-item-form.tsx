@@ -77,7 +77,7 @@ async function createItem(data: TemplateItemCreate): Promise<TemplateItem> {
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.message || 'Failed to create item');
+    throw new Error(error.error || error.message || 'Failed to create item');
   }
   const result = await res.json();
   return result.data;
@@ -91,7 +91,7 @@ async function updateItem(id: number, data: TemplateItemUpdate): Promise<Templat
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.message || 'Failed to update item');
+    throw new Error(error.error || error.message || 'Failed to update item');
   }
   const result = await res.json();
   return result.data;
@@ -103,7 +103,7 @@ async function deleteItem(id: number): Promise<void> {
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.message || 'Failed to delete item');
+    throw new Error(error.error || error.message || 'Failed to delete item');
   }
 }
 
@@ -297,25 +297,38 @@ export function TemplateItemForm({
       return;
     }
 
-    const submitData = {
-      code: formData.code,
-      nameTh: formData.nameTh,
-      nameEn: formData.nameEn || null,
-      description: formData.description || null,
-      status: formData.status as 'draft' | 'active' | 'archived',
-      priority: formData.priority as 'low' | 'medium' | 'high' | 'urgent',
-      categoryId: formData.categoryId,
-      quantity: formData.quantity,
-      unitPrice: formData.unitPrice,
-      dueDate: formatDateForApi(formData.dueDate),
-      dueTime: formatTimeForApi(formData.dueTime),
-      notes: formData.notes || null,
-    };
-
     if (mode === 'create') {
-      createMutation.mutate(submitData);
+      const createData = {
+        code: formData.code,
+        nameTh: formData.nameTh,
+        nameEn: formData.nameEn || null,
+        description: formData.description || null,
+        status: formData.status as 'draft' | 'active' | 'archived',
+        priority: formData.priority as 'low' | 'medium' | 'high' | 'urgent',
+        categoryId: formData.categoryId,
+        quantity: formData.quantity,
+        unitPrice: formData.unitPrice,
+        dueDate: formatDateForApi(formData.dueDate),
+        dueTime: formatTimeForApi(formData.dueTime),
+        notes: formData.notes || null,
+      };
+      createMutation.mutate(createData);
     } else {
-      updateMutation.mutate(submitData);
+      // Update doesn't include code (immutable after creation)
+      const updateData = {
+        nameTh: formData.nameTh,
+        nameEn: formData.nameEn || null,
+        description: formData.description || null,
+        status: formData.status as 'draft' | 'active' | 'archived',
+        priority: formData.priority as 'low' | 'medium' | 'high' | 'urgent',
+        categoryId: formData.categoryId,
+        quantity: formData.quantity,
+        unitPrice: formData.unitPrice,
+        dueDate: formatDateForApi(formData.dueDate),
+        dueTime: formatTimeForApi(formData.dueTime),
+        notes: formData.notes || null,
+      };
+      updateMutation.mutate(updateData);
     }
   };
 
