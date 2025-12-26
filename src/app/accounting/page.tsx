@@ -435,7 +435,7 @@ export default function AccountingDashboardPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value) => formatCurrency(value as number)}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -509,7 +509,7 @@ export default function AccountingDashboardPage() {
                       tickFormatter={(value) => formatCompactCurrency(value)}
                     />
                     <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(value as number)}
                       labelStyle={{ fontWeight: 600 }}
                     />
                     <Legend />
@@ -557,7 +557,7 @@ export default function AccountingDashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(value) => formatCompactCurrency(value)} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip formatter={(value) => formatCurrency(value as number)} />
                   <Legend />
                   <Bar dataKey="ar" name="Receivables (AR)" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                   <Bar dataKey="ap" name="Payables (AP)" fill="#f97316" radius={[0, 4, 4, 0]} />

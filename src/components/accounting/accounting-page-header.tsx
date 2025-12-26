@@ -6,7 +6,7 @@ import * as Icons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw, CalendarCheck } from 'lucide-react';
 
-type IconName = 'book' | 'file-text' | 'receipt' | 'dollar-sign' | 'building' | 'wrench' | 'bar-chart' | 'calendar' | 'calculator' | 'clock';
+type IconName = 'book' | 'file-text' | 'receipt' | 'dollar-sign' | 'building' | 'wrench' | 'bar-chart' | 'calendar' | 'calculator' | 'clock' | 'credit-card' | 'wallet' | 'banknote';
 
 const iconMap: Record<IconName, LucideIcon> = {
   'book': Icons.BookOpen,
@@ -19,6 +19,9 @@ const iconMap: Record<IconName, LucideIcon> = {
   'calendar': Icons.CalendarCheck,
   'calculator': Icons.Calculator,
   'clock': Icons.Clock,
+  'credit-card': Icons.CreditCard,
+  'wallet': Icons.Wallet,
+  'banknote': Icons.Banknote,
 };
 
 export interface AccountingPageHeaderProps {

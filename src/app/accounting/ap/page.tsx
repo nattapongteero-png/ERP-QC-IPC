@@ -415,7 +415,7 @@ export default function APDashboardPage() {
                         width={100}
                       />
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value) => formatCurrency(value as number)}
                         labelStyle={{ fontWeight: 600 }}
                       />
                       <Legend />

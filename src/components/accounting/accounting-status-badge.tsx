@@ -5,7 +5,8 @@ import React from 'react';
 type Status =
   | 'draft' | 'posted' | 'reversed' | 'approved' | 'cancelled'
   | 'partial' | 'paid' | 'overdue' | 'open' | 'closed'
-  | 'active' | 'inactive' | 'pending' | 'confirmed';
+  | 'active' | 'inactive' | 'pending' | 'confirmed'
+  | 'cleared' | 'bounced';
 
 const statusConfig: Record<Status, { label: string; bg: string; text: string }> = {
   draft: { label: 'ร่าง', bg: 'bg-gray-100', text: 'text-gray-700' },
@@ -22,6 +23,8 @@ const statusConfig: Record<Status, { label: string; bg: string; text: string }> 
   inactive: { label: 'ไม่ใช้งาน', bg: 'bg-gray-100', text: 'text-gray-700' },
   pending: { label: 'รอดำเนินการ', bg: 'bg-yellow-100', text: 'text-yellow-700' },
   confirmed: { label: 'ยืนยัน', bg: 'bg-blue-100', text: 'text-blue-700' },
+  cleared: { label: 'เคลียร์แล้ว', bg: 'bg-green-100', text: 'text-green-700' },
+  bounced: { label: 'เช็คคืน', bg: 'bg-red-100', text: 'text-red-700' },
 };
 
 export interface AccountingStatusBadgeProps {

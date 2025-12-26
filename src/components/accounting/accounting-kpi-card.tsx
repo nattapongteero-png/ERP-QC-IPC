@@ -6,7 +6,7 @@ import * as Icons from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
-type IconName = 'wallet' | 'arrow-up' | 'arrow-down' | 'activity' | 'credit-card' | 'piggy-bank' | 'trending-up' | 'clock' | 'file-text' | 'package' | 'wrench' | 'check-circle';
+type IconName = 'wallet' | 'arrow-up' | 'arrow-down' | 'activity' | 'credit-card' | 'piggy-bank' | 'trending-up' | 'clock' | 'file-text' | 'package' | 'wrench' | 'check-circle' | 'dollar-sign' | 'banknote' | 'receipt' | 'users';
 
 const iconMap: Record<IconName, LucideIcon> = {
   'wallet': Icons.Wallet,
@@ -21,6 +21,10 @@ const iconMap: Record<IconName, LucideIcon> = {
   'package': Icons.Package,
   'wrench': Icons.Wrench,
   'check-circle': Icons.CheckCircle2,
+  'dollar-sign': Icons.DollarSign,
+  'banknote': Icons.Banknote,
+  'receipt': Icons.Receipt,
+  'users': Icons.Users,
 };
 
 type Variant = 'default' | 'success' | 'warning' | 'danger' | 'info';

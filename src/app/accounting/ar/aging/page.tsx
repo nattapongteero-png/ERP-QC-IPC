@@ -310,7 +310,7 @@ export default function ARAgingPage() {
                         tickFormatter={(value) => formatCompactCurrency(value)}
                       />
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value) => formatCurrency(value as number)}
                         labelStyle={{ fontWeight: 600 }}
                       />
                       <Legend />
