@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
 import { Wand2 } from 'lucide-react';
 import { DocumentAttachment } from '@/components/ui/document-attachment';
+import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
 import type { TemplateItem, TemplateCategory, TemplateItemCreate, TemplateItemUpdate } from '@/types/template';
 
 // DevExtreme imports
@@ -187,6 +188,7 @@ export function TemplateItemForm({
   const [formData, setFormData] = React.useState<FormData>(defaultFormData);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [isGeneratingCode, setIsGeneratingCode] = React.useState(false);
+  const [showAuditLog, setShowAuditLog] = React.useState(false);
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
@@ -669,6 +671,16 @@ export function TemplateItemForm({
                     {new Date(existingItem.updatedAt).toLocaleDateString('th-TH')}
                   </span>
                 </div>
+                <div className="pt-2 border-t">
+                  <Button
+                    text="ประวัติการเปลี่ยนแปลง"
+                    icon="clock"
+                    stylingMode="outlined"
+                    type="default"
+                    width="100%"
+                    onClick={() => setShowAuditLog(true)}
+                  />
+                </div>
               </CardContent>
             </Card>
           )}
@@ -684,6 +696,31 @@ export function TemplateItemForm({
           )}
         </div>
       </div>
+
+      {/* Audit Log Dialog */}
+      {mode === 'edit' && itemId && (
+        <AuditLogViewerDialog
+          entityType="templateItems"
+          entityId={itemId}
+          visible={showAuditLog}
+          onClose={() => setShowAuditLog(false)}
+          title={`ประวัติการเปลี่ยนแปลง: ${existingItem?.nameTh || ''}`}
+          fieldLabels={{
+            code: 'รหัส',
+            nameTh: 'ชื่อ (ไทย)',
+            nameEn: 'ชื่อ (อังกฤษ)',
+            description: 'รายละเอียด',
+            status: 'สถานะ',
+            priority: 'ความสำคัญ',
+            categoryId: 'หมวดหมู่',
+            quantity: 'จำนวน',
+            unitPrice: 'ราคาต่อหน่วย',
+            dueDate: 'วันครบกำหนด',
+            dueTime: 'เวลา',
+            notes: 'หมายเหตุ',
+          }}
+        />
+      )}
     </div>
   );
 }
