@@ -3,7 +3,7 @@
 // Uses centralized db-helper utilities for database operations
 
 import { eq, and, like, desc, asc, sql, count } from 'drizzle-orm';
-import { getNow } from '../db/date-utils';
+import { getNow, toDbDate } from '../db/date-utils';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import type {
   TemplateItem,
@@ -290,6 +290,8 @@ export async function createTemplateItem(data: TemplateItemCreate, userId?: numb
       quantity,
       unitPrice,
       totalValue,
+      dueDate: data.dueDate ? toDbDate(data.dueDate) : null,
+      dueTime: data.dueTime || null,
       notes: data.notes || null,
       isActive: true,
       createdAt: now,
@@ -361,6 +363,8 @@ export async function updateTemplateItem(id: number, data: TemplateItemUpdate, u
     if (data.status !== undefined) updateData.status = data.status;
     if (data.priority !== undefined) updateData.priority = data.priority;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+    if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? toDbDate(data.dueDate) : null;
+    if (data.dueTime !== undefined) updateData.dueTime = data.dueTime;
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
 

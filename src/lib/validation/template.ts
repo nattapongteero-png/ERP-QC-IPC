@@ -5,6 +5,11 @@ import { z } from 'zod';
 export const templateItemStatusSchema = z.enum(['draft', 'active', 'archived']);
 export const templateItemPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
+// Date regex pattern for YYYY-MM-DD format
+const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+// Time regex pattern for HH:mm:ss format
+const timePattern = /^\d{2}:\d{2}(:\d{2})?$/;
+
 // Template Item Create Schema
 export const templateItemCreateSchema = z.object({
   code: z.string().min(1, 'Code is required').max(50, 'Code must be 50 characters or less'),
@@ -16,6 +21,8 @@ export const templateItemCreateSchema = z.object({
   categoryId: z.number().int().positive().optional().nullable(),
   quantity: z.number().nonnegative('Quantity must be 0 or greater').optional().default(0),
   unitPrice: z.number().nonnegative('Unit price must be 0 or greater').optional().default(0),
+  dueDate: z.string().regex(datePattern, 'Date must be in YYYY-MM-DD format').optional().nullable(),
+  dueTime: z.string().regex(timePattern, 'Time must be in HH:mm or HH:mm:ss format').optional().nullable(),
   notes: z.string().max(2000, 'Notes must be 2000 characters or less').optional().nullable(),
 });
 
@@ -29,6 +36,8 @@ export const templateItemUpdateSchema = z.object({
   categoryId: z.number().int().positive().optional().nullable(),
   quantity: z.number().nonnegative().optional(),
   unitPrice: z.number().nonnegative().optional(),
+  dueDate: z.string().regex(datePattern, 'Date must be in YYYY-MM-DD format').optional().nullable(),
+  dueTime: z.string().regex(timePattern, 'Time must be in HH:mm or HH:mm:ss format').optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
   isActive: z.boolean().optional(),
 });

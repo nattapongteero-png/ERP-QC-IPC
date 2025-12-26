@@ -3,7 +3,7 @@
 // Feature: Template Module for prototyping
 
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText } from 'drizzle-orm/mysql-core';
+import { mysqlTable, varchar, int, decimal, datetime, date, time, boolean as mysqlBoolean, text as mysqlText } from 'drizzle-orm/mysql-core';
 import { relations } from 'drizzle-orm';
 import { sqliteUsers, mysqlUsers } from './schema';
 
@@ -38,6 +38,8 @@ export const sqliteTemplateItems = sqliteTable('template_items', {
   quantity: real('quantity').notNull().default(0),
   unitPrice: real('unit_price').notNull().default(0),
   totalValue: real('total_value').notNull().default(0), // Computed: quantity * unitPrice
+  dueDate: text('due_date'), // Date in YYYY-MM-DD format
+  dueTime: text('due_time'), // Time in HH:mm format
   notes: text('notes'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -97,6 +99,8 @@ export const mysqlTemplateItems = mysqlTable('template_items', {
   quantity: decimal('quantity', { precision: 18, scale: 4 }).notNull().default('0'),
   unitPrice: decimal('unit_price', { precision: 18, scale: 4 }).notNull().default('0'),
   totalValue: decimal('total_value', { precision: 18, scale: 4 }).notNull().default('0'),
+  dueDate: date('due_date'), // Date field
+  dueTime: time('due_time'), // Time field
   notes: mysqlText('notes'),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   createdAt: datetime('created_at').notNull().default(new Date()),

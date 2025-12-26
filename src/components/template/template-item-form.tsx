@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
+import { Wand2 } from 'lucide-react';
 import type { TemplateItem, TemplateCategory, TemplateItemCreate, TemplateItemUpdate } from '@/types/template';
 
 // DevExtreme imports
-import Form, { Item, GroupItem, Label, RequiredRule, PatternRule, RangeRule } from 'devextreme-react/form';
+import Form, { Item, Label, RequiredRule, PatternRule } from 'devextreme-react/form';
 import SelectBox from 'devextreme-react/select-box';
 import TextBox from 'devextreme-react/text-box';
 import TextArea from 'devextreme-react/text-area';
 import NumberBox from 'devextreme-react/number-box';
+import DateBox from 'devextreme-react/date-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 
@@ -33,6 +35,8 @@ interface FormData {
   categoryId: number | null;
   quantity: number;
   unitPrice: number;
+  dueDate: Date | null;
+  dueTime: Date | null;
   notes: string;
 }
 
@@ -101,6 +105,17 @@ async function deleteItem(id: number): Promise<void> {
   }
 }
 
+async function generateCode(): Promise<string> {
+  const res = await fetch('/api/template/items/generate-code');
+  if (!res.ok) {
+    // Fallback to client-side generation
+    const timestamp = Date.now().toString(36).toUpperCase();
+    return `ITEM-${timestamp}`;
+  }
+  const data = await res.json();
+  return data.data?.code || `ITEM-${Date.now().toString(36).toUpperCase()}`;
+}
+
 const defaultFormData: FormData = {
   code: '',
   nameTh: '',
@@ -111,7 +126,52 @@ const defaultFormData: FormData = {
   categoryId: null,
   quantity: 0,
   unitPrice: 0,
+  dueDate: null,
+  dueTime: null,
   notes: '',
+};
+
+// Helper to format date for API (YYYY-MM-DD)
+function formatDateForApi(date: Date | null): string | null {
+  if (!date) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Helper to format time for API (HH:mm:ss)
+function formatTimeForApi(time: Date | null): string | null {
+  if (!time) return null;
+  const hours = String(time.getHours()).padStart(2, '0');
+  const minutes = String(time.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}:00`;
+}
+
+// Helper to parse date string to Date object
+function parseDateFromApi(dateStr: string | null): Date | null {
+  if (!dateStr) return null;
+  return new Date(dateStr);
+}
+
+// Helper to parse time string to Date object
+function parseTimeFromApi(timeStr: string | null): Date | null {
+  if (!timeStr) return null;
+  const [hours, minutes] = timeStr.split(':');
+  const date = new Date();
+  date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+  return date;
+}
+
+// Custom Thai Buddhist calendar display format
+// DevExtreme doesn't natively support Buddhist Era, so we use displayFormat
+// The picker will show Gregorian but we can display Thai format in the field
+const thaiDateDisplayFormat = (date: Date | null): string => {
+  if (!date) return '';
+  const thaiYear = date.getFullYear() + 543;
+  const month = date.toLocaleDateString('th-TH', { month: 'long' });
+  const day = date.getDate();
+  return `${day} ${month} ${thaiYear}`;
 };
 
 export function TemplateItemForm({
@@ -122,9 +182,10 @@ export function TemplateItemForm({
 }: TemplateItemFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const formRef = React.useRef<any>(null);
+  const formRef = React.useRef<Form>(null);
   const [formData, setFormData] = React.useState<FormData>(defaultFormData);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [isGeneratingCode, setIsGeneratingCode] = React.useState(false);
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
@@ -152,6 +213,8 @@ export function TemplateItemForm({
         categoryId: existingItem.categoryId,
         quantity: existingItem.quantity,
         unitPrice: existingItem.unitPrice,
+        dueDate: parseDateFromApi(existingItem.dueDate),
+        dueTime: parseTimeFromApi(existingItem.dueTime),
         notes: existingItem.notes || '',
       });
     }
@@ -206,8 +269,22 @@ export function TemplateItemForm({
     },
   });
 
+  // Auto-generate code handler
+  const handleGenerateCode = async () => {
+    setIsGeneratingCode(true);
+    try {
+      const newCode = await generateCode();
+      setFormData((prev) => ({ ...prev, code: newCode }));
+      notify('Code generated successfully', 'success', 2000);
+    } catch (error) {
+      notify('Failed to generate code', 'error', 3000);
+    } finally {
+      setIsGeneratingCode(false);
+    }
+  };
+
   const handleSubmit = () => {
-    const validationResult = formRef.current?.instance?.validate();
+    const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
       notify('Please fill in all required fields', 'warning', 3000);
       return;
@@ -223,6 +300,8 @@ export function TemplateItemForm({
       categoryId: formData.categoryId,
       quantity: formData.quantity,
       unitPrice: formData.unitPrice,
+      dueDate: formatDateForApi(formData.dueDate),
+      dueTime: formatTimeForApi(formData.dueTime),
       notes: formData.notes || null,
     };
 
@@ -358,8 +437,32 @@ export function TemplateItemForm({
                 showColonAfterLabel={false}
                 colCount={2}
               >
-                <Item dataField="code" editorType="dxTextBox" colSpan={1}>
+                {/* Code Field with Auto-Generate Button */}
+                <Item colSpan={1}>
                   <Label text="Code" />
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <TextBox
+                        value={formData.code}
+                        onValueChanged={(e) => setFormData((prev) => ({ ...prev, code: e.value || '' }))}
+                        placeholder="Enter code or generate"
+                        readOnly={mode === 'edit'}
+                      />
+                    </div>
+                    {mode === 'create' && (
+                      <Button
+                        icon={isGeneratingCode ? 'spindown' : undefined}
+                        hint="Auto-generate code"
+                        stylingMode="contained"
+                        type="default"
+                        onClick={handleGenerateCode}
+                        disabled={isGeneratingCode}
+                        width={44}
+                      >
+                        {!isGeneratingCode && <Wand2 className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </div>
                   <RequiredRule message="Code is required" />
                   <PatternRule
                     pattern={/^[A-Z0-9-]+$/i}
@@ -395,6 +498,62 @@ export function TemplateItemForm({
                   />
                 </Item>
               </Form>
+            </CardContent>
+          </Card>
+
+          {/* Date & Time Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Schedule</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Date Picker with Thai Calendar Display */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Due Date (วันครบกำหนด)
+                  </label>
+                  <DateBox
+                    value={formData.dueDate}
+                    onValueChanged={(e) => setFormData((prev) => ({ ...prev, dueDate: e.value }))}
+                    type="date"
+                    displayFormat="d MMMM yyyy"
+                    placeholder="Select date..."
+                    showClearButton
+                    useMaskBehavior
+                    calendarOptions={{
+                      firstDayOfWeek: 0, // Sunday
+                    }}
+                  />
+                  {/* Thai Buddhist Year Display */}
+                  {formData.dueDate && (
+                    <p className="mt-1 text-sm text-blue-600">
+                      🇹🇭 {thaiDateDisplayFormat(formData.dueDate)}
+                    </p>
+                  )}
+                </div>
+
+                {/* Time Picker */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Due Time (เวลา)
+                  </label>
+                  <DateBox
+                    value={formData.dueTime}
+                    onValueChanged={(e) => setFormData((prev) => ({ ...prev, dueTime: e.value }))}
+                    type="time"
+                    displayFormat="HH:mm"
+                    placeholder="Select time..."
+                    showClearButton
+                    interval={15}
+                  />
+                  {formData.dueTime && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      {formData.dueTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                    </p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 

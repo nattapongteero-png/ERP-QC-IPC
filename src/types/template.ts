@@ -16,6 +16,8 @@ export interface TemplateItem {
   quantity: number;
   unitPrice: number;
   totalValue: number;
+  dueDate: string | null;
+  dueTime: string | null;
   notes: string | null;
   isActive: boolean;
   createdAt: string;
@@ -53,6 +55,8 @@ export interface TemplateItemCreate {
   categoryId?: number | null;
   quantity?: number;
   unitPrice?: number;
+  dueDate?: string | null;
+  dueTime?: string | null;
   notes?: string | null;
 }
 
@@ -65,6 +69,8 @@ export interface TemplateItemUpdate {
   categoryId?: number | null;
   quantity?: number;
   unitPrice?: number;
+  dueDate?: string | null;
+  dueTime?: string | null;
   notes?: string | null;
   isActive?: boolean;
 }
