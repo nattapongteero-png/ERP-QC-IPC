@@ -185,12 +185,13 @@ export async function createItem(data: ItemCreate) {
 import { auditedInsert, auditedUpdate, auditedDelete } from '../db/audit-wrapper';
 
 // Auto-captures old/new values and logs to audit_trail table
-await auditedInsert({ table: 'templateItems', data: {...}, userId });
-await auditedUpdate({ table: 'templateItems', id, data: {...}, userId });
-await auditedDelete({ table: 'templateItems', id, userId });
+// Replace 'templateItems' with your table name (camelCase matching schema export)
+await auditedInsert({ table: 'yourTableName', data: {...}, userId });
+await auditedUpdate({ table: 'yourTableName', id, data: {...}, userId });
+await auditedDelete({ table: 'yourTableName', id, userId });
 ```
 
-**Viewer:** Use `<AuditLogViewerDialog entityType="templateItems" entityId={id} />` from `@/components/shared/`
+**Viewer:** Use `<AuditLogViewerDialog entityType="yourTableName" entityId={id} />` - adjust table name and field labels for your module.
 
 <!-- MANUAL ADDITIONS END -->
 
