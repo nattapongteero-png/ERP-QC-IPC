@@ -10,11 +10,11 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import Form, { SimpleItem, GroupItem, RequiredRule, FormRef } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
-import notify from 'devextreme/ui/notify';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OrgUnitPicker } from '@/components/shared';
 import { ChevronLeft, Briefcase, Edit3 } from 'lucide-react';
 import { createHrNavigator } from '@/lib/hr/navigation';
+import { handleApiError, showSuccess, showWarning } from '@/lib/hr/error-handler';
 import type { Position } from '@/types/hr';
 
 interface PositionFormData {
@@ -116,7 +116,7 @@ export function PositionForm({
     mutationFn: createPosition,
     onSuccess: (position) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'positions'] });
-      notify('สร้างตำแหน่งสำเร็จ', 'success', 3000);
+      showSuccess('สร้างตำแหน่งสำเร็จ');
       if (onSuccess) {
         onSuccess(position);
       } else {
@@ -124,7 +124,7 @@ export function PositionForm({
       }
     },
     onError: (error: Error) => {
-      notify(error.message, 'error', 5000);
+      handleApiError(error, 'เกิดข้อผิดพลาดในการสร้างตำแหน่ง');
     },
   });
 
@@ -133,7 +133,7 @@ export function PositionForm({
     onSuccess: (position) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'positions'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'position', positionId] });
-      notify('อัปเดตตำแหน่งสำเร็จ', 'success', 3000);
+      showSuccess('อัปเดตตำแหน่งสำเร็จ');
       if (onSuccess) {
         onSuccess(position);
       } else {
@@ -141,7 +141,7 @@ export function PositionForm({
       }
     },
     onError: (error: Error) => {
-      notify(error.message, 'error', 5000);
+      handleApiError(error, 'เกิดข้อผิดพลาดในการอัปเดตตำแหน่ง');
     },
   });
 
@@ -157,16 +157,16 @@ export function PositionForm({
     // Validate using DevExtreme form
     const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
-      notify('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'warning', 3000);
+      showWarning('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
       return;
     }
 
     if (!formData.code?.trim()) {
-      notify('กรุณาระบุรหัสตำแหน่ง', 'warning', 3000);
+      showWarning('กรุณาระบุรหัสตำแหน่ง');
       return;
     }
     if (!formData.title?.trim()) {
-      notify('กรุณาระบุชื่อตำแหน่ง', 'warning', 3000);
+      showWarning('กรุณาระบุชื่อตำแหน่ง');
       return;
     }
 

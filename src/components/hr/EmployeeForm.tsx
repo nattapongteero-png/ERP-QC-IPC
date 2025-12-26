@@ -16,7 +16,7 @@ import {
   OrgUnitPicker,
   PositionSelect,
 } from '@/components/shared';
-import { useToast } from '@/components/ui/toast';
+import { handleApiError, showSuccess, showWarning } from '@/lib/hr/error-handler';
 import {
   User,
   Building2,
@@ -270,7 +270,6 @@ export function EmployeeForm({
 }: EmployeeFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const toast = useToast();
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Compute initial form data from props
@@ -371,9 +370,9 @@ export function EmployeeForm({
         photoUrl: result.data.photoUrl,
         photoThumbnailUrl: result.data.photoThumbnailUrl,
       }));
-      toast.success('สำเร็จ', 'อัปโหลดรูปภาพเรียบร้อย');
+      showSuccess('อัปโหลดรูปภาพเรียบร้อย');
     } catch (error) {
-      toast.error('เกิดข้อผิดพลาด', error instanceof Error ? error.message : 'ไม่สามารถอัปโหลดรูปภาพได้');
+      handleApiError(error, 'ไม่สามารถอัปโหลดรูปภาพได้');
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -397,9 +396,9 @@ export function EmployeeForm({
         photoUrl: '',
         photoThumbnailUrl: '',
       }));
-      toast.success('สำเร็จ', 'ลบรูปภาพเรียบร้อย');
+      showSuccess('ลบรูปภาพเรียบร้อย');
     } catch (error) {
-      toast.error('เกิดข้อผิดพลาด', error instanceof Error ? error.message : 'ไม่สามารถลบรูปภาพได้');
+      handleApiError(error, 'ไม่สามารถลบรูปภาพได้');
     }
   };
 
@@ -432,7 +431,7 @@ export function EmployeeForm({
     mutationFn: createEmployee,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'employees'] });
-      toast.success('สำเร็จ', 'เพิ่มพนักงานใหม่เรียบร้อย');
+      showSuccess('เพิ่มพนักงานใหม่เรียบร้อย');
       if (onSuccess) {
         onSuccess(data.id);
       } else {
@@ -440,7 +439,7 @@ export function EmployeeForm({
       }
     },
     onError: (error: Error) => {
-      toast.error('เกิดข้อผิดพลาด', error.message);
+      handleApiError(error, 'เกิดข้อผิดพลาดในการเพิ่มพนักงาน');
     },
   });
 
@@ -449,7 +448,7 @@ export function EmployeeForm({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'employees'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'employee', employeeId] });
-      toast.success('สำเร็จ', 'แก้ไขข้อมูลพนักงานเรียบร้อย');
+      showSuccess('แก้ไขข้อมูลพนักงานเรียบร้อย');
       if (onSuccess) {
         onSuccess(data.id);
       } else {
@@ -457,7 +456,7 @@ export function EmployeeForm({
       }
     },
     onError: (error: Error) => {
-      toast.error('เกิดข้อผิดพลาด', error.message);
+      handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลพนักงาน');
     },
   });
 
@@ -478,23 +477,23 @@ export function EmployeeForm({
 
     // Validation
     if (!employeeCode?.trim()) {
-      toast.error('กรุณาระบุรหัสพนักงาน');
+      showWarning('กรุณาระบุรหัสพนักงาน');
       return;
     }
     if (!formData.firstName?.trim()) {
-      toast.error('กรุณาระบุชื่อ');
+      showWarning('กรุณาระบุชื่อ');
       return;
     }
     if (!formData.lastName?.trim()) {
-      toast.error('กรุณาระบุนามสกุล');
+      showWarning('กรุณาระบุนามสกุล');
       return;
     }
     if (!formData.hireDate) {
-      toast.error('กรุณาระบุวันที่เริ่มงาน');
+      showWarning('กรุณาระบุวันที่เริ่มงาน');
       return;
     }
     if (formData.thaiCid && !validateThaiCid(formData.thaiCid)) {
-      toast.error('เลขบัตรประชาชนไม่ถูกต้อง');
+      showWarning('เลขบัตรประชาชนไม่ถูกต้อง');
       return;
     }
 

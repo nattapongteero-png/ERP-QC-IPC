@@ -10,10 +10,10 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import Form, { SimpleItem, GroupItem, RequiredRule, FormRef } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
-import notify from 'devextreme/ui/notify';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft, BookOpen, Edit3 } from 'lucide-react';
 import { createHrNavigator } from '@/lib/hr/navigation';
+import { handleApiError, showSuccess, showWarning } from '@/lib/hr/error-handler';
 import type { TrainingCourse } from '@/types/hr';
 
 interface CourseFormData {
@@ -121,7 +121,7 @@ export function TrainingCourseForm({
     mutationFn: createCourse,
     onSuccess: (course) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'courses'] });
-      notify('สร้างหลักสูตรสำเร็จ', 'success', 3000);
+      showSuccess('สร้างหลักสูตรสำเร็จ');
       if (onSuccess) {
         onSuccess(course);
       } else {
@@ -129,7 +129,7 @@ export function TrainingCourseForm({
       }
     },
     onError: (error: Error) => {
-      notify(error.message, 'error', 5000);
+      handleApiError(error, 'เกิดข้อผิดพลาดในการสร้างหลักสูตร');
     },
   });
 
@@ -138,7 +138,7 @@ export function TrainingCourseForm({
     onSuccess: (course) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'courses'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'course', courseId] });
-      notify('อัปเดตหลักสูตรสำเร็จ', 'success', 3000);
+      showSuccess('อัปเดตหลักสูตรสำเร็จ');
       if (onSuccess) {
         onSuccess(course);
       } else {
@@ -146,7 +146,7 @@ export function TrainingCourseForm({
       }
     },
     onError: (error: Error) => {
-      notify(error.message, 'error', 5000);
+      handleApiError(error, 'เกิดข้อผิดพลาดในการอัปเดตหลักสูตร');
     },
   });
 
@@ -162,16 +162,16 @@ export function TrainingCourseForm({
     // Validate using DevExtreme form
     const validationResult = formRef.current?.instance()?.validate();
     if (!validationResult?.isValid) {
-      notify('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'warning', 3000);
+      showWarning('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
       return;
     }
 
     if (!formData.code?.trim()) {
-      notify('กรุณาระบุรหัสหลักสูตร', 'warning', 3000);
+      showWarning('กรุณาระบุรหัสหลักสูตร');
       return;
     }
     if (!formData.name?.trim()) {
-      notify('กรุณาระบุชื่อหลักสูตร', 'warning', 3000);
+      showWarning('กรุณาระบุชื่อหลักสูตร');
       return;
     }
 
