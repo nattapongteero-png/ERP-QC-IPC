@@ -177,94 +177,20 @@ export async function createItem(data: ItemCreate) {
 }
 ```
 
-## Audit Logging System
+## Audit Logging
 
-The system uses **explicit manual audit logging** - there are NO automatic database triggers or Drizzle hooks.
-
-### Audit Wrapper Functions (RECOMMENDED for new code)
-
-Located in `src/lib/db/audit-wrapper.ts`. Use these for automatic old/new value capture:
+**No automatic triggers** - use explicit audit functions in `src/lib/db/audit-wrapper.ts`:
 
 ```typescript
-import { auditedInsert, auditedUpdate, auditedDelete, withAuditLog } from '../db/audit-wrapper';
+import { auditedInsert, auditedUpdate, auditedDelete } from '../db/audit-wrapper';
 
-// INSERT with auto audit
-const id = await auditedInsert({
-  table: 'templateItems',  // camelCase table name
-  data: { name: 'New Item', code: 'IT-001' },
-  userId: session.userId,
-  ipAddress: getClientIP(request),
-});
-
-// UPDATE with auto old-value capture
-await auditedUpdate({
-  table: 'templateItems',
-  id: 123,
-  data: { name: 'Updated Name' },
-  userId: session.userId,
-});
-
-// DELETE with auto record capture
-await auditedDelete({
-  table: 'templateItems',
-  id: 123,
-  userId: session.userId,
-  softDelete: true,  // optional: set isActive=false instead of hard delete
-});
-
-// Custom actions (APPROVE, REJECT, SYNC, etc.)
-await withAuditLog({
-  action: 'APPROVE',
-  table: 'templateItems',
-  id: 123,
-  userId: session.userId,
-  operation: async () => {
-    // Your custom operation
-    return result;
-  },
-});
+// Auto-captures old/new values and logs to audit_trail table
+await auditedInsert({ table: 'templateItems', data: {...}, userId });
+await auditedUpdate({ table: 'templateItems', id, data: {...}, userId });
+await auditedDelete({ table: 'templateItems', id, userId });
 ```
 
-### Manual createAuditLog (for complex operations)
-
-Located in `src/lib/audit.ts`. Use when you need full control:
-
-```typescript
-import { createAuditLog } from '../audit';
-
-await createAuditLog({
-  userId: 123,
-  action: 'APPROVE',  // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, APPROVE, REJECT, etc.
-  tableName: 'journal_entries',
-  recordId: 456,
-  oldValue: { status: 'draft' },
-  newValue: { status: 'approved' },
-  ipAddress: '192.168.1.1',
-});
-```
-
-### Viewing Audit Logs
-
-Use `AuditLogViewerDialog` component:
-
-```typescript
-import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
-
-<AuditLogViewerDialog
-  entityType="templateItems"  // table name
-  entityId={itemId}
-  visible={showAuditLog}
-  onClose={() => setShowAuditLog(false)}
-  fieldLabels={{ nameTh: 'ชื่อ (ไทย)', status: 'สถานะ' }}  // optional Thai labels
-/>
-```
-
-### Key Points
-
-- **No automatic triggers** - All auditing requires explicit function calls
-- **Sensitive fields redacted** - password, apiKey, token automatically become `[REDACTED]`
-- **Dual-database compatible** - Works with both MySQL and SQLite
-- **Non-blocking** - Audit failures don't break main operations
+**Viewer:** Use `<AuditLogViewerDialog entityType="templateItems" entityId={id} />` from `@/components/shared/`
 
 <!-- MANUAL ADDITIONS END -->
 
