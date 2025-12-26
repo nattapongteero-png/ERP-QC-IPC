@@ -109,21 +109,21 @@ export default function WHTReportPage() {
           label="งวดภาษี"
           subtitle="Tax Period"
           value={formatTaxPeriod(taxPeriod)}
-          icon="calendar"
+          icon="clock"
           variant="info"
         />
         <AccountingKPICard
           label="ประเภทแบบ"
           subtitle="Certificate Type"
           value={certificateType === 'pnd3' ? 'PND 3' : 'PND 53'}
-          icon={certificateType === 'pnd3' ? 'users' : 'building'}
-          variant="primary"
+          icon="file-text"
+          variant="default"
         />
         <AccountingKPICard
           label="จำนวนหนังสือ"
           subtitle="Certificates Count"
           value={report ? report.certificateCount.toString() : '-'}
-          icon="file-text"
+          icon="package"
           variant="success"
           trend={report && report.certificateCount > 0 ? 'up' : 'neutral'}
         />
@@ -131,7 +131,7 @@ export default function WHTReportPage() {
           label="ภาษีหัก ณ ที่จ่าย"
           subtitle="Total WHT Amount"
           value={report ? formatCurrency(report.totalWHTAmount) : '-'}
-          icon="dollar-sign"
+          icon="wallet"
           variant="warning"
           trend={report && report.totalWHTAmount > 0 ? 'up' : 'neutral'}
         />
