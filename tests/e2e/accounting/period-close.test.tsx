@@ -20,15 +20,38 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/accounting/period-close',
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  Calendar: () => <span data-testid="calendar-icon">Calendar Icon</span>,
-  Lock: () => <span data-testid="lock-icon">Lock Icon</span>,
-  Unlock: () => <span data-testid="unlock-icon">Unlock Icon</span>,
-  CheckCircle2: () => <span data-testid="check-icon">CheckCircle2 Icon</span>,
-  AlertTriangle: () => <span data-testid="alert-icon">AlertTriangle Icon</span>,
-  XCircle: () => <span data-testid="x-icon">XCircle Icon</span>,
-}));
+// Mock lucide-react icons - include all icons used by accounting components
+vi.mock('lucide-react', async (importOriginal) => {
+  const MockIcon = ({ className }: { className?: string }) => <span className={className}>Icon</span>;
+  MockIcon.displayName = 'MockIcon';
+
+  return {
+    ...(await importOriginal<typeof import('lucide-react')>()),
+    Calendar: MockIcon,
+    Lock: MockIcon,
+    Unlock: MockIcon,
+    CheckCircle2: MockIcon,
+    AlertTriangle: MockIcon,
+    XCircle: MockIcon,
+    BookOpen: MockIcon,
+    FileText: MockIcon,
+    Receipt: MockIcon,
+    Wallet: MockIcon,
+    Clock: MockIcon,
+    BarChart3: MockIcon,
+    CheckCircle: MockIcon,
+    ChevronDown: MockIcon,
+    RefreshCw: MockIcon,
+    Download: MockIcon,
+    Loader2: MockIcon,
+    AlertCircle: MockIcon,
+    Search: MockIcon,
+    Package: MockIcon,
+    TrendingUp: MockIcon,
+    TrendingDown: MockIcon,
+    Building: MockIcon,
+  };
+});
 
 // Mock shared components
 vi.mock('@/components/shared', () => ({

@@ -20,13 +20,35 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/accounting/fixed-assets',
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  Package: () => <span>Package Icon</span>,
-  Building2: () => <span>Building2 Icon</span>,
-  TrendingDown: () => <span>TrendingDown Icon</span>,
-  Calculator: () => <span>Calculator Icon</span>,
-}));
+// Mock lucide-react icons - include all icons used by accounting components
+vi.mock('lucide-react', async (importOriginal) => {
+  const MockIcon = ({ className }: { className?: string }) => <span className={className}>Icon</span>;
+  MockIcon.displayName = 'MockIcon';
+
+  return {
+    ...(await importOriginal<typeof import('lucide-react')>()),
+    Package: MockIcon,
+    Building2: MockIcon,
+    Building: MockIcon,
+    TrendingDown: MockIcon,
+    TrendingUp: MockIcon,
+    Calculator: MockIcon,
+    BookOpen: MockIcon,
+    FileText: MockIcon,
+    Receipt: MockIcon,
+    Wallet: MockIcon,
+    Calendar: MockIcon,
+    Clock: MockIcon,
+    BarChart3: MockIcon,
+    CheckCircle: MockIcon,
+    ChevronDown: MockIcon,
+    RefreshCw: MockIcon,
+    Download: MockIcon,
+    Loader2: MockIcon,
+    AlertCircle: MockIcon,
+    Search: MockIcon,
+  };
+});
 
 // Mock shared components
 vi.mock('@/components/shared', () => ({
@@ -152,43 +174,39 @@ describe('Fixed Assets Page', () => {
     });
   });
 
-  it('should display subtitle about Thai Revenue Code', async () => {
+  it('should display status filter with Thai label', async () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText(/Thai Revenue Code/)).toBeInTheDocument();
+      // The redesigned UI uses Thai label "สถานะ"
+      expect(screen.getByText('สถานะ')).toBeInTheDocument();
     });
   });
 
-  it('should display status filter', async () => {
+  it('should display Add Asset button with Thai text', async () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Status')).toBeInTheDocument();
+      // The redesigned UI uses Thai text "เพิ่มทรัพย์สิน"
+      expect(screen.getByText('เพิ่มทรัพย์สิน')).toBeInTheDocument();
     });
   });
 
-  it('should display Add Asset button', async () => {
+  it('should display Run Depreciation button with Thai text', async () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Add Asset')).toBeInTheDocument();
+      // The redesigned UI uses Thai text "คำนวณค่าเสื่อม"
+      expect(screen.getByText('คำนวณค่าเสื่อม')).toBeInTheDocument();
     });
   });
 
-  it('should display Run Depreciation button', async () => {
+  it('should display Fixed Assets page title', async () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Run Depreciation')).toBeInTheDocument();
-    });
-  });
-
-  it('should display Fixed Assets Register heading', async () => {
-    await renderPage();
-
-    await waitFor(() => {
-      expect(screen.getByText('Fixed Assets Register')).toBeInTheDocument();
+      // The redesigned page uses Thai title
+      expect(screen.getByText('ทรัพย์สินถาวร')).toBeInTheDocument();
     });
   });
 

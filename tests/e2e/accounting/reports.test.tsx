@@ -350,8 +350,8 @@ describe('Financial Reports Page', () => {
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        // Look for trial balance specific content
-        expect(screen.getByText(/Trial Balance as of/)).toBeInTheDocument();
+        // Look for trial balance report container
+        expect(screen.getByTestId('trial-balance-report')).toBeInTheDocument();
       });
     });
 

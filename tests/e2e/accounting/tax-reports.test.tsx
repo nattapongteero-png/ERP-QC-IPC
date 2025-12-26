@@ -20,18 +20,38 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/accounting/reports/vat',
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  Receipt: () => <span>Receipt Icon</span>,
-  TrendingUp: () => <span>TrendingUp Icon</span>,
-  TrendingDown: () => <span>TrendingDown Icon</span>,
-  Calculator: () => <span>Calculator Icon</span>,
-  FileText: () => <span>FileText Icon</span>,
-  Users: () => <span>Users Icon</span>,
-  Building2: () => <span>Building2 Icon</span>,
-  Download: () => <span>Download Icon</span>,
-  User: () => <span>User Icon</span>,
-}));
+// Mock lucide-react icons - include all icons used by accounting components
+vi.mock('lucide-react', async (importOriginal) => {
+  const MockIcon = ({ className }: { className?: string }) => <span className={className}>Icon</span>;
+  MockIcon.displayName = 'MockIcon';
+
+  return {
+    ...(await importOriginal<typeof import('lucide-react')>()),
+    Receipt: MockIcon,
+    TrendingUp: MockIcon,
+    TrendingDown: MockIcon,
+    Calculator: MockIcon,
+    FileText: MockIcon,
+    Users: MockIcon,
+    Building2: MockIcon,
+    Download: MockIcon,
+    User: MockIcon,
+    BookOpen: MockIcon,
+    Wallet: MockIcon,
+    BarChart3: MockIcon,
+    CheckCircle: MockIcon,
+    ChevronDown: MockIcon,
+    RefreshCw: MockIcon,
+    Loader2: MockIcon,
+    AlertCircle: MockIcon,
+    Search: MockIcon,
+    Package: MockIcon,
+    Building: MockIcon,
+    Calendar: MockIcon,
+    Clock: MockIcon,
+    DollarSign: MockIcon,
+  };
+});
 
 // Mock shared components to avoid complex rendering
 vi.mock('@/components/shared', () => ({
@@ -199,7 +219,8 @@ describe('VAT Report Page', () => {
     await renderVATPage();
 
     await waitFor(() => {
-      expect(screen.getByText('VAT Report')).toBeInTheDocument();
+      // Title is in Thai, subtitle contains "VAT Report"
+      expect(screen.getByText('รายงานภาษีมูลค่าเพิ่ม')).toBeInTheDocument();
     });
   });
 
@@ -207,9 +228,8 @@ describe('VAT Report Page', () => {
     await renderVATPage();
 
     await waitFor(() => {
-      // Multiple elements have "Tax Period" text - check that at least one exists
-      const elements = screen.getAllByText('Tax Period');
-      expect(elements.length).toBeGreaterThan(0);
+      // Thai label for tax period
+      expect(screen.getByText('เลือกงวดภาษี')).toBeInTheDocument();
     });
   });
 
@@ -217,7 +237,8 @@ describe('VAT Report Page', () => {
     await renderVATPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Generate Report')).toBeInTheDocument();
+      // Thai button text
+      expect(screen.getByText('สร้างรายงาน')).toBeInTheDocument();
     });
   });
 
@@ -225,7 +246,8 @@ describe('VAT Report Page', () => {
     await renderVATPage();
 
     await waitFor(() => {
-      expect(screen.getByText(/Select a tax period/)).toBeInTheDocument();
+      // Thai placeholder text - the heading text
+      expect(screen.getByText(/เลือกงวดภาษีเพื่อสร้างรายงาน/)).toBeInTheDocument();
     });
   });
 
@@ -233,9 +255,10 @@ describe('VAT Report Page', () => {
     await renderVATPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Output VAT')).toBeInTheDocument();
-      expect(screen.getByText('Input VAT')).toBeInTheDocument();
-      expect(screen.getByText('Net VAT')).toBeInTheDocument();
+      // KPI card subtitles
+      expect(screen.getByText('Tax Period')).toBeInTheDocument();
+      expect(screen.getByText('Output VAT (Sales)')).toBeInTheDocument();
+      expect(screen.getByText('Input VAT (Purchases)')).toBeInTheDocument();
     });
   });
 
@@ -243,11 +266,11 @@ describe('VAT Report Page', () => {
     await renderVATPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Generate Report')).toBeInTheDocument();
+      expect(screen.getByText('สร้างรายงาน')).toBeInTheDocument();
     });
 
     // Click generate report button
-    const generateBtn = screen.getByText('Generate Report');
+    const generateBtn = screen.getByText('สร้างรายงาน');
     fireEvent.click(generateBtn);
 
     await waitFor(() => {
@@ -269,7 +292,7 @@ describe('VAT Report Page', () => {
 
     // Page should still render without crashing
     await waitFor(() => {
-      expect(screen.getByText('VAT Report')).toBeInTheDocument();
+      expect(screen.getByText('รายงานภาษีมูลค่าเพิ่ม')).toBeInTheDocument();
     });
   });
 });
@@ -324,7 +347,8 @@ describe('WHT Certificates Page', () => {
     await renderWHTPage();
 
     await waitFor(() => {
-      expect(screen.getByText('WHT Certificates')).toBeInTheDocument();
+      // Thai title for WHT Certificates
+      expect(screen.getByText('หนังสือรับรองภาษีหัก ณ ที่จ่าย')).toBeInTheDocument();
     });
   });
 
@@ -332,9 +356,8 @@ describe('WHT Certificates Page', () => {
     await renderWHTPage();
 
     await waitFor(() => {
-      // Multiple elements have "Tax Period" text - check that at least one exists
-      const elements = screen.getAllByText('Tax Period');
-      expect(elements.length).toBeGreaterThan(0);
+      // Thai label for tax period
+      expect(screen.getByText('เลือกงวดภาษี')).toBeInTheDocument();
     });
   });
 
@@ -342,8 +365,8 @@ describe('WHT Certificates Page', () => {
     await renderWHTPage();
 
     await waitFor(() => {
-      // Check that the certificate type label or selector text exists
-      const elements = screen.getAllByText(/Certificate Type|PND 53|PND 3/);
+      // Thai label for certificate type - may appear in multiple places (label + KPI card)
+      const elements = screen.getAllByText(/ประเภทแบบ/);
       expect(elements.length).toBeGreaterThan(0);
     });
   });
@@ -352,7 +375,8 @@ describe('WHT Certificates Page', () => {
     await renderWHTPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Generate Report')).toBeInTheDocument();
+      // Thai button text
+      expect(screen.getByText('สร้างรายงาน')).toBeInTheDocument();
     });
   });
 
@@ -360,7 +384,9 @@ describe('WHT Certificates Page', () => {
     await renderWHTPage();
 
     await waitFor(() => {
-      expect(screen.getByText(/Select a tax period/)).toBeInTheDocument();
+      // Thai placeholder message - there may be multiple elements with this text
+      const elements = screen.getAllByText(/เลือกงวดภาษีและประเภทแบบ/);
+      expect(elements.length).toBeGreaterThan(0);
     });
   });
 
@@ -368,8 +394,9 @@ describe('WHT Certificates Page', () => {
     await renderWHTPage();
 
     await waitFor(() => {
-      // Stat cards are rendered with label text
-      expect(screen.getByText('WHT Certificates')).toBeInTheDocument();
+      // KPI card subtitles
+      expect(screen.getByText('Tax Period')).toBeInTheDocument();
+      expect(screen.getByText('Certificate Type')).toBeInTheDocument();
     });
   });
 
@@ -377,11 +404,11 @@ describe('WHT Certificates Page', () => {
     await renderWHTPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Generate Report')).toBeInTheDocument();
+      expect(screen.getByText('สร้างรายงาน')).toBeInTheDocument();
     });
 
     // Click generate report button
-    const generateBtn = screen.getByText('Generate Report');
+    const generateBtn = screen.getByText('สร้างรายงาน');
     fireEvent.click(generateBtn);
 
     await waitFor(() => {
@@ -403,7 +430,7 @@ describe('WHT Certificates Page', () => {
 
     // Page should still render without crashing
     await waitFor(() => {
-      expect(screen.getByText('WHT Certificates')).toBeInTheDocument();
+      expect(screen.getByText('หนังสือรับรองภาษีหัก ณ ที่จ่าย')).toBeInTheDocument();
     });
   });
 });
