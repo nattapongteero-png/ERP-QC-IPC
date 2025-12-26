@@ -2,8 +2,10 @@
 
 // HR Training Courses Page
 // Feature: 007-hr-personnel-management
+// Updated Task 5: Template Pattern Alignment - Page-based navigation
 
 import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -16,40 +18,12 @@ import DataGrid, {
   Toolbar,
   Item,
 } from 'devextreme-react/data-grid';
-import { Popup, ToolbarItem } from 'devextreme-react/popup';
-import TextBox from 'devextreme-react/text-box';
-import TextArea from 'devextreme-react/text-area';
-import NumberBox from 'devextreme-react/number-box';
-import CheckBox from 'devextreme-react/check-box';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { useToast } from '@/components/ui/toast';
 import { BookOpen, Clock, Target, CheckCircle } from 'lucide-react';
 import type { TrainingCourse } from '@/types/hr';
-
-interface CourseFormData {
-  code: string;
-  name: string;
-  nameEn: string;
-  category: string;
-  description: string;
-  validityDays: number | undefined;
-  durationHours: number | undefined;
-  isMandatory: boolean;
-}
-
-const emptyFormData: CourseFormData = {
-  code: '',
-  name: '',
-  nameEn: '',
-  category: '',
-  description: '',
-  validityDays: undefined,
-  durationHours: undefined,
-  isMandatory: false,
-};
 
 async function fetchCourses(): Promise<TrainingCourse[]> {
   const response = await fetch('/api/hr/training/courses?isActive=true');
@@ -58,42 +32,9 @@ async function fetchCourses(): Promise<TrainingCourse[]> {
   return result.data || [];
 }
 
-async function createCourse(data: Partial<TrainingCourse>): Promise<TrainingCourse> {
-  const response = await fetch('/api/hr/training/courses', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const result = await response.json();
-    throw new Error(result.error || 'Failed to create course');
-  }
-  const result = await response.json();
-  return result.data;
-}
-
-async function updateCourse(id: number, data: Partial<TrainingCourse>): Promise<TrainingCourse> {
-  const response = await fetch(`/api/hr/training/courses/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const result = await response.json();
-    throw new Error(result.error || 'Failed to update course');
-  }
-  const result = await response.json();
-  return result.data;
-}
-
 export default function TrainingCoursesPage() {
-  const queryClient = useQueryClient();
-  const toast = useToast();
+  const router = useRouter();
   const [gridHeight, setGridHeight] = useState(600);
-  const [showCreatePopup, setShowCreatePopup] = useState(false);
-  const [showEditPopup, setShowEditPopup] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<TrainingCourse | null>(null);
-  const [formData, setFormData] = useState<CourseFormData>(emptyFormData);
 
   // Responsive height calculation
   useEffect(() => {
@@ -118,85 +59,12 @@ export default function TrainingCoursesPage() {
   // Ensure courses is always an array
   const courseList = Array.isArray(courses) ? courses : [];
 
-  const createMutation = useMutation({
-    mutationFn: createCourse,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'courses'] });
-      setShowCreatePopup(false);
-      setFormData(emptyFormData);
-      toast.success('สร้างหลักสูตรอบรมสำเร็จ');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถสร้างหลักสูตรได้');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<TrainingCourse> }) =>
-      updateCourse(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'courses'] });
-      setShowEditPopup(false);
-      setSelectedCourse(null);
-      setFormData(emptyFormData);
-      toast.success('อัปเดตหลักสูตรสำเร็จ');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถอัปเดตหลักสูตรได้');
-    },
-  });
-
-  const handleCreateCourse = useCallback(() => {
-    if (!formData.code || !formData.name) return;
-    createMutation.mutate({
-      code: formData.code,
-      name: formData.name,
-      nameEn: formData.nameEn || undefined,
-      category: formData.category || undefined,
-      description: formData.description || undefined,
-      validityDays: formData.validityDays || undefined,
-      durationHours: formData.durationHours || undefined,
-      isMandatory: formData.isMandatory,
-    });
-  }, [formData, createMutation]);
-
-  const handleUpdateCourse = useCallback(() => {
-    if (!selectedCourse || !formData.name) return;
-    updateMutation.mutate({
-      id: selectedCourse.id,
-      data: {
-        code: formData.code,
-        name: formData.name,
-        nameEn: formData.nameEn || undefined,
-        category: formData.category || undefined,
-        description: formData.description || undefined,
-        validityDays: formData.validityDays || undefined,
-        durationHours: formData.durationHours || undefined,
-        isMandatory: formData.isMandatory,
-      },
-    });
-  }, [selectedCourse, formData, updateMutation]);
-
-  const openEditPopup = useCallback((course: TrainingCourse) => {
-    setSelectedCourse(course);
-    setFormData({
-      code: course.code || '',
-      name: course.name || '',
-      nameEn: course.nameEn || '',
-      category: course.category || '',
-      description: course.description || '',
-      validityDays: course.validityDays || undefined,
-      durationHours: course.durationHours || undefined,
-      isMandatory: course.isMandatory || false,
-    });
-    setShowEditPopup(true);
-  }, []);
-
+  // Page-based navigation pattern - navigate to course detail page on row click
   const handleRowClick = useCallback(
     (e: { data: TrainingCourse }) => {
-      openEditPopup(e.data);
+      router.push(`/hr/training/courses/${e.data.id}`);
     },
-    [openEditPopup]
+    [router]
   );
 
   const renderMandatoryCell = (cellData: { value: boolean }) => {
@@ -243,106 +111,6 @@ export default function TrainingCoursesPage() {
     </Badge>
   );
 
-  // Form content for popup
-  const renderFormContent = () => (
-    <div className="space-y-4 p-2">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            รหัสหลักสูตร <span className="text-red-500">*</span>
-          </label>
-          <TextBox
-            value={formData.code}
-            onValueChanged={(e) => setFormData((prev) => ({ ...prev, code: e.value || '' }))}
-            placeholder="เช่น GMP-001"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            หมวดหมู่
-          </label>
-          <TextBox
-            value={formData.category}
-            onValueChanged={(e) => setFormData((prev) => ({ ...prev, category: e.value || '' }))}
-            placeholder="เช่น GMP, Safety"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          ชื่อหลักสูตร (ภาษาไทย) <span className="text-red-500">*</span>
-        </label>
-        <TextBox
-          value={formData.name}
-          onValueChanged={(e) => setFormData((prev) => ({ ...prev, name: e.value || '' }))}
-          placeholder="ชื่อหลักสูตรภาษาไทย"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          ชื่อหลักสูตร (ภาษาอังกฤษ)
-        </label>
-        <TextBox
-          value={formData.nameEn}
-          onValueChanged={(e) => setFormData((prev) => ({ ...prev, nameEn: e.value || '' }))}
-          placeholder="Course name in English"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          รายละเอียด
-        </label>
-        <TextArea
-          value={formData.description}
-          onValueChanged={(e) => setFormData((prev) => ({ ...prev, description: e.value || '' }))}
-          placeholder="ระบุรายละเอียดหลักสูตร..."
-          height={100}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            อายุการรับรอง (วัน)
-          </label>
-          <NumberBox
-            value={formData.validityDays}
-            onValueChanged={(e) => setFormData((prev) => ({ ...prev, validityDays: e.value }))}
-            min={0}
-            showSpinButtons
-            placeholder="เช่น 365"
-          />
-          <p className="text-xs text-gray-500 mt-1">ว่างเปล่า = ไม่มีหมดอายุ</p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            ระยะเวลาอบรม (ชั่วโมง)
-          </label>
-          <NumberBox
-            value={formData.durationHours}
-            onValueChanged={(e) => setFormData((prev) => ({ ...prev, durationHours: e.value }))}
-            min={0}
-            showSpinButtons
-            placeholder="เช่น 8"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 pt-2">
-        <CheckBox
-          value={formData.isMandatory}
-          onValueChanged={(e) => setFormData((prev) => ({ ...prev, isMandatory: e.value || false }))}
-        />
-        <label className="text-sm font-medium text-gray-700">
-          หลักสูตรบังคับ
-        </label>
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
       {/* T034: ResponsivePageHeader */}
@@ -362,10 +130,7 @@ export default function TrainingCoursesPage() {
             text="เพิ่มหลักสูตร"
             icon="plus"
             type="default"
-            onClick={() => {
-              setFormData(emptyFormData);
-              setShowCreatePopup(true);
-            }}
+            onClick={() => router.push('/hr/training/courses/new')}
           />
         }
       />
@@ -464,82 +229,6 @@ export default function TrainingCoursesPage() {
           />
         </DataGrid>
       </div>
-
-      {/* Create Course Popup */}
-      <Popup
-        visible={showCreatePopup}
-        onHiding={() => {
-          setShowCreatePopup(false);
-          setFormData(emptyFormData);
-        }}
-        title="เพิ่มหลักสูตรอบรมใหม่"
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        {renderFormContent()}
-
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            onClick: () => {
-              setShowCreatePopup(false);
-              setFormData(emptyFormData);
-            },
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'สร้าง',
-            type: 'default',
-            disabled: !formData.code || !formData.name || createMutation.isPending,
-            onClick: handleCreateCourse,
-          }}
-        />
-      </Popup>
-
-      {/* Edit Course Popup */}
-      <Popup
-        visible={showEditPopup}
-        onHiding={() => {
-          setShowEditPopup(false);
-          setSelectedCourse(null);
-          setFormData(emptyFormData);
-        }}
-        title={`แก้ไขหลักสูตร: ${selectedCourse?.code || ''}`}
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        {renderFormContent()}
-
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            onClick: () => {
-              setShowEditPopup(false);
-              setSelectedCourse(null);
-              setFormData(emptyFormData);
-            },
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'บันทึก',
-            type: 'default',
-            disabled: !formData.name || updateMutation.isPending,
-            onClick: handleUpdateCourse,
-          }}
-        />
-      </Popup>
     </div>
   );
 }
