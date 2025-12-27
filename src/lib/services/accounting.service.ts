@@ -4540,3 +4540,208 @@ export async function getPayrollSummary(
     journalEntryCount,
   };
 }
+
+// ============================================
+// Sales Order Shipment Accounting Integration
+// ============================================
+
+/**
+ * Input for creating SO shipment journal entry
+ */
+export interface SOShipmentJournalInput {
+  deliveryId: number;
+  deliveryNumber: string;
+  soId: number;
+  soNumber: string;
+  customerId?: number;
+  customerName: string;
+  shipmentDate: string;
+  totalAmount: number;  // Total invoice amount (with VAT)
+  vatAmount: number;    // VAT amount (7%)
+  netAmount: number;    // Net amount (without VAT)
+  costOfGoodsSold: number; // Cost of goods sold
+}
+
+/**
+ * Result of SO shipment journal entry creation
+ */
+export interface SOShipmentJournalResult {
+  success: boolean;
+  salesJournalEntryId: number;
+  salesJournalEntryNumber: string;
+  cogsJournalEntryId?: number;
+  cogsJournalEntryNumber?: string;
+  message: string;
+}
+
+/**
+ * Create and post journal entries for SO shipment
+ * Creates two journal entries:
+ * 1. Sales Revenue entry: DR AR, CR Sales, CR Output VAT
+ * 2. COGS entry: DR COGS, CR Inventory
+ *
+ * @param input - SO shipment details
+ * @param createdBy - User ID who created
+ * @returns Journal entry IDs and numbers
+ */
+export async function createSOShipmentJournalEntry(
+  input: SOShipmentJournalInput,
+  createdBy: number
+): Promise<SOShipmentJournalResult> {
+  const { glAccounts } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  // Find required GL accounts
+  // AR - Accounts Receivable (1121)
+  const [arAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1121'))
+    .limit(1);
+
+  if (!arAccount) {
+    throw new Error('ไม่พบบัญชีลูกหนี้การค้า (1121)');
+  }
+
+  // Sales Revenue (4110)
+  const [salesAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '4110'))
+    .limit(1);
+
+  if (!salesAccount) {
+    throw new Error('ไม่พบบัญชีรายได้จากการขาย (4110)');
+  }
+
+  // Output VAT (2131)
+  const [vatAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '2131'))
+    .limit(1);
+
+  if (!vatAccount) {
+    throw new Error('ไม่พบบัญชีภาษีขาย (2131)');
+  }
+
+  // COGS - Cost of Goods Sold (5100)
+  const [cogsAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '5100'))
+    .limit(1);
+
+  if (!cogsAccount) {
+    throw new Error('ไม่พบบัญชีต้นทุนขาย (5100)');
+  }
+
+  // Inventory (1130)
+  const [inventoryAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1130'))
+    .limit(1);
+
+  if (!inventoryAccount) {
+    throw new Error('ไม่พบบัญชีสินค้าคงเหลือ (1130)');
+  }
+
+  // Create Sales Revenue Journal Entry
+  // DR: AR (total with VAT)
+  // CR: Sales Revenue (net)
+  // CR: Output VAT (VAT amount)
+  const salesJournalLines: JournalLineCreate[] = [
+    {
+      glAccountId: arAccount.id,
+      debit: input.totalAmount,
+      credit: 0,
+      description: `ลูกหนี้ - ${input.customerName}`,
+    },
+    {
+      glAccountId: salesAccount.id,
+      debit: 0,
+      credit: input.netAmount,
+      description: `รายได้จากการขาย - ${input.soNumber}`,
+    },
+  ];
+
+  // Add VAT line only if VAT > 0
+  if (input.vatAmount > 0) {
+    salesJournalLines.push({
+      glAccountId: vatAccount.id,
+      debit: 0,
+      credit: input.vatAmount,
+      description: `ภาษีขาย 7% - ${input.soNumber}`,
+    });
+  }
+
+  const salesJournalEntry = await createJournalEntry({
+    entryDate: input.shipmentDate,
+    description: `ขายสินค้า: ${input.soNumber} - ${input.customerName} (Delivery: ${input.deliveryNumber})`,
+    sourceType: 'SO_SHIPMENT',
+    sourceId: input.deliveryId,
+    lines: salesJournalLines,
+    createdBy,
+  });
+
+  // Post the sales journal entry
+  await postJournalEntry(salesJournalEntry.id, createdBy);
+
+  // Create COGS Journal Entry (only if COGS > 0)
+  let cogsJournalEntry: JournalEntry | null = null;
+  if (input.costOfGoodsSold > 0) {
+    const cogsJournalLines: JournalLineCreate[] = [
+      {
+        glAccountId: cogsAccount.id,
+        debit: input.costOfGoodsSold,
+        credit: 0,
+        description: `ต้นทุนขาย - ${input.soNumber}`,
+      },
+      {
+        glAccountId: inventoryAccount.id,
+        debit: 0,
+        credit: input.costOfGoodsSold,
+        description: `ตัดสินค้าคงเหลือ - ${input.soNumber}`,
+      },
+    ];
+
+    cogsJournalEntry = await createJournalEntry({
+      entryDate: input.shipmentDate,
+      description: `ต้นทุนขาย: ${input.soNumber} - ${input.customerName} (Delivery: ${input.deliveryNumber})`,
+      sourceType: 'SO_SHIPMENT',
+      sourceId: input.deliveryId,
+      lines: cogsJournalLines,
+      createdBy,
+    });
+
+    // Post the COGS journal entry
+    await postJournalEntry(cogsJournalEntry.id, createdBy);
+  }
+
+  // Create audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'journal_entry',
+    recordId: salesJournalEntry.id,
+    userId: createdBy,
+    newValue: {
+      type: 'SO_SHIPMENT',
+      deliveryId: input.deliveryId,
+      deliveryNumber: input.deliveryNumber,
+      soId: input.soId,
+      soNumber: input.soNumber,
+      totalAmount: input.totalAmount,
+      costOfGoodsSold: input.costOfGoodsSold,
+    },
+  });
+
+  return {
+    success: true,
+    salesJournalEntryId: salesJournalEntry.id,
+    salesJournalEntryNumber: salesJournalEntry.entryNumber,
+    cogsJournalEntryId: cogsJournalEntry?.id,
+    cogsJournalEntryNumber: cogsJournalEntry?.entryNumber,
+    message: `สร้างรายการบัญชีสำเร็จ: ${salesJournalEntry.entryNumber}${cogsJournalEntry ? ` และ ${cogsJournalEntry.entryNumber}` : ''}`,
+  };
+}

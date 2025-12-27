@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, or } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
 
@@ -14,8 +14,10 @@ export async function GET(
 
       const salesDeliveries = getTableRef('salesDeliveries');
       const items = getTableRef('items');
+      const journalEntries = getTableRef('journalEntries');
 
-      const deliveries = await executeDbOperation(async (db) => {
+      // Fetch deliveries
+      const deliveriesData = await executeDbOperation(async (db) => {
         return db
           .select({
             id: salesDeliveries.id,
@@ -38,6 +40,56 @@ export async function GET(
           .where(eq(salesDeliveries.soId, soId))
           .orderBy(desc(salesDeliveries.createdAt));
       });
+
+      // Fetch linked journal entries for all deliveries
+      const deliveryIds = deliveriesData.map((d) => d.id);
+      const journalEntriesMap: Record<number, Array<{ id: number; entryNumber: string; sourceType: string; status: string }>> = {};
+
+      if (deliveryIds.length > 0) {
+        const linkedJournals = await executeDbOperation(async (db) => {
+          // Query journal entries linked to these deliveries via sourceType and sourceId
+          return db
+            .select({
+              id: journalEntries.id,
+              entryNumber: journalEntries.entryNumber,
+              sourceType: journalEntries.sourceType,
+              sourceId: journalEntries.sourceId,
+              status: journalEntries.status,
+            })
+            .from(journalEntries)
+            .where(
+              and(
+                or(
+                  eq(journalEntries.sourceType, 'SO_SHIPMENT'),
+                  eq(journalEntries.sourceType, 'SO_COGS')
+                ),
+                // sourceId is the deliveryId
+              )
+            );
+        });
+
+        // Filter and group by deliveryId (sourceId)
+        for (const je of linkedJournals) {
+          const deliveryId = Number(je.sourceId);
+          if (deliveryIds.includes(deliveryId)) {
+            if (!journalEntriesMap[deliveryId]) {
+              journalEntriesMap[deliveryId] = [];
+            }
+            journalEntriesMap[deliveryId].push({
+              id: je.id,
+              entryNumber: je.entryNumber || '',
+              sourceType: je.sourceType || '',
+              status: je.status || 'draft',
+            });
+          }
+        }
+      }
+
+      // Attach journal entries to deliveries
+      const deliveries = deliveriesData.map((d) => ({
+        ...d,
+        journalEntries: journalEntriesMap[d.id] || [],
+      }));
 
       // Calculate summary
       const totalDelivered = deliveries.reduce(

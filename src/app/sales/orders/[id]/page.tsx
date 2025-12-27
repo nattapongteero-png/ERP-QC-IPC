@@ -42,6 +42,8 @@ import {
   Info,
   AlertOctagon,
   ArrowRight,
+  Receipt,
+  ExternalLink,
 } from 'lucide-react';
 
 // ============================================================================
@@ -723,7 +725,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     {
       dataField: 'itemCode',
       caption: 'สินค้า',
-      minWidth: 180,
+      minWidth: 150,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
           <Package className="h-4 w-4 text-gray-400" />
@@ -753,7 +755,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     {
       dataField: 'deliveryDate',
       caption: 'วันที่จัดส่ง',
-      width: 130,
+      width: 110,
       cellRender: (cellInfo) => (
         <span>{formatDate(cellInfo.data.deliveryDate)}</span>
       ),
@@ -773,6 +775,37 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', config.bg, config.text)}>
             {config.label}
           </span>
+        );
+      },
+    },
+    {
+      dataField: 'journalEntries',
+      caption: 'รายการบัญชี',
+      width: 180,
+      cellRender: (cellInfo) => {
+        const journalEntries = cellInfo.data.journalEntries || [];
+        if (journalEntries.length === 0) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {journalEntries.map((je: { id: number; entryNumber: string; sourceType: string; status: string }) => (
+              <button
+                key={je.id}
+                onClick={() => router.push(`/accounting/journal-entries?id=${je.id}`)}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors',
+                  je.sourceType === 'SO_SHIPMENT'
+                    ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                )}
+              >
+                <Receipt className="h-3 w-3" />
+                <span>{je.entryNumber}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            ))}
+          </div>
         );
       },
     },

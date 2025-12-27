@@ -20,7 +20,8 @@ import {
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
-import { getNow } from '../db/date-utils';
+import { getNow, getTodayStr } from '../db/date-utils';
+import { createSOShipmentJournalEntry, THAI_VAT_RATE } from './accounting.service';
 
 // Types
 export interface ATPResult {
@@ -225,6 +226,12 @@ export interface FulfillmentResult {
   deliveryId: number;
   deliveryNumber: string;
   shippedQuantity: number;
+  // Accounting integration
+  salesJournalEntryId?: number;
+  salesJournalEntryNumber?: string;
+  cogsJournalEntryId?: number;
+  cogsJournalEntryNumber?: string;
+  accountingMessage?: string;
 }
 
 /**
@@ -373,9 +380,76 @@ export async function fulfillSalesOrderLine(
     newValue: { deliveryNumber, soId: input.soId, lotNumber: lot.lotNumber, quantity: input.quantity },
   });
 
+  // ============================================
+  // Accounting Integration - Create Journal Entry
+  // ============================================
+  let salesJournalEntryId: number | undefined;
+  let salesJournalEntryNumber: string | undefined;
+  let cogsJournalEntryId: number | undefined;
+  let cogsJournalEntryNumber: string | undefined;
+  let accountingMessage: string | undefined;
+
+  try {
+    // Get unit price from SO line
+    const unitPrice = Number(soLine.unitPrice) || 0;
+    const lineTotal = unitPrice * input.quantity;
+
+    // Only create journal entries if there's a price
+    if (lineTotal > 0) {
+      // Calculate VAT (7%)
+      const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
+      const netAmount = lineTotal - vatAmount;
+
+      // Get item for cost calculation
+      const { items } = getTables();
+      const [item] = await database.select().from(items).where(eq(items.id, input.itemId));
+
+      // Calculate COGS - use on_hand_cost / on_hand for average cost, or 0 if not available
+      let costOfGoodsSold = 0;
+      if (item && Number(item.onHand) > 0 && Number(item.onHandCost) > 0) {
+        const avgCost = Number(item.onHandCost) / Number(item.onHand);
+        costOfGoodsSold = Math.round(avgCost * input.quantity * 100) / 100;
+      }
+
+      // Create and post journal entries
+      const accountingResult = await createSOShipmentJournalEntry(
+        {
+          deliveryId: newDeliveryId,
+          deliveryNumber,
+          soId: input.soId,
+          soNumber: so.soNumber,
+          customerName: so.customerName,
+          shipmentDate: getTodayStr(),
+          totalAmount: lineTotal,
+          vatAmount,
+          netAmount,
+          costOfGoodsSold,
+        },
+        userId
+      );
+
+      salesJournalEntryId = accountingResult.salesJournalEntryId;
+      salesJournalEntryNumber = accountingResult.salesJournalEntryNumber;
+      cogsJournalEntryId = accountingResult.cogsJournalEntryId;
+      cogsJournalEntryNumber = accountingResult.cogsJournalEntryNumber;
+      accountingMessage = accountingResult.message;
+    } else {
+      accountingMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างรายการบัญชี';
+    }
+  } catch (accountingError) {
+    // Log error but don't fail the fulfillment
+    console.error('Failed to create accounting entries:', accountingError);
+    accountingMessage = `ไม่สามารถสร้างรายการบัญชีได้: ${accountingError instanceof Error ? accountingError.message : 'Unknown error'}`;
+  }
+
   return {
     deliveryId: newDeliveryId,
     deliveryNumber,
     shippedQuantity: input.quantity,
+    salesJournalEntryId,
+    salesJournalEntryNumber,
+    cogsJournalEntryId,
+    cogsJournalEntryNumber,
+    accountingMessage,
   };
 }
