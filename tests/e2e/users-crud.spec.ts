@@ -254,7 +254,7 @@ test.describe('Users Module CRUD E2E Tests', () => {
 
     // Navigate back to users list
     console.log('Step 5: Navigating back to list...');
-    await page.click('button[aria-label="กลับ"]');
+    await page.click('[data-testid="user-detail-back-btn"]');
     await page.waitForURL('**/users$', { timeout: 10000 });
     await page.waitForTimeout(500);
     console.log('✓ Back to users list');
@@ -293,7 +293,7 @@ test.describe('Users Module CRUD E2E Tests', () => {
     console.log('Step 2: Selecting user...');
     const userRows = page.locator('role=row');
     const wmRow = userRows.filter({ hasText: 'Warehouse Manager' });
-    await wmRow.first().locator('[aria-label="edit"]').click();
+    await wmRow.first().locator('[data-testid^="users-edit-btn-"]').click();
     console.log('✓ Clicked edit button for Warehouse Manager');
 
     // Wait for detail page
@@ -404,14 +404,14 @@ test.describe('Users Module CRUD E2E Tests', () => {
     await page.waitForTimeout(1000);
 
     const testUserRow = page.locator('role=row').filter({ hasText: testData.name });
-    await testUserRow.locator('[aria-label="edit"]').first().click();
+    await testUserRow.locator('[data-testid^="users-edit-btn-"]').first().click();
     await page.waitForURL('**/users/*', { timeout: 10000 });
     await page.waitForTimeout(1000);
     console.log('✓ Navigated to user detail page');
 
     // Click delete button in danger zone
     console.log('Step 2: Clicking delete button...');
-    await page.click('button:has-text("ลบผู้ใช้")');
+    await page.click('[data-testid="user-detail-delete-btn"]');
     console.log('✓ Clicked delete button');
 
     // Wait for confirmation dialog
@@ -495,16 +495,35 @@ test.describe('Users Module CRUD E2E Tests', () => {
     // READ/UPDATE
     console.log('\n--- READ/UPDATE ---');
     const userRow = page.locator('role=row').filter({ hasText: testData.name });
-    await userRow.locator('[aria-label="edit"]').first().click();
+    await userRow.locator('[data-testid^="users-edit-btn-"]').first().click();
     await page.waitForURL('**/users/*', { timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    await page.click('button:has-text("แก้ไข")');
+    await page.click('[data-testid="user-detail-edit-btn"]');
     await page.waitForTimeout(500);
 
     const updatedName = `${testData.name} (Updated)`;
-    await page.fill('input[value*="' + testData.name + '"]', updatedName);
-    await page.click('button:has-text("บันทึก")');
+    await page.fill('[data-testid="user-edit-name-input"]', updatedName);
+    await page.click('[data-testid="user-detail-save-btn"]');
+    await page.waitForTimeout(2000);
+
+    await expect(page.locator('text=บันทึกข้อมูลสำเร็จ')).toBeVisible();
+    await expect(page.locator(`text=${updatedName}`)).toBeVisible();
+    console.log('✓ User updated successfully');
+
+    await page.click('[data-testid="user-detail-back-btn"]');
+    await page.waitForURL('**/users$', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+
+    const deleteRow = page.locator('role=row').filter({ hasText: updatedName });
+    await deleteRow.locator('[data-testid^="users-edit-btn-"]').first().click();
+    await page.waitForURL('**/users/*', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+
+    await page.click('[data-testid="user-detail-delete-btn"]');
+    await page.waitForTimeout(500);
+    await expect(page.locator('text=ยืนยันการลบผู้ใช้')).toBeVisible();
+    await page.click('button:has-text("ลบผู้ใช้")');
     await page.waitForTimeout(2000);
 
     await expect(page.locator('text=บันทึกข้อมูลสำเร็จ')).toBeVisible();
@@ -513,16 +532,16 @@ test.describe('Users Module CRUD E2E Tests', () => {
 
     // DELETE
     console.log('\n--- DELETE ---');
-    await page.click('button:has-text("กลับไปหน้ารายการ")');
+    await page.click('[data-testid="user-detail-back-btn"]');
     await page.waitForURL('**/users$', { timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    const deleteRow = page.locator('role=row').filter({ hasText: updatedName });
-    await deleteRow.locator('[aria-label="edit"]').first().click();
+    const userDeleteRow = page.locator('role=row').filter({ hasText: updatedName });
+    await userDeleteRow.locator('[data-testid^="users-edit-btn-"]').first().click();
     await page.waitForURL('**/users/*', { timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    await page.click('button:has-text("ลบผู้ใช้")');
+    await page.click('[data-testid="user-detail-delete-btn"]');
     await page.waitForTimeout(500);
     await expect(page.locator('text=ยืนยันการลบผู้ใช้')).toBeVisible();
     await page.click('button:has-text("ลบผู้ใช้")');
