@@ -248,7 +248,7 @@ export default function RolesPage() {
   }, [router, handleDelete]);
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 p-1">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
         title="จัดการบทบาทและสิทธิ์"
