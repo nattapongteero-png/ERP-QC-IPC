@@ -20,7 +20,7 @@ import {
   Clock, CheckCircle, AlertCircle, Truck, FileText,
   Building2, User, Phone, Mail,
   Edit2, Trash2,
-  PackageCheck, XCircle, FileCheck,
+  PackageCheck, XCircle, FileCheck, Receipt, ExternalLink,
 } from 'lucide-react';
 import { DocumentAttachment } from '@/components/ui/document-attachment';
 import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
@@ -72,6 +72,11 @@ interface ReceivedLot {
   status: string;
   expiryDate: string;
   receivedDate: string;
+  journalEntries?: Array<{
+    id: number;
+    entryNumber: string;
+    status: string;
+  }>;
 }
 
 interface PODetail {
@@ -687,6 +692,35 @@ export default function PurchaseOrderDetailPage() {
       caption: 'วันที่รับ',
       width: 120,
       cellRender: (cellInfo) => formatDate(cellInfo.data.receivedDate),
+    },
+    {
+      dataField: 'journalEntries',
+      caption: 'รายการบัญชี',
+      width: 160,
+      cellRender: (cellInfo) => {
+        const journalEntries = cellInfo.data.journalEntries || [];
+        if (journalEntries.length === 0) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {journalEntries.map((je: { id: number; entryNumber: string; status: string }) => (
+              <button
+                key={je.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/accounting/journal-entries?id=${je.id}`);
+                }}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+              >
+                <Receipt className="h-3 w-3" />
+                <span>{je.entryNumber}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            ))}
+          </div>
+        );
+      },
     },
   ];
 

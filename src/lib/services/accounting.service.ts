@@ -4745,3 +4745,163 @@ export async function createSOShipmentJournalEntry(
     message: `สร้างรายการบัญชีสำเร็จ: ${salesJournalEntry.entryNumber}${cogsJournalEntry ? ` และ ${cogsJournalEntry.entryNumber}` : ''}`,
   };
 }
+
+// ============================================
+// Purchase Order Receipt Accounting Integration
+// ============================================
+
+/**
+ * Input for creating PO receipt journal entry
+ */
+export interface POReceiptJournalInput {
+  poId: number;
+  poNumber: string;
+  vendorId: number;
+  vendorName: string;
+  receiptDate: string;
+  lotId: number;
+  lotNumber: string;
+  itemId: number;
+  itemCode: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;  // Total amount (with VAT if applicable)
+  vatAmount: number;    // VAT amount (7%)
+  netAmount: number;    // Net amount (without VAT)
+}
+
+/**
+ * Result of PO receipt journal entry creation
+ */
+export interface POReceiptJournalResult {
+  success: boolean;
+  journalEntryId: number;
+  journalEntryNumber: string;
+  message: string;
+}
+
+/**
+ * Create and post journal entry for PO receipt (goods received)
+ * Creates journal entry:
+ * DR: Inventory (1130) - net amount
+ * DR: Input VAT (1141) - VAT amount (if applicable)
+ * CR: Accounts Payable (2110) - total amount
+ *
+ * @param input - PO receipt details
+ * @param createdBy - User ID who created
+ * @returns Journal entry ID and number
+ */
+export async function createPOReceiptJournalEntry(
+  input: POReceiptJournalInput,
+  createdBy: number
+): Promise<POReceiptJournalResult> {
+  const { glAccounts } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  // Find required GL accounts
+  // Inventory (1130)
+  const [inventoryAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1130'))
+    .limit(1);
+
+  if (!inventoryAccount) {
+    throw new Error('ไม่พบบัญชีสินค้าคงเหลือ (1130)');
+  }
+
+  // Accounts Payable (2110)
+  const [apAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '2110'))
+    .limit(1);
+
+  if (!apAccount) {
+    throw new Error('ไม่พบบัญชีเจ้าหนี้การค้า (2110)');
+  }
+
+  // Input VAT (1141) - only needed if VAT > 0
+  let vatAccount = null;
+  if (input.vatAmount > 0) {
+    const [vatAcct] = await database
+      .select({ id: glAccounts.id })
+      .from(glAccounts)
+      .where(eq(glAccounts.code, '1141'))
+      .limit(1);
+
+    if (!vatAcct) {
+      throw new Error('ไม่พบบัญชีภาษีซื้อ (1141)');
+    }
+    vatAccount = vatAcct;
+  }
+
+  // Create journal entry lines
+  // DR: Inventory (net amount)
+  // DR: Input VAT (if applicable)
+  // CR: Accounts Payable (total amount)
+  const journalLines: JournalLineCreate[] = [
+    {
+      glAccountId: inventoryAccount.id,
+      debit: input.netAmount,
+      credit: 0,
+      description: `รับสินค้า ${input.itemCode} - Lot: ${input.lotNumber}`,
+    },
+  ];
+
+  // Add VAT line only if VAT > 0
+  if (input.vatAmount > 0 && vatAccount) {
+    journalLines.push({
+      glAccountId: vatAccount.id,
+      debit: input.vatAmount,
+      credit: 0,
+      description: `ภาษีซื้อ 7% - ${input.poNumber}`,
+    });
+  }
+
+  // Add AP line
+  journalLines.push({
+    glAccountId: apAccount.id,
+    debit: 0,
+    credit: input.totalAmount,
+    description: `เจ้าหนี้ - ${input.vendorName}`,
+  });
+
+  // Create journal entry
+  const journalEntry = await createJournalEntry({
+    entryDate: input.receiptDate,
+    description: `รับสินค้า: ${input.poNumber} - ${input.vendorName} (${input.itemCode} x ${input.quantity})`,
+    sourceType: 'PO_RECEIPT',
+    sourceId: input.lotId,
+    lines: journalLines,
+    createdBy,
+  });
+
+  // Post the journal entry
+  await postJournalEntry(journalEntry.id, createdBy);
+
+  // Create audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'journal_entry',
+    recordId: journalEntry.id,
+    userId: createdBy,
+    newValue: {
+      type: 'PO_RECEIPT',
+      poId: input.poId,
+      poNumber: input.poNumber,
+      lotId: input.lotId,
+      lotNumber: input.lotNumber,
+      itemCode: input.itemCode,
+      quantity: input.quantity,
+      totalAmount: input.totalAmount,
+    },
+  });
+
+  return {
+    success: true,
+    journalEntryId: journalEntry.id,
+    journalEntryNumber: journalEntry.entryNumber,
+    message: `สร้างรายการบัญชีสำเร็จ: ${journalEntry.entryNumber}`,
+  };
+}

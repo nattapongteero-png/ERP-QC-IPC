@@ -89,7 +89,7 @@ export async function GET(
       });
 
       // Get received lots for this PO
-      const receivedLots = await executeDbOperation(async (db) => {
+      const receivedLotsData = await executeDbOperation(async (db) => {
         return db
           .select({
             id: inventoryLots.id,
@@ -106,6 +106,47 @@ export async function GET(
           .leftJoin(items, eq(inventoryLots.itemId, items.id))
           .where(eq(inventoryLots.poNumber, po.poNumber as string));
       });
+
+      // Get journal entries for these lots
+      const journalEntries = getTableRef('journalEntries');
+      const lotIds = receivedLotsData.map((lot: { id: number }) => lot.id);
+      const journalEntriesMap: Record<number, Array<{ id: number; entryNumber: string; status: string }>> = {};
+
+      if (lotIds.length > 0) {
+        const linkedJournals = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: journalEntries.id,
+              entryNumber: journalEntries.entryNumber,
+              sourceType: journalEntries.sourceType,
+              sourceId: journalEntries.sourceId,
+              status: journalEntries.status,
+            })
+            .from(journalEntries)
+            .where(eq(journalEntries.sourceType, 'PO_RECEIPT'));
+        });
+
+        // Group by lotId (sourceId)
+        for (const je of linkedJournals) {
+          const lotId = Number(je.sourceId);
+          if (lotIds.includes(lotId)) {
+            if (!journalEntriesMap[lotId]) {
+              journalEntriesMap[lotId] = [];
+            }
+            journalEntriesMap[lotId].push({
+              id: je.id,
+              entryNumber: je.entryNumber || '',
+              status: je.status || 'draft',
+            });
+          }
+        }
+      }
+
+      // Attach journal entries to lots
+      const receivedLots = receivedLotsData.map((lot: { id: number; lotNumber: string; itemId: number; itemCode: string; itemName: string; quantity: number; status: string; expiryDate: string; receivedDate: string }) => ({
+        ...lot,
+        journalEntries: journalEntriesMap[lot.id] || [],
+      }));
 
       // Calculate summary
       const totalOrdered = linesWithTotals.reduce((sum: number, line: Record<string, unknown>) => sum + (line.quantity as number), 0);

@@ -23,6 +23,8 @@ import {
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { receiveMaterial } from './inventory.service';
+import { createPOReceiptJournalEntry, THAI_VAT_RATE } from './accounting.service';
+import { getTodayStr } from '../db/date-utils';
 
 // Types
 export interface VMISnapshot {
@@ -71,6 +73,18 @@ export interface VendorEvaluation {
   averageLeadTime: number;
   overallScore: number;
   recommendation: 'approved' | 'conditional' | 'not_recommended';
+}
+
+// Receipt result with accounting info
+export interface ReceiptResult {
+  lotId: number;
+  lotNumber: string;
+  itemId: number;
+  itemCode: string;
+  quantity: number;
+  journalEntryId?: number;
+  journalEntryNumber?: string;
+  accountingMessage?: string;
 }
 
 // Get table references based on database type
@@ -401,13 +415,18 @@ export async function receivePurchaseOrder(
   }>,
   warehouseId: number,
   userId: number
-): Promise<number[]> {
-  const { purchaseOrders, purchaseOrderLines, items } = getTables();
+): Promise<ReceiptResult[]> {
+  const { purchaseOrders, purchaseOrderLines, items, vendors } = getTables();
   const database = (await getDb()) as any;
 
-  // Get PO
+  // Get PO with vendor info
   const [po] = await database
-    .select()
+    .select({
+      id: purchaseOrders.id,
+      poNumber: purchaseOrders.poNumber,
+      vendorId: purchaseOrders.vendorId,
+      status: purchaseOrders.status,
+    })
     .from(purchaseOrders)
     .where(eq(purchaseOrders.id, poId));
 
@@ -419,11 +438,18 @@ export async function receivePurchaseOrder(
     throw new Error(`Purchase Order must be Sent or Partial Receipt to receive items`);
   }
 
-  const lotIds: number[] = [];
-  let allReceived = true;
+  // Get vendor name
+  const [vendor] = await database
+    .select({ name: vendors.name })
+    .from(vendors)
+    .where(eq(vendors.id, po.vendorId));
+
+  const vendorName = vendor?.name || 'Unknown Vendor';
+
+  const results: ReceiptResult[] = [];
 
   for (const received of receivedLines) {
-    // Get PO line
+    // Get PO line with item info
     const [poLine] = await database
       .select({
         id: purchaseOrderLines.id,
@@ -431,6 +457,7 @@ export async function receivePurchaseOrder(
         quantity: purchaseOrderLines.quantity,
         receivedQuantity: purchaseOrderLines.receivedQuantity,
         unit: purchaseOrderLines.unit,
+        unitPrice: purchaseOrderLines.unitPrice,
       })
       .from(purchaseOrderLines)
       .where(eq(purchaseOrderLines.id, received.lineId));
@@ -438,6 +465,14 @@ export async function receivePurchaseOrder(
     if (!poLine) {
       throw new Error(`PO Line ${received.lineId} not found`);
     }
+
+    // Get item info
+    const [item] = await database
+      .select({ code: items.code })
+      .from(items)
+      .where(eq(items.id, poLine.itemId));
+
+    const itemCode = item?.code || 'Unknown';
 
     // Create inventory lot (in quarantine)
     const lotId = await receiveMaterial(
@@ -452,8 +487,6 @@ export async function receivePurchaseOrder(
       userId
     );
 
-    lotIds.push(lotId);
-
     // Update PO line received quantity
     const newReceivedQty = (Number(poLine.receivedQuantity) || 0) + received.receivedQuantity;
     await database
@@ -464,10 +497,65 @@ export async function receivePurchaseOrder(
       })
       .where(eq(purchaseOrderLines.id, received.lineId));
 
-    // Check if all quantity received
-    if (newReceivedQty < Number(poLine.quantity)) {
-      allReceived = false;
+    // ============================================
+    // Accounting Integration - Create Journal Entry
+    // ============================================
+    let journalEntryId: number | undefined;
+    let journalEntryNumber: string | undefined;
+    let accountingMessage: string | undefined;
+
+    try {
+      const unitPrice = Number(poLine.unitPrice) || 0;
+      const lineTotal = unitPrice * received.receivedQuantity;
+
+      // Only create journal entry if there's a price
+      if (lineTotal > 0) {
+        // Calculate VAT (7%) - assuming prices include VAT
+        const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
+        const netAmount = lineTotal - vatAmount;
+
+        const accountingResult = await createPOReceiptJournalEntry(
+          {
+            poId,
+            poNumber: po.poNumber,
+            vendorId: po.vendorId,
+            vendorName,
+            receiptDate: getTodayStr(),
+            lotId,
+            lotNumber: received.lotNumber,
+            itemId: poLine.itemId,
+            itemCode,
+            quantity: received.receivedQuantity,
+            unitPrice,
+            totalAmount: lineTotal,
+            vatAmount,
+            netAmount,
+          },
+          userId
+        );
+
+        journalEntryId = accountingResult.journalEntryId;
+        journalEntryNumber = accountingResult.journalEntryNumber;
+        accountingMessage = accountingResult.message;
+      } else {
+        accountingMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างรายการบัญชี';
+      }
+    } catch (accountingError) {
+      // Log error but don't fail the receipt
+      console.error('Failed to create accounting entries:', accountingError);
+      accountingMessage = `ไม่สามารถสร้างรายการบัญชีได้: ${accountingError instanceof Error ? accountingError.message : 'Unknown error'}`;
     }
+
+    results.push({
+      lotId,
+      lotNumber: received.lotNumber,
+      itemId: poLine.itemId,
+      itemCode,
+      quantity: received.receivedQuantity,
+      journalEntryId,
+      journalEntryNumber,
+      accountingMessage,
+    });
   }
 
   // Check all lines to determine PO status
@@ -479,8 +567,8 @@ export async function receivePurchaseOrder(
     .from(purchaseOrderLines)
     .where(eq(purchaseOrderLines.poId, poId));
 
-  const totalOrdered = allLines.reduce((sum: number, l: any) => sum + (Number(l.quantity) || 0), 0);
-  const totalReceived = allLines.reduce((sum: number, l: any) => sum + (Number(l.receivedQuantity) || 0), 0);
+  const totalOrdered = allLines.reduce((sum: number, l: { quantity: number | string | null; receivedQuantity: number | string | null }) => sum + (Number(l.quantity) || 0), 0);
+  const totalReceived = allLines.reduce((sum: number, l: { quantity: number | string | null; receivedQuantity: number | string | null }) => sum + (Number(l.receivedQuantity) || 0), 0);
 
   // Update PO status
   let newStatus = 'partial_receipt';
@@ -490,7 +578,7 @@ export async function receivePurchaseOrder(
 
   await updatePurchaseOrderStatus(poId, newStatus, userId);
 
-  return lotIds;
+  return results;
 }
 
 /**
