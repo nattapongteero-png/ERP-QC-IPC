@@ -392,6 +392,7 @@ export default function UsersPage() {
               text="เพิ่มผู้ใช้"
               icon="plus"
               type="success"
+              data-testid="users-add-user-btn"
               onClick={() => router.push('/users/new')}
             />
           }
