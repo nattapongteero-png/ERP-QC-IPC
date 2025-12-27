@@ -428,18 +428,20 @@ export default function JournalEntriesPage() {
         icon="file-text"
         onRefresh={handleRefresh}
         actions={
-          <Button
-            text="เพิ่มรายการ"
-            icon="plus"
-            type="success"
-            onClick={handleOpenDialog}
-          />
+          <span data-testid="add-entry-button">
+            <Button
+              text="เพิ่มรายการ"
+              icon="plus"
+              type="success"
+              onClick={handleOpenDialog}
+            />
+          </span>
         }
       />
 
       <div className="p-4 md:p-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="kpi-cards">
           <AccountingKPICard
             label="รายการทั้งหมด"
             value={stats.total}
@@ -511,7 +513,7 @@ export default function JournalEntriesPage() {
         </AccountingFilterPanel>
 
         {/* Data Grid */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200" data-testid="journal-entries-grid">
           <DataGrid
             dataSource={entries}
             keyExpr="id"
