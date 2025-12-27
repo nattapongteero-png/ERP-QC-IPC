@@ -36,8 +36,8 @@ import DataGrid, {
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
-import { confirm } from 'devextreme/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import {
   AccountingPageHeader,
   AccountingKPICard,
@@ -121,6 +121,21 @@ export default function JournalEntriesPage() {
   const [statusFilter, setStatusFilter] = React.useState<string>('');
   const [sourceTypeFilter, setSourceTypeFilter] = React.useState<string>('');
 
+  // Custom confirm dialog state
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    testIdPrefix: string;
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    testIdPrefix: 'confirm-dialog',
+    onConfirm: () => {},
+  });
+
   // Queries
   const { data: entries = [] } = useQuery({
     queryKey: ['journal-entries', statusFilter, sourceTypeFilter],
@@ -163,32 +178,42 @@ export default function JournalEntriesPage() {
   );
 
   const handlePost = useCallback(
-    async (entry: JournalEntry, e: React.MouseEvent) => {
+    (entry: JournalEntry, e: React.MouseEvent) => {
       e.stopPropagation();
-      const result = await confirm(
-        `คุณต้องการผ่านรายการบันทึก ${entry.entryNumber} หรือไม่?`,
-        'ยืนยันการผ่านรายการ'
-      );
-      if (result) {
-        postMutation.mutate(entry.id);
-      }
+      setConfirmDialog({
+        visible: true,
+        title: 'ยืนยันการผ่านรายการ',
+        message: `คุณต้องการผ่านรายการบันทึก ${entry.entryNumber} หรือไม่?`,
+        testIdPrefix: 'je-post',
+        onConfirm: () => {
+          postMutation.mutate(entry.id);
+          setConfirmDialog((prev) => ({ ...prev, visible: false }));
+        },
+      });
     },
     [postMutation]
   );
 
   const handleReverse = useCallback(
-    async (entry: JournalEntry, e: React.MouseEvent) => {
+    (entry: JournalEntry, e: React.MouseEvent) => {
       e.stopPropagation();
-      const result = await confirm(
-        `คุณต้องการกลับรายการ ${entry.entryNumber} หรือไม่?<br/>ระบบจะสร้างรายการกลับอัตโนมัติ`,
-        'ยืนยันการกลับรายการ'
-      );
-      if (result) {
-        reverseMutation.mutate(entry.id);
-      }
+      setConfirmDialog({
+        visible: true,
+        title: 'ยืนยันการกลับรายการ',
+        message: `คุณต้องการกลับรายการ ${entry.entryNumber} หรือไม่?<br/>ระบบจะสร้างรายการกลับอัตโนมัติ`,
+        testIdPrefix: 'je-reverse',
+        onConfirm: () => {
+          reverseMutation.mutate(entry.id);
+          setConfirmDialog((prev) => ({ ...prev, visible: false }));
+        },
+      });
     },
     [reverseMutation]
   );
+
+  const handleConfirmDialogCancel = useCallback(() => {
+    setConfirmDialog((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   const handleView = useCallback(
     (entry: JournalEntry, e: React.MouseEvent) => {
@@ -474,6 +499,16 @@ export default function JournalEntriesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Custom Confirm Dialog with data-testid */}
+      <ConfirmDialog
+        visible={confirmDialog.visible}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        testIdPrefix={confirmDialog.testIdPrefix}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={handleConfirmDialogCancel}
+      />
     </div>
   );
 }

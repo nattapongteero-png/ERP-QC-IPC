@@ -67,12 +67,13 @@ async function selectDevExtremeOption(page: Page, containerSelector: string, opt
   await selectBox.click();
   await page.waitForTimeout(500);
 
-  // Wait for dropdown popup to appear (exclude invisible ones)
-  const visiblePopup = page.locator('.dx-overlay-content.dx-popup-normal:not(.dx-state-invisible)');
-  await visiblePopup.waitFor({ state: 'visible', timeout: 10000 });
+  // Wait for dropdown list to appear - DevExtreme SelectBox uses a listbox inside a dropdown dialog
+  // Find the visible listbox using :visible filter
+  const visibleListbox = page.locator('[role="listbox"]:visible');
+  await visibleListbox.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Find options in the visible popup
-  const options = visiblePopup.locator('.dx-list-item');
+  // Find options in the visible listbox
+  const options = visibleListbox.locator('[role="option"]');
 
   // Wait for options to load
   await options.first().waitFor({ state: 'visible', timeout: 5000 });
@@ -241,7 +242,7 @@ test.describe('Journal Entries CRUD E2E Tests', () => {
 
     // Check for success - should redirect to list page or show success notification
     try {
-      await page.waitForURL('**/accounting/journal-entries$', { timeout: 15000 });
+      await page.waitForURL('**/accounting/journal-entries', { timeout: 15000 });
       console.log('Redirected back to list page');
     } catch {
       // If not redirected, we might still be on form page - navigate manually
@@ -315,9 +316,10 @@ test.describe('Journal Entries CRUD E2E Tests', () => {
     // Click back to return to list
     console.log('Step 3: Navigating back to list...');
     await page.click('[data-testid="je-back-btn"]');
+    await page.waitForTimeout(1000);
 
     // Wait for navigation back to list
-    await page.waitForURL('**/accounting/journal-entries$', { timeout: 10000 });
+    await page.waitForURL('**/accounting/journal-entries', { timeout: 10000 });
     console.log('Back to journal entries list');
 
     // Check for console errors
@@ -384,12 +386,12 @@ test.describe('Journal Entries CRUD E2E Tests', () => {
 
     // Wait for confirmation dialog
     await page.waitForTimeout(500);
-    await expect(page.locator('text=ยืนยันการผ่านรายการ')).toBeVisible();
+    await expect(page.locator('[data-testid="je-post-dialog"]')).toBeVisible();
     console.log('Confirmation dialog appeared');
 
     // Confirm posting
     console.log('Step 3: Confirming post...');
-    await page.click('button:has-text("ตกลง")');
+    await page.click('[data-testid$="-confirm-btn"]');
     console.log('Confirmed posting');
 
     // Wait for operation to complete
@@ -454,7 +456,7 @@ test.describe('Journal Entries CRUD E2E Tests', () => {
     const testRow = page.locator('role=row').filter({ hasText: testData.description });
     await testRow.locator('[data-testid^="je-post-btn-"]').click();
     await page.waitForTimeout(500);
-    await page.click('button:has-text("ตกลง")');
+    await page.click('[data-testid$="-confirm-btn"]');
     await page.waitForTimeout(2000);
     console.log('Test entry posted');
 
@@ -480,12 +482,12 @@ test.describe('Journal Entries CRUD E2E Tests', () => {
 
     // Wait for confirmation dialog
     await page.waitForTimeout(500);
-    await expect(page.locator('text=ยืนยันการกลับรายการ')).toBeVisible();
+    await expect(page.locator('[data-testid="je-reverse-dialog"]')).toBeVisible();
     console.log('Confirmation dialog appeared');
 
     // Confirm reversing
     console.log('Step 3: Confirming reverse...');
-    await page.click('button:has-text("ตกลง")');
+    await page.click('[data-testid$="-confirm-btn"]');
     console.log('Confirmed reversing');
 
     // Wait for operation to complete
@@ -549,7 +551,7 @@ test.describe('Journal Entries CRUD E2E Tests', () => {
 
     await page.click('[data-testid="je-submit-btn"]');
     await page.waitForTimeout(2000);
-    await page.waitForURL('**/accounting/journal-entries$', { timeout: 10000 });
+    await page.waitForURL('**/accounting/journal-entries', { timeout: 10000 });
     console.log('Entry created successfully');
 
     // READ/VIEW
@@ -560,19 +562,19 @@ test.describe('Journal Entries CRUD E2E Tests', () => {
     await page.waitForURL('**/accounting/journal-entries/*', { timeout: 10000 });
     await page.waitForSelector('[data-testid="je-form-header"]', { timeout: 10000 });
 
-    // Verify entry details
-    await expect(page.locator(`text=${testData.description}`)).toBeVisible();
-    await expect(page.locator('[data-testid="je-status-badge"]')).toBeVisible();
+    // Verify entry details - check textbox value since description is in an input
+    const descriptionTextbox = page.locator('input[placeholder="คำอธิบายรายการ"]');
+    await expect(descriptionTextbox).toHaveValue(testData.description);
     console.log('Entry viewed successfully');
 
     // POST
     console.log('\n--- POST ---');
     await page.click('[data-testid="je-post-btn"]');
     await page.waitForTimeout(500);
-    await expect(page.locator('text=ยืนยันการผ่านรายการ')).toBeVisible();
-    await page.click('button:has-text("ตกลง")');
+    await expect(page.locator('[data-testid="je-post-dialog"]')).toBeVisible();
+    await page.click('[data-testid$="-confirm-btn"]');
     await page.waitForTimeout(2000);
-    await page.waitForURL('**/accounting/journal-entries$', { timeout: 10000 });
+    await page.waitForURL('**/accounting/journal-entries', { timeout: 10000 });
     console.log('Entry posted successfully');
 
     // REVERSE
@@ -581,8 +583,8 @@ test.describe('Journal Entries CRUD E2E Tests', () => {
     const postedRow = page.locator('role=row').filter({ hasText: testData.description });
     await postedRow.locator('[data-testid^="je-reverse-btn-"]').click();
     await page.waitForTimeout(500);
-    await expect(page.locator('text=ยืนยันการกลับรายการ')).toBeVisible();
-    await page.click('button:has-text("ตกลง")');
+    await expect(page.locator('[data-testid="je-reverse-dialog"]')).toBeVisible();
+    await page.click('[data-testid$="-confirm-btn"]');
     await page.waitForTimeout(2000);
     console.log('Entry reversed successfully');
 

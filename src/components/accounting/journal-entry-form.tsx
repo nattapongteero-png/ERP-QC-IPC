@@ -21,7 +21,7 @@ import TextBox from 'devextreme-react/text-box';
 import DateBox from 'devextreme-react/date-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
-import { confirm } from 'devextreme/ui/dialog';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
 // Types
 interface JournalLine {
@@ -55,11 +55,21 @@ interface JournalEntry {
   lines?: JournalLine[];
 }
 
+interface GLAccountType {
+  id: number;
+  code: string;
+  nameTh: string;
+  nameEn: string;
+  category: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+  normalBalance: 'debit' | 'credit';
+}
+
 interface GLAccount {
   id: number;
   code: string;
   nameTh: string;
   nameEn: string;
+  accountType?: GLAccountType;
 }
 
 interface CostCenter {
@@ -217,6 +227,21 @@ export function JournalEntryForm({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [formData, setFormData] = React.useState<FormData>(defaultFormData);
+
+  // Custom confirm dialog state
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    testIdPrefix: string;
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    testIdPrefix: 'confirm-dialog',
+    onConfirm: () => {},
+  });
   const [showAuditLog, setShowAuditLog] = React.useState(false);
 
   // Fetch GL accounts
@@ -403,6 +428,113 @@ export function JournalEntryForm({
     return warnings;
   }, [formData.lines, glAccounts]);
 
+  // Check for accounts used against their normal balance
+  const getNormalBalanceWarnings = React.useCallback((): string[] => {
+    // Category labels for Thai display
+    const catLabels: Record<string, string> = {
+      asset: 'สินทรัพย์',
+      liability: 'หนี้สิน',
+      equity: 'ส่วนของเจ้าของ',
+      revenue: 'รายได้',
+      expense: 'ค่าใช้จ่าย',
+    };
+    const warnings: string[] = [];
+
+    formData.lines.forEach((line, index) => {
+      if (!line.glAccountId) return;
+
+      const account = glAccounts.find((a) => a.id === line.glAccountId);
+      if (!account?.accountType) return;
+
+      const { category, normalBalance } = account.accountType;
+      const isDebit = line.debit > 0;
+      const isCredit = line.credit > 0;
+
+      // Debit-normal accounts (asset, expense) should usually be debited
+      // Credit-normal accounts (liability, equity, revenue) should usually be credited
+      if (normalBalance === 'debit' && isCredit) {
+        warnings.push(
+          `บรรทัด ${index + 1}: บัญชี "${account.code}" (${catLabels[category] || category}) ` +
+          `ปกติเป็นเดบิต แต่ถูกบันทึกเครดิต - กรุณาตรวจสอบ`
+        );
+      } else if (normalBalance === 'credit' && isDebit) {
+        warnings.push(
+          `บรรทัด ${index + 1}: บัญชี "${account.code}" (${catLabels[category] || category}) ` +
+          `ปกติเป็นเครดิต แต่ถูกบันทึกเดบิต - กรุณาตรวจสอบ`
+        );
+      }
+    });
+
+    return warnings;
+  }, [formData.lines, glAccounts]);
+
+  // Check for invalid account pairings (accounts that shouldn't be used together)
+  const getInvalidAccountPairings = React.useCallback((): string[] => {
+    const errors: string[] = [];
+
+    // Get debit and credit accounts with their categories
+    const debitAccounts: Array<{ account: GLAccount; line: number }> = [];
+    const creditAccounts: Array<{ account: GLAccount; line: number }> = [];
+
+    formData.lines.forEach((line, index) => {
+      if (!line.glAccountId) return;
+      const account = glAccounts.find((a) => a.id === line.glAccountId);
+      if (!account?.accountType) return;
+
+      if (line.debit > 0) {
+        debitAccounts.push({ account, line: index + 1 });
+      }
+      if (line.credit > 0) {
+        creditAccounts.push({ account, line: index + 1 });
+      }
+    });
+
+    // Rule 1: Revenue accounts should not be credited with expense accounts debited
+    // (This is the wrong way - should be expense credited, revenue debited for reversals)
+    const debitExpenses = debitAccounts.filter((d) => d.account.accountType?.category === 'expense');
+    const creditRevenues = creditAccounts.filter((c) => c.account.accountType?.category === 'revenue');
+
+    if (debitExpenses.length > 0 && creditRevenues.length > 0) {
+      errors.push(
+        `ไม่ควรบันทึกค่าใช้จ่าย (เดบิต) พร้อมกับรายได้ (เครดิต) ในรายการเดียวกัน - ` +
+        `กรุณาตรวจสอบรายการ`
+      );
+    }
+
+    // Rule 2: Same account on both debit and credit (contra entry should have explanation)
+    const debitAccountIds = new Set(debitAccounts.map((d) => d.account.id));
+    const creditAccountIds = new Set(creditAccounts.map((c) => c.account.id));
+    const sameAccountBothSides = [...debitAccountIds].filter((id) => creditAccountIds.has(id));
+
+    sameAccountBothSides.forEach((accountId) => {
+      const account = glAccounts.find((a) => a.id === accountId);
+      if (account) {
+        errors.push(
+          `บัญชี "${account.code} - ${account.nameTh}" ถูกใช้ทั้งฝั่งเดบิตและเครดิต - ` +
+          `กรุณาตรวจสอบความถูกต้อง`
+        );
+      }
+    });
+
+    // Rule 3: Cash/Bank account cannot be both debited and credited in same entry
+    const debitBankAccounts = debitAccounts.filter((d) => {
+      const acc = d.account as any; // Access isBankAccount if available
+      return acc.isBankAccount || d.account.code?.startsWith('1101') || d.account.code?.startsWith('1102');
+    });
+    const creditBankAccounts = creditAccounts.filter((c) => {
+      const acc = c.account as any;
+      return acc.isBankAccount || c.account.code?.startsWith('1101') || c.account.code?.startsWith('1102');
+    });
+
+    if (debitBankAccounts.length > 0 && creditBankAccounts.length > 0) {
+      errors.push(
+        `บัญชีเงินสด/ธนาคารถูกใช้ทั้งฝั่งเดบิตและเครดิต - กรุณาตรวจสอบ`
+      );
+    }
+
+    return errors;
+  }, [formData.lines, glAccounts]);
+
   // Get validation summary
   const validationSummary = React.useMemo(() => {
     const issues: { type: 'error' | 'warning'; message: string }[] = [];
@@ -444,6 +576,16 @@ export function JournalEntryForm({
       issues.push({ type: 'warning', message: warning });
     });
 
+    // Add normal balance warnings (accounts used against their normal balance)
+    getNormalBalanceWarnings().forEach((warning) => {
+      issues.push({ type: 'warning', message: warning });
+    });
+
+    // Add invalid account pairing errors
+    getInvalidAccountPairings().forEach((error) => {
+      issues.push({ type: 'warning', message: error });
+    });
+
     // Check for lines with both debit and credit
     const linesWithBoth = formData.lines.filter((l) => l.debit > 0 && l.credit > 0);
     if (linesWithBoth.length > 0) {
@@ -459,7 +601,7 @@ export function JournalEntryForm({
     }
 
     return issues;
-  }, [formData.entryDate, formData.lines, isBalanced, totalDebit, totalCredit, getDuplicateAccountWarnings]);
+  }, [formData.entryDate, formData.lines, isBalanced, totalDebit, totalCredit, getDuplicateAccountWarnings, getNormalBalanceWarnings, getInvalidAccountPairings]);
 
   // Line handlers
   const addLine = React.useCallback(() => {
@@ -569,25 +711,35 @@ export function JournalEntryForm({
     }
   };
 
-  const handlePost = async () => {
-    const result = await confirm(
-      'คุณต้องการผ่านรายการบันทึกนี้หรือไม่?',
-      'ยืนยันการผ่านรายการ'
-    );
-    if (result) {
-      postMutation.mutate();
-    }
+  const handlePost = () => {
+    setConfirmDialog({
+      visible: true,
+      title: 'ยืนยันการผ่านรายการ',
+      message: 'คุณต้องการผ่านรายการบันทึกนี้หรือไม่?',
+      testIdPrefix: 'je-post',
+      onConfirm: () => {
+        postMutation.mutate();
+        setConfirmDialog((prev) => ({ ...prev, visible: false }));
+      },
+    });
   };
 
-  const handleReverse = async () => {
-    const result = await confirm(
-      'คุณต้องการกลับรายการนี้หรือไม่?<br/>ระบบจะสร้างรายการกลับอัตโนมัติ',
-      'ยืนยันการกลับรายการ'
-    );
-    if (result) {
-      reverseMutation.mutate('Manual reversal from form');
-    }
+  const handleReverse = () => {
+    setConfirmDialog({
+      visible: true,
+      title: 'ยืนยันการกลับรายการ',
+      message: 'คุณต้องการกลับรายการนี้หรือไม่?<br/>ระบบจะสร้างรายการกลับอัตโนมัติ',
+      testIdPrefix: 'je-reverse',
+      onConfirm: () => {
+        reverseMutation.mutate('Manual reversal from form');
+        setConfirmDialog((prev) => ({ ...prev, visible: false }));
+      },
+    });
   };
+
+  const handleConfirmDialogCancel = React.useCallback(() => {
+    setConfirmDialog((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const isPosting = postMutation.isPending;
@@ -612,14 +764,13 @@ export function JournalEntryForm({
       {/* Header */}
       <div className="flex items-center justify-between" data-testid="je-form-header">
         <div className="flex items-center gap-3">
-          <span data-testid="je-back-btn">
-            <Button
-              text="ย้อนกลับ"
-              icon="back"
-              stylingMode="text"
-              onClick={handleCancel}
-            />
-          </span>
+          <Button
+            text="ย้อนกลับ"
+            icon="back"
+            stylingMode="text"
+            onClick={handleCancel}
+            elementAttr={{ 'data-testid': 'je-back-btn' }}
+          />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900" data-testid="je-form-title">
             {mode === 'create' ? 'สร้างรายการบันทึกบัญชี' : `รายการ: ${existingEntry?.entryNumber}`}
@@ -632,28 +783,26 @@ export function JournalEntryForm({
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && existingEntry?.status === 'draft' && (
-            <span data-testid="je-post-btn">
-              <Button
-                text="ผ่านรายการ"
-                icon={isPosting ? 'spindown' : 'check'}
-                type="success"
-                stylingMode="outlined"
-                onClick={handlePost}
-                disabled={isPosting}
-              />
-            </span>
+            <Button
+              text="ผ่านรายการ"
+              icon={isPosting ? 'spindown' : 'check'}
+              type="success"
+              stylingMode="outlined"
+              onClick={handlePost}
+              disabled={isPosting}
+              elementAttr={{ 'data-testid': 'je-post-btn' }}
+            />
           )}
           {mode === 'edit' && existingEntry?.status === 'posted' && (
-            <span data-testid="je-reverse-btn">
-              <Button
-                text="กลับรายการ"
-                icon={isReversing ? 'spindown' : 'revert'}
-                type="danger"
-                stylingMode="outlined"
-                onClick={handleReverse}
-                disabled={isReversing}
-              />
-            </span>
+            <Button
+              text="กลับรายการ"
+              icon={isReversing ? 'spindown' : 'revert'}
+              type="danger"
+              stylingMode="outlined"
+              onClick={handleReverse}
+              disabled={isReversing}
+              elementAttr={{ 'data-testid': 'je-reverse-btn' }}
+            />
           )}
           <span data-testid="je-cancel-btn">
             <Button
@@ -1040,6 +1189,16 @@ export function JournalEntryForm({
           }}
         />
       )}
+
+      {/* Custom Confirm Dialog with data-testid */}
+      <ConfirmDialog
+        visible={confirmDialog.visible}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        testIdPrefix={confirmDialog.testIdPrefix}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={handleConfirmDialogCancel}
+      />
     </div>
   );
 }
