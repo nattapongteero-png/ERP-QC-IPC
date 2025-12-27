@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
 
@@ -87,6 +87,7 @@ export async function GET(
           const totalPrice = Number(line.totalPrice) || 0;
 
           // Get available stock for this item using FEFO
+          // Only include released lots (exclude quarantine, under_test, rejected, blocked)
           const availableLots = await executeDbOperation(async (db) => {
             return db
               .select({
@@ -94,13 +95,19 @@ export async function GET(
                 lotNumber: inventoryLots.lotNumber,
                 quantity: inventoryLots.quantity,
                 expiryDate: inventoryLots.expiryDate,
+                status: inventoryLots.status,
               })
               .from(inventoryLots)
-              .where(eq(inventoryLots.itemId, line.itemId!));
+              .where(
+                and(
+                  eq(inventoryLots.itemId, line.itemId!),
+                  eq(inventoryLots.status, 'released')
+                )
+              );
           });
 
           const releasedLots = availableLots
-            .map((lot: { id: number; lotNumber: string; quantity: number | string; expiryDate: string | Date | null }) => ({
+            .map((lot: { id: number; lotNumber: string; quantity: number | string; expiryDate: string | Date | null; status: string }) => ({
               ...lot,
               quantity: Number(lot.quantity) || 0
             }))
