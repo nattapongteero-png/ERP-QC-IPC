@@ -44,6 +44,7 @@ import {
   ArrowRight,
   Receipt,
   ExternalLink,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 // ============================================================================
@@ -802,6 +803,32 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               >
                 <Receipt className="h-3 w-3" />
                 <span>{je.entryNumber}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      dataField: 'arInvoices',
+      caption: 'ใบแจ้งหนี้ AR',
+      width: 150,
+      cellRender: (cellInfo) => {
+        const arInvoices = cellInfo.data.arInvoices || [];
+        if (arInvoices.length === 0) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {arInvoices.map((inv: { id: number; invoiceNumber: string; taxInvoiceNumber: string; status: string }) => (
+              <button
+                key={inv.id}
+                onClick={() => router.push(`/accounting/ar/invoices?id=${inv.id}`)}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors bg-teal-50 text-teal-700 hover:bg-teal-100"
+              >
+                <FileSpreadsheet className="h-3 w-3" />
+                <span>{inv.invoiceNumber}</span>
                 <ExternalLink className="h-2.5 w-2.5" />
               </button>
             ))}

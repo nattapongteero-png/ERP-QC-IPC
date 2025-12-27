@@ -20,7 +20,7 @@ import {
   Clock, CheckCircle, AlertCircle, Truck, FileText,
   Building2, User, Phone, Mail,
   Edit2, Trash2,
-  PackageCheck, XCircle, FileCheck, Receipt, ExternalLink,
+  PackageCheck, XCircle, FileCheck, Receipt, ExternalLink, FileSpreadsheet,
 } from 'lucide-react';
 import { DocumentAttachment } from '@/components/ui/document-attachment';
 import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
@@ -76,6 +76,12 @@ interface ReceivedLot {
     id: number;
     entryNumber: string;
     status: string;
+  }>;
+  apInvoices?: Array<{
+    id: number;
+    invoiceNumber: string;
+    status: string;
+    totalAmount: number;
   }>;
 }
 
@@ -696,7 +702,7 @@ export default function PurchaseOrderDetailPage() {
     {
       dataField: 'journalEntries',
       caption: 'รายการบัญชี',
-      width: 160,
+      width: 150,
       cellRender: (cellInfo) => {
         const journalEntries = cellInfo.data.journalEntries || [];
         if (journalEntries.length === 0) {
@@ -715,6 +721,35 @@ export default function PurchaseOrderDetailPage() {
               >
                 <Receipt className="h-3 w-3" />
                 <span>{je.entryNumber}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      dataField: 'apInvoices',
+      caption: 'ใบแจ้งหนี้ AP',
+      width: 150,
+      cellRender: (cellInfo) => {
+        const apInvoices = cellInfo.data.apInvoices || [];
+        if (apInvoices.length === 0) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {apInvoices.map((ap: { id: number; invoiceNumber: string; status: string; totalAmount: number }) => (
+              <button
+                key={ap.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/accounting/ap/invoices?id=${ap.id}`);
+                }}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
+              >
+                <FileSpreadsheet className="h-3 w-3" />
+                <span>{ap.invoiceNumber}</span>
                 <ExternalLink className="h-2.5 w-2.5" />
               </button>
             ))}

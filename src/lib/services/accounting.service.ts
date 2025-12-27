@@ -4905,3 +4905,255 @@ export async function createPOReceiptJournalEntry(
     message: `สร้างรายการบัญชีสำเร็จ: ${journalEntry.entryNumber}`,
   };
 }
+
+// ============================================
+// AP Invoice from PO Receipt
+// ============================================
+
+/**
+ * Input for creating AP invoice from PO receipt
+ */
+export interface APInvoiceFromReceiptInput {
+  poId: number;
+  poNumber: string;
+  vendorId: number;
+  vendorName: string;
+  receiptDate: string;
+  dueDate: string;  // Payment due date (e.g., 30 days from receipt)
+  lotId: number;
+  lotNumber: string;
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  vatAmount: number;
+  netAmount: number;
+}
+
+/**
+ * Result of AP invoice creation from receipt
+ */
+export interface APInvoiceFromReceiptResult {
+  success: boolean;
+  apInvoiceId: number;
+  apInvoiceNumber: string;
+  journalEntryId?: number;
+  journalEntryNumber?: string;
+  message: string;
+}
+
+/**
+ * Create and post AP invoice from PO receipt
+ * Creates AP invoice linked to PO and posts journal entry
+ *
+ * @param input - PO receipt details
+ * @param createdBy - User ID who created
+ * @returns AP invoice ID and number
+ */
+export async function createAPInvoiceFromPOReceipt(
+  input: APInvoiceFromReceiptInput,
+  createdBy: number
+): Promise<APInvoiceFromReceiptResult> {
+  const { glAccounts } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  // Find Inventory account (1130)
+  const [inventoryAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '1130'))
+    .limit(1);
+
+  if (!inventoryAccount) {
+    throw new Error('ไม่พบบัญชีสินค้าคงเหลือ (1130)');
+  }
+
+  // Generate AP invoice number
+  const apInvoiceNumber = await generateAPInvoiceNumber(input.receiptDate);
+
+  // Create AP invoice
+  const apInvoice = await createAPInvoice(
+    {
+      invoiceNumber: apInvoiceNumber,
+      vendorId: input.vendorId,
+      purchaseOrderId: input.poId,
+      invoiceDate: input.receiptDate,
+      dueDate: input.dueDate,
+      receivedDate: input.receiptDate,
+      description: `รับสินค้า ${input.poNumber} - ${input.itemCode} x ${input.quantity} (Lot: ${input.lotNumber})`,
+      lines: [
+        {
+          description: `${input.itemCode} - ${input.itemName}`,
+          itemId: input.itemId,
+          glAccountId: inventoryAccount.id,  // Debit Inventory
+          quantity: input.quantity,
+          unitPrice: input.unitPrice,
+          isCapitalizable: false,
+        },
+      ],
+    },
+    createdBy
+  );
+
+  // Approve and post the AP invoice (creates journal entry)
+  const approvedInvoice = await approveAPInvoice(apInvoice.id, createdBy);
+
+  // Create audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'ap_invoice',
+    recordId: apInvoice.id,
+    userId: createdBy,
+    newValue: {
+      type: 'PO_RECEIPT',
+      poId: input.poId,
+      poNumber: input.poNumber,
+      lotId: input.lotId,
+      lotNumber: input.lotNumber,
+      itemCode: input.itemCode,
+      quantity: input.quantity,
+      totalAmount: input.totalAmount,
+    },
+  });
+
+  return {
+    success: true,
+    apInvoiceId: approvedInvoice.id,
+    apInvoiceNumber: approvedInvoice.invoiceNumber,
+    journalEntryId: approvedInvoice.journalEntryId || undefined,
+    journalEntryNumber: approvedInvoice.journalEntryId
+      ? (await getJournalEntry(approvedInvoice.journalEntryId)).entryNumber
+      : undefined,
+    message: `สร้างใบแจ้งหนี้ AP สำเร็จ: ${approvedInvoice.invoiceNumber}`,
+  };
+}
+
+// ============================================
+// AR Invoice from SO Shipment
+// ============================================
+
+/**
+ * Input for creating AR invoice from SO shipment
+ */
+export interface ARInvoiceFromShipmentInput {
+  soId: number;
+  soNumber: string;
+  customerId?: number;
+  customerName: string;
+  shipmentDate: string;
+  dueDate: string;  // Payment due date (e.g., 30 days from shipment)
+  deliveryId: number;
+  deliveryNumber: string;
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  vatAmount: number;
+  netAmount: number;
+  lotId?: number;
+}
+
+/**
+ * Result of AR invoice creation from shipment
+ */
+export interface ARInvoiceFromShipmentResult {
+  success: boolean;
+  arInvoiceId: number;
+  arInvoiceNumber: string;
+  taxInvoiceNumber: string;
+  journalEntryId?: number;
+  journalEntryNumber?: string;
+  message: string;
+}
+
+/**
+ * Create and post AR invoice from SO shipment
+ * Creates AR invoice linked to SO and posts journal entry
+ *
+ * @param input - SO shipment details
+ * @param createdBy - User ID who created
+ * @returns AR invoice ID and number
+ */
+export async function createARInvoiceFromSOShipment(
+  input: ARInvoiceFromShipmentInput,
+  createdBy: number
+): Promise<ARInvoiceFromShipmentResult> {
+  const { glAccounts, arInvoices } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  // Find Sales Revenue account (4110)
+  const [salesAccount] = await database
+    .select({ id: glAccounts.id })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, '4110'))
+    .limit(1);
+
+  if (!salesAccount) {
+    throw new Error('ไม่พบบัญชีรายได้จากการขาย (4110)');
+  }
+
+  // Generate AR invoice number and tax invoice number
+  const arInvoiceNumber = await generateARInvoiceNumber(input.shipmentDate);
+  const taxInvoiceNumber = await generateTaxInvoiceNumber(input.shipmentDate);
+
+  // Create AR invoice
+  const arInvoice = await createARInvoice(
+    {
+      invoiceNumber: arInvoiceNumber,
+      taxInvoiceNumber: taxInvoiceNumber,
+      customerId: input.customerId || 0,
+      salesOrderId: input.soId,
+      invoiceDate: input.shipmentDate,
+      dueDate: input.dueDate,
+      description: `ขายสินค้า ${input.soNumber} - ${input.itemCode} x ${input.quantity} (Delivery: ${input.deliveryNumber})`,
+      lines: [
+        {
+          description: `${input.itemCode} - ${input.itemName}`,
+          itemId: input.itemId,
+          glAccountId: salesAccount.id,  // Credit Sales Revenue
+          quantity: input.quantity,
+          unitPrice: input.unitPrice,
+          lotId: input.lotId,
+        },
+      ],
+    },
+    createdBy
+  );
+
+  // Confirm and post the AR invoice (creates journal entry)
+  const confirmedInvoice = await confirmARInvoice(arInvoice.id, createdBy);
+
+  // Create audit log
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'ar_invoice',
+    recordId: arInvoice.id,
+    userId: createdBy,
+    newValue: {
+      type: 'SO_SHIPMENT',
+      soId: input.soId,
+      soNumber: input.soNumber,
+      deliveryId: input.deliveryId,
+      deliveryNumber: input.deliveryNumber,
+      itemCode: input.itemCode,
+      quantity: input.quantity,
+      totalAmount: input.totalAmount,
+    },
+  });
+
+  return {
+    success: true,
+    arInvoiceId: confirmedInvoice.id,
+    arInvoiceNumber: confirmedInvoice.invoiceNumber,
+    taxInvoiceNumber: confirmedInvoice.taxInvoiceNumber,
+    journalEntryId: confirmedInvoice.journalEntryId || undefined,
+    journalEntryNumber: confirmedInvoice.journalEntryId
+      ? (await getJournalEntry(confirmedInvoice.journalEntryId)).entryNumber
+      : undefined,
+    message: `สร้างใบแจ้งหนี้ AR สำเร็จ: ${confirmedInvoice.invoiceNumber}`,
+  };
+}

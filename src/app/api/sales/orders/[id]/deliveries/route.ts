@@ -15,6 +15,7 @@ export async function GET(
       const salesDeliveries = getTableRef('salesDeliveries');
       const items = getTableRef('items');
       const journalEntries = getTableRef('journalEntries');
+      const arInvoices = getTableRef('arInvoices');
 
       // Fetch deliveries
       const deliveriesData = await executeDbOperation(async (db) => {
@@ -44,6 +45,7 @@ export async function GET(
       // Fetch linked journal entries for all deliveries
       const deliveryIds = deliveriesData.map((d) => d.id);
       const journalEntriesMap: Record<number, Array<{ id: number; entryNumber: string; sourceType: string; status: string }>> = {};
+      const arInvoicesMap: Record<number, Array<{ id: number; invoiceNumber: string; taxInvoiceNumber: string; status: string; totalAmount: number }>> = {};
 
       if (deliveryIds.length > 0) {
         const linkedJournals = await executeDbOperation(async (db) => {
@@ -83,12 +85,47 @@ export async function GET(
             });
           }
         }
+
+        // Fetch linked AR invoices for this SO
+        const linkedARInvoices = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: arInvoices.id,
+              invoiceNumber: arInvoices.invoiceNumber,
+              taxInvoiceNumber: arInvoices.taxInvoiceNumber,
+              salesOrderId: arInvoices.salesOrderId,
+              status: arInvoices.status,
+              totalAmount: arInvoices.totalAmount,
+              description: arInvoices.description,
+            })
+            .from(arInvoices)
+            .where(eq(arInvoices.salesOrderId, soId));
+        });
+
+        // Map AR invoices to deliveries based on description containing delivery number
+        for (const arInv of linkedARInvoices) {
+          for (const delivery of deliveriesData) {
+            if (arInv.description && arInv.description.includes(delivery.deliveryNumber)) {
+              if (!arInvoicesMap[delivery.id]) {
+                arInvoicesMap[delivery.id] = [];
+              }
+              arInvoicesMap[delivery.id].push({
+                id: arInv.id,
+                invoiceNumber: arInv.invoiceNumber || '',
+                taxInvoiceNumber: arInv.taxInvoiceNumber || '',
+                status: arInv.status || 'draft',
+                totalAmount: Number(arInv.totalAmount) || 0,
+              });
+            }
+          }
+        }
       }
 
-      // Attach journal entries to deliveries
+      // Attach journal entries and AR invoices to deliveries
       const deliveries = deliveriesData.map((d) => ({
         ...d,
         journalEntries: journalEntriesMap[d.id] || [],
+        arInvoices: arInvoicesMap[d.id] || [],
       }));
 
       // Calculate summary

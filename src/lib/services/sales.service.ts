@@ -21,7 +21,7 @@ import {
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
 import { getNow, getTodayStr } from '../db/date-utils';
-import { createSOShipmentJournalEntry, THAI_VAT_RATE } from './accounting.service';
+import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, THAI_VAT_RATE } from './accounting.service';
 
 // Types
 export interface ATPResult {
@@ -226,12 +226,17 @@ export interface FulfillmentResult {
   deliveryId: number;
   deliveryNumber: string;
   shippedQuantity: number;
-  // Accounting integration
+  // Accounting integration - Journal entries
   salesJournalEntryId?: number;
   salesJournalEntryNumber?: string;
   cogsJournalEntryId?: number;
   cogsJournalEntryNumber?: string;
   accountingMessage?: string;
+  // AR Invoice integration
+  arInvoiceId?: number;
+  arInvoiceNumber?: string;
+  taxInvoiceNumber?: string;
+  arInvoiceMessage?: string;
 }
 
 /**
@@ -381,13 +386,17 @@ export async function fulfillSalesOrderLine(
   });
 
   // ============================================
-  // Accounting Integration - Create Journal Entry
+  // Accounting Integration - Create Journal Entry & AR Invoice
   // ============================================
   let salesJournalEntryId: number | undefined;
   let salesJournalEntryNumber: string | undefined;
   let cogsJournalEntryId: number | undefined;
   let cogsJournalEntryNumber: string | undefined;
   let accountingMessage: string | undefined;
+  let arInvoiceId: number | undefined;
+  let arInvoiceNumber: string | undefined;
+  let taxInvoiceNumber: string | undefined;
+  let arInvoiceMessage: string | undefined;
 
   try {
     // Get unit price from SO line
@@ -433,8 +442,50 @@ export async function fulfillSalesOrderLine(
       cogsJournalEntryId = accountingResult.cogsJournalEntryId;
       cogsJournalEntryNumber = accountingResult.cogsJournalEntryNumber;
       accountingMessage = accountingResult.message;
+
+      // 2. Create AR Invoice (due in 30 days)
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+      const dueDateStr = dueDate.toISOString().split('T')[0];
+
+      // Get item details for AR invoice
+      const [itemDetail] = await database.select().from(items).where(eq(items.id, input.itemId));
+
+      try {
+        const arResult = await createARInvoiceFromSOShipment(
+          {
+            soId: input.soId,
+            soNumber: so.soNumber,
+            customerId: undefined, // Customer ID not available in denormalized schema
+            customerName: so.customerName,
+            shipmentDate: getTodayStr(),
+            dueDate: dueDateStr,
+            deliveryId: newDeliveryId,
+            deliveryNumber,
+            itemId: input.itemId,
+            itemCode: itemDetail?.code || 'Unknown',
+            itemName: itemDetail?.nameTh || itemDetail?.nameEn || 'Unknown',
+            quantity: input.quantity,
+            unitPrice,
+            totalAmount: lineTotal,
+            vatAmount,
+            netAmount,
+            lotId: input.lotId,
+          },
+          userId
+        );
+
+        arInvoiceId = arResult.arInvoiceId;
+        arInvoiceNumber = arResult.arInvoiceNumber;
+        taxInvoiceNumber = arResult.taxInvoiceNumber;
+        arInvoiceMessage = arResult.message;
+      } catch (arError) {
+        console.error('Failed to create AR invoice:', arError);
+        arInvoiceMessage = `ไม่สามารถสร้างใบแจ้งหนี้ AR ได้: ${arError instanceof Error ? arError.message : 'Unknown error'}`;
+      }
     } else {
       accountingMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างรายการบัญชี';
+      arInvoiceMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างใบแจ้งหนี้ AR';
     }
   } catch (accountingError) {
     // Log error but don't fail the fulfillment
@@ -451,5 +502,9 @@ export async function fulfillSalesOrderLine(
     cogsJournalEntryId,
     cogsJournalEntryNumber,
     accountingMessage,
+    arInvoiceId,
+    arInvoiceNumber,
+    taxInvoiceNumber,
+    arInvoiceMessage,
   };
 }

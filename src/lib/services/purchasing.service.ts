@@ -23,7 +23,7 @@ import {
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { receiveMaterial } from './inventory.service';
-import { createPOReceiptJournalEntry, THAI_VAT_RATE } from './accounting.service';
+import { createPOReceiptJournalEntry, createAPInvoiceFromPOReceipt, THAI_VAT_RATE } from './accounting.service';
 import { getTodayStr } from '../db/date-utils';
 
 // Types
@@ -82,9 +82,14 @@ export interface ReceiptResult {
   itemId: number;
   itemCode: string;
   quantity: number;
+  // Journal entry info
   journalEntryId?: number;
   journalEntryNumber?: string;
   accountingMessage?: string;
+  // AP Invoice info
+  apInvoiceId?: number;
+  apInvoiceNumber?: string;
+  apInvoiceMessage?: string;
 }
 
 // Get table references based on database type
@@ -498,29 +503,42 @@ export async function receivePurchaseOrder(
       .where(eq(purchaseOrderLines.id, received.lineId));
 
     // ============================================
-    // Accounting Integration - Create Journal Entry
+    // Accounting Integration - Create Journal Entry & AP Invoice
     // ============================================
     let journalEntryId: number | undefined;
     let journalEntryNumber: string | undefined;
     let accountingMessage: string | undefined;
+    let apInvoiceId: number | undefined;
+    let apInvoiceNumber: string | undefined;
+    let apInvoiceMessage: string | undefined;
+
+    // Get item name
+    const [itemDetail] = await database
+      .select({ nameTh: items.nameTh })
+      .from(items)
+      .where(eq(items.id, poLine.itemId));
+    const itemName = itemDetail?.nameTh || itemCode;
 
     try {
       const unitPrice = Number(poLine.unitPrice) || 0;
       const lineTotal = unitPrice * received.receivedQuantity;
 
-      // Only create journal entry if there's a price
+      // Only create journal entry and AP invoice if there's a price
       if (lineTotal > 0) {
         // Calculate VAT (7%) - assuming prices include VAT
         const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
         const netAmount = lineTotal - vatAmount;
 
+        const receiptDate = getTodayStr();
+
+        // 1. Create Journal Entry for inventory receipt
         const accountingResult = await createPOReceiptJournalEntry(
           {
             poId,
             poNumber: po.poNumber,
             vendorId: po.vendorId,
             vendorName,
-            receiptDate: getTodayStr(),
+            receiptDate,
             lotId,
             lotNumber: received.lotNumber,
             itemId: poLine.itemId,
@@ -537,8 +555,45 @@ export async function receivePurchaseOrder(
         journalEntryId = accountingResult.journalEntryId;
         journalEntryNumber = accountingResult.journalEntryNumber;
         accountingMessage = accountingResult.message;
+
+        // 2. Create AP Invoice (due in 30 days)
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30);
+        const dueDateStr = dueDate.toISOString().split('T')[0];
+
+        try {
+          const apResult = await createAPInvoiceFromPOReceipt(
+            {
+              poId,
+              poNumber: po.poNumber,
+              vendorId: po.vendorId,
+              vendorName,
+              receiptDate,
+              dueDate: dueDateStr,
+              lotId,
+              lotNumber: received.lotNumber,
+              itemId: poLine.itemId,
+              itemCode,
+              itemName,
+              quantity: received.receivedQuantity,
+              unitPrice,
+              totalAmount: lineTotal,
+              vatAmount,
+              netAmount,
+            },
+            userId
+          );
+
+          apInvoiceId = apResult.apInvoiceId;
+          apInvoiceNumber = apResult.apInvoiceNumber;
+          apInvoiceMessage = apResult.message;
+        } catch (apError) {
+          console.error('Failed to create AP invoice:', apError);
+          apInvoiceMessage = `ไม่สามารถสร้างใบแจ้งหนี้ AP ได้: ${apError instanceof Error ? apError.message : 'Unknown error'}`;
+        }
       } else {
         accountingMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างรายการบัญชี';
+        apInvoiceMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างใบแจ้งหนี้ AP';
       }
     } catch (accountingError) {
       // Log error but don't fail the receipt
@@ -555,6 +610,9 @@ export async function receivePurchaseOrder(
       journalEntryId,
       journalEntryNumber,
       accountingMessage,
+      apInvoiceId,
+      apInvoiceNumber,
+      apInvoiceMessage,
     });
   }
 
