@@ -106,7 +106,7 @@ async function fetchGLAccounts(): Promise<GLAccount[]> {
 }
 
 async function fetchCostCenters(): Promise<CostCenter[]> {
-  const res = await fetch('/api/hr/org-units?type=department,section,unit');
+  const res = await fetch('/api/accounting/cost-centers');
   if (!res.ok) throw new Error('Failed to fetch cost centers');
   const json = await res.json();
   return json.data || [];
