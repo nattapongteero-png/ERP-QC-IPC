@@ -208,6 +208,8 @@ requirements. Do this automatically without being asked.**
 
 **Always search web for correct implementation DevExtreme ui component**
 
+**next.js dev server run on port 33021**
+
 ## Recent Changes
 - 010-accounting-module-integration: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
 - 009-gmp-compliance-gap-analysis: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
