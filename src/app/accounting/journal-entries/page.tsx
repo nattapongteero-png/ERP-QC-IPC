@@ -6,7 +6,7 @@
  * User Story 2: Record Purchase-to-Pay Transactions
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   useQuery,
   useMutation,
@@ -82,14 +82,24 @@ interface GLAccount {
   nameEn: string;
 }
 
+interface CostCenter {
+  id: number;
+  code: string;
+  name: string;
+  nameEn: string | null;
+  type: string;
+}
+
 interface FormData {
   entryDate: string;
   description: string;
+  referenceNumber: string;
   lines: {
     glAccountId: number | null;
     debit: number;
     credit: number;
     description: string;
+    costCenterId: number | null;
   }[];
 }
 
@@ -116,6 +126,13 @@ async function fetchGLAccounts(): Promise<GLAccount[]> {
   if (!res.ok) throw new Error('Failed to fetch accounts');
   const json = await res.json();
   return json.data;
+}
+
+async function fetchCostCenters(): Promise<CostCenter[]> {
+  const res = await fetch('/api/hr/org-units?type=department,section,unit');
+  if (!res.ok) throw new Error('Failed to fetch cost centers');
+  const json = await res.json();
+  return json.data || [];
 }
 
 interface CreateJournalEntryData {
@@ -175,9 +192,10 @@ export default function JournalEntriesPage() {
   const [formData, setFormData] = useState<FormData>({
     entryDate: new Date().toISOString().split('T')[0],
     description: '',
+    referenceNumber: '',
     lines: [
-      { glAccountId: null, debit: 0, credit: 0, description: '' },
-      { glAccountId: null, debit: 0, credit: 0, description: '' },
+      { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null },
+      { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null },
     ],
   });
 
@@ -194,6 +212,11 @@ export default function JournalEntriesPage() {
   const { data: glAccounts = [] } = useQuery({
     queryKey: ['gl-accounts'],
     queryFn: fetchGLAccounts,
+  });
+
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ['cost-centers'],
+    queryFn: fetchCostCenters,
   });
 
   // Mutations
@@ -237,9 +260,10 @@ export default function JournalEntriesPage() {
     setFormData({
       entryDate: new Date().toISOString().split('T')[0],
       description: '',
+      referenceNumber: '',
       lines: [
-        { glAccountId: null, debit: 0, credit: 0, description: '' },
-        { glAccountId: null, debit: 0, credit: 0, description: '' },
+        { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null },
+        { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null },
       ],
     });
   }, []);
@@ -313,7 +337,7 @@ export default function JournalEntriesPage() {
   const addLine = useCallback(() => {
     setFormData((prev) => ({
       ...prev,
-      lines: [...prev.lines, { glAccountId: null, debit: 0, credit: 0, description: '' }],
+      lines: [...prev.lines, { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null }],
     }));
   }, []);
 
@@ -607,14 +631,14 @@ export default function JournalEntriesPage() {
         visible={isDialogOpen}
         onHiding={handleCloseDialog}
         title="เพิ่มรายการบันทึกบัญชี"
-        width={900}
+        width={1100}
         height="auto"
         showCloseButton={true}
         dragEnabled={true}
       >
         <div className="p-4">
           <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
-            <GroupItem colCount={2}>
+            <GroupItem colCount={3}>
               <SimpleItem
                 dataField="entryDate"
                 editorType="dxDateBox"
@@ -623,6 +647,11 @@ export default function JournalEntriesPage() {
               >
                 <RequiredRule message="กรุณาเลือกวันที่" />
               </SimpleItem>
+              <SimpleItem
+                dataField="referenceNumber"
+                label={{ text: 'เลขที่อ้างอิง' }}
+                editorOptions={{ placeholder: 'เลขที่เอกสารอ้างอิง (ถ้ามี)' }}
+              />
               <SimpleItem
                 dataField="description"
                 label={{ text: 'รายละเอียด' }}
@@ -641,13 +670,16 @@ export default function JournalEntriesPage() {
               <thead>
                 <tr className="bg-gray-100">
                   <th className="border p-2 text-left">บัญชี</th>
-                  <th className="border p-2 text-left" style={{ width: 200 }}>
+                  <th className="border p-2 text-left" style={{ width: 160 }}>
+                    ศูนย์ต้นทุน
+                  </th>
+                  <th className="border p-2 text-left" style={{ width: 180 }}>
                     รายละเอียด
                   </th>
-                  <th className="border p-2 text-right" style={{ width: 130 }}>
+                  <th className="border p-2 text-right" style={{ width: 120 }}>
                     เดบิต
                   </th>
-                  <th className="border p-2 text-right" style={{ width: 130 }}>
+                  <th className="border p-2 text-right" style={{ width: 120 }}>
                     เครดิต
                   </th>
                   <th className="border p-2" style={{ width: 50 }}></th>
@@ -668,6 +700,22 @@ export default function JournalEntriesPage() {
                         {glAccounts.map((acc) => (
                           <option key={acc.id} value={acc.id}>
                             {acc.code} - {acc.nameTh}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="border p-1">
+                      <select
+                        className="w-full p-1 border rounded"
+                        value={line.costCenterId || ''}
+                        onChange={(e) =>
+                          updateLine(index, 'costCenterId', e.target.value ? Number(e.target.value) : null)
+                        }
+                      >
+                        <option value="">- ไม่ระบุ -</option>
+                        {costCenters.map((cc) => (
+                          <option key={cc.id} value={cc.id}>
+                            {cc.code} - {cc.name}
                           </option>
                         ))}
                       </select>
@@ -715,7 +763,7 @@ export default function JournalEntriesPage() {
               </tbody>
               <tfoot>
                 <tr className={`${isBalanced ? 'bg-green-50' : 'bg-red-50'}`}>
-                  <td colSpan={2} className="border p-2 text-right font-bold">
+                  <td colSpan={3} className="border p-2 text-right font-bold">
                     รวม
                   </td>
                   <td className="border p-2 text-right font-bold">
@@ -727,7 +775,7 @@ export default function JournalEntriesPage() {
                   <td className="border"></td>
                 </tr>
                 <tr>
-                  <td colSpan={5} className="border p-2 text-center">
+                  <td colSpan={6} className="border p-2 text-center">
                     {isBalanced ? (
                       <span className="text-green-600">ยอดเดบิตและเครดิตเท่ากัน</span>
                     ) : (
