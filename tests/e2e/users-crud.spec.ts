@@ -212,7 +212,7 @@ test.describe('Users Module CRUD E2E Tests', () => {
     console.log('Step 2: Selecting user to edit...');
     const userRows = page.locator('role=row');
     const salesManagerRow = userRows.filter({ hasText: 'Sales Manager' });
-    await salesManagerRow.first().locator('[aria-label="edit"]').click();
+    await salesManagerRow.first().locator('[data-testid^="users-edit-btn-"]').click();
     console.log('✓ Clicked edit button for Sales Manager');
 
     // Wait for detail page
@@ -222,22 +222,22 @@ test.describe('Users Module CRUD E2E Tests', () => {
 
     // Click edit button to enter edit mode
     console.log('Step 3: Entering edit mode...');
-    await page.click('button:has-text("แก้ไข")');
+    await page.click('[data-testid="user-detail-edit-btn"]');
     await page.waitForTimeout(500);
     console.log('✓ Entered edit mode');
 
     // Verify edit mode is active (input fields should appear)
-    await expect(page.locator('input[value="Sales Manager"]')).toBeVisible();
+    await expect(page.locator('[data-testid="user-edit-name-input"]')).toBeVisible();
     console.log('✓ Edit mode confirmed');
 
     // Modify user name
     const updatedName = `${testData.name} (Updated)`;
-    await page.fill('input[value="Sales Manager"]', updatedName);
+    await page.fill('[data-testid="user-edit-name-input"]', updatedName);
     console.log(`✓ Changed name to: ${updatedName}`);
 
     // Save changes
     console.log('Step 4: Saving changes...');
-    await page.click('button:has-text("บันทึก")');
+    await page.click('[data-testid="user-detail-save-btn"]');
     console.log('✓ Clicked save button');
 
     // Wait for save to complete
@@ -303,24 +303,24 @@ test.describe('Users Module CRUD E2E Tests', () => {
 
     // Click "เปลี่ยนรหัสผ่าน" button to expand password section
     console.log('Step 3: Opening password change section...');
-    await page.click('button:has-text("เปลี่ยนรหัสผ่าน")');
+    await page.click('[data-testid="user-detail-change-password-btn"]');
     console.log('✓ Password section expanded');
 
     // Wait for password inputs
-    await page.waitForSelector('input[placeholder*="กรอกรหัสผ่านใหม่"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="user-detail-new-password-input"]', { timeout: 10000 });
     console.log('✓ Password inputs visible');
 
     // Fill in new password
-    await page.fill('input[placeholder*="กรอกรหัสผ่านใหม่"]', testData.newPassword);
+    await page.fill('[data-testid="user-detail-new-password-input"]', testData.newPassword);
     console.log('✓ Filled new password');
 
     // Fill in confirm password
-    await page.fill('input[placeholder*="กรอกรหัสผ่านอีกครั้ง"]', testData.newPassword);
+    await page.fill('[data-testid="user-detail-confirm-password-input"]', testData.newPassword);
     console.log('✓ Filled confirm password');
 
     // Submit password change
     console.log('Step 4: Changing password...');
-    await page.click('button:has-text("เปลี่ยนรหัสผ่าน")');
+    await page.click('[data-testid="user-detail-password-save-btn"]');
     console.log('✓ Clicked change password button');
 
     // Wait for change to complete

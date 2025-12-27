@@ -419,6 +419,7 @@ export default function UserDetailPage() {
                 text="แก้ไข"
                 icon="edit"
                 type="default"
+                data-testid="user-detail-edit-btn"
                 onClick={() => setIsEditing(true)}
               />
             ) : (
@@ -428,12 +429,14 @@ export default function UserDetailPage() {
                   icon="close"
                   type="normal"
                   stylingMode="outlined"
+                  data-testid="user-detail-cancel-btn"
                   onClick={handleCancelEdit}
                 />
                 <DxButton
                   text="บันทึก"
                   icon="save"
                   type="success"
+                  data-testid="user-detail-save-btn"
                   onClick={handleSave}
                   disabled={isSaving}
                 />
@@ -565,13 +568,14 @@ export default function UserDetailPage() {
                     เปลี่ยนรหัสผ่าน
                   </CardTitle>
                   {!showPasswordSection && (
-                    <DxButton
-                      text="เปลี่ยนรหัสผ่าน"
-                      icon="key"
-                      type="normal"
-                      stylingMode="outlined"
-                      onClick={() => setShowPasswordSection(true)}
-                    />
+              <DxButton
+                  text="เปลี่ยนรหัสผ่าน"
+                  icon="key"
+                  type="normal"
+                  stylingMode="outlined"
+                  data-testid="user-detail-change-password-btn"
+                  onClick={() => setShowPasswordSection(true)}
+                />
                   )}
                 </div>
               </CardHeader>

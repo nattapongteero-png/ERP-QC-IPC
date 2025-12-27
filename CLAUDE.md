@@ -210,6 +210,8 @@ requirements. Do this automatically without being asked.**
 
 **next.js dev server run on port 33021**
 
+**when write e2e test , please modify target element to has data-testid key so the playwright script can select the correct element, no hard code looking element text**
+
 ## Recent Changes
 - 010-accounting-module-integration: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
 - 009-gmp-compliance-gap-analysis: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
