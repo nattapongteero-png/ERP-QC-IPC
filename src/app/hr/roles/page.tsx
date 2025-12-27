@@ -1,63 +1,54 @@
 'use client';
 
 // HR Roles Management Page
+// Following template design pattern for list page with CRUD operations
 // Feature: 007-hr-personnel-management
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
-  SearchPanel,
   HeaderFilter,
   FilterRow,
   Paging,
   Pager,
   Scrolling,
+  LoadPanel,
 } from 'devextreme-react/data-grid';
-import { Popup, ToolbarItem } from 'devextreme-react/popup';
-import TagBox from 'devextreme-react/tag-box';
+import { Button } from 'devextreme-react/button';
+import TextBox from 'devextreme-react/text-box';
+import SelectBox from 'devextreme-react/select-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { RoleDialog } from '@/components/hr';
 import { useToast } from '@/components/ui/toast';
 import {
   Shield,
   Users,
   Lock,
   Settings,
+  Eye,
+  Edit,
+  Trash2,
+  Filter,
+  Key,
 } from 'lucide-react';
-import type { AppRoleWithPermissions, AppPermission } from '@/types/hr';
+import type { AppRoleWithPermissions } from '@/types/hr';
+
+// Status options for filter
+const statusOptions = [
+  { value: '', label: 'ทั้งหมด' },
+  { value: 'active', label: 'ใช้งาน' },
+  { value: 'inactive', label: 'ปิดใช้งาน' },
+  { value: 'system', label: 'บทบาทระบบ' },
+];
 
 async function fetchRoles(): Promise<AppRoleWithPermissions[]> {
   const response = await fetch('/api/hr/roles');
   if (!response.ok) throw new Error('Failed to fetch roles');
   const result = await response.json();
   return result.data || [];
-}
-
-async function fetchPermissions(): Promise<AppPermission[]> {
-  const response = await fetch('/api/hr/permissions');
-  if (!response.ok) throw new Error('Failed to fetch permissions');
-  const result = await response.json();
-  return result.data || [];
-}
-
-async function updateRolePermissions(
-  roleId: number,
-  permissionIds: number[]
-): Promise<AppPermission[]> {
-  const response = await fetch('/api/hr/roles/' + roleId + '/permissions', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ permissionIds }),
-  });
-  if (!response.ok) {
-    const result = await response.json();
-    throw new Error(result.error || 'Failed to update permissions');
-  }
-  const result = await response.json();
-  return result.data;
 }
 
 async function deactivateRole(id: number): Promise<void> {
@@ -70,68 +61,18 @@ async function deactivateRole(id: number): Promise<void> {
   }
 }
 
-// Separate component for each module's TagBox to prevent re-render issues
-function PermissionModuleTagBox({
-  module,
-  modulePermissions,
-  selectedPermissionIds,
-  onSelectionChange,
-}: {
-  module: string;
-  modulePermissions: AppPermission[];
-  selectedPermissionIds: number[];
-  onSelectionChange: (newIds: number[]) => void;
-}) {
-  // Calculate value for this module only
-  const modulePermissionIds = useMemo(
-    () => modulePermissions.map((p) => p.id),
-    [modulePermissions]
-  );
-
-  const value = useMemo(
-    () => selectedPermissionIds.filter((id) => modulePermissionIds.includes(id)),
-    [selectedPermissionIds, modulePermissionIds]
-  );
-
-  const handleValueChanged = useCallback(
-    (e: { value?: number[] }) => {
-      const otherModuleIds = selectedPermissionIds.filter(
-        (id) => !modulePermissionIds.includes(id)
-      );
-      onSelectionChange([...otherModuleIds, ...(e.value || [])]);
-    },
-    [selectedPermissionIds, modulePermissionIds, onSelectionChange]
-  );
-
-  return (
-    <div className="border rounded-lg p-4">
-      <h3 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
-        <Settings className="h-4 w-4" />
-        {module}
-      </h3>
-      <TagBox
-        items={modulePermissions}
-        displayExpr="name"
-        valueExpr="id"
-        value={value}
-        onValueChanged={handleValueChanged}
-        showSelectionControls
-        placeholder="เลือกสิทธิ์..."
-      />
-    </div>
-  );
-}
-
 export default function RolesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  // Dialog states
-  const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [editingRole, setEditingRole] = useState<AppRoleWithPermissions | null>(null);
-  const [showPermissionsPopup, setShowPermissionsPopup] = useState(false);
+  // Filter states
+  const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  // Delete confirmation state
   const [selectedRole, setSelectedRole] = useState<AppRoleWithPermissions | null>(null);
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [gridHeight, setGridHeight] = useState(500);
 
@@ -150,108 +91,91 @@ export default function RolesPage() {
     return () => window.removeEventListener('resize', calculateHeight);
   }, []);
 
-  const { data: rolesData = [] } = useQuery({
+  const { data: rolesData = [], isLoading } = useQuery({
     queryKey: ['hr', 'roles'],
     queryFn: fetchRoles,
   });
 
-  const { data: permissionsData = [] } = useQuery({
-    queryKey: ['hr', 'permissions'],
-    queryFn: fetchPermissions,
-  });
+  // Ensure data is always an array
+  const allRoles = useMemo(() => Array.isArray(rolesData) ? rolesData : [], [rolesData]);
 
-  // Ensure data is always an array - memoized for stable references
-  const roles = useMemo(() => Array.isArray(rolesData) ? rolesData : [], [rolesData]);
-  const permissions = useMemo(() => Array.isArray(permissionsData) ? permissionsData : [], [permissionsData]);
+  // Filter roles based on search and status
+  const roles = useMemo(() => {
+    let filtered = allRoles;
 
-  const permissionsMutation = useMutation({
-    mutationFn: ({ roleId, permissionIds }: { roleId: number; permissionIds: number[] }) =>
-      updateRolePermissions(roleId, permissionIds),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      setShowPermissionsPopup(false);
-      setSelectedRole(null);
-      toast.success('อัปเดตสิทธิ์สำเร็จ');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถอัปเดตสิทธิ์ได้');
-    },
-  });
+    // Apply status filter
+    if (statusFilter === 'active') {
+      filtered = filtered.filter(r => r.isActive && !r.isSystemRole);
+    } else if (statusFilter === 'inactive') {
+      filtered = filtered.filter(r => !r.isActive);
+    } else if (statusFilter === 'system') {
+      filtered = filtered.filter(r => r.isSystemRole);
+    }
+
+    // Apply search filter
+    if (searchText.trim()) {
+      const searchLower = searchText.toLowerCase().trim();
+      filtered = filtered.filter(r =>
+        r.code?.toLowerCase().includes(searchLower) ||
+        r.name?.toLowerCase().includes(searchLower) ||
+        r.description?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    return filtered;
+  }, [allRoles, statusFilter, searchText]);
+
+  // Stats
+  const stats = useMemo(() => ({
+    total: allRoles.length,
+    active: allRoles.filter(r => r.isActive && !r.isSystemRole).length,
+    system: allRoles.filter(r => r.isSystemRole).length,
+    totalPermissions: allRoles.reduce((sum, r) => sum + (r.permissionCount || 0), 0),
+  }), [allRoles]);
 
   const deactivateMutation = useMutation({
     mutationFn: deactivateRole,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
       toast.success('ปิดใช้งานบทบาทสำเร็จ');
+      setShowDeleteConfirm(false);
+      setSelectedRole(null);
     },
     onError: (error: Error) => {
       toast.error(error.message || 'ไม่สามารถปิดใช้งานบทบาทได้');
     },
   });
 
-  // Dialog handlers
-  const handleOpenCreateDialog = useCallback(() => {
-    setEditingRole(null);
-    setShowRoleDialog(true);
-  }, []);
+  // Handlers
+  const handleRowClick = useCallback((e: { data: AppRoleWithPermissions }) => {
+    router.push(`/hr/roles/${e.data.id}`);
+  }, [router]);
 
-  const handleOpenEditDialog = useCallback((role: AppRoleWithPermissions) => {
-    setEditingRole(role);
-    setShowRoleDialog(true);
-  }, []);
-
-  const handleCloseRoleDialog = useCallback(() => {
-    setShowRoleDialog(false);
-    setEditingRole(null);
-  }, []);
-
-  const handleOpenPermissionsPopup = useCallback(async (role: AppRoleWithPermissions) => {
+  const handleDelete = useCallback((role: AppRoleWithPermissions) => {
     setSelectedRole(role);
-    // Fetch current permissions for this role
-    const response = await fetch('/api/hr/roles/' + role.id + '/permissions');
-    if (response.ok) {
-      const result = await response.json();
-      setSelectedPermissionIds((result.data || []).map((p: AppPermission) => p.id));
-    }
-    setShowPermissionsPopup(true);
+    setShowDeleteConfirm(true);
   }, []);
 
-  const handleClosePermissionsPopup = useCallback(() => {
-    setShowPermissionsPopup(false);
-    setSelectedRole(null);
-    setSelectedPermissionIds([]);
-  }, []);
-
-  const handleUpdatePermissions = useCallback(() => {
-    if (!selectedRole) return;
-    permissionsMutation.mutate({
-      roleId: selectedRole.id,
-      permissionIds: selectedPermissionIds,
-    });
-  }, [selectedRole, selectedPermissionIds, permissionsMutation]);
-
-  const handleDeactivateRole = useCallback((roleId: number) => {
-    if (confirm('ต้องการปิดใช้งานบทบาทนี้หรือไม่?')) {
-      deactivateMutation.mutate(roleId);
+  const confirmDelete = useCallback(() => {
+    if (selectedRole) {
+      deactivateMutation.mutate(selectedRole.id);
     }
-  }, [deactivateMutation]);
+  }, [selectedRole, deactivateMutation]);
 
-  // Group permissions by module - memoized to prevent re-renders
-  const permissionsByModule = useMemo(() => {
-    return permissions.reduce(
-      (acc, perm) => {
-        if (!acc[perm.module]) {
-          acc[perm.module] = [];
-        }
-        acc[perm.module].push(perm);
-        return acc;
-      },
-      {} as Record<string, AppPermission[]>
+  // Cell renderers
+  const renderCodeCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
+    const role = cellData.data;
+    return (
+      <div className="flex items-center gap-2">
+        <div className={`p-1.5 rounded-lg ${role.isSystemRole ? 'bg-purple-100' : 'bg-blue-100'}`}>
+          <Shield className={`h-4 w-4 ${role.isSystemRole ? 'text-purple-600' : 'text-blue-600'}`} />
+        </div>
+        <span className="font-mono font-semibold text-blue-600">{role.code}</span>
+      </div>
     );
-  }, [permissions]);
+  }, []);
 
-  // Render functions - NOT wrapped in useCallback (like courses page pattern)
-  const renderStatusCell = (cellData: { data: AppRoleWithPermissions }) => {
+  const renderStatusCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
     if (role.isSystemRole) {
       return (
@@ -266,49 +190,62 @@ export default function RolesPage() {
     ) : (
       <Badge variant="danger">ปิดใช้งาน</Badge>
     );
-  };
+  }, []);
 
-  const renderPermissionCountCell = (cellData: { value: number }) => {
+  const renderPermissionCountCell = useCallback((cellData: { value: number }) => {
     return (
-      <Badge variant="secondary" className="text-xs">
-        {cellData.value} สิทธิ์
-      </Badge>
+      <div className="flex items-center gap-1.5">
+        <Key className="h-3.5 w-3.5 text-amber-500" />
+        <span className="font-medium">{cellData.value || 0}</span>
+        <span className="text-gray-500 text-xs">สิทธิ์</span>
+      </div>
     );
-  };
+  }, []);
 
-  const renderActionsCell = (cellData: { data: AppRoleWithPermissions }) => {
+  const renderActionsCell = useCallback((cellData: { data: AppRoleWithPermissions }) => {
     const role = cellData.data;
 
     return (
-      <div className="flex gap-1">
+      <div className="flex items-center gap-1">
         <button
-          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-          onClick={() => handleOpenPermissionsPopup(role)}
-          disabled={role.isSystemRole}
-          title="จัดการสิทธิ์"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/hr/roles/${role.id}`);
+          }}
+          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          title="ดูรายละเอียด"
         >
-          🔑
+          <Eye className="h-4 w-4" />
         </button>
-        <button
-          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-          onClick={() => handleOpenEditDialog(role)}
-          disabled={role.isSystemRole}
-          title="แก้ไข"
-        >
-          ✏️
-        </button>
-        {role.isActive && !role.isSystemRole && (
-          <button
-            className="p-1 text-red-600 hover:bg-red-50 rounded"
-            onClick={() => handleDeactivateRole(role.id)}
-            title="ปิดใช้งาน"
-          >
-            ❌
-          </button>
+        {!role.isSystemRole && (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/hr/roles/${role.id}`);
+              }}
+              className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+              title="แก้ไข"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+            {role.isActive && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(role);
+                }}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="ปิดใช้งาน"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </>
         )}
       </div>
     );
-  };
+  }, [router, handleDelete]);
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
@@ -324,11 +261,11 @@ export default function RolesPage() {
           { label: 'บทบาทและสิทธิ์' },
         ]}
         actions={
-          <DxButton
+          <Button
             text="สร้างบทบาท"
             icon="plus"
-            type="default"
-            onClick={handleOpenCreateDialog}
+            type="success"
+            onClick={() => router.push('/hr/roles/new')}
           />
         }
       />
@@ -337,135 +274,184 @@ export default function RolesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label="บทบาททั้งหมด"
-          value={roles.length}
+          value={stats.total}
           icon={Shield}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
         />
         <StatCard
           label="ใช้งาน"
-          value={roles.filter((r) => r.isActive).length}
+          value={stats.active}
           icon={Users}
           iconColor="text-green-500"
           accentColor="border-green-500"
         />
         <StatCard
           label="บทบาทระบบ"
-          value={roles.filter((r) => r.isSystemRole).length}
+          value={stats.system}
           icon={Lock}
           iconColor="text-purple-500"
           accentColor="border-purple-500"
         />
         <StatCard
           label="สิทธิ์ทั้งหมด"
-          value={permissions.length}
+          value={stats.totalPermissions}
           icon={Settings}
           iconColor="text-orange-500"
           accentColor="border-orange-500"
         />
       </div>
 
-      {/* Roles DataGrid with columnHidingEnabled */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <DataGrid
-          dataSource={roles}
-          showBorders={false}
-          showRowLines
-          rowAlternationEnabled
-          columnAutoWidth
-          columnHidingEnabled
-          wordWrapEnabled
-          height={gridHeight}
-          hoverStateEnabled
-        >
-          <SearchPanel visible placeholder="ค้นหา..." width={200} />
-          <HeaderFilter visible />
-          <FilterRow visible />
-          <Scrolling mode="virtual" />
-          <Paging defaultPageSize={20} />
-          <Pager
-            showPageSizeSelector
-            allowedPageSizes={[10, 20, 50]}
-            showInfo
-          />
-
-          <Column dataField="code" caption="รหัส" width={130} hidingPriority={2} />
-          <Column dataField="name" caption="ชื่อบทบาท" minWidth={150} hidingPriority={0} />
-          <Column dataField="description" caption="คำอธิบาย" minWidth={180} hidingPriority={4} />
-          <Column
-            dataField="permissionCount"
-            caption="จำนวนสิทธิ์"
-            width={100}
-            alignment="center"
-            cellRender={renderPermissionCountCell}
-            hidingPriority={3}
-          />
-          <Column
-            caption="สถานะ"
-            width={100}
-            alignment="center"
-            cellRender={renderStatusCell}
-            hidingPriority={1}
-          />
-          <Column
-            caption="จัดการ"
-            width={120}
-            alignment="center"
-            cellRender={renderActionsCell}
-            hidingPriority={5}
-          />
-        </DataGrid>
-      </div>
-
-      {/* Reusable Role Dialog */}
-      <RoleDialog
-        visible={showRoleDialog}
-        onHide={handleCloseRoleDialog}
-        role={editingRole}
-      />
-
-      {/* Permissions Popup - only render when visible */}
-      {showPermissionsPopup && (
-        <Popup
-          visible={true}
-          onHiding={handleClosePermissionsPopup}
-          title={`จัดการสิทธิ์: ${selectedRole?.name || ''}`}
-          width={700}
-          height={600}
-          showCloseButton
-        >
-          <div className="space-y-4 p-2 h-full overflow-y-auto">
-            {Object.entries(permissionsByModule).map(([module, modulePermissions]) => (
-              <PermissionModuleTagBox
-                key={module}
-                module={module}
-                modulePermissions={modulePermissions}
-                selectedPermissionIds={selectedPermissionIds}
-                onSelectionChange={(newIds) => setSelectedPermissionIds(newIds)}
-              />
-            ))}
-          </div>
-
-          <ToolbarItem
-            widget="dxButton"
-            location="after"
-            options={{
-              text: 'ยกเลิก',
-              onClick: handleClosePermissionsPopup,
-            }}
-          />
-          <ToolbarItem
-            widget="dxButton"
-            location="after"
-            options={{
-              text: 'บันทึก',
-              type: 'default',
-              disabled: permissionsMutation.isPending,
-              onClick: handleUpdatePermissions,
-            }}
-          />
-        </Popup>
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && selectedRole && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-red-800">ยืนยันการปิดใช้งาน</p>
+                <p className="text-sm text-red-600">
+                  คุณต้องการปิดใช้งานบทบาท &quot;{selectedRole.name}&quot; หรือไม่?
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  text="ยกเลิก"
+                  stylingMode="outlined"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setSelectedRole(null);
+                  }}
+                />
+                <Button
+                  text={deactivateMutation.isPending ? 'กำลังลบ...' : 'ปิดใช้งาน'}
+                  icon="trash"
+                  type="danger"
+                  onClick={confirmDelete}
+                  disabled={deactivateMutation.isPending}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* Filters Card */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">ตัวกรอง:</span>
+              </div>
+              <div className="w-56">
+                <TextBox
+                  value={searchText}
+                  onValueChanged={(e) => setSearchText(e.value || '')}
+                  valueChangeEvent="keyup"
+                  placeholder="ค้นหาบทบาท..."
+                  showClearButton
+                  mode="search"
+                />
+              </div>
+              <div className="w-40">
+                <SelectBox
+                  dataSource={statusOptions}
+                  displayExpr="label"
+                  valueExpr="value"
+                  value={statusFilter}
+                  onValueChanged={(e) => setStatusFilter(e.value)}
+                  placeholder="สถานะ"
+                />
+              </div>
+              {(searchText || statusFilter) && (
+                <Button
+                  text="ล้าง"
+                  stylingMode="text"
+                  onClick={() => {
+                    setSearchText('');
+                    setStatusFilter('');
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Compact Statistics */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-md">
+                <span className="text-gray-500">แสดง:</span>
+                <span className="font-semibold text-gray-900">{roles.length}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Roles DataGrid */}
+      <Card>
+        <CardContent className="p-0">
+          <DataGrid
+            dataSource={roles}
+            showBorders={false}
+            showRowLines
+            rowAlternationEnabled
+            columnAutoWidth
+            columnHidingEnabled
+            wordWrapEnabled
+            height={gridHeight}
+            hoverStateEnabled
+            onRowClick={handleRowClick}
+            className="cursor-pointer"
+          >
+            <LoadPanel enabled={isLoading} />
+            <HeaderFilter visible />
+            <FilterRow visible />
+            <Scrolling mode="virtual" />
+            <Paging defaultPageSize={20} />
+            <Pager
+              showPageSizeSelector
+              allowedPageSizes={[10, 20, 50]}
+              showInfo
+              showNavigationButtons
+            />
+
+            <Column
+              dataField="code"
+              caption="รหัส"
+              width={180}
+              hidingPriority={2}
+              cellRender={renderCodeCell}
+            />
+            <Column dataField="name" caption="ชื่อบทบาท" minWidth={150} hidingPriority={0} />
+            <Column dataField="description" caption="คำอธิบาย" minWidth={180} hidingPriority={4} />
+            <Column
+              dataField="permissionCount"
+              caption="จำนวนสิทธิ์"
+              width={120}
+              alignment="center"
+              cellRender={renderPermissionCountCell}
+              hidingPriority={3}
+            />
+            <Column
+              caption="สถานะ"
+              width={100}
+              alignment="center"
+              cellRender={renderStatusCell}
+              hidingPriority={1}
+            />
+            <Column
+              caption="จัดการ"
+              width={120}
+              alignment="center"
+              cellRender={renderActionsCell}
+              hidingPriority={5}
+              allowFiltering={false}
+              allowSorting={false}
+            />
+          </DataGrid>
+        </CardContent>
+      </Card>
     </div>
   );
 }

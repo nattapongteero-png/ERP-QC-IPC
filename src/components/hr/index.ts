@@ -19,5 +19,8 @@ export type { EmployeeFormProps, EmployeeFormData } from './EmployeeForm';
 
 export { RoleDialog } from './RoleDialog';
 
+export { RoleForm } from './role-form';
+export type { RoleFormProps } from './role-form';
+
 export { HrPageHeader } from './hr-page-header';
 export type { HrPageHeaderProps } from './hr-page-header';
