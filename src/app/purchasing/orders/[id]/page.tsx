@@ -1057,7 +1057,7 @@ export default function PurchaseOrderDetailPage() {
 
                 {/* Document Attachments */}
                 <DocumentAttachment
-                  moduleName="purchase-orders"
+                  moduleName="purchase_order"
                   entityId={po.id}
                   title="เอกสารแนบ"
                   categories={['quotation', 'invoice', 'delivery_note', 'coa', 'purchase_contract', 'certificate', 'other']}
