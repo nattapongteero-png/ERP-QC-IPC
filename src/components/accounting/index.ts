@@ -12,3 +12,6 @@ export type { AccountingStatusBadgeProps } from './accounting-status-badge';
 
 export { AccountingMiniChart } from './accounting-mini-chart';
 export type { AccountingMiniChartProps } from './accounting-mini-chart';
+
+export { JournalEntryForm } from './journal-entry-form';
+export type { JournalEntryFormProps } from './journal-entry-form';

@@ -4,14 +4,17 @@
  * Journal Entries Page
  * Feature: 010-accounting-module-integration
  * User Story 2: Record Purchase-to-Pay Transactions
+ * Updated to follow template pattern with Card components and icon actions
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   useQuery,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import { Eye, Check, RotateCcw } from 'lucide-react';
 import DataGrid, {
   Column,
   Paging,
@@ -30,16 +33,11 @@ import DataGrid, {
   Format,
   MasterDetail,
 } from 'devextreme-react/data-grid';
-import { Popup } from 'devextreme-react/popup';
-import Form, {
-  SimpleItem,
-  GroupItem,
-  RequiredRule,
-} from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   AccountingPageHeader,
   AccountingKPICard,
@@ -75,34 +73,6 @@ interface JournalEntry {
   lines?: JournalLine[];
 }
 
-interface GLAccount {
-  id: number;
-  code: string;
-  nameTh: string;
-  nameEn: string;
-}
-
-interface CostCenter {
-  id: number;
-  code: string;
-  name: string;
-  nameEn: string | null;
-  type: string;
-}
-
-interface FormData {
-  entryDate: string;
-  description: string;
-  referenceNumber: string;
-  lines: {
-    glAccountId: number | null;
-    debit: number;
-    credit: number;
-    description: string;
-    costCenterId: number | null;
-  }[];
-}
-
 // API functions
 async function fetchJournalEntries(filters?: { status?: string; sourceType?: string }): Promise<JournalEntry[]> {
   const params = new URLSearchParams();
@@ -119,45 +89,6 @@ async function fetchJournalEntryById(id: number): Promise<JournalEntry> {
   if (!res.ok) throw new Error('Failed to fetch entry');
   const json = await res.json();
   return json.data;
-}
-
-async function fetchGLAccounts(): Promise<GLAccount[]> {
-  const res = await fetch('/api/accounting/gl-accounts?isActive=true&isPostable=true');
-  if (!res.ok) throw new Error('Failed to fetch accounts');
-  const json = await res.json();
-  return json.data;
-}
-
-async function fetchCostCenters(): Promise<CostCenter[]> {
-  const res = await fetch('/api/hr/org-units?type=department,section,unit');
-  if (!res.ok) throw new Error('Failed to fetch cost centers');
-  const json = await res.json();
-  return json.data || [];
-}
-
-interface CreateJournalEntryData {
-  entryDate: string;
-  description: string | null;
-  sourceType: string;
-  lines: {
-    glAccountId: number;
-    debit: number;
-    credit: number;
-    description: string;
-  }[];
-}
-
-async function createJournalEntry(data: CreateJournalEntryData): Promise<JournalEntry> {
-  const res = await fetch('/api/accounting/journal-entries', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'Failed to create entry');
-  }
-  return (await res.json()).data;
 }
 
 async function postJournalEntry(id: number): Promise<JournalEntry> {
@@ -185,19 +116,10 @@ async function reverseJournalEntry(id: number): Promise<JournalEntry> {
 }
 
 export default function JournalEntriesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    entryDate: new Date().toISOString().split('T')[0],
-    description: '',
-    referenceNumber: '',
-    lines: [
-      { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null },
-      { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null },
-    ],
-  });
+  const [statusFilter, setStatusFilter] = React.useState<string>('');
+  const [sourceTypeFilter, setSourceTypeFilter] = React.useState<string>('');
 
   // Queries
   const { data: entries = [] } = useQuery({
@@ -209,30 +131,7 @@ export default function JournalEntriesPage() {
       }),
   });
 
-  const { data: glAccounts = [] } = useQuery({
-    queryKey: ['gl-accounts'],
-    queryFn: fetchGLAccounts,
-  });
-
-  const { data: costCenters = [] } = useQuery({
-    queryKey: ['cost-centers'],
-    queryFn: fetchCostCenters,
-  });
-
   // Mutations
-  const createMutation = useMutation({
-    mutationFn: createJournalEntry,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      notify('สร้างรายการบันทึกบัญชีสำเร็จ', 'success', 3000);
-      setIsDialogOpen(false);
-      resetForm();
-    },
-    onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถสร้างรายการได้', 'error', 4000);
-    },
-  });
-
   const postMutation = useMutation({
     mutationFn: postJournalEntry,
     onSuccess: () => {
@@ -256,60 +155,16 @@ export default function JournalEntriesPage() {
   });
 
   // Handlers
-  const resetForm = useCallback(() => {
-    setFormData({
-      entryDate: new Date().toISOString().split('T')[0],
-      description: '',
-      referenceNumber: '',
-      lines: [
-        { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null },
-        { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null },
-      ],
-    });
-  }, []);
-
-  const handleOpenDialog = useCallback(() => {
-    resetForm();
-    setIsDialogOpen(true);
-  }, [resetForm]);
-
-  const handleCloseDialog = useCallback(() => {
-    setIsDialogOpen(false);
-  }, []);
-
-  const handleSave = useCallback(() => {
-    const validLines = formData.lines
-      .filter((l) => l.glAccountId && (l.debit > 0 || l.credit > 0))
-      .map((l) => ({
-        glAccountId: l.glAccountId as number,
-        debit: l.debit,
-        credit: l.credit,
-        description: l.description,
-      }));
-
-    if (validLines.length < 2) {
-      notify('กรุณาเพิ่มรายการอย่างน้อย 2 รายการ', 'warning', 3000);
-      return;
-    }
-
-    const totalDebit = validLines.reduce((sum, l) => sum + l.debit, 0);
-    const totalCredit = validLines.reduce((sum, l) => sum + l.credit, 0);
-
-    if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      notify('ยอดเดบิตและเครดิตไม่เท่ากัน', 'error', 3000);
-      return;
-    }
-
-    createMutation.mutate({
-      entryDate: formData.entryDate,
-      description: formData.description || null,
-      sourceType: 'MANUAL',
-      lines: validLines,
-    });
-  }, [formData, createMutation]);
+  const handleRowClick = useCallback(
+    (e: { data: JournalEntry }) => {
+      router.push(`/accounting/journal-entries/${e.data.id}`);
+    },
+    [router]
+  );
 
   const handlePost = useCallback(
-    async (entry: JournalEntry) => {
+    async (entry: JournalEntry, e: React.MouseEvent) => {
+      e.stopPropagation();
       const result = await confirm(
         `คุณต้องการผ่านรายการบันทึก ${entry.entryNumber} หรือไม่?`,
         'ยืนยันการผ่านรายการ'
@@ -322,7 +177,8 @@ export default function JournalEntriesPage() {
   );
 
   const handleReverse = useCallback(
-    async (entry: JournalEntry) => {
+    async (entry: JournalEntry, e: React.MouseEvent) => {
+      e.stopPropagation();
       const result = await confirm(
         `คุณต้องการกลับรายการ ${entry.entryNumber} หรือไม่?<br/>ระบบจะสร้างรายการกลับอัตโนมัติ`,
         'ยืนยันการกลับรายการ'
@@ -334,41 +190,13 @@ export default function JournalEntriesPage() {
     [reverseMutation]
   );
 
-  const addLine = useCallback(() => {
-    setFormData((prev) => ({
-      ...prev,
-      lines: [...prev.lines, { glAccountId: null, debit: 0, credit: 0, description: '', costCenterId: null }],
-    }));
-  }, []);
-
-  const removeLine = useCallback((index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      lines: prev.lines.filter((_, i) => i !== index),
-    }));
-  }, []);
-
-  const updateLine = useCallback((index: number, field: string, value: number | string | null) => {
-    setFormData((prev) => ({
-      ...prev,
-      lines: prev.lines.map((line, i) =>
-        i === index ? { ...line, [field]: value } : line
-      ),
-    }));
-  }, []);
-
-  // Calculate totals
-  const totalDebit = useMemo(() => {
-    return formData.lines.reduce((sum, l) => sum + (l.debit || 0), 0);
-  }, [formData.lines]);
-
-  const totalCredit = useMemo(() => {
-    return formData.lines.reduce((sum, l) => sum + (l.credit || 0), 0);
-  }, [formData.lines]);
-
-  const isBalanced = useMemo(() => {
-    return Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
-  }, [totalDebit, totalCredit]);
+  const handleView = useCallback(
+    (entry: JournalEntry, e: React.MouseEvent) => {
+      e.stopPropagation();
+      router.push(`/accounting/journal-entries/${entry.id}`);
+    },
+    [router]
+  );
 
   // Status badge render
   const statusCellRender = useCallback((cellData: { value: 'draft' | 'posted' | 'reversed' }) => {
@@ -392,34 +220,46 @@ export default function JournalEntriesPage() {
     return value ? (typeMap[value] || value) : '-';
   }, []);
 
-  // Action buttons render
+  // Action buttons render with Lucide icons
   const actionsCellRender = useCallback(
     (cellData: { data: JournalEntry }) => {
       const entry = cellData.data as JournalEntry;
       return (
-        <div style={{ display: 'flex', gap: '4px' }}>
+        <div className="flex items-center gap-1">
+          {/* View button */}
+          <button
+            onClick={(e) => handleView(entry, e)}
+            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            title="ดูรายละเอียด"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+
+          {/* Post button - only for draft entries */}
           {entry.status === 'draft' && (
-            <Button
-              text="ผ่าน"
-              type="success"
-              stylingMode="outlined"
-              height={24}
-              onClick={() => handlePost(entry)}
-            />
+            <button
+              onClick={(e) => handlePost(entry, e)}
+              className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+              title="ผ่านรายการ"
+            >
+              <Check className="h-4 w-4" />
+            </button>
           )}
+
+          {/* Reverse button - only for posted entries */}
           {entry.status === 'posted' && (
-            <Button
-              text="กลับ"
-              type="danger"
-              stylingMode="outlined"
-              height={24}
-              onClick={() => handleReverse(entry)}
-            />
+            <button
+              onClick={(e) => handleReverse(entry, e)}
+              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+              title="กลับรายการ"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
           )}
         </div>
       );
     },
-    [handlePost, handleReverse]
+    [handleView, handlePost, handleReverse]
   );
 
   // Master-detail for journal lines
@@ -457,7 +297,7 @@ export default function JournalEntriesPage() {
               text="เพิ่มรายการ"
               icon="plus"
               type="success"
-              onClick={handleOpenDialog}
+              onClick={() => router.push('/accounting/journal-entries/new')}
             />
           </span>
         }
@@ -536,273 +376,101 @@ export default function JournalEntriesPage() {
           </div>
         </AccountingFilterPanel>
 
-        {/* Data Grid */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200" data-testid="journal-entries-grid">
-          <DataGrid
-            dataSource={entries}
-            keyExpr="id"
-            showBorders={false}
-            showRowLines={true}
-            showColumnLines={false}
-            rowAlternationEnabled={true}
-            allowColumnReordering={true}
-            allowColumnResizing={true}
-            columnAutoWidth={true}
-            wordWrapEnabled={true}
-          >
-          <Paging defaultPageSize={20} />
-          <Pager
-            visible={true}
-            showPageSizeSelector={true}
-            allowedPageSizes={[10, 20, 50]}
-            showInfo={true}
-          />
-          <FilterRow visible={true} />
-          <HeaderFilter visible={true} />
-          <SearchPanel visible={true} placeholder="ค้นหา..." />
-          <Sorting mode="multiple" />
-          <Selection mode="single" />
-          <ColumnChooser enabled={true} />
-          <Export enabled={true} />
-
-          <MasterDetail enabled={true} component={renderDetail} />
-
-          <Toolbar>
-            <Item name="searchPanel" location="before" />
-            <Item name="exportButton" location="after" />
-            <Item name="columnChooserButton" location="after" />
-          </Toolbar>
-
-          <Column dataField="entryNumber" caption="เลขที่รายการ" width={160} />
-          <Column dataField="entryDate" caption="วันที่" dataType="date" width={110} />
-          <Column
-            dataField="sourceType"
-            caption="ประเภท"
-            width={110}
-            cellRender={sourceTypeCellRender}
-          />
-          <Column dataField="description" caption="รายละเอียด" minWidth={200} />
-          <Column
-            dataField="totalDebit"
-            caption="เดบิต"
-            dataType="number"
-            width={120}
-            alignment="right"
-          >
-            <Format type="fixedPoint" precision={2} />
-          </Column>
-          <Column
-            dataField="totalCredit"
-            caption="เครดิต"
-            dataType="number"
-            width={120}
-            alignment="right"
-          >
-            <Format type="fixedPoint" precision={2} />
-          </Column>
-          <Column
-            dataField="status"
-            caption="สถานะ"
-            width={100}
-            cellRender={statusCellRender}
-          />
-          <Column
-            caption="การดำเนินการ"
-            width={100}
-            cellRender={actionsCellRender}
-            allowFiltering={false}
-            allowSorting={false}
-          />
-
-          <Summary>
-            <TotalItem column="totalDebit" summaryType="sum" displayFormat="รวม: {0}">
-              <Format type="fixedPoint" precision={2} />
-            </TotalItem>
-            <TotalItem column="totalCredit" summaryType="sum" displayFormat="รวม: {0}">
-              <Format type="fixedPoint" precision={2} />
-            </TotalItem>
-          </Summary>
-          </DataGrid>
-        </div>
-      </div>
-
-      {/* Add Entry Dialog */}
-      <Popup
-        visible={isDialogOpen}
-        onHiding={handleCloseDialog}
-        title="เพิ่มรายการบันทึกบัญชี"
-        width={1100}
-        height="auto"
-        showCloseButton={true}
-        dragEnabled={true}
-      >
-        <div className="p-4">
-          <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
-            <GroupItem colCount={3}>
-              <SimpleItem
-                dataField="entryDate"
-                editorType="dxDateBox"
-                label={{ text: 'วันที่' }}
-                editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
-              >
-                <RequiredRule message="กรุณาเลือกวันที่" />
-              </SimpleItem>
-              <SimpleItem
-                dataField="referenceNumber"
-                label={{ text: 'เลขที่อ้างอิง' }}
-                editorOptions={{ placeholder: 'เลขที่เอกสารอ้างอิง (ถ้ามี)' }}
-              />
-              <SimpleItem
-                dataField="description"
-                label={{ text: 'รายละเอียด' }}
-                editorOptions={{ placeholder: 'คำอธิบายรายการ' }}
-              />
-            </GroupItem>
-          </Form>
-
-          {/* Line Items */}
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-semibold">รายการบัญชี</h3>
-              <Button text="เพิ่มบรรทัด" icon="plus" type="default" onClick={addLine} />
-            </div>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-2 text-left">บัญชี</th>
-                  <th className="border p-2 text-left" style={{ width: 160 }}>
-                    ศูนย์ต้นทุน
-                  </th>
-                  <th className="border p-2 text-left" style={{ width: 180 }}>
-                    รายละเอียด
-                  </th>
-                  <th className="border p-2 text-right" style={{ width: 120 }}>
-                    เดบิต
-                  </th>
-                  <th className="border p-2 text-right" style={{ width: 120 }}>
-                    เครดิต
-                  </th>
-                  <th className="border p-2" style={{ width: 50 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {formData.lines.map((line, index) => (
-                  <tr key={index}>
-                    <td className="border p-1">
-                      <select
-                        className="w-full p-1 border rounded"
-                        value={line.glAccountId || ''}
-                        onChange={(e) =>
-                          updateLine(index, 'glAccountId', e.target.value ? Number(e.target.value) : null)
-                        }
-                      >
-                        <option value="">เลือกบัญชี</option>
-                        {glAccounts.map((acc) => (
-                          <option key={acc.id} value={acc.id}>
-                            {acc.code} - {acc.nameTh}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="border p-1">
-                      <select
-                        className="w-full p-1 border rounded"
-                        value={line.costCenterId || ''}
-                        onChange={(e) =>
-                          updateLine(index, 'costCenterId', e.target.value ? Number(e.target.value) : null)
-                        }
-                      >
-                        <option value="">- ไม่ระบุ -</option>
-                        {costCenters.map((cc) => (
-                          <option key={cc.id} value={cc.id}>
-                            {cc.code} - {cc.name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="border p-1">
-                      <input
-                        type="text"
-                        className="w-full p-1 border rounded"
-                        value={line.description}
-                        onChange={(e) => updateLine(index, 'description', e.target.value)}
-                        placeholder="รายละเอียด"
-                      />
-                    </td>
-                    <td className="border p-1">
-                      <input
-                        type="number"
-                        className="w-full p-1 border rounded text-right"
-                        value={line.debit || ''}
-                        onChange={(e) =>
-                          updateLine(index, 'debit', Number(e.target.value) || 0)
-                        }
-                        onFocus={() => line.credit > 0 && updateLine(index, 'credit', 0)}
-                        min={0}
-                      />
-                    </td>
-                    <td className="border p-1">
-                      <input
-                        type="number"
-                        className="w-full p-1 border rounded text-right"
-                        value={line.credit || ''}
-                        onChange={(e) =>
-                          updateLine(index, 'credit', Number(e.target.value) || 0)
-                        }
-                        onFocus={() => line.debit > 0 && updateLine(index, 'debit', 0)}
-                        min={0}
-                      />
-                    </td>
-                    <td className="border p-1 text-center">
-                      {formData.lines.length > 2 && (
-                        <Button icon="trash" type="danger" stylingMode="text" onClick={() => removeLine(index)} />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className={`${isBalanced ? 'bg-green-50' : 'bg-red-50'}`}>
-                  <td colSpan={3} className="border p-2 text-right font-bold">
-                    รวม
-                  </td>
-                  <td className="border p-2 text-right font-bold">
-                    {totalDebit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="border p-2 text-right font-bold">
-                    {totalCredit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="border"></td>
-                </tr>
-                <tr>
-                  <td colSpan={6} className="border p-2 text-center">
-                    {isBalanced ? (
-                      <span className="text-green-600">ยอดเดบิตและเครดิตเท่ากัน</span>
-                    ) : (
-                      <span className="text-red-600">
-                        ผลต่าง: {Math.abs(totalDebit - totalCredit).toLocaleString('th-TH', {
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          {/* Dialog Actions */}
-          <div className="mt-6 flex justify-end gap-2">
-            <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
-            <Button
-              text="บันทึก"
-              type="success"
-              onClick={handleSave}
-              disabled={createMutation.isPending || !isBalanced}
+        {/* Data Grid wrapped in Card */}
+        <Card>
+          <CardContent className="p-0" data-testid="journal-entries-grid">
+            <DataGrid
+              dataSource={entries}
+              keyExpr="id"
+              showBorders={false}
+              showRowLines={true}
+              showColumnLines={false}
+              rowAlternationEnabled={true}
+              allowColumnReordering={true}
+              allowColumnResizing={true}
+              columnAutoWidth={true}
+              wordWrapEnabled={true}
+              hoverStateEnabled={true}
+              onRowClick={handleRowClick}
+              className="min-h-[400px]"
+            >
+            <Paging defaultPageSize={20} />
+            <Pager
+              visible={true}
+              showPageSizeSelector={true}
+              allowedPageSizes={[10, 20, 50]}
+              showInfo={true}
             />
-          </div>
-        </div>
-      </Popup>
+            <FilterRow visible={true} />
+            <HeaderFilter visible={true} />
+            <SearchPanel visible={true} placeholder="ค้นหา..." />
+            <Sorting mode="multiple" />
+            <Selection mode="single" />
+            <ColumnChooser enabled={true} />
+            <Export enabled={true} />
+
+            <MasterDetail enabled={true} component={renderDetail} />
+
+            <Toolbar>
+              <Item name="searchPanel" location="before" />
+              <Item name="exportButton" location="after" />
+              <Item name="columnChooserButton" location="after" />
+            </Toolbar>
+
+            <Column dataField="entryNumber" caption="เลขที่รายการ" width={160} />
+            <Column dataField="entryDate" caption="วันที่" dataType="date" width={110} />
+            <Column
+              dataField="sourceType"
+              caption="ประเภท"
+              width={110}
+              cellRender={sourceTypeCellRender}
+            />
+            <Column dataField="description" caption="รายละเอียด" minWidth={200} />
+            <Column
+              dataField="totalDebit"
+              caption="เดบิต"
+              dataType="number"
+              width={120}
+              alignment="right"
+            >
+              <Format type="fixedPoint" precision={2} />
+            </Column>
+            <Column
+              dataField="totalCredit"
+              caption="เครดิต"
+              dataType="number"
+              width={120}
+              alignment="right"
+            >
+              <Format type="fixedPoint" precision={2} />
+            </Column>
+            <Column
+              dataField="status"
+              caption="สถานะ"
+              width={100}
+              cellRender={statusCellRender}
+            />
+            <Column
+              caption="การดำเนินการ"
+              width={120}
+              cellRender={actionsCellRender}
+              allowFiltering={false}
+              allowSorting={false}
+              alignment="center"
+            />
+
+            <Summary>
+              <TotalItem column="totalDebit" summaryType="sum" displayFormat="รวม: {0}">
+                <Format type="fixedPoint" precision={2} />
+              </TotalItem>
+              <TotalItem column="totalCredit" summaryType="sum" displayFormat="รวม: {0}">
+                <Format type="fixedPoint" precision={2} />
+              </TotalItem>
+            </Summary>
+            </DataGrid>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import JournalEntriesPage from '@/app/accounting/journal-entries/page';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// Mock Next.js navigation
+const mockRouter = {
+  push: vi.fn(),
+  back: vi.fn(),
+  forward: vi.fn(),
+  refresh: vi.fn(),
+  replace: vi.fn(),
+  prefetch: vi.fn(),
+};
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => mockRouter,
+  usePathname: () => '/accounting/journal-entries',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 // Mock DevExtreme dialog
 vi.mock('devextreme/ui/dialog', () => ({
   confirm: vi.fn(() => Promise.resolve(true)),
@@ -632,12 +648,14 @@ describe('JournalEntriesPage', () => {
       });
     });
 
-    it('fetches GL accounts for the form', async () => {
+    it('navigates to new entry page when add button is clicked', async () => {
       render(<JournalEntriesPage />, { wrapper: createWrapper() });
 
+      // The list page no longer fetches GL accounts directly
+      // It navigates to the new page where the form fetches GL accounts
       await waitFor(() => {
         expect(fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/accounting/gl-accounts'),
+          expect.stringContaining('/api/accounting/journal-entries'),
         );
       });
     });
