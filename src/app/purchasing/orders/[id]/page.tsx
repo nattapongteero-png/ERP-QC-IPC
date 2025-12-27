@@ -16,12 +16,14 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
 import {
-  ArrowLeft, Printer, Send, Package, DollarSign,
+  Send, Package, DollarSign,
   Clock, CheckCircle, AlertCircle, Truck, FileText,
-  Building2, User, Phone, Mail, Warehouse, Calendar,
-  Hash, Scale, Tag, Edit2, Save, X, Plus, Trash2,
-  RefreshCw, PackageCheck, XCircle, FileCheck,
+  Building2, User, Phone, Mail,
+  Edit2, Trash2,
+  PackageCheck, XCircle, FileCheck,
 } from 'lucide-react';
+import { DocumentAttachment } from '@/components/ui/document-attachment';
+import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
 
 interface WarehouseItem {
   id: number;
@@ -231,6 +233,9 @@ export default function PurchaseOrderDetailPage() {
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+
+  // Audit log dialog
+  const [showAuditLog, setShowAuditLog] = useState(false);
 
   const fetchPODetail = useCallback(async () => {
     try {
@@ -750,6 +755,13 @@ export default function PurchaseOrderDetailPage() {
                 onClick={() => fetchPODetail()}
               />
               <DxButton
+                icon="clock"
+                type="normal"
+                stylingMode="outlined"
+                hint="ประวัติการเปลี่ยนแปลง"
+                onClick={() => setShowAuditLog(true)}
+              />
+              <DxButton
                 text="พิมพ์"
                 icon="print"
                 type="normal"
@@ -1043,6 +1055,14 @@ export default function PurchaseOrderDetailPage() {
                   </Card>
                 </div>
 
+                {/* Document Attachments */}
+                <DocumentAttachment
+                  moduleName="purchase-orders"
+                  entityId={po.id}
+                  title="เอกสารแนบ"
+                  categories={['quotation', 'invoice', 'delivery_note', 'coa', 'purchase_contract', 'certificate', 'other']}
+                />
+
                 {/* Audit Info */}
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-500 pt-4 border-t">
                   <span>สร้างเมื่อ: {formatDateTime(po.createdAt)}</span>
@@ -1310,6 +1330,25 @@ export default function PurchaseOrderDetailPage() {
             )}
           </div>
         </DxPopup>
+
+        {/* Audit Log Dialog */}
+        <AuditLogViewerDialog
+          entityType="purchaseOrders"
+          entityId={po.id}
+          visible={showAuditLog}
+          onClose={() => setShowAuditLog(false)}
+          title={`ประวัติการเปลี่ยนแปลง: ${po.poNumber}`}
+          fieldLabels={{
+            vendorId: 'ผู้ขาย',
+            status: 'สถานะ',
+            orderDate: 'วันที่สั่งซื้อ',
+            expectedDate: 'วันที่คาดว่าจะได้รับ',
+            paymentTerms: 'เงื่อนไขการชำระ',
+            shippingAddress: 'ที่อยู่จัดส่ง',
+            notes: 'หมายเหตุ',
+            totalAmount: 'ยอดรวม',
+          }}
+        />
       </div>
     </MainLayout>
   );
