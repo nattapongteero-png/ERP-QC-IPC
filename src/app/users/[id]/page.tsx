@@ -394,6 +394,7 @@ export default function UserDetailPage() {
               type="normal"
               stylingMode="outlined"
               hint="กลับ"
+              data-testid="user-detail-back-btn"
               onClick={() => router.push('/users')}
             />
             <div className="flex items-center gap-4">
@@ -488,6 +489,7 @@ export default function UserDetailPage() {
                         value={editForm.name}
                         onValueChange={(value) => setEditForm({ ...editForm, name: value })}
                         placeholder="กรอกชื่อ-นามสกุล"
+                        data-testid="user-edit-name-input"
                       />
                     ) : (
                       <p className="text-gray-900 font-medium">{user.name}</p>
@@ -506,6 +508,7 @@ export default function UserDetailPage() {
                         onValueChange={(value) => setEditForm({ ...editForm, email: value })}
                         placeholder="กรอกอีเมล"
                         mode="email"
+                        data-testid="user-edit-email-input"
                       />
                     ) : (
                       <p className="text-gray-900">{user.email}</p>
@@ -525,6 +528,7 @@ export default function UserDetailPage() {
                         onValueChange={(value) => setEditForm({ ...editForm, role: value })}
                         valueExpr="value"
                         displayExpr="label"
+                        data-testid="user-edit-role-select"
                       />
                     ) : (
                       <div className="flex items-center gap-2">
@@ -550,6 +554,7 @@ export default function UserDetailPage() {
                         valueExpr="value"
                         displayExpr="label"
                         searchEnabled
+                        data-testid="user-edit-department-select"
                       />
                     ) : (
                       <p className="text-gray-900">{user.department || '-'}</p>
@@ -597,6 +602,7 @@ export default function UserDetailPage() {
                             onValueChange={(value) => setPasswordForm({ ...passwordForm, newPassword: value })}
                             placeholder="กรอกรหัสผ่านใหม่"
                             mode={showPassword ? 'text' : 'password'}
+                            data-testid="user-detail-new-password-input"
                           />
                           <button
                             type="button"
@@ -615,6 +621,7 @@ export default function UserDetailPage() {
                           onValueChange={(value) => setPasswordForm({ ...passwordForm, confirmPassword: value })}
                           placeholder="กรอกรหัสผ่านอีกครั้ง"
                           mode={showPassword ? 'text' : 'password'}
+                          data-testid="user-detail-confirm-password-input"
                         />
                       </div>
                     </div>
@@ -624,6 +631,7 @@ export default function UserDetailPage() {
                         text="ยกเลิก"
                         type="normal"
                         stylingMode="outlined"
+                        data-testid="user-detail-password-cancel-btn"
                         onClick={() => {
                           setShowPasswordSection(false);
                           setPasswordForm({ newPassword: '', confirmPassword: '' });
@@ -634,6 +642,7 @@ export default function UserDetailPage() {
                         text="เปลี่ยนรหัสผ่าน"
                         type="success"
                         icon="save"
+                        data-testid="user-detail-password-save-btn"
                         onClick={handlePasswordChange}
                         disabled={isSaving || !passwordForm.newPassword}
                       />
@@ -674,6 +683,7 @@ export default function UserDetailPage() {
                     text={user.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
                     type={user.isActive ? 'danger' : 'success'}
                     stylingMode="outlined"
+                    data-testid="user-detail-toggle-status-btn"
                     onClick={handleToggleStatus}
                     disabled={isSaving}
                   />
@@ -732,6 +742,7 @@ export default function UserDetailPage() {
                   icon="trash"
                   type="danger"
                   stylingMode="outlined"
+                  data-testid="user-detail-delete-btn"
                   onClick={() => setShowDeleteConfirm(true)}
                   width="100%"
                 />
