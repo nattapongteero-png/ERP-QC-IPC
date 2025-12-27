@@ -335,6 +335,132 @@ export function JournalEntryForm({
     return Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
   }, [totalDebit, totalCredit]);
 
+  // Compute line-level validation errors
+  const getLineValidationError = React.useCallback((line: FormData['lines'][0]): string | null => {
+    // Check if line has both debit and credit
+    if (line.debit > 0 && line.credit > 0) {
+      return 'ต้องเป็นเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง';
+    }
+    // Check if line has amount but no account
+    if ((line.debit > 0 || line.credit > 0) && !line.glAccountId) {
+      return 'กรุณาเลือกบัญชี';
+    }
+    // Check if line has account but no amount
+    if (line.glAccountId && line.debit === 0 && line.credit === 0) {
+      return 'กรุณาระบุยอดเงิน';
+    }
+    return null;
+  }, []);
+
+  // Check if the entry is valid for submission
+  const isValidForSubmit = React.useMemo(() => {
+    const validLines = formData.lines.filter(
+      (l) => l.glAccountId && (l.debit > 0 || l.credit > 0) && !(l.debit > 0 && l.credit > 0)
+    );
+    return validLines.length >= 2 &&
+      validLines.some((l) => l.debit > 0) &&
+      validLines.some((l) => l.credit > 0) &&
+      isBalanced;
+  }, [formData.lines, isBalanced]);
+
+  // Detect duplicate accounts on the same side (debit or credit)
+  const getDuplicateAccountWarnings = React.useCallback((): string[] => {
+    const warnings: string[] = [];
+    const debitAccounts: Record<number, number> = {};
+    const creditAccounts: Record<number, number> = {};
+
+    formData.lines.forEach((line) => {
+      if (line.glAccountId) {
+        if (line.debit > 0) {
+          debitAccounts[line.glAccountId] = (debitAccounts[line.glAccountId] || 0) + 1;
+        }
+        if (line.credit > 0) {
+          creditAccounts[line.glAccountId] = (creditAccounts[line.glAccountId] || 0) + 1;
+        }
+      }
+    });
+
+    // Find accounts used more than once on debit side
+    Object.entries(debitAccounts).forEach(([accountId, count]) => {
+      if (count > 1) {
+        const account = glAccounts.find((a) => a.id === Number(accountId));
+        if (account) {
+          warnings.push(`บัญชี "${account.code} - ${account.nameTh}" ถูกใช้ฝั่งเดบิต ${count} ครั้ง`);
+        }
+      }
+    });
+
+    // Find accounts used more than once on credit side
+    Object.entries(creditAccounts).forEach(([accountId, count]) => {
+      if (count > 1) {
+        const account = glAccounts.find((a) => a.id === Number(accountId));
+        if (account) {
+          warnings.push(`บัญชี "${account.code} - ${account.nameTh}" ถูกใช้ฝั่งเครดิต ${count} ครั้ง`);
+        }
+      }
+    });
+
+    return warnings;
+  }, [formData.lines, glAccounts]);
+
+  // Get validation summary
+  const validationSummary = React.useMemo(() => {
+    const issues: { type: 'error' | 'warning'; message: string }[] = [];
+
+    // Check for required entry date
+    if (!formData.entryDate) {
+      issues.push({ type: 'error', message: 'กรุณาระบุวันที่บันทึก' });
+    }
+
+    // Check for valid lines
+    const validLines = formData.lines.filter(
+      (l) => l.glAccountId && (l.debit > 0 || l.credit > 0) && !(l.debit > 0 && l.credit > 0)
+    );
+
+    if (validLines.length < 2) {
+      issues.push({ type: 'error', message: 'ต้องมีรายการที่ถูกต้องอย่างน้อย 2 รายการ' });
+    }
+
+    // Check for debit lines
+    if (!validLines.some((l) => l.debit > 0)) {
+      issues.push({ type: 'error', message: 'ต้องมีรายการเดบิตอย่างน้อย 1 รายการ' });
+    }
+
+    // Check for credit lines
+    if (!validLines.some((l) => l.credit > 0)) {
+      issues.push({ type: 'error', message: 'ต้องมีรายการเครดิตอย่างน้อย 1 รายการ' });
+    }
+
+    // Check balance
+    if (!isBalanced && totalDebit > 0) {
+      issues.push({
+        type: 'error',
+        message: `ยอดไม่สมดุล (ผลต่าง: ${Math.abs(totalDebit - totalCredit).toLocaleString('th-TH', { minimumFractionDigits: 2 })})`
+      });
+    }
+
+    // Add duplicate account warnings
+    getDuplicateAccountWarnings().forEach((warning) => {
+      issues.push({ type: 'warning', message: warning });
+    });
+
+    // Check for lines with both debit and credit
+    const linesWithBoth = formData.lines.filter((l) => l.debit > 0 && l.credit > 0);
+    if (linesWithBoth.length > 0) {
+      issues.push({ type: 'error', message: `${linesWithBoth.length} รายการมีทั้งเดบิตและเครดิต` });
+    }
+
+    // Check for lines without account but with amounts
+    const linesWithoutAccount = formData.lines.filter(
+      (l) => !l.glAccountId && (l.debit > 0 || l.credit > 0)
+    );
+    if (linesWithoutAccount.length > 0) {
+      issues.push({ type: 'error', message: `${linesWithoutAccount.length} รายการไม่ได้ระบุบัญชี` });
+    }
+
+    return issues;
+  }, [formData.entryDate, formData.lines, isBalanced, totalDebit, totalCredit, getDuplicateAccountWarnings]);
+
   // Line handlers
   const addLine = React.useCallback(() => {
     setFormData((prev) => ({
@@ -360,6 +486,29 @@ export function JournalEntryForm({
   }, []);
 
   const handleSubmit = () => {
+    // Validate entry date
+    if (!formData.entryDate) {
+      notify('กรุณาระบุวันที่บันทึก', 'error', 3000);
+      return;
+    }
+
+    // Check for lines with both debit AND credit
+    const linesWithBoth = formData.lines.filter((l) => l.debit > 0 && l.credit > 0);
+    if (linesWithBoth.length > 0) {
+      notify('รายการต้องเป็นเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง ไม่ใช่ทั้งสอง', 'error', 3000);
+      return;
+    }
+
+    // Check for lines without account selected but have amounts
+    const linesWithoutAccount = formData.lines.filter(
+      (l) => !l.glAccountId && (l.debit > 0 || l.credit > 0)
+    );
+    if (linesWithoutAccount.length > 0) {
+      notify('กรุณาระบุบัญชีสำหรับทุกรายการที่มียอดเงิน', 'error', 3000);
+      return;
+    }
+
+    // Get valid lines (have account and have either debit or credit)
     const validLines = formData.lines
       .filter((l) => l.glAccountId && (l.debit > 0 || l.credit > 0))
       .map((l) => ({
@@ -370,13 +519,30 @@ export function JournalEntryForm({
         costCenterId: l.costCenterId,
       }));
 
+    // Must have at least 2 valid lines
     if (validLines.length < 2) {
-      notify('กรุณาเพิ่มรายการอย่างน้อย 2 รายการ', 'warning', 3000);
+      notify('กรุณาเพิ่มรายการอย่างน้อย 2 รายการ (ต้องมีทั้งเดบิตและเครดิต)', 'warning', 3000);
       return;
     }
 
+    // Check that we have at least one debit line
+    const hasDebit = validLines.some((l) => l.debit > 0);
+    if (!hasDebit) {
+      notify('ต้องมีรายการเดบิตอย่างน้อย 1 รายการ', 'error', 3000);
+      return;
+    }
+
+    // Check that we have at least one credit line
+    const hasCredit = validLines.some((l) => l.credit > 0);
+    if (!hasCredit) {
+      notify('ต้องมีรายการเครดิตอย่างน้อย 1 รายการ', 'error', 3000);
+      return;
+    }
+
+    // Check balance
     if (!isBalanced) {
-      notify('ยอดเดบิตและเครดิตไม่เท่ากัน', 'error', 3000);
+      const diff = Math.abs(totalDebit - totalCredit);
+      notify(`ยอดเดบิตและเครดิตไม่เท่ากัน (ผลต่าง: ${diff.toLocaleString('th-TH', { minimumFractionDigits: 2 })})`, 'error', 3000);
       return;
     }
 
@@ -603,9 +769,16 @@ export function JournalEntryForm({
                     </tr>
                   </thead>
                   <tbody data-testid="je-lines-body">
-                    {formData.lines.map((line, index) => (
-                      <tr key={index} className="hover:bg-gray-50" data-testid={`je-line-row-${index}`}>
-                        <td className="border border-gray-200 p-1" data-testid={`je-line-account-${index}`}>
+                    {formData.lines.map((line, index) => {
+                      const lineError = getLineValidationError(line);
+                      return (
+                      <tr
+                        key={index}
+                        className={`hover:bg-gray-50 ${lineError ? 'bg-red-50' : ''}`}
+                        data-testid={`je-line-row-${index}`}
+                        title={lineError || undefined}
+                      >
+                        <td className={`border p-1 ${lineError ? 'border-red-300' : 'border-gray-200'}`} data-testid={`je-line-account-${index}`}>
                           <SelectBox
                             dataSource={glAccounts}
                             displayExpr={(item) => item ? `${item.code} - ${item.nameTh}` : ''}
@@ -618,7 +791,7 @@ export function JournalEntryForm({
                             readOnly={isReadOnly}
                           />
                         </td>
-                        <td className="border border-gray-200 p-1" data-testid={`je-line-cost-center-${index}`}>
+                        <td className={`border p-1 ${lineError ? 'border-red-300' : 'border-gray-200'}`} data-testid={`je-line-cost-center-${index}`}>
                           <SelectBox
                             dataSource={costCenters}
                             displayExpr={(item) => item ? `${item.code} - ${item.name}` : ''}
@@ -631,7 +804,7 @@ export function JournalEntryForm({
                             readOnly={isReadOnly}
                           />
                         </td>
-                        <td className="border border-gray-200 p-1" data-testid={`je-line-description-${index}`}>
+                        <td className={`border p-1 ${lineError ? 'border-red-300' : 'border-gray-200'}`} data-testid={`je-line-description-${index}`}>
                           <TextBox
                             value={line.description}
                             onValueChanged={(e) => updateLine(index, 'description', e.value || '')}
@@ -639,7 +812,7 @@ export function JournalEntryForm({
                             readOnly={isReadOnly}
                           />
                         </td>
-                        <td className="border border-gray-200 p-1" data-testid={`je-line-debit-${index}`}>
+                        <td className={`border p-1 ${lineError ? 'border-red-300' : 'border-gray-200'}`} data-testid={`je-line-debit-${index}`}>
                           <NumberBox
                             value={line.debit || 0}
                             onValueChanged={(e) => updateLine(index, 'debit', e.value || 0)}
@@ -649,7 +822,7 @@ export function JournalEntryForm({
                             readOnly={isReadOnly}
                           />
                         </td>
-                        <td className="border border-gray-200 p-1" data-testid={`je-line-credit-${index}`}>
+                        <td className={`border p-1 ${lineError ? 'border-red-300' : 'border-gray-200'}`} data-testid={`je-line-credit-${index}`}>
                           <NumberBox
                             value={line.credit || 0}
                             onValueChanged={(e) => updateLine(index, 'credit', e.value || 0)}
@@ -674,7 +847,8 @@ export function JournalEntryForm({
                           </td>
                         )}
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                   <tfoot data-testid="je-lines-footer">
                     <tr className={`font-bold ${isBalanced ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -713,6 +887,32 @@ export function JournalEntryForm({
 
         {/* Sidebar - 1/4 width */}
         <div className="space-y-6">
+          {/* Validation Summary - show when there are issues */}
+          {!isReadOnly && validationSummary.length > 0 && (
+            <Card className="border-red-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-red-700">ตรวจสอบข้อมูล</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  {validationSummary.map((issue, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-start gap-2 ${
+                        issue.type === 'error' ? 'text-red-600' : 'text-amber-600'
+                      }`}
+                    >
+                      <span className="mt-0.5">
+                        {issue.type === 'error' ? '✗' : '⚠'}
+                      </span>
+                      <span>{issue.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Entry Info - only show in edit mode */}
           {mode === 'edit' && existingEntry && (
             <Card>

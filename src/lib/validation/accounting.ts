@@ -238,13 +238,24 @@ export const fiscalPeriodQuerySchema = z.object({
 // Journal Entry Schemas
 // ============================================
 
-export const journalLineCreateSchema = z.object({
-  glAccountId: positiveIntSchema.describe('กรุณาเลือกบัญชี'),
-  debit: currencyAmountSchema.default(0),
-  credit: currencyAmountSchema.default(0),
-  description: z.string().max(255).optional().nullable(),
-  costCenterId: positiveIntSchema.optional().nullable(),
-});
+export const journalLineCreateSchema = z
+  .object({
+    glAccountId: positiveIntSchema.describe('กรุณาเลือกบัญชี'),
+    debit: currencyAmountSchema.default(0),
+    credit: currencyAmountSchema.default(0),
+    description: z.string().max(255).optional().nullable(),
+    costCenterId: positiveIntSchema.optional().nullable(),
+  })
+  .refine(
+    // Each line must have either debit OR credit, not both
+    (line) => !(line.debit > 0 && line.credit > 0),
+    { message: 'รายการต้องเป็นเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง ไม่ใช่ทั้งสอง' }
+  )
+  .refine(
+    // Each line must have at least one of debit or credit > 0
+    (line) => line.debit > 0 || line.credit > 0,
+    { message: 'รายการต้องมียอดเดบิตหรือเครดิตอย่างน้อยหนึ่งรายการ' }
+  );
 
 export const journalEntryCreateSchema = z
   .object({
@@ -253,33 +264,82 @@ export const journalEntryCreateSchema = z
     description: z.string().max(500).optional().nullable(),
     sourceType: journalSourceTypeSchema.optional().nullable(),
     sourceId: positiveIntSchema.optional().nullable(),
+    referenceNumber: z.string().max(50).optional().nullable(),
     lines: z
       .array(journalLineCreateSchema)
       .min(2, 'รายการบันทึกต้องมีอย่างน้อย 2 บรรทัด'),
   })
   .refine(
+    // Must have at least one debit line
+    (data) => data.lines.some((line) => line.debit > 0),
+    { message: 'ต้องมีรายการเดบิตอย่างน้อย 1 รายการ' }
+  )
+  .refine(
+    // Must have at least one credit line
+    (data) => data.lines.some((line) => line.credit > 0),
+    { message: 'ต้องมีรายการเครดิตอย่างน้อย 1 รายการ' }
+  )
+  .refine(
+    // Total debit must equal total credit
     (data) => {
       const totalDebit = data.lines.reduce((sum, line) => sum + (line.debit || 0), 0);
       const totalCredit = data.lines.reduce((sum, line) => sum + (line.credit || 0), 0);
       return Math.abs(totalDebit - totalCredit) < 0.01; // Allow small rounding difference
     },
-    { message: 'ยอดเดบิตและเครดิตต้องเท่ากัน' }
+    {
+      message: 'ยอดเดบิตและเครดิตต้องเท่ากัน',
+      path: ['lines'], // Show error at lines level
+    }
+  )
+  .refine(
+    // All accounts must be specified
+    (data) => data.lines.every((line) => line.glAccountId && line.glAccountId > 0),
+    { message: 'ทุกรายการต้องระบุบัญชี' }
   );
 
 export const journalEntryUpdateSchema = z
   .object({
     entryDate: optionalDateStringSchema,
     description: z.string().max(500).optional().nullable(),
+    referenceNumber: z.string().max(50).optional().nullable(),
     lines: z.array(journalLineCreateSchema).min(2).optional(),
   })
   .refine(
+    // Must have at least one debit line if lines provided
+    (data) => {
+      if (!data.lines) return true;
+      return data.lines.some((line) => line.debit > 0);
+    },
+    { message: 'ต้องมีรายการเดบิตอย่างน้อย 1 รายการ' }
+  )
+  .refine(
+    // Must have at least one credit line if lines provided
+    (data) => {
+      if (!data.lines) return true;
+      return data.lines.some((line) => line.credit > 0);
+    },
+    { message: 'ต้องมีรายการเครดิตอย่างน้อย 1 รายการ' }
+  )
+  .refine(
+    // Total debit must equal total credit if lines provided
     (data) => {
       if (!data.lines) return true;
       const totalDebit = data.lines.reduce((sum, line) => sum + (line.debit || 0), 0);
       const totalCredit = data.lines.reduce((sum, line) => sum + (line.credit || 0), 0);
       return Math.abs(totalDebit - totalCredit) < 0.01;
     },
-    { message: 'ยอดเดบิตและเครดิตต้องเท่ากัน' }
+    {
+      message: 'ยอดเดบิตและเครดิตต้องเท่ากัน',
+      path: ['lines'],
+    }
+  )
+  .refine(
+    // All accounts must be specified if lines provided
+    (data) => {
+      if (!data.lines) return true;
+      return data.lines.every((line) => line.glAccountId && line.glAccountId > 0);
+    },
+    { message: 'ทุกรายการต้องระบุบัญชี' }
   );
 
 export const journalEntryQuerySchema = z.object({

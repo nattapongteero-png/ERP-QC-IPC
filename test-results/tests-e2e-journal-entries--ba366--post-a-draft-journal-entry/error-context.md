@@ -1,0 +1,567 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - generic [ref=e5]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - img [ref=e10]
+          - img [ref=e14]
+        - generic [ref=e17]:
+          - heading "Herbal ERP" [level=1] [ref=e18]
+          - paragraph [ref=e19]: Medicine Management
+      - navigation [ref=e20]:
+        - generic [ref=e21]:
+          - link "Dashboard" [ref=e23] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e25]
+            - generic [ref=e30]: Dashboard
+          - generic [ref=e32]:
+            - button "Inventory" [ref=e33]:
+              - generic [ref=e34]:
+                - img [ref=e36]
+                - generic [ref=e39]: Inventory
+              - img [ref=e40]
+            - generic [ref=e42]:
+              - link "Items" [ref=e43] [cursor=pointer]:
+                - /url: /inventory/items
+                - img [ref=e44]
+                - generic [ref=e54]: Items
+              - link "Lots" [ref=e55] [cursor=pointer]:
+                - /url: /inventory/lots
+                - img [ref=e56]
+                - generic [ref=e60]: Lots
+              - link "Warehouses" [ref=e61] [cursor=pointer]:
+                - /url: /inventory/warehouses
+                - img [ref=e62]
+                - generic [ref=e65]: Warehouses
+              - link "Transactions" [ref=e66] [cursor=pointer]:
+                - /url: /inventory/transactions
+                - img [ref=e67]
+                - generic [ref=e70]: Transactions
+              - link "Expiry Alerts" [ref=e71] [cursor=pointer]:
+                - /url: /inventory/expiry-alerts
+                - img [ref=e72]
+                - generic [ref=e74]: Expiry Alerts
+          - generic [ref=e76]:
+            - button "Production" [ref=e77]:
+              - generic [ref=e78]:
+                - img [ref=e80]
+                - generic [ref=e82]: Production
+              - img [ref=e83]
+            - generic [ref=e85]:
+              - link "BOM/Recipes" [ref=e86] [cursor=pointer]:
+                - /url: /production/bom
+                - img [ref=e87]
+                - generic [ref=e90]: BOM/Recipes
+              - link "Work Orders" [ref=e91] [cursor=pointer]:
+                - /url: /production/work-orders
+                - img [ref=e92]
+                - generic [ref=e95]: Work Orders
+              - link "Batch Records" [ref=e96] [cursor=pointer]:
+                - /url: /production/batch-records
+                - img [ref=e97]
+                - generic [ref=e100]: Batch Records
+              - link "Master Data" [ref=e101] [cursor=pointer]:
+                - /url: /master-data
+                - img [ref=e102]
+                - generic [ref=e105]: Master Data
+          - generic [ref=e107]:
+            - button "Quality" [ref=e108]:
+              - generic [ref=e109]:
+                - img [ref=e111]
+                - generic [ref=e115]: Quality
+              - img [ref=e116]
+            - generic [ref=e118]:
+              - link "Tests" [ref=e119] [cursor=pointer]:
+                - /url: /quality/tests
+                - img [ref=e120]
+                - generic [ref=e122]: Tests
+              - link "Specifications" [ref=e123] [cursor=pointer]:
+                - /url: /quality/specs
+                - img [ref=e124]
+                - generic [ref=e127]: Specifications
+              - link "Deviations" [ref=e128] [cursor=pointer]:
+                - /url: /quality/deviations
+                - img [ref=e129]
+                - generic [ref=e131]: Deviations
+          - generic [ref=e133]:
+            - button "GMP Compliance" [ref=e134]:
+              - generic [ref=e135]:
+                - img [ref=e137]
+                - generic [ref=e139]: GMP Compliance
+              - img [ref=e140]
+            - generic [ref=e142]:
+              - link "Documents" [ref=e143] [cursor=pointer]:
+                - /url: /gmp/documents
+                - img [ref=e144]
+                - generic [ref=e149]: Documents
+              - link "CAPA" [ref=e150] [cursor=pointer]:
+                - /url: /gmp/capa
+                - img [ref=e151]
+                - generic [ref=e155]: CAPA
+              - link "Complaints" [ref=e156] [cursor=pointer]:
+                - /url: /gmp/complaints
+                - img [ref=e157]
+                - generic [ref=e159]: Complaints
+              - link "Recalls" [ref=e160] [cursor=pointer]:
+                - /url: /gmp/recalls
+                - img [ref=e161]
+                - generic [ref=e164]: Recalls
+              - link "Sanitation" [ref=e165] [cursor=pointer]:
+                - /url: /gmp/sanitation
+                - img [ref=e166]
+                - generic [ref=e169]: Sanitation
+              - link "Stability" [ref=e170] [cursor=pointer]:
+                - /url: /gmp/stability
+                - img [ref=e171]
+                - generic [ref=e173]: Stability
+              - link "Internal Audit" [ref=e174] [cursor=pointer]:
+                - /url: /gmp/internal-audit
+                - img [ref=e175]
+                - generic [ref=e178]: Internal Audit
+              - link "Contracts" [ref=e179] [cursor=pointer]:
+                - /url: /gmp/contracts
+                - img [ref=e180]
+                - generic [ref=e183]: Contracts
+              - link "PQR" [ref=e184] [cursor=pointer]:
+                - /url: /gmp/pqr
+                - img [ref=e185]
+                - generic [ref=e187]: PQR
+          - generic [ref=e189]:
+            - button "Purchasing" [ref=e190]:
+              - generic [ref=e191]:
+                - img [ref=e193]
+                - generic [ref=e197]: Purchasing
+              - img [ref=e198]
+            - generic [ref=e200]:
+              - link "Purchase Orders" [ref=e201] [cursor=pointer]:
+                - /url: /purchasing/orders
+                - img [ref=e202]
+                - generic [ref=e205]: Purchase Orders
+              - link "Vendors" [ref=e206] [cursor=pointer]:
+                - /url: /purchasing/vendors
+                - img [ref=e207]
+                - generic [ref=e211]: Vendors
+          - generic [ref=e213]:
+            - button "Sales" [ref=e214]:
+              - generic [ref=e215]:
+                - img [ref=e217]
+                - generic [ref=e222]: Sales
+              - img [ref=e223]
+            - generic [ref=e225]:
+              - link "Sales Orders" [ref=e226] [cursor=pointer]:
+                - /url: /sales/orders
+                - img [ref=e227]
+                - generic [ref=e230]: Sales Orders
+              - link "VMI Orders" [ref=e231] [cursor=pointer]:
+                - /url: /sales/vmi-orders
+                - img [ref=e232]
+                - generic [ref=e238]: VMI Orders
+              - link "Customers" [ref=e239] [cursor=pointer]:
+                - /url: /sales/customers
+                - img [ref=e240]
+                - generic [ref=e244]: Customers
+          - generic [ref=e246]:
+            - button "Accounting" [ref=e247]:
+              - generic [ref=e248]:
+                - img [ref=e250]
+                - generic [ref=e252]: Accounting
+              - img [ref=e253]
+            - generic [ref=e256]:
+              - link "Dashboard" [ref=e257] [cursor=pointer]:
+                - /url: /accounting
+                - img [ref=e258]
+                - generic [ref=e263]: Dashboard
+              - link "Chart of Accounts" [ref=e264] [cursor=pointer]:
+                - /url: /accounting/chart-of-accounts
+                - img [ref=e265]
+                - generic [ref=e267]: Chart of Accounts
+              - link "Journal Entries" [ref=e268] [cursor=pointer]:
+                - /url: /accounting/journal-entries
+                - img [ref=e269]
+                - generic [ref=e272]: Journal Entries
+              - link "AP Invoices" [ref=e273] [cursor=pointer]:
+                - /url: /accounting/ap
+                - img [ref=e274]
+                - generic [ref=e277]: AP Invoices
+              - link "AR Invoices" [ref=e278] [cursor=pointer]:
+                - /url: /accounting/ar
+                - img [ref=e279]
+                - generic [ref=e281]: AR Invoices
+              - link "Fixed Assets" [ref=e282] [cursor=pointer]:
+                - /url: /accounting/fixed-assets
+                - img [ref=e283]
+                - generic [ref=e287]: Fixed Assets
+              - link "Equipment" [ref=e288] [cursor=pointer]:
+                - /url: /accounting/equipment
+                - img [ref=e289]
+                - generic [ref=e291]: Equipment
+              - link "Period Close" [ref=e292] [cursor=pointer]:
+                - /url: /accounting/period-close
+                - img [ref=e293]
+                - generic [ref=e296]: Period Close
+              - link "Reports" [ref=e297] [cursor=pointer]:
+                - /url: /accounting/reports
+                - img [ref=e298]
+                - generic [ref=e300]: Reports
+          - generic [ref=e302]:
+            - button "VMI Portal" [ref=e303]:
+              - generic [ref=e304]:
+                - img [ref=e306]
+                - generic [ref=e312]: VMI Portal
+              - img [ref=e313]
+            - generic [ref=e315]:
+              - link "Dashboard" [ref=e316] [cursor=pointer]:
+                - /url: /vmi
+                - img [ref=e317]
+                - generic [ref=e319]: Dashboard
+              - link "Sync" [ref=e320] [cursor=pointer]:
+                - /url: /vmi/sync
+                - img [ref=e321]
+                - generic [ref=e326]: Sync
+              - link "Orders" [ref=e327] [cursor=pointer]:
+                - /url: /sales/vmi-orders
+                - img [ref=e328]
+                - generic [ref=e332]: Orders
+          - generic [ref=e334]:
+            - button "HR" [ref=e335]:
+              - generic [ref=e336]:
+                - img [ref=e338]
+                - generic [ref=e350]: HR
+              - img [ref=e351]
+            - generic [ref=e353]:
+              - link "Organization" [ref=e354] [cursor=pointer]:
+                - /url: /hr/org
+                - img [ref=e355]
+                - generic [ref=e360]: Organization
+              - link "Employees" [ref=e361] [cursor=pointer]:
+                - /url: /hr/employees
+                - img [ref=e362]
+                - generic [ref=e367]: Employees
+              - link "Positions" [ref=e368] [cursor=pointer]:
+                - /url: /hr/positions
+                - img [ref=e369]
+                - generic [ref=e372]: Positions
+              - link "Training" [ref=e373] [cursor=pointer]:
+                - /url: /hr/training
+                - img [ref=e374]
+                - generic [ref=e377]: Training
+              - link "Authorizations" [ref=e378] [cursor=pointer]:
+                - /url: /hr/authorizations
+                - img [ref=e379]
+                - generic [ref=e381]: Authorizations
+              - link "Health Records" [ref=e382] [cursor=pointer]:
+                - /url: /hr/health-records
+                - img [ref=e383]
+                - generic [ref=e386]: Health Records
+              - link "Roles" [ref=e387] [cursor=pointer]:
+                - /url: /hr/roles
+                - img [ref=e388]
+                - generic [ref=e392]: Roles
+              - link "Notifications" [ref=e393] [cursor=pointer]:
+                - /url: /hr/notifications
+                - img [ref=e394]
+                - generic [ref=e397]: Notifications
+              - link "Audit Trail" [ref=e398] [cursor=pointer]:
+                - /url: /hr/audit
+                - img [ref=e399]
+                - generic [ref=e403]: Audit Trail
+          - generic [ref=e405]:
+            - button "Template" [ref=e406]:
+              - generic [ref=e407]:
+                - img [ref=e409]
+                - generic [ref=e414]: Template
+              - img [ref=e415]
+            - generic [ref=e417]:
+              - link "Dashboard" [ref=e418] [cursor=pointer]:
+                - /url: /template
+                - img [ref=e419]
+                - generic [ref=e424]: Dashboard
+              - link "Items" [ref=e425] [cursor=pointer]:
+                - /url: /template/items
+                - img [ref=e426]
+                - generic [ref=e430]: Items
+          - link "Reports" [ref=e432] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e434]
+            - generic [ref=e437]: Reports
+          - link "Users" [ref=e439] [cursor=pointer]:
+            - /url: /users
+            - img [ref=e441]
+            - generic [ref=e446]: Users
+          - link "Settings" [ref=e448] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e450]
+            - generic [ref=e453]: Settings
+      - generic [ref=e455]:
+        - generic [ref=e458]: S
+        - generic [ref=e460]:
+          - paragraph [ref=e461]: System Administrator
+          - paragraph [ref=e462]: admin
+        - button "Logout" [ref=e463]:
+          - img [ref=e464]
+    - main [ref=e468]:
+      - generic [ref=e469]:
+        - generic [ref=e471]:
+          - generic [ref=e472]:
+            - img [ref=e475]
+            - generic [ref=e479]:
+              - heading "รายการบันทึกบัญชี" [level=1] [ref=e480]
+              - paragraph [ref=e481]: Journal Entries
+          - generic [ref=e482]:
+            - button "รีเฟรช" [ref=e483]:
+              - generic [ref=e484]:
+                - img
+                - text: รีเฟรช
+            - button "เพิ่มรายการ" [ref=e486] [cursor=pointer]:
+              - generic [ref=e487]:
+                - generic [ref=e488]: 
+                - generic [ref=e489]: เพิ่มรายการ
+        - generic [ref=e490]:
+          - generic [ref=e491]:
+            - generic [ref=e495]:
+              - generic [ref=e496]:
+                - paragraph [ref=e497]: รายการทั้งหมด
+                - paragraph [ref=e498]: "4"
+              - img [ref=e500]
+            - generic [ref=e506]:
+              - generic [ref=e507]:
+                - paragraph [ref=e508]: ร่าง
+                - paragraph [ref=e509]: "4"
+              - img [ref=e511]
+            - generic [ref=e517]:
+              - generic [ref=e518]:
+                - paragraph [ref=e519]: ผ่านแล้ว
+                - paragraph [ref=e520]: "0"
+              - img [ref=e522]
+            - generic [ref=e528]:
+              - generic [ref=e529]:
+                - paragraph [ref=e530]: กลับรายการ
+                - paragraph [ref=e531]: "0"
+              - img [ref=e533]
+          - generic [ref=e537]:
+            - generic [ref=e538]:
+              - generic [ref=e539]: สถานะ
+              - generic [ref=e542] [cursor=pointer]:
+                - generic [ref=e543]:
+                  - combobox "กรองสถานะ" [ref=e544]: ทั้งหมด
+                  - text: กรองสถานะ
+                - button "Select" [ref=e546]:
+                  - generic [ref=e548]: 
+            - generic [ref=e549]:
+              - generic [ref=e550]: ประเภท
+              - generic [ref=e553] [cursor=pointer]:
+                - generic [ref=e554]:
+                  - combobox "กรองประเภท" [ref=e555]: ทุกประเภท
+                  - text: กรองประเภท
+                - button "Select" [ref=e557]:
+                  - generic [ref=e559]: 
+          - group "ตารางข้อมูล" [ref=e562]:
+            - status [ref=e563]: ตารางข้อมูล
+            - toolbar "Data grid toolbar" [ref=e566]:
+              - generic [ref=e567]:
+                - generic [ref=e571]:
+                  - generic [ref=e572]:
+                    - generic: 
+                    - textbox "ค้นหาในตาราง" [ref=e573]:
+                      - /placeholder: ค้นหา...
+                    - generic: ค้นหา...
+                  - generic: 
+                - button "ส่งออกข้อมูลทั้งหมด" [ref=e576] [cursor=pointer]:
+                  - generic [ref=e578]: 
+                - button "เลือกคอลัมน์" [ref=e581] [cursor=pointer]:
+                  - generic [ref=e583]: 
+                - text: 
+            - row "Column เลขที่รายการ Column วันที่ Column ประเภท Column รายละเอียด Column เดบิต Column เครดิต Column สถานะ Column การดำเนินการ" [ref=e594]:
+              - gridcell [ref=e595]
+              - columnheader "Column เลขที่รายการ" [ref=e596] [cursor=pointer]:
+                - text: เลขที่รายการ
+                - button "Show filter options for column 'เลขที่รายการ'" [ref=e597]: 
+              - columnheader "Column วันที่" [ref=e598] [cursor=pointer]:
+                - text: วันที่
+                - button "Show filter options for column 'วันที่'" [ref=e599]: 
+              - columnheader "Column ประเภท" [ref=e600] [cursor=pointer]:
+                - text: ประเภท
+                - button "Show filter options for column 'ประเภท'" [ref=e601]: 
+              - columnheader "Column รายละเอียด" [ref=e602] [cursor=pointer]:
+                - text: รายละเอียด
+                - button "Show filter options for column 'รายละเอียด'" [ref=e603]: 
+              - columnheader "Column เดบิต" [ref=e604] [cursor=pointer]:
+                - button "Show filter options for column 'เดบิต'" [ref=e605]: 
+                - text: เดบิต
+              - columnheader "Column เครดิต" [ref=e606] [cursor=pointer]:
+                - button "Show filter options for column 'เครดิต'" [ref=e607]: 
+                - text: เครดิต
+              - columnheader "Column สถานะ" [ref=e608] [cursor=pointer]:
+                - text: สถานะ
+                - button "Show filter options for column 'สถานะ'" [ref=e609]: 
+              - columnheader "Column การดำเนินการ" [ref=e610] [cursor=pointer]: การดำเนินการ
+            - row "Filter cell Filter cell Filter cell Filter cell Filter cell Filter cell Filter cell" [ref=e611]:
+              - gridcell [ref=e612]
+              - gridcell "Filter cell" [ref=e613]:
+                - generic [ref=e614]:
+                  - menubar:
+                    - menuitem "Search box" [ref=e615] [cursor=pointer]:
+                      - generic [ref=e616]:
+                        - generic [ref=e617]: 
+                        - text: 
+                  - textbox "Filter cell" [ref=e622]
+              - gridcell "Filter cell" [ref=e623]:
+                - generic [ref=e624]:
+                  - menubar:
+                    - menuitem "Search box" [ref=e625] [cursor=pointer]:
+                      - generic [ref=e626]:
+                        - generic [ref=e627]: 
+                        - text: 
+                  - generic [ref=e631]:
+                    - combobox "Filter cell" [ref=e633]
+                    - button "Select" [ref=e635] [cursor=pointer]:
+                      - generic [ref=e637]: 
+              - gridcell "Filter cell" [ref=e638]:
+                - generic [ref=e639]:
+                  - menubar:
+                    - menuitem "Search box" [ref=e640] [cursor=pointer]:
+                      - generic [ref=e641]:
+                        - generic [ref=e642]: 
+                        - text: 
+                  - textbox "Filter cell" [ref=e647]
+              - gridcell "Filter cell" [ref=e648]:
+                - generic [ref=e649]:
+                  - menubar:
+                    - menuitem "Search box" [ref=e650] [cursor=pointer]:
+                      - generic [ref=e651]:
+                        - generic [ref=e652]: 
+                        - text: 
+                  - textbox "Filter cell" [ref=e657]
+              - gridcell "Filter cell" [ref=e658]:
+                - generic [ref=e659]:
+                  - menubar:
+                    - menuitem "Search box" [ref=e660] [cursor=pointer]:
+                      - generic [ref=e661]:
+                        - generic [ref=e662]: 
+                        - text: 
+                  - spinbutton "Filter cell" [ref=e667]
+              - gridcell "Filter cell" [ref=e668]:
+                - generic [ref=e669]:
+                  - menubar:
+                    - menuitem "Search box" [ref=e670] [cursor=pointer]:
+                      - generic [ref=e671]:
+                        - generic [ref=e672]: 
+                        - text: 
+                  - spinbutton "Filter cell" [ref=e677]
+              - gridcell "Filter cell" [ref=e678]:
+                - generic [ref=e679]:
+                  - menubar:
+                    - menuitem "Search box" [ref=e680] [cursor=pointer]:
+                      - generic [ref=e681]:
+                        - generic [ref=e682]: 
+                        - text: 
+                  - textbox "Filter cell" [ref=e687]
+              - gridcell [ref=e688]
+            - grid [ref=e692]:
+              - row "Expand JE-202512-000004 27/12/2568 บันทึกมือ Test Journal Entry 1766836278406 1,000.00 1,000.00 ร่าง" [ref=e703]:
+                - gridcell "Expand" [ref=e704]:
+                  - generic [ref=e705] [cursor=pointer]: 
+                - gridcell "JE-202512-000004" [ref=e706]
+                - gridcell "27/12/2568" [ref=e707]
+                - gridcell "บันทึกมือ" [ref=e708]
+                - gridcell "Test Journal Entry 1766836278406" [ref=e709]
+                - gridcell "1,000.00" [ref=e710]
+                - gridcell "1,000.00" [ref=e711]
+                - gridcell "ร่าง" [ref=e712]:
+                  - generic [ref=e713]: ร่าง
+                - gridcell [ref=e714]:
+                  - generic [ref=e715]:
+                    - button "ดูรายละเอียด" [ref=e716]:
+                      - img [ref=e717]
+                    - button "ผ่านรายการ" [ref=e720]:
+                      - img [ref=e721]
+              - row "Expand JE-202512-000003 27/12/2568 บันทึกมือ Test Journal Entry 1766836230074 1,000.00 1,000.00 ร่าง" [ref=e723]:
+                - gridcell "Expand" [ref=e724]:
+                  - generic [ref=e725] [cursor=pointer]: 
+                - gridcell "JE-202512-000003" [ref=e726]
+                - gridcell "27/12/2568" [ref=e727]
+                - gridcell "บันทึกมือ" [ref=e728]
+                - gridcell "Test Journal Entry 1766836230074" [ref=e729]
+                - gridcell "1,000.00" [ref=e730]
+                - gridcell "1,000.00" [ref=e731]
+                - gridcell "ร่าง" [ref=e732]:
+                  - generic [ref=e733]: ร่าง
+                - gridcell [ref=e734]:
+                  - generic [ref=e735]:
+                    - button "ดูรายละเอียด" [ref=e736]:
+                      - img [ref=e737]
+                    - button "ผ่านรายการ" [ref=e740]:
+                      - img [ref=e741]
+              - row "Expand JE-202512-000002 27/12/2568 บันทึกมือ Test Journal Entry 1766836185146 1,000.00 1,000.00 ร่าง" [ref=e743]:
+                - gridcell "Expand" [ref=e744]:
+                  - generic [ref=e745] [cursor=pointer]: 
+                - gridcell "JE-202512-000002" [ref=e746]
+                - gridcell "27/12/2568" [ref=e747]
+                - gridcell "บันทึกมือ" [ref=e748]
+                - gridcell "Test Journal Entry 1766836185146" [ref=e749]
+                - gridcell "1,000.00" [ref=e750]
+                - gridcell "1,000.00" [ref=e751]
+                - gridcell "ร่าง" [ref=e752]:
+                  - generic [ref=e753]: ร่าง
+                - gridcell [ref=e754]:
+                  - generic [ref=e755]:
+                    - button "ดูรายละเอียด" [ref=e756]:
+                      - img [ref=e757]
+                    - button "ผ่านรายการ" [ref=e760]:
+                      - img [ref=e761]
+              - row "Expand JE-202512-000001 27/12/2568 บันทึกมือ Test Journal Entry 1766836138690 1,000.00 1,000.00 ร่าง" [ref=e763]:
+                - gridcell "Expand" [ref=e764]:
+                  - generic [ref=e765] [cursor=pointer]: 
+                - gridcell "JE-202512-000001" [ref=e766]
+                - gridcell "27/12/2568" [ref=e767]
+                - gridcell "บันทึกมือ" [ref=e768]
+                - gridcell "Test Journal Entry 1766836138690" [ref=e769]
+                - gridcell "1,000.00" [ref=e770]
+                - gridcell "1,000.00" [ref=e771]
+                - gridcell "ร่าง" [ref=e772]:
+                  - generic [ref=e773]: ร่าง
+                - gridcell [ref=e774]:
+                  - generic [ref=e775]:
+                    - button "ดูรายละเอียด" [ref=e776]:
+                      - img [ref=e777]
+                    - button "ผ่านรายการ" [ref=e780]:
+                      - img [ref=e781]
+              - 'row "เดบิต รวม: 4000 เครดิต รวม: 4000" [ref=e793]':
+                - gridcell [ref=e794]
+                - gridcell [ref=e795]
+                - gridcell [ref=e796]
+                - gridcell [ref=e797]
+                - gridcell [ref=e798]
+                - 'gridcell "เดบิต รวม: 4000" [ref=e799]':
+                  - 'generic "เดบิต รวม: 4000" [ref=e800]': "รวม: 4000"
+                - 'gridcell "เครดิต รวม: 4000" [ref=e801]':
+                  - 'generic "เครดิต รวม: 4000" [ref=e802]': "รวม: 4000"
+                - gridcell [ref=e803]
+                - gridcell [ref=e804]
+            - navigation "Page navigation" [ref=e809]:
+              - generic [ref=e810]:
+                - 'button "Items per page: 10" [ref=e811] [cursor=pointer]': "10"
+                - 'button "Items per page: 20" [ref=e812]': "20"
+                - 'button "Items per page: 50" [ref=e813] [cursor=pointer]': "50"
+              - generic [ref=e814]:
+                - generic [ref=e815]: หน้า 1 จาก 1 (4 รายการ)
+                - button "หน้า" [ref=e817]: "1"
+  - button "Open Next.js Dev Tools" [ref=e823] [cursor=pointer]:
+    - img [ref=e824]
+  - alert [ref=e827]
+  - dialog "ยืนยันการผ่านรายการ" [ref=e829]:
+    - toolbar [ref=e830]:
+      - generic [ref=e834]: ยืนยันการผ่านรายการ
+    - generic [ref=e836]: คุณต้องการผ่านรายการบันทึก JE-202512-000004 หรือไม่?
+    - toolbar [ref=e837]:
+      - generic [ref=e838]:
+        - button "ใช่" [active] [ref=e841] [cursor=pointer]:
+          - generic [ref=e843]: ใช่
+        - button "ไม่" [ref=e846] [cursor=pointer]:
+          - generic [ref=e848]: ไม่
+```
