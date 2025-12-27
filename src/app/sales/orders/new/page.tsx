@@ -352,6 +352,7 @@ export default function NewSalesOrderPage() {
               icon="back"
               stylingMode="text"
               onClick={handleCancel}
+              elementAttr={{ 'data-testid': 'so-back-btn' }}
             />
             <div className="h-6 w-px bg-gray-200" />
             <div className="flex items-center gap-3">
@@ -359,7 +360,7 @@ export default function NewSalesOrderPage() {
                 <ShoppingCart className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">สร้างใบสั่งขายใหม่</h1>
+                <h1 className="text-xl font-semibold text-gray-900" data-testid="so-form-title">สร้างใบสั่งขายใหม่</h1>
                 <p className="text-sm text-gray-500">กรอกข้อมูลลูกค้าและรายการสินค้า</p>
               </div>
             </div>
@@ -371,6 +372,7 @@ export default function NewSalesOrderPage() {
               stylingMode="outlined"
               onClick={handleCancel}
               disabled={isSaving}
+              elementAttr={{ 'data-testid': 'so-cancel-btn' }}
             />
             <Button
               text={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
@@ -378,6 +380,7 @@ export default function NewSalesOrderPage() {
               type="success"
               onClick={handleSave}
               disabled={isSaving}
+              elementAttr={{ 'data-testid': 'so-save-btn' }}
             />
           </div>
         </div>
@@ -491,6 +494,7 @@ export default function NewSalesOrderPage() {
                     <button
                       type="button"
                       onClick={() => setIsCustomerDialogOpen(true)}
+                      data-testid="so-select-customer-btn"
                       className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition-colors text-gray-500 hover:text-emerald-600"
                     >
                       <Search className="h-5 w-5" />
@@ -510,6 +514,7 @@ export default function NewSalesOrderPage() {
                     onValueChanged={(e) => setForm(prev => ({ ...prev, customerAddress: e.value || '' }))}
                     placeholder="ระบุที่อยู่สำหรับจัดส่ง..."
                     height={80}
+                    elementAttr={{ 'data-testid': 'so-address-input' }}
                   />
                 </div>
               </CardContent>
@@ -533,6 +538,7 @@ export default function NewSalesOrderPage() {
                     icon="plus"
                     type="default"
                     onClick={() => setIsItemDialogOpen(true)}
+                    elementAttr={{ 'data-testid': 'so-add-item-btn' }}
                   />
                 </div>
               </CardHeader>
@@ -547,6 +553,7 @@ export default function NewSalesOrderPage() {
                       rowAlternationEnabled
                       columnAutoWidth
                       className="min-h-[200px]"
+                      elementAttr={{ 'data-testid': 'so-lines-grid' }}
                     >
                       <Paging enabled={false} />
                       <Editing mode="cell" allowUpdating={false} />

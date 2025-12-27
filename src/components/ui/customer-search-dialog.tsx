@@ -215,13 +215,14 @@ export function CustomerSearchDialog({
       </div>
 
       {/* Search Input */}
-      <div className="py-4 border-b -mx-4 px-4 bg-white">
+      <div className="py-4 border-b -mx-4 px-4 bg-white" data-testid="customer-search-container">
         <DxTextBox
           placeholder="Search customers..."
           value={search}
           onValueChange={setSearch}
           mode="search"
           showClearButton
+          elementAttr={{ 'data-testid': 'customer-search-input' }}
         />
       </div>
 
@@ -242,6 +243,7 @@ export function CustomerSearchDialog({
                 <div
                   key={customer.id}
                   data-index={index}
+                  data-testid={`customer-result-${customer.code}`}
                   onClick={() => handleSelect(customer)}
                   className={`p-4 rounded-xl border cursor-pointer transition-all duration-150 ${
                     isHighlighted

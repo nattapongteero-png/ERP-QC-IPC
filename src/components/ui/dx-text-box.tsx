@@ -59,6 +59,8 @@ export interface DxTextBoxProps {
   onKeyDown?: (e: TextBoxTypes.KeyDownEvent) => void;
   /** On enter key handler */
   onEnterKey?: (e: TextBoxTypes.EnterKeyEvent) => void;
+  /** Element attributes for testing */
+  elementAttr?: Record<string, string>;
 }
 
 /**
@@ -112,6 +114,7 @@ export function DxTextBox({
   validationGroup,
   onKeyDown,
   onEnterKey,
+  elementAttr,
 }: DxTextBoxProps) {
   const hasValidation = required || zodSchema;
 
@@ -146,6 +149,7 @@ export function DxTextBox({
       inputAttr={{ autoFocus, tabIndex }}
       onKeyDown={onKeyDown}
       onEnterKey={onEnterKey}
+      elementAttr={elementAttr}
     >
       {hasValidation && (
         <Validator validationGroup={validationGroup}>

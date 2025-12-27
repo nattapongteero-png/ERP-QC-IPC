@@ -181,6 +181,8 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   responsiveColumns?: boolean;
   /** Fill available height (use with flex container) - overrides height props on tablet */
   fillHeight?: boolean;
+  /** Element attributes for testing */
+  elementAttr?: Record<string, string>;
 }
 
 /**
@@ -246,6 +248,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
   tabletHeight,
   responsiveColumns = true,
   fillHeight = false,
+  elementAttr,
 }: DxDataGridProps<T>) {
   // Detect device type for responsive behavior
   const { isMobile, isTablet } = useMobile();
@@ -311,6 +314,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
       onSelectionChanged={onSelectionChanged}
       onExporting={enableExport ? handleExporting : undefined}
       focusedRowEnabled={selection !== 'none'}
+      elementAttr={elementAttr}
     >
       <LoadPanel enabled={loading} />
 
