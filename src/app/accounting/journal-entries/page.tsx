@@ -231,6 +231,7 @@ export default function JournalEntriesPage() {
             onClick={(e) => handleView(entry, e)}
             className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
             title="ดูรายละเอียด"
+            data-testid={`je-view-btn-${entry.id}`}
           >
             <Eye className="h-4 w-4" />
           </button>
@@ -241,6 +242,7 @@ export default function JournalEntriesPage() {
               onClick={(e) => handlePost(entry, e)}
               className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
               title="ผ่านรายการ"
+              data-testid={`je-post-btn-${entry.id}`}
             >
               <Check className="h-4 w-4" />
             </button>
@@ -252,6 +254,7 @@ export default function JournalEntriesPage() {
               onClick={(e) => handleReverse(entry, e)}
               className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
               title="กลับรายการ"
+              data-testid={`je-reverse-btn-${entry.id}`}
             >
               <RotateCcw className="h-4 w-4" />
             </button>

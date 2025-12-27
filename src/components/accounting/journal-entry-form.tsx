@@ -444,58 +444,70 @@ export function JournalEntryForm({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" data-testid="je-form-header">
         <div className="flex items-center gap-3">
-          <Button
-            text="ย้อนกลับ"
-            icon="back"
-            stylingMode="text"
-            onClick={handleCancel}
-          />
+          <span data-testid="je-back-btn">
+            <Button
+              text="ย้อนกลับ"
+              icon="back"
+              stylingMode="text"
+              onClick={handleCancel}
+            />
+          </span>
           <div className="h-6 w-px bg-gray-200" />
-          <h1 className="text-xl font-semibold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900" data-testid="je-form-title">
             {mode === 'create' ? 'สร้างรายการบันทึกบัญชี' : `รายการ: ${existingEntry?.entryNumber}`}
           </h1>
           {mode === 'edit' && existingEntry && (
-            <AccountingStatusBadge status={existingEntry.status} />
+            <span data-testid="je-status-badge">
+              <AccountingStatusBadge status={existingEntry.status} />
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && existingEntry?.status === 'draft' && (
-            <Button
-              text="ผ่านรายการ"
-              icon={isPosting ? 'spindown' : 'check'}
-              type="success"
-              stylingMode="outlined"
-              onClick={handlePost}
-              disabled={isPosting}
-            />
+            <span data-testid="je-post-btn">
+              <Button
+                text="ผ่านรายการ"
+                icon={isPosting ? 'spindown' : 'check'}
+                type="success"
+                stylingMode="outlined"
+                onClick={handlePost}
+                disabled={isPosting}
+              />
+            </span>
           )}
           {mode === 'edit' && existingEntry?.status === 'posted' && (
-            <Button
-              text="กลับรายการ"
-              icon={isReversing ? 'spindown' : 'revert'}
-              type="danger"
-              stylingMode="outlined"
-              onClick={handleReverse}
-              disabled={isReversing}
-            />
+            <span data-testid="je-reverse-btn">
+              <Button
+                text="กลับรายการ"
+                icon={isReversing ? 'spindown' : 'revert'}
+                type="danger"
+                stylingMode="outlined"
+                onClick={handleReverse}
+                disabled={isReversing}
+              />
+            </span>
           )}
-          <Button
-            text="ยกเลิก"
-            icon="close"
-            stylingMode="outlined"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-          />
-          {!isReadOnly && (
+          <span data-testid="je-cancel-btn">
             <Button
-              text={mode === 'create' ? 'บันทึก' : 'บันทึกการแก้ไข'}
-              icon={isSubmitting ? 'spindown' : 'save'}
-              type="success"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !isBalanced}
+              text="ยกเลิก"
+              icon="close"
+              stylingMode="outlined"
+              onClick={handleCancel}
+              disabled={isSubmitting}
             />
+          </span>
+          {!isReadOnly && (
+            <span data-testid="je-submit-btn">
+              <Button
+                text={mode === 'create' ? 'บันทึก' : 'บันทึกการแก้ไข'}
+                icon={isSubmitting ? 'spindown' : 'save'}
+                type="success"
+                onClick={handleSubmit}
+                disabled={isSubmitting || !isBalanced}
+              />
+            </span>
           )}
         </div>
       </div>
@@ -511,7 +523,7 @@ export function JournalEntryForm({
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
-                <div>
+                <div data-testid="je-entry-date-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     วันที่ <span className="text-red-500">*</span>
                   </label>
@@ -523,7 +535,7 @@ export function JournalEntryForm({
                     readOnly={isReadOnly}
                   />
                 </div>
-                <div>
+                <div data-testid="je-reference-number-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     เลขที่อ้างอิง
                   </label>
@@ -534,7 +546,7 @@ export function JournalEntryForm({
                     readOnly={isReadOnly}
                   />
                 </div>
-                <div>
+                <div data-testid="je-description-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     รายละเอียด
                   </label>
@@ -555,13 +567,15 @@ export function JournalEntryForm({
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">รายการบัญชี</CardTitle>
                 {!isReadOnly && (
-                  <Button
-                    text="เพิ่มบรรทัด"
-                    icon="plus"
-                    type="default"
-                    stylingMode="outlined"
-                    onClick={addLine}
-                  />
+                  <span data-testid="je-add-line-btn">
+                    <Button
+                      text="เพิ่มบรรทัด"
+                      icon="plus"
+                      type="default"
+                      stylingMode="outlined"
+                      onClick={addLine}
+                    />
+                  </span>
                 )}
               </div>
             </CardHeader>
@@ -588,10 +602,10 @@ export function JournalEntryForm({
                       )}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody data-testid="je-lines-body">
                     {formData.lines.map((line, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="border border-gray-200 p-1">
+                      <tr key={index} className="hover:bg-gray-50" data-testid={`je-line-row-${index}`}>
+                        <td className="border border-gray-200 p-1" data-testid={`je-line-account-${index}`}>
                           <SelectBox
                             dataSource={glAccounts}
                             displayExpr={(item) => item ? `${item.code} - ${item.nameTh}` : ''}
@@ -604,7 +618,7 @@ export function JournalEntryForm({
                             readOnly={isReadOnly}
                           />
                         </td>
-                        <td className="border border-gray-200 p-1">
+                        <td className="border border-gray-200 p-1" data-testid={`je-line-cost-center-${index}`}>
                           <SelectBox
                             dataSource={costCenters}
                             displayExpr={(item) => item ? `${item.code} - ${item.name}` : ''}
@@ -617,7 +631,7 @@ export function JournalEntryForm({
                             readOnly={isReadOnly}
                           />
                         </td>
-                        <td className="border border-gray-200 p-1">
+                        <td className="border border-gray-200 p-1" data-testid={`je-line-description-${index}`}>
                           <TextBox
                             value={line.description}
                             onValueChanged={(e) => updateLine(index, 'description', e.value || '')}
@@ -625,7 +639,7 @@ export function JournalEntryForm({
                             readOnly={isReadOnly}
                           />
                         </td>
-                        <td className="border border-gray-200 p-1">
+                        <td className="border border-gray-200 p-1" data-testid={`je-line-debit-${index}`}>
                           <NumberBox
                             value={line.debit || 0}
                             onValueChanged={(e) => updateLine(index, 'debit', e.value || 0)}
@@ -635,7 +649,7 @@ export function JournalEntryForm({
                             readOnly={isReadOnly}
                           />
                         </td>
-                        <td className="border border-gray-200 p-1">
+                        <td className="border border-gray-200 p-1" data-testid={`je-line-credit-${index}`}>
                           <NumberBox
                             value={line.credit || 0}
                             onValueChanged={(e) => updateLine(index, 'credit', e.value || 0)}
@@ -652,6 +666,7 @@ export function JournalEntryForm({
                                 onClick={() => removeLine(index)}
                                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                 title="ลบ"
+                                data-testid={`je-line-delete-${index}`}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -661,21 +676,21 @@ export function JournalEntryForm({
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot>
+                  <tfoot data-testid="je-lines-footer">
                     <tr className={`font-bold ${isBalanced ? 'bg-green-50' : 'bg-red-50'}`}>
                       <td colSpan={3} className="border border-gray-200 p-2 text-right">
                         รวม
                       </td>
-                      <td className="border border-gray-200 p-2 text-right font-mono">
+                      <td className="border border-gray-200 p-2 text-right font-mono" data-testid="je-total-debit">
                         {totalDebit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="border border-gray-200 p-2 text-right font-mono">
+                      <td className="border border-gray-200 p-2 text-right font-mono" data-testid="je-total-credit">
                         {totalCredit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                       </td>
                       {!isReadOnly && <td className="border border-gray-200"></td>}
                     </tr>
                     <tr>
-                      <td colSpan={isReadOnly ? 5 : 6} className="border border-gray-200 p-2 text-center">
+                      <td colSpan={isReadOnly ? 5 : 6} className="border border-gray-200 p-2 text-center" data-testid="je-balance-status">
                         {isBalanced ? (
                           <span className="text-green-600 font-medium">
                             ✓ ยอดเดบิตและเครดิตเท่ากัน
