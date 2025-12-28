@@ -162,6 +162,7 @@ const navigation: NavItem[] = [
       { name: 'Period Close', href: '/accounting/period-close', icon: CalendarCheck },
       { name: 'Bank Reconciliation', href: '/accounting/bank-reconciliation', icon: RefreshCw },
       { name: 'Credit/Debit Notes', href: '/accounting/credit-debit-notes', icon: FileText },
+      { name: '3-Way Matching', href: '/accounting/matching', icon: ClipboardCheck },
       { name: 'Reports', href: '/accounting/reports', icon: BarChart3 },
     ],
   },
@@ -212,6 +213,7 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager'],
     children: [
       { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
+      { name: 'Matching Tolerances', href: '/settings/matching-tolerances', icon: Target },
     ],
   },
 ];

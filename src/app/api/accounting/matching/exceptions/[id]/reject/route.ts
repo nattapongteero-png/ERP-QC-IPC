@@ -1,0 +1,53 @@
+/**
+ * Reject Matching Exception API (T115)
+ * POST /api/accounting/matching/exceptions/[id]/reject
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { rejectException } from '@/lib/services/matching.service';
+
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+export async function POST(request: NextRequest, context: RouteContext) {
+  try {
+    const { id } = await context.params;
+    const exceptionId = parseInt(id, 10);
+
+    if (isNaN(exceptionId)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid exception ID' },
+        { status: 400 }
+      );
+    }
+
+    // Get optional comments from body
+    let comments;
+    try {
+      const body = await request.json();
+      comments = body.comments;
+    } catch {
+      // No body provided
+    }
+
+    // TODO: Get actual user ID from session
+    const userId = 1;
+
+    const result = await rejectException(exceptionId, userId, comments);
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error rejecting exception:', error);
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    );
+  }
+}
