@@ -3,8 +3,8 @@
 import Tabs, { Item as TabItem } from 'devextreme-react/tabs';
 import type { TabsTypes } from 'devextreme-react/tabs';
 
-// Re-export Item as DxTabItem for declarative tab definition
-export { TabItem as DxTabItem };
+// Re-export Item as DxTabItemComponent for declarative tab definition
+export { TabItem as DxTabItemComponent };
 
 export interface DxTabItemData {
   /** Optional id - auto-generated from index if not provided */
@@ -15,6 +15,9 @@ export interface DxTabItemData {
   badge?: string | number;
   visible?: boolean;
 }
+
+// Type alias for backwards compatibility (use DxTabItemData for new code)
+export type DxTabItem = DxTabItemData;
 
 export interface DxTabsProps {
   /** Tab items */

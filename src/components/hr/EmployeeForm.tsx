@@ -16,7 +16,7 @@ import {
   OrgUnitPicker,
   PositionSelect,
 } from '@/components/shared';
-import { useToast } from '@/components/ui/toast';
+import { handleApiError, showSuccess, showWarning } from '@/lib/hr/error-handler';
 import {
   User,
   Building2,
@@ -270,7 +270,6 @@ export function EmployeeForm({
 }: EmployeeFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const toast = useToast();
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Compute initial form data from props
@@ -371,9 +370,9 @@ export function EmployeeForm({
         photoUrl: result.data.photoUrl,
         photoThumbnailUrl: result.data.photoThumbnailUrl,
       }));
-      toast.success('สำเร็จ', 'อัปโหลดรูปภาพเรียบร้อย');
+      showSuccess('อัปโหลดรูปภาพเรียบร้อย');
     } catch (error) {
-      toast.error('เกิดข้อผิดพลาด', error instanceof Error ? error.message : 'ไม่สามารถอัปโหลดรูปภาพได้');
+      handleApiError(error, 'ไม่สามารถอัปโหลดรูปภาพได้');
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -397,9 +396,9 @@ export function EmployeeForm({
         photoUrl: '',
         photoThumbnailUrl: '',
       }));
-      toast.success('สำเร็จ', 'ลบรูปภาพเรียบร้อย');
+      showSuccess('ลบรูปภาพเรียบร้อย');
     } catch (error) {
-      toast.error('เกิดข้อผิดพลาด', error instanceof Error ? error.message : 'ไม่สามารถลบรูปภาพได้');
+      handleApiError(error, 'ไม่สามารถลบรูปภาพได้');
     }
   };
 
@@ -432,7 +431,7 @@ export function EmployeeForm({
     mutationFn: createEmployee,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'employees'] });
-      toast.success('สำเร็จ', 'เพิ่มพนักงานใหม่เรียบร้อย');
+      showSuccess('เพิ่มพนักงานใหม่เรียบร้อย');
       if (onSuccess) {
         onSuccess(data.id);
       } else {
@@ -440,7 +439,7 @@ export function EmployeeForm({
       }
     },
     onError: (error: Error) => {
-      toast.error('เกิดข้อผิดพลาด', error.message);
+      handleApiError(error, 'เกิดข้อผิดพลาดในการเพิ่มพนักงาน');
     },
   });
 
@@ -449,7 +448,7 @@ export function EmployeeForm({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'employees'] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'employee', employeeId] });
-      toast.success('สำเร็จ', 'แก้ไขข้อมูลพนักงานเรียบร้อย');
+      showSuccess('แก้ไขข้อมูลพนักงานเรียบร้อย');
       if (onSuccess) {
         onSuccess(data.id);
       } else {
@@ -457,7 +456,7 @@ export function EmployeeForm({
       }
     },
     onError: (error: Error) => {
-      toast.error('เกิดข้อผิดพลาด', error.message);
+      handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลพนักงาน');
     },
   });
 
@@ -478,23 +477,23 @@ export function EmployeeForm({
 
     // Validation
     if (!employeeCode?.trim()) {
-      toast.error('กรุณาระบุรหัสพนักงาน');
+      showWarning('กรุณาระบุรหัสพนักงาน');
       return;
     }
     if (!formData.firstName?.trim()) {
-      toast.error('กรุณาระบุชื่อ');
+      showWarning('กรุณาระบุชื่อ');
       return;
     }
     if (!formData.lastName?.trim()) {
-      toast.error('กรุณาระบุนามสกุล');
+      showWarning('กรุณาระบุนามสกุล');
       return;
     }
     if (!formData.hireDate) {
-      toast.error('กรุณาระบุวันที่เริ่มงาน');
+      showWarning('กรุณาระบุวันที่เริ่มงาน');
       return;
     }
     if (formData.thaiCid && !validateThaiCid(formData.thaiCid)) {
-      toast.error('เลขบัตรประชาชนไม่ถูกต้อง');
+      showWarning('เลขบัตรประชาชนไม่ถูกต้อง');
       return;
     }
 
@@ -614,6 +613,7 @@ export function EmployeeForm({
                 form="employee-form"
                 disabled={isPending}
                 className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                data-testid="emp-submit-btn"
               >
                 <Save className="h-4 w-4" />
                 <span className="hidden sm:inline">{isPending ? 'กำลังบันทึก...' : 'บันทึก'}</span>
@@ -734,7 +734,7 @@ export function EmployeeForm({
 
                   {/* Names Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div>
+                    <div data-testid="emp-firstname-field">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         ชื่อ (ไทย) <span className="text-red-500">*</span>
                       </label>
@@ -745,7 +745,7 @@ export function EmployeeForm({
                         width="100%"
                       />
                     </div>
-                    <div>
+                    <div data-testid="emp-lastname-field">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         นามสกุล (ไทย) <span className="text-red-500">*</span>
                       </label>
@@ -793,7 +793,7 @@ export function EmployeeForm({
 
                   {/* Contact Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
+                    <div data-testid="emp-email-field">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <Mail className="h-4 w-4 inline mr-1.5 text-gray-400" />
                         อีเมล
@@ -806,7 +806,7 @@ export function EmployeeForm({
                         width="100%"
                       />
                     </div>
-                    <div>
+                    <div data-testid="emp-phone-field">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <Phone className="h-4 w-4 inline mr-1.5 text-gray-400" />
                         เบอร์โทร
@@ -1297,7 +1297,7 @@ export function EmployeeForm({
 
           {/* Employment Info */}
           <FormSection title="ข้อมูลการจ้างงาน" icon={Calendar} iconColor="text-orange-500" defaultOpen={true}>
-            <div className="max-w-sm">
+            <div className="max-w-sm" data-testid="emp-hiredate-field">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 วันที่เริ่มงาน <span className="text-red-500">*</span>
               </label>
@@ -1328,6 +1328,7 @@ export function EmployeeForm({
             form="employee-form"
             disabled={isPending}
             className="flex-1 py-3 px-4 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            data-testid="emp-submit-btn-mobile"
           >
             <Save className="h-4 w-4" />
             {isPending ? 'กำลังบันทึก...' : 'บันทึก'}

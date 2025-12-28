@@ -7,6 +7,7 @@
 
 import { eq, and, desc, lte, gte, lt } from 'drizzle-orm';
 import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { getNow, toDbDate, getTodayStr, toQueryDate, formatDateFromDb } from '../db/date-utils';
 import {
   sqliteEquipment,
@@ -158,48 +159,63 @@ export async function createMaintenanceRecord(
   const database = (await getDb()) as any;
   const maintenanceTable = getMaintenanceRecordsTable();
 
-  const result = await database
-    .insert(maintenanceTable)
-    .values({
-      equipmentId: data.equipmentId,
-      type: data.type,
-      description: data.description || null,
-      scheduledDate: data.scheduledDate ? toDbDate(data.scheduledDate) : null,
-      completedDate: data.completedDate ? toDbDate(data.completedDate) : null,
-      performedBy: data.performedBy || null,
-      cost: data.cost || null,
-      notes: data.notes || null,
-      status: data.status || 'scheduled',
-      createdAt: getNow(),
-      updatedAt: getNow(),
-    })
-    .returning();
+  const values = {
+    equipmentId: data.equipmentId,
+    type: data.type,
+    description: data.description || null,
+    scheduledDate: data.scheduledDate ? toDbDate(data.scheduledDate) : null,
+    completedDate: data.completedDate ? toDbDate(data.completedDate) : null,
+    performedBy: data.performedBy || null,
+    cost: data.cost || null,
+    notes: data.notes || null,
+    status: data.status || 'scheduled',
+    createdAt: getNow(),
+    updatedAt: getNow(),
+  };
+
+  let recordId: number;
+  if (isSqlite()) {
+    const [result] = await database
+      .insert(maintenanceTable)
+      .values(values)
+      .returning({ id: maintenanceTable.id });
+    recordId = result.id;
+  } else {
+    const result = await database.insert(maintenanceTable).values(values);
+    recordId = getInsertId(result);
+  }
+
+  // Refetch the record for response
+  const [record] = await database
+    .select()
+    .from(maintenanceTable)
+    .where(eq(maintenanceTable.id, recordId));
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'maintenance_records',
-    recordId: result[0].id,
-    newValue: result[0],
+    recordId,
+    newValue: record,
   });
 
   // Get equipment name for response
   const equipment = await getEquipmentById(data.equipmentId);
 
   return {
-    id: result[0].id,
-    equipmentId: result[0].equipmentId,
+    id: record.id,
+    equipmentId: record.equipmentId,
     equipmentName: equipment?.name,
-    type: result[0].type as MaintenanceType,
-    description: result[0].description,
-    scheduledDate: result[0].scheduledDate ? formatDateFromDb(result[0].scheduledDate) : null,
-    completedDate: result[0].completedDate ? formatDateFromDb(result[0].completedDate) : null,
-    performedBy: result[0].performedBy,
-    cost: result[0].cost ? Number(result[0].cost) : null,
-    notes: result[0].notes,
-    status: result[0].status as MaintenanceStatus,
-    createdAt: result[0].createdAt,
-    updatedAt: result[0].updatedAt,
+    type: record.type as MaintenanceType,
+    description: record.description,
+    scheduledDate: record.scheduledDate ? formatDateFromDb(record.scheduledDate) : null,
+    completedDate: record.completedDate ? formatDateFromDb(record.completedDate) : null,
+    performedBy: record.performedBy,
+    cost: record.cost ? Number(record.cost) : null,
+    notes: record.notes,
+    status: record.status as MaintenanceStatus,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
   };
 }
 

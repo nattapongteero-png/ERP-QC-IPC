@@ -476,6 +476,15 @@ export async function initializeDatabaseWithSync(): Promise<void> {
     // Don't throw - allow server to start even if seeding fails
   }
 
+  // Seed accounting lookup tables if they are empty
+  try {
+    const { seedAccountingTables } = await import('./seed-accounting');
+    await seedAccountingTables();
+  } catch (error) {
+    console.error('[Database] Failed to seed accounting tables:', error);
+    // Don't throw - allow server to start even if seeding fails
+  }
+
   // Seed demo users if users table is empty
   try {
     await seedDemoUsersIfEmpty();

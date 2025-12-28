@@ -506,7 +506,7 @@ export default function RecallsDashboardPage() {
   }, []);
 
   const renderEffectiveness = useCallback((cellData: { data: Recall }) => {
-    const rate = cellData.data.effectivenessRate;
+    const rate = Number(cellData.data.effectivenessRate) || 0;
     const { level, color } = getRecoveryLevel(rate);
     const colorClasses: Record<string, string> = {
       green: 'text-green-600 dark:text-green-400',
@@ -534,7 +534,8 @@ export default function RecallsDashboardPage() {
   }, []);
 
   const renderQuantities = useCallback((cellData: { data: Recall }) => {
-    const { distributedQuantity, returnedQuantity } = cellData.data;
+    const distributedQuantity = Number(cellData.data.distributedQuantity) || 0;
+    const returnedQuantity = Number(cellData.data.returnedQuantity) || 0;
     return (
       <div className="text-xs">
         <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">

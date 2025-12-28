@@ -5,7 +5,8 @@
  * Manages stability protocols, studies, sample scheduling, and trend analysis.
  */
 
-import { getDb } from '../db';
+import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { toDateSafe } from '../db/date-utils';
 import { eq, and, desc, like, count, lte, gte } from 'drizzle-orm';
 import {
@@ -1145,22 +1146,39 @@ export async function triggerOOSInvestigation(
   const description = `Out of Specification detected in Stability Study ${study.studyNumber}, Sample ${sample.sampleNumber} at timepoint ${sample.timepoint} months. Result is ${oosDetails.deviation === 'below_min' ? 'below minimum' : 'above maximum'} by ${oosDetails.margin?.toFixed(2) || 'unknown'} units.`;
 
   // Create deviation
-  const [deviation] = await database
-    .insert(sqliteDeviations)
-    .values({
-      deviationNumber,
-      description,
-      type: 'OOS',
-      severity,
-      status: 'open',
-      sourceType: 'stability_test',
-      sourceId: sampleId,
-      reportedBy: userId,
-      reportedAt: new Date().toISOString(),
-    })
-    .returning({ id: sqliteDeviations.id });
-
-  const deviationId = Number(deviation.id);
+  let deviationId: number;
+  if (isSqlite()) {
+    const [deviation] = await database
+      .insert(sqliteDeviations)
+      .values({
+        deviationNumber,
+        description,
+        type: 'OOS',
+        severity,
+        status: 'open',
+        sourceType: 'stability_test',
+        sourceId: sampleId,
+        reportedBy: userId,
+        reportedAt: new Date().toISOString(),
+      })
+      .returning({ id: sqliteDeviations.id });
+    deviationId = Number(deviation.id);
+  } else {
+    const result = await database
+      .insert(sqliteDeviations)
+      .values({
+        deviationNumber,
+        description,
+        type: 'OOS',
+        severity,
+        status: 'open',
+        sourceType: 'stability_test',
+        sourceId: sampleId,
+        reportedBy: userId,
+        reportedAt: new Date().toISOString(),
+      });
+    deviationId = getInsertId(result);
+  }
 
   // Update sample with deviation link
   await database

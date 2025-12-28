@@ -382,7 +382,7 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-[1600px] mx-auto">
+    <div className="p-4 md:p-6 space-y-5 max-w-[1600px] mx-auto" data-testid="hr-employees-page">
       {/* Header Section */}
       <ResponsivePageHeader
         title="ทะเบียนพนักงาน"
@@ -453,13 +453,13 @@ export default function EmployeesPage() {
               type="default"
               stylingMode="contained"
               onClick={handleAddEmployee}
+              elementAttr={{ 'data-testid': 'hr-add-employee-btn' }}
             />
           </div>
         }
       />
 
-      {/* KPI Dashboard Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4" data-testid="hr-employees-stats">
         <StatCard
           label="พนักงานทั้งหมด"
           value={analytics.total}
@@ -723,7 +723,7 @@ export default function EmployeesPage() {
 
       {/* Grid View - DataGrid */}
       {viewMode === 'grid' && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" data-testid="hr-employees-grid">
           <DataGrid
             dataSource={employeeList}
             keyExpr="id"

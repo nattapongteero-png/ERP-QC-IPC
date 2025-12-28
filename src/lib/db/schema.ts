@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, real, blob } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType } from 'drizzle-orm/mysql-core';
+import { sqliteTable, text, integer, real, blob, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Custom type for MySQL LONGBLOB (for storing large binary files)
@@ -528,6 +528,24 @@ export const sqliteSalesOrderLines = sqliteTable('sales_order_lines', {
   unitPrice: real('unit_price').notNull(),
   totalPrice: real('total_price').notNull(),
   notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Sales Deliveries (บันทึกการจัดส่ง)
+export const sqliteSalesDeliveries = sqliteTable('sales_deliveries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  soId: integer('so_id').notNull().references(() => sqliteSalesOrders.id),
+  soLineId: integer('so_line_id').notNull().references(() => sqliteSalesOrderLines.id),
+  itemId: integer('item_id').notNull().references(() => sqliteItems.id),
+  lotId: integer('lot_id').notNull().references(() => sqliteInventoryLots.id),
+  lotNumber: text('lot_number').notNull(),
+  quantity: real('quantity').notNull(),
+  unit: text('unit').notNull(),
+  deliveryDate: text('delivery_date').notNull(),
+  deliveryNumber: text('delivery_number').notNull(),
+  status: text('status').notNull().default('shipped'), // shipped, delivered, returned
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1802,6 +1820,24 @@ export const mysqlSalesOrderLines = mysqlTable('sales_order_lines', {
   unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
   totalPrice: decimal('total_price', { precision: 15, scale: 2 }).notNull(),
   notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Sales Deliveries (บันทึกการจัดส่ง)
+export const mysqlSalesDeliveries = mysqlTable('sales_deliveries', {
+  id: int('id').primaryKey().autoincrement(),
+  soId: int('so_id').notNull().references(() => mysqlSalesOrders.id),
+  soLineId: int('so_line_id').notNull().references(() => mysqlSalesOrderLines.id),
+  itemId: int('item_id').notNull().references(() => mysqlItems.id),
+  lotId: int('lot_id').notNull().references(() => mysqlInventoryLots.id),
+  lotNumber: varchar('lot_number', { length: 50 }).notNull(),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(),
+  unit: varchar('unit', { length: 20 }).notNull(),
+  deliveryDate: datetime('delivery_date').notNull(),
+  deliveryNumber: varchar('delivery_number', { length: 50 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('shipped'),
+  notes: mysqlText('notes'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -4258,6 +4294,836 @@ export const mysqlWOPackagingMaterials = mysqlTable('wo_packaging_materials', {
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
 
+// ============================================
+// Accounting Module - SQLite Schema (010)
+// ============================================
+
+// GL Account Types - SQLite
+export const sqliteGLAccountTypes = sqliteTable('gl_account_types', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  nameTh: text('name_th').notNull(),
+  nameEn: text('name_en').notNull(),
+  category: text('category').notNull(), // asset, liability, equity, revenue, expense
+  normalBalance: text('normal_balance').notNull(), // debit, credit
+  displayOrder: integer('display_order').notNull().default(0),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// GL Account (Chart of Accounts) - SQLite
+export const sqliteGLAccounts = sqliteTable('gl_accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  nameTh: text('name_th').notNull(),
+  nameEn: text('name_en').notNull(),
+  accountTypeId: integer('account_type_id').notNull().references(() => sqliteGLAccountTypes.id),
+  parentId: integer('parent_id').references((): AnySQLiteColumn => sqliteGLAccounts.id),
+  level: integer('level').notNull().default(1),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  isPostable: integer('is_postable', { mode: 'boolean' }).notNull().default(true),
+  isBankAccount: integer('is_bank_account', { mode: 'boolean' }).notNull().default(false),
+  bankName: text('bank_name'),
+  bankAccountNumber: text('bank_account_number'),
+  description: text('description'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Fiscal Year - SQLite
+export const sqliteFiscalYears = sqliteTable('fiscal_years', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  yearCode: text('year_code').notNull().unique(),
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  isCurrent: integer('is_current', { mode: 'boolean' }).notNull().default(false),
+  status: text('status').notNull().default('open'), // open, closed
+  closedBy: integer('closed_by').references(() => sqliteUsers.id),
+  closedAt: text('closed_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Fiscal Period - SQLite
+export const sqliteFiscalPeriods = sqliteTable('fiscal_periods', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fiscalYearId: integer('fiscal_year_id').notNull().references(() => sqliteFiscalYears.id),
+  periodNumber: integer('period_number').notNull(),
+  periodName: text('period_name').notNull(),
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  status: text('status').notNull().default('open'), // open, soft_closed, closed
+  closedBy: integer('closed_by').references(() => sqliteUsers.id),
+  closedAt: text('closed_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Journal Entry - SQLite
+export const sqliteJournalEntries = sqliteTable('journal_entries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  entryNumber: text('entry_number').notNull().unique(),
+  entryDate: text('entry_date').notNull(),
+  fiscalPeriodId: integer('fiscal_period_id').references(() => sqliteFiscalPeriods.id),
+  description: text('description'),
+  sourceType: text('source_type'), // PO_RECEIPT, SO_SHIPMENT, AP_PAYMENT, AR_RECEIPT, DEPRECIATION, PAYROLL, COST_ALLOCATION, PERIOD_CLOSE, MANUAL
+  sourceId: integer('source_id'),
+  status: text('status').notNull().default('draft'), // draft, posted, reversed
+  totalDebit: real('total_debit').notNull().default(0),
+  totalCredit: real('total_credit').notNull().default(0),
+  postedBy: integer('posted_by').references(() => sqliteUsers.id),
+  postedAt: text('posted_at'),
+  reversedBy: integer('reversed_by').references(() => sqliteUsers.id),
+  reversedAt: text('reversed_at'),
+  reversalEntryId: integer('reversal_entry_id').references((): AnySQLiteColumn => sqliteJournalEntries.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Journal Line - SQLite
+export const sqliteJournalLines = sqliteTable('journal_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  journalEntryId: integer('journal_entry_id').notNull().references(() => sqliteJournalEntries.id),
+  lineNumber: integer('line_number').notNull(),
+  glAccountId: integer('gl_account_id').notNull().references(() => sqliteGLAccounts.id),
+  debit: real('debit').notNull().default(0),
+  credit: real('credit').notNull().default(0),
+  description: text('description'),
+  costCenterId: integer('cost_center_id').references(() => sqliteHROrgUnits.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// AP Invoice - SQLite
+export const sqliteAPInvoices = sqliteTable('ap_invoices', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  invoiceNumber: text('invoice_number').notNull().unique(),
+  vendorId: integer('vendor_id').notNull().references(() => sqliteVendors.id),
+  purchaseOrderId: integer('purchase_order_id').references(() => sqlitePurchaseOrders.id),
+  invoiceDate: text('invoice_date').notNull(),
+  dueDate: text('due_date').notNull(),
+  receivedDate: text('received_date').notNull(),
+  description: text('description'),
+  subtotal: real('subtotal').notNull().default(0),
+  vatAmount: real('vat_amount').notNull().default(0),
+  whtAmount: real('wht_amount').notNull().default(0),
+  totalAmount: real('total_amount').notNull().default(0),
+  paidAmount: real('paid_amount').notNull().default(0),
+  currency: text('currency').notNull().default('THB'),
+  exchangeRate: real('exchange_rate').notNull().default(1),
+  status: text('status').notNull().default('draft'), // draft, approved, posted, partial, paid, cancelled
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// AP Invoice Line - SQLite
+export const sqliteAPInvoiceLines = sqliteTable('ap_invoice_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  apInvoiceId: integer('ap_invoice_id').notNull().references(() => sqliteAPInvoices.id),
+  lineNumber: integer('line_number').notNull(),
+  description: text('description').notNull(),
+  itemId: integer('item_id').references(() => sqliteItems.id),
+  glAccountId: integer('gl_account_id').notNull().references(() => sqliteGLAccounts.id),
+  quantity: real('quantity').notNull().default(1),
+  unitPrice: real('unit_price').notNull(),
+  amount: real('amount').notNull(),
+  vatAmount: real('vat_amount').notNull().default(0),
+  isCapitalizable: integer('is_capitalizable', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// AR Invoice - SQLite
+export const sqliteARInvoices = sqliteTable('ar_invoices', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  invoiceNumber: text('invoice_number').notNull().unique(),
+  taxInvoiceNumber: text('tax_invoice_number').notNull().unique(),
+  customerId: integer('customer_id').notNull().references(() => sqliteCustomers.id),
+  salesOrderId: integer('sales_order_id').references(() => sqliteSalesOrders.id),
+  invoiceDate: text('invoice_date').notNull(),
+  dueDate: text('due_date').notNull(),
+  description: text('description'),
+  subtotal: real('subtotal').notNull().default(0),
+  vatAmount: real('vat_amount').notNull().default(0),
+  totalAmount: real('total_amount').notNull().default(0),
+  paidAmount: real('paid_amount').notNull().default(0),
+  currency: text('currency').notNull().default('THB'),
+  exchangeRate: real('exchange_rate').notNull().default(1),
+  status: text('status').notNull().default('draft'), // draft, confirmed, posted, partial, paid, cancelled
+  confirmedBy: integer('confirmed_by').references(() => sqliteUsers.id),
+  confirmedAt: text('confirmed_at'),
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// AR Invoice Line - SQLite
+export const sqliteARInvoiceLines = sqliteTable('ar_invoice_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  arInvoiceId: integer('ar_invoice_id').notNull().references(() => sqliteARInvoices.id),
+  lineNumber: integer('line_number').notNull(),
+  description: text('description').notNull(),
+  itemId: integer('item_id').references(() => sqliteItems.id),
+  glAccountId: integer('gl_account_id').notNull().references(() => sqliteGLAccounts.id),
+  quantity: real('quantity').notNull().default(1),
+  unitPrice: real('unit_price').notNull(),
+  amount: real('amount').notNull(),
+  vatAmount: real('vat_amount').notNull().default(0),
+  lotId: integer('lot_id').references(() => sqliteInventoryLots.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Payment - SQLite
+export const sqlitePayments = sqliteTable('payments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  paymentNumber: text('payment_number').notNull().unique(),
+  paymentType: text('payment_type').notNull(), // ap, ar
+  paymentDate: text('payment_date').notNull(),
+  vendorId: integer('vendor_id').references(() => sqliteVendors.id),
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  bankAccountId: integer('bank_account_id').notNull().references(() => sqliteGLAccounts.id),
+  paymentMethod: text('payment_method').notNull(), // cash, check, transfer, other
+  referenceNumber: text('reference_number'),
+  amount: real('amount').notNull(),
+  whtAmount: real('wht_amount').notNull().default(0),
+  description: text('description'),
+  status: text('status').notNull().default('pending'), // pending, completed, cancelled
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Payment Allocation - SQLite
+export const sqlitePaymentAllocations = sqliteTable('payment_allocations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  paymentId: integer('payment_id').notNull().references(() => sqlitePayments.id),
+  apInvoiceId: integer('ap_invoice_id').references(() => sqliteAPInvoices.id),
+  arInvoiceId: integer('ar_invoice_id').references(() => sqliteARInvoices.id),
+  allocatedAmount: real('allocated_amount').notNull(),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// VAT Transaction - SQLite
+export const sqliteVATTransactions = sqliteTable('vat_transactions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  transactionType: text('transaction_type').notNull(), // input, output
+  taxInvoiceNumber: text('tax_invoice_number').notNull(),
+  taxInvoiceDate: text('tax_invoice_date').notNull(),
+  taxPeriod: text('tax_period').notNull(), // YYYY-MM
+  vendorId: integer('vendor_id').references(() => sqliteVendors.id),
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  partyName: text('party_name').notNull(),
+  partyTaxId: text('party_tax_id').notNull(),
+  branchCode: text('branch_code').notNull().default('00000'),
+  taxableAmount: real('taxable_amount').notNull(),
+  vatRate: real('vat_rate').notNull(),
+  vatAmount: real('vat_amount').notNull(),
+  totalAmount: real('total_amount').notNull(),
+  apInvoiceId: integer('ap_invoice_id').references(() => sqliteAPInvoices.id),
+  arInvoiceId: integer('ar_invoice_id').references(() => sqliteARInvoices.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// WHT Transaction - SQLite
+export const sqliteWHTTransactions = sqliteTable('wht_transactions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  certificateNumber: text('certificate_number').notNull().unique(),
+  certificateType: text('certificate_type').notNull(), // pnd3, pnd53
+  paymentId: integer('payment_id').notNull().references(() => sqlitePayments.id),
+  vendorId: integer('vendor_id').notNull().references(() => sqliteVendors.id),
+  paymentDate: text('payment_date').notNull(),
+  taxPeriod: text('tax_period').notNull(), // YYYY-MM
+  whtType: text('wht_type').notNull(),
+  whtDescription: text('wht_description').notNull(),
+  paymentAmount: real('payment_amount').notNull(),
+  whtRate: real('wht_rate').notNull(),
+  whtAmount: real('wht_amount').notNull(),
+  netAmount: real('net_amount').notNull(),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Asset Category - SQLite
+export const sqliteAssetCategories = sqliteTable('asset_categories', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  nameTh: text('name_th').notNull(),
+  nameEn: text('name_en').notNull(),
+  defaultUsefulLifeMonths: integer('default_useful_life_months').notNull(),
+  defaultDepreciationMethod: text('default_depreciation_method').notNull(), // straight_line, declining_balance
+  maxDepreciationRate: real('max_depreciation_rate').notNull(),
+  assetGLAccountId: integer('asset_gl_account_id').notNull().references(() => sqliteGLAccounts.id),
+  depreciationExpenseGLAccountId: integer('depreciation_expense_gl_account_id').notNull().references(() => sqliteGLAccounts.id),
+  accumulatedDepreciationGLAccountId: integer('accumulated_depreciation_gl_account_id').notNull().references(() => sqliteGLAccounts.id),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Fixed Asset - SQLite
+export const sqliteFixedAssets = sqliteTable('fixed_assets', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  assetCode: text('asset_code').notNull().unique(),
+  nameTh: text('name_th').notNull(),
+  nameEn: text('name_en').notNull(),
+  categoryId: integer('category_id').notNull().references(() => sqliteAssetCategories.id),
+  acquisitionDate: text('acquisition_date').notNull(),
+  acquisitionCost: real('acquisition_cost').notNull(),
+  salvageValue: real('salvage_value').notNull().default(0),
+  usefulLifeMonths: integer('useful_life_months').notNull(),
+  depreciationMethod: text('depreciation_method').notNull(), // straight_line, declining_balance
+  depreciationStartDate: text('depreciation_start_date').notNull(),
+  accumulatedDepreciation: real('accumulated_depreciation').notNull().default(0),
+  netBookValue: real('net_book_value').notNull(),
+  location: text('location'),
+  departmentId: integer('department_id').references(() => sqliteHROrgUnits.id),
+  responsiblePersonId: integer('responsible_person_id').references(() => sqliteHREmployees.id),
+  purchaseOrderId: integer('purchase_order_id').references(() => sqlitePurchaseOrders.id),
+  apInvoiceId: integer('ap_invoice_id').references(() => sqliteAPInvoices.id),
+  status: text('status').notNull().default('active'), // active, disposed, fully_depreciated
+  disposalDate: text('disposal_date'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Asset Depreciation - SQLite
+export const sqliteAssetDepreciations = sqliteTable('asset_depreciations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fixedAssetId: integer('fixed_asset_id').notNull().references(() => sqliteFixedAssets.id),
+  fiscalPeriodId: integer('fiscal_period_id').notNull().references(() => sqliteFiscalPeriods.id),
+  depreciationDate: text('depreciation_date').notNull(),
+  openingBookValue: real('opening_book_value').notNull(),
+  depreciationAmount: real('depreciation_amount').notNull(),
+  accumulatedDepreciation: real('accumulated_depreciation').notNull(),
+  closingBookValue: real('closing_book_value').notNull(),
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Asset Disposal - SQLite
+export const sqliteAssetDisposals = sqliteTable('asset_disposals', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fixedAssetId: integer('fixed_asset_id').notNull().references(() => sqliteFixedAssets.id),
+  disposalDate: text('disposal_date').notNull(),
+  disposalType: text('disposal_type').notNull(), // sale, write_off, scrap, transfer
+  disposalReason: text('disposal_reason'),
+  saleProceeds: real('sale_proceeds').notNull().default(0),
+  bookValueAtDisposal: real('book_value_at_disposal').notNull(),
+  gainLoss: real('gain_loss').notNull(),
+  buyerName: text('buyer_name'),
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  approvedAt: text('approved_at'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Asset Movement - SQLite
+export const sqliteAssetMovements = sqliteTable('asset_movements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fixedAssetId: integer('fixed_asset_id').notNull().references(() => sqliteFixedAssets.id),
+  movementDate: text('movement_date').notNull(),
+  fromLocation: text('from_location'),
+  toLocation: text('to_location'),
+  fromDepartmentId: integer('from_department_id').references(() => sqliteHROrgUnits.id),
+  toDepartmentId: integer('to_department_id').references(() => sqliteHROrgUnits.id),
+  fromResponsiblePersonId: integer('from_responsible_person_id').references(() => sqliteHREmployees.id),
+  toResponsiblePersonId: integer('to_responsible_person_id').references(() => sqliteHREmployees.id),
+  reason: text('reason'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Accounting Equipment (extends FixedAsset) - SQLite
+export const sqliteAccountingEquipment = sqliteTable('accounting_equipment', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fixedAssetId: integer('fixed_asset_id').notNull().unique().references(() => sqliteFixedAssets.id),
+  serialNumber: text('serial_number'),
+  manufacturer: text('manufacturer'),
+  model: text('model'),
+  specifications: text('specifications'),
+  warrantyStartDate: text('warranty_start_date'),
+  warrantyEndDate: text('warranty_end_date'),
+  operatingHours: real('operating_hours').notNull().default(0),
+  operatingUnits: real('operating_units').notNull().default(0),
+  lastMeterReading: real('last_meter_reading').notNull().default(0),
+  lastMeterReadingDate: text('last_meter_reading_date'),
+  assignedOperatorId: integer('assigned_operator_id').references(() => sqliteHREmployees.id),
+  productionLineId: integer('production_line_id'),
+  isAvailable: integer('is_available', { mode: 'boolean' }).notNull().default(true),
+  lastMaintenanceDate: text('last_maintenance_date'),
+  nextMaintenanceDue: text('next_maintenance_due'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Maintenance Schedule - SQLite
+export const sqliteAcctMaintenanceSchedules = sqliteTable('acct_maintenance_schedules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  equipmentId: integer('equipment_id').notNull().references(() => sqliteAccountingEquipment.id),
+  maintenanceType: text('maintenance_type').notNull(),
+  description: text('description'),
+  intervalType: text('interval_type').notNull(), // days, weeks, months, hours, units
+  intervalValue: integer('interval_value').notNull(),
+  lastPerformed: text('last_performed'),
+  lastPerformedHours: real('last_performed_hours'),
+  nextDue: text('next_due').notNull(),
+  nextDueHours: real('next_due_hours'),
+  alertDaysBefore: integer('alert_days_before').notNull().default(7),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Maintenance Record - SQLite
+export const sqliteAcctMaintenanceRecords = sqliteTable('acct_maintenance_records', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  equipmentId: integer('equipment_id').notNull().references(() => sqliteAccountingEquipment.id),
+  maintenanceScheduleId: integer('maintenance_schedule_id').references(() => sqliteAcctMaintenanceSchedules.id),
+  maintenanceDate: text('maintenance_date').notNull(),
+  maintenanceType: text('maintenance_type').notNull(), // preventive, corrective, emergency
+  description: text('description').notNull(),
+  hoursAtMaintenance: real('hours_at_maintenance'),
+  partsUsed: text('parts_used'), // JSON array
+  partsCost: real('parts_cost').notNull().default(0),
+  laborHours: real('labor_hours').notNull().default(0),
+  laborCost: real('labor_cost').notNull().default(0),
+  externalServiceCost: real('external_service_cost').notNull().default(0),
+  totalCost: real('total_cost').notNull(),
+  downtimeHours: real('downtime_hours').notNull().default(0),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  rootCause: text('root_cause'),
+  isCapitalized: integer('is_capitalized', { mode: 'boolean' }).notNull().default(false),
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  performedBy: text('performed_by'),
+  approvedBy: integer('approved_by').references(() => sqliteUsers.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
+// Accounting Module - MySQL Schema (010)
+// ============================================
+
+// GL Account Types - MySQL
+export const mysqlGLAccountTypes = mysqlTable('gl_account_types', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 10 }).notNull().unique(),
+  nameTh: varchar('name_th', { length: 100 }).notNull(),
+  nameEn: varchar('name_en', { length: 100 }).notNull(),
+  category: varchar('category', { length: 20 }).notNull(), // asset, liability, equity, revenue, expense
+  normalBalance: varchar('normal_balance', { length: 10 }).notNull(), // debit, credit
+  displayOrder: int('display_order').notNull().default(0),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// GL Account (Chart of Accounts) - MySQL
+export const mysqlGLAccounts = mysqlTable('gl_accounts', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 20 }).notNull().unique(),
+  nameTh: varchar('name_th', { length: 200 }).notNull(),
+  nameEn: varchar('name_en', { length: 200 }).notNull(),
+  accountTypeId: int('account_type_id').notNull().references(() => mysqlGLAccountTypes.id),
+  parentId: int('parent_id').references((): AnyMySqlColumn => mysqlGLAccounts.id),
+  level: int('level').notNull().default(1),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  isPostable: mysqlBoolean('is_postable').notNull().default(true),
+  isBankAccount: mysqlBoolean('is_bank_account').notNull().default(false),
+  bankName: varchar('bank_name', { length: 100 }),
+  bankAccountNumber: varchar('bank_account_number', { length: 50 }),
+  description: mysqlText('description'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Fiscal Year - MySQL
+export const mysqlFiscalYears = mysqlTable('fiscal_years', {
+  id: int('id').primaryKey().autoincrement(),
+  yearCode: varchar('year_code', { length: 10 }).notNull().unique(),
+  startDate: datetime('start_date').notNull(),
+  endDate: datetime('end_date').notNull(),
+  isCurrent: mysqlBoolean('is_current').notNull().default(false),
+  status: varchar('status', { length: 20 }).notNull().default('open'), // open, closed
+  closedBy: int('closed_by').references(() => mysqlUsers.id),
+  closedAt: datetime('closed_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Fiscal Period - MySQL
+export const mysqlFiscalPeriods = mysqlTable('fiscal_periods', {
+  id: int('id').primaryKey().autoincrement(),
+  fiscalYearId: int('fiscal_year_id').notNull().references(() => mysqlFiscalYears.id),
+  periodNumber: int('period_number').notNull(),
+  periodName: varchar('period_name', { length: 20 }).notNull(),
+  startDate: datetime('start_date').notNull(),
+  endDate: datetime('end_date').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('open'), // open, soft_closed, closed
+  closedBy: int('closed_by').references(() => mysqlUsers.id),
+  closedAt: datetime('closed_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Journal Entry - MySQL
+export const mysqlJournalEntries = mysqlTable('journal_entries', {
+  id: int('id').primaryKey().autoincrement(),
+  entryNumber: varchar('entry_number', { length: 20 }).notNull().unique(),
+  entryDate: datetime('entry_date').notNull(),
+  fiscalPeriodId: int('fiscal_period_id').references(() => mysqlFiscalPeriods.id),
+  description: mysqlText('description'),
+  sourceType: varchar('source_type', { length: 30 }), // PO_RECEIPT, SO_SHIPMENT, AP_PAYMENT, AR_RECEIPT, DEPRECIATION, PAYROLL, COST_ALLOCATION, PERIOD_CLOSE, MANUAL
+  sourceId: int('source_id'),
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, posted, reversed
+  totalDebit: decimal('total_debit', { precision: 15, scale: 2 }).notNull().default('0'),
+  totalCredit: decimal('total_credit', { precision: 15, scale: 2 }).notNull().default('0'),
+  postedBy: int('posted_by').references(() => mysqlUsers.id),
+  postedAt: datetime('posted_at'),
+  reversedBy: int('reversed_by').references(() => mysqlUsers.id),
+  reversedAt: datetime('reversed_at'),
+  reversalEntryId: int('reversal_entry_id').references((): AnyMySqlColumn => mysqlJournalEntries.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Journal Line - MySQL
+export const mysqlJournalLines = mysqlTable('journal_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  journalEntryId: int('journal_entry_id').notNull().references(() => mysqlJournalEntries.id),
+  lineNumber: int('line_number').notNull(),
+  glAccountId: int('gl_account_id').notNull().references(() => mysqlGLAccounts.id),
+  debit: decimal('debit', { precision: 15, scale: 2 }).notNull().default('0'),
+  credit: decimal('credit', { precision: 15, scale: 2 }).notNull().default('0'),
+  description: mysqlText('description'),
+  costCenterId: int('cost_center_id').references(() => mysqlHROrgUnits.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// AP Invoice - MySQL
+export const mysqlAPInvoices = mysqlTable('ap_invoices', {
+  id: int('id').primaryKey().autoincrement(),
+  invoiceNumber: varchar('invoice_number', { length: 50 }).notNull().unique(),
+  vendorId: int('vendor_id').notNull().references(() => mysqlVendors.id),
+  purchaseOrderId: int('purchase_order_id').references(() => mysqlPurchaseOrders.id),
+  invoiceDate: datetime('invoice_date').notNull(),
+  dueDate: datetime('due_date').notNull(),
+  receivedDate: datetime('received_date').notNull(),
+  description: mysqlText('description'),
+  subtotal: decimal('subtotal', { precision: 15, scale: 2 }).notNull().default('0'),
+  vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  whtAmount: decimal('wht_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  paidAmount: decimal('paid_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  currency: varchar('currency', { length: 3 }).notNull().default('THB'),
+  exchangeRate: decimal('exchange_rate', { precision: 10, scale: 6 }).notNull().default('1'),
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, approved, posted, partial, paid, cancelled
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// AP Invoice Line - MySQL
+export const mysqlAPInvoiceLines = mysqlTable('ap_invoice_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  apInvoiceId: int('ap_invoice_id').notNull().references(() => mysqlAPInvoices.id),
+  lineNumber: int('line_number').notNull(),
+  description: varchar('description', { length: 500 }).notNull(),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  glAccountId: int('gl_account_id').notNull().references(() => mysqlGLAccounts.id),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull().default('1'),
+  unitPrice: decimal('unit_price', { precision: 15, scale: 4 }).notNull(),
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  isCapitalizable: mysqlBoolean('is_capitalizable').notNull().default(false),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// AR Invoice - MySQL
+export const mysqlARInvoices = mysqlTable('ar_invoices', {
+  id: int('id').primaryKey().autoincrement(),
+  invoiceNumber: varchar('invoice_number', { length: 50 }).notNull().unique(),
+  taxInvoiceNumber: varchar('tax_invoice_number', { length: 50 }).notNull().unique(),
+  customerId: int('customer_id').notNull().references(() => mysqlCustomers.id),
+  salesOrderId: int('sales_order_id').references(() => mysqlSalesOrders.id),
+  invoiceDate: datetime('invoice_date').notNull(),
+  dueDate: datetime('due_date').notNull(),
+  description: mysqlText('description'),
+  subtotal: decimal('subtotal', { precision: 15, scale: 2 }).notNull().default('0'),
+  vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  paidAmount: decimal('paid_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  currency: varchar('currency', { length: 3 }).notNull().default('THB'),
+  exchangeRate: decimal('exchange_rate', { precision: 10, scale: 6 }).notNull().default('1'),
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, confirmed, posted, partial, paid, cancelled
+  confirmedBy: int('confirmed_by').references(() => mysqlUsers.id),
+  confirmedAt: datetime('confirmed_at'),
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// AR Invoice Line - MySQL
+export const mysqlARInvoiceLines = mysqlTable('ar_invoice_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  arInvoiceId: int('ar_invoice_id').notNull().references(() => mysqlARInvoices.id),
+  lineNumber: int('line_number').notNull(),
+  description: varchar('description', { length: 500 }).notNull(),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  glAccountId: int('gl_account_id').notNull().references(() => mysqlGLAccounts.id),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull().default('1'),
+  unitPrice: decimal('unit_price', { precision: 15, scale: 4 }).notNull(),
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  lotId: int('lot_id').references(() => mysqlInventoryLots.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Payment - MySQL
+export const mysqlPayments = mysqlTable('payments', {
+  id: int('id').primaryKey().autoincrement(),
+  paymentNumber: varchar('payment_number', { length: 20 }).notNull().unique(),
+  paymentType: varchar('payment_type', { length: 10 }).notNull(), // ap, ar
+  paymentDate: datetime('payment_date').notNull(),
+  vendorId: int('vendor_id').references(() => mysqlVendors.id),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  bankAccountId: int('bank_account_id').notNull().references(() => mysqlGLAccounts.id),
+  paymentMethod: varchar('payment_method', { length: 20 }).notNull(), // cash, check, transfer, other
+  referenceNumber: varchar('reference_number', { length: 50 }),
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  whtAmount: decimal('wht_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  description: mysqlText('description'),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, completed, cancelled
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Payment Allocation - MySQL
+export const mysqlPaymentAllocations = mysqlTable('payment_allocations', {
+  id: int('id').primaryKey().autoincrement(),
+  paymentId: int('payment_id').notNull().references(() => mysqlPayments.id),
+  apInvoiceId: int('ap_invoice_id').references(() => mysqlAPInvoices.id),
+  arInvoiceId: int('ar_invoice_id').references(() => mysqlARInvoices.id),
+  allocatedAmount: decimal('allocated_amount', { precision: 15, scale: 2 }).notNull(),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// VAT Transaction - MySQL
+export const mysqlVATTransactions = mysqlTable('vat_transactions', {
+  id: int('id').primaryKey().autoincrement(),
+  transactionType: varchar('transaction_type', { length: 10 }).notNull(), // input, output
+  taxInvoiceNumber: varchar('tax_invoice_number', { length: 50 }).notNull(),
+  taxInvoiceDate: datetime('tax_invoice_date').notNull(),
+  taxPeriod: varchar('tax_period', { length: 7 }).notNull(), // YYYY-MM
+  vendorId: int('vendor_id').references(() => mysqlVendors.id),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  partyName: varchar('party_name', { length: 200 }).notNull(),
+  partyTaxId: varchar('party_tax_id', { length: 20 }).notNull(),
+  branchCode: varchar('branch_code', { length: 5 }).notNull().default('00000'),
+  taxableAmount: decimal('taxable_amount', { precision: 15, scale: 2 }).notNull(),
+  vatRate: decimal('vat_rate', { precision: 5, scale: 2 }).notNull(),
+  vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }).notNull(),
+  totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull(),
+  apInvoiceId: int('ap_invoice_id').references(() => mysqlAPInvoices.id),
+  arInvoiceId: int('ar_invoice_id').references(() => mysqlARInvoices.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// WHT Transaction - MySQL
+export const mysqlWHTTransactions = mysqlTable('wht_transactions', {
+  id: int('id').primaryKey().autoincrement(),
+  certificateNumber: varchar('certificate_number', { length: 20 }).notNull().unique(),
+  certificateType: varchar('certificate_type', { length: 10 }).notNull(), // pnd3, pnd53
+  paymentId: int('payment_id').notNull().references(() => mysqlPayments.id),
+  vendorId: int('vendor_id').notNull().references(() => mysqlVendors.id),
+  paymentDate: datetime('payment_date').notNull(),
+  taxPeriod: varchar('tax_period', { length: 7 }).notNull(), // YYYY-MM
+  whtType: varchar('wht_type', { length: 20 }).notNull(),
+  whtDescription: varchar('wht_description', { length: 200 }).notNull(),
+  paymentAmount: decimal('payment_amount', { precision: 15, scale: 2 }).notNull(),
+  whtRate: decimal('wht_rate', { precision: 5, scale: 2 }).notNull(),
+  whtAmount: decimal('wht_amount', { precision: 15, scale: 2 }).notNull(),
+  netAmount: decimal('net_amount', { precision: 15, scale: 2 }).notNull(),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Asset Category - MySQL
+export const mysqlAssetCategories = mysqlTable('asset_categories', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 20 }).notNull().unique(),
+  nameTh: varchar('name_th', { length: 100 }).notNull(),
+  nameEn: varchar('name_en', { length: 100 }).notNull(),
+  defaultUsefulLifeMonths: int('default_useful_life_months').notNull(),
+  defaultDepreciationMethod: varchar('default_depreciation_method', { length: 20 }).notNull(), // straight_line, declining_balance
+  maxDepreciationRate: decimal('max_depreciation_rate', { precision: 5, scale: 2 }).notNull(),
+  assetGLAccountId: int('asset_gl_account_id').notNull().references(() => mysqlGLAccounts.id),
+  depreciationExpenseGLAccountId: int('depreciation_expense_gl_account_id').notNull().references(() => mysqlGLAccounts.id),
+  accumulatedDepreciationGLAccountId: int('accumulated_depreciation_gl_account_id').notNull().references(() => mysqlGLAccounts.id),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Fixed Asset - MySQL
+export const mysqlFixedAssets = mysqlTable('fixed_assets', {
+  id: int('id').primaryKey().autoincrement(),
+  assetCode: varchar('asset_code', { length: 30 }).notNull().unique(),
+  nameTh: varchar('name_th', { length: 200 }).notNull(),
+  nameEn: varchar('name_en', { length: 200 }).notNull(),
+  categoryId: int('category_id').notNull().references(() => mysqlAssetCategories.id),
+  acquisitionDate: datetime('acquisition_date').notNull(),
+  acquisitionCost: decimal('acquisition_cost', { precision: 15, scale: 2 }).notNull(),
+  salvageValue: decimal('salvage_value', { precision: 15, scale: 2 }).notNull().default('0'),
+  usefulLifeMonths: int('useful_life_months').notNull(),
+  depreciationMethod: varchar('depreciation_method', { length: 20 }).notNull(), // straight_line, declining_balance
+  depreciationStartDate: datetime('depreciation_start_date').notNull(),
+  accumulatedDepreciation: decimal('accumulated_depreciation', { precision: 15, scale: 2 }).notNull().default('0'),
+  netBookValue: decimal('net_book_value', { precision: 15, scale: 2 }).notNull(),
+  location: varchar('location', { length: 100 }),
+  departmentId: int('department_id').references(() => mysqlHROrgUnits.id),
+  responsiblePersonId: int('responsible_person_id').references(() => mysqlHREmployees.id),
+  purchaseOrderId: int('purchase_order_id').references(() => mysqlPurchaseOrders.id),
+  apInvoiceId: int('ap_invoice_id').references(() => mysqlAPInvoices.id),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active, disposed, fully_depreciated
+  disposalDate: datetime('disposal_date'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Asset Depreciation - MySQL
+export const mysqlAssetDepreciations = mysqlTable('asset_depreciations', {
+  id: int('id').primaryKey().autoincrement(),
+  fixedAssetId: int('fixed_asset_id').notNull().references(() => mysqlFixedAssets.id),
+  fiscalPeriodId: int('fiscal_period_id').notNull().references(() => mysqlFiscalPeriods.id),
+  depreciationDate: datetime('depreciation_date').notNull(),
+  openingBookValue: decimal('opening_book_value', { precision: 15, scale: 2 }).notNull(),
+  depreciationAmount: decimal('depreciation_amount', { precision: 15, scale: 2 }).notNull(),
+  accumulatedDepreciation: decimal('accumulated_depreciation', { precision: 15, scale: 2 }).notNull(),
+  closingBookValue: decimal('closing_book_value', { precision: 15, scale: 2 }).notNull(),
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Asset Disposal - MySQL
+export const mysqlAssetDisposals = mysqlTable('asset_disposals', {
+  id: int('id').primaryKey().autoincrement(),
+  fixedAssetId: int('fixed_asset_id').notNull().references(() => mysqlFixedAssets.id),
+  disposalDate: datetime('disposal_date').notNull(),
+  disposalType: varchar('disposal_type', { length: 20 }).notNull(), // sale, write_off, scrap, transfer
+  disposalReason: mysqlText('disposal_reason'),
+  saleProceeds: decimal('sale_proceeds', { precision: 15, scale: 2 }).notNull().default('0'),
+  bookValueAtDisposal: decimal('book_value_at_disposal', { precision: 15, scale: 2 }).notNull(),
+  gainLoss: decimal('gain_loss', { precision: 15, scale: 2 }).notNull(),
+  buyerName: varchar('buyer_name', { length: 200 }),
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  approvedAt: datetime('approved_at'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Asset Movement - MySQL
+export const mysqlAssetMovements = mysqlTable('asset_movements', {
+  id: int('id').primaryKey().autoincrement(),
+  fixedAssetId: int('fixed_asset_id').notNull().references(() => mysqlFixedAssets.id),
+  movementDate: datetime('movement_date').notNull(),
+  fromLocation: varchar('from_location', { length: 100 }),
+  toLocation: varchar('to_location', { length: 100 }),
+  fromDepartmentId: int('from_department_id').references(() => mysqlHROrgUnits.id),
+  toDepartmentId: int('to_department_id').references(() => mysqlHROrgUnits.id),
+  fromResponsiblePersonId: int('from_responsible_person_id').references(() => mysqlHREmployees.id),
+  toResponsiblePersonId: int('to_responsible_person_id').references(() => mysqlHREmployees.id),
+  reason: mysqlText('reason'),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Accounting Equipment (extends FixedAsset) - MySQL
+export const mysqlAccountingEquipment = mysqlTable('accounting_equipment', {
+  id: int('id').primaryKey().autoincrement(),
+  fixedAssetId: int('fixed_asset_id').notNull().unique().references(() => mysqlFixedAssets.id),
+  serialNumber: varchar('serial_number', { length: 100 }),
+  manufacturer: varchar('manufacturer', { length: 100 }),
+  model: varchar('model', { length: 100 }),
+  specifications: mysqlText('specifications'),
+  warrantyStartDate: datetime('warranty_start_date'),
+  warrantyEndDate: datetime('warranty_end_date'),
+  operatingHours: decimal('operating_hours', { precision: 10, scale: 2 }).notNull().default('0'),
+  operatingUnits: decimal('operating_units', { precision: 15, scale: 2 }).notNull().default('0'),
+  lastMeterReading: decimal('last_meter_reading', { precision: 10, scale: 2 }).notNull().default('0'),
+  lastMeterReadingDate: datetime('last_meter_reading_date'),
+  assignedOperatorId: int('assigned_operator_id').references(() => mysqlHREmployees.id),
+  productionLineId: int('production_line_id'),
+  isAvailable: mysqlBoolean('is_available').notNull().default(true),
+  lastMaintenanceDate: datetime('last_maintenance_date'),
+  nextMaintenanceDue: datetime('next_maintenance_due'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Maintenance Schedule - MySQL
+export const mysqlAcctMaintenanceSchedules = mysqlTable('acct_maintenance_schedules', {
+  id: int('id').primaryKey().autoincrement(),
+  equipmentId: int('equipment_id').notNull().references(() => mysqlAccountingEquipment.id),
+  maintenanceType: varchar('maintenance_type', { length: 100 }).notNull(),
+  description: mysqlText('description'),
+  intervalType: varchar('interval_type', { length: 20 }).notNull(), // days, weeks, months, hours, units
+  intervalValue: int('interval_value').notNull(),
+  lastPerformed: datetime('last_performed'),
+  lastPerformedHours: decimal('last_performed_hours', { precision: 10, scale: 2 }),
+  nextDue: datetime('next_due').notNull(),
+  nextDueHours: decimal('next_due_hours', { precision: 10, scale: 2 }),
+  alertDaysBefore: int('alert_days_before').notNull().default(7),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+// Maintenance Record - MySQL
+export const mysqlAcctMaintenanceRecords = mysqlTable('acct_maintenance_records', {
+  id: int('id').primaryKey().autoincrement(),
+  equipmentId: int('equipment_id').notNull().references(() => mysqlAccountingEquipment.id),
+  maintenanceScheduleId: int('maintenance_schedule_id').references(() => mysqlAcctMaintenanceSchedules.id),
+  maintenanceDate: datetime('maintenance_date').notNull(),
+  maintenanceType: varchar('maintenance_type', { length: 20 }).notNull(), // preventive, corrective, emergency
+  description: mysqlText('description').notNull(),
+  hoursAtMaintenance: decimal('hours_at_maintenance', { precision: 10, scale: 2 }),
+  partsUsed: mysqlText('parts_used'), // JSON array
+  partsCost: decimal('parts_cost', { precision: 15, scale: 2 }).notNull().default('0'),
+  laborHours: decimal('labor_hours', { precision: 5, scale: 2 }).notNull().default('0'),
+  laborCost: decimal('labor_cost', { precision: 15, scale: 2 }).notNull().default('0'),
+  externalServiceCost: decimal('external_service_cost', { precision: 15, scale: 2 }).notNull().default('0'),
+  totalCost: decimal('total_cost', { precision: 15, scale: 2 }).notNull(),
+  downtimeHours: decimal('downtime_hours', { precision: 5, scale: 2 }).notNull().default('0'),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  rootCause: mysqlText('root_cause'),
+  isCapitalized: mysqlBoolean('is_capitalized').notNull().default(false),
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  performedBy: varchar('performed_by', { length: 100 }),
+  approvedBy: int('approved_by').references(() => mysqlUsers.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -4277,6 +5143,8 @@ export type PurchaseOrder = typeof sqlitePurchaseOrders.$inferSelect;
 export type NewPurchaseOrder = typeof sqlitePurchaseOrders.$inferInsert;
 export type SalesOrder = typeof sqliteSalesOrders.$inferSelect;
 export type NewSalesOrder = typeof sqliteSalesOrders.$inferInsert;
+export type SalesDelivery = typeof sqliteSalesDeliveries.$inferSelect;
+export type NewSalesDelivery = typeof sqliteSalesDeliveries.$inferInsert;
 export type Customer = typeof sqliteCustomers.$inferSelect;
 export type NewCustomer = typeof sqliteCustomers.$inferInsert;
 export type ReportCategory = typeof sqliteReportCategories.$inferSelect;
@@ -4476,3 +5344,65 @@ export type WOFinishedInspection = typeof sqliteWOFinishedInspection.$inferSelec
 export type NewWOFinishedInspection = typeof sqliteWOFinishedInspection.$inferInsert;
 export type WOPackagingMaterial = typeof sqliteWOPackagingMaterials.$inferSelect;
 export type NewWOPackagingMaterial = typeof sqliteWOPackagingMaterials.$inferInsert;
+
+// Accounting Module Types (010)
+export type GLAccountType = typeof sqliteGLAccountTypes.$inferSelect;
+export type NewGLAccountType = typeof sqliteGLAccountTypes.$inferInsert;
+export type GLAccount = typeof sqliteGLAccounts.$inferSelect;
+export type NewGLAccount = typeof sqliteGLAccounts.$inferInsert;
+export type FiscalYear = typeof sqliteFiscalYears.$inferSelect;
+export type NewFiscalYear = typeof sqliteFiscalYears.$inferInsert;
+export type FiscalPeriod = typeof sqliteFiscalPeriods.$inferSelect;
+export type NewFiscalPeriod = typeof sqliteFiscalPeriods.$inferInsert;
+export type JournalEntry = typeof sqliteJournalEntries.$inferSelect;
+export type NewJournalEntry = typeof sqliteJournalEntries.$inferInsert;
+export type JournalLine = typeof sqliteJournalLines.$inferSelect;
+export type NewJournalLine = typeof sqliteJournalLines.$inferInsert;
+export type APInvoice = typeof sqliteAPInvoices.$inferSelect;
+export type NewAPInvoice = typeof sqliteAPInvoices.$inferInsert;
+export type APInvoiceLine = typeof sqliteAPInvoiceLines.$inferSelect;
+export type NewAPInvoiceLine = typeof sqliteAPInvoiceLines.$inferInsert;
+export type ARInvoice = typeof sqliteARInvoices.$inferSelect;
+export type NewARInvoice = typeof sqliteARInvoices.$inferInsert;
+export type ARInvoiceLine = typeof sqliteARInvoiceLines.$inferSelect;
+export type NewARInvoiceLine = typeof sqliteARInvoiceLines.$inferInsert;
+export type AcctPayment = typeof sqlitePayments.$inferSelect;
+export type NewAcctPayment = typeof sqlitePayments.$inferInsert;
+export type PaymentAllocation = typeof sqlitePaymentAllocations.$inferSelect;
+export type NewPaymentAllocation = typeof sqlitePaymentAllocations.$inferInsert;
+export type VATTransaction = typeof sqliteVATTransactions.$inferSelect;
+export type NewVATTransaction = typeof sqliteVATTransactions.$inferInsert;
+export type WHTTransaction = typeof sqliteWHTTransactions.$inferSelect;
+export type NewWHTTransaction = typeof sqliteWHTTransactions.$inferInsert;
+export type AssetCategory = typeof sqliteAssetCategories.$inferSelect;
+export type NewAssetCategory = typeof sqliteAssetCategories.$inferInsert;
+export type FixedAsset = typeof sqliteFixedAssets.$inferSelect;
+export type NewFixedAsset = typeof sqliteFixedAssets.$inferInsert;
+export type AssetDepreciation = typeof sqliteAssetDepreciations.$inferSelect;
+export type NewAssetDepreciation = typeof sqliteAssetDepreciations.$inferInsert;
+export type AssetDisposal = typeof sqliteAssetDisposals.$inferSelect;
+export type NewAssetDisposal = typeof sqliteAssetDisposals.$inferInsert;
+export type AssetMovement = typeof sqliteAssetMovements.$inferSelect;
+export type NewAssetMovement = typeof sqliteAssetMovements.$inferInsert;
+export type AccountingEquipment = typeof sqliteAccountingEquipment.$inferSelect;
+export type NewAccountingEquipment = typeof sqliteAccountingEquipment.$inferInsert;
+export type AcctMaintenanceSchedule = typeof sqliteAcctMaintenanceSchedules.$inferSelect;
+export type NewAcctMaintenanceSchedule = typeof sqliteAcctMaintenanceSchedules.$inferInsert;
+export type AcctMaintenanceRecord = typeof sqliteAcctMaintenanceRecords.$inferSelect;
+export type NewAcctMaintenanceRecord = typeof sqliteAcctMaintenanceRecords.$inferInsert;
+
+// ============================================
+// Template Module (ERP Prototype)
+// ============================================
+export {
+  // SQLite tables
+  sqliteTemplateCategories,
+  sqliteTemplateItems,
+  sqliteTemplateCategoriesRelations,
+  sqliteTemplateItemsRelations,
+  // MySQL tables
+  mysqlTemplateCategories,
+  mysqlTemplateItems,
+  mysqlTemplateCategoriesRelations,
+  mysqlTemplateItemsRelations,
+} from './schema-template';

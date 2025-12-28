@@ -37,6 +37,8 @@ export interface DxButtonProps {
   hint?: string;
   /** Children (for icon buttons) */
   children?: React.ReactNode;
+  /** Element attributes for testing */
+  elementAttr?: Record<string, string>;
 }
 
 /**
@@ -65,6 +67,7 @@ export function DxButton({
   tabIndex,
   hint,
   children,
+  elementAttr,
 }: DxButtonProps) {
   return (
     <Button
@@ -81,6 +84,7 @@ export function DxButton({
       accessKey={accessKey}
       tabIndex={tabIndex}
       hint={hint}
+      elementAttr={elementAttr}
     >
       {children}
     </Button>

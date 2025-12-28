@@ -9,7 +9,7 @@ import { LabelVerificationForm, type LabelType } from '@/components/production/l
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Tag, ArrowLeft, AlertCircle, Loader2, CheckCircle2, Clock, XCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface WorkOrder {
   id: number;
@@ -47,6 +47,7 @@ function LabelVerificationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const workOrderIdParam = searchParams.get('workOrderId');
   const labelIdParam = searchParams.get('labelId');

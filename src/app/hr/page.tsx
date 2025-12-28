@@ -145,8 +145,7 @@ export default function HRDashboardPage() {
   });
 
   return (
-    <div className="p-4 md:p-6 space-y-6 md:space-y-8">
-      {/* Header - T007: ResponsivePageHeader */}
+    <div className="p-4 md:p-6 space-y-6 md:space-y-8" data-testid="hr-dashboard">
       <ResponsivePageHeader
         title="ระบบบริหารงานบุคคล"
         subtitle="HR/Personnel Management Module"
@@ -155,8 +154,7 @@ export default function HRDashboardPage() {
         iconColor="text-emerald-600"
       />
 
-      {/* Quick Stats - T008: StatCard components */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="hr-stat-cards">
         <StatCard
           label="รอดำเนินการ"
           value={stats?.pendingNotifications || 0}
@@ -211,8 +209,7 @@ export default function HRDashboardPage() {
         />
       </div>
 
-      {/* Quick Actions - T010: Mobile-friendly quick actions */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-white rounded-lg shadow p-4" data-testid="hr-quick-actions">
         <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">การดำเนินการด่วน</h2>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 md:gap-3">
           {quickActions.map((action) => (
@@ -228,8 +225,7 @@ export default function HRDashboardPage() {
         </div>
       </div>
 
-      {/* Module Cards - T009: Responsive grid (1-col mobile, 2-col tablet, 3-col desktop) */}
-      <div>
+      <div data-testid="hr-module-cards">
         <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">โมดูล HR</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {modules.map((module) => (
@@ -237,6 +233,7 @@ export default function HRDashboardPage() {
               key={module.href}
               href={module.href}
               className="block p-4 md:p-6 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-lg active:scale-[0.98] transition-all group min-h-[44px]"
+              data-testid={`hr-module-${module.href.split('/').pop()}`}
             >
               <div className="flex items-start gap-3 md:gap-4">
                 <div

@@ -1,0 +1,799 @@
+openapi: 3.0.3
+info:
+  title: Equipment Maintenance API
+  version: 1.0.0
+  description: Equipment and maintenance management
+
+paths:
+  /api/accounting/equipment:
+    get:
+      summary: List equipment
+      operationId: listEquipment
+      tags: [Equipment]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: productionLineId
+          in: query
+          schema:
+            type: integer
+        - name: isAvailable
+          in: query
+          schema:
+            type: boolean
+        - name: maintenanceDue
+          in: query
+          schema:
+            type: boolean
+          description: Only show equipment with maintenance due
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated equipment list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentListResponse'
+
+    post:
+      summary: Create equipment profile
+      operationId: createEquipment
+      tags: [Equipment]
+      description: Creates equipment profile linked to an existing fixed asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentCreate'
+      responses:
+        '201':
+          description: Equipment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentResponse'
+
+  /api/accounting/equipment/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get equipment details
+      operationId: getEquipment
+      tags: [Equipment]
+      responses:
+        '200':
+          description: Equipment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentDetailResponse'
+
+    put:
+      summary: Update equipment
+      operationId: updateEquipment
+      tags: [Equipment]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentUpdate'
+      responses:
+        '200':
+          description: Equipment updated
+
+  /api/accounting/equipment/{id}/meter-reading:
+    post:
+      summary: Update operating hours
+      operationId: updateMeterReading
+      tags: [Equipment]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reading, readingDate]
+              properties:
+                reading:
+                  type: number
+                  description: Current hour meter reading
+                readingDate:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Meter reading updated
+
+  /api/accounting/equipment/{id}/maintenance:
+    get:
+      summary: Get maintenance history
+      operationId: getMaintenanceHistory
+      tags: [Maintenance]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [preventive, corrective, emergency]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Maintenance history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecordListResponse'
+
+    post:
+      summary: Record maintenance event
+      operationId: recordMaintenance
+      tags: [Maintenance]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecordCreate'
+      responses:
+        '201':
+          description: Maintenance recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecordResponse'
+
+  /api/accounting/equipment/{id}/schedules:
+    get:
+      summary: Get maintenance schedules
+      operationId: getMaintenanceSchedules
+      tags: [Maintenance]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Maintenance schedules
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MaintenanceSchedule'
+
+    post:
+      summary: Create maintenance schedule
+      operationId: createMaintenanceSchedule
+      tags: [Maintenance]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleCreate'
+      responses:
+        '201':
+          description: Schedule created
+
+  /api/accounting/maintenance/due:
+    get:
+      summary: List upcoming maintenance
+      operationId: getUpcomingMaintenance
+      tags: [Maintenance]
+      parameters:
+        - name: daysAhead
+          in: query
+          schema:
+            type: integer
+            default: 7
+        - name: productionLineId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Upcoming maintenance tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpcomingMaintenanceResponse'
+
+  /api/accounting/maintenance/overdue:
+    get:
+      summary: List overdue maintenance
+      operationId: getOverdueMaintenance
+      tags: [Maintenance]
+      responses:
+        '200':
+          description: Overdue maintenance tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverdueMaintenanceResponse'
+
+  /api/accounting/equipment/{id}/mtbf:
+    get:
+      summary: Get MTBF analysis
+      operationId: getMTBFAnalysis
+      tags: [Equipment]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: periodMonths
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        '200':
+          description: MTBF and reliability metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MTBFAnalysisResponse'
+
+components:
+  schemas:
+    EquipmentCreate:
+      type: object
+      required: [fixedAssetId]
+      properties:
+        fixedAssetId:
+          type: integer
+        serialNumber:
+          type: string
+        manufacturer:
+          type: string
+        model:
+          type: string
+        specifications:
+          type: string
+        warrantyStartDate:
+          type: string
+          format: date
+        warrantyEndDate:
+          type: string
+          format: date
+        operatingHours:
+          type: number
+          default: 0
+        assignedOperatorId:
+          type: integer
+        productionLineId:
+          type: integer
+
+    EquipmentUpdate:
+      type: object
+      properties:
+        serialNumber:
+          type: string
+        manufacturer:
+          type: string
+        model:
+          type: string
+        specifications:
+          type: string
+        warrantyStartDate:
+          type: string
+          format: date
+        warrantyEndDate:
+          type: string
+          format: date
+        assignedOperatorId:
+          type: integer
+        productionLineId:
+          type: integer
+        isAvailable:
+          type: boolean
+
+    Equipment:
+      type: object
+      properties:
+        id:
+          type: integer
+        fixedAssetId:
+          type: integer
+        fixedAsset:
+          type: object
+          properties:
+            assetCode:
+              type: string
+            nameTh:
+              type: string
+            nameEn:
+              type: string
+            acquisitionCost:
+              type: number
+            netBookValue:
+              type: number
+        serialNumber:
+          type: string
+        manufacturer:
+          type: string
+        model:
+          type: string
+        specifications:
+          type: string
+        warrantyStartDate:
+          type: string
+          format: date
+        warrantyEndDate:
+          type: string
+          format: date
+        isUnderWarranty:
+          type: boolean
+        operatingHours:
+          type: number
+        operatingUnits:
+          type: number
+        lastMeterReading:
+          type: number
+        lastMeterReadingDate:
+          type: string
+          format: date
+        assignedOperatorId:
+          type: integer
+        assignedOperator:
+          type: object
+          properties:
+            nameTh:
+              type: string
+            nameEn:
+              type: string
+        productionLineId:
+          type: integer
+        isAvailable:
+          type: boolean
+        lastMaintenanceDate:
+          type: string
+          format: date
+        nextMaintenanceDue:
+          type: string
+          format: date
+        isMaintenanceDue:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    MaintenanceScheduleCreate:
+      type: object
+      required: [maintenanceType, intervalType, intervalValue]
+      properties:
+        maintenanceType:
+          type: string
+          example: "Oil Change"
+        description:
+          type: string
+        intervalType:
+          type: string
+          enum: [days, weeks, months, hours, units]
+        intervalValue:
+          type: integer
+          example: 30
+        alertDaysBefore:
+          type: integer
+          default: 7
+
+    MaintenanceSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        equipmentId:
+          type: integer
+        maintenanceType:
+          type: string
+        description:
+          type: string
+        intervalType:
+          type: string
+        intervalValue:
+          type: integer
+        lastPerformed:
+          type: string
+          format: date
+        lastPerformedHours:
+          type: number
+        nextDue:
+          type: string
+          format: date
+        nextDueHours:
+          type: number
+        alertDaysBefore:
+          type: integer
+        isActive:
+          type: boolean
+        isDue:
+          type: boolean
+        isOverdue:
+          type: boolean
+
+    MaintenanceRecordCreate:
+      type: object
+      required: [maintenanceDate, maintenanceType, description]
+      properties:
+        maintenanceScheduleId:
+          type: integer
+          nullable: true
+        maintenanceDate:
+          type: string
+          format: date
+        maintenanceType:
+          type: string
+          enum: [preventive, corrective, emergency]
+        description:
+          type: string
+        hoursAtMaintenance:
+          type: number
+        partsUsed:
+          type: array
+          items:
+            type: object
+            properties:
+              itemId:
+                type: integer
+              description:
+                type: string
+              quantity:
+                type: number
+              cost:
+                type: number
+        partsCost:
+          type: number
+          default: 0
+        laborHours:
+          type: number
+          default: 0
+        laborCost:
+          type: number
+          default: 0
+        externalServiceCost:
+          type: number
+          default: 0
+        downtimeHours:
+          type: number
+          default: 0
+        isCritical:
+          type: boolean
+          default: false
+        rootCause:
+          type: string
+        isCapitalized:
+          type: boolean
+          default: false
+        performedBy:
+          type: string
+
+    MaintenanceRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        equipmentId:
+          type: integer
+        maintenanceScheduleId:
+          type: integer
+        maintenanceDate:
+          type: string
+          format: date
+        maintenanceType:
+          type: string
+        description:
+          type: string
+        hoursAtMaintenance:
+          type: number
+        partsUsed:
+          type: string
+        partsCost:
+          type: number
+        laborHours:
+          type: number
+        laborCost:
+          type: number
+        externalServiceCost:
+          type: number
+        totalCost:
+          type: number
+        downtimeHours:
+          type: number
+        isCritical:
+          type: boolean
+        rootCause:
+          type: string
+        isCapitalized:
+          type: boolean
+        journalEntryId:
+          type: integer
+        performedBy:
+          type: string
+        approvedBy:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    MTBFAnalysisResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            equipmentId:
+              type: integer
+            equipmentName:
+              type: string
+            analysisStart:
+              type: string
+              format: date
+            analysisEnd:
+              type: string
+              format: date
+            operatingHours:
+              type: number
+            failureCount:
+              type: integer
+            mtbf:
+              type: number
+              description: Mean Time Between Failures (hours)
+            mttr:
+              type: number
+              description: Mean Time To Repair (hours)
+            availability:
+              type: number
+              description: Availability percentage
+            totalDowntime:
+              type: number
+            totalMaintenanceCost:
+              type: number
+            costPerHour:
+              type: number
+            failures:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  description:
+                    type: string
+                  hoursAtFailure:
+                    type: number
+                  hoursBetweenFailures:
+                    type: number
+                  repairTime:
+                    type: number
+                  cost:
+                    type: number
+
+    UpcomingMaintenanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              scheduleId:
+                type: integer
+              equipmentId:
+                type: integer
+              equipmentCode:
+                type: string
+              equipmentName:
+                type: string
+              maintenanceType:
+                type: string
+              nextDue:
+                type: string
+                format: date
+              daysUntilDue:
+                type: integer
+              productionLine:
+                type: string
+
+    OverdueMaintenanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              scheduleId:
+                type: integer
+              equipmentId:
+                type: integer
+              equipmentCode:
+                type: string
+              equipmentName:
+                type: string
+              maintenanceType:
+                type: string
+              dueDate:
+                type: string
+                format: date
+              daysOverdue:
+                type: integer
+              productionLine:
+                type: string
+
+    EquipmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Equipment'
+
+    EquipmentDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Equipment'
+            - type: object
+              properties:
+                schedules:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/MaintenanceSchedule'
+                recentMaintenance:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/MaintenanceRecord'
+                mtbf:
+                  type: number
+                totalMaintenanceCost:
+                  type: number
+
+    EquipmentListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Equipment'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+            summary:
+              type: object
+              properties:
+                totalEquipment:
+                  type: integer
+                availableCount:
+                  type: integer
+                maintenanceDueCount:
+                  type: integer
+                overdueCount:
+                  type: integer
+
+    MaintenanceRecordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/MaintenanceRecord'
+
+    MaintenanceRecordListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/MaintenanceRecord'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            summary:
+              type: object
+              properties:
+                totalCost:
+                  type: number
+                totalDowntime:
+                  type: number
+                preventiveCount:
+                  type: integer
+                correctiveCount:
+                  type: integer
+                emergencyCount:
+                  type: integer

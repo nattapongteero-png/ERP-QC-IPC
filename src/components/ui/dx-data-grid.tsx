@@ -17,6 +17,7 @@ import DataGrid, {
   Item,
   Summary,
   TotalItem,
+  Editing,
 } from 'devextreme-react/data-grid';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 
@@ -38,6 +39,7 @@ export {
   Item as DxItem,
   Summary as DxSummary,
   TotalItem as DxTotalItem,
+  Editing as DxEditing,
 };
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import { Workbook } from 'exceljs';
@@ -86,13 +88,26 @@ export interface DxDataGridColumn {
   hideOnMobile?: boolean;
   /** Hide this column on tablets (768px - 1024px) */
   hideOnTablet?: boolean;
+  /** Column type (e.g., 'buttons' for action columns) */
+  type?: 'buttons' | 'selection' | 'adaptive';
+  /** Button definitions for type='buttons' columns */
+  buttons?: Array<{
+    name?: string;
+    hint?: string;
+    icon?: string;
+    text?: string;
+    visible?: boolean | ((options: { row?: { data: unknown } }) => boolean);
+    onClick?: (e: { row?: { data: unknown } }) => void;
+  }>;
 }
 
 export interface DxDataGridProps<T = Record<string, unknown>> {
   /** Data source */
   dataSource: T[];
-  /** Column definitions */
-  columns: DxDataGridColumn[];
+  /** Column definitions (optional if using DxColumn children) */
+  columns?: DxDataGridColumn[];
+  /** Children (for using DxColumn, DxSearchPanel, etc. directly) */
+  children?: React.ReactNode;
   /** Row key field */
   keyExpr?: string;
   /** Show borders */
@@ -166,6 +181,8 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   responsiveColumns?: boolean;
   /** Fill available height (use with flex container) - overrides height props on tablet */
   fillHeight?: boolean;
+  /** Element attributes for testing */
+  elementAttr?: Record<string, string>;
 }
 
 /**
@@ -194,6 +211,7 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
 export function DxDataGrid<T = Record<string, unknown>>({
   dataSource,
   columns,
+  children,
   keyExpr = 'id',
   showBorders = true,
   showRowLines = true,
@@ -230,6 +248,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
   tabletHeight,
   responsiveColumns = true,
   fillHeight = false,
+  elementAttr,
 }: DxDataGridProps<T>) {
   // Detect device type for responsive behavior
   const { isMobile, isTablet } = useMobile();
@@ -245,6 +264,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
 
   // Filter columns based on device type when responsiveColumns is enabled
   const responsiveFilteredColumns = useMemo(() => {
+    if (!columns) return [];
     if (!responsiveColumns) return columns;
 
     return columns.filter((col) => {
@@ -294,6 +314,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
       onSelectionChanged={onSelectionChanged}
       onExporting={enableExport ? handleExporting : undefined}
       focusedRowEnabled={selection !== 'none'}
+      elementAttr={elementAttr}
     >
       <LoadPanel enabled={loading} />
 
@@ -343,6 +364,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
         </Toolbar>
       )}
 
+      {/* Render columns from columns prop if provided */}
       {responsiveFilteredColumns.map((col, index) => (
         <Column
           key={col.dataField || `col-${index}`}
@@ -366,6 +388,9 @@ export function DxDataGrid<T = Record<string, unknown>>({
           sortIndex={col.sortIndex}
         />
       ))}
+
+      {/* Render children if provided (for DxColumn, DxSearchPanel, etc.) */}
+      {children}
     </DataGrid>
   );
 }

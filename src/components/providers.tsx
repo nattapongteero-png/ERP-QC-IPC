@@ -49,6 +49,10 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
             console.error('URL:', url);
             console.error('Method:', method);
             console.error('Error:', data.error);
+            // Log validation errors if present
+            if (data.errors && Array.isArray(data.errors)) {
+              console.error('Validation Errors:', JSON.stringify(data.errors, null, 2));
+            }
             if (data.debug) {
               console.error('Debug:', data.debug);
               if (data.debug.stack) {
@@ -57,8 +61,19 @@ function FetchInterceptor({ children }: { children: React.ReactNode }) {
             }
             console.groupEnd();
 
+            // Format error message with validation details
+            let errorMessage = data.error;
+            if (data.errors && Array.isArray(data.errors)) {
+              const errorDetails = data.errors
+                .map((e: { field?: string; message?: string }) =>
+                  e.field ? `${e.field}: ${e.message}` : e.message || JSON.stringify(e)
+                )
+                .join(', ');
+              errorMessage = `${data.error}: ${errorDetails}`;
+            }
+
             addError({
-              error: data.error,
+              error: errorMessage,
               debug: data.debug,
               url,
               method,

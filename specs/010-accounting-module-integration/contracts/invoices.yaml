@@ -1,0 +1,682 @@
+openapi: 3.0.3
+info:
+  title: AP/AR Invoices API
+  version: 1.0.0
+  description: Accounts Payable and Accounts Receivable invoice management
+
+paths:
+  # ==================== AP INVOICES ====================
+  /api/accounting/ap-invoices:
+    get:
+      summary: List AP invoices
+      operationId: listAPInvoices
+      tags: [AP Invoices]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, approved, posted, partial, paid, cancelled]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: overdue
+          in: query
+          schema:
+            type: boolean
+          description: Only show overdue invoices
+      responses:
+        '200':
+          description: Paginated AP invoices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APInvoiceListResponse'
+
+    post:
+      summary: Create AP invoice
+      operationId: createAPInvoice
+      tags: [AP Invoices]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APInvoiceCreate'
+      responses:
+        '201':
+          description: AP invoice created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APInvoiceResponse'
+
+  /api/accounting/ap-invoices/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get AP invoice details
+      operationId: getAPInvoice
+      tags: [AP Invoices]
+      responses:
+        '200':
+          description: AP invoice with lines
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APInvoiceDetailResponse'
+
+    put:
+      summary: Update draft AP invoice
+      operationId: updateAPInvoice
+      tags: [AP Invoices]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APInvoiceUpdate'
+      responses:
+        '200':
+          description: Invoice updated
+
+  /api/accounting/ap-invoices/{id}/approve:
+    post:
+      summary: Approve AP invoice
+      operationId: approveAPInvoice
+      tags: [AP Invoices]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invoice approved and journal entry created
+
+  /api/accounting/ap-invoices/{id}/pay:
+    post:
+      summary: Record payment for AP invoice
+      operationId: payAPInvoice
+      tags: [AP Invoices]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APPaymentCreate'
+      responses:
+        '200':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+
+  # ==================== AR INVOICES ====================
+  /api/accounting/ar-invoices:
+    get:
+      summary: List AR invoices
+      operationId: listARInvoices
+      tags: [AR Invoices]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: customerId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, confirmed, posted, partial, paid, cancelled]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: overdue
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Paginated AR invoices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARInvoiceListResponse'
+
+    post:
+      summary: Create AR invoice
+      operationId: createARInvoice
+      tags: [AR Invoices]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ARInvoiceCreate'
+      responses:
+        '201':
+          description: AR invoice created with tax invoice number
+
+  /api/accounting/ar-invoices/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get AR invoice details
+      operationId: getARInvoice
+      tags: [AR Invoices]
+      responses:
+        '200':
+          description: AR invoice with lines
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARInvoiceDetailResponse'
+
+  /api/accounting/ar-invoices/{id}/confirm:
+    post:
+      summary: Confirm AR invoice
+      operationId: confirmARInvoice
+      tags: [AR Invoices]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invoice confirmed and journal entry created
+
+  /api/accounting/ar-invoices/{id}/receive-payment:
+    post:
+      summary: Record payment receipt for AR invoice
+      operationId: receiveARPayment
+      tags: [AR Invoices]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ARPaymentCreate'
+      responses:
+        '200':
+          description: Payment received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+
+components:
+  schemas:
+    # ==================== AP SCHEMAS ====================
+    APInvoiceCreate:
+      type: object
+      required: [invoiceNumber, vendorId, invoiceDate, dueDate, lines]
+      properties:
+        invoiceNumber:
+          type: string
+          maxLength: 50
+        vendorId:
+          type: integer
+        purchaseOrderId:
+          type: integer
+          nullable: true
+        invoiceDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        description:
+          type: string
+        currency:
+          type: string
+          default: "THB"
+        exchangeRate:
+          type: number
+          default: 1
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/APInvoiceLineCreate'
+
+    APInvoiceLineCreate:
+      type: object
+      required: [description, glAccountId, amount]
+      properties:
+        description:
+          type: string
+        itemId:
+          type: integer
+          nullable: true
+        glAccountId:
+          type: integer
+        quantity:
+          type: number
+          default: 1
+        unitPrice:
+          type: number
+        amount:
+          type: number
+        vatAmount:
+          type: number
+          default: 0
+        isCapitalizable:
+          type: boolean
+          default: false
+
+    APInvoiceUpdate:
+      type: object
+      properties:
+        invoiceDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        description:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/APInvoiceLineCreate'
+
+    APInvoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        invoiceNumber:
+          type: string
+        vendorId:
+          type: integer
+        vendor:
+          type: object
+          properties:
+            name:
+              type: string
+            taxId:
+              type: string
+        purchaseOrderId:
+          type: integer
+          nullable: true
+        invoiceDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        subtotal:
+          type: number
+        vatAmount:
+          type: number
+        whtAmount:
+          type: number
+        totalAmount:
+          type: number
+        paidAmount:
+          type: number
+        balanceDue:
+          type: number
+        status:
+          type: string
+          enum: [draft, approved, posted, partial, paid, cancelled]
+        isOverdue:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    APPaymentCreate:
+      type: object
+      required: [paymentDate, bankAccountId, amount]
+      properties:
+        paymentDate:
+          type: string
+          format: date
+        bankAccountId:
+          type: integer
+        paymentMethod:
+          type: string
+          enum: [cash, check, transfer, other]
+          default: transfer
+        referenceNumber:
+          type: string
+        amount:
+          type: number
+        whtTypeCode:
+          type: string
+          description: WHT type code if withholding applies
+        whtRate:
+          type: number
+          description: WHT rate percentage
+        description:
+          type: string
+
+    # ==================== AR SCHEMAS ====================
+    ARInvoiceCreate:
+      type: object
+      required: [customerId, invoiceDate, dueDate, lines]
+      properties:
+        customerId:
+          type: integer
+        salesOrderId:
+          type: integer
+          nullable: true
+        invoiceDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        description:
+          type: string
+        currency:
+          type: string
+          default: "THB"
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ARInvoiceLineCreate'
+
+    ARInvoiceLineCreate:
+      type: object
+      required: [description, glAccountId, amount]
+      properties:
+        description:
+          type: string
+        itemId:
+          type: integer
+          nullable: true
+        glAccountId:
+          type: integer
+        quantity:
+          type: number
+          default: 1
+        unitPrice:
+          type: number
+        amount:
+          type: number
+        vatAmount:
+          type: number
+          default: 0
+        lotId:
+          type: integer
+          nullable: true
+
+    ARInvoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        invoiceNumber:
+          type: string
+        taxInvoiceNumber:
+          type: string
+          description: Thai tax invoice number
+        customerId:
+          type: integer
+        customer:
+          type: object
+          properties:
+            name:
+              type: string
+            taxId:
+              type: string
+        salesOrderId:
+          type: integer
+          nullable: true
+        invoiceDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        subtotal:
+          type: number
+        vatAmount:
+          type: number
+        totalAmount:
+          type: number
+        paidAmount:
+          type: number
+        balanceDue:
+          type: number
+        status:
+          type: string
+          enum: [draft, confirmed, posted, partial, paid, cancelled]
+        isOverdue:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ARPaymentCreate:
+      type: object
+      required: [paymentDate, bankAccountId, amount]
+      properties:
+        paymentDate:
+          type: string
+          format: date
+        bankAccountId:
+          type: integer
+        paymentMethod:
+          type: string
+          enum: [cash, check, transfer, other]
+          default: transfer
+        referenceNumber:
+          type: string
+        amount:
+          type: number
+        description:
+          type: string
+
+    # ==================== COMMON SCHEMAS ====================
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        paymentNumber:
+          type: string
+        paymentType:
+          type: string
+          enum: [ap, ar]
+        paymentDate:
+          type: string
+          format: date
+        bankAccountId:
+          type: integer
+        paymentMethod:
+          type: string
+        referenceNumber:
+          type: string
+        amount:
+          type: number
+        whtAmount:
+          type: number
+        status:
+          type: string
+        journalEntryId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Payment'
+
+    APInvoiceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/APInvoice'
+
+    APInvoiceDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          allOf:
+            - $ref: '#/components/schemas/APInvoice'
+            - type: object
+              properties:
+                lines:
+                  type: array
+                  items:
+                    type: object
+                payments:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Payment'
+
+    APInvoiceListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/APInvoice'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+            summary:
+              type: object
+              properties:
+                totalOutstanding:
+                  type: number
+                overdueCount:
+                  type: integer
+                overdueAmount:
+                  type: number
+
+    ARInvoiceDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          allOf:
+            - $ref: '#/components/schemas/ARInvoice'
+            - type: object
+              properties:
+                lines:
+                  type: array
+                  items:
+                    type: object
+                payments:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Payment'
+
+    ARInvoiceListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ARInvoice'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+            summary:
+              type: object
+              properties:
+                totalOutstanding:
+                  type: number
+                overdueCount:
+                  type: integer
+                overdueAmount:
+                  type: number

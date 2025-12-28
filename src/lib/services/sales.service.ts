@@ -3,20 +3,25 @@
  * Real-world sales management with ATP calculation and order fulfillment
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteSalesOrders,
   sqliteSalesOrderLines,
+  sqliteSalesDeliveries,
   sqliteItems,
   sqliteInventoryLots,
   mysqlSalesOrders,
   mysqlSalesOrderLines,
+  mysqlSalesDeliveries,
   mysqlItems,
   mysqlInventoryLots,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
+import { getNow, getTodayStr } from '../db/date-utils';
+import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, THAI_VAT_RATE } from './accounting.service';
 
 // Types
 export interface ATPResult {
@@ -42,6 +47,7 @@ function getTables() {
     return {
       salesOrders: sqliteSalesOrders,
       salesOrderLines: sqliteSalesOrderLines,
+      salesDeliveries: sqliteSalesDeliveries,
       items: sqliteItems,
       lots: sqliteInventoryLots,
     };
@@ -49,6 +55,7 @@ function getTables() {
   return {
     salesOrders: mysqlSalesOrders,
     salesOrderLines: mysqlSalesOrderLines,
+    salesDeliveries: mysqlSalesDeliveries,
     items: mysqlItems,
     lots: mysqlInventoryLots,
   };
@@ -62,7 +69,7 @@ export async function checkATP(
   requestedQuantity: number
 ): Promise<ATPResult> {
   const { items, lots } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const [item] = await database.select().from(items).where(eq(items.id, itemId));
   if (!item) throw new Error(`Item ${itemId} not found`);
@@ -99,7 +106,7 @@ export async function createSalesOrder(
   userId: number
 ): Promise<{ orderId: number; atpResults: ATPResult[] }> {
   const { salesOrders, salesOrderLines, items } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   if (!customer.name) throw new Error('Customer name is required');
 
@@ -124,25 +131,43 @@ export async function createSalesOrder(
   const soNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
   const totalAmount = lines.reduce((sum: number, l: { quantity: number; unitPrice: number }) => sum + l.quantity * l.unitPrice, 0);
 
-  const [newSO] = await database
-    .insert(salesOrders)
-    .values({
-      soNumber,
-      customerName: customer.name,
-      customerContact: customer.contact,
-      customerAddress: customer.address,
-      status: 'draft',
-      totalAmount,
-      currency: 'THB',
-      createdBy: userId,
-    })
-    .returning({ id: salesOrders.id });
+  let newSOId: number;
+  if (isSqlite()) {
+    const [newSO] = await database
+      .insert(salesOrders)
+      .values({
+        soNumber,
+        customerName: customer.name,
+        customerContact: customer.contact,
+        customerAddress: customer.address,
+        status: 'draft',
+        totalAmount,
+        currency: 'THB',
+        createdBy: userId,
+      })
+      .returning({ id: salesOrders.id });
+    newSOId = newSO.id;
+  } else {
+    const result = await database
+      .insert(salesOrders)
+      .values({
+        soNumber,
+        customerName: customer.name,
+        customerContact: customer.contact,
+        customerAddress: customer.address,
+        status: 'draft',
+        totalAmount,
+        currency: 'THB',
+        createdBy: userId,
+      });
+    newSOId = getInsertId(result);
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const [item] = await database.select().from(items).where(eq(items.id, line.itemId));
     await database.insert(salesOrderLines).values({
-      soId: newSO.id,
+      soId: newSOId,
       itemId: line.itemId,
       quantity: line.quantity,
       unit: item?.primaryUnit || 'EA',
@@ -151,8 +176,8 @@ export async function createSalesOrder(
     });
   }
 
-  await createAuditLog({ userId, action: 'CREATE', tableName: 'sales_orders', recordId: newSO.id, newValue: { soNumber, customerName: customer.name, totalAmount } });
-  return { orderId: newSO.id, atpResults };
+  await createAuditLog({ userId, action: 'CREATE', tableName: 'sales_orders', recordId: newSOId, newValue: { soNumber, customerName: customer.name, totalAmount } });
+  return { orderId: newSOId, atpResults };
 }
 
 /**
@@ -160,7 +185,7 @@ export async function createSalesOrder(
  */
 export async function allocateLotsForOrder(soId: number, userId: number) {
   const { salesOrders, salesOrderLines, items } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const [so] = await database.select().from(salesOrders).where(eq(salesOrders.id, soId));
   if (!so) throw new Error(`Sales Order ${soId} not found`);
@@ -183,4 +208,303 @@ export async function allocateLotsForOrder(soId: number, userId: number) {
 
   await database.update(salesOrders).set({ status: 'processing' }).where(eq(salesOrders.id, soId));
   return allocations;
+}
+
+/**
+ * Fulfillment Types
+ */
+export interface FulfillmentInput {
+  soId: number;
+  soLineId: number;
+  itemId: number;
+  lotId: number;
+  quantity: number;
+  notes?: string;
+}
+
+export interface FulfillmentResult {
+  deliveryId: number;
+  deliveryNumber: string;
+  shippedQuantity: number;
+  // Accounting integration - Journal entries
+  salesJournalEntryId?: number;
+  salesJournalEntryNumber?: string;
+  cogsJournalEntryId?: number;
+  cogsJournalEntryNumber?: string;
+  accountingMessage?: string;
+  // AR Invoice integration
+  arInvoiceId?: number;
+  arInvoiceNumber?: string;
+  taxInvoiceNumber?: string;
+  arInvoiceMessage?: string;
+}
+
+/**
+ * Fulfill a sales order line by shipping from a specific lot
+ */
+export async function fulfillSalesOrderLine(
+  input: FulfillmentInput,
+  userId: number
+): Promise<FulfillmentResult> {
+  const { salesOrders, salesOrderLines, salesDeliveries, lots } = getTables();
+  const database = (await getDb()) as any;
+
+  // Get SO line
+  const [soLine] = await database
+    .select()
+    .from(salesOrderLines)
+    .where(
+      and(
+        eq(salesOrderLines.id, input.soLineId),
+        eq(salesOrderLines.soId, input.soId)
+      )
+    );
+
+  if (!soLine) throw new Error(`Sales order line ${input.soLineId} not found for order ${input.soId}`);
+
+  // Calculate pending quantity
+  const pendingQty = Number(soLine.quantity) - Number(soLine.shippedQuantity || 0);
+  if (input.quantity > pendingQty) {
+    throw new Error(`Quantity ${input.quantity} exceeds pending quantity ${pendingQty}`);
+  }
+
+  // Get lot info
+  const [lot] = await database.select().from(lots).where(eq(lots.id, input.lotId));
+  if (!lot) throw new Error(`Lot ${input.lotId} not found`);
+
+  // Get SO for delivery number generation
+  const [so] = await database.select().from(salesOrders).where(eq(salesOrders.id, input.soId));
+  if (!so) throw new Error(`Sales order ${input.soId} not found`);
+
+  // Generate delivery number
+  const today = new Date();
+  const prefix = `DL-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const lastDL = await database
+    .select({ deliveryNumber: salesDeliveries.deliveryNumber })
+    .from(salesDeliveries)
+    .where(sql`${salesDeliveries.deliveryNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(salesDeliveries.deliveryNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (lastDL.length > 0) {
+    sequence = parseInt(lastDL[0].deliveryNumber.split('-').pop() || '0') + 1;
+  }
+  const deliveryNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+
+  // Issue material from inventory (deducts lot quantity)
+  await issueMaterial(
+    input.lotId,
+    input.quantity,
+    'SO',
+    input.soId,
+    so.soNumber,
+    userId,
+    `Delivery for SO Line ${input.soLineId}`
+  );
+
+  // Create delivery record
+  let newDeliveryId: number;
+  if (isSqlite()) {
+    const [newDelivery] = await database
+      .insert(salesDeliveries)
+      .values({
+        soId: input.soId,
+        soLineId: input.soLineId,
+        itemId: input.itemId,
+        lotId: input.lotId,
+        lotNumber: lot.lotNumber,
+        quantity: input.quantity,
+        unit: soLine.unit,
+        deliveryDate: getNow(),
+        deliveryNumber,
+        status: 'shipped',
+        notes: input.notes,
+        createdBy: userId,
+      })
+      .returning({ id: salesDeliveries.id });
+    newDeliveryId = newDelivery.id;
+  } else {
+    const result = await database
+      .insert(salesDeliveries)
+      .values({
+        soId: input.soId,
+        soLineId: input.soLineId,
+        itemId: input.itemId,
+        lotId: input.lotId,
+        lotNumber: lot.lotNumber,
+        quantity: input.quantity,
+        unit: soLine.unit,
+        deliveryDate: getNow(),
+        deliveryNumber,
+        status: 'shipped',
+        notes: input.notes,
+        createdBy: userId,
+      });
+    newDeliveryId = getInsertId(result);
+  }
+
+  // Update SO line shipped quantity
+  const newShippedQty = Number(soLine.shippedQuantity || 0) + input.quantity;
+  await database
+    .update(salesOrderLines)
+    .set({ shippedQuantity: newShippedQty })
+    .where(eq(salesOrderLines.id, input.soLineId));
+
+  // Check if all lines are fully shipped
+  const allLines = await database
+    .select({
+      quantity: salesOrderLines.quantity,
+      shippedQuantity: salesOrderLines.shippedQuantity,
+    })
+    .from(salesOrderLines)
+    .where(eq(salesOrderLines.soId, input.soId));
+
+  const allShipped = allLines.every(
+    (line: { quantity: number | string | null; shippedQuantity: number | string | null }) => Number(line.shippedQuantity || 0) >= Number(line.quantity)
+  );
+
+  if (allShipped) {
+    await database
+      .update(salesOrders)
+      .set({ status: 'shipped', shippedDate: getNow() })
+      .where(eq(salesOrders.id, input.soId));
+  } else if (so.status === 'confirmed') {
+    // Move to processing if first shipment
+    await database
+      .update(salesOrders)
+      .set({ status: 'processing' })
+      .where(eq(salesOrders.id, input.soId));
+  }
+
+  await createAuditLog({
+    userId,
+    action: 'SHIP',
+    tableName: 'sales_deliveries',
+    recordId: newDeliveryId,
+    newValue: { deliveryNumber, soId: input.soId, lotNumber: lot.lotNumber, quantity: input.quantity },
+  });
+
+  // ============================================
+  // Accounting Integration - Create Journal Entry & AR Invoice
+  // ============================================
+  let salesJournalEntryId: number | undefined;
+  let salesJournalEntryNumber: string | undefined;
+  let cogsJournalEntryId: number | undefined;
+  let cogsJournalEntryNumber: string | undefined;
+  let accountingMessage: string | undefined;
+  let arInvoiceId: number | undefined;
+  let arInvoiceNumber: string | undefined;
+  let taxInvoiceNumber: string | undefined;
+  let arInvoiceMessage: string | undefined;
+
+  try {
+    // Get unit price from SO line
+    const unitPrice = Number(soLine.unitPrice) || 0;
+    const lineTotal = unitPrice * input.quantity;
+
+    // Only create journal entries if there's a price
+    if (lineTotal > 0) {
+      // Calculate VAT (7%)
+      const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
+      const netAmount = lineTotal - vatAmount;
+
+      // Get item for cost calculation
+      const { items } = getTables();
+      const [item] = await database.select().from(items).where(eq(items.id, input.itemId));
+
+      // Calculate COGS - use on_hand_cost / on_hand for average cost, or 0 if not available
+      let costOfGoodsSold = 0;
+      if (item && Number(item.onHand) > 0 && Number(item.onHandCost) > 0) {
+        const avgCost = Number(item.onHandCost) / Number(item.onHand);
+        costOfGoodsSold = Math.round(avgCost * input.quantity * 100) / 100;
+      }
+
+      // Create and post journal entries
+      const accountingResult = await createSOShipmentJournalEntry(
+        {
+          deliveryId: newDeliveryId,
+          deliveryNumber,
+          soId: input.soId,
+          soNumber: so.soNumber,
+          customerName: so.customerName,
+          shipmentDate: getTodayStr(),
+          totalAmount: lineTotal,
+          vatAmount,
+          netAmount,
+          costOfGoodsSold,
+        },
+        userId
+      );
+
+      salesJournalEntryId = accountingResult.salesJournalEntryId;
+      salesJournalEntryNumber = accountingResult.salesJournalEntryNumber;
+      cogsJournalEntryId = accountingResult.cogsJournalEntryId;
+      cogsJournalEntryNumber = accountingResult.cogsJournalEntryNumber;
+      accountingMessage = accountingResult.message;
+
+      // 2. Create AR Invoice (due in 30 days)
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+      const dueDateStr = dueDate.toISOString().split('T')[0];
+
+      // Get item details for AR invoice
+      const [itemDetail] = await database.select().from(items).where(eq(items.id, input.itemId));
+
+      try {
+        const arResult = await createARInvoiceFromSOShipment(
+          {
+            soId: input.soId,
+            soNumber: so.soNumber,
+            customerId: undefined, // Customer ID not available in denormalized schema
+            customerName: so.customerName,
+            shipmentDate: getTodayStr(),
+            dueDate: dueDateStr,
+            deliveryId: newDeliveryId,
+            deliveryNumber,
+            itemId: input.itemId,
+            itemCode: itemDetail?.code || 'Unknown',
+            itemName: itemDetail?.nameTh || itemDetail?.nameEn || 'Unknown',
+            quantity: input.quantity,
+            unitPrice,
+            totalAmount: lineTotal,
+            vatAmount,
+            netAmount,
+            lotId: input.lotId,
+          },
+          userId
+        );
+
+        arInvoiceId = arResult.arInvoiceId;
+        arInvoiceNumber = arResult.arInvoiceNumber;
+        taxInvoiceNumber = arResult.taxInvoiceNumber;
+        arInvoiceMessage = arResult.message;
+      } catch (arError) {
+        console.error('Failed to create AR invoice:', arError);
+        arInvoiceMessage = `ไม่สามารถสร้างใบแจ้งหนี้ AR ได้: ${arError instanceof Error ? arError.message : 'Unknown error'}`;
+      }
+    } else {
+      accountingMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างรายการบัญชี';
+      arInvoiceMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างใบแจ้งหนี้ AR';
+    }
+  } catch (accountingError) {
+    // Log error but don't fail the fulfillment
+    console.error('Failed to create accounting entries:', accountingError);
+    accountingMessage = `ไม่สามารถสร้างรายการบัญชีได้: ${accountingError instanceof Error ? accountingError.message : 'Unknown error'}`;
+  }
+
+  return {
+    deliveryId: newDeliveryId,
+    deliveryNumber,
+    shippedQuantity: input.quantity,
+    salesJournalEntryId,
+    salesJournalEntryNumber,
+    cogsJournalEntryId,
+    cogsJournalEntryNumber,
+    accountingMessage,
+    arInvoiceId,
+    arInvoiceNumber,
+    taxInvoiceNumber,
+    arInvoiceMessage,
+  };
 }

@@ -672,6 +672,7 @@ export default function SalesOrdersPage() {
           onRowClick={handleRowClick}
           noDataText="ไม่พบใบสั่งขาย"
           rowAlternationEnabled
+          elementAttr={{ 'data-testid': 'so-data-grid' }}
         />
       </CardContent>
     </Card>
@@ -1030,6 +1031,7 @@ export default function SalesOrdersPage() {
                   icon="plus"
                   type="success"
                   onClick={() => router.push('/sales/orders/new')}
+                  elementAttr={{ 'data-testid': 'so-add-btn' }}
                 />
               </div>
             </div>
@@ -1201,6 +1203,7 @@ export default function SalesOrdersPage() {
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status)}
+                    data-testid={`so-status-tab-${status || 'all'}`}
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border-b-2',
                       isActive
@@ -1225,13 +1228,14 @@ export default function SalesOrdersPage() {
 
             {/* Search */}
             <div className="flex items-center gap-3 pb-3">
-              <div className="flex-1 max-w-md">
+              <div className="flex-1 max-w-md" data-testid="so-search-container">
                 <DxTextBox
                   placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
                   value={search}
                   onValueChange={setSearch}
                   showClearButton
                   mode="search"
+                  elementAttr={{ 'data-testid': 'so-search-input' }}
                 />
               </div>
               <div className="text-sm text-gray-500">

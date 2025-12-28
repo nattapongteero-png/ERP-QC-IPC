@@ -350,6 +350,7 @@ export function ItemSearchDialog({
         type="default"
         stylingMode="contained"
         onClick={() => handleSelect(item)}
+        elementAttr={{ 'data-testid': `item-select-btn-${item.id}` }}
       />
     );
   };
@@ -392,7 +393,7 @@ export function ItemSearchDialog({
       </div>
 
       {/* Search and Filters Bar */}
-      <div className="bg-white border-b px-6 py-4 space-y-3">
+      <div className="bg-white border-b px-6 py-4 space-y-3" data-testid="item-search-container">
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <DxTextBox
@@ -402,6 +403,7 @@ export function ItemSearchDialog({
               mode="search"
               showClearButton
               height={42}
+              elementAttr={{ 'data-testid': 'item-search-input' }}
             />
           </div>
           {selectedItem && (
@@ -410,6 +412,7 @@ export function ItemSearchDialog({
               type="success"
               icon="check"
               onClick={() => handleSelect(selectedItem)}
+              elementAttr={{ 'data-testid': 'item-confirm-btn' }}
             />
           )}
         </div>

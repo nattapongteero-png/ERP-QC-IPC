@@ -3,7 +3,8 @@
  * Real-world purchasing with VMI integration, vendor management, and AVL
  */
 
-import { db, isSqlite } from '../db';
+import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { toQueryDate, getTodayStr } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
@@ -22,6 +23,7 @@ import {
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { receiveMaterial } from './inventory.service';
+import { createPOReceiptJournalEntry, createAPInvoiceFromPOReceipt, THAI_VAT_RATE } from './accounting.service';
 
 // Types
 export interface VMISnapshot {
@@ -72,6 +74,23 @@ export interface VendorEvaluation {
   recommendation: 'approved' | 'conditional' | 'not_recommended';
 }
 
+// Receipt result with accounting info
+export interface ReceiptResult {
+  lotId: number;
+  lotNumber: string;
+  itemId: number;
+  itemCode: string;
+  quantity: number;
+  // Journal entry info
+  journalEntryId?: number;
+  journalEntryNumber?: string;
+  accountingMessage?: string;
+  // AP Invoice info
+  apInvoiceId?: number;
+  apInvoiceNumber?: string;
+  apInvoiceMessage?: string;
+}
+
 // Get table references based on database type
 function getTables() {
   if (isSqlite()) {
@@ -117,7 +136,7 @@ export async function checkVendorApproval(
   itemId: number
 ): Promise<{ approved: boolean; message: string; isPreferred: boolean }> {
   const { avl, vendors } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Check if vendor exists and is active
   const [vendor] = await database
@@ -172,7 +191,7 @@ export async function checkVendorApproval(
  */
 export async function getPreferredVendor(itemId: number): Promise<number | null> {
   const { avl, vendors } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   const todayForQuery = toQueryDate(getTodayStr());
 
@@ -228,7 +247,7 @@ export async function createPurchaseOrder(
   userId: number
 ): Promise<number> {
   const { purchaseOrders, purchaseOrderLines, items } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Validate vendor approval for all items
   for (const line of lines) {
@@ -262,17 +281,33 @@ export async function createPurchaseOrder(
   const totalAmount = lines.reduce((sum: number, line) => sum + (line.quantity * line.unitPrice), 0);
 
   // Create PO header
-  const [newPO] = await database
-    .insert(purchaseOrders)
-    .values({
-      poNumber,
-      vendorId,
-      status: 'draft',
-      totalAmount,
-      currency: 'THB',
-      createdBy: userId,
-    })
-    .returning({ id: purchaseOrders.id });
+  let newPOId: number;
+  if (isSqlite()) {
+    const [newPO] = await database
+      .insert(purchaseOrders)
+      .values({
+        poNumber,
+        vendorId,
+        status: 'draft',
+        totalAmount,
+        currency: 'THB',
+        createdBy: userId,
+      })
+      .returning({ id: purchaseOrders.id });
+    newPOId = newPO.id;
+  } else {
+    const result = await database
+      .insert(purchaseOrders)
+      .values({
+        poNumber,
+        vendorId,
+        status: 'draft',
+        totalAmount,
+        currency: 'THB',
+        createdBy: userId,
+      });
+    newPOId = getInsertId(result);
+  }
 
   // Create PO lines
   for (let i = 0; i < lines.length; i++) {
@@ -280,7 +315,7 @@ export async function createPurchaseOrder(
     const [item] = await database.select().from(items).where(eq(items.id, line.itemId));
 
     await database.insert(purchaseOrderLines).values({
-      poId: newPO.id,
+      poId: newPOId,
       itemId: line.itemId,
       quantity: line.quantity,
       unit: item?.primaryUnit || 'EA',
@@ -295,7 +330,7 @@ export async function createPurchaseOrder(
     userId,
     action: 'CREATE',
     tableName: 'purchase_orders',
-    recordId: newPO.id,
+    recordId: newPOId,
     newValue: {
       poNumber,
       vendorId,
@@ -304,7 +339,7 @@ export async function createPurchaseOrder(
     },
   });
 
-  return newPO.id;
+  return newPOId;
 }
 
 /**
@@ -317,7 +352,7 @@ export async function updatePurchaseOrderStatus(
   reason?: string
 ): Promise<boolean> {
   const { purchaseOrders } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get current PO
   const [po] = await database
@@ -384,13 +419,18 @@ export async function receivePurchaseOrder(
   }>,
   warehouseId: number,
   userId: number
-): Promise<number[]> {
-  const { purchaseOrders, purchaseOrderLines, items } = getTables();
-  const database = db();
+): Promise<ReceiptResult[]> {
+  const { purchaseOrders, purchaseOrderLines, items, vendors } = getTables();
+  const database = (await getDb()) as any;
 
-  // Get PO
+  // Get PO with vendor info
   const [po] = await database
-    .select()
+    .select({
+      id: purchaseOrders.id,
+      poNumber: purchaseOrders.poNumber,
+      vendorId: purchaseOrders.vendorId,
+      status: purchaseOrders.status,
+    })
     .from(purchaseOrders)
     .where(eq(purchaseOrders.id, poId));
 
@@ -402,11 +442,18 @@ export async function receivePurchaseOrder(
     throw new Error(`Purchase Order must be Sent or Partial Receipt to receive items`);
   }
 
-  const lotIds: number[] = [];
-  let allReceived = true;
+  // Get vendor name
+  const [vendor] = await database
+    .select({ name: vendors.name })
+    .from(vendors)
+    .where(eq(vendors.id, po.vendorId));
+
+  const vendorName = vendor?.name || 'Unknown Vendor';
+
+  const results: ReceiptResult[] = [];
 
   for (const received of receivedLines) {
-    // Get PO line
+    // Get PO line with item info
     const [poLine] = await database
       .select({
         id: purchaseOrderLines.id,
@@ -414,6 +461,7 @@ export async function receivePurchaseOrder(
         quantity: purchaseOrderLines.quantity,
         receivedQuantity: purchaseOrderLines.receivedQuantity,
         unit: purchaseOrderLines.unit,
+        unitPrice: purchaseOrderLines.unitPrice,
       })
       .from(purchaseOrderLines)
       .where(eq(purchaseOrderLines.id, received.lineId));
@@ -421,6 +469,14 @@ export async function receivePurchaseOrder(
     if (!poLine) {
       throw new Error(`PO Line ${received.lineId} not found`);
     }
+
+    // Get item info
+    const [item] = await database
+      .select({ code: items.code })
+      .from(items)
+      .where(eq(items.id, poLine.itemId));
+
+    const itemCode = item?.code || 'Unknown';
 
     // Create inventory lot (in quarantine)
     const lotId = await receiveMaterial(
@@ -435,8 +491,6 @@ export async function receivePurchaseOrder(
       userId
     );
 
-    lotIds.push(lotId);
-
     // Update PO line received quantity
     const newReceivedQty = (Number(poLine.receivedQuantity) || 0) + received.receivedQuantity;
     await database
@@ -447,10 +501,118 @@ export async function receivePurchaseOrder(
       })
       .where(eq(purchaseOrderLines.id, received.lineId));
 
-    // Check if all quantity received
-    if (newReceivedQty < Number(poLine.quantity)) {
-      allReceived = false;
+    // ============================================
+    // Accounting Integration - Create Journal Entry & AP Invoice
+    // ============================================
+    let journalEntryId: number | undefined;
+    let journalEntryNumber: string | undefined;
+    let accountingMessage: string | undefined;
+    let apInvoiceId: number | undefined;
+    let apInvoiceNumber: string | undefined;
+    let apInvoiceMessage: string | undefined;
+
+    // Get item name
+    const [itemDetail] = await database
+      .select({ nameTh: items.nameTh })
+      .from(items)
+      .where(eq(items.id, poLine.itemId));
+    const itemName = itemDetail?.nameTh || itemCode;
+
+    try {
+      const unitPrice = Number(poLine.unitPrice) || 0;
+      const lineTotal = unitPrice * received.receivedQuantity;
+
+      // Only create journal entry and AP invoice if there's a price
+      if (lineTotal > 0) {
+        // Calculate VAT (7%) - assuming prices include VAT
+        const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
+        const netAmount = lineTotal - vatAmount;
+
+        const receiptDate = getTodayStr();
+
+        // 1. Create Journal Entry for inventory receipt
+        const accountingResult = await createPOReceiptJournalEntry(
+          {
+            poId,
+            poNumber: po.poNumber,
+            vendorId: po.vendorId,
+            vendorName,
+            receiptDate,
+            lotId,
+            lotNumber: received.lotNumber,
+            itemId: poLine.itemId,
+            itemCode,
+            quantity: received.receivedQuantity,
+            unitPrice,
+            totalAmount: lineTotal,
+            vatAmount,
+            netAmount,
+          },
+          userId
+        );
+
+        journalEntryId = accountingResult.journalEntryId;
+        journalEntryNumber = accountingResult.journalEntryNumber;
+        accountingMessage = accountingResult.message;
+
+        // 2. Create AP Invoice (due in 30 days)
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30);
+        const dueDateStr = dueDate.toISOString().split('T')[0];
+
+        try {
+          const apResult = await createAPInvoiceFromPOReceipt(
+            {
+              poId,
+              poNumber: po.poNumber,
+              vendorId: po.vendorId,
+              vendorName,
+              receiptDate,
+              dueDate: dueDateStr,
+              lotId,
+              lotNumber: received.lotNumber,
+              itemId: poLine.itemId,
+              itemCode,
+              itemName,
+              quantity: received.receivedQuantity,
+              unitPrice,
+              totalAmount: lineTotal,
+              vatAmount,
+              netAmount,
+            },
+            userId
+          );
+
+          apInvoiceId = apResult.apInvoiceId;
+          apInvoiceNumber = apResult.apInvoiceNumber;
+          apInvoiceMessage = apResult.message;
+        } catch (apError) {
+          console.error('Failed to create AP invoice:', apError);
+          apInvoiceMessage = `ไม่สามารถสร้างใบแจ้งหนี้ AP ได้: ${apError instanceof Error ? apError.message : 'Unknown error'}`;
+        }
+      } else {
+        accountingMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างรายการบัญชี';
+        apInvoiceMessage = 'ไม่มีราคาสินค้า - ข้ามการสร้างใบแจ้งหนี้ AP';
+      }
+    } catch (accountingError) {
+      // Log error but don't fail the receipt
+      console.error('Failed to create accounting entries:', accountingError);
+      accountingMessage = `ไม่สามารถสร้างรายการบัญชีได้: ${accountingError instanceof Error ? accountingError.message : 'Unknown error'}`;
     }
+
+    results.push({
+      lotId,
+      lotNumber: received.lotNumber,
+      itemId: poLine.itemId,
+      itemCode,
+      quantity: received.receivedQuantity,
+      journalEntryId,
+      journalEntryNumber,
+      accountingMessage,
+      apInvoiceId,
+      apInvoiceNumber,
+      apInvoiceMessage,
+    });
   }
 
   // Check all lines to determine PO status
@@ -462,8 +624,8 @@ export async function receivePurchaseOrder(
     .from(purchaseOrderLines)
     .where(eq(purchaseOrderLines.poId, poId));
 
-  const totalOrdered = allLines.reduce((sum: number, l: any) => sum + (Number(l.quantity) || 0), 0);
-  const totalReceived = allLines.reduce((sum: number, l: any) => sum + (Number(l.receivedQuantity) || 0), 0);
+  const totalOrdered = allLines.reduce((sum: number, l: { quantity: number | string | null; receivedQuantity: number | string | null }) => sum + (Number(l.quantity) || 0), 0);
+  const totalReceived = allLines.reduce((sum: number, l: { quantity: number | string | null; receivedQuantity: number | string | null }) => sum + (Number(l.receivedQuantity) || 0), 0);
 
   // Update PO status
   let newStatus = 'partial_receipt';
@@ -473,7 +635,7 @@ export async function receivePurchaseOrder(
 
   await updatePurchaseOrderStatus(poId, newStatus, userId);
 
-  return lotIds;
+  return results;
 }
 
 /**
@@ -481,7 +643,7 @@ export async function receivePurchaseOrder(
  */
 export async function generateVMISnapshot(vendorId: number): Promise<VMISnapshot> {
   const { vendors, avl, items, lots } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get vendor
   const [vendor] = await database
@@ -579,7 +741,7 @@ export async function processVMIASN(
   userId: number
 ): Promise<{ poId: number; lotIds: number[] }> {
   const { items, vendors } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Validate vendor
   const [vendor] = await database
@@ -650,7 +812,7 @@ export async function evaluateVendorPerformance(
   dateTo?: string
 ): Promise<VendorEvaluation> {
   const { vendors, purchaseOrders, purchaseOrderLines, lots } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Get vendor
   const [vendor] = await database
@@ -753,7 +915,7 @@ export async function addToAVL(
   userId: number
 ): Promise<number> {
   const { avl } = getTables();
-  const database = db();
+  const database = (await getDb()) as any;
 
   // Check if already exists
   const [existing] = await database
@@ -789,24 +951,39 @@ export async function addToAVL(
   }
 
   // Create new AVL entry
-  const [newAVL] = await database
-    .insert(avl)
-    .values({
-      vendorId,
-      itemId,
-      isPreferred,
-      approvalDate: new Date().toISOString().split('T')[0],
-      expiryDate,
-    })
-    .returning({ id: avl.id });
+  let newAVLId: number;
+  if (isSqlite()) {
+    const [newAVL] = await database
+      .insert(avl)
+      .values({
+        vendorId,
+        itemId,
+        isPreferred,
+        approvalDate: new Date().toISOString().split('T')[0],
+        expiryDate,
+      })
+      .returning({ id: avl.id });
+    newAVLId = newAVL.id;
+  } else {
+    const result = await database
+      .insert(avl)
+      .values({
+        vendorId,
+        itemId,
+        isPreferred,
+        approvalDate: new Date().toISOString().split('T')[0],
+        expiryDate,
+      });
+    newAVLId = getInsertId(result);
+  }
 
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'approved_vendor_list',
-    recordId: newAVL.id,
+    recordId: newAVLId,
     newValue: { vendorId, itemId, isPreferred  },
   });
 
-  return newAVL.id;
+  return newAVLId;
 }

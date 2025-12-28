@@ -16,12 +16,14 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
 import {
-  ArrowLeft, Printer, Send, Package, DollarSign,
+  Send, Package, DollarSign,
   Clock, CheckCircle, AlertCircle, Truck, FileText,
-  Building2, User, Phone, Mail, Warehouse, Calendar,
-  Hash, Scale, Tag, Edit2, Save, X, Plus, Trash2,
-  RefreshCw, PackageCheck, XCircle, FileCheck,
+  Building2, User, Phone, Mail,
+  Edit2, Trash2,
+  PackageCheck, XCircle, FileCheck, Receipt, ExternalLink, FileSpreadsheet,
 } from 'lucide-react';
+import { DocumentAttachment } from '@/components/ui/document-attachment';
+import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
 
 interface WarehouseItem {
   id: number;
@@ -70,6 +72,17 @@ interface ReceivedLot {
   status: string;
   expiryDate: string;
   receivedDate: string;
+  journalEntries?: Array<{
+    id: number;
+    entryNumber: string;
+    status: string;
+  }>;
+  apInvoices?: Array<{
+    id: number;
+    invoiceNumber: string;
+    status: string;
+    totalAmount: number;
+  }>;
 }
 
 interface PODetail {
@@ -231,6 +244,9 @@ export default function PurchaseOrderDetailPage() {
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+
+  // Audit log dialog
+  const [showAuditLog, setShowAuditLog] = useState(false);
 
   const fetchPODetail = useCallback(async () => {
     try {
@@ -683,6 +699,64 @@ export default function PurchaseOrderDetailPage() {
       width: 120,
       cellRender: (cellInfo) => formatDate(cellInfo.data.receivedDate),
     },
+    {
+      dataField: 'journalEntries',
+      caption: 'รายการบัญชี',
+      width: 150,
+      cellRender: (cellInfo) => {
+        const journalEntries = cellInfo.data.journalEntries || [];
+        if (journalEntries.length === 0) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {journalEntries.map((je: { id: number; entryNumber: string; status: string }) => (
+              <button
+                key={je.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/accounting/journal-entries?id=${je.id}`);
+                }}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+              >
+                <Receipt className="h-3 w-3" />
+                <span>{je.entryNumber}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      dataField: 'apInvoices',
+      caption: 'ใบแจ้งหนี้ AP',
+      width: 150,
+      cellRender: (cellInfo) => {
+        const apInvoices = cellInfo.data.apInvoices || [];
+        if (apInvoices.length === 0) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {apInvoices.map((ap: { id: number; invoiceNumber: string; status: string; totalAmount: number }) => (
+              <button
+                key={ap.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/accounting/ap/invoices?id=${ap.id}`);
+                }}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
+              >
+                <FileSpreadsheet className="h-3 w-3" />
+                <span>{ap.invoiceNumber}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            ))}
+          </div>
+        );
+      },
+    },
   ];
 
   if (loading) {
@@ -748,6 +822,13 @@ export default function PurchaseOrderDetailPage() {
                 stylingMode="outlined"
                 hint="รีเฟรช"
                 onClick={() => fetchPODetail()}
+              />
+              <DxButton
+                icon="clock"
+                type="normal"
+                stylingMode="outlined"
+                hint="ประวัติการเปลี่ยนแปลง"
+                onClick={() => setShowAuditLog(true)}
               />
               <DxButton
                 text="พิมพ์"
@@ -1043,6 +1124,14 @@ export default function PurchaseOrderDetailPage() {
                   </Card>
                 </div>
 
+                {/* Document Attachments */}
+                <DocumentAttachment
+                  moduleName="purchase_order"
+                  entityId={po.id}
+                  title="เอกสารแนบ"
+                  categories={['quotation', 'invoice', 'delivery_note', 'coa', 'purchase_contract', 'certificate', 'other']}
+                />
+
                 {/* Audit Info */}
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-500 pt-4 border-t">
                   <span>สร้างเมื่อ: {formatDateTime(po.createdAt)}</span>
@@ -1310,6 +1399,25 @@ export default function PurchaseOrderDetailPage() {
             )}
           </div>
         </DxPopup>
+
+        {/* Audit Log Dialog */}
+        <AuditLogViewerDialog
+          entityType="purchaseOrders"
+          entityId={po.id}
+          visible={showAuditLog}
+          onClose={() => setShowAuditLog(false)}
+          title={`ประวัติการเปลี่ยนแปลง: ${po.poNumber}`}
+          fieldLabels={{
+            vendorId: 'ผู้ขาย',
+            status: 'สถานะ',
+            orderDate: 'วันที่สั่งซื้อ',
+            expectedDate: 'วันที่คาดว่าจะได้รับ',
+            paymentTerms: 'เงื่อนไขการชำระ',
+            shippingAddress: 'ที่อยู่จัดส่ง',
+            notes: 'หมายเหตุ',
+            totalAmount: 'ยอดรวม',
+          }}
+        />
       </div>
     </MainLayout>
   );

@@ -48,6 +48,12 @@ import {
   Briefcase,
   BarChart3,
   Bug,
+  Calculator,
+  Landmark,
+  Wrench,
+  CalendarCheck,
+  DollarSign,
+  LayoutGrid,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -140,6 +146,23 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    name: 'Accounting',
+    href: '/accounting',
+    icon: Calculator,
+    roles: ['admin', 'manager', 'accounting', 'finance'],
+    children: [
+      { name: 'Dashboard', href: '/accounting', icon: LayoutDashboard },
+      { name: 'Chart of Accounts', href: '/accounting/chart-of-accounts', icon: Landmark },
+      { name: 'Journal Entries', href: '/accounting/journal-entries', icon: FileText },
+      { name: 'AP Invoices', href: '/accounting/ap', icon: Receipt },
+      { name: 'AR Invoices', href: '/accounting/ar', icon: DollarSign },
+      { name: 'Fixed Assets', href: '/accounting/fixed-assets', icon: Building2 },
+      { name: 'Equipment', href: '/accounting/equipment', icon: Wrench },
+      { name: 'Period Close', href: '/accounting/period-close', icon: CalendarCheck },
+      { name: 'Reports', href: '/accounting/reports', icon: BarChart3 },
+    ],
+  },
+  {
     name: 'VMI Portal',
     href: '/vmi',
     icon: Share2,
@@ -165,6 +188,16 @@ const navigation: NavItem[] = [
       { name: 'Roles', href: '/hr/roles', icon: UserCheck },
       { name: 'Notifications', href: '/hr/notifications', icon: Bell },
       { name: 'Audit Trail', href: '/hr/audit', icon: History },
+    ],
+  },
+  {
+    name: 'Template',
+    href: '/template',
+    icon: LayoutGrid,
+    roles: [], // Accessible to all authenticated users
+    children: [
+      { name: 'Dashboard', href: '/template', icon: LayoutDashboard },
+      { name: 'Items', href: '/template/items', icon: Package },
     ],
   },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
@@ -235,7 +268,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
 
     const parentItem = findParentForPath(pathname, filteredNavigation);
     if (parentItem && !expandedItems.includes(parentItem)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate use: synchronizing expanded state with route navigation
+       
       setExpandedItems((prev) => [...prev, parentItem]);
     }
   }, [pathname, filteredNavigation, expandedItems]);

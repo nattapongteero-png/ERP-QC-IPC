@@ -13,7 +13,7 @@
  */
 
 import { eq, and, desc, asc } from 'drizzle-orm';
-import { executeDbOperation } from '../db/db-helper';
+import { executeDbOperation, getInsertId } from '../db/db-helper';
 import { isSqlite } from '../db';
 import {
   // SQLite tables
@@ -159,24 +159,29 @@ export async function createWOEnvironmentalLog(data: CreateWOEnvironmentalLogInp
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [log] = await db
-      .insert(tables.woEnvironmentalLogs)
-      .values({
-        workOrderId: data.workOrderId,
-        bomConditionId: data.bomConditionId,
-        phase: data.phase,
-        recordedDate: data.recordedDate,
-        recordedTime: data.recordedTime,
-        temperature: data.temperature,
-        humidity: data.humidity,
-        isNormal: data.isNormal,
-        operatorId: data.operatorId,
-        notes: data.notes,
-        createdAt: getNow(),
-      })
-      .returning();
+    const values = {
+      workOrderId: data.workOrderId,
+      bomConditionId: data.bomConditionId,
+      phase: data.phase,
+      recordedDate: data.recordedDate,
+      recordedTime: data.recordedTime,
+      temperature: data.temperature,
+      humidity: data.humidity,
+      isNormal: data.isNormal,
+      operatorId: data.operatorId,
+      notes: data.notes,
+      createdAt: getNow(),
+    };
 
-    return log;
+    if (isSqlite()) {
+      const [log] = await db.insert(tables.woEnvironmentalLogs).values(values).returning();
+      return log;
+    } else {
+      const result = await db.insert(tables.woEnvironmentalLogs).values(values);
+      const insertId = getInsertId(result);
+      const [log] = await db.select().from(tables.woEnvironmentalLogs).where(eq(tables.woEnvironmentalLogs.id, insertId));
+      return log;
+    }
   });
 }
 
@@ -283,22 +288,27 @@ export async function createWOCleaningLog(data: CreateWOCleaningLogInput) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [log] = await db
-      .insert(tables.woCleaningLogs)
-      .values({
-        workOrderId: data.workOrderId,
-        phase: data.phase,
-        itemType: data.itemType,
-        roomId: data.roomId,
-        equipmentId: data.equipmentId,
-        isClean: data.isClean,
-        operatorId: data.operatorId,
-        performedAt: data.performedAt,
-        createdAt: getNow(),
-      })
-      .returning();
+    const values = {
+      workOrderId: data.workOrderId,
+      phase: data.phase,
+      itemType: data.itemType,
+      roomId: data.roomId,
+      equipmentId: data.equipmentId,
+      isClean: data.isClean,
+      operatorId: data.operatorId,
+      performedAt: data.performedAt,
+      createdAt: getNow(),
+    };
 
-    return log;
+    if (isSqlite()) {
+      const [log] = await db.insert(tables.woCleaningLogs).values(values).returning();
+      return log;
+    } else {
+      const result = await db.insert(tables.woCleaningLogs).values(values);
+      const insertId = getInsertId(result);
+      const [log] = await db.select().from(tables.woCleaningLogs).where(eq(tables.woCleaningLogs.id, insertId));
+      return log;
+    }
   });
 }
 
@@ -306,16 +316,19 @@ export async function verifyWOCleaningLog(logId: number, verifierId: number) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [log] = await db
-      .update(tables.woCleaningLogs)
-      .set({
-        verifierId,
-        verifiedAt: getNow(),
-      })
-      .where(eq(tables.woCleaningLogs.id, logId))
-      .returning();
+    const updateData = {
+      verifierId,
+      verifiedAt: getNow(),
+    };
 
-    return log;
+    if (isSqlite()) {
+      const [log] = await db.update(tables.woCleaningLogs).set(updateData).where(eq(tables.woCleaningLogs.id, logId)).returning();
+      return log;
+    } else {
+      await db.update(tables.woCleaningLogs).set(updateData).where(eq(tables.woCleaningLogs.id, logId));
+      const [log] = await db.select().from(tables.woCleaningLogs).where(eq(tables.woCleaningLogs.id, logId));
+      return log;
+    }
   });
 }
 
@@ -397,20 +410,25 @@ export async function initializeWOSOPExecution(workOrderId: number, bomId: numbe
     // Create WO SOP execution records
     const executions = [];
     for (const step of bomSteps) {
-      const [execution] = await db
-        .insert(tables.woSOPExecution)
-        .values({
-          workOrderId,
-          bomStepId: step.id,
-          sequence: step.sequence,
-          isCompleted: false,
-          status: 'pending',
-          createdAt: getNow(),
-          updatedAt: getNow(),
-        })
-        .returning();
+      const values = {
+        workOrderId,
+        bomStepId: step.id,
+        sequence: step.sequence,
+        isCompleted: false,
+        status: 'pending',
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      };
 
-      executions.push(execution);
+      if (isSqlite()) {
+        const [execution] = await db.insert(tables.woSOPExecution).values(values).returning();
+        executions.push(execution);
+      } else {
+        const result = await db.insert(tables.woSOPExecution).values(values);
+        const insertId = getInsertId(result);
+        const [execution] = await db.select().from(tables.woSOPExecution).where(eq(tables.woSOPExecution.id, insertId));
+        executions.push(execution);
+      }
     }
 
     return executions;
@@ -421,18 +439,21 @@ export async function startWOSOPStep(executionId: number, operatorId: number) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [execution] = await db
-      .update(tables.woSOPExecution)
-      .set({
-        operatorId,
-        startedAt: getNow(),
-        status: 'in_progress',
-        updatedAt: getNow(),
-      })
-      .where(eq(tables.woSOPExecution.id, executionId))
-      .returning();
+    const updateData = {
+      operatorId,
+      startedAt: getNow(),
+      status: 'in_progress',
+      updatedAt: getNow(),
+    };
 
-    return execution;
+    if (isSqlite()) {
+      const [execution] = await db.update(tables.woSOPExecution).set(updateData).where(eq(tables.woSOPExecution.id, executionId)).returning();
+      return execution;
+    } else {
+      await db.update(tables.woSOPExecution).set(updateData).where(eq(tables.woSOPExecution.id, executionId));
+      const [execution] = await db.select().from(tables.woSOPExecution).where(eq(tables.woSOPExecution.id, executionId));
+      return execution;
+    }
   });
 }
 
@@ -444,20 +465,23 @@ export async function completeWOSOPStep(
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [execution] = await db
-      .update(tables.woSOPExecution)
-      .set({
-        isCompleted: true,
-        actualParameters,
-        completedAt: getNow(),
-        status: 'completed',
-        notes,
-        updatedAt: getNow(),
-      })
-      .where(eq(tables.woSOPExecution.id, executionId))
-      .returning();
+    const updateData = {
+      isCompleted: true,
+      actualParameters,
+      completedAt: getNow(),
+      status: 'completed',
+      notes,
+      updatedAt: getNow(),
+    };
 
-    return execution;
+    if (isSqlite()) {
+      const [execution] = await db.update(tables.woSOPExecution).set(updateData).where(eq(tables.woSOPExecution.id, executionId)).returning();
+      return execution;
+    } else {
+      await db.update(tables.woSOPExecution).set(updateData).where(eq(tables.woSOPExecution.id, executionId));
+      const [execution] = await db.select().from(tables.woSOPExecution).where(eq(tables.woSOPExecution.id, executionId));
+      return execution;
+    }
   });
 }
 
@@ -465,18 +489,21 @@ export async function verifyWOSOPStep(executionId: number, verifierId: number) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [execution] = await db
-      .update(tables.woSOPExecution)
-      .set({
-        verifierId,
-        verifiedAt: getNow(),
-        status: 'verified',
-        updatedAt: getNow(),
-      })
-      .where(eq(tables.woSOPExecution.id, executionId))
-      .returning();
+    const updateData = {
+      verifierId,
+      verifiedAt: getNow(),
+      status: 'verified',
+      updatedAt: getNow(),
+    };
 
-    return execution;
+    if (isSqlite()) {
+      const [execution] = await db.update(tables.woSOPExecution).set(updateData).where(eq(tables.woSOPExecution.id, executionId)).returning();
+      return execution;
+    } else {
+      await db.update(tables.woSOPExecution).set(updateData).where(eq(tables.woSOPExecution.id, executionId));
+      const [execution] = await db.select().from(tables.woSOPExecution).where(eq(tables.woSOPExecution.id, executionId));
+      return execution;
+    }
   });
 }
 
@@ -532,20 +559,23 @@ export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [material] = await db
-      .update(tables.workOrderMaterials)
-      .set({
-        weighedQty: data.weighedQty,
-        weighedBy: data.weighedBy,
-        weighedAt: getNow(),
-        waterDate: data.waterDate,
-        waterConductivity: data.waterConductivity,
-        waterTemperature: data.waterTemperature,
-      })
-      .where(eq(tables.workOrderMaterials.id, data.materialId))
-      .returning();
+    const updateData = {
+      weighedQty: data.weighedQty,
+      weighedBy: data.weighedBy,
+      weighedAt: getNow(),
+      waterDate: data.waterDate,
+      waterConductivity: data.waterConductivity,
+      waterTemperature: data.waterTemperature,
+    };
 
-    return material;
+    if (isSqlite()) {
+      const [material] = await db.update(tables.workOrderMaterials).set(updateData).where(eq(tables.workOrderMaterials.id, data.materialId)).returning();
+      return material;
+    } else {
+      await db.update(tables.workOrderMaterials).set(updateData).where(eq(tables.workOrderMaterials.id, data.materialId));
+      const [material] = await db.select().from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, data.materialId));
+      return material;
+    }
   });
 }
 
@@ -553,16 +583,19 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [material] = await db
-      .update(tables.workOrderMaterials)
-      .set({
-        verifiedBy: verifierId,
-        verifiedAt: getNow(),
-      })
-      .where(eq(tables.workOrderMaterials.id, materialId))
-      .returning();
+    const updateData = {
+      verifiedBy: verifierId,
+      verifiedAt: getNow(),
+    };
 
-    return material;
+    if (isSqlite()) {
+      const [material] = await db.update(tables.workOrderMaterials).set(updateData).where(eq(tables.workOrderMaterials.id, materialId)).returning();
+      return material;
+    } else {
+      await db.update(tables.workOrderMaterials).set(updateData).where(eq(tables.workOrderMaterials.id, materialId));
+      const [material] = await db.select().from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, materialId));
+      return material;
+    }
   });
 }
 
@@ -644,20 +677,26 @@ export async function createWOPackagingWeightLog(
     const failedCount = weights.filter((w) => w < weightMin || w > weightMax).length;
     const isPass = failedCount <= maxFailures;
 
-    const [log] = await db
-      .insert(tables.woPackagingWeightLogs)
-      .values({
-        workOrderId: data.workOrderId,
-        bomQCId,
-        checkTime: data.checkTime,
-        sampleWeights: data.sampleWeights,
-        failedCount,
-        isPass,
-        operatorId: data.operatorId,
-        notes: data.notes,
-        createdAt: getNow(),
-      })
-      .returning();
+    const values = {
+      workOrderId: data.workOrderId,
+      bomQCId,
+      checkTime: data.checkTime,
+      sampleWeights: data.sampleWeights,
+      failedCount,
+      isPass,
+      operatorId: data.operatorId,
+      notes: data.notes,
+      createdAt: getNow(),
+    };
+
+    let log;
+    if (isSqlite()) {
+      [log] = await db.insert(tables.woPackagingWeightLogs).values(values).returning();
+    } else {
+      const result = await db.insert(tables.woPackagingWeightLogs).values(values);
+      const insertId = getInsertId(result);
+      [log] = await db.select().from(tables.woPackagingWeightLogs).where(eq(tables.woPackagingWeightLogs.id, insertId));
+    }
 
     return { ...log, weightMin, weightMax, maxFailures };
   });
@@ -707,22 +746,27 @@ export async function createWOPackagingIntegrityLog(data: CreateWOPackagingInteg
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [log] = await db
-      .insert(tables.woPackagingIntegrityLogs)
-      .values({
-        workOrderId: data.workOrderId,
-        checkTime: data.checkTime,
-        tubeCapComplete: data.tubeCapComplete,
-        lotNumberCorrect: data.lotNumberCorrect,
-        packingCorrect: data.packingCorrect,
-        operatorId: data.operatorId,
-        inspectorId: data.inspectorId,
-        notes: data.notes,
-        createdAt: getNow(),
-      })
-      .returning();
+    const values = {
+      workOrderId: data.workOrderId,
+      checkTime: data.checkTime,
+      tubeCapComplete: data.tubeCapComplete,
+      lotNumberCorrect: data.lotNumberCorrect,
+      packingCorrect: data.packingCorrect,
+      operatorId: data.operatorId,
+      inspectorId: data.inspectorId,
+      notes: data.notes,
+      createdAt: getNow(),
+    };
 
-    return log;
+    if (isSqlite()) {
+      const [log] = await db.insert(tables.woPackagingIntegrityLogs).values(values).returning();
+      return log;
+    } else {
+      const result = await db.insert(tables.woPackagingIntegrityLogs).values(values);
+      const insertId = getInsertId(result);
+      const [log] = await db.select().from(tables.woPackagingIntegrityLogs).where(eq(tables.woPackagingIntegrityLogs.id, insertId));
+      return log;
+    }
   });
 }
 
@@ -756,22 +800,27 @@ export async function createWOFinishedInspection(data: CreateWOFinishedInspectio
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [inspection] = await db
-      .insert(tables.woFinishedInspection)
-      .values({
-        workOrderId: data.workOrderId,
-        sampleDate: data.sampleDate,
-        samplerId: data.samplerId,
-        sampleQtyForTest: data.sampleQtyForTest ?? 50,
-        sampleQtyForRetention: data.sampleQtyForRetention ?? 3,
-        checklistResults: data.checklistResults,
-        status: 'pending',
-        createdAt: getNow(),
-        updatedAt: getNow(),
-      })
-      .returning();
+    const values = {
+      workOrderId: data.workOrderId,
+      sampleDate: data.sampleDate,
+      samplerId: data.samplerId,
+      sampleQtyForTest: data.sampleQtyForTest ?? 50,
+      sampleQtyForRetention: data.sampleQtyForRetention ?? 3,
+      checklistResults: data.checklistResults,
+      status: 'pending',
+      createdAt: getNow(),
+      updatedAt: getNow(),
+    };
 
-    return inspection;
+    if (isSqlite()) {
+      const [inspection] = await db.insert(tables.woFinishedInspection).values(values).returning();
+      return inspection;
+    } else {
+      const result = await db.insert(tables.woFinishedInspection).values(values);
+      const insertId = getInsertId(result);
+      const [inspection] = await db.select().from(tables.woFinishedInspection).where(eq(tables.woFinishedInspection.id, insertId));
+      return inspection;
+    }
   });
 }
 
@@ -784,19 +833,22 @@ export async function updateWOFinishedInspection(
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [inspection] = await db
-      .update(tables.woFinishedInspection)
-      .set({
-        checklistResults,
-        inspectorId,
-        inspectedAt: getNow(),
-        status,
-        updatedAt: getNow(),
-      })
-      .where(eq(tables.woFinishedInspection.id, inspectionId))
-      .returning();
+    const updateData = {
+      checklistResults,
+      inspectorId,
+      inspectedAt: getNow(),
+      status,
+      updatedAt: getNow(),
+    };
 
-    return inspection;
+    if (isSqlite()) {
+      const [inspection] = await db.update(tables.woFinishedInspection).set(updateData).where(eq(tables.woFinishedInspection.id, inspectionId)).returning();
+      return inspection;
+    } else {
+      await db.update(tables.woFinishedInspection).set(updateData).where(eq(tables.woFinishedInspection.id, inspectionId));
+      const [inspection] = await db.select().from(tables.woFinishedInspection).where(eq(tables.woFinishedInspection.id, inspectionId));
+      return inspection;
+    }
   });
 }
 
@@ -804,18 +856,21 @@ export async function reInspectWOFinishedInspection(inspectionId: number, reInsp
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [inspection] = await db
-      .update(tables.woFinishedInspection)
-      .set({
-        reInspectorId,
-        reInspectedAt: getNow(),
-        status: 're_inspected',
-        updatedAt: getNow(),
-      })
-      .where(eq(tables.woFinishedInspection.id, inspectionId))
-      .returning();
+    const updateData = {
+      reInspectorId,
+      reInspectedAt: getNow(),
+      status: 're_inspected',
+      updatedAt: getNow(),
+    };
 
-    return inspection;
+    if (isSqlite()) {
+      const [inspection] = await db.update(tables.woFinishedInspection).set(updateData).where(eq(tables.woFinishedInspection.id, inspectionId)).returning();
+      return inspection;
+    } else {
+      await db.update(tables.woFinishedInspection).set(updateData).where(eq(tables.woFinishedInspection.id, inspectionId));
+      const [inspection] = await db.select().from(tables.woFinishedInspection).where(eq(tables.woFinishedInspection.id, inspectionId));
+      return inspection;
+    }
   });
 }
 
@@ -849,21 +904,26 @@ export async function createWOPackagingMaterial(data: CreateWOPackagingMaterialI
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [material] = await db
-      .insert(tables.woPackagingMaterials)
-      .values({
-        workOrderId: data.workOrderId,
-        itemId: data.itemId,
-        materialName: data.materialName,
-        qtyRequisitioned: data.qtyRequisitioned,
-        unit: data.unit,
-        operatorId: data.operatorId,
-        createdAt: getNow(),
-        updatedAt: getNow(),
-      })
-      .returning();
+    const values = {
+      workOrderId: data.workOrderId,
+      itemId: data.itemId,
+      materialName: data.materialName,
+      qtyRequisitioned: data.qtyRequisitioned,
+      unit: data.unit,
+      operatorId: data.operatorId,
+      createdAt: getNow(),
+      updatedAt: getNow(),
+    };
 
-    return material;
+    if (isSqlite()) {
+      const [material] = await db.insert(tables.woPackagingMaterials).values(values).returning();
+      return material;
+    } else {
+      const result = await db.insert(tables.woPackagingMaterials).values(values);
+      const insertId = getInsertId(result);
+      const [material] = await db.select().from(tables.woPackagingMaterials).where(eq(tables.woPackagingMaterials.id, insertId));
+      return material;
+    }
   });
 }
 
@@ -879,13 +939,14 @@ export async function updateWOPackagingMaterial(
     if (qtyUsed !== undefined) updateData.qtyUsed = qtyUsed;
     if (qtyReturned !== undefined) updateData.qtyReturned = qtyReturned;
 
-    const [material] = await db
-      .update(tables.woPackagingMaterials)
-      .set(updateData)
-      .where(eq(tables.woPackagingMaterials.id, materialId))
-      .returning();
-
-    return material;
+    if (isSqlite()) {
+      const [material] = await db.update(tables.woPackagingMaterials).set(updateData).where(eq(tables.woPackagingMaterials.id, materialId)).returning();
+      return material;
+    } else {
+      await db.update(tables.woPackagingMaterials).set(updateData).where(eq(tables.woPackagingMaterials.id, materialId));
+      const [material] = await db.select().from(tables.woPackagingMaterials).where(eq(tables.woPackagingMaterials.id, materialId));
+      return material;
+    }
   });
 }
 
@@ -893,15 +954,18 @@ export async function verifyWOPackagingMaterial(materialId: number, verifierId: 
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const [material] = await db
-      .update(tables.woPackagingMaterials)
-      .set({
-        verifierId,
-        updatedAt: getNow(),
-      })
-      .where(eq(tables.woPackagingMaterials.id, materialId))
-      .returning();
+    const updateData = {
+      verifierId,
+      updatedAt: getNow(),
+    };
 
-    return material;
+    if (isSqlite()) {
+      const [material] = await db.update(tables.woPackagingMaterials).set(updateData).where(eq(tables.woPackagingMaterials.id, materialId)).returning();
+      return material;
+    } else {
+      await db.update(tables.woPackagingMaterials).set(updateData).where(eq(tables.woPackagingMaterials.id, materialId));
+      const [material] = await db.select().from(tables.woPackagingMaterials).where(eq(tables.woPackagingMaterials.id, materialId));
+      return material;
+    }
   });
 }

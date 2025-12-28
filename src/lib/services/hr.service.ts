@@ -5,6 +5,7 @@ import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
 import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
 import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
 import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { getNow, toDbDate, getTodayStr, toDateSafe } from '../db/date-utils';
 import { createAuditLog } from '../audit';
 import {
@@ -2525,7 +2526,17 @@ export async function createAuthorization(
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.authorizations).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.authorizations).values(insertData).returning({ id: tables.authorizations.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.authorizations).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.authorizations).where(eq(tables.authorizations.id, recordId));
 
   // Clear cache for this employee
   clearAuthorizationCache(data.employeeId);
@@ -2565,11 +2576,21 @@ export async function updateAuthorization(
     updatedAt: new Date().toISOString(),
   };
 
-  const [result] = await db
-    .update(tables.authorizations)
-    .set(updateData)
-    .where(eq(tables.authorizations.id, id))
-    .returning();
+  if (isSqlite()) {
+    await db
+      .update(tables.authorizations)
+      .set(updateData)
+      .where(eq(tables.authorizations.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.authorizations)
+      .set(updateData)
+      .where(eq(tables.authorizations.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.authorizations).where(eq(tables.authorizations.id, id));
 
   // Clear cache for this employee
   clearAuthorizationCache(existing.employeeId);
@@ -2607,16 +2628,28 @@ export async function revokeAuthorization(
 
   const now = new Date();
 
-  const [result] = await db
-    .update(tables.authorizations)
-    .set({
-      isActive: false,
-      revokedBy,
-      revokedAt: now,
-      updatedAt: now,
-    })
-    .where(eq(tables.authorizations.id, id))
-    .returning();
+  const updateData = {
+    isActive: false,
+    revokedBy,
+    revokedAt: now,
+    updatedAt: now,
+  };
+
+  if (isSqlite()) {
+    await db
+      .update(tables.authorizations)
+      .set(updateData)
+      .where(eq(tables.authorizations.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.authorizations)
+      .set(updateData)
+      .where(eq(tables.authorizations.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.authorizations).where(eq(tables.authorizations.id, id));
 
   // Clear cache for this employee
   clearAuthorizationCache(existing.employeeId);
@@ -3000,7 +3033,17 @@ export async function createDelegation(
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.delegations).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.delegations).values(insertData).returning({ id: tables.delegations.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.delegations).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.delegations).where(eq(tables.delegations.id, recordId));
 
   // Clear cache for delegate
   clearAuthorizationCache(data.delegateId);
@@ -3032,14 +3075,26 @@ export async function cancelDelegation(id: number): Promise<Delegation> {
   // Set effectiveTo to now to cancel
   const now = new Date().toISOString().split('T')[0];
 
-  const [result] = await db
-    .update(tables.delegations)
-    .set({
-      effectiveTo: now,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(tables.delegations.id, id))
-    .returning();
+  const updateData = {
+    effectiveTo: now,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isSqlite()) {
+    await db
+      .update(tables.delegations)
+      .set(updateData)
+      .where(eq(tables.delegations.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.delegations)
+      .set(updateData)
+      .where(eq(tables.delegations.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.delegations).where(eq(tables.delegations.id, id));
 
   // Clear cache for delegate
   clearAuthorizationCache(existing.delegateId);
@@ -3248,7 +3303,17 @@ export async function createHealthRecord(
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.healthRecords).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.healthRecords).values(insertData).returning({ id: tables.healthRecords.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.healthRecords).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.healthRecords).where(eq(tables.healthRecords.id, recordId));
 
   // Audit log (without sensitive medical details)
   await createAuditLog({
@@ -3303,11 +3368,21 @@ export async function updateHealthRecord(
   if (data.examinerName !== undefined) updateData.examinerName = data.examinerName || null;
   if (data.examinerNotes !== undefined) updateData.examinerNotes = data.examinerNotes || null;
 
-  const [result] = await db
-    .update(tables.healthRecords)
-    .set(updateData)
-    .where(eq(tables.healthRecords.id, id))
-    .returning();
+  if (isSqlite()) {
+    await db
+      .update(tables.healthRecords)
+      .set(updateData)
+      .where(eq(tables.healthRecords.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.healthRecords)
+      .set(updateData)
+      .where(eq(tables.healthRecords.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.healthRecords).where(eq(tables.healthRecords.id, id));
 
   // Audit log (without sensitive details)
   await createAuditLog({
@@ -3329,6 +3404,37 @@ export async function updateHealthRecord(
     examinationType: result.examinationType as ExaminationType,
     fitnessStatus: result.fitnessStatus as FitnessStatus,
   };
+}
+
+/**
+ * Delete a health record
+ */
+export async function deleteHealthRecord(id: number): Promise<void> {
+  const tables = getHRTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
+
+  const existing = await getHealthRecordById(id, true);
+  if (!existing) {
+    throw new Error('Health record not found');
+  }
+
+  await db
+    .delete(tables.healthRecords)
+    .where(eq(tables.healthRecords.id, id));
+
+  // Audit log
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'hr_health_records',
+    recordId: id,
+    oldValue: {
+      employeeId: (existing as HealthRecord).employeeId,
+      examinationType: (existing as HealthRecord).examinationType,
+      fitnessStatus: (existing as HealthRecord).fitnessStatus,
+    },
+    newValue: undefined,
+  });
 }
 
 /**
@@ -3648,7 +3754,17 @@ export async function createAppRole(data: AppRoleCreate): Promise<AppRole> {
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.appRoles).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.appRoles).values(insertData).returning({ id: tables.appRoles.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.appRoles).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.appRoles).where(eq(tables.appRoles.id, recordId));
 
   // Audit log
   await createAuditLog({
@@ -3690,11 +3806,21 @@ export async function updateAppRole(
   if (data.description !== undefined) updateData.description = data.description || null;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
-  const [result] = await db
-    .update(tables.appRoles)
-    .set(updateData)
-    .where(eq(tables.appRoles.id, id))
-    .returning();
+  if (isSqlite()) {
+    await db
+      .update(tables.appRoles)
+      .set(updateData)
+      .where(eq(tables.appRoles.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.appRoles)
+      .set(updateData)
+      .where(eq(tables.appRoles.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.appRoles).where(eq(tables.appRoles.id, id));
 
   // Audit log
   await createAuditLog({
@@ -3903,7 +4029,17 @@ export async function assignEmployeeRole(
     updatedAt: now,
   };
 
-  const [result] = await db.insert(tables.employeeRoles).values(insertData).returning();
+  let recordId: number;
+  if (isSqlite()) {
+    const [inserted] = await db.insert(tables.employeeRoles).values(insertData).returning({ id: tables.employeeRoles.id });
+    recordId = inserted.id;
+  } else {
+    const insertResult = await db.insert(tables.employeeRoles).values(insertData);
+    recordId = getInsertId(insertResult);
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.employeeRoles).where(eq(tables.employeeRoles.id, recordId));
 
   // Audit log
   await createAuditLog({
@@ -3941,14 +4077,26 @@ export async function revokeEmployeeRole(id: number): Promise<EmployeeRole> {
   // Set effectiveTo to now to revoke
   const now = new Date().toISOString().split('T')[0];
 
-  const [result] = await db
-    .update(tables.employeeRoles)
-    .set({
-      effectiveTo: now,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(tables.employeeRoles.id, id))
-    .returning();
+  const updateData = {
+    effectiveTo: now,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isSqlite()) {
+    await db
+      .update(tables.employeeRoles)
+      .set(updateData)
+      .where(eq(tables.employeeRoles.id, id))
+      .returning();
+  } else {
+    await db
+      .update(tables.employeeRoles)
+      .set(updateData)
+      .where(eq(tables.employeeRoles.id, id));
+  }
+
+  // Refetch the record
+  const [result] = await db.select().from(tables.employeeRoles).where(eq(tables.employeeRoles.id, id));
 
   // Audit log
   await createAuditLog({
@@ -4955,4 +5103,291 @@ export async function getAllPendingNotifications(
     employeeName: `${r.firstName} ${r.lastName}`,
     employeeCode: r.employeeCode,
   }));
+}
+
+// ============================================
+// Payroll Accounting Integration (US10)
+// ============================================
+
+import type {
+  PayrollEntry,
+  PayrollBatch,
+  PayrollJournalResult,
+  PayrollAccountConfig,
+} from '@/types/accounting';
+import {
+  createPayrollJournalEntry,
+  allocatePayrollToCostCenters,
+  calculateThaiSSO,
+} from './accounting.service';
+
+/**
+ * Get employee payroll data for accounting integration
+ * Returns employee details with cost center assignments for payroll processing
+ */
+export async function getEmployeesForPayroll(
+  options?: {
+    orgUnitId?: number;
+    status?: 'active' | 'on_leave' | 'all';
+  }
+): Promise<Array<{
+  employeeId: number;
+  employeeCode: string;
+  employeeName: string;
+  orgUnitId: number | null;
+  orgUnitCode: string | null;
+  orgUnitName: string | null;
+  positionTitle: string | null;
+}>> {
+  const tables = getHRTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
+
+  const conditions: SQL[] = [];
+
+  // Filter by status (default to active only)
+  const status = options?.status ?? 'active';
+  if (status !== 'all') {
+    conditions.push(eq(tables.employees.status, status));
+  }
+
+  // Filter by org unit if specified
+  if (options?.orgUnitId) {
+    conditions.push(eq(tables.employeeAssignments.orgUnitId, options.orgUnitId));
+  }
+
+  // Only get primary assignments
+  conditions.push(eq(tables.employeeAssignments.isPrimary, true));
+
+  const query = db
+    .select({
+      employeeId: tables.employees.id,
+      employeeCode: tables.employees.employeeCode,
+      firstName: tables.employees.firstName,
+      lastName: tables.employees.lastName,
+      orgUnitId: tables.employeeAssignments.orgUnitId,
+      orgUnitCode: tables.orgUnits.code,
+      orgUnitName: tables.orgUnits.name,
+      positionTitle: tables.positions.title,
+    })
+    .from(tables.employees)
+    .leftJoin(
+      tables.employeeAssignments,
+      and(
+        eq(tables.employeeAssignments.employeeId, tables.employees.id),
+        eq(tables.employeeAssignments.isPrimary, true)
+      )
+    )
+    .leftJoin(
+      tables.orgUnits,
+      eq(tables.employeeAssignments.orgUnitId, tables.orgUnits.id)
+    )
+    .leftJoin(
+      tables.positions,
+      eq(tables.employeeAssignments.positionId, tables.positions.id)
+    )
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+  const results = await query;
+
+  return results.map((r: typeof results[number]) => ({
+    employeeId: r.employeeId,
+    employeeCode: r.employeeCode,
+    employeeName: `${r.firstName} ${r.lastName}`,
+    orgUnitId: r.orgUnitId || null,
+    orgUnitCode: r.orgUnitCode || null,
+    orgUnitName: r.orgUnitName || null,
+    positionTitle: r.positionTitle || null,
+  }));
+}
+
+/**
+ * Create payroll entries with automatic SSO calculation
+ * This is a hook for HR systems to create payroll data for accounting
+ */
+export async function createPayrollEntriesFromHR(
+  payrollData: Array<{
+    employeeId: number;
+    baseSalary: number;
+    overtime?: number;
+    bonuses?: number;
+    allowances?: number;
+    otherEarnings?: number;
+    whtAmount?: number;
+    otherDeductions?: number;
+  }>,
+  payrollPeriod: string,
+  payrollDate: string
+): Promise<{
+  success: boolean;
+  entries: PayrollEntry[];
+  totals: {
+    totalGrossPay: number;
+    totalNetPay: number;
+    totalSSOEmployee: number;
+    totalSSOEmployer: number;
+    totalWHT: number;
+  };
+}> {
+  const tables = getHRTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
+
+  const entries: PayrollEntry[] = [];
+  let totalGrossPay = 0;
+  let totalNetPay = 0;
+  let totalSSOEmployee = 0;
+  let totalSSOEmployer = 0;
+  let totalWHT = 0;
+
+  for (const data of payrollData) {
+    // Get employee details with org unit
+    const [employee] = await db
+      .select({
+        id: tables.employees.id,
+        employeeCode: tables.employees.employeeCode,
+        firstName: tables.employees.firstName,
+        lastName: tables.employees.lastName,
+        orgUnitId: tables.employeeAssignments.orgUnitId,
+        orgUnitCode: tables.orgUnits.code,
+      })
+      .from(tables.employees)
+      .leftJoin(
+        tables.employeeAssignments,
+        and(
+          eq(tables.employeeAssignments.employeeId, tables.employees.id),
+          eq(tables.employeeAssignments.isPrimary, true)
+        )
+      )
+      .leftJoin(
+        tables.orgUnits,
+        eq(tables.employeeAssignments.orgUnitId, tables.orgUnits.id)
+      )
+      .where(eq(tables.employees.id, data.employeeId))
+      .limit(1);
+
+    if (!employee) {
+      continue; // Skip if employee not found
+    }
+
+    // Calculate gross pay
+    const baseSalary = data.baseSalary;
+    const overtime = data.overtime || 0;
+    const bonuses = data.bonuses || 0;
+    const allowances = data.allowances || 0;
+    const otherEarnings = data.otherEarnings || 0;
+    const grossPay = baseSalary + overtime + bonuses + allowances + otherEarnings;
+
+    // Calculate SSO contributions
+    const sso = calculateThaiSSO(baseSalary);
+    const ssoEmployee = sso.employeeContribution;
+    const ssoEmployer = sso.employerContribution;
+
+    // Get WHT and other deductions
+    const whtAmount = data.whtAmount || 0;
+    const otherDeductions = data.otherDeductions || 0;
+    const totalDeductions = ssoEmployee + whtAmount + otherDeductions;
+
+    // Calculate net pay
+    const netPay = grossPay - totalDeductions;
+
+    // Create payroll entry
+    const entry: PayrollEntry = {
+      employeeId: employee.id,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      costCenterId: employee.orgUnitId || undefined,
+      costCenterCode: employee.orgUnitCode || undefined,
+      baseSalary,
+      overtime,
+      bonuses,
+      allowances,
+      otherEarnings,
+      grossPay,
+      ssoEmployee,
+      whtAmount,
+      otherDeductions,
+      totalDeductions,
+      netPay,
+      ssoEmployer,
+    };
+
+    entries.push(entry);
+
+    // Update totals
+    totalGrossPay += grossPay;
+    totalNetPay += netPay;
+    totalSSOEmployee += ssoEmployee;
+    totalSSOEmployer += ssoEmployer;
+    totalWHT += whtAmount;
+  }
+
+  return {
+    success: true,
+    entries,
+    totals: {
+      totalGrossPay,
+      totalNetPay,
+      totalSSOEmployee,
+      totalSSOEmployer,
+      totalWHT,
+    },
+  };
+}
+
+/**
+ * Process payroll and create accounting entries
+ * Main integration hook that combines HR payroll data with accounting
+ */
+export async function processPayrollToAccounting(
+  payrollData: Array<{
+    employeeId: number;
+    baseSalary: number;
+    overtime?: number;
+    bonuses?: number;
+    allowances?: number;
+    otherEarnings?: number;
+    whtAmount?: number;
+    otherDeductions?: number;
+  }>,
+  payrollPeriod: string,
+  payrollDate: string,
+  accountConfig: PayrollAccountConfig,
+  createdBy: number
+): Promise<PayrollJournalResult> {
+  // Create payroll entries with SSO calculation
+  const { entries } = await createPayrollEntriesFromHR(
+    payrollData,
+    payrollPeriod,
+    payrollDate
+  );
+
+  if (entries.length === 0) {
+    return {
+      success: false,
+      journalEntryId: null,
+      entryNumber: null,
+      message: 'No valid payroll entries to process',
+      totals: {
+        totalGrossPay: 0,
+        totalNetPay: 0,
+        totalSSOEmployee: 0,
+        totalSSOEmployer: 0,
+        totalWHT: 0,
+        totalOtherDeductions: 0,
+      },
+      costCenterAllocations: [],
+    };
+  }
+
+  // Create payroll batch
+  const payrollBatch: PayrollBatch = {
+    payrollPeriod,
+    payrollDate,
+    payrollNumber: `PAY-${payrollPeriod}`,
+    description: `Payroll for period ${payrollPeriod}`,
+    entries,
+  };
+
+  // Create journal entry through accounting service
+  return createPayrollJournalEntry(payrollBatch, accountConfig, createdBy);
 }

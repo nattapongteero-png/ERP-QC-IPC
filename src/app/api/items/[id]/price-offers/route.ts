@@ -3,7 +3,7 @@
  * Feature: 008-vmi-vendor-sync
  *
  * CRUD operations for managing VMI price offers for a specific item.
- * Since this system IS the vendor, no vendor field is needed.
+ * Since this system IS the vendor, we use a "SELF" vendor record.
  */
 
 import { NextRequest } from 'next/server';
@@ -18,6 +18,56 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+
+// Get or create the SELF vendor ID (cached)
+let selfVendorId: number | null = null;
+async function getSelfVendorId(): Promise<number> {
+  if (selfVendorId !== null) return selfVendorId;
+
+  const vendorsTable = getTableRef('vendors');
+  const result = await executeDbOperation(async (db) => {
+    return db.select({ id: vendorsTable.id })
+      .from(vendorsTable)
+      .where(eq(vendorsTable.code, 'SELF'))
+      .limit(1);
+  });
+
+  if (result.length > 0) {
+    selfVendorId = result[0].id;
+    return result[0].id;
+  }
+
+  // Create SELF vendor if it doesn't exist
+  const now = dbDate();
+  const newVendor = await executeDbOperation(async (db) => {
+    if (isSqlite()) {
+      const insertResult = await db.insert(vendorsTable).values({
+        code: 'SELF',
+        name: 'บริษัท (ตนเอง)',
+        isApproved: true,
+        isVmi: true,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      return insertResult[0];
+    } else {
+      const [insertResult] = await db.insert(vendorsTable).values({
+        code: 'SELF',
+        name: 'บริษัท (ตนเอง)',
+        isApproved: true,
+        isVmi: true,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      }).$returningId();
+      return { id: insertResult.id };
+    }
+  });
+
+  selfVendorId = newVendor.id;
+  return newVendor.id;
+}
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -105,8 +155,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       const priceOffersTable = getTableRef('VMIPriceOffers');
       const now = dbDate();
+      const vendorId = await getSelfVendorId();
 
       const newOffer = {
+        vendorId,
         itemId,
         unitPrice: unitPrice.toString(),
         packPrice: packPrice ? packPrice.toString() : null,

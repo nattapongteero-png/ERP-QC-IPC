@@ -89,7 +89,7 @@ export async function GET(
       });
 
       // Get received lots for this PO
-      const receivedLots = await executeDbOperation(async (db) => {
+      const receivedLotsData = await executeDbOperation(async (db) => {
         return db
           .select({
             id: inventoryLots.id,
@@ -106,6 +106,86 @@ export async function GET(
           .leftJoin(items, eq(inventoryLots.itemId, items.id))
           .where(eq(inventoryLots.poNumber, po.poNumber as string));
       });
+
+      // Get journal entries for these lots
+      const journalEntries = getTableRef('journalEntries');
+      const apInvoices = getTableRef('apInvoices');
+      const lotIds = receivedLotsData.map((lot: { id: number }) => lot.id);
+      const journalEntriesMap: Record<number, Array<{ id: number; entryNumber: string; status: string }>> = {};
+      const apInvoicesMap: Record<number, Array<{ id: number; invoiceNumber: string; status: string; totalAmount: number }>> = {};
+
+      if (lotIds.length > 0) {
+        // Get linked journal entries
+        const linkedJournals = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: journalEntries.id,
+              entryNumber: journalEntries.entryNumber,
+              sourceType: journalEntries.sourceType,
+              sourceId: journalEntries.sourceId,
+              status: journalEntries.status,
+            })
+            .from(journalEntries)
+            .where(eq(journalEntries.sourceType, 'PO_RECEIPT'));
+        });
+
+        // Group by lotId (sourceId)
+        for (const je of linkedJournals) {
+          const lotId = Number(je.sourceId);
+          if (lotIds.includes(lotId)) {
+            if (!journalEntriesMap[lotId]) {
+              journalEntriesMap[lotId] = [];
+            }
+            journalEntriesMap[lotId].push({
+              id: je.id,
+              entryNumber: je.entryNumber || '',
+              status: je.status || 'draft',
+            });
+          }
+        }
+
+        // Get linked AP invoices (via purchaseOrderId)
+        const linkedAPInvoices = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: apInvoices.id,
+              invoiceNumber: apInvoices.invoiceNumber,
+              purchaseOrderId: apInvoices.purchaseOrderId,
+              status: apInvoices.status,
+              totalAmount: apInvoices.totalAmount,
+              description: apInvoices.description,
+            })
+            .from(apInvoices)
+            .where(eq(apInvoices.purchaseOrderId, parseInt(id)));
+        });
+
+        // Map AP invoices - for now, associate with all lots from the same PO
+        // (In a more complex system, you'd track which lots map to which invoices)
+        for (const apInv of linkedAPInvoices) {
+          // Check if description contains the lot number
+          for (const lotId of lotIds) {
+            const lot = receivedLotsData.find((l: { id: number }) => l.id === lotId);
+            if (lot && apInv.description && apInv.description.includes(lot.lotNumber)) {
+              if (!apInvoicesMap[lotId]) {
+                apInvoicesMap[lotId] = [];
+              }
+              apInvoicesMap[lotId].push({
+                id: apInv.id,
+                invoiceNumber: apInv.invoiceNumber || '',
+                status: apInv.status || 'draft',
+                totalAmount: Number(apInv.totalAmount) || 0,
+              });
+            }
+          }
+        }
+      }
+
+      // Attach journal entries and AP invoices to lots
+      const receivedLots = receivedLotsData.map((lot: { id: number; lotNumber: string; itemId: number; itemCode: string; itemName: string; quantity: number; status: string; expiryDate: string; receivedDate: string }) => ({
+        ...lot,
+        journalEntries: journalEntriesMap[lot.id] || [],
+        apInvoices: apInvoicesMap[lot.id] || [],
+      }));
 
       // Calculate summary
       const totalOrdered = linesWithTotals.reduce((sum: number, line: Record<string, unknown>) => sum + (line.quantity as number), 0);

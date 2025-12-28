@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+  title: GL Accounts API
+  version: 1.0.0
+  description: Chart of Accounts management endpoints
+
+paths:
+  /api/accounting/gl-accounts:
+    get:
+      summary: List GL accounts
+      operationId: listGLAccounts
+      tags: [GL Accounts]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by code or name
+        - name: accountTypeId
+          in: query
+          schema:
+            type: integer
+          description: Filter by account type
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: parentId
+          in: query
+          schema:
+            type: integer
+          description: Filter by parent account
+      responses:
+        '200':
+          description: Paginated list of GL accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GLAccountListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create GL account
+      operationId: createGLAccount
+      tags: [GL Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GLAccountCreate'
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GLAccountResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Account code already exists
+
+  /api/accounting/gl-accounts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get GL account by ID
+      operationId: getGLAccount
+      tags: [GL Accounts]
+      responses:
+        '200':
+          description: GL account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GLAccountResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update GL account
+      operationId: updateGLAccount
+      tags: [GL Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GLAccountUpdate'
+      responses:
+        '200':
+          description: Account updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GLAccountResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete GL account
+      operationId: deleteGLAccount
+      tags: [GL Accounts]
+      responses:
+        '204':
+          description: Account deleted
+        '400':
+          description: Cannot delete account with transactions
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/accounting/gl-accounts/tree:
+    get:
+      summary: Get account hierarchy tree
+      operationId: getGLAccountTree
+      tags: [GL Accounts]
+      responses:
+        '200':
+          description: Hierarchical account structure
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GLAccountTreeNode'
+
+  /api/accounting/gl-accounts/{id}/balance:
+    get:
+      summary: Get account balance
+      operationId: getGLAccountBalance
+      tags: [GL Accounts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: asOfDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Balance as of date (default today)
+      responses:
+        '200':
+          description: Account balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GLAccountBalance'
+
+components:
+  schemas:
+    GLAccountCreate:
+      type: object
+      required: [code, nameTh, nameEn, accountTypeId]
+      properties:
+        code:
+          type: string
+          maxLength: 20
+          example: "1100"
+        nameTh:
+          type: string
+          maxLength: 200
+          example: "เงินสดและรายการเทียบเท่าเงินสด"
+        nameEn:
+          type: string
+          maxLength: 200
+          example: "Cash and Cash Equivalents"
+        accountTypeId:
+          type: integer
+          example: 1
+        parentId:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        isBankAccount:
+          type: boolean
+          default: false
+        bankName:
+          type: string
+          nullable: true
+        bankAccountNumber:
+          type: string
+          nullable: true
+
+    GLAccountUpdate:
+      type: object
+      properties:
+        nameTh:
+          type: string
+          maxLength: 200
+        nameEn:
+          type: string
+          maxLength: 200
+        parentId:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        bankName:
+          type: string
+          nullable: true
+        bankAccountNumber:
+          type: string
+          nullable: true
+
+    GLAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        nameTh:
+          type: string
+        nameEn:
+          type: string
+        accountTypeId:
+          type: integer
+        accountType:
+          $ref: '#/components/schemas/GLAccountType'
+        parentId:
+          type: integer
+          nullable: true
+        level:
+          type: integer
+        isActive:
+          type: boolean
+        isPostable:
+          type: boolean
+        isBankAccount:
+          type: boolean
+        bankName:
+          type: string
+          nullable: true
+        bankAccountNumber:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GLAccountType:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        nameTh:
+          type: string
+        nameEn:
+          type: string
+        category:
+          type: string
+          enum: [asset, liability, equity, revenue, expense]
+        normalBalance:
+          type: string
+          enum: [debit, credit]
+
+    GLAccountTreeNode:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        nameTh:
+          type: string
+        nameEn:
+          type: string
+        level:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/GLAccountTreeNode'
+
+    GLAccountBalance:
+      type: object
+      properties:
+        accountId:
+          type: integer
+        accountCode:
+          type: string
+        asOfDate:
+          type: string
+          format: date
+        debitBalance:
+          type: number
+          format: decimal
+        creditBalance:
+          type: number
+          format: decimal
+        balance:
+          type: number
+          format: decimal
+        balanceType:
+          type: string
+          enum: [debit, credit]
+
+    GLAccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/GLAccount'
+
+    GLAccountListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/GLAccount'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Unauthorized"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Not found"
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "Validation failed"
+              errors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    message:
+                      type: string

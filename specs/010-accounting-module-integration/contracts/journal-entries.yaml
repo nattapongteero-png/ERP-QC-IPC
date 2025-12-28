@@ -1,0 +1,362 @@
+openapi: 3.0.3
+info:
+  title: Journal Entries API
+  version: 1.0.0
+  description: Journal entry management endpoints
+
+paths:
+  /api/accounting/journal-entries:
+    get:
+      summary: List journal entries
+      operationId: listJournalEntries
+      tags: [Journal Entries]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, posted, reversed]
+        - name: fiscalPeriodId
+          in: query
+          schema:
+            type: integer
+        - name: sourceType
+          in: query
+          schema:
+            type: string
+            enum: [PO_RECEIPT, SO_SHIPMENT, AP_PAYMENT, AR_RECEIPT, DEPRECIATION, PAYROLL, MANUAL]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by entry number or description
+      responses:
+        '200':
+          description: Paginated list of journal entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntryListResponse'
+
+    post:
+      summary: Create journal entry
+      operationId: createJournalEntry
+      tags: [Journal Entries]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JournalEntryCreate'
+      responses:
+        '201':
+          description: Journal entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntryResponse'
+        '400':
+          description: Validation error (debits != credits, closed period, etc.)
+
+  /api/accounting/journal-entries/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get journal entry by ID
+      operationId: getJournalEntry
+      tags: [Journal Entries]
+      responses:
+        '200':
+          description: Journal entry with lines
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntryDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update draft journal entry
+      operationId: updateJournalEntry
+      tags: [Journal Entries]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JournalEntryUpdate'
+      responses:
+        '200':
+          description: Journal entry updated
+        '400':
+          description: Cannot update posted entry
+
+  /api/accounting/journal-entries/{id}/post:
+    post:
+      summary: Post journal entry
+      operationId: postJournalEntry
+      tags: [Journal Entries]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Journal entry posted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntryResponse'
+        '400':
+          description: Cannot post (unbalanced, closed period, already posted)
+
+  /api/accounting/journal-entries/{id}/reverse:
+    post:
+      summary: Reverse posted journal entry
+      operationId: reverseJournalEntry
+      tags: [Journal Entries]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reversalDate:
+                  type: string
+                  format: date
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Reversing entry created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      originalEntry:
+                        $ref: '#/components/schemas/JournalEntry'
+                      reversalEntry:
+                        $ref: '#/components/schemas/JournalEntry'
+        '400':
+          description: Cannot reverse (not posted, already reversed)
+
+components:
+  schemas:
+    JournalEntryCreate:
+      type: object
+      required: [entryDate, lines]
+      properties:
+        entryDate:
+          type: string
+          format: date
+        description:
+          type: string
+        lines:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/JournalLineCreate'
+
+    JournalLineCreate:
+      type: object
+      required: [glAccountId]
+      properties:
+        glAccountId:
+          type: integer
+        debit:
+          type: number
+          format: decimal
+          default: 0
+        credit:
+          type: number
+          format: decimal
+          default: 0
+        description:
+          type: string
+        costCenterId:
+          type: integer
+          nullable: true
+
+    JournalEntryUpdate:
+      type: object
+      properties:
+        entryDate:
+          type: string
+          format: date
+        description:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/JournalLineCreate'
+
+    JournalEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        entryNumber:
+          type: string
+          example: "JE-202512-000001"
+        entryDate:
+          type: string
+          format: date
+        fiscalPeriodId:
+          type: integer
+        description:
+          type: string
+        sourceType:
+          type: string
+          enum: [PO_RECEIPT, SO_SHIPMENT, AP_PAYMENT, AR_RECEIPT, DEPRECIATION, PAYROLL, MANUAL]
+          nullable: true
+        sourceId:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [draft, posted, reversed]
+        totalDebit:
+          type: number
+          format: decimal
+        totalCredit:
+          type: number
+          format: decimal
+        postedBy:
+          type: integer
+          nullable: true
+        postedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reversedBy:
+          type: integer
+          nullable: true
+        reversedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdBy:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    JournalLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        lineNumber:
+          type: integer
+        glAccountId:
+          type: integer
+        glAccount:
+          type: object
+          properties:
+            code:
+              type: string
+            nameTh:
+              type: string
+            nameEn:
+              type: string
+        debit:
+          type: number
+          format: decimal
+        credit:
+          type: number
+          format: decimal
+        description:
+          type: string
+        costCenterId:
+          type: integer
+          nullable: true
+
+    JournalEntryWithLines:
+      allOf:
+        - $ref: '#/components/schemas/JournalEntry'
+        - type: object
+          properties:
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/JournalLine'
+
+    JournalEntryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/JournalEntry'
+
+    JournalEntryDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/JournalEntryWithLines'
+
+    JournalEntryListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/JournalEntry'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+  responses:
+    NotFound:
+      description: Resource not found

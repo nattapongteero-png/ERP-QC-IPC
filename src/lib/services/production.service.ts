@@ -4,6 +4,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
+import { getInsertId } from '../db/db-helper';
 import { toDateSafe } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
 import {
@@ -286,27 +287,46 @@ export async function createWorkOrder(
   const batchNumber = `BATCH-${woNumber.replace('WO-', '')}`;
 
   // Create work order
-  const [newWO] = await database
-    .insert(workOrders)
-    .values({
-      woNumber,
-      bomId,
-      productId: bomHeader.productId,
-      batchNumber,
-      plannedQuantity,
-      unit: bomHeader.batchUnit,
-      status: 'planned',
-      plannedStartDate,
-      createdBy: userId,
-    })
-    .returning({ id: workOrders.id });
+  let newWOId: number;
+  if (isSqlite()) {
+    const [newWO] = await database
+      .insert(workOrders)
+      .values({
+        woNumber,
+        bomId,
+        productId: bomHeader.productId,
+        batchNumber,
+        plannedQuantity,
+        unit: bomHeader.batchUnit,
+        status: 'planned',
+        plannedStartDate,
+        createdBy: userId,
+      })
+      .returning({ id: workOrders.id });
+    newWOId = newWO.id;
+  } else {
+    const result = await database
+      .insert(workOrders)
+      .values({
+        woNumber,
+        bomId,
+        productId: bomHeader.productId,
+        batchNumber,
+        plannedQuantity,
+        unit: bomHeader.batchUnit,
+        status: 'planned',
+        plannedStartDate,
+        createdBy: userId,
+      });
+    newWOId = getInsertId(result);
+  }
 
   // Create audit log
   await createAuditLog({
     userId,
     action: 'CREATE',
     tableName: 'work_orders',
-    recordId: newWO.id,
+    recordId: newWOId,
     newValue: {
       woNumber,
       batchNumber,
@@ -315,7 +335,7 @@ export async function createWorkOrder(
     },
   });
 
-  return newWO.id;
+  return newWOId;
 }
 
 /**

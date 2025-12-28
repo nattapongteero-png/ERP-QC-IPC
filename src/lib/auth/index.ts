@@ -76,6 +76,9 @@ export const ROLES = {
   HR_ADMIN: 'hr_admin',
   HR_STAFF: 'hr_staff',
   HEALTH_STAFF: 'health_staff',
+  // Finance/Accounting roles
+  FINANCE: 'finance',
+  ACCOUNTANT: 'accountant',
 } as const;
 
 export type Role = typeof ROLES[keyof typeof ROLES];
@@ -185,6 +188,58 @@ export const PERMISSIONS = {
   'change_control:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION],
   'change_control:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
   'change_control:approve': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC],
+
+  // Accounting Module - Chart of Accounts
+  'accounting:gl_accounts:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:gl_accounts:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:gl_accounts:delete': [ROLES.ADMIN, ROLES.FINANCE],
+  'accounting:gl_account_types:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:gl_account_types:write': [ROLES.ADMIN, ROLES.FINANCE],
+
+  // Accounting Module - Journal Entries
+  'accounting:journal_entries:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:journal_entries:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:journal_entries:post': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:journal_entries:reverse': [ROLES.ADMIN, ROLES.FINANCE],
+
+  // Accounting Module - Fiscal Periods
+  'accounting:fiscal_periods:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:fiscal_periods:write': [ROLES.ADMIN, ROLES.FINANCE],
+  'accounting:fiscal_periods:close': [ROLES.ADMIN, ROLES.FINANCE],
+
+  // Accounting Module - Accounts Payable
+  'accounting:ap_invoices:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT, ROLES.PURCHASING],
+  'accounting:ap_invoices:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:ap_invoices:approve': [ROLES.ADMIN, ROLES.FINANCE],
+  'accounting:ap_invoices:pay': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+
+  // Accounting Module - Accounts Receivable
+  'accounting:ar_invoices:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT, ROLES.SALES],
+  'accounting:ar_invoices:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:ar_invoices:confirm': [ROLES.ADMIN, ROLES.FINANCE],
+
+  // Accounting Module - Payments
+  'accounting:payments:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:payments:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+
+  // Accounting Module - Cost Allocation
+  'accounting:cost_allocation:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT, ROLES.PRODUCTION],
+  'accounting:cost_allocation:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+
+  // Accounting Module - Fixed Assets
+  'accounting:fixed_assets:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:fixed_assets:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:asset_categories:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:asset_categories:write': [ROLES.ADMIN, ROLES.FINANCE],
+
+  // Accounting Module - Equipment
+  'accounting:equipment:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT, ROLES.PRODUCTION],
+  'accounting:equipment:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.ACCOUNTANT],
+  'accounting:maintenance:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.PRODUCTION],
+  'accounting:maintenance:write': [ROLES.ADMIN, ROLES.FINANCE, ROLES.PRODUCTION],
+
+  // Accounting Module - Reports
+  'accounting:reports:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

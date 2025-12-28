@@ -308,6 +308,7 @@ export default function UsersPage() {
           type="normal"
           stylingMode="text"
           hint="แก้ไข"
+          data-testid={`users-edit-btn-${cellInfo.data.id}`}
           onClick={(e) => {
             e.event?.stopPropagation();
             router.push(`/users/${cellInfo.data.id}`);
@@ -392,6 +393,7 @@ export default function UsersPage() {
               text="เพิ่มผู้ใช้"
               icon="plus"
               type="success"
+              data-testid="users-add-user-btn"
               onClick={() => router.push('/users/new')}
             />
           }

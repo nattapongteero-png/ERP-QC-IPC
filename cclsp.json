@@ -1,0 +1,16 @@
+{
+  "servers": [
+    {
+      "extensions": ["ts", "tsx", "js", "jsx", "mts", "mjs"],
+      "command": ["vtsls", "--stdio"],
+      "rootDir": ".",
+      "initializationOptions": {
+        "preferences": {
+          "quotePreference": "single",
+          "importModuleSpecifierPreference": "relative",
+          "jsxAttributeCompletionStyle": "auto"
+        }
+      }
+    }
+  ]
+}

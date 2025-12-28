@@ -158,6 +158,8 @@ function ErrorItem({ id, error, debug, url, method, onDismiss }: ErrorItemProps)
   );
 }
 
+ErrorItem.displayName = 'ErrorItem';
+
 export function GlobalApiErrors() {
   const { errors, dismissError } = useApiErrors();
 
@@ -179,3 +181,5 @@ export function GlobalApiErrors() {
     </div>
   );
 }
+
+GlobalApiErrors.displayName = 'GlobalApiErrors';

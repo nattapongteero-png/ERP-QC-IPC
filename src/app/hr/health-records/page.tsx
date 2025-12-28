@@ -2,8 +2,10 @@
 
 // HR Health Records Management Page
 // Feature: 007-hr-personnel-management
+// Pattern: Aligned with Template module design
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -12,29 +14,28 @@ import DataGrid, {
   Paging,
   Pager,
   Scrolling,
+  Selection,
 } from 'devextreme-react/data-grid';
-import { Popup, ToolbarItem } from 'devextreme-react/popup';
-import SelectBox from 'devextreme-react/select-box';
-import TextBox from 'devextreme-react/text-box';
-import TextArea from 'devextreme-react/text-area';
-import TagBox from 'devextreme-react/tag-box';
+import { Button } from 'devextreme-react/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DxButton } from '@/components/ui/dx-button';
-import { DxDateBox, buddhistDateFormat } from '@/components/ui/dx-date-box';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { useToast } from '@/components/ui/toast';
+import notify from 'devextreme/ui/notify';
 import {
   Heart,
   AlertTriangle,
   Calendar,
   Clock,
+  Eye,
+  Edit,
+  Trash2,
 } from 'lucide-react';
+import { buddhistDateFormat } from '@/components/ui/dx-date-box';
 import type {
   HealthRecordPublic,
   ExaminationType,
   FitnessStatus,
-  EmployeeSummary,
 } from '@/types/hr';
 import type { HealthRecordWithDetails, UpcomingHealthCheck } from '@/lib/services/hr.service';
 
@@ -50,26 +51,11 @@ const FITNESS_STATUS_CONFIG: Record<FitnessStatus, { label: string; variant: 'su
   restricted: { label: 'มีข้อจำกัด', variant: 'warning' },
 };
 
-const AFFECTED_AREAS_OPTIONS = [
-  'ฝ่ายผลิต',
-  'ฝ่ายควบคุมคุณภาพ',
-  'ฝ่ายบรรจุ',
-  'ฝ่ายคลังสินค้า',
-  'ทุกฝ่าย',
-];
-
 type HealthRecord = HealthRecordWithDetails | HealthRecordPublic;
 
 async function fetchHealthRecords(): Promise<HealthRecord[]> {
   const response = await fetch('/api/hr/health-records');
   if (!response.ok) throw new Error('Failed to fetch health records');
-  const result = await response.json();
-  return result.data || [];
-}
-
-async function fetchEmployees(): Promise<EmployeeSummary[]> {
-  const response = await fetch('/api/hr/employees?status=active');
-  if (!response.ok) throw new Error('Failed to fetch employees');
   const result = await response.json();
   return result.data || [];
 }
@@ -88,74 +74,24 @@ async function fetchOverdueHealthChecks(): Promise<UpcomingHealthCheck[]> {
   return result.data || [];
 }
 
-async function createHealthRecord(data: {
-  employeeId: number;
-  examinationType: ExaminationType;
-  examinationDate: string;
-  nextExamDue?: string;
-  fitnessStatus: FitnessStatus;
-  restrictions?: string;
-  affectedAreas?: string[];
-  medicalDetails?: string;
-  examinerName?: string;
-  examinerNotes?: string;
-}): Promise<HealthRecord> {
-  const response = await fetch('/api/hr/health-records', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const result = await response.json();
-    throw new Error(result.error || 'Failed to create health record');
+async function deleteHealthRecord(id: number): Promise<void> {
+  const res = await fetch(`/api/hr/health-records/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Failed to delete record');
   }
-  const result = await response.json();
-  return result.data;
 }
 
 export default function HealthRecordsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const toast = useToast();
-  const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [activeTab, setActiveTab] = useState<'records' | 'due' | 'overdue'>('records');
-  const [gridHeight, setGridHeight] = useState(600);
-
-  // Responsive height calculation
-  useEffect(() => {
-    const calculateHeight = () => {
-      const headerHeight = 380;
-      const padding = 100;
-      const minHeight = 400;
-      const availableHeight = window.innerHeight - headerHeight - padding;
-      setGridHeight(Math.max(minHeight, availableHeight));
-    };
-
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
-    return () => window.removeEventListener('resize', calculateHeight);
-  }, []);
-
-  const [newRecord, setNewRecord] = useState({
-    employeeId: undefined as number | undefined,
-    examinationType: undefined as ExaminationType | undefined,
-    examinationDate: new Date().toISOString().split('T')[0],
-    nextExamDue: '' as string | undefined,
-    fitnessStatus: undefined as FitnessStatus | undefined,
-    restrictions: '',
-    affectedAreas: [] as string[],
-    medicalDetails: '',
-    examinerName: '',
-    examinerNotes: '',
-  });
+  const [selectedRecord, setSelectedRecord] = useState<HealthRecord | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data: healthRecords = [] } = useQuery({
     queryKey: ['hr', 'health-records'],
     queryFn: fetchHealthRecords,
-  });
-
-  const { data: employees = [] } = useQuery({
-    queryKey: ['hr', 'employees', 'active'],
-    queryFn: fetchEmployees,
   });
 
   const { data: healthChecksDue = [] } = useQuery({
@@ -168,59 +104,33 @@ export default function HealthRecordsPage() {
     queryFn: fetchOverdueHealthChecks,
   });
 
-  const createMutation = useMutation({
-    mutationFn: createHealthRecord,
+  const deleteMutation = useMutation({
+    mutationFn: deleteHealthRecord,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'health-records'] });
-      setShowCreatePopup(false);
-      resetNewRecord();
-      toast.success('บันทึกผลตรวจสุขภาพสำเร็จ');
+      notify('ลบบันทึกสุขภาพสำเร็จ', 'success', 3000);
+      setShowDeleteConfirm(false);
+      setSelectedRecord(null);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถบันทึกผลตรวจสุขภาพได้');
+      notify(error.message, 'error', 5000);
     },
   });
 
-  const resetNewRecord = () => {
-    setNewRecord({
-      employeeId: undefined,
-      examinationType: undefined,
-      examinationDate: new Date().toISOString().split('T')[0],
-      nextExamDue: '',
-      fitnessStatus: undefined,
-      restrictions: '',
-      affectedAreas: [],
-      medicalDetails: '',
-      examinerName: '',
-      examinerNotes: '',
-    });
-  };
+  const handleRowClick = useCallback((e: { data: HealthRecord }) => {
+    router.push(`/hr/health-records/${e.data.id}`);
+  }, [router]);
 
-  const handleCreateRecord = useCallback(() => {
-    if (!newRecord.employeeId || !newRecord.examinationType || !newRecord.fitnessStatus) return;
-    createMutation.mutate({
-      employeeId: newRecord.employeeId,
-      examinationType: newRecord.examinationType,
-      examinationDate: newRecord.examinationDate,
-      nextExamDue: newRecord.nextExamDue || undefined,
-      fitnessStatus: newRecord.fitnessStatus,
-      restrictions: newRecord.restrictions || undefined,
-      affectedAreas: newRecord.affectedAreas.length > 0 ? newRecord.affectedAreas : undefined,
-      medicalDetails: newRecord.medicalDetails || undefined,
-      examinerName: newRecord.examinerName || undefined,
-      examinerNotes: newRecord.examinerNotes || undefined,
-    });
-  }, [newRecord, createMutation]);
+  const handleDelete = useCallback((record: HealthRecord) => {
+    setSelectedRecord(record);
+    setShowDeleteConfirm(true);
+  }, []);
 
-  const examinationTypeOptions = Object.entries(EXAMINATION_TYPE_CONFIG).map(([value, config]) => ({
-    value,
-    label: config.label,
-  }));
-
-  const fitnessStatusOptions = Object.entries(FITNESS_STATUS_CONFIG).map(([value, config]) => ({
-    value,
-    label: config.label,
-  }));
+  const confirmDelete = useCallback(() => {
+    if (selectedRecord) {
+      deleteMutation.mutate(selectedRecord.id);
+    }
+  }, [selectedRecord, deleteMutation]);
 
   const renderExamTypeCell = (cellData: { value: ExaminationType }) => {
     const config = EXAMINATION_TYPE_CONFIG[cellData.value];
@@ -261,8 +171,45 @@ export default function HealthRecordsPage() {
     );
   };
 
+  const renderActionsCell = (cellData: { data: HealthRecord }) => {
+    return (
+      <div className="flex items-center gap-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/hr/health-records/${cellData.data.id}`);
+          }}
+          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          title="ดูรายละเอียด"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/hr/health-records/${cellData.data.id}`);
+          }}
+          className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+          title="แก้ไข"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete(cellData.data);
+          }}
+          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+          title="ลบ"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 p-1" data-testid="hr-health-records-page">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
         title="บันทึกสุขภาพพนักงาน"
@@ -275,17 +222,51 @@ export default function HealthRecordsPage() {
           { label: 'บันทึกสุขภาพ' },
         ]}
         actions={
-          <DxButton
+          <Button
             text="บันทึกผลตรวจ"
             icon="plus"
-            type="default"
-            onClick={() => setShowCreatePopup(true)}
+            type="success"
+            onClick={() => router.push('/hr/health-records/new')}
+            elementAttr={{ 'data-testid': 'hr-add-health-record-btn' }}
           />
         }
       />
 
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && selectedRecord && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="text-sm text-red-600">
+                  คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกสุขภาพของ &quot;{(selectedRecord as HealthRecordWithDetails).employeeName || 'พนักงาน'}&quot;? การดำเนินการนี้ไม่สามารถยกเลิกได้
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  text="ยกเลิก"
+                  stylingMode="outlined"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setSelectedRecord(null);
+                  }}
+                />
+                <Button
+                  text={deleteMutation.isPending ? 'กำลังลบ...' : 'ลบ'}
+                  icon={deleteMutation.isPending ? 'spindown' : 'trash'}
+                  type="danger"
+                  onClick={confirmDelete}
+                  disabled={deleteMutation.isPending}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats using StatCard */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="hr-health-stats">
         <StatCard
           label="รายการทั้งหมด"
           value={healthRecords.length}
@@ -352,27 +333,29 @@ export default function HealthRecordsPage() {
 
       {/* Health Records Grid */}
       {activeTab === 'records' && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <DataGrid
-            dataSource={healthRecords}
-            showBorders={false}
-            showRowLines
-            rowAlternationEnabled
-            columnAutoWidth
-            columnHidingEnabled
-            wordWrapEnabled
-            height={gridHeight}
-            hoverStateEnabled
-          >
+        <Card data-testid="hr-health-records-grid">
+          <CardContent className="p-0">
+            <DataGrid
+              dataSource={healthRecords}
+              showBorders={false}
+              showRowLines
+              rowAlternationEnabled
+              columnAutoWidth
+              hoverStateEnabled
+              onRowClick={handleRowClick}
+              className="min-h-[400px]"
+            >
             <SearchPanel visible placeholder="ค้นหา..." width={200} />
             <HeaderFilter visible />
             <FilterRow visible />
             <Scrolling mode="virtual" />
+            <Selection mode="none" />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector
               allowedPageSizes={[10, 20, 50]}
               showInfo
+              showNavigationButtons
             />
 
             <Column
@@ -425,24 +408,32 @@ export default function HealthRecordsPage() {
               width={130}
               hidingPriority={6}
             />
-          </DataGrid>
-        </div>
+            <Column
+              caption="การดำเนินการ"
+              width={120}
+              cellRender={renderActionsCell}
+              allowFiltering={false}
+              allowSorting={false}
+              alignment="center"
+            />
+            </DataGrid>
+          </CardContent>
+        </Card>
       )}
 
       {/* Upcoming Health Checks Grid */}
       {activeTab === 'due' && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <DataGrid
-            dataSource={healthChecksDue}
-            showBorders={false}
-            showRowLines
-            rowAlternationEnabled
-            columnAutoWidth
-            columnHidingEnabled
-            wordWrapEnabled
-            height={gridHeight}
-            hoverStateEnabled
-          >
+        <Card>
+          <CardContent className="p-0">
+            <DataGrid
+              dataSource={healthChecksDue}
+              showBorders={false}
+              showRowLines
+              rowAlternationEnabled
+              columnAutoWidth
+              hoverStateEnabled
+              className="min-h-[400px]"
+            >
             <SearchPanel visible placeholder="ค้นหา..." width={200} />
             <Paging defaultPageSize={20} />
             <Pager
@@ -495,24 +486,24 @@ export default function HealthRecordsPage() {
               cellRender={renderFitnessStatusCell}
               hidingPriority={5}
             />
-          </DataGrid>
-        </div>
+            </DataGrid>
+          </CardContent>
+        </Card>
       )}
 
       {/* Overdue Health Checks Grid */}
       {activeTab === 'overdue' && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <DataGrid
-            dataSource={overdueChecks}
-            showBorders={false}
-            showRowLines
-            rowAlternationEnabled
-            columnAutoWidth
-            columnHidingEnabled
-            wordWrapEnabled
-            height={gridHeight}
-            hoverStateEnabled
-          >
+        <Card>
+          <CardContent className="p-0">
+            <DataGrid
+              dataSource={overdueChecks}
+              showBorders={false}
+              showRowLines
+              rowAlternationEnabled
+              columnAutoWidth
+              hoverStateEnabled
+              className="min-h-[400px]"
+            >
             <SearchPanel visible placeholder="ค้นหา..." width={200} />
             <Paging defaultPageSize={20} />
             <Pager
@@ -565,200 +556,10 @@ export default function HealthRecordsPage() {
               cellRender={renderFitnessStatusCell}
               hidingPriority={5}
             />
-          </DataGrid>
-        </div>
+            </DataGrid>
+          </CardContent>
+        </Card>
       )}
-
-      {/* Create Health Record Popup */}
-      <Popup
-        visible={showCreatePopup}
-        onHiding={() => {
-          setShowCreatePopup(false);
-          resetNewRecord();
-        }}
-        title="บันทึกผลตรวจสุขภาพ"
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        <div className="space-y-4 p-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                พนักงาน <span className="text-red-500">*</span>
-              </label>
-              <SelectBox
-                dataSource={employees}
-                displayExpr="fullName"
-                valueExpr="id"
-                value={newRecord.employeeId}
-                onValueChanged={(e) =>
-                  setNewRecord((prev) => ({ ...prev, employeeId: e.value }))
-                }
-                searchEnabled
-                placeholder="เลือกพนักงาน..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ประเภทการตรวจ <span className="text-red-500">*</span>
-              </label>
-              <SelectBox
-                dataSource={examinationTypeOptions}
-                displayExpr="label"
-                valueExpr="value"
-                value={newRecord.examinationType}
-                onValueChanged={(e) =>
-                  setNewRecord((prev) => ({ ...prev, examinationType: e.value }))
-                }
-                placeholder="เลือกประเภท..."
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <DxDateBox
-              label="วันที่ตรวจ"
-              value={newRecord.examinationDate}
-              onValueChange={(value) =>
-                setNewRecord((prev) => ({
-                  ...prev,
-                  examinationDate: value,
-                }))
-              }
-              required
-              requiredMessage="กรุณาระบุวันที่ตรวจ"
-            />
-            <DxDateBox
-              label="ครบกำหนดตรวจครั้งถัดไป"
-              value={newRecord.nextExamDue || ''}
-              onValueChange={(value) =>
-                setNewRecord((prev) => ({
-                  ...prev,
-                  nextExamDue: value || undefined,
-                }))
-              }
-              showClearButton
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              สถานะความพร้อม <span className="text-red-500">*</span>
-            </label>
-            <SelectBox
-              dataSource={fitnessStatusOptions}
-              displayExpr="label"
-              valueExpr="value"
-              value={newRecord.fitnessStatus}
-              onValueChanged={(e) =>
-                setNewRecord((prev) => ({ ...prev, fitnessStatus: e.value }))
-              }
-              placeholder="เลือกสถานะ..."
-            />
-          </div>
-
-          {newRecord.fitnessStatus === 'restricted' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ข้อจำกัดการปฏิบัติงาน
-                </label>
-                <TextArea
-                  value={newRecord.restrictions}
-                  onValueChanged={(e) =>
-                    setNewRecord((prev) => ({ ...prev, restrictions: e.value || '' }))
-                  }
-                  placeholder="ระบุข้อจำกัด..."
-                  height={80}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  พื้นที่ที่ได้รับผลกระทบ
-                </label>
-                <TagBox
-                  items={AFFECTED_AREAS_OPTIONS}
-                  value={newRecord.affectedAreas}
-                  onValueChanged={(e) =>
-                    setNewRecord((prev) => ({ ...prev, affectedAreas: e.value || [] }))
-                  }
-                  showSelectionControls
-                  placeholder="เลือกพื้นที่..."
-                />
-              </div>
-            </>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              ชื่อผู้ตรวจ
-            </label>
-            <TextBox
-              value={newRecord.examinerName}
-              onValueChanged={(e) =>
-                setNewRecord((prev) => ({ ...prev, examinerName: e.value || '' }))
-              }
-              placeholder="ระบุชื่อแพทย์/พยาบาล..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              รายละเอียดทางการแพทย์ (เฉพาะเจ้าหน้าที่สุขภาพ)
-            </label>
-            <TextArea
-              value={newRecord.medicalDetails}
-              onValueChanged={(e) =>
-                setNewRecord((prev) => ({ ...prev, medicalDetails: e.value || '' }))
-              }
-              placeholder="ระบุรายละเอียด..."
-              height={80}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              หมายเหตุผู้ตรวจ (เฉพาะเจ้าหน้าที่สุขภาพ)
-            </label>
-            <TextArea
-              value={newRecord.examinerNotes}
-              onValueChanged={(e) =>
-                setNewRecord((prev) => ({ ...prev, examinerNotes: e.value || '' }))
-              }
-              placeholder="ระบุหมายเหตุ..."
-              height={80}
-            />
-          </div>
-        </div>
-
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            onClick: () => {
-              setShowCreatePopup(false);
-              resetNewRecord();
-            },
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'บันทึก',
-            type: 'default',
-            disabled:
-              !newRecord.employeeId ||
-              !newRecord.examinationType ||
-              !newRecord.fitnessStatus ||
-              createMutation.isPending,
-            onClick: handleCreateRecord,
-          }}
-        />
-      </Popup>
     </div>
   );
 }

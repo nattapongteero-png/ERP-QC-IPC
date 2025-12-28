@@ -294,7 +294,7 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
         visible={showCreatePopup}
         onHiding={() => setShowCreatePopup(false)}
         dragEnabled={false}
-        closeOnOutsideClick={false}
+        hideOnOutsideClick={false}
         showTitle={true}
         title="Create API Key"
         width={500}
@@ -362,7 +362,7 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
           setNewApiKey(null);
         }}
         dragEnabled={false}
-        closeOnOutsideClick={false}
+        hideOnOutsideClick={false}
         showTitle={true}
         title="API Key Created"
         width={600}

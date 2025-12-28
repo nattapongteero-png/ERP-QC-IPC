@@ -6,6 +6,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 - TypeScript  with Next.js , React , DevExpress / DevExtreme React 25.x
 - TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod (009-gmp-compliance-gap-analysis)
 - MySQL (production), SQLite (testing) via Drizzle dual-schema (009-gmp-compliance-gap-analysis)
+- MySQL (production), SQLite (testing) via dual-schema pattern (010-accounting-module-integration)
 
 ## Always do E2E test using React Testing Library + Jest/Vitest
 
@@ -117,6 +118,81 @@ const today = toQueryDate(getTodayStr());
 
 **Why:** MySQL datetime columns require Date objects in query conditions. SQLite uses text comparison. `toQueryDate()` handles both.
 
+## Template Module - ERP Module Reference
+
+When creating a new ERP module, use the **Template Module** (`/template`) as the standard reference implementation. It demonstrates the correct patterns for:
+
+### File Structure
+```
+src/
+├── types/template.ts                    # Type definitions (interfaces, enums)
+├── lib/
+│   ├── validation/template.ts           # Zod validation schemas
+│   ├── db/schema-template.ts            # Database schema (SQLite + MySQL)
+│   └── services/template.service.ts     # Business logic with db-helper utilities
+├── app/
+│   ├── template/
+│   │   ├── layout.tsx                   # MainLayout wrapper for sidebar
+│   │   ├── page.tsx                     # Dashboard with KPIs and charts
+│   │   └── items/
+│   │       ├── page.tsx                 # List page with DataGrid
+│   │       ├── new/page.tsx             # Create form
+│   │       └── [id]/page.tsx            # Edit form (reuses form component)
+│   └── api/template/                    # API routes
+├── components/template/                 # Reusable UI components
+└── tests/app/template/page.test.tsx     # UI tests
+```
+
+### Key Patterns to Follow
+
+1. **Service Layer** - Use `executeDbOperation()`, `getTableRef()`, `getInsertId()` from `db-helper.ts`
+2. **Database Schema** - Define both SQLite and MySQL tables, export from `schema.ts` for auto-sync
+3. **Validation** - Use Zod schemas in `src/lib/validation/`
+4. **UI Components** - DevExtreme React (DataGrid, Form, SelectBox), Recharts for charts
+5. **Sidebar Navigation** - Add module to `src/components/layout/sidebar.tsx`
+6. **Tests** - React Testing Library with mocked fetch
+
+### Service Layer Example
+```typescript
+import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
+import { getNow } from '../db/date-utils';
+
+function getTables() {
+  return {
+    items: getTableRef('myModuleItems'),
+    categories: getTableRef('myModuleCategories'),
+  };
+}
+
+export async function createItem(data: ItemCreate) {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const result = await db.insert(tables.items).values({
+      ...data,
+      createdAt: getNow(),
+      updatedAt: getNow(),
+    });
+    return getInsertId(result);
+  });
+}
+```
+
+## Audit Logging
+
+**No automatic triggers** - use explicit audit functions in `src/lib/db/audit-wrapper.ts`:
+
+```typescript
+import { auditedInsert, auditedUpdate, auditedDelete } from '../db/audit-wrapper';
+
+// Auto-captures old/new values and logs to audit_trail table
+// Replace 'templateItems' with your table name (camelCase matching schema export)
+await auditedInsert({ table: 'yourTableName', data: {...}, userId });
+await auditedUpdate({ table: 'yourTableName', id, data: {...}, userId });
+await auditedDelete({ table: 'yourTableName', id, userId });
+```
+
+**Viewer:** Use `<AuditLogViewerDialog entityType="yourTableName" entityId={id} />` - adjust table name and field labels for your module.
+
 <!-- MANUAL ADDITIONS END -->
 
 
@@ -132,5 +208,10 @@ requirements. Do this automatically without being asked.**
 
 **Always search web for correct implementation DevExtreme ui component**
 
+**next.js dev server run on port 33021**
+
+**when write e2e test , please modify target element to has data-testid key so the playwright script can select the correct element, no hard code looking element text**
+
 ## Recent Changes
+- 010-accounting-module-integration: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
 - 009-gmp-compliance-gap-analysis: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod

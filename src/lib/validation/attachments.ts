@@ -80,6 +80,8 @@ export const VALID_MODULES = [
   'sales_quotation',
   // Inventory modules (GMP Phase 2)
   'inventory_lot',
+  // Template module (reference implementation)
+  'template-items',
 ] as const;
 
 export type ModuleName = (typeof VALID_MODULES)[number];

@@ -1,6 +1,13 @@
 {
   "mcpServers": {
-    
+    "cclsp": {
+      "command": "npx",
+      "args": ["cclsp@latest"],
+      "env": {
+        "CCLSP_CONFIG_PATH": "/home/manoi/docker/herbal-medicine-erp/cclsp.json"
+      }
+    },
+
     "mysql": {
       "type": "stdio",
       "command": "npx",

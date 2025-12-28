@@ -6,6 +6,8 @@ import type { TagBoxTypes } from 'devextreme-react/tag-box';
 export interface DxTagBoxProps {
   /** Data source for items */
   dataSource?: unknown[];
+  /** Items (alias for dataSource) */
+  items?: unknown[];
   /** Display expression */
   displayExpr?: string | ((item: unknown) => string);
   /** Value expression */
@@ -71,6 +73,7 @@ export interface DxTagBoxProps {
  */
 export function DxTagBox({
   dataSource,
+  items,
   displayExpr,
   valueExpr,
   value,
@@ -96,7 +99,7 @@ export function DxTagBox({
 }: DxTagBoxProps) {
   return (
     <TagBox
-      dataSource={dataSource}
+      dataSource={dataSource || items}
       displayExpr={displayExpr}
       valueExpr={valueExpr}
       value={value}

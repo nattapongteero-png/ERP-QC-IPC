@@ -67,17 +67,22 @@ export function successResponse<T>(data: T, message?: string): NextResponse<ApiR
 export function errorResponse(
   error: string,
   status: number = 400,
-  debugError?: unknown,
+  additionalData?: Record<string, unknown>,
   context?: string
 ): NextResponse<ApiResponse> {
   const response: ApiResponse = {
     success: false,
     error,
+    ...additionalData, // Spread additional data fields (e.g., { errors: [...] })
   };
 
-  // Include debug information in development mode if error object is provided
-  if (isDevelopment() && debugError) {
-    response.debug = extractErrorDetails(debugError, context);
+  // Include context in development mode if provided
+  if (isDevelopment() && context) {
+    response.debug = {
+      message: error,
+      path: context,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   return NextResponse.json(response, { status });
