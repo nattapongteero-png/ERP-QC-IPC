@@ -55,6 +55,8 @@ vi.mock('@/lib/db/index', () => ({
   isSqlite: vi.fn(() => true),
 }));
 
+let mockRecords: Record<string, unknown>[] = [{ id: 1, name: 'Test', status: 'active' }];
+
 vi.mock('@/lib/db/db-helper', () => ({
   getTableRef: vi.fn((table: string) => ({
     id: { name: 'id' },
@@ -63,15 +65,24 @@ vi.mock('@/lib/db/db-helper', () => ({
   getInsertId: vi.fn((result: any) => result.lastInsertRowid || 1),
   executeDbOperation: vi.fn(async (operation: any) => {
     const mockDb = {
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockResolvedValue({ lastInsertRowid: 1 }),
-      update: vi.fn().mockReturnThis(),
-      set: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue(undefined),
-      delete: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue([{ id: 1, name: 'Test', status: 'active' }]),
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockResolvedValue({ lastInsertRowid: 1 }),
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+      delete: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockImplementation(() => Promise.resolve(mockRecords)),
+          }),
+        }),
+      }),
     };
     return operation(mockDb);
   }),
@@ -101,7 +112,7 @@ import { executeDbOperation } from '@/lib/db/db-helper';
 describe('Audit Wrapper', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset mock db to default state
+    mockRecords = [{ id: 1, name: 'Test', status: 'active' }];
     mockDbInstance = createMockDb();
   });
 
@@ -182,8 +193,7 @@ describe('Audit Wrapper', () => {
 
   describe('auditedUpdate', () => {
     it('fetches old value and creates audit log', async () => {
-      // Set up mock db with existing record
-      mockDbInstance = createMockDb([{ id: 1, name: 'Old Name', status: 'draft' }]);
+      mockRecords = [{ id: 1, name: 'Old Name', status: 'draft' }];
 
       await auditedUpdate({
         table: 'templateItems',
@@ -203,8 +213,7 @@ describe('Audit Wrapper', () => {
     });
 
     it('throws error if record not found', async () => {
-      // Set up mock db with no records
-      mockDbInstance = createMockDb([]);
+      mockRecords = [];
 
       await expect(
         auditedUpdate({
@@ -218,8 +227,7 @@ describe('Audit Wrapper', () => {
 
   describe('auditedDelete', () => {
     it('fetches record before deletion and logs it', async () => {
-      // Ensure record exists
-      mockDbInstance = createMockDb([{ id: 1, name: 'Test Item', status: 'active' }]);
+      mockRecords = [{ id: 1, name: 'Test Item', status: 'active' }];
 
       await auditedDelete({
         table: 'templateItems',
@@ -239,8 +247,7 @@ describe('Audit Wrapper', () => {
     });
 
     it('supports soft delete', async () => {
-      // Set up mock db with existing record
-      mockDbInstance = createMockDb([{ id: 1, name: 'Test', isActive: true }]);
+      mockRecords = [{ id: 1, name: 'Test', isActive: true }];
 
       await auditedDelete({
         table: 'templateItems',
@@ -259,8 +266,7 @@ describe('Audit Wrapper', () => {
 
   describe('withAuditLog', () => {
     it('executes operation and logs with custom action', async () => {
-      // Ensure record exists for auto-fetch
-      mockDbInstance = createMockDb([{ id: 1, name: 'Test', status: 'pending' }]);
+      mockRecords = [{ id: 1, name: 'Test', status: 'pending' }];
 
       const result = await withAuditLog({
         action: 'APPROVE',
@@ -283,8 +289,7 @@ describe('Audit Wrapper', () => {
     });
 
     it('auto-fetches old value for non-CREATE actions', async () => {
-      // Set up mock db with record to be fetched
-      mockDbInstance = createMockDb([{ id: 1, name: 'Test', status: 'draft' }]);
+      mockRecords = [{ id: 1, name: 'Test', status: 'draft' }];
 
       await withAuditLog({
         action: 'REJECT',

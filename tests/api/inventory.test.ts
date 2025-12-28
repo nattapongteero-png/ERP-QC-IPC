@@ -3,86 +3,25 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from '../../src/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { generateCreateTableSql } from '../helpers/schema-sync';
 
 describe('Inventory API', () => {
   let sqliteDb: ReturnType<typeof Database>;
   let db: ReturnType<typeof drizzle>;
 
   beforeAll(() => {
-    // Create in-memory SQLite database
     sqliteDb = new Database(':memory:');
     db = drizzle(sqliteDb, { schema });
 
-    // Create tables
-    sqliteDb.exec(`
-      CREATE TABLE IF NOT EXISTS items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT NOT NULL UNIQUE,
-        name_th TEXT NOT NULL,
-        name_en TEXT,
-        type TEXT NOT NULL,
-        category TEXT,
-        primary_unit TEXT NOT NULL,
-        secondary_unit TEXT,
-        conversion_rate REAL DEFAULT 1,
-        shelf_life_days INTEGER,
-        storage_condition TEXT,
-        min_stock REAL DEFAULT 0,
-        max_stock REAL,
-        reorder_point REAL DEFAULT 0,
-        on_hand REAL NOT NULL DEFAULT 0,
-        on_hand_cost REAL NOT NULL DEFAULT 0,
-        is_lot_controlled INTEGER DEFAULT 1,
-        is_fefo INTEGER DEFAULT 1,
-        is_active INTEGER DEFAULT 1,
-        tpp_code TEXT,
-        tpp_name TEXT,
-        ttmt_code TEXT,
-        ttmt_name TEXT,
-        vmi_sync_enabled INTEGER DEFAULT 0,
-        last_vmi_sync_at TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS warehouses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT NOT NULL UNIQUE,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL,
-        location TEXT,
-        temperature_min REAL,
-        temperature_max REAL,
-        humidity_min REAL,
-        humidity_max REAL,
-        is_active INTEGER DEFAULT 1,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS inventory_lots (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL,
-        lot_number TEXT NOT NULL,
-        batch_number TEXT,
-        warehouse_id INTEGER NOT NULL,
-        location_id INTEGER,
-        quantity REAL NOT NULL DEFAULT 0,
-        reserved_quantity REAL NOT NULL DEFAULT 0,
-        unit TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'quarantine',
-        manufacturing_date TEXT,
-        expiry_date TEXT,
-        received_date TEXT,
-        vendor_id INTEGER,
-        po_number TEXT,
-        coa_number TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (item_id) REFERENCES items(id),
-        FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
-      );
-    `);
+    // Create tables using schema sync (ensures test schema matches production)
+    const tables = [
+      schema.sqliteItems,
+      schema.sqliteWarehouses,
+      schema.sqliteInventoryLots,
+    ];
+    for (const table of tables) {
+      sqliteDb.exec(generateCreateTableSql(table));
+    }
   });
 
   afterAll(() => {
