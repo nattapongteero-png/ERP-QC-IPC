@@ -55,6 +55,7 @@ import {
   DollarSign,
   LayoutGrid,
   CheckCircle,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -165,6 +166,8 @@ const navigation: NavItem[] = [
       { name: 'Credit/Debit Notes', href: '/accounting/credit-debit-notes', icon: FileText },
       { name: '3-Way Matching', href: '/accounting/matching', icon: ClipboardCheck },
       { name: 'Approvals', href: '/accounting/approvals', icon: CheckCircle },
+      { name: 'Standard Costs', href: '/accounting/standard-costs', icon: Target },
+      { name: 'Variance Reports', href: '/accounting/variance-reports', icon: TrendingUp },
       { name: 'Reports', href: '/accounting/reports', icon: BarChart3 },
     ],
   },
