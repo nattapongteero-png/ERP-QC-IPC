@@ -15,3 +15,6 @@ export type { AccountingMiniChartProps } from './accounting-mini-chart';
 
 export { JournalEntryForm } from './journal-entry-form';
 export type { JournalEntryFormProps } from './journal-entry-form';
+
+export { FixedAssetForm } from './FixedAssetForm';
+export type { FixedAssetFormProps } from './FixedAssetForm';
