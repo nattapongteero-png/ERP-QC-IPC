@@ -202,7 +202,15 @@ const navigation: NavItem[] = [
   },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
   { name: 'Users', href: '/users', icon: Users, roles: ['admin', 'manager'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin', 'manager'] },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    roles: ['admin', 'manager'],
+    children: [
+      { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
+    ],
+  },
 ];
 
 interface SidebarProps {

@@ -35,29 +35,29 @@
 
 ### Approval Workflow Engine (Foundation for US1, US3, US4)
 
-- [ ] T008 Create approval-workflow type definitions in src/types/approval-workflow.ts
-- [ ] T009 [P] Create approval-workflow Zod validation schemas in src/lib/validation/approval-workflow.ts
-- [ ] T010 Implement approval-workflow.service.ts in src/lib/services/approval-workflow.service.ts (CRUD for flows, rules, steps)
-- [ ] T011 Implement approval request submission logic in src/lib/services/approval-workflow.service.ts (submitForApproval, evaluateRules, createRequest)
-- [ ] T012 Implement approval actions in src/lib/services/approval-workflow.service.ts (approve, reject, delegate)
-- [ ] T013 [P] Create API route GET/POST /api/settings/approval-flows in src/app/api/settings/approval-flows/route.ts
-- [ ] T014 [P] Create API route GET/PUT/DELETE /api/settings/approval-flows/[id] in src/app/api/settings/approval-flows/[id]/route.ts
-- [ ] T015 [P] Create API route POST /api/settings/approval-flows/[id]/rules in src/app/api/settings/approval-flows/[id]/rules/route.ts
-- [ ] T016 [P] Create API route POST /api/settings/approval-flows/[id]/steps in src/app/api/settings/approval-flows/[id]/steps/route.ts
-- [ ] T017 [P] Create API route POST /api/approval/submit in src/app/api/approval/submit/route.ts
-- [ ] T018 [P] Create API route GET /api/approval/requests in src/app/api/approval/requests/route.ts
-- [ ] T019 [P] Create API route GET /api/approval/requests/[id] in src/app/api/approval/requests/[id]/route.ts
-- [ ] T020 [P] Create API route POST /api/approval/requests/[id]/approve in src/app/api/approval/requests/[id]/approve/route.ts
-- [ ] T021 [P] Create API route POST /api/approval/requests/[id]/reject in src/app/api/approval/requests/[id]/reject/route.ts
-- [ ] T022 [P] Create API route POST /api/approval/requests/[id]/delegate in src/app/api/approval/requests/[id]/delegate/route.ts
-- [ ] T023 [P] Create API route GET/POST /api/approval/delegations in src/app/api/approval/delegations/route.ts
-- [ ] T024 [P] Create API route GET /api/approval/dashboard in src/app/api/approval/dashboard/route.ts
-- [ ] T025 Create shared ApprovalWorkflow UI component in src/components/shared/ApprovalWorkflow.tsx
-- [ ] T026 Create ApprovalFlowForm component in src/components/settings/ApprovalFlowForm.tsx
-- [ ] T027 Create Approval Flows list page in src/app/settings/approval-workflows/page.tsx
-- [ ] T028 Create Approval Flow detail/edit page in src/app/settings/approval-workflows/[id]/page.tsx
-- [ ] T029 Add Approval Workflows to sidebar navigation in src/components/layout/sidebar.tsx
-- [ ] T030 Create unit test for approval-workflow.service.ts in tests/unit/lib/services/approval-workflow.service.test.ts
+- [X] T008 Create approval-workflow type definitions in src/types/approval-workflow.ts
+- [X] T009 [P] Create approval-workflow Zod validation schemas in src/lib/validation/approval-workflow.ts
+- [X] T010 Implement approval-workflow.service.ts in src/lib/services/approval-workflow.service.ts (CRUD for flows, rules, steps)
+- [X] T011 Implement approval request submission logic in src/lib/services/approval-workflow.service.ts (submitForApproval, evaluateRules, createRequest)
+- [X] T012 Implement approval actions in src/lib/services/approval-workflow.service.ts (approve, reject, delegate)
+- [X] T013 [P] Create API route GET/POST /api/settings/approval-flows in src/app/api/settings/approval-flows/route.ts
+- [X] T014 [P] Create API route GET/PUT/DELETE /api/settings/approval-flows/[id] in src/app/api/settings/approval-flows/[id]/route.ts
+- [X] T015 [P] Create API route POST /api/settings/approval-flows/[id]/rules in src/app/api/settings/approval-flows/[id]/rules/route.ts
+- [X] T016 [P] Create API route POST /api/settings/approval-flows/[id]/steps in src/app/api/settings/approval-flows/[id]/steps/route.ts
+- [X] T017 [P] Create API route POST /api/approval/submit in src/app/api/approval/submit/route.ts
+- [X] T018 [P] Create API route GET /api/approval/requests in src/app/api/approval/requests/route.ts
+- [X] T019 [P] Create API route GET /api/approval/requests/[id] in src/app/api/approval/requests/[id]/route.ts
+- [X] T020 [P] Create API route POST /api/approval/requests/[id]/approve in src/app/api/approval/requests/[id]/approve/route.ts
+- [X] T021 [P] Create API route POST /api/approval/requests/[id]/reject in src/app/api/approval/requests/[id]/reject/route.ts
+- [X] T022 [P] Create API route POST /api/approval/requests/[id]/delegate in src/app/api/approval/requests/[id]/delegate/route.ts
+- [X] T023 [P] Create API route GET/POST /api/approval/delegations in src/app/api/approval/delegations/route.ts
+- [X] T024 [P] Create API route GET /api/approval/dashboard in src/app/api/approval/dashboard/route.ts
+- [X] T025 Create shared ApprovalWorkflow UI component in src/components/shared/ApprovalWorkflow.tsx
+- [X] T026 Create ApprovalFlowForm component in src/components/settings/ApprovalFlowForm.tsx
+- [X] T027 Create Approval Flows list page in src/app/settings/approval-workflows/page.tsx
+- [X] T028 Create Approval Flow detail/edit page in src/app/settings/approval-workflows/[id]/page.tsx
+- [X] T029 Add Approval Workflows to sidebar navigation in src/components/layout/sidebar.tsx
+- [X] T030 Create unit test for approval-workflow.service.ts in tests/unit/lib/services/approval-workflow.service.test.ts
 
 **Checkpoint**: Approval workflow engine ready - user story implementation can now begin
 
