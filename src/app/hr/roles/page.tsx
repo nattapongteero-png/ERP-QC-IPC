@@ -248,7 +248,7 @@ export default function RolesPage() {
   }, [router, handleDelete]);
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-6 p-1" data-testid="hr-roles-page">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
         title="จัดการบทบาทและสิทธิ์"
@@ -266,12 +266,13 @@ export default function RolesPage() {
             icon="plus"
             type="success"
             onClick={() => router.push('/hr/roles/new')}
+            elementAttr={{ 'data-testid': 'hr-add-role-btn' }}
           />
         }
       />
 
       {/* Stats using StatCard */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="hr-roles-stats">
         <StatCard
           label="บทบาททั้งหมด"
           value={stats.total}
@@ -389,7 +390,7 @@ export default function RolesPage() {
       </Card>
 
       {/* Roles DataGrid */}
-      <Card>
+      <Card data-testid="hr-roles-grid">
         <CardContent className="p-0">
           <DataGrid
             dataSource={roles}

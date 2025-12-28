@@ -157,7 +157,7 @@ export default function ARAgingPage() {
   const criticalAmount = (report?.totals?.days61to90 || 0) + (report?.totals?.over90 || 0);
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-6 p-1" data-testid="ar-aging-page">
       {/* Header */}
       <AccountingPageHeader
         title="AR Aging Report"
@@ -421,7 +421,7 @@ export default function ARAgingPage() {
             </div>
           </div>
 
-          <div className="p-4">
+          <div className="p-4" data-testid="ar-aging-grid">
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-green-500 mx-auto"></div>

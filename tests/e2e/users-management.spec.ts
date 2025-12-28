@@ -147,7 +147,7 @@ test.describe('Users Module E2E Tests', () => {
 
     // Get initial row count (all tab)
     let rows = page.locator('role=grid >> role=row');
-    let initialCount = await rows.count();
+    const initialCount = await rows.count();
     console.log(`All users: ${initialCount}`);
 
     expect(initialCount).toBe(7);

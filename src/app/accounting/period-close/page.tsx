@@ -194,7 +194,7 @@ export default function PeriodClosePage() {
   const selectedPeriod = periods.find(p => p.id === selectedPeriodId);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" data-testid="period-close-page">
       <AccountingPageHeader
         title="Period Close"
         subtitle="Month-end and year-end closing procedures"
@@ -266,6 +266,7 @@ export default function PeriodClosePage() {
               hoverStateEnabled
               onRowClick={(e) => setSelectedPeriodId(e.data.id)}
               selectedRowKeys={selectedPeriodId ? [selectedPeriodId] : []}
+              elementAttr={{ 'data-testid': 'periods-grid' }}
             >
               <Selection mode="single" />
               <FilterRow visible />

@@ -112,7 +112,7 @@ export default function TrainingCoursesPage() {
   );
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto" data-testid="hr-courses-page">
       {/* T034: ResponsivePageHeader */}
       <ResponsivePageHeader
         title="หลักสูตรอบรม"
@@ -131,12 +131,13 @@ export default function TrainingCoursesPage() {
             icon="plus"
             type="default"
             onClick={() => router.push('/hr/training/courses/new')}
+            elementAttr={{ 'data-testid': 'hr-add-course-btn' }}
           />
         }
       />
 
       {/* Stats using StatCard */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-3 gap-3 md:gap-4" data-testid="hr-courses-stats">
         <StatCard
           label="หลักสูตรทั้งหมด"
           value={courseList.length}
@@ -164,7 +165,7 @@ export default function TrainingCoursesPage() {
       </div>
 
       {/* T035: DataGrid with columnHidingEnabled */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" data-testid="hr-courses-grid">
         <DataGrid
           dataSource={courseList}
           keyExpr="id"

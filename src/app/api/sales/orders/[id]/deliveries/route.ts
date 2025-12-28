@@ -43,7 +43,7 @@ export async function GET(
       });
 
       // Fetch linked journal entries for all deliveries
-      const deliveryIds = deliveriesData.map((d) => d.id);
+      const deliveryIds = deliveriesData.map((d: { id: number }) => d.id);
       const journalEntriesMap: Record<number, Array<{ id: number; entryNumber: string; sourceType: string; status: string }>> = {};
       const arInvoicesMap: Record<number, Array<{ id: number; invoiceNumber: string; taxInvoiceNumber: string; status: string; totalAmount: number }>> = {};
 
@@ -122,7 +122,7 @@ export async function GET(
       }
 
       // Attach journal entries and AR invoices to deliveries
-      const deliveries = deliveriesData.map((d) => ({
+      const deliveries = deliveriesData.map((d: typeof deliveriesData[0]) => ({
         ...d,
         journalEntries: journalEntriesMap[d.id] || [],
         arInvoices: arInvoicesMap[d.id] || [],

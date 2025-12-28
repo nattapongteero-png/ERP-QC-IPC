@@ -601,7 +601,7 @@ export default function PositionsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="hr-positions-page">
       {/* Page Header */}
       <ResponsivePageHeader
         title="ตำแหน่งงาน"
@@ -626,13 +626,14 @@ export default function PositionsPage() {
               icon="add"
               type="default"
               onClick={() => router.push('/hr/positions/new')}
+              elementAttr={{ 'data-testid': 'hr-add-position-btn' }}
             />
           </div>
         }
       />
 
       {/* KPI Dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="hr-positions-stats">
         <StatCard
           label="ตำแหน่งทั้งหมด"
           value={analytics.total}
@@ -757,7 +758,7 @@ export default function PositionsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Grid View */}
         {viewMode === 'grid' && (
-          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden" data-testid="hr-positions-grid">
             <DataGrid
               dataSource={filteredPositions}
               keyExpr="id"

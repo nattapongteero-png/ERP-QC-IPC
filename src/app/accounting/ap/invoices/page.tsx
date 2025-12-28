@@ -351,7 +351,7 @@ export default function APInvoicesPage() {
   }, [invoices]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" data-testid="ap-invoices-page">
       {/* Professional Header */}
       <AccountingPageHeader
         title="ใบแจ้งหนี้ซื้อ"
@@ -364,6 +364,7 @@ export default function APInvoicesPage() {
             icon="plus"
             type="success"
             onClick={handleOpenDialog}
+            data-testid="ap-add-invoice-btn"
           />
         }
       />
@@ -428,7 +429,7 @@ export default function APInvoicesPage() {
         </AccountingFilterPanel>
 
         {/* Data Grid */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid">
         <DataGrid
           dataSource={invoices}
           keyExpr="id"
@@ -517,7 +518,7 @@ export default function APInvoicesPage() {
           showCloseButton={true}
           dragEnabled={true}
         >
-        <div className="p-4">
+        <div className="p-4" data-testid="ap-invoice-dialog">
           <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
             <GroupItem colCount={3}>
               <SimpleItem
@@ -693,12 +694,13 @@ export default function APInvoicesPage() {
 
           {/* Dialog Actions */}
           <div className="mt-6 flex justify-end gap-2">
-            <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
+            <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} data-testid="ap-cancel-btn" />
             <Button
               text="บันทึก"
               type="success"
               onClick={handleSave}
               disabled={createMutation.isPending}
+              data-testid="ap-save-btn"
             />
           </div>
         </div>

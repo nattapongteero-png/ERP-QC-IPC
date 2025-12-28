@@ -299,7 +299,7 @@ export default function AccountingDashboardPage() {
   const hasAlerts = metrics && (metrics.overdueAP > 0 || metrics.overdueAR > 0 || metrics.upcomingMaintenance > 0);
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-6 p-1" data-testid="accounting-dashboard">
       {/* Header */}
       <AccountingPageHeader
         title="Accounting Dashboard"
@@ -367,36 +367,44 @@ export default function AccountingDashboardPage() {
           </>
         ) : (
           <>
-            <AccountingKPICard
-              label="Cash Balance"
-              value={formatCurrency(metrics?.cashBalance || 0)}
-              subtitle="Available cash"
-              icon="wallet"
-              variant="success"
-            />
-            <AccountingKPICard
-              label="Accounts Receivable"
-              value={formatCurrency(metrics?.arBalance || 0)}
-              subtitle="Due from customers"
-              icon="arrow-up"
-              variant="info"
-            />
-            <AccountingKPICard
-              label="Accounts Payable"
-              value={formatCurrency(metrics?.apBalance || 0)}
-              subtitle="Due to vendors"
-              icon="arrow-down"
-              variant="warning"
-            />
-            <AccountingKPICard
-              label="Net Income (YTD)"
-              value={formatCurrency(metrics?.netIncomeYtd || 0)}
-              subtitle="Year to date"
-              icon="activity"
-              variant={(metrics?.netIncomeYtd || 0) >= 0 ? "success" : "danger"}
-              trend={(metrics?.netIncomeYtd || 0) >= 0 ? 'up' : 'down'}
-              trendValue={(metrics?.netIncomeYtd || 0) >= 0 ? 'Profit' : 'Loss'}
-            />
+            <div data-testid="kpi-cash-balance">
+              <AccountingKPICard
+                label="Cash Balance"
+                value={formatCurrency(metrics?.cashBalance || 0)}
+                subtitle="Available cash"
+                icon="wallet"
+                variant="success"
+              />
+            </div>
+            <div data-testid="kpi-ar-balance">
+              <AccountingKPICard
+                label="Accounts Receivable"
+                value={formatCurrency(metrics?.arBalance || 0)}
+                subtitle="Due from customers"
+                icon="arrow-up"
+                variant="info"
+              />
+            </div>
+            <div data-testid="kpi-ap-balance">
+              <AccountingKPICard
+                label="Accounts Payable"
+                value={formatCurrency(metrics?.apBalance || 0)}
+                subtitle="Due to vendors"
+                icon="arrow-down"
+                variant="warning"
+              />
+            </div>
+            <div data-testid="kpi-net-income">
+              <AccountingKPICard
+                label="Net Income (YTD)"
+                value={formatCurrency(metrics?.netIncomeYtd || 0)}
+                subtitle="Year to date"
+                icon="activity"
+                variant={(metrics?.netIncomeYtd || 0) >= 0 ? "success" : "danger"}
+                trend={(metrics?.netIncomeYtd || 0) >= 0 ? 'up' : 'down'}
+                trendValue={(metrics?.netIncomeYtd || 0) >= 0 ? 'Profit' : 'Loss'}
+              />
+            </div>
           </>
         )}
       </div>
@@ -404,7 +412,7 @@ export default function AccountingDashboardPage() {
       {/* Financial Summary Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Balance Sheet Summary */}
-        <Card className="lg:col-span-1">
+        <Card className="lg:col-span-1" data-testid="chart-financial-position">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <PiggyBank className="h-5 w-5 text-blue-500" />
@@ -475,7 +483,7 @@ export default function AccountingDashboardPage() {
         </Card>
 
         {/* Cash Flow Trend */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2" data-testid="chart-cash-flow">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-emerald-500" />
@@ -569,13 +577,14 @@ export default function AccountingDashboardPage() {
       </Card>
 
       {/* Quick Access Grid */}
-      <div>
+      <div data-testid="quick-links">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Access</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
+              data-testid={`quick-link-${link.href.split('/').pop()}`}
               className="group flex flex-col p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer"
             >
               <div className={`p-2.5 rounded-lg w-fit ${link.color}`}>

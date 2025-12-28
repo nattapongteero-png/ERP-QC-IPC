@@ -5024,7 +5024,7 @@ export async function createAPInvoiceFromPOReceipt(
     apInvoiceNumber: approvedInvoice.invoiceNumber,
     journalEntryId: approvedInvoice.journalEntryId || undefined,
     journalEntryNumber: approvedInvoice.journalEntryId
-      ? (await getJournalEntry(approvedInvoice.journalEntryId)).entryNumber
+      ? (await getJournalEntryById(approvedInvoice.journalEntryId))?.entryNumber
       : undefined,
     message: `สร้างใบแจ้งหนี้ AP สำเร็จ: ${approvedInvoice.invoiceNumber}`,
   };
@@ -5152,7 +5152,7 @@ export async function createARInvoiceFromSOShipment(
     taxInvoiceNumber: confirmedInvoice.taxInvoiceNumber,
     journalEntryId: confirmedInvoice.journalEntryId || undefined,
     journalEntryNumber: confirmedInvoice.journalEntryId
-      ? (await getJournalEntry(confirmedInvoice.journalEntryId)).entryNumber
+      ? (await getJournalEntryById(confirmedInvoice.journalEntryId))?.entryNumber
       : undefined,
     message: `สร้างใบแจ้งหนี้ AR สำเร็จ: ${confirmedInvoice.invoiceNumber}`,
   };

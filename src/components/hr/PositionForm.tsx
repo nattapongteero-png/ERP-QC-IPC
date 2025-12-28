@@ -248,12 +248,13 @@ export function PositionForm({
             icon="save"
             disabled={isPending}
             onClick={handleSubmit}
+            elementAttr={{ 'data-testid': 'pos-submit-btn' }}
           />
         </div>
       </div>
 
       {/* Form */}
-      <Card>
+      <Card data-testid="pos-form-card">
         <CardHeader>
           <CardTitle>ข้อมูลตำแหน่ง</CardTitle>
         </CardHeader>
@@ -276,6 +277,7 @@ export function PositionForm({
                 editorOptions={{
                   placeholder: 'เช่น QC-001',
                   readOnly: mode === 'edit',
+                  elementAttr: { 'data-testid': 'pos-code-field' },
                 }}
               >
                 <RequiredRule message="กรุณาระบุรหัสตำแหน่ง" />
@@ -295,6 +297,7 @@ export function PositionForm({
               label={{ text: 'ชื่อตำแหน่ง (ไทย)' }}
               editorOptions={{
                 placeholder: 'ชื่อตำแหน่งภาษาไทย',
+                elementAttr: { 'data-testid': 'pos-title-field' },
               }}
             >
               <RequiredRule message="กรุณาระบุชื่อตำแหน่ง" />
@@ -305,6 +308,7 @@ export function PositionForm({
               label={{ text: 'ชื่อตำแหน่ง (อังกฤษ)' }}
               editorOptions={{
                 placeholder: 'Position title in English',
+                elementAttr: { 'data-testid': 'pos-title-en-field' },
               }}
             />
 
@@ -312,12 +316,14 @@ export function PositionForm({
               dataField="orgUnitId"
               label={{ text: 'หน่วยงาน' }}
               render={() => (
-                <OrgUnitPicker
-                  value={formData.orgUnitId}
-                  onValueChange={(val) => setFormData(prev => ({ ...prev, orgUnitId: val }))}
-                  placeholder="เลือกหน่วยงาน"
-                  showClearButton
-                />
+                <div data-testid="pos-orgunit-field">
+                  <OrgUnitPicker
+                    value={formData.orgUnitId}
+                    onValueChange={(val) => setFormData(prev => ({ ...prev, orgUnitId: val }))}
+                    placeholder="เลือกหน่วยงาน"
+                    showClearButton
+                  />
+                </div>
               )}
             />
 

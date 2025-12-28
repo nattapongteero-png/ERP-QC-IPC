@@ -17,8 +17,10 @@ const mockWHTReport: WHTCertificateSummary = {
   totalNetAmount: 97000,
   entries: [
     {
+      id: 1,
       certificateNumber: 'WHT-2024-001',
-      paymentDate: new Date('2024-12-15'),
+      certificateType: 'pnd53',
+      paymentDate: '2024-12-15',
       vendorName: 'ABC Company Ltd.',
       vendorTaxId: '0123456789012',
       whtType: '1',
@@ -29,8 +31,10 @@ const mockWHTReport: WHTCertificateSummary = {
       netAmount: 48500,
     },
     {
+      id: 2,
       certificateNumber: 'WHT-2024-002',
-      paymentDate: new Date('2024-12-20'),
+      certificateType: 'pnd53',
+      paymentDate: '2024-12-20',
       vendorName: 'XYZ Corporation',
       vendorTaxId: '9876543210987',
       whtType: '2',
@@ -41,8 +45,10 @@ const mockWHTReport: WHTCertificateSummary = {
       netAmount: 28500,
     },
     {
+      id: 3,
       certificateNumber: 'WHT-2024-003',
-      paymentDate: new Date('2024-12-25'),
+      certificateType: 'pnd53',
+      paymentDate: '2024-12-25',
       vendorName: 'DEF Limited',
       vendorTaxId: '1234567890123',
       whtType: '1',

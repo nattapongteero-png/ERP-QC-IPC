@@ -478,7 +478,7 @@ export default function ARInvoicesPage() {
   }, [invoices]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" data-testid="ar-invoices-page">
       {/* Professional Header */}
       <AccountingPageHeader
         title="ใบแจ้งหนี้ขาย"
@@ -491,6 +491,7 @@ export default function ARInvoicesPage() {
             icon="plus"
             type="success"
             onClick={handleOpenDialog}
+            data-testid="ar-add-invoice-btn"
           />
         }
       />
@@ -555,7 +556,7 @@ export default function ARInvoicesPage() {
         </AccountingFilterPanel>
 
         {/* Data Grid */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ar-invoices-grid">
         <DataGrid
           dataSource={invoices}
           keyExpr="id"
@@ -645,7 +646,7 @@ export default function ARInvoicesPage() {
           showCloseButton={true}
           dragEnabled={true}
         >
-          <div className="p-4">
+          <div className="p-4" data-testid="ar-invoice-dialog">
             <Form formData={formData} labelLocation="top" showColonAfterLabel={true}>
             <GroupItem colCount={3}>
               <SimpleItem
@@ -813,12 +814,13 @@ export default function ARInvoicesPage() {
 
             {/* Dialog Actions */}
             <div className="mt-6 flex justify-end gap-2">
-              <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
+              <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} data-testid="ar-cancel-btn" />
               <Button
                 text="บันทึก"
                 type="success"
                 onClick={handleSave}
                 disabled={createMutation.isPending}
+                data-testid="ar-save-btn"
               />
             </div>
           </div>

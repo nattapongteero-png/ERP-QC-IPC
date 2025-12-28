@@ -70,7 +70,7 @@ export default function VATReportPage() {
   }, [report, taxPeriod]);
 
   return (
-    <div className="flex flex-col gap-6 pb-8">
+    <div className="flex flex-col gap-6 pb-8" data-testid="vat-report-page">
       {/* Professional Page Header */}
       <AccountingPageHeader
         title="รายงานภาษีมูลค่าเพิ่ม"
@@ -176,7 +176,7 @@ export default function VATReportPage() {
       )}
 
       {report && (
-        <div className="space-y-6">
+        <div className="space-y-6" data-testid="vat-report-content">
           {/* Output VAT Section */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">

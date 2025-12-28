@@ -208,7 +208,7 @@ export default function ARDashboardPage() {
   const hasOverdue = metrics && metrics.overdueAmount > 0;
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-6 p-1" data-testid="ar-dashboard">
       {/* Header */}
       <AccountingPageHeader
         title="Accounts Receivable Dashboard"
@@ -243,7 +243,7 @@ export default function ARDashboardPage() {
         )}
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="ar-stats">
           {isLoading ? (
             <>
               <AccountingKPICardSkeleton />

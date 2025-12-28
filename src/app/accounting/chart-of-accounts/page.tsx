@@ -333,7 +333,7 @@ export default function ChartOfAccountsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" data-testid="coa-page">
       <AccountingPageHeader
         title="ผังบัญชี"
         subtitle="Chart of Accounts"
@@ -352,7 +352,7 @@ export default function ChartOfAccountsPage() {
 
       <div className="p-4 md:p-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="coa-stats">
           <AccountingKPICard
             label="บัญชีทั้งหมด"
             value={stats.total}
@@ -392,12 +392,13 @@ export default function ChartOfAccountsPage() {
               type="default"
               stylingMode="contained"
               onClick={() => handleOpenAddDialog()}
+              data-testid="coa-add-btn"
             />
           </div>
         </AccountingFilterPanel>
 
         {/* TreeList */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200" data-testid="coa-treelist">
           <TreeList
             dataSource={treeData}
             keyExpr="id"
@@ -457,7 +458,7 @@ export default function ChartOfAccountsPage() {
           showCloseButton={true}
           dragEnabled={true}
         >
-          <div className="p-4">
+          <div className="p-4" data-testid="coa-form-dialog">
             <Form
               ref={formRef}
               formData={formData}
@@ -602,6 +603,7 @@ export default function ChartOfAccountsPage() {
                 text="ยกเลิก"
                 onClick={handleCloseDialog}
                 stylingMode="outlined"
+                data-testid="coa-cancel-btn"
               />
               <Button
                 text={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
@@ -609,6 +611,7 @@ export default function ChartOfAccountsPage() {
                 stylingMode="contained"
                 onClick={handleSave}
                 disabled={isSaving}
+                data-testid="coa-save-btn"
               />
             </div>
           </div>

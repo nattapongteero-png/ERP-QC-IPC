@@ -296,7 +296,7 @@ describe('Year-End Closing Logic', () => {
 
   describe('Year Close Validation', () => {
     it('should require all periods to be closed', () => {
-      const periodsToClose = 3;
+      const periodsToClose: number = 3;
       const allPeriodsClosed = periodsToClose === 0;
       const errors = [];
 
@@ -429,7 +429,7 @@ describe('Opening Balances Creation', () => {
 
   describe('Year Validation for Opening Balances', () => {
     it('should require previous year to be closed', () => {
-      const previousYearStatus = 'open';
+      const previousYearStatus: string = 'open';
       const canCreateOpeningBalances = previousYearStatus === 'closed';
 
       expect(canCreateOpeningBalances).toBe(false);
@@ -455,7 +455,7 @@ describe('Reopen Period Logic', () => {
     });
 
     it('should allow reopen if year is open', () => {
-      const yearStatus = 'open';
+      const yearStatus: string = 'open';
       const canReopen = yearStatus !== 'closed';
 
       expect(canReopen).toBe(true);

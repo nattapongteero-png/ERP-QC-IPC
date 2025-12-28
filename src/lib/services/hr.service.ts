@@ -3407,6 +3407,37 @@ export async function updateHealthRecord(
 }
 
 /**
+ * Delete a health record
+ */
+export async function deleteHealthRecord(id: number): Promise<void> {
+  const tables = getHRTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = (await getDb()) as any;
+
+  const existing = await getHealthRecordById(id, true);
+  if (!existing) {
+    throw new Error('Health record not found');
+  }
+
+  await db
+    .delete(tables.healthRecords)
+    .where(eq(tables.healthRecords.id, id));
+
+  // Audit log
+  await createAuditLog({
+    action: 'DELETE',
+    tableName: 'hr_health_records',
+    recordId: id,
+    oldValue: {
+      employeeId: (existing as HealthRecord).employeeId,
+      examinationType: (existing as HealthRecord).examinationType,
+      fitnessStatus: (existing as HealthRecord).fitnessStatus,
+    },
+    newValue: undefined,
+  });
+}
+
+/**
  * Get current health status for an employee (latest record)
  */
 export async function getEmployeeHealthStatus(

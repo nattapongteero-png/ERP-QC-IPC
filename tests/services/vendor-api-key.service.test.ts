@@ -68,23 +68,21 @@ describe('VendorApiKeyService', () => {
     testItemWithBoth = itemWithBothResult[0].id;
 
     // Add items to AVL for this vendor
-    await db.insert(schema.sqliteApprovedVendorList).values([
-      {
-        vendorId: testVendorId,
-        itemId: testItemWithTpp,
-        isActive: true,
-      },
-      {
-        vendorId: testVendorId,
-        itemId: testItemWithTtmt,
-        isActive: true,
-      },
-      {
-        vendorId: testVendorId,
-        itemId: testItemWithBoth,
-        isActive: true,
-      },
-    ]);
+    await db.insert(schema.sqliteApprovedVendorList).values({
+      vendorId: testVendorId,
+      itemId: testItemWithTpp,
+      isPreferred: true,
+    });
+    await db.insert(schema.sqliteApprovedVendorList).values({
+      vendorId: testVendorId,
+      itemId: testItemWithTtmt,
+      isPreferred: false,
+    });
+    await db.insert(schema.sqliteApprovedVendorList).values({
+      vendorId: testVendorId,
+      itemId: testItemWithBoth,
+      isPreferred: false,
+    });
   });
 
   afterAll(async () => {

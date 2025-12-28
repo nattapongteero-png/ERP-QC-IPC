@@ -170,7 +170,7 @@ export default function FixedAssetsPage() {
   };
 
   return (
-    <div className="space-y-6 p-1">
+    <div className="space-y-6 p-1" data-testid="fixed-assets-page">
       {/* Header */}
       <ResponsivePageHeader
         title="Fixed Assets"
@@ -189,6 +189,7 @@ export default function FixedAssetsPage() {
             icon="plus"
             type="success"
             onClick={() => router.push('/accounting/fixed-assets/new')}
+            data-testid="fa-add-btn"
           />
         }
       />
@@ -227,7 +228,7 @@ export default function FixedAssetsPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" data-testid="fa-stats">
         <StatCard
           label="Total Assets"
           value={summary?.totalAssets || 0}
@@ -285,7 +286,7 @@ export default function FixedAssetsPage() {
       </Card>
 
       {/* Data Grid */}
-      <Card>
+      <Card data-testid="fa-grid">
         <CardContent className="p-0">
           <DataGrid
             dataSource={assets}

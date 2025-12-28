@@ -24,7 +24,6 @@ import {
 import { createAuditLog } from '../audit';
 import { receiveMaterial } from './inventory.service';
 import { createPOReceiptJournalEntry, createAPInvoiceFromPOReceipt, THAI_VAT_RATE } from './accounting.service';
-import { getTodayStr } from '../db/date-utils';
 
 // Types
 export interface VMISnapshot {

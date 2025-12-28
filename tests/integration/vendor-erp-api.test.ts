@@ -76,25 +76,23 @@ describe('Vendor ERP API Integration', () => {
     testItemWithTtmt = itemWithTtmtResult[0].id;
 
     // Add items to AVL
-    await db.insert(schema.sqliteApprovedVendorList).values([
-      {
-        vendorId: testVendorId,
-        itemId: testItemWithTpp,
-        isActive: true,
-      },
-      {
-        vendorId: testVendorId,
-        itemId: testItemWithTtmt,
-        isActive: true,
-      },
-    ]);
+    await db.insert(schema.sqliteApprovedVendorList).values({
+      vendorId: testVendorId,
+      itemId: testItemWithTpp,
+      isPreferred: true,
+    });
+    await db.insert(schema.sqliteApprovedVendorList).values({
+      vendorId: testVendorId,
+      itemId: testItemWithTtmt,
+      isPreferred: false,
+    });
 
     // Create test warehouse
     const warehouseResult = await db.insert(schema.sqliteWarehouses).values({
       code: 'TEST-WH-001',
       name: 'Test Warehouse',
       type: 'raw_material',
-      status: 'active',
+      isActive: true,
     }).returning({ id: schema.sqliteWarehouses.id });
     testWarehouseId = warehouseResult[0].id;
 
@@ -112,22 +110,18 @@ describe('Vendor ERP API Integration', () => {
     testLotId = lotResult[0].id;
 
     // Create some inventory transactions for consumption data
-    await db.insert(schema.sqliteInventoryTransactions).values([
-      {
-        lotId: testLotId,
-        transactionType: 'issue',
-        quantity: -50,
-        unit: 'kg',
-        balanceAfter: 950,
-      },
-      {
-        lotId: testLotId,
-        transactionType: 'issue',
-        quantity: -30,
-        unit: 'kg',
-        balanceAfter: 920,
-      },
-    ]);
+    await db.insert(schema.sqliteInventoryTransactions).values({
+      lotId: testLotId,
+      transactionType: 'issue',
+      quantity: -50,
+      unit: 'kg',
+    });
+    await db.insert(schema.sqliteInventoryTransactions).values({
+      lotId: testLotId,
+      transactionType: 'issue',
+      quantity: -30,
+      unit: 'kg',
+    });
 
     // Create API key
     const keyResult = await vendorApiKeyService.createApiKey(

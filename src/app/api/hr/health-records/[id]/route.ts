@@ -12,6 +12,7 @@ import {
 import {
   getHealthRecordById,
   updateHealthRecord,
+  deleteHealthRecord,
 } from '@/lib/services/hr.service';
 import { healthRecordUpdateSchema } from '@/lib/validation/hr';
 import { hasPermission, type Role } from '@/lib/auth';
@@ -71,6 +72,29 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         );
         const record = await updateHealthRecord(Number(id), updateData);
         return successResponse(record, 'Health record updated successfully');
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === 'Health record not found') {
+            return notFoundResponse(error.message);
+          }
+        }
+        return serverErrorResponse(error);
+      }
+    },
+    ['hr:health_staff']
+  );
+}
+
+// DELETE /api/hr/health-records/[id] - Delete health record
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  return withAuth(
+    request,
+    async () => {
+      try {
+        const { id } = await params;
+
+        await deleteHealthRecord(Number(id));
+        return successResponse(null, 'Health record deleted successfully');
       } catch (error) {
         if (error instanceof Error) {
           if (error.message === 'Health record not found') {

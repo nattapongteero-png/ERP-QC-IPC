@@ -255,6 +255,7 @@ export function TrainingCourseForm({
             icon="save"
             disabled={isPending}
             onClick={handleSubmit}
+            elementAttr={{ 'data-testid': 'course-submit-btn' }}
           />
         </div>
       </div>
@@ -283,6 +284,7 @@ export function TrainingCourseForm({
                 editorOptions={{
                   placeholder: 'เช่น GMP-001',
                   readOnly: mode === 'edit',
+                  elementAttr: { 'data-testid': 'course-code-field' },
                 }}
               >
                 <RequiredRule message="กรุณาระบุรหัสหลักสูตร" />
@@ -302,6 +304,7 @@ export function TrainingCourseForm({
               label={{ text: 'ชื่อหลักสูตร (ไทย)' }}
               editorOptions={{
                 placeholder: 'ชื่อหลักสูตรภาษาไทย',
+                elementAttr: { 'data-testid': 'course-name-field' },
               }}
             >
               <RequiredRule message="กรุณาระบุชื่อหลักสูตร" />

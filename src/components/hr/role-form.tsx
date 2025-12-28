@@ -324,6 +324,7 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
               type="success"
               onClick={handleSubmit}
               disabled={!isValid || isPending || isSystemRole}
+              elementAttr={{ 'data-testid': 'role-submit-btn' }}
             />
           </div>
         </div>
@@ -385,7 +386,7 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
+                <div data-testid="role-code-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     รหัสบทบาท <span className="text-red-500">*</span>
                   </label>
@@ -400,7 +401,7 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
                   </p>
                 </div>
 
-                <div>
+                <div data-testid="role-name-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     ชื่อบทบาท <span className="text-red-500">*</span>
                   </label>
@@ -412,7 +413,7 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
                   />
                 </div>
 
-                <div>
+                <div data-testid="role-description-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     คำอธิบาย
                   </label>

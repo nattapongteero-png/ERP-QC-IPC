@@ -95,7 +95,7 @@ export default function WHTReportPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 pb-8">
+    <div className="flex flex-col gap-6 pb-8" data-testid="wht-report-page">
       {/* Professional Page Header */}
       <AccountingPageHeader
         title="หนังสือรับรองภาษีหัก ณ ที่จ่าย"
@@ -214,7 +214,7 @@ export default function WHTReportPage() {
       )}
 
       {report && (
-        <div className="space-y-6">
+        <div className="space-y-6" data-testid="wht-report-content">
           {/* Certificates Grid */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
