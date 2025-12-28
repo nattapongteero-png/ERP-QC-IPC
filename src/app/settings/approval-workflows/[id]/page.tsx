@@ -6,7 +6,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import MainLayout from '@/components/layout/MainLayout';
+import { MainLayout } from '@/components/layout/main-layout';
 import { ApprovalFlowForm } from '@/components/settings/ApprovalFlowForm';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import type { ApprovalFlowWithDetails } from '@/types/approval-workflow';

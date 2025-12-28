@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import MainLayout from '@/components/layout/MainLayout';
+import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
   Paging,

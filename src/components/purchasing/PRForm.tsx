@@ -1,0 +1,285 @@
+/**
+ * Purchase Requisition Form Component (T044)
+ * Part of 011-accounting-spec-gap
+ */
+
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from 'devextreme-react/button';
+import { TextBox } from 'devextreme-react/text-box';
+import { TextArea } from 'devextreme-react/text-area';
+import { SelectBox } from 'devextreme-react/select-box';
+import { DateBox } from 'devextreme-react/date-box';
+import { LoadIndicator } from 'devextreme-react/load-indicator';
+import { PRLineGrid } from './PRLineGrid';
+import type { PRWithLines, PRLineInput, PRPriority } from '@/types/purchase-requisition';
+
+interface PRFormProps {
+  mode: 'create' | 'edit';
+  prId?: number;
+  initialData?: PRWithLines;
+}
+
+const priorityOptions = [
+  { value: 'low', label: 'Low' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' },
+];
+
+export function PRForm({ mode, prId, initialData }: PRFormProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form state
+  const [priority, setPriority] = useState<PRPriority>(initialData?.priority || 'normal');
+  const [requiredDate, setRequiredDate] = useState<Date | null>(
+    initialData?.requiredDate ? new Date(initialData.requiredDate) : null
+  );
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [justification, setJustification] = useState(initialData?.justification || '');
+  const [lines, setLines] = useState<PRLineInput[]>(
+    initialData?.lines.map((l) => ({
+      itemId: l.itemId || undefined,
+      itemCode: l.itemCode || undefined,
+      description: l.description,
+      quantity: l.quantity,
+      unitOfMeasure: l.unitOfMeasure,
+      estimatedUnitPrice: l.estimatedUnitPrice,
+      suggestedVendorId: l.suggestedVendorId || undefined,
+      notes: l.notes || undefined,
+    })) || []
+  );
+  const [currentPrId, setCurrentPrId] = useState<number | null>(prId || null);
+  const [prNumber, setPrNumber] = useState(initialData?.prNumber || '');
+
+  // Calculate total
+  const totalAmount = lines.reduce(
+    (sum, line) => sum + (line.quantity || 0) * (line.estimatedUnitPrice || 0),
+    0
+  );
+
+  const handleSave = useCallback(async () => {
+    try {
+      setSaving(true);
+      setError(null);
+
+      if (mode === 'create' && !currentPrId) {
+        // Create PR first
+        const createResponse = await fetch('/api/purchasing/requisitions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requesterId: 1, // TODO: Get from session
+            priority,
+            requiredDate: requiredDate?.toISOString().split('T')[0],
+            description,
+            justification,
+          }),
+        });
+
+        const createResult = await createResponse.json();
+        if (!createResult.success) {
+          throw new Error(createResult.error);
+        }
+
+        setCurrentPrId(createResult.id);
+
+        // Add lines
+        if (lines.length > 0) {
+          const linesResponse = await fetch(`/api/purchasing/requisitions/${createResult.id}/lines`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lines }),
+          });
+
+          const linesResult = await linesResponse.json();
+          if (!linesResult.success) {
+            throw new Error(linesResult.error);
+          }
+        }
+
+        router.push(`/purchasing/requisitions/${createResult.id}`);
+      } else if (currentPrId) {
+        // Update PR
+        const updateResponse = await fetch(`/api/purchasing/requisitions/${currentPrId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            priority,
+            requiredDate: requiredDate?.toISOString().split('T')[0] || null,
+            description,
+            justification,
+          }),
+        });
+
+        const updateResult = await updateResponse.json();
+        if (!updateResult.success) {
+          throw new Error(updateResult.error);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to save PR');
+    } finally {
+      setSaving(false);
+    }
+  }, [mode, currentPrId, priority, requiredDate, description, justification, lines, router]);
+
+  const handleSubmitForApproval = useCallback(async () => {
+    if (!currentPrId) {
+      setError('Please save the PR first');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      const response = await fetch(`/api/purchasing/requisitions/${currentPrId}/submit`, {
+        method: 'POST',
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      router.push('/purchasing/requisitions');
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit PR');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [currentPrId, router]);
+
+  const handleLinesChange = useCallback((newLines: PRLineInput[]) => {
+    setLines(newLines);
+  }, []);
+
+  const isEditable = !initialData || initialData.status === 'draft';
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" data-testid="error-message">
+          {error}
+        </div>
+      )}
+
+      {/* Header Info */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {prNumber && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">PR Number</label>
+              <TextBox value={prNumber} readOnly={true} data-testid="pr-number" />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <SelectBox
+              dataSource={priorityOptions}
+              value={priority}
+              onValueChanged={(e) => setPriority(e.value)}
+              displayExpr="label"
+              valueExpr="value"
+              disabled={!isEditable}
+              data-testid="priority-select"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Required Date</label>
+            <DateBox
+              value={requiredDate}
+              onValueChanged={(e) => setRequiredDate(e.value)}
+              type="date"
+              disabled={!isEditable}
+              data-testid="required-date"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+            <TextBox
+              value={totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+              readOnly={true}
+              data-testid="total-amount"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <TextArea
+            value={description}
+            onValueChanged={(e) => setDescription(e.value)}
+            height={60}
+            disabled={!isEditable}
+            data-testid="description"
+          />
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Justification</label>
+          <TextArea
+            value={justification}
+            onValueChanged={(e) => setJustification(e.value)}
+            height={80}
+            disabled={!isEditable}
+            data-testid="justification"
+          />
+        </div>
+      </div>
+
+      {/* Line Items */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-lg font-medium text-gray-800 mb-4">Line Items</h3>
+        <PRLineGrid
+          lines={lines}
+          onChange={handleLinesChange}
+          prId={currentPrId || undefined}
+          editable={isEditable}
+        />
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2 justify-end">
+        <Button
+          text="Cancel"
+          type="normal"
+          onClick={() => router.push('/purchasing/requisitions')}
+          data-testid="cancel-btn"
+        />
+
+        {isEditable && (
+          <>
+            <Button
+              text={saving ? 'Saving...' : 'Save Draft'}
+              type="default"
+              stylingMode="outlined"
+              onClick={handleSave}
+              disabled={saving || submitting}
+              data-testid="save-btn"
+            />
+
+            <Button
+              text={submitting ? 'Submitting...' : 'Submit for Approval'}
+              type="success"
+              stylingMode="contained"
+              onClick={handleSubmitForApproval}
+              disabled={saving || submitting || lines.length === 0}
+              data-testid="submit-btn"
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

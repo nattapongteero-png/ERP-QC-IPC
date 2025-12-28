@@ -71,27 +71,27 @@
 
 ### Implementation for User Story 1
 
-- [ ] T031 [P] [US1] Create purchase-requisition type definitions in src/types/purchase-requisition.ts
-- [ ] T032 [P] [US1] Create purchase-requisition Zod validation schemas in src/lib/validation/purchase-requisition.ts
-- [ ] T033 [US1] Implement purchase-requisition.service.ts in src/lib/services/purchase-requisition.service.ts (CRUD, PR number generation)
-- [ ] T034 [US1] Implement PR status workflow in src/lib/services/purchase-requisition.service.ts (draft, submitted, pending_approval, approved, rejected)
-- [ ] T035 [US1] Implement PR submit for approval in src/lib/services/purchase-requisition.service.ts (integrate with approval workflow)
-- [ ] T036 [US1] Implement PR to PO conversion in src/lib/services/purchase-requisition.service.ts (convertToPO function)
-- [ ] T037 [P] [US1] Create API route GET/POST /api/purchasing/requisitions in src/app/api/purchasing/requisitions/route.ts
-- [ ] T038 [P] [US1] Create API route GET/PUT /api/purchasing/requisitions/[id] in src/app/api/purchasing/requisitions/[id]/route.ts
-- [ ] T039 [P] [US1] Create API route POST /api/purchasing/requisitions/[id]/submit in src/app/api/purchasing/requisitions/[id]/submit/route.ts
-- [ ] T040 [P] [US1] Create API route POST /api/purchasing/requisitions/[id]/approve in src/app/api/purchasing/requisitions/[id]/approve/route.ts
-- [ ] T041 [P] [US1] Create API route POST /api/purchasing/requisitions/[id]/reject in src/app/api/purchasing/requisitions/[id]/reject/route.ts
-- [ ] T042 [P] [US1] Create API route POST /api/purchasing/requisitions/[id]/convert in src/app/api/purchasing/requisitions/[id]/convert/route.ts
-- [ ] T043 [P] [US1] Create API route GET/POST /api/purchasing/requisitions/[id]/lines in src/app/api/purchasing/requisitions/[id]/lines/route.ts
-- [ ] T044 [US1] Create PRForm component in src/components/purchasing/PRForm.tsx
-- [ ] T045 [US1] Create PRLineGrid component in src/components/purchasing/PRLineGrid.tsx
-- [ ] T046 [US1] Create PR list page in src/app/purchasing/requisitions/page.tsx
-- [ ] T047 [US1] Create PR create page in src/app/purchasing/requisitions/new/page.tsx
-- [ ] T048 [US1] Create PR detail/edit page in src/app/purchasing/requisitions/[id]/page.tsx
-- [ ] T049 [US1] Add Requisitions to sidebar navigation in src/components/layout/sidebar.tsx
-- [ ] T050 [US1] Create unit test for purchase-requisition.service.ts in tests/unit/lib/services/purchase-requisition.service.test.ts
-- [ ] T051 [US1] Create UI test for PR list page in tests/app/purchasing/requisitions/page.test.tsx
+- [X] T031 [P] [US1] Create purchase-requisition type definitions in src/types/purchase-requisition.ts
+- [X] T032 [P] [US1] Create purchase-requisition Zod validation schemas in src/lib/validation/purchase-requisition.ts
+- [X] T033 [US1] Implement purchase-requisition.service.ts in src/lib/services/purchase-requisition.service.ts (CRUD, PR number generation)
+- [X] T034 [US1] Implement PR status workflow in src/lib/services/purchase-requisition.service.ts (draft, submitted, pending_approval, approved, rejected)
+- [X] T035 [US1] Implement PR submit for approval in src/lib/services/purchase-requisition.service.ts (integrate with approval workflow)
+- [X] T036 [US1] Implement PR to PO conversion in src/lib/services/purchase-requisition.service.ts (convertToPO function)
+- [X] T037 [P] [US1] Create API route GET/POST /api/purchasing/requisitions in src/app/api/purchasing/requisitions/route.ts
+- [X] T038 [P] [US1] Create API route GET/PUT /api/purchasing/requisitions/[id] in src/app/api/purchasing/requisitions/[id]/route.ts
+- [X] T039 [P] [US1] Create API route POST /api/purchasing/requisitions/[id]/submit in src/app/api/purchasing/requisitions/[id]/submit/route.ts
+- [X] T040 [P] [US1] Create API route POST /api/purchasing/requisitions/[id]/approve in src/app/api/purchasing/requisitions/[id]/approve/route.ts
+- [X] T041 [P] [US1] Create API route POST /api/purchasing/requisitions/[id]/reject in src/app/api/purchasing/requisitions/[id]/reject/route.ts
+- [X] T042 [P] [US1] Create API route POST /api/purchasing/requisitions/[id]/convert in src/app/api/purchasing/requisitions/[id]/convert/route.ts
+- [X] T043 [P] [US1] Create API route GET/POST /api/purchasing/requisitions/[id]/lines in src/app/api/purchasing/requisitions/[id]/lines/route.ts
+- [X] T044 [US1] Create PRForm component in src/components/purchasing/PRForm.tsx
+- [X] T045 [US1] Create PRLineGrid component in src/components/purchasing/PRLineGrid.tsx
+- [X] T046 [US1] Create PR list page in src/app/purchasing/requisitions/page.tsx
+- [X] T047 [US1] Create PR create page in src/app/purchasing/requisitions/new/page.tsx
+- [X] T048 [US1] Create PR detail/edit page in src/app/purchasing/requisitions/[id]/page.tsx
+- [X] T049 [US1] Add Requisitions to sidebar navigation in src/components/layout/sidebar.tsx
+- [X] T050 [US1] Create unit test for purchase-requisition.service.ts in tests/unit/lib/services/purchase-requisition.service.test.ts
+- [X] T051 [US1] Create UI test for PR list page in tests/app/purchasing/requisitions/page.test.tsx
 
 **Checkpoint**: User Story 1 complete - PRs can be created, approved, and converted to POs
 

@@ -1,26 +1,27 @@
 /**
- * New Approval Workflow Page (T027)
+ * New Purchase Requisition Page (T047)
+ * Part of 011-accounting-spec-gap
  */
 
 'use client';
 
 import { MainLayout } from '@/components/layout/main-layout';
-import { ApprovalFlowForm } from '@/components/settings/ApprovalFlowForm';
+import { PRForm } from '@/components/purchasing/PRForm';
 
-export default function NewApprovalWorkflowPage() {
+export default function NewPurchaseRequisitionPage() {
   return (
     <MainLayout>
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            New Approval Workflow
+            New Purchase Requisition
           </h1>
           <p className="text-gray-600">
-            Create a new approval workflow with rules and steps
+            Create a new purchase requisition for approval
           </p>
         </div>
 
-        <ApprovalFlowForm mode="create" />
+        <PRForm mode="create" />
       </div>
     </MainLayout>
   );

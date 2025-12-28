@@ -130,6 +130,7 @@ const navigation: NavItem[] = [
     icon: ShoppingCart,
     roles: ['admin', 'manager', 'purchasing', 'warehouse'],
     children: [
+      { name: 'Requisitions', href: '/purchasing/requisitions', icon: ClipboardList },
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
     ],
