@@ -3,20 +3,31 @@
 // Equipment & Maintenance List Page
 // Feature: 010-accounting-module-integration
 // User Story 8: Track Equipment and Maintenance Costs
+// Pattern: Aligned with Template module
 
 import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
-import DataGrid, { Column, Export, Paging, FilterRow, SearchPanel, MasterDetail } from 'devextreme-react/data-grid';
+import DataGrid, {
+  Column,
+  Export,
+  Paging,
+  Pager,
+  FilterRow,
+  HeaderFilter,
+  Sorting,
+  LoadPanel,
+  MasterDetail,
+} from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
+import { Card, CardContent } from '@/components/ui/card';
+import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import {
-  AccountingPageHeader,
-  AccountingKPICard,
-  AccountingFilterPanel,
   AccountingStatusBadge,
 } from '@/components/accounting';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { Wrench, AlertTriangle, Clock, CheckCircle, Activity, Eye, Edit, Trash2 } from 'lucide-react';
 import type { AccountingEquipment } from '@/lib/db/schema';
 
 interface EquipmentWithAsset extends AccountingEquipment {
@@ -99,6 +110,14 @@ async function fetchUpcomingMaintenance(): Promise<UpcomingMaintenance[]> {
   return data.data || [];
 }
 
+async function deleteEquipment(id: number): Promise<void> {
+  const res = await fetch(`/api/accounting/equipment/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to delete equipment');
+  }
+}
+
 function MaintenanceDetailView({ data }: { data: { data: EquipmentWithAsset } }) {
   const equipmentId = data.data.id;
 
@@ -152,7 +171,11 @@ function MaintenanceDetailView({ data }: { data: { data: EquipmentWithAsset } })
 MaintenanceDetailView.displayName = 'MaintenanceDetailView';
 
 export default function EquipmentPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('');
+  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentWithAsset | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isAvailable = availabilityFilter === 'available'
     ? true
@@ -180,6 +203,20 @@ export default function EquipmentPage() {
     queryFn: fetchUpcomingMaintenance,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteEquipment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-summary'] });
+      notify('Equipment deleted successfully', 'success', 3000);
+      setShowDeleteConfirm(false);
+      setSelectedEquipment(null);
+    },
+    onError: (error: Error) => {
+      notify(error.message, 'error', 5000);
+    },
+  });
+
   const handleExportJSON = useCallback(() => {
     if (!equipment || equipment.length === 0) return;
     const blob = new Blob([JSON.stringify(equipment, null, 2)], { type: 'application/json' });
@@ -192,141 +229,241 @@ export default function EquipmentPage() {
     notify('Equipment data exported successfully', 'success', 3000);
   }, [equipment]);
 
+  const handleRowClick = (e: { data: EquipmentWithAsset }) => {
+    router.push(`/accounting/equipment/${e.data.id}`);
+  };
+
+  const handleDelete = (equipmentItem: EquipmentWithAsset) => {
+    setSelectedEquipment(equipmentItem);
+    setShowDeleteConfirm(true);
+  };
+
+  const renderActionsCell = (cellData: { data: EquipmentWithAsset }) => {
+    return (
+      <div className="flex items-center gap-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/accounting/equipment/${cellData.data.id}`);
+          }}
+          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          title="View"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/accounting/equipment/${cellData.data.id}`);
+          }}
+          className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+          title="Edit"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete(cellData.data);
+          }}
+          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+          title="Delete"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col gap-6">
-      <AccountingPageHeader
+    <div className="space-y-6 p-1" data-testid="equipment-page">
+      {/* Header */}
+      <ResponsivePageHeader
         title="Equipment & Maintenance"
         subtitle="Track equipment, maintenance schedules, and MTBF analysis"
-        icon="wrench"
+        icon={Wrench}
+        iconBgColor="bg-blue-100"
+        iconColor="text-blue-600"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Accounting', href: '/accounting' },
+          { label: 'Equipment' },
+        ]}
+        actions={
+          <div className="flex items-center gap-2">
+            {equipment.length > 0 && (
+              <Button
+                text="Export JSON"
+                icon="export"
+                stylingMode="outlined"
+                onClick={handleExportJSON}
+              />
+            )}
+            <Button
+              text="Add Equipment"
+              icon="plus"
+              type="success"
+              onClick={() => router.push('/accounting/equipment/new')}
+              data-testid="eq-add-btn"
+            />
+          </div>
+        }
       />
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <AccountingKPICard
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && selectedEquipment && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="text-sm text-red-600">
+                  Are you sure you want to delete equipment &quot;{selectedEquipment.assetName || `ID: ${selectedEquipment.id}`}&quot;?
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  text="Cancel"
+                  stylingMode="outlined"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setSelectedEquipment(null);
+                  }}
+                />
+                <Button
+                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  icon="trash"
+                  type="danger"
+                  onClick={() => deleteMutation.mutate(selectedEquipment.id)}
+                  disabled={deleteMutation.isPending}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4" data-testid="eq-stats">
+        <StatCard
           label="Total Equipment"
-          value={summary?.totalEquipment?.toString() || '0'}
-          icon="wrench"
-          variant="info"
+          value={summary?.totalEquipment || 0}
+          icon={Wrench}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
         />
-        <AccountingKPICard
+        <StatCard
           label="Available"
-          value={summary?.availableEquipment?.toString() || '0'}
-          icon="check-circle"
-          variant="success"
+          value={summary?.availableEquipment || 0}
+          icon={CheckCircle}
+          iconColor="text-green-500"
+          accentColor="border-green-500"
         />
-        <AccountingKPICard
+        <StatCard
           label="In Use"
-          value={summary?.unavailableEquipment?.toString() || '0'}
-          icon="activity"
-          variant="warning"
+          value={summary?.unavailableEquipment || 0}
+          icon={Activity}
+          iconColor="text-yellow-500"
+          accentColor="border-yellow-500"
         />
-        <AccountingKPICard
+        <StatCard
           label="Overdue"
-          value={overdue?.count?.toString() || '0'}
-          icon="clock"
-          variant="danger"
+          value={overdue?.count || 0}
+          icon={AlertTriangle}
+          iconColor="text-red-500"
+          accentColor="border-red-500"
         />
-        <AccountingKPICard
+        <StatCard
           label="Due (7 days)"
-          value={upcoming?.length?.toString() || '0'}
-          icon="clock"
-          variant="warning"
+          value={upcoming?.length || 0}
+          icon={Clock}
+          iconColor="text-orange-500"
+          accentColor="border-orange-500"
         />
       </div>
 
       {/* Overdue Maintenance Alert */}
       {(overdue?.count || 0) > 0 && (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-3 text-red-900 mb-2">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+        <Card className="border-red-200 bg-gradient-to-r from-red-50 to-orange-50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3 text-red-900 mb-2">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <span className="font-semibold text-lg">Overdue Maintenance Alert</span>
             </div>
-            <span className="font-semibold text-lg">Overdue Maintenance Alert</span>
-          </div>
-          <p className="text-sm text-red-700 ml-11">
-            There are <span className="font-bold">{overdue?.count}</span> maintenance tasks that are overdue. Please review and schedule immediately.
-          </p>
-        </div>
+            <p className="text-sm text-red-700 ml-11">
+              There are <span className="font-bold">{overdue?.count}</span> maintenance tasks that are overdue. Please review and schedule immediately.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Filters and Actions */}
-      <AccountingFilterPanel>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Availability</label>
-          <SelectBox
-            items={availabilityOptions}
-            value={availabilityFilter}
-            onValueChanged={(e) => setAvailabilityFilter(e.value)}
-            valueExpr="value"
-            displayExpr="text"
-            width={200}
-          />
-        </div>
-        <Button
-          text="Add Equipment"
-          type="default"
-          stylingMode="contained"
-          icon="plus"
-          onClick={() => notify('Add Equipment dialog - coming soon', 'info', 3000)}
-        />
-        <Button
-          text="Maintenance Dashboard"
-          type="normal"
-          stylingMode="outlined"
-          onClick={() => notify('Maintenance Dashboard - coming soon', 'info', 3000)}
-        />
-        <Button
-          text="MTBF Analysis"
-          type="normal"
-          stylingMode="outlined"
-          onClick={() => notify('MTBF Analysis - coming soon', 'info', 3000)}
-        />
-        {equipment.length > 0 && (
-          <Button
-            text="Export JSON"
-            type="normal"
-            stylingMode="outlined"
-            onClick={handleExportJSON}
-          />
-        )}
-      </AccountingFilterPanel>
-
-      {/* Equipment Grid */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center gap-2 mb-5">
-          <div className="w-1 h-6 bg-blue-500 rounded-full" />
-          <h3 className="text-lg font-semibold text-gray-900">
-            Equipment Register
-          </h3>
-        </div>
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600" />
-            <p className="text-gray-500 mt-3">Loading equipment...</p>
+      {/* Filters */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
+              <SelectBox
+                items={availabilityOptions}
+                value={availabilityFilter}
+                onValueChanged={(e) => setAvailabilityFilter(e.value)}
+                valueExpr="value"
+                displayExpr="text"
+                width={200}
+              />
+            </div>
+            {availabilityFilter && (
+              <Button
+                text="Clear"
+                stylingMode="text"
+                onClick={() => setAvailabilityFilter('')}
+              />
+            )}
           </div>
-        ) : (
+        </CardContent>
+      </Card>
+
+      {/* Data Grid */}
+      <Card data-testid="eq-grid">
+        <CardContent className="p-0">
           <DataGrid
             dataSource={equipment}
-            showBorders
-            columnAutoWidth
-            allowColumnResizing
+            keyExpr="id"
+            showBorders={false}
+            showRowLines
             rowAlternationEnabled
             hoverStateEnabled
+            columnAutoWidth
+            allowColumnResizing
+            onRowClick={handleRowClick}
+            className="min-h-[400px]"
           >
+            <LoadPanel enabled={isLoading} />
             <FilterRow visible />
-            <SearchPanel visible width={250} />
+            <HeaderFilter visible />
+            <Sorting mode="multiple" />
             <Paging defaultPageSize={20} />
+            <Pager
+              showPageSizeSelector
+              allowedPageSizes={[10, 20, 50]}
+              showInfo
+              showNavigationButtons
+            />
+
             <Column dataField="assetCode" caption="Asset Code" width={150} />
-            <Column dataField="assetName" caption="Asset Name" />
+            <Column dataField="assetName" caption="Asset Name" minWidth={200} />
             <Column dataField="serialNumber" caption="Serial No." width={150} />
-            <Column dataField="manufacturer" caption="Manufacturer" />
-            <Column dataField="model" caption="Model" />
+            <Column dataField="manufacturer" caption="Manufacturer" width={150} />
+            <Column dataField="model" caption="Model" width={130} />
             <Column
               dataField="operatingHours"
               caption="Op. Hours"
               dataType="number"
               format="#,##0"
               width={100}
+              alignment="right"
             />
             <Column
               dataField="lastMaintenanceDate"
@@ -350,56 +487,67 @@ export default function EquipmentPage() {
                 />
               )}
             />
+            <Column
+              caption="Actions"
+              width={120}
+              cellRender={renderActionsCell}
+              allowFiltering={false}
+              allowSorting={false}
+              alignment="center"
+            />
+
             <Export enabled allowExportSelectedData />
             <MasterDetail enabled component={MaintenanceDetailView} />
           </DataGrid>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Upcoming Maintenance Section */}
       {upcoming.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-1 h-6 bg-orange-500 rounded-full" />
-            <h3 className="text-lg font-semibold text-gray-900">
-              Upcoming Maintenance (Next 7 Days)
-            </h3>
-          </div>
-          <div className="space-y-3">
-            {upcoming.slice(0, 5).map((item, index) => (
-              <div
-                key={`upcoming-${index}`}
-                className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50/30 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Clock className="h-4 w-4 text-blue-600" />
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-1 h-6 bg-orange-500 rounded-full" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Upcoming Maintenance (Next 7 Days)
+              </h3>
+            </div>
+            <div className="space-y-3">
+              {upcoming.slice(0, 5).map((item, index) => (
+                <div
+                  key={`upcoming-${index}`}
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50/30 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-900">
+                        {item.schedule.maintenanceType}
+                      </span>
+                      <span className="text-gray-600 ml-2">
+                        - {item.schedule.description}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-semibold text-gray-900">
-                      {item.schedule.maintenanceType}
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-gray-600">
+                      Due: {formatDate(item.schedule.nextDue)}
                     </span>
-                    <span className="text-gray-600 ml-2">
-                      - {item.schedule.description}
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      item.daysUntilDue <= 2
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {item.daysUntilDue === 0 ? 'Today' : `${item.daysUntilDue} days`}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-600">
-                    Due: {formatDate(item.schedule.nextDue)}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    item.daysUntilDue <= 2
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {item.daysUntilDue === 0 ? 'Today' : `${item.daysUntilDue} days`}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
