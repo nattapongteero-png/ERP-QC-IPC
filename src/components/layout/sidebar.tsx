@@ -54,6 +54,7 @@ import {
   CalendarCheck,
   DollarSign,
   LayoutGrid,
+  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -163,6 +164,7 @@ const navigation: NavItem[] = [
       { name: 'Bank Reconciliation', href: '/accounting/bank-reconciliation', icon: RefreshCw },
       { name: 'Credit/Debit Notes', href: '/accounting/credit-debit-notes', icon: FileText },
       { name: '3-Way Matching', href: '/accounting/matching', icon: ClipboardCheck },
+      { name: 'Approvals', href: '/accounting/approvals', icon: CheckCircle },
       { name: 'Reports', href: '/accounting/reports', icon: BarChart3 },
     ],
   },

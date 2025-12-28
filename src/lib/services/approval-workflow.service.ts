@@ -1298,3 +1298,305 @@ export async function getDocumentApprovalStatus(
     return getApprovalRequestById(request.id);
   });
 }
+
+// ============================================
+// Workflow Testing/Preview (T124)
+// ============================================
+
+export interface TestWorkflowInput {
+  flowId: number;
+  testContext: DocumentContext;
+}
+
+export interface TestWorkflowResult {
+  matches: boolean;
+  matchedRules: {
+    field: string;
+    operator: string;
+    expectedValue: string;
+    actualValue: string;
+    passed: boolean;
+  }[];
+  steps: {
+    stepOrder: number;
+    approverType: string;
+    approverId?: number;
+    approverName?: string;
+    canApprove: boolean;
+  }[];
+  errors: string[];
+}
+
+/**
+ * Test/Preview a workflow with sample document context (T124)
+ * Useful for validating workflow configuration before going live
+ */
+export async function testWorkflow(
+  input: TestWorkflowInput
+): Promise<TestWorkflowResult> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const errors: string[] = [];
+    const matchedRules: TestWorkflowResult['matchedRules'] = [];
+    const steps: TestWorkflowResult['steps'] = [];
+
+    // Get the workflow
+    const flow = await getApprovalFlowById(input.flowId);
+    if (!flow) {
+      return {
+        matches: false,
+        matchedRules: [],
+        steps: [],
+        errors: ['Workflow not found'],
+      };
+    }
+
+    // Validate document type matches
+    if (flow.documentType !== input.testContext.documentType) {
+      errors.push(
+        `Document type mismatch: workflow is for ${flow.documentType}, ` +
+          `but test context is ${input.testContext.documentType}`
+      );
+    }
+
+    // Evaluate each rule
+    let allRulesPass = true;
+    for (const rule of flow.rules) {
+      const actualValue = getContextValue(input.testContext, rule.field);
+      const passed = evaluateRuleValue(rule.operator as RuleOperator, actualValue, rule.value, rule.valueSecondary);
+
+      matchedRules.push({
+        field: rule.field,
+        operator: rule.operator,
+        expectedValue: rule.valueSecondary
+          ? `${rule.value} to ${rule.valueSecondary}`
+          : rule.value,
+        actualValue: String(actualValue ?? 'undefined'),
+        passed,
+      });
+
+      if (!passed) {
+        allRulesPass = false;
+      }
+    }
+
+    // If all rules pass (or no rules), evaluate steps
+    const matches = allRulesPass && errors.length === 0;
+
+    if (matches) {
+      for (const step of flow.steps) {
+        let approverName: string | undefined;
+        let canApprove = false;
+
+        if (step.approverType === 'user' && step.approverId) {
+          const [user] = await db
+            .select()
+            .from(tables.users)
+            .where(eq(tables.users.id, step.approverId))
+            .limit(1);
+          if (user) {
+            approverName = (user as { displayName?: string }).displayName || `User ${step.approverId}`;
+            canApprove = true;
+          } else {
+            errors.push(`Step ${step.stepOrder}: Approver user ${step.approverId} not found`);
+          }
+        } else if (step.approverType === 'role' && step.roleId) {
+          approverName = `Role ID: ${step.roleId}`;
+          canApprove = true; // Assume role exists
+        } else if (step.approverType === 'manager') {
+          approverName = 'Requestor Manager';
+          canApprove = true;
+        } else if (step.approverType === 'department_head') {
+          approverName = 'Department Head';
+          canApprove = true;
+        }
+
+        steps.push({
+          stepOrder: step.stepOrder,
+          approverType: step.approverType,
+          approverId: step.approverId,
+          approverName,
+          canApprove,
+        });
+      }
+    }
+
+    return {
+      matches,
+      matchedRules,
+      steps,
+      errors,
+    };
+  });
+}
+
+/**
+ * Get value from document context by field name
+ */
+function getContextValue(context: DocumentContext, field: string): unknown {
+  switch (field) {
+    case 'amount':
+      return context.amount;
+    case 'department':
+      return context.departmentId;
+    case 'costCenter':
+      return context.costCenterId;
+    case 'project':
+      return context.projectId;
+    case 'vendor':
+      return context.vendorId;
+    case 'customer':
+      return context.customerId;
+    case 'category':
+      return context.categoryId;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Evaluate a rule condition with raw values (for testWorkflow)
+ */
+function evaluateRuleValue(
+  operator: RuleOperator,
+  actualValue: unknown,
+  expectedValue: string,
+  secondaryValue?: string | null
+): boolean {
+  // Handle null/undefined actual values
+  if (actualValue === null || actualValue === undefined) {
+    return operator === 'not_equals' || operator === 'not_in';
+  }
+
+  const actual = typeof actualValue === 'number' ? actualValue : String(actualValue);
+  const expected = typeof actualValue === 'number' ? parseFloat(expectedValue) : expectedValue;
+
+  switch (operator) {
+    case 'equals':
+      return actual === expected;
+    case 'not_equals':
+      return actual !== expected;
+    case 'greater_than':
+      return typeof actual === 'number' && actual > (expected as number);
+    case 'less_than':
+      return typeof actual === 'number' && actual < (expected as number);
+    case 'between':
+      if (typeof actual !== 'number' || !secondaryValue) return false;
+      const min = parseFloat(expectedValue);
+      const max = parseFloat(secondaryValue);
+      return actual >= min && actual <= max;
+    case 'in':
+      const inList = expectedValue.split(',').map((v) => v.trim());
+      return inList.includes(String(actual));
+    case 'not_in':
+      const notInList = expectedValue.split(',').map((v) => v.trim());
+      return !notInList.includes(String(actual));
+    case 'contains':
+      return String(actual).toLowerCase().includes(expectedValue.toLowerCase());
+    default:
+      return false;
+  }
+}
+
+/**
+ * Get workflow history/audit log for a specific flow
+ */
+export async function getWorkflowHistory(
+  flowId: number,
+  options?: { page?: number; limit?: number }
+): Promise<{
+  data: {
+    id: number;
+    documentType: string;
+    documentId: number;
+    status: string;
+    requestedAt: string;
+    completedAt: string | null;
+    requestedByName: string;
+    steps: {
+      stepOrder: number;
+      status: string;
+      approverName: string | null;
+      actionAt: string | null;
+      comments: string | null;
+    }[];
+  }[];
+  total: number;
+  page: number;
+  limit: number;
+}> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const offset = (page - 1) * limit;
+
+    // Get requests for this flow
+    const requests = await db
+      .select()
+      .from(tables.requests)
+      .where(eq(tables.requests.flowId, flowId))
+      .orderBy(desc(tables.requests.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Count total
+    const [countResult] = await db
+      .select({ count: tables.requests.id })
+      .from(tables.requests)
+      .where(eq(tables.requests.flowId, flowId));
+
+    const total = Number((countResult as { count: number })?.count || 0);
+
+    // Get detailed info for each request
+    const data = await Promise.all(
+      requests.map(async (request: any) => {
+        const [requester] = await db
+          .select()
+          .from(tables.users)
+          .where(eq(tables.users.id, request.requestedBy))
+          .limit(1);
+
+        const requestSteps = await db
+          .select()
+          .from(tables.requestSteps)
+          .where(eq(tables.requestSteps.requestId, request.id))
+          .orderBy(asc(tables.requestSteps.stepOrder));
+
+        const stepsWithNames = await Promise.all(
+          requestSteps.map(async (step: any) => {
+            let approverName = null;
+            if (step.actionBy) {
+              const [actor] = await db
+                .select()
+                .from(tables.users)
+                .where(eq(tables.users.id, step.actionBy))
+                .limit(1);
+              approverName = (actor as { displayName?: string })?.displayName || `User ${step.actionBy}`;
+            }
+            return {
+              stepOrder: step.stepOrder,
+              status: step.status,
+              approverName,
+              actionAt: step.actionAt?.toString() || null,
+              comments: step.comments,
+            };
+          })
+        );
+
+        return {
+          id: request.id,
+          documentType: request.documentType,
+          documentId: request.documentId,
+          status: request.status,
+          requestedAt: request.createdAt.toString(),
+          completedAt: request.completedAt?.toString() || null,
+          requestedByName: (requester as { displayName?: string })?.displayName || `User ${request.requestedBy}`,
+          steps: stepsWithNames,
+        };
+      })
+    );
+
+    return { data, total, page, limit };
+  });
+}

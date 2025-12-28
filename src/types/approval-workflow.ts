@@ -249,3 +249,39 @@ export interface ApprovalWorkflowError {
   code: 'NO_MATCHING_FLOW' | 'INVALID_STEP' | 'NOT_AUTHORIZED' | 'ALREADY_PROCESSED' | 'VALIDATION_ERROR';
   message: string;
 }
+
+// UI Rule Builder types (T123)
+export type RuleField =
+  | 'amount'
+  | 'department'
+  | 'costCenter'
+  | 'project'
+  | 'vendor'
+  | 'customer'
+  | 'category';
+
+// Extended operator type for UI (maps to DB operators internally)
+export type UIRuleOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'greater_than'
+  | 'less_than'
+  | 'between'
+  | 'in'
+  | 'not_in'
+  | 'contains';
+
+// Re-export RuleOperator to include UI operators for the rule builder
+export type RuleOperatorExtended = RuleOperator | UIRuleOperator;
+
+// ApprovalRule for UI components
+export interface ApprovalRule {
+  id?: number;
+  flowId: number;
+  field: RuleField;
+  operator: UIRuleOperator;
+  value: string;
+  valueSecondary?: string;
+  priority: number;
+  createdAt: string;
+}
