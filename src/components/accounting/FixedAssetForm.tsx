@@ -1,3 +1,6 @@
+// Accounting Fixed Asset Form Component
+// Feature: 010-accounting-module-integration
+// Pattern: Aligned with Template module form design
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,7 +14,8 @@ import notify from 'devextreme/ui/notify';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxDateBox } from '@/components/ui/dx-date-box';
-import { Building } from 'lucide-react';
+import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
+import { Building, History } from 'lucide-react';
 import type { FixedAsset, AssetCategory, FixedAssetCreate, FixedAssetUpdate, DepreciationMethod } from '@/types/accounting';
 
 export interface FixedAssetFormProps {
@@ -92,6 +96,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [auditDialogOpen, setAuditDialogOpen] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     nameTh: '',
     nameEn: '',
@@ -175,8 +180,8 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
   });
 
   const handleSubmit = () => {
-    if (!formData.nameTh || !formData.nameEn || !formData.categoryId) {
-      notify('Please fill in required fields', 'error', 3000);
+    if (!formData.nameTh || !formData.nameEn || !formData.categoryId || !formData.acquisitionDate || formData.acquisitionCost <= 0) {
+      notify('Please fill in required fields (Name TH, Name EN, Category, Acquisition Date, and Acquisition Cost > 0)', 'error', 3000);
       return;
     }
 
@@ -456,6 +461,29 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
             </Card>
           )}
 
+          {mode === 'edit' && assetId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  Audit History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">
+                  View all changes made to this asset.
+                </p>
+                <Button
+                  text="View History"
+                  icon="clock"
+                  stylingMode="outlined"
+                  onClick={() => setAuditDialogOpen(true)}
+                  width="100%"
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {mode === 'edit' && (
             <Card className="border-red-100">
               <CardHeader>
@@ -478,6 +506,31 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           )}
         </div>
       </div>
+
+      {/* Audit Log Dialog */}
+      {mode === 'edit' && assetId && (
+        <AuditLogViewerDialog
+          entityType="fixedAssets"
+          entityId={assetId}
+          visible={auditDialogOpen}
+          onClose={() => setAuditDialogOpen(false)}
+          fieldLabels={{
+            nameTh: 'Name (Thai)',
+            nameEn: 'Name (English)',
+            categoryId: 'Category',
+            acquisitionDate: 'Acquisition Date',
+            acquisitionCost: 'Acquisition Cost',
+            salvageValue: 'Salvage Value',
+            usefulLifeMonths: 'Useful Life (Months)',
+            depreciationMethod: 'Depreciation Method',
+            depreciationStartDate: 'Depreciation Start Date',
+            location: 'Location',
+            departmentId: 'Department',
+            responsiblePersonId: 'Responsible Person',
+            status: 'Status',
+          }}
+        />
+      )}
     </div>
   );
 }
