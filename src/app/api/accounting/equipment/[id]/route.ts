@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getEquipmentById, updateEquipment, getEquipmentCostSummary } from '@/lib/services/accounting-equipment.service';
+import { getEquipmentById, updateEquipment, deleteEquipment, getEquipmentCostSummary } from '@/lib/services/accounting-equipment.service';
 import { equipmentUpdateSchema } from '@/lib/validation/accounting';
 
 interface RouteParams {
@@ -76,6 +76,32 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     console.error('Error updating equipment:', error);
     return NextResponse.json(
       { error: 'Failed to update equipment' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const { id } = await params;
+    const equipmentId = parseInt(id, 10);
+
+    if (isNaN(equipmentId)) {
+      return NextResponse.json({ error: 'Invalid equipment ID' }, { status: 400 });
+    }
+
+    // Check if equipment exists
+    const existing = await getEquipmentById(equipmentId);
+    if (!existing) {
+      return NextResponse.json({ error: 'Equipment not found' }, { status: 404 });
+    }
+
+    await deleteEquipment(equipmentId);
+    return NextResponse.json({ success: true, message: 'Equipment deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting equipment:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to delete equipment' },
       { status: 500 }
     );
   }

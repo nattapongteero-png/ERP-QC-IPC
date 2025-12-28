@@ -182,6 +182,40 @@ export async function updateEquipment(
 }
 
 /**
+ * Delete equipment and associated maintenance records
+ */
+export async function deleteEquipment(id: number): Promise<void> {
+  const { equipment, maintenanceSchedules, maintenanceRecords } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  // Check if equipment exists
+  const existing = await database
+    .select()
+    .from(equipment)
+    .where(eq(equipment.id, id))
+    .limit(1);
+
+  if (existing.length === 0) {
+    throw new Error('Equipment not found');
+  }
+
+  // Delete associated maintenance records first
+  await database
+    .delete(maintenanceRecords)
+    .where(eq(maintenanceRecords.equipmentId, id));
+
+  // Delete associated maintenance schedules
+  await database
+    .delete(maintenanceSchedules)
+    .where(eq(maintenanceSchedules.equipmentId, id));
+
+  // Delete the equipment
+  await database
+    .delete(equipment)
+    .where(eq(equipment.id, id));
+}
+
+/**
  * Update meter reading (operating hours/units)
  */
 export async function updateMeterReading(

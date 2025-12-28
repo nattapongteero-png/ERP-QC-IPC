@@ -18,3 +18,6 @@ export type { JournalEntryFormProps } from './journal-entry-form';
 
 export { FixedAssetForm } from './FixedAssetForm';
 export type { FixedAssetFormProps } from './FixedAssetForm';
+
+export { EquipmentForm } from './EquipmentForm';
+export type { EquipmentFormProps } from './EquipmentForm';
