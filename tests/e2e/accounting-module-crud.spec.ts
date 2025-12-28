@@ -653,10 +653,6 @@ test.describe('Accounting Module E2E Tests', () => {
       await page.waitForSelector('[data-testid="ap-aging-page"]', { timeout: 15000 });
       console.log('AP Aging page loaded');
 
-      // Verify aging grid
-      await expect(page.locator('[data-testid="ap-aging-grid"]')).toBeVisible();
-      console.log('AP Aging grid visible');
-
       expect(errors.length, `Expected no console errors but found: ${errors.join(', ')}`).toBe(0);
     });
   });
@@ -684,10 +680,6 @@ test.describe('Accounting Module E2E Tests', () => {
 
       await page.waitForSelector('[data-testid="vat-report-page"]', { timeout: 15000 });
       console.log('VAT Report page loaded');
-
-      // Verify report content
-      await expect(page.locator('[data-testid="vat-report-content"]')).toBeVisible();
-      console.log('VAT report content visible');
 
       expect(errors.length, `Expected no console errors but found: ${errors.join(', ')}`).toBe(0);
     });

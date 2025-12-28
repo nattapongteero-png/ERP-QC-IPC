@@ -392,7 +392,7 @@ export default function ChartOfAccountsPage() {
               type="default"
               stylingMode="contained"
               onClick={() => handleOpenAddDialog()}
-              data-testid="coa-add-btn"
+              elementAttr={{ 'data-testid': 'coa-add-btn' }}
             />
           </div>
         </AccountingFilterPanel>
@@ -603,7 +603,7 @@ export default function ChartOfAccountsPage() {
                 text="ยกเลิก"
                 onClick={handleCloseDialog}
                 stylingMode="outlined"
-                data-testid="coa-cancel-btn"
+                elementAttr={{ 'data-testid': 'coa-cancel-btn' }}
               />
               <Button
                 text={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
@@ -611,7 +611,7 @@ export default function ChartOfAccountsPage() {
                 stylingMode="contained"
                 onClick={handleSave}
                 disabled={isSaving}
-                data-testid="coa-save-btn"
+                elementAttr={{ 'data-testid': 'coa-save-btn' }}
               />
             </div>
           </div>

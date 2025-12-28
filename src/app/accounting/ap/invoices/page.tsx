@@ -364,7 +364,7 @@ export default function APInvoicesPage() {
             icon="plus"
             type="success"
             onClick={handleOpenDialog}
-            data-testid="ap-add-invoice-btn"
+            elementAttr={{ 'data-testid': 'ap-add-invoice-btn' }}
           />
         }
       />
@@ -694,13 +694,13 @@ export default function APInvoicesPage() {
 
           {/* Dialog Actions */}
           <div className="mt-6 flex justify-end gap-2">
-            <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} data-testid="ap-cancel-btn" />
+            <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} elementAttr={{ 'data-testid': 'ap-cancel-btn' }} />
             <Button
               text="บันทึก"
               type="success"
               onClick={handleSave}
               disabled={createMutation.isPending}
-              data-testid="ap-save-btn"
+              elementAttr={{ 'data-testid': 'ap-save-btn' }}
             />
           </div>
         </div>

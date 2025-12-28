@@ -189,7 +189,7 @@ export default function FixedAssetsPage() {
             icon="plus"
             type="success"
             onClick={() => router.push('/accounting/fixed-assets/new')}
-            data-testid="fa-add-btn"
+            elementAttr={{ 'data-testid': 'fa-add-btn' }}
           />
         }
       />
