@@ -161,6 +161,7 @@ const navigation: NavItem[] = [
       { name: 'Equipment', href: '/accounting/equipment', icon: Wrench },
       { name: 'Period Close', href: '/accounting/period-close', icon: CalendarCheck },
       { name: 'Bank Reconciliation', href: '/accounting/bank-reconciliation', icon: RefreshCw },
+      { name: 'Credit/Debit Notes', href: '/accounting/credit-debit-notes', icon: FileText },
       { name: 'Reports', href: '/accounting/reports', icon: BarChart3 },
     ],
   },
