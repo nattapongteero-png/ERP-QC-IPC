@@ -1,0 +1,483 @@
+openapi: 3.0.3
+info:
+  title: 3-Way Matching API
+  version: 1.0.0
+  description: API for PO/GRN/Invoice matching with tolerance configuration
+
+paths:
+  /api/settings/matching-tolerances:
+    get:
+      summary: List tolerance profiles
+      tags: [Matching Configuration]
+      responses:
+        '200':
+          description: List of tolerance profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchingTolerance'
+
+    post:
+      summary: Create a tolerance profile
+      tags: [Matching Configuration]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchingToleranceCreate'
+      responses:
+        '201':
+          description: Created
+
+  /api/settings/matching-tolerances/{id}:
+    get:
+      summary: Get tolerance profile
+      tags: [Matching Configuration]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tolerance profile details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchingTolerance'
+
+    put:
+      summary: Update tolerance profile
+      tags: [Matching Configuration]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchingToleranceUpdate'
+      responses:
+        '200':
+          description: Updated
+
+    delete:
+      summary: Delete tolerance profile
+      tags: [Matching Configuration]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          description: Cannot delete (in use or default)
+
+  /api/accounting/matching:
+    get:
+      summary: List matching results
+      tags: [3-Way Matching]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, matched, quantity_exception, price_exception, approved_variance, blocked]
+        - name: ap_invoice_id
+          in: query
+          schema:
+            type: integer
+        - name: has_exception
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of matching results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MatchingResult'
+                  total:
+                    type: integer
+
+  /api/accounting/matching/invoice/{id}:
+    post:
+      summary: Run matching for an AP invoice
+      tags: [3-Way Matching]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: AP Invoice ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tolerance_profile_id:
+                  type: integer
+                  description: Override default tolerance profile
+      responses:
+        '200':
+          description: Matching results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice_id:
+                    type: integer
+                  total_lines:
+                    type: integer
+                  matched_lines:
+                    type: integer
+                  exception_lines:
+                    type: integer
+                  can_post:
+                    type: boolean
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MatchingResult'
+
+  /api/accounting/matching/results/{id}:
+    get:
+      summary: Get matching result details
+      tags: [3-Way Matching]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Matching result details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchingResultDetail'
+
+  /api/accounting/matching/exceptions:
+    get:
+      summary: List all pending exceptions
+      tags: [3-Way Matching]
+      parameters:
+        - name: exception_type
+          in: query
+          schema:
+            type: string
+            enum: [over_quantity, under_quantity, over_price, under_price, total_mismatch]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        '200':
+          description: List of exceptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchingException'
+
+  /api/accounting/matching/exceptions/{id}/approve:
+    post:
+      summary: Approve a matching exception
+      tags: [3-Way Matching]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution_action]
+              properties:
+                resolution_action:
+                  type: string
+                  enum: [accept, reject_excess, request_credit, adjust_price]
+                resolution_notes:
+                  type: string
+      responses:
+        '200':
+          description: Exception approved
+        '403':
+          description: Not authorized to approve
+
+  /api/accounting/matching/exceptions/{id}/reject:
+    post:
+      summary: Reject a matching exception (block invoice)
+      tags: [3-Way Matching]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rejection_notes:
+                  type: string
+      responses:
+        '200':
+          description: Exception rejected
+
+  /api/accounting/reports/gr-ir-clearing:
+    get:
+      summary: GR/IR Clearing Report
+      tags: [Matching Reports]
+      parameters:
+        - name: as_of_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: vendor_id
+          in: query
+          schema:
+            type: integer
+        - name: show_cleared
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: GR/IR clearing report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  as_of_date:
+                    type: string
+                    format: date
+                  total_uncleared:
+                    type: number
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        po_id:
+                          type: integer
+                        po_number:
+                          type: string
+                        vendor_name:
+                          type: string
+                        receipt_date:
+                          type: string
+                          format: date
+                        receipt_amount:
+                          type: number
+                        invoice_amount:
+                          type: number
+                        clearing_amount:
+                          type: number
+                        uncleared_amount:
+                          type: number
+                        age_days:
+                          type: integer
+
+components:
+  schemas:
+    MatchingTolerance:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        is_default:
+          type: boolean
+        quantity_tolerance_pct:
+          type: number
+        quantity_tolerance_abs:
+          type: number
+        price_tolerance_pct:
+          type: number
+        price_tolerance_abs:
+          type: number
+        total_tolerance_pct:
+          type: number
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    MatchingToleranceCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        is_default:
+          type: boolean
+          default: false
+        quantity_tolerance_pct:
+          type: number
+          default: 5
+        quantity_tolerance_abs:
+          type: number
+          default: 10
+        price_tolerance_pct:
+          type: number
+          default: 2
+        price_tolerance_abs:
+          type: number
+          default: 100
+        total_tolerance_pct:
+          type: number
+          default: 1
+
+    MatchingToleranceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        is_default:
+          type: boolean
+        quantity_tolerance_pct:
+          type: number
+        quantity_tolerance_abs:
+          type: number
+        price_tolerance_pct:
+          type: number
+        price_tolerance_abs:
+          type: number
+        total_tolerance_pct:
+          type: number
+        is_active:
+          type: boolean
+
+    MatchingResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        ap_invoice_id:
+          type: integer
+        ap_invoice_number:
+          type: string
+        ap_invoice_line_id:
+          type: integer
+        po_line_id:
+          type: integer
+        po_number:
+          type: string
+        item_code:
+          type: string
+        item_name:
+          type: string
+        po_quantity:
+          type: number
+        grn_quantity:
+          type: number
+        invoice_quantity:
+          type: number
+        quantity_variance:
+          type: number
+        quantity_variance_pct:
+          type: number
+        po_unit_price:
+          type: number
+        invoice_unit_price:
+          type: number
+        price_variance:
+          type: number
+        price_variance_pct:
+          type: number
+        match_status:
+          type: string
+          enum: [pending, matched, quantity_exception, price_exception, approved_variance, blocked]
+        has_exception:
+          type: boolean
+
+    MatchingResultDetail:
+      allOf:
+        - $ref: '#/components/schemas/MatchingResult'
+        - type: object
+          properties:
+            vendor_name:
+              type: string
+            grn_lot_id:
+              type: integer
+            grn_lot_number:
+              type: string
+            tolerance_profile:
+              $ref: '#/components/schemas/MatchingTolerance'
+            exceptions:
+              type: array
+              items:
+                $ref: '#/components/schemas/MatchingException'
+
+    MatchingException:
+      type: object
+      properties:
+        id:
+          type: integer
+        matching_result_id:
+          type: integer
+        exception_type:
+          type: string
+          enum: [over_quantity, under_quantity, over_price, under_price, total_mismatch]
+        variance_amount:
+          type: number
+        variance_pct:
+          type: number
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        resolution_action:
+          type: string
+        resolution_notes:
+          type: string
+        resolved_by:
+          type: integer
+        resolved_by_name:
+          type: string
+        resolved_at:
+          type: string
+          format: date-time
+        # Related invoice info for context
+        invoice_number:
+          type: string
+        po_number:
+          type: string
+        vendor_name:
+          type: string
+        item_name:
+          type: string

@@ -1,0 +1,656 @@
+openapi: 3.0.3
+info:
+  title: Variance Analysis API
+  version: 1.0.0
+  description: API for manufacturing variance analysis and standard costing
+
+paths:
+  /api/accounting/standard-costs:
+    get:
+      summary: List standard costs
+      tags: [Standard Costs]
+      parameters:
+        - name: item_id
+          in: query
+          schema:
+            type: integer
+        - name: is_current
+          in: query
+          schema:
+            type: boolean
+        - name: effective_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of standard costs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StandardCost'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create/Update standard cost for an item
+      tags: [Standard Costs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StandardCostCreate'
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Validation error
+
+  /api/accounting/standard-costs/{id}:
+    get:
+      summary: Get standard cost details
+      tags: [Standard Costs]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Standard cost details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardCostDetail'
+
+  /api/accounting/standard-costs/item/{itemId}:
+    get:
+      summary: Get current standard cost for an item
+      tags: [Standard Costs]
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Current standard cost
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardCost'
+        '404':
+          description: No standard cost defined
+
+  /api/accounting/standard-costs/rollup:
+    post:
+      summary: Roll up standard costs from BOM
+      tags: [Standard Costs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Items to roll up (empty = all BOM items)
+                effective_date:
+                  type: string
+                  format: date
+                  description: Effective date for new costs
+      responses:
+        '200':
+          description: Roll-up results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items_processed:
+                    type: integer
+                  items_updated:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        item_id:
+                          type: integer
+                        item_code:
+                          type: string
+                        error:
+                          type: string
+
+  /api/accounting/variances:
+    get:
+      summary: List variance records
+      tags: [Variance Analysis]
+      parameters:
+        - name: work_order_id
+          in: query
+          schema:
+            type: integer
+        - name: item_id
+          in: query
+          schema:
+            type: integer
+        - name: variance_type
+          in: query
+          schema:
+            type: string
+            enum: [mpv, muv, lrv, lev, voh_var, foh_vol]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: is_posted
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of variance records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VarianceRecord'
+                  total:
+                    type: integer
+                  summary:
+                    $ref: '#/components/schemas/VarianceSummary'
+
+  /api/accounting/variances/work-order/{id}:
+    get:
+      summary: Get variances for a work order
+      tags: [Variance Analysis]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Work order variances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  work_order_id:
+                    type: integer
+                  work_order_number:
+                    type: string
+                  item_code:
+                    type: string
+                  item_name:
+                    type: string
+                  quantity_produced:
+                    type: number
+                  total_variance:
+                    type: number
+                  is_favorable:
+                    type: boolean
+                  variances:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VarianceRecord'
+
+  /api/accounting/variances/calculate:
+    post:
+      summary: Calculate variances for a work order
+      tags: [Variance Analysis]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [work_order_id]
+              properties:
+                work_order_id:
+                  type: integer
+                post_immediately:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Calculated variances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  work_order_id:
+                    type: integer
+                  variances_created:
+                    type: integer
+                  total_variance:
+                    type: number
+                  journal_entry_id:
+                    type: integer
+                  variances:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VarianceRecord'
+        '400':
+          description: Cannot calculate (WO not complete, no standard cost)
+
+  /api/accounting/variances/post:
+    post:
+      summary: Post unposted variances
+      tags: [Variance Analysis]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variance_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Specific variances to post (empty = all unposted)
+                period_id:
+                  type: integer
+                  description: Target fiscal period
+      responses:
+        '200':
+          description: Posting result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  variances_posted:
+                    type: integer
+                  journal_entries_created:
+                    type: integer
+                  total_variance_amount:
+                    type: number
+
+  /api/accounting/reports/variance-summary:
+    get:
+      summary: Variance summary report
+      tags: [Variance Reports]
+      parameters:
+        - name: period_id
+          in: query
+          schema:
+            type: integer
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: group_by
+          in: query
+          schema:
+            type: string
+            enum: [item, variance_type, work_order, month]
+      responses:
+        '200':
+          description: Variance summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: string
+                  total_variances:
+                    type: number
+                  favorable_variances:
+                    type: number
+                  unfavorable_variances:
+                    type: number
+                  by_type:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        variance_type:
+                          type: string
+                        variance_type_name:
+                          type: string
+                        amount:
+                          type: number
+                        is_favorable:
+                          type: boolean
+                  details:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VarianceSummaryRow'
+
+  /api/accounting/reports/material-variance:
+    get:
+      summary: Material variance detail report
+      tags: [Variance Reports]
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: item_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Material variance details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      total_mpv:
+                        type: number
+                      total_muv:
+                        type: number
+                      total_material_variance:
+                        type: number
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        item_id:
+                          type: integer
+                        item_code:
+                          type: string
+                        item_name:
+                          type: string
+                        standard_price:
+                          type: number
+                        actual_price:
+                          type: number
+                        price_variance:
+                          type: number
+                        standard_qty:
+                          type: number
+                        actual_qty:
+                          type: number
+                        usage_variance:
+                          type: number
+                        total_variance:
+                          type: number
+
+  /api/accounting/reports/labor-variance:
+    get:
+      summary: Labor variance detail report
+      tags: [Variance Reports]
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: work_center_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Labor variance details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      total_lrv:
+                        type: number
+                      total_lev:
+                        type: number
+                      total_labor_variance:
+                        type: number
+                  details:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        work_order_id:
+                          type: integer
+                        work_order_number:
+                          type: string
+                        item_code:
+                          type: string
+                        standard_hours:
+                          type: number
+                        actual_hours:
+                          type: number
+                        standard_rate:
+                          type: number
+                        actual_rate:
+                          type: number
+                        rate_variance:
+                          type: number
+                        efficiency_variance:
+                          type: number
+
+components:
+  schemas:
+    StandardCost:
+      type: object
+      properties:
+        id:
+          type: integer
+        item_id:
+          type: integer
+        item_code:
+          type: string
+        item_name:
+          type: string
+        effective_date:
+          type: string
+          format: date
+        material_cost:
+          type: number
+        labor_cost:
+          type: number
+        overhead_cost:
+          type: number
+        total_cost:
+          type: number
+        standard_hours:
+          type: number
+        standard_labor_rate:
+          type: number
+        is_current:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    StandardCostDetail:
+      allOf:
+        - $ref: '#/components/schemas/StandardCost'
+        - type: object
+          properties:
+            notes:
+              type: string
+            created_by:
+              type: integer
+            created_by_name:
+              type: string
+            material_breakdown:
+              type: array
+              items:
+                type: object
+                properties:
+                  component_id:
+                    type: integer
+                  component_code:
+                    type: string
+                  quantity:
+                    type: number
+                  unit_cost:
+                    type: number
+                  extended_cost:
+                    type: number
+
+    StandardCostCreate:
+      type: object
+      required: [item_id, effective_date]
+      properties:
+        item_id:
+          type: integer
+        effective_date:
+          type: string
+          format: date
+        material_cost:
+          type: number
+          default: 0
+        labor_cost:
+          type: number
+          default: 0
+        overhead_cost:
+          type: number
+          default: 0
+        standard_hours:
+          type: number
+          default: 0
+        standard_labor_rate:
+          type: number
+          default: 0
+        notes:
+          type: string
+        set_as_current:
+          type: boolean
+          default: true
+
+    VarianceRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        work_order_id:
+          type: integer
+        work_order_number:
+          type: string
+        item_id:
+          type: integer
+        item_code:
+          type: string
+        item_name:
+          type: string
+        variance_type:
+          type: string
+          enum: [mpv, muv, lrv, lev, voh_var, foh_vol]
+        variance_type_name:
+          type: string
+        variance_date:
+          type: string
+          format: date
+        standard_value:
+          type: number
+        actual_value:
+          type: number
+        variance_amount:
+          type: number
+        quantity:
+          type: number
+        is_favorable:
+          type: boolean
+        journal_entry_id:
+          type: integer
+        journal_entry_number:
+          type: string
+        posted_at:
+          type: string
+          format: date-time
+        notes:
+          type: string
+
+    VarianceSummary:
+      type: object
+      properties:
+        total_variance:
+          type: number
+        favorable_total:
+          type: number
+        unfavorable_total:
+          type: number
+        mpv_total:
+          type: number
+        muv_total:
+          type: number
+        lrv_total:
+          type: number
+        lev_total:
+          type: number
+        voh_var_total:
+          type: number
+        foh_vol_total:
+          type: number
+
+    VarianceSummaryRow:
+      type: object
+      properties:
+        group_key:
+          type: string
+        group_name:
+          type: string
+        mpv:
+          type: number
+        muv:
+          type: number
+        lrv:
+          type: number
+        lev:
+          type: number
+        voh_var:
+          type: number
+        foh_vol:
+          type: number
+        total:
+          type: number
+        is_favorable:
+          type: boolean
