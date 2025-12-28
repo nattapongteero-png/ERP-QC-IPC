@@ -265,11 +265,11 @@ describe('Period Close Page', () => {
     });
   });
 
-  it('should display Total Periods stat card', async () => {
+  it('should display Open Periods stat card', async () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Total Periods')).toBeInTheDocument();
+      expect(screen.getByText('Open Periods')).toBeInTheDocument();
     });
   });
 
@@ -277,7 +277,7 @@ describe('Period Close Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Fiscal Year')).toBeInTheDocument();
+      expect(screen.getByText('Fiscal Year:')).toBeInTheDocument();
     });
   });
 

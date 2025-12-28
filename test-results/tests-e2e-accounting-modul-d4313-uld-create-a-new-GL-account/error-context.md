@@ -1,0 +1,560 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - generic [ref=e5]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - img [ref=e10]
+          - img [ref=e14]
+        - generic [ref=e17]:
+          - heading "Herbal ERP" [level=1] [ref=e18]
+          - paragraph [ref=e19]: Medicine Management
+      - navigation [ref=e20]:
+        - generic [ref=e21]:
+          - link "Dashboard" [ref=e23] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e25]
+            - generic [ref=e30]: Dashboard
+          - generic [ref=e32]:
+            - button "Inventory" [ref=e33]:
+              - generic [ref=e34]:
+                - img [ref=e36]
+                - generic [ref=e39]: Inventory
+              - img [ref=e40]
+            - generic [ref=e42]:
+              - link "Items" [ref=e43] [cursor=pointer]:
+                - /url: /inventory/items
+                - img [ref=e44]
+                - generic [ref=e54]: Items
+              - link "Lots" [ref=e55] [cursor=pointer]:
+                - /url: /inventory/lots
+                - img [ref=e56]
+                - generic [ref=e60]: Lots
+              - link "Warehouses" [ref=e61] [cursor=pointer]:
+                - /url: /inventory/warehouses
+                - img [ref=e62]
+                - generic [ref=e65]: Warehouses
+              - link "Transactions" [ref=e66] [cursor=pointer]:
+                - /url: /inventory/transactions
+                - img [ref=e67]
+                - generic [ref=e70]: Transactions
+              - link "Expiry Alerts" [ref=e71] [cursor=pointer]:
+                - /url: /inventory/expiry-alerts
+                - img [ref=e72]
+                - generic [ref=e74]: Expiry Alerts
+          - generic [ref=e76]:
+            - button "Production" [ref=e77]:
+              - generic [ref=e78]:
+                - img [ref=e80]
+                - generic [ref=e82]: Production
+              - img [ref=e83]
+            - generic [ref=e85]:
+              - link "BOM/Recipes" [ref=e86] [cursor=pointer]:
+                - /url: /production/bom
+                - img [ref=e87]
+                - generic [ref=e90]: BOM/Recipes
+              - link "Work Orders" [ref=e91] [cursor=pointer]:
+                - /url: /production/work-orders
+                - img [ref=e92]
+                - generic [ref=e95]: Work Orders
+              - link "Batch Records" [ref=e96] [cursor=pointer]:
+                - /url: /production/batch-records
+                - img [ref=e97]
+                - generic [ref=e100]: Batch Records
+              - link "Master Data" [ref=e101] [cursor=pointer]:
+                - /url: /master-data
+                - img [ref=e102]
+                - generic [ref=e105]: Master Data
+          - generic [ref=e107]:
+            - button "Quality" [ref=e108]:
+              - generic [ref=e109]:
+                - img [ref=e111]
+                - generic [ref=e115]: Quality
+              - img [ref=e116]
+            - generic [ref=e118]:
+              - link "Tests" [ref=e119] [cursor=pointer]:
+                - /url: /quality/tests
+                - img [ref=e120]
+                - generic [ref=e122]: Tests
+              - link "Specifications" [ref=e123] [cursor=pointer]:
+                - /url: /quality/specs
+                - img [ref=e124]
+                - generic [ref=e127]: Specifications
+              - link "Deviations" [ref=e128] [cursor=pointer]:
+                - /url: /quality/deviations
+                - img [ref=e129]
+                - generic [ref=e131]: Deviations
+          - generic [ref=e133]:
+            - button "GMP Compliance" [ref=e134]:
+              - generic [ref=e135]:
+                - img [ref=e137]
+                - generic [ref=e139]: GMP Compliance
+              - img [ref=e140]
+            - generic [ref=e142]:
+              - link "Documents" [ref=e143] [cursor=pointer]:
+                - /url: /gmp/documents
+                - img [ref=e144]
+                - generic [ref=e149]: Documents
+              - link "CAPA" [ref=e150] [cursor=pointer]:
+                - /url: /gmp/capa
+                - img [ref=e151]
+                - generic [ref=e155]: CAPA
+              - link "Complaints" [ref=e156] [cursor=pointer]:
+                - /url: /gmp/complaints
+                - img [ref=e157]
+                - generic [ref=e159]: Complaints
+              - link "Recalls" [ref=e160] [cursor=pointer]:
+                - /url: /gmp/recalls
+                - img [ref=e161]
+                - generic [ref=e164]: Recalls
+              - link "Sanitation" [ref=e165] [cursor=pointer]:
+                - /url: /gmp/sanitation
+                - img [ref=e166]
+                - generic [ref=e169]: Sanitation
+              - link "Stability" [ref=e170] [cursor=pointer]:
+                - /url: /gmp/stability
+                - img [ref=e171]
+                - generic [ref=e173]: Stability
+              - link "Internal Audit" [ref=e174] [cursor=pointer]:
+                - /url: /gmp/internal-audit
+                - img [ref=e175]
+                - generic [ref=e178]: Internal Audit
+              - link "Contracts" [ref=e179] [cursor=pointer]:
+                - /url: /gmp/contracts
+                - img [ref=e180]
+                - generic [ref=e183]: Contracts
+              - link "PQR" [ref=e184] [cursor=pointer]:
+                - /url: /gmp/pqr
+                - img [ref=e185]
+                - generic [ref=e187]: PQR
+          - generic [ref=e189]:
+            - button "Purchasing" [ref=e190]:
+              - generic [ref=e191]:
+                - img [ref=e193]
+                - generic [ref=e197]: Purchasing
+              - img [ref=e198]
+            - generic [ref=e200]:
+              - link "Purchase Orders" [ref=e201] [cursor=pointer]:
+                - /url: /purchasing/orders
+                - img [ref=e202]
+                - generic [ref=e205]: Purchase Orders
+              - link "Vendors" [ref=e206] [cursor=pointer]:
+                - /url: /purchasing/vendors
+                - img [ref=e207]
+                - generic [ref=e211]: Vendors
+          - generic [ref=e213]:
+            - button "Sales" [ref=e214]:
+              - generic [ref=e215]:
+                - img [ref=e217]
+                - generic [ref=e222]: Sales
+              - img [ref=e223]
+            - generic [ref=e225]:
+              - link "Sales Orders" [ref=e226] [cursor=pointer]:
+                - /url: /sales/orders
+                - img [ref=e227]
+                - generic [ref=e230]: Sales Orders
+              - link "VMI Orders" [ref=e231] [cursor=pointer]:
+                - /url: /sales/vmi-orders
+                - img [ref=e232]
+                - generic [ref=e238]: VMI Orders
+              - link "Customers" [ref=e239] [cursor=pointer]:
+                - /url: /sales/customers
+                - img [ref=e240]
+                - generic [ref=e244]: Customers
+          - generic [ref=e246]:
+            - button "Accounting" [ref=e247]:
+              - generic [ref=e248]:
+                - img [ref=e250]
+                - generic [ref=e252]: Accounting
+              - img [ref=e253]
+            - generic [ref=e256]:
+              - link "Dashboard" [ref=e257] [cursor=pointer]:
+                - /url: /accounting
+                - img [ref=e258]
+                - generic [ref=e263]: Dashboard
+              - link "Chart of Accounts" [ref=e264] [cursor=pointer]:
+                - /url: /accounting/chart-of-accounts
+                - img [ref=e265]
+                - generic [ref=e267]: Chart of Accounts
+              - link "Journal Entries" [ref=e268] [cursor=pointer]:
+                - /url: /accounting/journal-entries
+                - img [ref=e269]
+                - generic [ref=e272]: Journal Entries
+              - link "AP Invoices" [ref=e273] [cursor=pointer]:
+                - /url: /accounting/ap
+                - img [ref=e274]
+                - generic [ref=e277]: AP Invoices
+              - link "AR Invoices" [ref=e278] [cursor=pointer]:
+                - /url: /accounting/ar
+                - img [ref=e279]
+                - generic [ref=e281]: AR Invoices
+              - link "Fixed Assets" [ref=e282] [cursor=pointer]:
+                - /url: /accounting/fixed-assets
+                - img [ref=e283]
+                - generic [ref=e287]: Fixed Assets
+              - link "Equipment" [ref=e288] [cursor=pointer]:
+                - /url: /accounting/equipment
+                - img [ref=e289]
+                - generic [ref=e291]: Equipment
+              - link "Period Close" [ref=e292] [cursor=pointer]:
+                - /url: /accounting/period-close
+                - img [ref=e293]
+                - generic [ref=e296]: Period Close
+              - link "Reports" [ref=e297] [cursor=pointer]:
+                - /url: /accounting/reports
+                - img [ref=e298]
+                - generic [ref=e300]: Reports
+          - generic [ref=e302]:
+            - button "VMI Portal" [ref=e303]:
+              - generic [ref=e304]:
+                - img [ref=e306]
+                - generic [ref=e312]: VMI Portal
+              - img [ref=e313]
+            - generic [ref=e315]:
+              - link "Dashboard" [ref=e316] [cursor=pointer]:
+                - /url: /vmi
+                - img [ref=e317]
+                - generic [ref=e319]: Dashboard
+              - link "Sync" [ref=e320] [cursor=pointer]:
+                - /url: /vmi/sync
+                - img [ref=e321]
+                - generic [ref=e326]: Sync
+              - link "Orders" [ref=e327] [cursor=pointer]:
+                - /url: /sales/vmi-orders
+                - img [ref=e328]
+                - generic [ref=e332]: Orders
+          - generic [ref=e334]:
+            - button "HR" [ref=e335]:
+              - generic [ref=e336]:
+                - img [ref=e338]
+                - generic [ref=e350]: HR
+              - img [ref=e351]
+            - generic [ref=e353]:
+              - link "Organization" [ref=e354] [cursor=pointer]:
+                - /url: /hr/org
+                - img [ref=e355]
+                - generic [ref=e360]: Organization
+              - link "Employees" [ref=e361] [cursor=pointer]:
+                - /url: /hr/employees
+                - img [ref=e362]
+                - generic [ref=e367]: Employees
+              - link "Positions" [ref=e368] [cursor=pointer]:
+                - /url: /hr/positions
+                - img [ref=e369]
+                - generic [ref=e372]: Positions
+              - link "Training" [ref=e373] [cursor=pointer]:
+                - /url: /hr/training
+                - img [ref=e374]
+                - generic [ref=e377]: Training
+              - link "Authorizations" [ref=e378] [cursor=pointer]:
+                - /url: /hr/authorizations
+                - img [ref=e379]
+                - generic [ref=e381]: Authorizations
+              - link "Health Records" [ref=e382] [cursor=pointer]:
+                - /url: /hr/health-records
+                - img [ref=e383]
+                - generic [ref=e386]: Health Records
+              - link "Roles" [ref=e387] [cursor=pointer]:
+                - /url: /hr/roles
+                - img [ref=e388]
+                - generic [ref=e392]: Roles
+              - link "Notifications" [ref=e393] [cursor=pointer]:
+                - /url: /hr/notifications
+                - img [ref=e394]
+                - generic [ref=e397]: Notifications
+              - link "Audit Trail" [ref=e398] [cursor=pointer]:
+                - /url: /hr/audit
+                - img [ref=e399]
+                - generic [ref=e403]: Audit Trail
+          - generic [ref=e405]:
+            - button "Template" [ref=e406]:
+              - generic [ref=e407]:
+                - img [ref=e409]
+                - generic [ref=e414]: Template
+              - img [ref=e415]
+            - generic [ref=e417]:
+              - link "Dashboard" [ref=e418] [cursor=pointer]:
+                - /url: /template
+                - img [ref=e419]
+                - generic [ref=e424]: Dashboard
+              - link "Items" [ref=e425] [cursor=pointer]:
+                - /url: /template/items
+                - img [ref=e426]
+                - generic [ref=e430]: Items
+          - link "Reports" [ref=e432] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e434]
+            - generic [ref=e437]: Reports
+          - link "Users" [ref=e439] [cursor=pointer]:
+            - /url: /users
+            - img [ref=e441]
+            - generic [ref=e446]: Users
+          - link "Settings" [ref=e448] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e450]
+            - generic [ref=e453]: Settings
+      - generic [ref=e455]:
+        - generic [ref=e458]: S
+        - generic [ref=e460]:
+          - paragraph [ref=e461]: System Administrator
+          - paragraph [ref=e462]: admin
+        - button "Logout" [ref=e463]:
+          - img [ref=e464]
+    - main [ref=e468]:
+      - generic [ref=e469]:
+        - generic [ref=e471]:
+          - generic [ref=e472]:
+            - img [ref=e475]
+            - generic [ref=e478]:
+              - heading "ผังบัญชี" [level=1] [ref=e479]
+              - paragraph [ref=e480]: Chart of Accounts
+          - generic [ref=e481]:
+            - button "รีเฟรช" [ref=e482]:
+              - generic [ref=e483]:
+                - img
+                - text: รีเฟรช
+            - button "ส่งออก" [ref=e484] [cursor=pointer]:
+              - generic [ref=e485]:
+                - generic [ref=e486]: 
+                - generic [ref=e487]: ส่งออก
+        - generic [ref=e488]:
+          - generic [ref=e489]:
+            - generic [ref=e493]:
+              - generic [ref=e494]:
+                - paragraph [ref=e495]: บัญชีทั้งหมด
+                - paragraph [ref=e496]: "109"
+              - img [ref=e498]
+            - generic [ref=e504]:
+              - generic [ref=e505]:
+                - paragraph [ref=e506]: ใช้งาน
+                - paragraph [ref=e507]: "109"
+              - img [ref=e509]
+            - generic [ref=e515]:
+              - generic [ref=e516]:
+                - paragraph [ref=e517]: ลงบัญชีได้
+                - paragraph [ref=e518]: "86"
+              - img [ref=e520]
+            - generic [ref=e526]:
+              - generic [ref=e527]:
+                - paragraph [ref=e528]: บัญชีธนาคาร
+                - paragraph [ref=e529]: "2"
+              - img [ref=e531]
+          - generic [ref=e535]:
+            - generic [ref=e536]: การดำเนินการ
+            - button "เพิ่มบัญชี" [ref=e537] [cursor=pointer]:
+              - generic [ref=e538]:
+                - generic [ref=e539]: 
+                - generic [ref=e540]: เพิ่มบัญชี
+          - group "Tree list with 13 rows and 8 columns. Press Ctrl + right arrow to expand the focused node and Ctrl + left arrow to collapse it" [ref=e542]:
+            - status
+            - toolbar "Tree list toolbar" [ref=e544]:
+              - generic [ref=e549]:
+                - generic [ref=e550]:
+                  - generic: 
+                  - textbox "Search in the tree list" [ref=e551]:
+                    - /placeholder: ค้นหารหัสหรือชื่อบัญชี...
+                  - generic: ค้นหารหัสหรือชื่อบัญชี...
+                - generic: 
+            - row "Column รหัสบัญชี Column ชื่อบัญชี (ไทย) Column ชื่อบัญชี (อังกฤษ) Column ประเภท Column ระดับ Column ลงบัญชี Column สถานะ Column บัญชีธนาคาร" [ref=e561]:
+              - columnheader "Column รหัสบัญชี" [ref=e562] [cursor=pointer]:
+                - text: รหัสบัญชี
+                - button "Show filter options for column 'รหัสบัญชี'" [ref=e563]: 
+              - columnheader "Column ชื่อบัญชี (ไทย)" [ref=e564] [cursor=pointer]:
+                - text: ชื่อบัญชี (ไทย)
+                - button "Show filter options for column 'ชื่อบัญชี (ไทย)'" [ref=e565]: 
+              - columnheader "Column ชื่อบัญชี (อังกฤษ)" [ref=e566] [cursor=pointer]:
+                - text: ชื่อบัญชี (อังกฤษ)
+                - button "Show filter options for column 'ชื่อบัญชี (อังกฤษ)'" [ref=e567]: 
+              - columnheader "Column ประเภท" [ref=e568] [cursor=pointer]:
+                - text: ประเภท
+                - button "Show filter options for column 'ประเภท'" [ref=e569]: 
+              - columnheader "Column ระดับ" [ref=e570] [cursor=pointer]:
+                - text: ระดับ
+                - button "Show filter options for column 'ระดับ'" [ref=e571]: 
+              - columnheader "Column ลงบัญชี" [ref=e572] [cursor=pointer]:
+                - text: ลงบัญชี
+                - button "Show filter options for column 'ลงบัญชี'" [ref=e573]: 
+              - columnheader "Column สถานะ" [ref=e574] [cursor=pointer]:
+                - text: สถานะ
+                - button "Show filter options for column 'สถานะ'" [ref=e575]: 
+              - columnheader "Column บัญชีธนาคาร" [ref=e576] [cursor=pointer]:
+                - text: บัญชีธนาคาร
+                - button "Show filter options for column 'บัญชีธนาคาร'" [ref=e577]: 
+            - treegrid [ref=e581]:
+              - row " 1100 สินทรัพย์หมุนเวียน Current Assets สินทรัพย์ 1 - ใช้งาน" [level=1] [ref=e591]:
+                - gridcell " 1100" [ref=e592]:
+                  - generic [ref=e594] [cursor=pointer]: 
+                  - generic [ref=e595]: "1100"
+                - gridcell "สินทรัพย์หมุนเวียน" [ref=e596]
+                - gridcell "Current Assets" [ref=e597]
+                - gridcell "สินทรัพย์" [ref=e598]
+                - gridcell "1" [ref=e599]
+                - gridcell "-" [ref=e600]
+                - gridcell "ใช้งาน" [ref=e601]:
+                  - generic [ref=e602]: ใช้งาน
+                - gridcell [ref=e603]:
+                  - checkbox [ref=e604]
+              - row " 1200 สินทรัพย์ไม่หมุนเวียน Non-Current Assets สินทรัพย์ 1 - ใช้งาน" [level=1] [ref=e607]:
+                - gridcell " 1200" [ref=e608]:
+                  - generic [ref=e610] [cursor=pointer]: 
+                  - generic [ref=e611]: "1200"
+                - gridcell "สินทรัพย์ไม่หมุนเวียน" [ref=e612]
+                - gridcell "Non-Current Assets" [ref=e613]
+                - gridcell "สินทรัพย์" [ref=e614]
+                - gridcell "1" [ref=e615]
+                - gridcell "-" [ref=e616]
+                - gridcell "ใช้งาน" [ref=e617]:
+                  - generic [ref=e618]: ใช้งาน
+                - gridcell [ref=e619]:
+                  - checkbox [ref=e620]
+              - row " 2100 หนี้สินหมุนเวียน Current Liabilities หนี้สิน 1 - ใช้งาน" [level=1] [ref=e623]:
+                - gridcell " 2100" [ref=e624]:
+                  - generic [ref=e626] [cursor=pointer]: 
+                  - generic [ref=e627]: "2100"
+                - gridcell "หนี้สินหมุนเวียน" [ref=e628]
+                - gridcell "Current Liabilities" [ref=e629]
+                - gridcell "หนี้สิน" [ref=e630]
+                - gridcell "1" [ref=e631]
+                - gridcell "-" [ref=e632]
+                - gridcell "ใช้งาน" [ref=e633]:
+                  - generic [ref=e634]: ใช้งาน
+                - gridcell [ref=e635]:
+                  - checkbox [ref=e636]
+              - row " 2200 หนี้สินไม่หมุนเวียน Non-Current Liabilities หนี้สิน 1 - ใช้งาน" [level=1] [ref=e639]:
+                - gridcell " 2200" [ref=e640]:
+                  - generic [ref=e642] [cursor=pointer]: 
+                  - generic [ref=e643]: "2200"
+                - gridcell "หนี้สินไม่หมุนเวียน" [ref=e644]
+                - gridcell "Non-Current Liabilities" [ref=e645]
+                - gridcell "หนี้สิน" [ref=e646]
+                - gridcell "1" [ref=e647]
+                - gridcell "-" [ref=e648]
+                - gridcell "ใช้งาน" [ref=e649]:
+                  - generic [ref=e650]: ใช้งาน
+                - gridcell [ref=e651]:
+                  - checkbox [ref=e652]
+              - row " 3100 ทุน Share Capital ส่วนของผู้ถือหุ้น 1 - ใช้งาน" [level=1] [ref=e655]:
+                - gridcell " 3100" [ref=e656]:
+                  - generic [ref=e658] [cursor=pointer]: 
+                  - generic [ref=e659]: "3100"
+                - gridcell "ทุน" [ref=e660]
+                - gridcell "Share Capital" [ref=e661]
+                - gridcell "ส่วนของผู้ถือหุ้น" [ref=e662]
+                - gridcell "1" [ref=e663]
+                - gridcell "-" [ref=e664]
+                - gridcell "ใช้งาน" [ref=e665]:
+                  - generic [ref=e666]: ใช้งาน
+                - gridcell [ref=e667]:
+                  - checkbox [ref=e668]
+              - row " 3200 กำไรสะสม Retained Earnings ส่วนของผู้ถือหุ้น 1 - ใช้งาน" [level=1] [ref=e671]:
+                - gridcell " 3200" [ref=e672]:
+                  - generic [ref=e674] [cursor=pointer]: 
+                  - generic [ref=e675]: "3200"
+                - gridcell "กำไรสะสม" [ref=e676]
+                - gridcell "Retained Earnings" [ref=e677]
+                - gridcell "ส่วนของผู้ถือหุ้น" [ref=e678]
+                - gridcell "1" [ref=e679]
+                - gridcell "-" [ref=e680]
+                - gridcell "ใช้งาน" [ref=e681]:
+                  - generic [ref=e682]: ใช้งาน
+                - gridcell [ref=e683]:
+                  - checkbox [ref=e684]
+              - row " 4100 รายได้จากการขาย Sales Revenue รายได้ 1 - ใช้งาน" [level=1] [ref=e687]:
+                - gridcell " 4100" [ref=e688]:
+                  - generic [ref=e690] [cursor=pointer]: 
+                  - generic [ref=e691]: "4100"
+                - gridcell "รายได้จากการขาย" [ref=e692]
+                - gridcell "Sales Revenue" [ref=e693]
+                - gridcell "รายได้" [ref=e694]
+                - gridcell "1" [ref=e695]
+                - gridcell "-" [ref=e696]
+                - gridcell "ใช้งาน" [ref=e697]:
+                  - generic [ref=e698]: ใช้งาน
+                - gridcell [ref=e699]:
+                  - checkbox [ref=e700]
+              - row " 5100 ต้นทุนขาย Cost of Goods Sold ต้นทุนขาย 1 - ใช้งาน" [level=1] [ref=e703]:
+                - gridcell " 5100" [ref=e704]:
+                  - generic [ref=e706] [cursor=pointer]: 
+                  - generic [ref=e707]: "5100"
+                - gridcell "ต้นทุนขาย" [ref=e708]
+                - gridcell "Cost of Goods Sold" [ref=e709]
+                - gridcell "ต้นทุนขาย" [ref=e710]
+                - gridcell "1" [ref=e711]
+                - gridcell "-" [ref=e712]
+                - gridcell "ใช้งาน" [ref=e713]:
+                  - generic [ref=e714]: ใช้งาน
+                - gridcell [ref=e715]:
+                  - checkbox [ref=e716]
+              - row " 6100 ค่าใช้จ่ายในการขาย Selling Expenses ค่าใช้จ่ายในการดำเนินงาน 1 - ใช้งาน" [level=1] [ref=e719]:
+                - gridcell " 6100" [ref=e720]:
+                  - generic [ref=e722] [cursor=pointer]: 
+                  - generic [ref=e723]: "6100"
+                - gridcell "ค่าใช้จ่ายในการขาย" [ref=e724]
+                - gridcell "Selling Expenses" [ref=e725]
+                - gridcell "ค่าใช้จ่ายในการดำเนินงาน" [ref=e726]
+                - gridcell "1" [ref=e727]
+                - gridcell "-" [ref=e728]
+                - gridcell "ใช้งาน" [ref=e729]:
+                  - generic [ref=e730]: ใช้งาน
+                - gridcell [ref=e731]:
+                  - checkbox [ref=e732]
+              - row " 6200 ค่าใช้จ่ายในการบริหาร Administrative Expenses ค่าใช้จ่ายในการดำเนินงาน 1 - ใช้งาน" [level=1] [ref=e735]:
+                - gridcell " 6200" [ref=e736]:
+                  - generic [ref=e738] [cursor=pointer]: 
+                  - generic [ref=e739]: "6200"
+                - gridcell "ค่าใช้จ่ายในการบริหาร" [ref=e740]
+                - gridcell "Administrative Expenses" [ref=e741]
+                - gridcell "ค่าใช้จ่ายในการดำเนินงาน" [ref=e742]
+                - gridcell "1" [ref=e743]
+                - gridcell "-" [ref=e744]
+                - gridcell "ใช้งาน" [ref=e745]:
+                  - generic [ref=e746]: ใช้งาน
+                - gridcell [ref=e747]:
+                  - checkbox [ref=e748]
+              - row " 7100 รายได้อื่น Other Income รายได้และค่าใช้จ่ายอื่น 1 - ใช้งาน" [level=1] [ref=e751]:
+                - gridcell " 7100" [ref=e752]:
+                  - generic [ref=e754] [cursor=pointer]: 
+                  - generic [ref=e755]: "7100"
+                - gridcell "รายได้อื่น" [ref=e756]
+                - gridcell "Other Income" [ref=e757]
+                - gridcell "รายได้และค่าใช้จ่ายอื่น" [ref=e758]
+                - gridcell "1" [ref=e759]
+                - gridcell "-" [ref=e760]
+                - gridcell "ใช้งาน" [ref=e761]:
+                  - generic [ref=e762]: ใช้งาน
+                - gridcell [ref=e763]:
+                  - checkbox [ref=e764]
+              - row " 7200 ค่าใช้จ่ายอื่น Other Expenses รายได้และค่าใช้จ่ายอื่น 1 - ใช้งาน" [level=1] [ref=e767]:
+                - gridcell " 7200" [ref=e768]:
+                  - generic [ref=e770] [cursor=pointer]: 
+                  - generic [ref=e771]: "7200"
+                - gridcell "ค่าใช้จ่ายอื่น" [ref=e772]
+                - gridcell "Other Expenses" [ref=e773]
+                - gridcell "รายได้และค่าใช้จ่ายอื่น" [ref=e774]
+                - gridcell "1" [ref=e775]
+                - gridcell "-" [ref=e776]
+                - gridcell "ใช้งาน" [ref=e777]:
+                  - generic [ref=e778]: ใช้งาน
+                - gridcell [ref=e779]:
+                  - checkbox [ref=e780]
+              - row " 7300 ภาษีเงินได้ Income Tax รายได้และค่าใช้จ่ายอื่น 1 - ใช้งาน" [level=1] [ref=e783]:
+                - gridcell " 7300" [ref=e784]:
+                  - generic [ref=e786] [cursor=pointer]: 
+                  - generic [ref=e787]: "7300"
+                - gridcell "ภาษีเงินได้" [ref=e788]
+                - gridcell "Income Tax" [ref=e789]
+                - gridcell "รายได้และค่าใช้จ่ายอื่น" [ref=e790]
+                - gridcell "1" [ref=e791]
+                - gridcell "-" [ref=e792]
+                - gridcell "ใช้งาน" [ref=e793]:
+                  - generic [ref=e794]: ใช้งาน
+                - gridcell [ref=e795]:
+                  - checkbox [ref=e796]
+  - button "Open Next.js Dev Tools" [ref=e807] [cursor=pointer]:
+    - img [ref=e808]
+  - alert [ref=e811]
+```

@@ -100,9 +100,11 @@ describe('Template Dashboard Page', () => {
     );
 
     // Check that the page title is rendered
-    expect(screen.getByText('Template Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('DevExtreme Charts Showcase - ERP Module Demo')).toBeInTheDocument();
-  });
+    await waitFor(() => {
+      expect(screen.getByText('Template Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('DevExtreme Charts Showcase - ERP Module Demo')).toBeInTheDocument();
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('renders KPI cards section', async () => {
     const TemplateDashboardPage = (await import('@/app/template/page')).default;

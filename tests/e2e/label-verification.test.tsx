@@ -283,6 +283,15 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
+// Mock useToast hook
+vi.mock('@/hooks/use-toast', () => ({
+  useToast: () => ({
+    toast: vi.fn(),
+    dismiss: vi.fn(),
+    toasts: [],
+  }),
+}));
+
 // Mock DevExtreme components
 vi.mock('devextreme-react/button', () => ({
   Button: ({ text, onClick, disabled }: { text: string; onClick?: () => void; disabled?: boolean }) => (

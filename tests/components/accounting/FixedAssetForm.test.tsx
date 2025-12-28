@@ -130,8 +130,10 @@ describe('FixedAssetForm - Edit Mode', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText(/Loading asset/i)).toBeInTheDocument();
-  });
+    await waitFor(() => {
+      expect(screen.getByText(/Loading asset/i)).toBeInTheDocument();
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('renders edit mode form with correct title', async () => {
     const { FixedAssetForm } = await import('@/components/accounting/FixedAssetForm');

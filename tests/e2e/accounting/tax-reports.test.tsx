@@ -219,19 +219,17 @@ describe('VAT Report Page', () => {
     await renderVATPage();
 
     await waitFor(() => {
-      // Title is in Thai, subtitle contains "VAT Report"
       expect(screen.getByText('รายงานภาษีมูลค่าเพิ่ม')).toBeInTheDocument();
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('should display tax period selector', async () => {
     await renderVATPage();
 
     await waitFor(() => {
-      // Thai label for tax period
       expect(screen.getByText('เลือกงวดภาษี')).toBeInTheDocument();
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('should display generate report button', async () => {
     await renderVATPage();

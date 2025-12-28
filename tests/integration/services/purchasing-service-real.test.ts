@@ -442,16 +442,17 @@ describe('Purchasing Service Real Integration Tests', () => {
         { lineId: testLineId, receivedQuantity: 100, lotNumber: 'LOT-001', expiryDate: FUTURE_EXPIRY },
       ];
 
-      const lotIds = await receivePurchaseOrder(testPoId, receivedLines, testWarehouseId, TEST_USER_ID);
+      const results = await receivePurchaseOrder(testPoId, receivedLines, testWarehouseId, TEST_USER_ID);
 
-      expect(lotIds.length).toBe(1);
+      expect(results.length).toBe(1);
+      expect(results[0].lotId).toBeGreaterThan(0);
 
       // Verify PO status
       const po = sqlite.prepare('SELECT status FROM purchase_orders WHERE id = ?').get(testPoId) as any;
       expect(po.status).toBe('received');
 
       // Verify lot was created in quarantine
-      const lot = sqlite.prepare('SELECT * FROM inventory_lots WHERE id = ?').get(lotIds[0]) as any;
+      const lot = sqlite.prepare('SELECT * FROM inventory_lots WHERE id = ?').get(results[0].lotId) as any;
       expect(lot.status).toBe('quarantine');
       expect(lot.quantity).toBe(100);
       expect(lot.lot_number).toBe('LOT-001');
@@ -694,11 +695,11 @@ describe('Purchasing Service Real Integration Tests', () => {
       const receivedLines = [
         { lineId: poLine.id, receivedQuantity: 100, lotNumber: 'LOT-FULL', expiryDate: FUTURE_EXPIRY },
       ];
-      const lotIds = await receivePurchaseOrder(poId, receivedLines, testWarehouseId, TEST_USER_ID);
+      const results = await receivePurchaseOrder(poId, receivedLines, testWarehouseId, TEST_USER_ID);
 
       po = sqlite.prepare('SELECT status FROM purchase_orders WHERE id = ?').get(poId) as any;
       expect(po.status).toBe('received');
-      expect(lotIds.length).toBe(1);
+      expect(results.length).toBe(1);
 
       // 6. Close PO
       await updatePurchaseOrderStatus(poId, 'closed', TEST_USER_ID);
@@ -706,7 +707,7 @@ describe('Purchasing Service Real Integration Tests', () => {
       expect(po.status).toBe('closed');
 
       // Verify inventory lot in quarantine
-      const lot = sqlite.prepare('SELECT * FROM inventory_lots WHERE id = ?').get(lotIds[0]) as any;
+      const lot = sqlite.prepare('SELECT * FROM inventory_lots WHERE id = ?').get(results[0].lotId) as any;
       expect(lot.status).toBe('quarantine');
       expect(lot.quantity).toBe(100);
     });

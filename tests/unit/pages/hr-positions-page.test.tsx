@@ -181,8 +181,11 @@ vi.mock('@/components/shared', () => ({
 }));
 
 vi.mock('@/components/ui/dx-button', () => ({
-  DxButton: vi.fn(({ text, onClick, icon }) => (
-    <button data-testid={`dx-button-${icon || text}`} onClick={onClick}>
+  DxButton: vi.fn(({ text, onClick, icon, elementAttr }) => (
+    <button 
+      data-testid={elementAttr?.['data-testid'] || `dx-button-${icon || text}`} 
+      onClick={onClick}
+    >
       {text}
     </button>
   )),
@@ -421,15 +424,15 @@ describe('HR Positions Page', () => {
       expect(grid).toHaveAttribute('data-row-count', '4');
     });
 
-    it('should select position when clicking row in grid', async () => {
+    it('should navigate to detail page when clicking row in grid', async () => {
       render(<PositionsPage />);
 
       const firstRow = screen.getByTestId('grid-row-0');
       fireEvent.click(firstRow);
 
-      // After clicking, detail panel should show position info
+      // After clicking, should navigate to position detail page (page-based navigation pattern)
       await waitFor(() => {
-        expect(screen.getByText('ผู้จัดการควบคุมคุณภาพ')).toBeInTheDocument();
+        expect(mockPush).toHaveBeenCalledWith('/hr/positions/1');
       });
     });
   });
@@ -441,26 +444,14 @@ describe('HR Positions Page', () => {
       expect(screen.getByText('เลือกตำแหน่งเพื่อดูรายละเอียด')).toBeInTheDocument();
     });
 
-    it('should show position details when a position is selected', async () => {
+    it('should navigate to position detail page when row is clicked', async () => {
       render(<PositionsPage />);
 
       const firstRow = screen.getByTestId('grid-row-0');
       fireEvent.click(firstRow);
 
       await waitFor(() => {
-        expect(screen.getByText('ผู้จัดการควบคุมคุณภาพ')).toBeInTheDocument();
-        expect(screen.getByText('QC-001')).toBeInTheDocument();
-      });
-    });
-
-    it('should show job descriptions section', async () => {
-      render(<PositionsPage />);
-
-      const firstRow = screen.getByTestId('grid-row-0');
-      fireEvent.click(firstRow);
-
-      await waitFor(() => {
-        expect(screen.getByText('รายละเอียดงาน')).toBeInTheDocument();
+        expect(mockPush).toHaveBeenCalledWith('/hr/positions/1');
       });
     });
   });
@@ -524,39 +515,21 @@ describe('HR Positions Page', () => {
     it('should render add position button', () => {
       render(<PositionsPage />);
 
-      const addButton = screen.getByTestId('dx-button-add');
+      const addButton = screen.getByTestId('hr-add-position-btn');
       expect(addButton).toBeInTheDocument();
       expect(addButton).toHaveTextContent('เพิ่มตำแหน่ง');
     });
 
-    it('should show create popup when add button is clicked', async () => {
+    it('should navigate to new position page when add button is clicked', async () => {
       render(<PositionsPage />);
 
-      const addButton = screen.getByTestId('dx-button-add');
+      const addButton = screen.getByTestId('hr-add-position-btn');
       fireEvent.click(addButton);
 
       await waitFor(() => {
-        const popup = screen.getByTestId('dx-popup');
-        expect(popup).toBeInTheDocument();
-        expect(popup).toHaveAttribute('data-title', 'เพิ่มตำแหน่งงานใหม่');
+        expect(mockPush).toHaveBeenCalledWith('/hr/positions/new');
       });
     });
   });
 
-  describe('Create Position Form', () => {
-    it('should render form fields in create popup', async () => {
-      render(<PositionsPage />);
-
-      const addButton = screen.getByTestId('dx-button-add');
-      fireEvent.click(addButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('รหัสตำแหน่ง')).toBeInTheDocument();
-        expect(screen.getByText('ชื่อตำแหน่ง (ภาษาไทย)')).toBeInTheDocument();
-        expect(screen.getByText('ระดับตำแหน่ง')).toBeInTheDocument();
-        expect(screen.getByText('หน่วยงาน')).toBeInTheDocument();
-        expect(screen.getByText('ตำแหน่ง GMP Critical')).toBeInTheDocument();
-      });
-    });
-  });
 });
