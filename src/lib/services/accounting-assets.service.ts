@@ -301,6 +301,45 @@ export async function updateFixedAsset(
     .where(eq(fixedAssets.id, id));
 }
 
+/**
+ * Delete fixed asset
+ * Validates no disposal records exist before deletion
+ * Cascades to delete related movements and depreciation records
+ */
+export async function deleteFixedAsset(id: number): Promise<void> {
+  const { fixedAssets, assetDisposals, assetMovements, assetDepreciations } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  // Check if asset exists
+  const asset = await database
+    .select()
+    .from(fixedAssets)
+    .where(eq(fixedAssets.id, id))
+    .limit(1);
+
+  if (asset.length === 0) {
+    throw new Error('Fixed asset not found');
+  }
+
+  // Check if asset has disposal records
+  const disposals = await database
+    .select()
+    .from(assetDisposals)
+    .where(eq(assetDisposals.fixedAssetId, id))
+    .limit(1);
+
+  if (disposals.length > 0) {
+    throw new Error('Cannot delete asset with disposal records');
+  }
+
+  // Delete related records first
+  await database.delete(assetMovements).where(eq(assetMovements.fixedAssetId, id));
+  await database.delete(assetDepreciations).where(eq(assetDepreciations.fixedAssetId, id));
+
+  // Delete the asset
+  await database.delete(fixedAssets).where(eq(fixedAssets.id, id));
+}
+
 // ============================================
 // Depreciation Functions
 // ============================================

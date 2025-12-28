@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFixedAssetById, updateFixedAsset } from '@/lib/services/accounting-assets.service';
+import { getFixedAssetById, updateFixedAsset, deleteFixedAsset } from '@/lib/services/accounting-assets.service';
 import { fixedAssetUpdateSchema } from '@/lib/validation/accounting';
 
 interface RouteParams {
@@ -66,6 +66,26 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     console.error('Error updating fixed asset:', error);
     return NextResponse.json(
       { error: 'Failed to update fixed asset' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const { id } = await params;
+    const assetId = parseInt(id, 10);
+
+    if (isNaN(assetId)) {
+      return NextResponse.json({ error: 'Invalid asset ID' }, { status: 400 });
+    }
+
+    await deleteFixedAsset(assetId);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting fixed asset:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to delete fixed asset' },
       { status: 500 }
     );
   }
