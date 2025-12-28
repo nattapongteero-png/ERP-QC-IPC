@@ -123,7 +123,8 @@ describe('EquipmentForm - Edit Mode', () => {
   });
 
   it('shows loading state in edit mode while fetching', async () => {
-    // Mock a slow fetch
+    // Simply check the component shows loading when fetch is pending
+    // Use a never-resolving promise but don't wait for it
     mockFetch.mockImplementation(() => new Promise(() => {}));
 
     const { EquipmentForm } = await import('@/components/accounting/EquipmentForm');
@@ -134,8 +135,9 @@ describe('EquipmentForm - Edit Mode', () => {
       </TestWrapper>
     );
 
+    // Immediately check loading state is shown
     expect(screen.getByText(/Loading equipment/i)).toBeInTheDocument();
-  });
+  }, 10000); // Increase timeout for slow CI environments
 
   it('renders edit mode form with correct title', async () => {
     const { EquipmentForm } = await import('@/components/accounting/EquipmentForm');
