@@ -80,12 +80,27 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Invalid asset ID' }, { status: 400 });
     }
 
-    await deleteFixedAsset(assetId);
+    // TODO: Get userId from session when auth is implemented
+    const userId = undefined;
+
+    await deleteFixedAsset(assetId, userId);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting fixed asset:', error);
+
+    // Return appropriate status codes based on error message
+    if (error instanceof Error) {
+      if (error.message === 'Fixed asset not found') {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+      if (error.message === 'Cannot delete asset with disposal records') {
+        return NextResponse.json({ error: error.message }, { status: 409 });
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete fixed asset' },
+      { error: 'Failed to delete fixed asset' },
       { status: 500 }
     );
   }
