@@ -5,8 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { rejectPR } from '@/lib/services/purchase-requisition.service';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -14,8 +13,8 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const userId = session.user.id ? parseInt(String(session.user.id), 10) : 1;
+    const userId = session.userId;
 
     await rejectPR(prId, userId, reason);
 

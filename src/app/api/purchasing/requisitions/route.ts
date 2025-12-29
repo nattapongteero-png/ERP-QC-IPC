@@ -7,13 +7,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPR, listPRs } from '@/lib/services/purchase-requisition.service';
 import { prCreateSchema, prListFilterSchema } from '@/lib/validation/purchase-requisition';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -45,14 +44,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await getSession();
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
     const data = prCreateSchema.parse(body);
-    const userId = session.user.id ? parseInt(String(session.user.id), 10) : 1;
+    const userId = session.userId;
 
     const prId = await createPR(data, userId);
 

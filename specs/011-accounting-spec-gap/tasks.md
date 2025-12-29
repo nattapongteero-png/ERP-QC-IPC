@@ -105,31 +105,31 @@
 
 ### Implementation for User Story 2
 
-- [ ] T052 [P] [US2] Create bank-reconciliation type definitions in src/types/bank-reconciliation.ts
-- [ ] T053 [P] [US2] Create bank-reconciliation Zod validation schemas in src/lib/validation/bank-reconciliation.ts
-- [ ] T054 [US2] Implement bank-reconciliation.service.ts in src/lib/services/bank-reconciliation.service.ts (CRUD for statements)
-- [ ] T055 [US2] Implement CSV import logic in src/lib/services/bank-reconciliation.service.ts (importBankStatement)
-- [ ] T056 [US2] Implement auto-matching algorithm in src/lib/services/bank-reconciliation.service.ts (autoMatch with date/amount tolerance)
-- [ ] T057 [US2] Implement manual matching in src/lib/services/bank-reconciliation.service.ts (matchLineToPayment)
-- [ ] T058 [US2] Implement bank charge journal creation in src/lib/services/bank-reconciliation.service.ts (createBankChargeJournal)
-- [ ] T059 [US2] Implement reconciliation completion in src/lib/services/bank-reconciliation.service.ts (markReconciled)
-- [ ] T060 [P] [US2] Create API route GET /api/accounting/bank-statements in src/app/api/accounting/bank-statements/route.ts
-- [ ] T061 [P] [US2] Create API route POST /api/accounting/bank-statements/import in src/app/api/accounting/bank-statements/import/route.ts
-- [ ] T062 [P] [US2] Create API route GET /api/accounting/bank-statements/[id] in src/app/api/accounting/bank-statements/[id]/route.ts
-- [ ] T063 [P] [US2] Create API route POST /api/accounting/bank-statements/[id]/auto-match in src/app/api/accounting/bank-statements/[id]/auto-match/route.ts
-- [ ] T064 [P] [US2] Create API route GET /api/accounting/bank-statements/[id]/lines in src/app/api/accounting/bank-statements/[id]/lines/route.ts
-- [ ] T065 [P] [US2] Create API route POST /api/accounting/bank-statements/[id]/lines/[lineId]/match in src/app/api/accounting/bank-statements/[id]/lines/[lineId]/match/route.ts
-- [ ] T066 [P] [US2] Create API route POST /api/accounting/bank-statements/[id]/lines/[lineId]/create-journal in src/app/api/accounting/bank-statements/[id]/lines/[lineId]/create-journal/route.ts
-- [ ] T067 [P] [US2] Create API route POST /api/accounting/bank-statements/[id]/reconcile in src/app/api/accounting/bank-statements/[id]/reconcile/route.ts
-- [ ] T068 [P] [US2] Create API route GET /api/accounting/bank-statements/[id]/unmatched-payments in src/app/api/accounting/bank-statements/[id]/unmatched-payments/route.ts
-- [ ] T069 [US2] Create BankStatementImport component in src/components/accounting/BankStatementImport.tsx
-- [ ] T070 [US2] Create ReconciliationGrid component in src/components/accounting/ReconciliationGrid.tsx
-- [ ] T071 [US2] Create Bank Statement list page in src/app/accounting/bank-reconciliation/page.tsx
-- [ ] T072 [US2] Create Bank Statement import page in src/app/accounting/bank-reconciliation/import/page.tsx
-- [ ] T073 [US2] Create Bank Statement reconciliation detail page in src/app/accounting/bank-reconciliation/[id]/page.tsx
-- [ ] T074 [US2] Add Bank Reconciliation to sidebar navigation in src/components/layout/sidebar.tsx
-- [ ] T075 [US2] Create unit test for bank-reconciliation.service.ts in tests/unit/lib/services/bank-reconciliation.service.test.ts
-- [ ] T076 [US2] Create UI test for bank reconciliation page in tests/app/accounting/bank-reconciliation/page.test.tsx
+- [X] T052 [P] [US2] Create bank-reconciliation type definitions in src/types/bank-reconciliation.ts
+- [X] T053 [P] [US2] Create bank-reconciliation Zod validation schemas in src/lib/validation/bank-reconciliation.ts
+- [X] T054 [US2] Implement bank-reconciliation.service.ts in src/lib/services/bank-reconciliation.service.ts (CRUD for statements)
+- [X] T055 [US2] Implement CSV import logic in src/lib/services/bank-reconciliation.service.ts (importBankStatement)
+- [X] T056 [US2] Implement auto-matching algorithm in src/lib/services/bank-reconciliation.service.ts (autoMatch with date/amount tolerance)
+- [X] T057 [US2] Implement manual matching in src/lib/services/bank-reconciliation.service.ts (matchLineToPayment)
+- [X] T058 [US2] Implement bank charge journal creation in src/lib/services/bank-reconciliation.service.ts (createBankChargeJournal)
+- [X] T059 [US2] Implement reconciliation completion in src/lib/services/bank-reconciliation.service.ts (markReconciled)
+- [X] T060 [P] [US2] Create API route GET /api/accounting/bank-statements in src/app/api/accounting/bank-statements/route.ts
+- [X] T061 [P] [US2] Create API route POST /api/accounting/bank-statements/import in src/app/api/accounting/bank-statements/import/route.ts
+- [X] T062 [P] [US2] Create API route GET /api/accounting/bank-statements/[id] in src/app/api/accounting/bank-statements/[id]/route.ts
+- [X] T063 [P] [US2] Create API route POST /api/accounting/bank-statements/[id]/auto-match in src/app/api/accounting/bank-statements/[id]/auto-match/route.ts
+- [X] T064 [P] [US2] Create API route GET /api/accounting/bank-statements/[id]/lines in src/app/api/accounting/bank-statements/[id]/lines/route.ts
+- [X] T065 [P] [US2] Create API route POST /api/accounting/bank-statements/[id]/lines/[lineId]/match in src/app/api/accounting/bank-statements/[id]/lines/[lineId]/match/route.ts
+- [X] T066 [P] [US2] Create API route POST /api/accounting/bank-statements/[id]/lines/[lineId]/create-journal in src/app/api/accounting/bank-statements/[id]/lines/[lineId]/create-journal/route.ts
+- [X] T067 [P] [US2] Create API route POST /api/accounting/bank-statements/[id]/reconcile in src/app/api/accounting/bank-statements/[id]/reconcile/route.ts
+- [X] T068 [P] [US2] Create API route GET /api/accounting/bank-statements/[id]/unmatched-payments in src/app/api/accounting/bank-statements/[id]/unmatched-payments/route.ts
+- [X] T069 [US2] Create BankStatementImport component in src/components/accounting/BankStatementImport.tsx
+- [X] T070 [US2] Create ReconciliationGrid component in src/components/accounting/ReconciliationGrid.tsx
+- [X] T071 [US2] Create Bank Statement list page in src/app/accounting/bank-reconciliation/page.tsx
+- [X] T072 [US2] Create Bank Statement import page in src/app/accounting/bank-reconciliation/import/page.tsx
+- [X] T073 [US2] Create Bank Statement reconciliation detail page in src/app/accounting/bank-reconciliation/[id]/page.tsx
+- [X] T074 [US2] Add Bank Reconciliation to sidebar navigation in src/components/layout/sidebar.tsx
+- [X] T075 [US2] Create unit test for bank-reconciliation.service.ts in tests/unit/lib/services/bank-reconciliation.service.test.ts
+- [X] T076 [US2] Create UI test for bank reconciliation page in tests/app/accounting/bank-reconciliation/page.test.tsx
 
 **Checkpoint**: User Story 2 complete - Bank statements can be imported, matched, and reconciled
 
@@ -143,30 +143,30 @@
 
 ### Implementation for User Story 3
 
-- [ ] T077 [P] [US3] Create credit-debit-notes type definitions in src/types/credit-debit-notes.ts
-- [ ] T078 [P] [US3] Create credit-debit-notes Zod validation schemas in src/lib/validation/credit-debit-notes.ts
-- [ ] T079 [US3] Implement credit-debit-notes.service.ts in src/lib/services/credit-debit-notes.service.ts (CRUD, note number generation)
-- [ ] T080 [US3] Implement CN/DN posting logic in src/lib/services/credit-debit-notes.service.ts (create reversal JE, VAT transaction)
-- [ ] T081 [US3] Implement invoice balance update in src/lib/services/credit-debit-notes.service.ts (reduce balance_due on invoice)
-- [ ] T082 [US3] Implement available-for-credit check in src/lib/services/credit-debit-notes.service.ts (getInvoiceAvailableForCredit)
-- [ ] T083 [P] [US3] Create API route GET/POST /api/accounting/credit-notes in src/app/api/accounting/credit-notes/route.ts
-- [ ] T084 [P] [US3] Create API route GET/PUT /api/accounting/credit-notes/[id] in src/app/api/accounting/credit-notes/[id]/route.ts
-- [ ] T085 [P] [US3] Create API route POST /api/accounting/credit-notes/[id]/submit in src/app/api/accounting/credit-notes/[id]/submit/route.ts
-- [ ] T086 [P] [US3] Create API route POST /api/accounting/credit-notes/[id]/approve in src/app/api/accounting/credit-notes/[id]/approve/route.ts
-- [ ] T087 [P] [US3] Create API route POST /api/accounting/credit-notes/[id]/post in src/app/api/accounting/credit-notes/[id]/post/route.ts
-- [ ] T088 [P] [US3] Create API route POST /api/accounting/credit-notes/[id]/cancel in src/app/api/accounting/credit-notes/[id]/cancel/route.ts
-- [ ] T089 [P] [US3] Create API route GET/POST /api/accounting/debit-notes in src/app/api/accounting/debit-notes/route.ts
-- [ ] T090 [P] [US3] Create API route GET /api/accounting/debit-notes/[id] in src/app/api/accounting/debit-notes/[id]/route.ts
-- [ ] T091 [P] [US3] Create API route POST /api/accounting/debit-notes/[id]/post in src/app/api/accounting/debit-notes/[id]/post/route.ts
-- [ ] T092 [P] [US3] Create API route GET /api/accounting/invoices/[id]/available-for-credit in src/app/api/accounting/invoices/[id]/available-for-credit/route.ts
-- [ ] T093 [US3] Create CreditNoteForm component in src/components/accounting/CreditNoteForm.tsx
-- [ ] T094 [US3] Create Credit Notes list page in src/app/accounting/credit-notes/page.tsx
-- [ ] T095 [US3] Create Credit Note create page in src/app/accounting/credit-notes/new/page.tsx
-- [ ] T096 [US3] Create Debit Notes list page in src/app/accounting/debit-notes/page.tsx
-- [ ] T097 [US3] Create Debit Note create page in src/app/accounting/debit-notes/new/page.tsx
-- [ ] T098 [US3] Add Credit Notes and Debit Notes to sidebar navigation in src/components/layout/sidebar.tsx
-- [ ] T099 [US3] Create unit test for credit-debit-notes.service.ts in tests/unit/lib/services/credit-debit-notes.service.test.ts
-- [ ] T100 [US3] Create UI test for credit notes page in tests/app/accounting/credit-notes/page.test.tsx
+- [X] T077 [P] [US3] Create credit-debit-notes type definitions in src/types/credit-debit-notes.ts
+- [X] T078 [P] [US3] Create credit-debit-notes Zod validation schemas in src/lib/validation/credit-debit-notes.ts
+- [X] T079 [US3] Implement credit-debit-notes.service.ts in src/lib/services/credit-debit-notes.service.ts (CRUD, note number generation)
+- [X] T080 [US3] Implement CN/DN posting logic in src/lib/services/credit-debit-notes.service.ts (create reversal JE, VAT transaction)
+- [X] T081 [US3] Implement invoice balance update in src/lib/services/credit-debit-notes.service.ts (reduce balance_due on invoice)
+- [X] T082 [US3] Implement available-for-credit check in src/lib/services/credit-debit-notes.service.ts (getInvoiceAvailableForCredit)
+- [X] T083 [P] [US3] Create API route GET/POST /api/accounting/credit-notes in src/app/api/accounting/credit-notes/route.ts
+- [X] T084 [P] [US3] Create API route GET/PUT /api/accounting/credit-notes/[id] in src/app/api/accounting/credit-notes/[id]/route.ts
+- [X] T085 [P] [US3] Create API route POST /api/accounting/credit-notes/[id]/submit in src/app/api/accounting/credit-notes/[id]/submit/route.ts
+- [X] T086 [P] [US3] Create API route POST /api/accounting/credit-notes/[id]/approve in src/app/api/accounting/credit-notes/[id]/approve/route.ts
+- [X] T087 [P] [US3] Create API route POST /api/accounting/credit-notes/[id]/post in src/app/api/accounting/credit-notes/[id]/post/route.ts
+- [X] T088 [P] [US3] Create API route POST /api/accounting/credit-notes/[id]/cancel in src/app/api/accounting/credit-notes/[id]/cancel/route.ts
+- [X] T089 [P] [US3] Create API route GET/POST /api/accounting/debit-notes in src/app/api/accounting/debit-notes/route.ts
+- [X] T090 [P] [US3] Create API route GET /api/accounting/debit-notes/[id] in src/app/api/accounting/debit-notes/[id]/route.ts
+- [X] T091 [P] [US3] Create API route POST /api/accounting/debit-notes/[id]/post in src/app/api/accounting/debit-notes/[id]/post/route.ts
+- [X] T092 [P] [US3] Create API route GET /api/accounting/invoices/[id]/available-for-credit in src/app/api/accounting/invoices/[id]/available-for-credit/route.ts
+- [X] T093 [US3] Create CreditNoteForm component in src/components/accounting/CreditNoteForm.tsx
+- [X] T094 [US3] Create Credit Notes list page in src/app/accounting/credit-notes/page.tsx
+- [X] T095 [US3] Create Credit Note create page in src/app/accounting/credit-notes/new/page.tsx
+- [X] T096 [US3] Create Debit Notes list page in src/app/accounting/debit-notes/page.tsx
+- [X] T097 [US3] Create Debit Note create page in src/app/accounting/debit-notes/new/page.tsx
+- [X] T098 [US3] Add Credit Notes and Debit Notes to sidebar navigation in src/components/layout/sidebar.tsx
+- [X] T099 [US3] Create unit test for credit-debit-notes.service.ts in tests/unit/lib/services/credit-debit-notes.service.test.ts
+- [X] T100 [US3] Create UI test for credit notes page in tests/app/accounting/credit-notes/page.test.tsx
 
 **Checkpoint**: User Story 3 complete - CN/DN can be created, approved, posted with proper GL entries
 
@@ -180,28 +180,28 @@
 
 ### Implementation for User Story 4
 
-- [ ] T101 [P] [US4] Create matching type definitions in src/types/matching.ts
-- [ ] T102 [P] [US4] Create matching Zod validation schemas in src/lib/validation/matching.ts
-- [ ] T103 [US4] Implement matching.service.ts in src/lib/services/matching.service.ts (CRUD for tolerances)
-- [ ] T104 [US4] Implement 3-way matching algorithm in src/lib/services/matching.service.ts (runMatching comparing PO/GRN/Invoice)
-- [ ] T105 [US4] Implement exception creation in src/lib/services/matching.service.ts (createMatchingException)
-- [ ] T106 [US4] Implement exception approval/rejection in src/lib/services/matching.service.ts (approveException, rejectException)
-- [ ] T107 [US4] Implement GR/IR clearing report in src/lib/services/matching.service.ts (getGRIRClearingReport)
-- [ ] T108 [P] [US4] Create API route GET/POST /api/settings/matching-tolerances in src/app/api/settings/matching-tolerances/route.ts
-- [ ] T109 [P] [US4] Create API route GET/PUT/DELETE /api/settings/matching-tolerances/[id] in src/app/api/settings/matching-tolerances/[id]/route.ts
-- [ ] T110 [P] [US4] Create API route GET /api/accounting/matching in src/app/api/accounting/matching/route.ts
-- [ ] T111 [P] [US4] Create API route POST /api/accounting/matching/invoice/[id] in src/app/api/accounting/matching/invoice/[id]/route.ts
-- [ ] T112 [P] [US4] Create API route GET /api/accounting/matching/results/[id] in src/app/api/accounting/matching/results/[id]/route.ts
-- [ ] T113 [P] [US4] Create API route GET /api/accounting/matching/exceptions in src/app/api/accounting/matching/exceptions/route.ts
-- [ ] T114 [P] [US4] Create API route POST /api/accounting/matching/exceptions/[id]/approve in src/app/api/accounting/matching/exceptions/[id]/approve/route.ts
-- [ ] T115 [P] [US4] Create API route POST /api/accounting/matching/exceptions/[id]/reject in src/app/api/accounting/matching/exceptions/[id]/reject/route.ts
-- [ ] T116 [P] [US4] Create API route GET /api/accounting/reports/gr-ir-clearing in src/app/api/accounting/reports/gr-ir-clearing/route.ts
-- [ ] T117 [US4] Create Matching Tolerances config page in src/app/settings/matching-tolerances/page.tsx
-- [ ] T118 [US4] Create Matching Exceptions list page in src/app/accounting/matching/page.tsx
-- [ ] T119 [US4] Add Matching Tolerances to sidebar navigation in src/components/layout/sidebar.tsx
-- [ ] T120 [US4] Integrate matching validation into AP Invoice posting in src/lib/services/accounting.service.ts
-- [ ] T121 [US4] Create unit test for matching.service.ts in tests/unit/lib/services/matching.service.test.ts
-- [ ] T122 [US4] Create UI test for matching tolerances page in tests/app/settings/matching-tolerances/page.test.tsx
+- [X] T101 [P] [US4] Create matching type definitions in src/types/matching.ts
+- [X] T102 [P] [US4] Create matching Zod validation schemas in src/lib/validation/matching.ts
+- [X] T103 [US4] Implement matching.service.ts in src/lib/services/matching.service.ts (CRUD for tolerances)
+- [X] T104 [US4] Implement 3-way matching algorithm in src/lib/services/matching.service.ts (runMatching comparing PO/GRN/Invoice)
+- [X] T105 [US4] Implement exception creation in src/lib/services/matching.service.ts (createMatchingException)
+- [X] T106 [US4] Implement exception approval/rejection in src/lib/services/matching.service.ts (approveException, rejectException)
+- [X] T107 [US4] Implement GR/IR clearing report in src/lib/services/matching.service.ts (getGRIRClearingReport)
+- [X] T108 [P] [US4] Create API route GET/POST /api/settings/matching-tolerances in src/app/api/settings/matching-tolerances/route.ts
+- [X] T109 [P] [US4] Create API route GET/PUT/DELETE /api/settings/matching-tolerances/[id] in src/app/api/settings/matching-tolerances/[id]/route.ts
+- [X] T110 [P] [US4] Create API route GET /api/accounting/matching in src/app/api/accounting/matching/route.ts
+- [X] T111 [P] [US4] Create API route POST /api/accounting/matching/invoice/[id] in src/app/api/accounting/matching/invoice/[id]/route.ts
+- [X] T112 [P] [US4] Create API route GET /api/accounting/matching/results/[id] in src/app/api/accounting/matching/results/[id]/route.ts
+- [X] T113 [P] [US4] Create API route GET /api/accounting/matching/exceptions in src/app/api/accounting/matching/exceptions/route.ts
+- [X] T114 [P] [US4] Create API route POST /api/accounting/matching/exceptions/[id]/approve in src/app/api/accounting/matching/exceptions/[id]/approve/route.ts
+- [X] T115 [P] [US4] Create API route POST /api/accounting/matching/exceptions/[id]/reject in src/app/api/accounting/matching/exceptions/[id]/reject/route.ts
+- [X] T116 [P] [US4] Create API route GET /api/accounting/reports/gr-ir-clearing in src/app/api/accounting/reports/gr-ir-clearing/route.ts
+- [X] T117 [US4] Create Matching Tolerances config page in src/app/settings/matching-tolerances/page.tsx
+- [X] T118 [US4] Create Matching Exceptions list page in src/app/accounting/matching/page.tsx
+- [X] T119 [US4] Add Matching Tolerances to sidebar navigation in src/components/layout/sidebar.tsx
+- [X] T120 [US4] Integrate matching validation into AP Invoice posting in src/lib/services/accounting.service.ts
+- [X] T121 [US4] Create unit test for matching.service.ts in tests/unit/lib/services/matching.service.test.ts
+- [X] T122 [US4] Create UI test for matching tolerances page in tests/app/settings/matching-tolerances/page.test.tsx
 
 **Checkpoint**: User Story 4 complete - AP invoices are validated against PO/GRN with tolerance checking
 
@@ -215,12 +215,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T123 [US5] Enhance approval workflow UI with rule builder in src/components/settings/ApprovalRuleBuilder.tsx
-- [ ] T124 [US5] Create approval workflow testing/preview feature in src/lib/services/approval-workflow.service.ts (testWorkflow)
-- [ ] T125 [US5] Add approval workflow audit log view in src/app/settings/approval-workflows/[id]/history/page.tsx
-- [ ] T126 [US5] Create Approval Dashboard page in src/app/accounting/approvals/page.tsx
-- [ ] T127 [US5] Add Approvals to sidebar navigation in src/components/layout/sidebar.tsx
-- [ ] T128 [US5] Create E2E test for approval workflow in tests/e2e/accounting/approval-workflow.spec.ts
+- [X] T123 [US5] Enhance approval workflow UI with rule builder in src/components/settings/ApprovalRuleBuilder.tsx
+- [X] T124 [US5] Create approval workflow testing/preview feature in src/lib/services/approval-workflow.service.ts (testWorkflow)
+- [X] T125 [US5] Add approval workflow audit log view in src/app/settings/approval-workflows/[id]/history/page.tsx
+- [X] T126 [US5] Create Approval Dashboard page in src/app/accounting/approvals/page.tsx
+- [X] T127 [US5] Add Approvals to sidebar navigation in src/components/layout/sidebar.tsx
+- [X] T128 [US5] Create E2E test for approval workflow in tests/e2e/accounting/approval-workflow.spec.ts
 
 **Checkpoint**: User Story 5 complete - Approval workflows are fully configurable with rule-based routing
 
@@ -234,30 +234,30 @@
 
 ### Implementation for User Story 6
 
-- [ ] T129 [P] [US6] Create variance type definitions in src/types/variance.ts
-- [ ] T130 [P] [US6] Create variance Zod validation schemas in src/lib/validation/variance.ts
-- [ ] T131 [US6] Implement variance-analysis.service.ts in src/lib/services/variance-analysis.service.ts (CRUD for standard costs)
-- [ ] T132 [US6] Implement variance calculation in src/lib/services/variance-analysis.service.ts (calculateWorkOrderVariances for MPV, MUV, LRV, LEV)
-- [ ] T133 [US6] Implement standard cost roll-up from BOM in src/lib/services/variance-analysis.service.ts (rollupStandardCosts)
-- [ ] T134 [US6] Implement variance posting in src/lib/services/variance-analysis.service.ts (postVariances creating JE)
-- [ ] T135 [US6] Integrate variance calculation into work order completion in src/lib/services/production.service.ts
-- [ ] T136 [P] [US6] Create API route GET/POST /api/accounting/standard-costs in src/app/api/accounting/standard-costs/route.ts
-- [ ] T137 [P] [US6] Create API route GET /api/accounting/standard-costs/[id] in src/app/api/accounting/standard-costs/[id]/route.ts
-- [ ] T138 [P] [US6] Create API route GET /api/accounting/standard-costs/item/[itemId] in src/app/api/accounting/standard-costs/item/[itemId]/route.ts
-- [ ] T139 [P] [US6] Create API route POST /api/accounting/standard-costs/rollup in src/app/api/accounting/standard-costs/rollup/route.ts
-- [ ] T140 [P] [US6] Create API route GET /api/accounting/variances in src/app/api/accounting/variances/route.ts
-- [ ] T141 [P] [US6] Create API route GET /api/accounting/variances/work-order/[id] in src/app/api/accounting/variances/work-order/[id]/route.ts
-- [ ] T142 [P] [US6] Create API route POST /api/accounting/variances/calculate in src/app/api/accounting/variances/calculate/route.ts
-- [ ] T143 [P] [US6] Create API route POST /api/accounting/variances/post in src/app/api/accounting/variances/post/route.ts
-- [ ] T144 [P] [US6] Create API route GET /api/accounting/reports/variance-summary in src/app/api/accounting/reports/variance-summary/route.ts
-- [ ] T145 [P] [US6] Create API route GET /api/accounting/reports/material-variance in src/app/api/accounting/reports/material-variance/route.ts
-- [ ] T146 [P] [US6] Create API route GET /api/accounting/reports/labor-variance in src/app/api/accounting/reports/labor-variance/route.ts
-- [ ] T147 [US6] Create VarianceChart component in src/components/accounting/VarianceChart.tsx
-- [ ] T148 [US6] Create Standard Costs management page in src/app/accounting/standard-costs/page.tsx
-- [ ] T149 [US6] Create Variance Reports dashboard in src/app/accounting/variance-reports/page.tsx
-- [ ] T150 [US6] Add Variance Reports to sidebar navigation in src/components/layout/sidebar.tsx
-- [ ] T151 [US6] Create unit test for variance-analysis.service.ts in tests/unit/lib/services/variance-analysis.service.test.ts
-- [ ] T152 [US6] Create UI test for variance reports page in tests/app/accounting/variance-reports/page.test.tsx
+- [X] T129 [P] [US6] Create variance type definitions in src/types/variance.ts
+- [X] T130 [P] [US6] Create variance Zod validation schemas in src/lib/validation/variance.ts
+- [X] T131 [US6] Implement variance-analysis.service.ts in src/lib/services/variance-analysis.service.ts (CRUD for standard costs)
+- [X] T132 [US6] Implement variance calculation in src/lib/services/variance-analysis.service.ts (calculateWorkOrderVariances for MPV, MUV, LRV, LEV)
+- [X] T133 [US6] Implement standard cost roll-up from BOM in src/lib/services/variance-analysis.service.ts (rollupStandardCosts)
+- [X] T134 [US6] Implement variance posting in src/lib/services/variance-analysis.service.ts (postVariances creating JE)
+- [X] T135 [US6] Integrate variance calculation into work order completion in src/lib/services/production.service.ts
+- [X] T136 [P] [US6] Create API route GET/POST /api/accounting/standard-costs in src/app/api/accounting/standard-costs/route.ts
+- [X] T137 [P] [US6] Create API route GET /api/accounting/standard-costs/[id] in src/app/api/accounting/standard-costs/[id]/route.ts
+- [X] T138 [P] [US6] Create API route GET /api/accounting/standard-costs/item/[itemId] in src/app/api/accounting/standard-costs/item/[itemId]/route.ts
+- [X] T139 [P] [US6] Create API route POST /api/accounting/standard-costs/rollup in src/app/api/accounting/standard-costs/rollup/route.ts
+- [X] T140 [P] [US6] Create API route GET /api/accounting/variances in src/app/api/accounting/variances/route.ts
+- [X] T141 [P] [US6] Create API route GET /api/accounting/variances/work-order/[id] in src/app/api/accounting/variances/work-order/[id]/route.ts
+- [X] T142 [P] [US6] Create API route POST /api/accounting/variances/calculate in src/app/api/accounting/variances/calculate/route.ts
+- [X] T143 [P] [US6] Create API route POST /api/accounting/variances/post in src/app/api/accounting/variances/post/route.ts
+- [X] T144 [P] [US6] Create API route GET /api/accounting/reports/variance-summary in src/app/api/accounting/reports/variance-summary/route.ts
+- [X] T145 [P] [US6] Create API route GET /api/accounting/reports/material-variance in src/app/api/accounting/reports/material-variance/route.ts
+- [X] T146 [P] [US6] Create API route GET /api/accounting/reports/labor-variance in src/app/api/accounting/reports/labor-variance/route.ts
+- [X] T147 [US6] Create VarianceChart component in src/components/accounting/VarianceChart.tsx
+- [X] T148 [US6] Create Standard Costs management page in src/app/accounting/standard-costs/page.tsx
+- [X] T149 [US6] Create Variance Reports dashboard in src/app/accounting/variance-reports/page.tsx
+- [X] T150 [US6] Add Variance Reports to sidebar navigation in src/components/layout/sidebar.tsx
+- [X] T151 [US6] Create unit test for variance-analysis.service.ts in tests/unit/lib/services/variance-analysis.service.test.ts
+- [X] T152 [US6] Create UI test for variance reports page in tests/app/accounting/variance-reports/page.test.tsx
 
 **Checkpoint**: User Story 6 complete - Variances are calculated at WO completion and can be reported
 
@@ -267,14 +267,14 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T153 [P] Add data-testid attributes to all new UI components for E2E testing
-- [ ] T154 [P] Create E2E test for Purchase Requisitions in tests/e2e/accounting/purchase-requisitions.spec.ts
-- [ ] T155 [P] Create E2E test for Bank Reconciliation in tests/e2e/accounting/bank-reconciliation.spec.ts
-- [ ] T156 [P] Create E2E test for Credit Notes in tests/e2e/accounting/credit-notes.spec.ts
-- [ ] T157 [P] Create E2E test for Variance Reports in tests/e2e/accounting/variance-reports.spec.ts
-- [ ] T158 Code cleanup and ensure all new code follows existing patterns
-- [ ] T159 Run full test suite and fix any failures
-- [ ] T160 Validate all new features against quickstart.md scenarios
+- [X] T153 [P] Add data-testid attributes to all new UI components for E2E testing
+- [X] T154 [P] Create E2E test for Purchase Requisitions in tests/e2e/accounting/purchase-requisitions.test.tsx
+- [X] T155 [P] Create E2E test for Bank Reconciliation in tests/e2e/accounting/bank-reconciliation.test.tsx
+- [X] T156 [P] Create E2E test for Credit Notes in tests/e2e/accounting/credit-notes.test.tsx
+- [X] T157 [P] Create E2E test for Variance Reports in tests/e2e/accounting/variance-reports.test.tsx
+- [X] T158 Code cleanup and ensure all new code follows existing patterns
+- [X] T159 Run full test suite and fix any failures
+- [X] T160 Validate all new features against quickstart.md scenarios
 
 ---
 
