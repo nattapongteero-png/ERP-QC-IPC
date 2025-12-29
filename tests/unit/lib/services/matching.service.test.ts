@@ -164,6 +164,7 @@ describe('3-Way Matching Service', () => {
             toleranceMethod: 'percentage',
             toleranceValue: 5,
             isActive: true,
+            priority: 1,
           },
           1  // createdBy user ID
         );
@@ -178,6 +179,8 @@ describe('3-Way Matching Service', () => {
             toleranceType: 'price',
             toleranceMethod: 'percentage',
             toleranceValue: 10,
+            isActive: true,
+            priority: 2,
           },
           1  // createdBy user ID
         );
@@ -192,6 +195,8 @@ describe('3-Way Matching Service', () => {
             toleranceType: 'amount',
             toleranceMethod: 'absolute',
             toleranceValue: 1000,
+            isActive: true,
+            priority: 3,
           },
           1  // createdBy user ID
         );
@@ -349,13 +354,13 @@ describe('3-Way Matching Service', () => {
 
       it('should accept filter parameters', async () => {
         const { getGRIRClearingReport } = await import('@/lib/services/matching.service');
-        const result = await getGRIRClearingReport({ vendorId: 1 });
+        const result = await getGRIRClearingReport({ vendorId: 1, status: 'all', page: 1, limit: 20 });
         expect(result).toBeDefined();
       });
 
       it('should accept status filter', async () => {
         const { getGRIRClearingReport } = await import('@/lib/services/matching.service');
-        const result = await getGRIRClearingReport({ status: 'open' });
+        const result = await getGRIRClearingReport({ status: 'open', page: 1, limit: 20 });
         expect(result).toBeDefined();
       });
     });

@@ -396,7 +396,7 @@ describe('Credit/Debit Note Service - Workflow Validation', () => {
     });
 
     it('disallows update on submitted notes', () => {
-      const status = 'submitted';
+      const status: string = 'submitted';
       const canUpdate = status === 'draft';
       expect(canUpdate).toBe(false);
     });
@@ -404,13 +404,13 @@ describe('Credit/Debit Note Service - Workflow Validation', () => {
 
   describe('Approved Status Operations', () => {
     it('allows post on approved notes', () => {
-      const status = 'approved';
+      const status: string = 'approved';
       const canPost = status === 'approved';
       expect(canPost).toBe(true);
     });
 
     it('disallows update on approved notes', () => {
-      const status = 'approved';
+      const status: string = 'approved';
       const canUpdate = status === 'draft';
       expect(canUpdate).toBe(false);
     });
@@ -418,13 +418,13 @@ describe('Credit/Debit Note Service - Workflow Validation', () => {
 
   describe('Posted Status Operations', () => {
     it('disallows cancel on posted notes', () => {
-      const status = 'posted';
+      const status: string = 'posted';
       const canCancel = status !== 'posted';
       expect(canCancel).toBe(false);
     });
 
     it('disallows update on posted notes', () => {
-      const status = 'posted';
+      const status: string = 'posted';
       const canUpdate = status === 'draft';
       expect(canUpdate).toBe(false);
     });

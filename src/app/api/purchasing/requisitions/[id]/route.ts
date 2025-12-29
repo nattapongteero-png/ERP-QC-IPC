@@ -58,7 +58,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const data = prUpdateSchema.parse(body);
+    const parsed = prUpdateSchema.parse(body);
+
+    // Transform null values to undefined for service compatibility
+    const data = {
+      ...parsed,
+      requiredDate: parsed.requiredDate ?? undefined,
+      description: parsed.description ?? undefined,
+      justification: parsed.justification ?? undefined,
+      costCenterId: parsed.costCenterId ?? undefined,
+      projectId: parsed.projectId ?? undefined,
+    };
 
     await updatePR(prId, data);
 

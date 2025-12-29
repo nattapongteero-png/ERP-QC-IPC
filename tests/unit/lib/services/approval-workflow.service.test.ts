@@ -388,7 +388,7 @@ describe('Approval Workflow Service', () => {
       );
 
       const stepIds = await addApprovalSteps(
-        [{ stepOrder: 1, stepName: 'Finance Role', approverType: 'role', roleId: 5 }],
+        [{ stepOrder: 1, stepName: 'Finance Role', approverType: 'role', approverId: 5 }],
         flowId
       );
 
@@ -489,7 +489,7 @@ describe('Approval Workflow Service', () => {
 
       const stepIds = await addApprovalSteps(
         [
-          { stepOrder: 1, stepName: 'Finance Manager', approverType: 'role', roleId: 10 },
+          { stepOrder: 1, stepName: 'Finance Manager', approverType: 'role', approverId: 10 },
           { stepOrder: 2, stepName: 'CFO', approverType: 'user', approverId: 5 },
         ],
         flowId

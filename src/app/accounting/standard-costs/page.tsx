@@ -19,7 +19,7 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Popup } from 'devextreme-react/popup';
 import { Form, SimpleItem, GroupItem, RequiredRule } from 'devextreme-react/form';
-import { notify } from 'devextreme/ui/notify';
+import notify from 'devextreme/ui/notify';
 import type { StandardCost } from '@/types/variance';
 
 interface CreateFormData {

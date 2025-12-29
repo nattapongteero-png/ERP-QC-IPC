@@ -236,7 +236,7 @@ export async function listStandardCosts(
       .where(whereClause);
 
     return {
-      data: data.map((c) => ({
+      data: data.map((c: { itemCode?: string | null; itemName?: string | null; effectiveDate?: Date | string | null; createdAt?: Date | string | null; [key: string]: unknown }) => ({
         ...c,
         itemCode: c.itemCode || '',
         itemName: c.itemName || '',
@@ -561,7 +561,7 @@ export async function postVariances(
 
     // Create journal entries for each work order's variances
     for (const [workOrderId, woVariances] of Object.entries(variancesByWorkOrder)) {
-      const totalVariance = woVariances.reduce((sum, v) => sum + Number(v.varianceAmount), 0);
+      const totalVariance = woVariances.reduce((sum: number, v: { varianceAmount: number | string }) => sum + Number(v.varianceAmount), 0);
       result.totalVarianceAmount += totalVariance;
 
       // Generate JE number
@@ -717,7 +717,7 @@ export async function listVariances(
     }
 
     return {
-      data: data.map((v) => ({
+      data: data.map((v: { workOrderNumber?: string | null; itemCode?: string | null; itemName?: string | null; varianceType?: string; varianceDate?: Date | string | null; createdAt?: Date | string | null; postedAt?: Date | string | null; [key: string]: unknown }) => ({
         ...v,
         workOrderNumber: v.workOrderNumber || '',
         itemCode: v.itemCode || '',

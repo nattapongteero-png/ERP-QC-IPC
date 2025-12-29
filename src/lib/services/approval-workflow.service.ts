@@ -152,7 +152,7 @@ export async function listApprovalFlows(options: {
 
     // Get rules and steps for each flow
     const flowsWithDetails = await Promise.all(
-      flows.map(async (flow) => {
+      flows.map(async (flow: { id: number; name: string; description: string | null; documentType: string; priority: number; isActive: boolean; createdBy: number; createdAt: Date | string; updatedAt: Date | string }) => {
         const rules = await db
           .select()
           .from(tables.rules)
@@ -608,7 +608,7 @@ export async function approveRequest(
   requestId: number,
   approverId: number,
   comments?: string
-): Promise<void> {
+): Promise<{ isFullyApproved: boolean }> {
   return executeDbOperation(async (db) => {
     const tables = getTables();
 
@@ -705,6 +705,7 @@ export async function approveRequest(
           currentStepOrder: nextStepOrder,
         })
         .where(eq(tables.requests.id, requestId));
+      return { isFullyApproved: false };
     } else {
       // All steps complete - mark request as approved
       await db
@@ -714,6 +715,7 @@ export async function approveRequest(
           completedAt: getNow(),
         })
         .where(eq(tables.requests.id, requestId));
+      return { isFullyApproved: true };
     }
   });
 }
@@ -1362,14 +1364,14 @@ export async function testWorkflow(
     // Evaluate each rule
     let allRulesPass = true;
     for (const rule of flow.rules) {
-      const actualValue = getContextValue(input.testContext, rule.field);
-      const passed = evaluateRuleValue(rule.operator as RuleOperator, actualValue, rule.value, rule.valueSecondary);
+      const actualValue = getContextValue(input.testContext, rule.fieldName);
+      const passed = evaluateRuleValue(rule.operator as RuleOperator, actualValue, rule.value, rule.valueTo);
 
       matchedRules.push({
-        field: rule.field,
+        field: rule.fieldName,
         operator: rule.operator,
-        expectedValue: rule.valueSecondary
-          ? `${rule.value} to ${rule.valueSecondary}`
+        expectedValue: rule.valueTo
+          ? `${rule.value} to ${rule.valueTo}`
           : rule.value,
         actualValue: String(actualValue ?? 'undefined'),
         passed,
@@ -1400,10 +1402,10 @@ export async function testWorkflow(
           } else {
             errors.push(`Step ${step.stepOrder}: Approver user ${step.approverId} not found`);
           }
-        } else if (step.approverType === 'role' && step.roleId) {
-          approverName = `Role ID: ${step.roleId}`;
+        } else if (step.approverType === 'role' && step.approverId) {
+          approverName = `Role ID: ${step.approverId}`;
           canApprove = true; // Assume role exists
-        } else if (step.approverType === 'manager') {
+        } else if (step.approverType === 'requester_manager') {
           approverName = 'Requestor Manager';
           canApprove = true;
         } else if (step.approverType === 'department_head') {
@@ -1414,7 +1416,7 @@ export async function testWorkflow(
         steps.push({
           stepOrder: step.stepOrder,
           approverType: step.approverType,
-          approverId: step.approverId,
+          approverId: step.approverId ?? undefined,
           approverName,
           canApprove,
         });
@@ -1465,21 +1467,25 @@ function evaluateRuleValue(
 ): boolean {
   // Handle null/undefined actual values
   if (actualValue === null || actualValue === undefined) {
-    return operator === 'not_equals' || operator === 'not_in';
+    return operator === 'ne' || operator === 'not_in';
   }
 
   const actual = typeof actualValue === 'number' ? actualValue : String(actualValue);
   const expected = typeof actualValue === 'number' ? parseFloat(expectedValue) : expectedValue;
 
   switch (operator) {
-    case 'equals':
+    case 'eq':
       return actual === expected;
-    case 'not_equals':
+    case 'ne':
       return actual !== expected;
-    case 'greater_than':
+    case 'gt':
       return typeof actual === 'number' && actual > (expected as number);
-    case 'less_than':
+    case 'gte':
+      return typeof actual === 'number' && actual >= (expected as number);
+    case 'lt':
       return typeof actual === 'number' && actual < (expected as number);
+    case 'lte':
+      return typeof actual === 'number' && actual <= (expected as number);
     case 'between':
       if (typeof actual !== 'number' || !secondaryValue) return false;
       const min = parseFloat(expectedValue);
@@ -1491,8 +1497,6 @@ function evaluateRuleValue(
     case 'not_in':
       const notInList = expectedValue.split(',').map((v) => v.trim());
       return !notInList.includes(String(actual));
-    case 'contains':
-      return String(actual).toLowerCase().includes(expectedValue.toLowerCase());
     default:
       return false;
   }

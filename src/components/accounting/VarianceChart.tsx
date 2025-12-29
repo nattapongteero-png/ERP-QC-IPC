@@ -61,7 +61,7 @@ export function VarianceChart({ data, title, height = 300 }: VarianceChartProps)
           <XAxis type="number" tickFormatter={formatCurrency} />
           <YAxis type="category" dataKey="name" width={100} />
           <Tooltip
-            formatter={(value: number) => [formatCurrency(value), 'Amount']}
+            formatter={(value) => [formatCurrency(value as number), 'Amount']}
             labelStyle={{ fontWeight: 'bold' }}
           />
           <Legend />

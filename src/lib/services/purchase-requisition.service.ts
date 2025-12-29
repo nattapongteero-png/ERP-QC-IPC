@@ -156,7 +156,7 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
       ...pr,
       requesterName,
       departmentName,
-      lines: lines.map((line) => ({
+      lines: lines.map((line: { quantity?: number | null; estimatedUnitPrice?: number | null; [key: string]: unknown }) => ({
         ...line,
         estimatedAmount: (line.quantity || 0) * (line.estimatedUnitPrice || 0),
       })),

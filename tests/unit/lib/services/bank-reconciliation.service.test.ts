@@ -147,6 +147,7 @@ describe('Bank Reconciliation Service', () => {
           endDate: '2024-01-31',
           openingBalance: 100000,
           closingBalance: 150000,
+          currency: 'THB',
         },
         1
       );

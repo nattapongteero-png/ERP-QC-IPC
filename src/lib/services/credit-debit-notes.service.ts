@@ -676,11 +676,12 @@ export async function submitNote(
 
     // Submit for approval
     try {
-      const approvalResult = await submitForApproval(
-        'credit_note',
-        id,
-        userId
-      );
+      const approvalResult = await submitForApproval({
+        documentType: note.noteType === 'ar_credit' || note.noteType === 'ap_credit' ? 'credit_note' : 'debit_note',
+        documentId: id,
+        totalAmount: Number(note.subtotal || 0) + Number(note.vatAmount || 0),
+        requesterId: userId,
+      });
 
       return {
         success: true,
