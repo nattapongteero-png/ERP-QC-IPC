@@ -17,7 +17,7 @@ import DataGrid, {
   Item,
   SearchPanel,
 } from 'devextreme-react/data-grid';
-import type { CreditDebitNote, NoteSummary } from '@/types/credit-debit-note';
+import type { CreditDebitNote, NoteSummary } from '@/types/credit-debit-notes';
 
 const statusColors: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-800',

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { listNotes, createNote } from '@/lib/services/credit-debit-note.service';
+import { listNotes, createNote } from '@/lib/services/credit-debit-notes.service';
 import { noteListFilterSchema, noteCreateSchema } from '@/lib/validation/credit-debit-note';
 
 export async function GET(request: NextRequest) {

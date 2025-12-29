@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getReferenceInvoices,
   getInvoiceLines,
-} from '@/lib/services/credit-debit-note.service';
+} from '@/lib/services/credit-debit-notes.service';
 
 export async function GET(request: NextRequest) {
   try {

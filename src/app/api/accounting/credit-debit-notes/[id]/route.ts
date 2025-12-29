@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getNoteById, updateNote, deleteNote } from '@/lib/services/credit-debit-note.service';
+import { getNoteById, updateNote, deleteNote } from '@/lib/services/credit-debit-notes.service';
 import { noteUpdateSchema } from '@/lib/validation/credit-debit-note';
 
 interface RouteContext {

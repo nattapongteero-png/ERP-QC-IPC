@@ -247,3 +247,69 @@ export interface NoteSubmitResponse {
 export interface NoteCancelInput {
   reason: string;
 }
+
+/**
+ * Invoice Reference (for selection dropdown)
+ */
+export interface InvoiceReference {
+  id: number;
+  invoiceNumber: string;
+  invoiceDate: Date | string;
+  totalAmount: number;
+  currency: string;
+  customerOrVendorName: string;
+  type: 'ar' | 'ap';
+}
+
+/**
+ * Invoice Line Reference (for line selection)
+ */
+export interface InvoiceLineReference {
+  id: number;
+  lineNumber: number;
+  itemId?: number | null;
+  itemCode?: string | null;
+  itemName?: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+/**
+ * Note Summary (for dashboard widget)
+ */
+export interface NoteSummary {
+  draftCount: number;
+  pendingApprovalCount: number;
+  postedThisMonth: number;
+  totalThisMonth: number;
+  byType: {
+    arCredit: number;
+    apCredit: number;
+    arDebit: number;
+    apDebit: number;
+  };
+}
+
+/**
+ * Reason Code Option
+ */
+export const REASON_CODE_OPTIONS: { value: ReasonCode; label: string }[] = [
+  { value: 'return', label: 'Goods Return' },
+  { value: 'price_adjustment', label: 'Price Adjustment' },
+  { value: 'quantity_adjustment', label: 'Quantity Adjustment' },
+  { value: 'defect', label: 'Defective Goods' },
+  { value: 'discount', label: 'Early Payment Discount' },
+  { value: 'other', label: 'Other' },
+];
+
+/**
+ * Note Type Option
+ */
+export const NOTE_TYPE_OPTIONS: { value: NoteType; label: string; description: string }[] = [
+  { value: 'ar_credit', label: 'AR Credit Note', description: 'Credit to customer (reduces AR)' },
+  { value: 'ap_credit', label: 'AP Credit Note', description: 'Credit from vendor (reduces AP)' },
+  { value: 'ar_debit', label: 'AR Debit Note', description: 'Debit to customer (increases AR)' },
+  { value: 'ap_debit', label: 'AP Debit Note', description: 'Debit to vendor (increases AP)' },
+];

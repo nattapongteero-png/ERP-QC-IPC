@@ -6,7 +6,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import DataGrid, {
@@ -112,17 +111,14 @@ export default function BankReconciliationPage() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <LoadIndicator />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <LoadIndicator />
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="p-4">
+    <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
             Bank Reconciliation
@@ -256,6 +252,5 @@ export default function BankReconciliationPage() {
           </DataGrid>
         </div>
       </div>
-    </MainLayout>
   );
 }

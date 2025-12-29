@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { submitNote } from '@/lib/services/credit-debit-note.service';
+import { submitNote } from '@/lib/services/credit-debit-notes.service';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -21,7 +21,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const result = await submitNote(noteId);
+    // TODO: Get actual user ID from session
+    const userId = 1;
+
+    const result = await submitNote(noteId, userId);
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },
@@ -29,7 +32,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      noteNumber: result.noteNumber,
+      approvalRequestId: result.approvalRequestId,
+      flowName: result.flowName,
+    });
   } catch (error) {
     console.error('Error submitting note:', error);
     return NextResponse.json(

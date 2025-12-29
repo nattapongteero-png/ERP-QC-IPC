@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cancelNote } from '@/lib/services/credit-debit-note.service';
+import { cancelNote } from '@/lib/services/credit-debit-notes.service';
 import { noteCancelSchema } from '@/lib/validation/credit-debit-note';
 
 interface RouteContext {
@@ -25,7 +25,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const body = await request.json();
     const data = noteCancelSchema.parse({ noteId, ...body });
 
-    const result = await cancelNote(noteId, data.reason);
+    // TODO: Get actual user ID from session
+    const userId = 1;
+
+    const result = await cancelNote(noteId, data.reason, userId);
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },

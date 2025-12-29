@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getNoteSummary } from '@/lib/services/credit-debit-note.service';
+import { getNoteSummary } from '@/lib/services/credit-debit-notes.service';
 
 export async function GET(request: NextRequest) {
   try {

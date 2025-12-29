@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { rejectNote } from '@/lib/services/credit-debit-note.service';
+import { rejectNote } from '@/lib/services/credit-debit-notes.service';
 
 interface RouteContext {
   params: Promise<{ id: string }>;

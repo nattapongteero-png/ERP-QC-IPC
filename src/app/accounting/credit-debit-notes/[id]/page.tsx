@@ -15,7 +15,7 @@ import type {
   CreditDebitNoteWithLines,
   NoteStatus,
   NoteType,
-} from '@/types/credit-debit-note';
+} from '@/types/credit-debit-notes';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -443,7 +443,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                   <td className="px-3 py-2 text-right">{formatAmount(line.unitPrice)}</td>
                   <td className="px-3 py-2 text-right">{formatAmount(line.lineTotal)}</td>
                   <td className="px-3 py-2">
-                    {line.glAccountNumber} - {line.glAccountName}
+                    {line.glAccountCode} - {line.glAccountName}
                   </td>
                 </tr>
               ))}

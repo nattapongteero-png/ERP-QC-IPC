@@ -21,6 +21,9 @@ import type {
   NotePostResult,
   NoteSubmitResponse,
   CreditDebitNoteDashboardSummary,
+  InvoiceReference,
+  InvoiceLineReference,
+  NoteSummary,
 } from '@/types/credit-debit-notes';
 import type {
   CreditDebitNoteCreateInput,
@@ -1299,5 +1302,302 @@ export async function getCreditDebitNoteDashboard(): Promise<CreditDebitNoteDash
         totalAmount: Number(note.totalAmount),
       })),
     };
+  });
+}
+
+/**
+ * Reject Note (return to draft status)
+ */
+export async function rejectNote(id: number): Promise<{ success: boolean; error?: string }> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const now = getNow();
+
+    // Check status
+    const noteResult = await db
+      .select({ status: tables.notes.status })
+      .from(tables.notes)
+      .where(eq(tables.notes.id, id))
+      .limit(1);
+
+    if (noteResult.length === 0) {
+      return { success: false, error: 'Note not found' };
+    }
+
+    if (noteResult[0].status !== 'submitted') {
+      return { success: false, error: 'Can only reject submitted notes' };
+    }
+
+    await db
+      .update(tables.notes)
+      .set({ status: 'draft', updatedAt: now })
+      .where(eq(tables.notes.id, id));
+
+    return { success: true };
+  });
+}
+
+/**
+ * Delete Note (only draft notes)
+ */
+export async function deleteNote(id: number): Promise<{ success: boolean; error?: string }> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    // Check status
+    const noteResult = await db
+      .select({ status: tables.notes.status })
+      .from(tables.notes)
+      .where(eq(tables.notes.id, id))
+      .limit(1);
+
+    if (noteResult.length === 0) {
+      return { success: false, error: 'Note not found' };
+    }
+
+    if (noteResult[0].status !== 'draft') {
+      return { success: false, error: 'Can only delete draft notes' };
+    }
+
+    // Delete lines first
+    await db.delete(tables.lines).where(eq(tables.lines.noteId, id));
+
+    // Delete note
+    await db.delete(tables.notes).where(eq(tables.notes.id, id));
+
+    return { success: true };
+  });
+}
+
+/**
+ * Get Note Summary for Dashboard Widget
+ */
+export async function getNoteSummary(): Promise<NoteSummary> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    // Get counts by status
+    const draftResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.notes)
+      .where(eq(tables.notes.status, 'draft'));
+    const draftCount = Number(draftResult[0]?.count || 0);
+
+    const pendingResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.notes)
+      .where(eq(tables.notes.status, 'submitted'));
+    const pendingApprovalCount = Number(pendingResult[0]?.count || 0);
+
+    // Posted this month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const postedResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.notes)
+      .where(
+        and(
+          eq(tables.notes.status, 'posted'),
+          gte(tables.notes.postedAt, toDbDate(startOfMonth.toISOString().split('T')[0]))
+        )
+      );
+    const postedThisMonth = Number(postedResult[0]?.count || 0);
+
+    // Total amount this month
+    const totalResult = await db
+      .select({ total: sql<number>`COALESCE(SUM(total_amount), 0)` })
+      .from(tables.notes)
+      .where(
+        and(
+          eq(tables.notes.status, 'posted'),
+          gte(tables.notes.postedAt, toDbDate(startOfMonth.toISOString().split('T')[0]))
+        )
+      );
+    const totalThisMonth = Number(totalResult[0]?.total || 0);
+
+    // Counts by type
+    const arCreditResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.notes)
+      .where(eq(tables.notes.noteType, 'ar_credit'));
+    const arCredit = Number(arCreditResult[0]?.count || 0);
+
+    const apCreditResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.notes)
+      .where(eq(tables.notes.noteType, 'ap_credit'));
+    const apCredit = Number(apCreditResult[0]?.count || 0);
+
+    const arDebitResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.notes)
+      .where(eq(tables.notes.noteType, 'ar_debit'));
+    const arDebit = Number(arDebitResult[0]?.count || 0);
+
+    const apDebitResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.notes)
+      .where(eq(tables.notes.noteType, 'ap_debit'));
+    const apDebit = Number(apDebitResult[0]?.count || 0);
+
+    return {
+      draftCount,
+      pendingApprovalCount,
+      postedThisMonth,
+      totalThisMonth,
+      byType: {
+        arCredit,
+        apCredit,
+        arDebit,
+        apDebit,
+      },
+    };
+  });
+}
+
+/**
+ * Get Reference Invoices for Selection
+ */
+export async function getReferenceInvoices(
+  type: 'ar' | 'ap',
+  customerId?: number,
+  vendorId?: number
+): Promise<InvoiceReference[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    if (type === 'ar') {
+      const conditions: any[] = [eq(tables.arInvoices.status, 'posted')];
+      if (customerId) {
+        conditions.push(eq(tables.arInvoices.customerId, customerId));
+      }
+
+      const invoices = await db
+        .select({
+          id: tables.arInvoices.id,
+          invoiceNumber: tables.arInvoices.invoiceNumber,
+          invoiceDate: tables.arInvoices.invoiceDate,
+          totalAmount: tables.arInvoices.totalAmount,
+          customerName: tables.customers.name,
+        })
+        .from(tables.arInvoices)
+        .leftJoin(tables.customers, eq(tables.arInvoices.customerId, tables.customers.id))
+        .where(and(...conditions))
+        .orderBy(desc(tables.arInvoices.invoiceDate))
+        .limit(100);
+
+      return invoices.map((inv: any) => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        invoiceDate: inv.invoiceDate,
+        totalAmount: Number(inv.totalAmount || 0),
+        currency: 'THB',
+        customerOrVendorName: inv.customerName || '',
+        type: 'ar' as const,
+      }));
+    } else {
+      const conditions: any[] = [eq(tables.apInvoices.status, 'posted')];
+      if (vendorId) {
+        conditions.push(eq(tables.apInvoices.vendorId, vendorId));
+      }
+
+      const invoices = await db
+        .select({
+          id: tables.apInvoices.id,
+          invoiceNumber: tables.apInvoices.invoiceNumber,
+          invoiceDate: tables.apInvoices.invoiceDate,
+          totalAmount: tables.apInvoices.totalAmount,
+          vendorName: tables.vendors.name,
+        })
+        .from(tables.apInvoices)
+        .leftJoin(tables.vendors, eq(tables.apInvoices.vendorId, tables.vendors.id))
+        .where(and(...conditions))
+        .orderBy(desc(tables.apInvoices.invoiceDate))
+        .limit(100);
+
+      return invoices.map((inv: any) => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        invoiceDate: inv.invoiceDate,
+        totalAmount: Number(inv.totalAmount || 0),
+        currency: 'THB',
+        customerOrVendorName: inv.vendorName || '',
+        type: 'ap' as const,
+      }));
+    }
+  });
+}
+
+/**
+ * Get Invoice Lines for Selection
+ */
+export async function getInvoiceLines(
+  type: 'ar' | 'ap',
+  invoiceId: number
+): Promise<InvoiceLineReference[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    if (type === 'ar') {
+      const lines = await db
+        .select({
+          id: tables.arInvoiceLines.id,
+          lineNumber: tables.arInvoiceLines.lineNumber,
+          itemId: tables.arInvoiceLines.itemId,
+          description: tables.arInvoiceLines.description,
+          quantity: tables.arInvoiceLines.quantity,
+          unitPrice: tables.arInvoiceLines.unitPrice,
+          lineTotal: tables.arInvoiceLines.lineTotal,
+          itemCode: tables.items.itemCode,
+          itemName: tables.items.name,
+        })
+        .from(tables.arInvoiceLines)
+        .leftJoin(tables.items, eq(tables.arInvoiceLines.itemId, tables.items.id))
+        .where(eq(tables.arInvoiceLines.invoiceId, invoiceId))
+        .orderBy(asc(tables.arInvoiceLines.lineNumber));
+
+      return lines.map((line: any) => ({
+        id: line.id,
+        lineNumber: line.lineNumber,
+        itemId: line.itemId,
+        itemCode: line.itemCode,
+        itemName: line.itemName,
+        description: line.description,
+        quantity: Number(line.quantity || 0),
+        unitPrice: Number(line.unitPrice || 0),
+        lineTotal: Number(line.lineTotal || 0),
+      }));
+    } else {
+      const lines = await db
+        .select({
+          id: tables.apInvoiceLines.id,
+          lineNumber: tables.apInvoiceLines.lineNumber,
+          itemId: tables.apInvoiceLines.itemId,
+          description: tables.apInvoiceLines.description,
+          quantity: tables.apInvoiceLines.quantity,
+          unitPrice: tables.apInvoiceLines.unitPrice,
+          lineTotal: tables.apInvoiceLines.lineTotal,
+          itemCode: tables.items.itemCode,
+          itemName: tables.items.name,
+        })
+        .from(tables.apInvoiceLines)
+        .leftJoin(tables.items, eq(tables.apInvoiceLines.itemId, tables.items.id))
+        .where(eq(tables.apInvoiceLines.invoiceId, invoiceId))
+        .orderBy(asc(tables.apInvoiceLines.lineNumber));
+
+      return lines.map((line: any) => ({
+        id: line.id,
+        lineNumber: line.lineNumber,
+        itemId: line.itemId,
+        itemCode: line.itemCode,
+        itemName: line.itemName,
+        description: line.description,
+        quantity: Number(line.quantity || 0),
+        unitPrice: Number(line.unitPrice || 0),
+        lineTotal: Number(line.lineTotal || 0),
+      }));
+    }
   });
 }

@@ -14,13 +14,8 @@ import { TextArea } from 'devextreme-react/text-area';
 import { NumberBox } from 'devextreme-react/number-box';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import DataGrid, { Column, Editing, Lookup } from 'devextreme-react/data-grid';
-import {
-  NoteType,
-  ReasonCode,
-  NOTE_TYPE_OPTIONS,
-  REASON_CODE_OPTIONS,
-  InvoiceReference,
-} from '@/types/credit-debit-note';
+import type { NoteType, ReasonCode, InvoiceReference } from '@/types/credit-debit-notes';
+import { NOTE_TYPE_OPTIONS, REASON_CODE_OPTIONS } from '@/types/credit-debit-notes';
 
 interface LineItem {
   id: number;

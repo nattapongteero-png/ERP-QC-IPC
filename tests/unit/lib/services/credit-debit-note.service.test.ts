@@ -9,7 +9,7 @@ import {
   noteUpdateSchema,
   noteListFilterSchema,
 } from '@/lib/validation/credit-debit-note';
-import type { NoteType, ReasonCode, NoteStatus } from '@/types/credit-debit-note';
+import type { NoteType, ReasonCode, NoteStatus } from '@/types/credit-debit-notes';
 
 // Mock the db-helper and date-utils
 vi.mock('@/lib/db/db-helper', () => ({
