@@ -29,7 +29,13 @@ export async function GET(request: NextRequest) {
     });
 
     const result = await listBankStatements(filter);
-    return NextResponse.json({ success: true, ...result });
+    return NextResponse.json({
+      success: true,
+      data: result?.data || [],
+      total: result?.total || 0,
+      page: result?.page || 1,
+      limit: result?.limit || 20,
+    });
   } catch (error) {
     console.error('Error listing bank statements:', error);
     return NextResponse.json(

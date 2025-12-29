@@ -266,8 +266,8 @@ export async function getNoteById(id: number): Promise<CreditDebitNoteWithLines 
         // Get GL account info
         const accountResults = await db
           .select({
-            accountCode: tables.glAccounts.accountNumber,
-            accountName: tables.glAccounts.accountName,
+            accountCode: tables.glAccounts.code,
+            accountName: tables.glAccounts.nameTh,
           })
           .from(tables.glAccounts)
           .where(eq(tables.glAccounts.id, line.glAccountId))

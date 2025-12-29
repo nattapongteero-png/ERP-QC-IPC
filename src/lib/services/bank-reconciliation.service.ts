@@ -130,8 +130,8 @@ export async function getBankStatementById(id: number): Promise<BankStatementWit
     // Get bank account info
     const accountResults = await db
       .select({
-        accountName: tables.glAccounts.accountName,
-        accountNumber: tables.glAccounts.accountNumber,
+        accountName: tables.glAccounts.nameTh,
+        accountNumber: tables.glAccounts.code,
       })
       .from(tables.glAccounts)
       .where(eq(tables.glAccounts.id, statement.bankAccountId))
@@ -270,8 +270,8 @@ export async function listBankStatements(filter: BankStatementListFilter): Promi
         createdBy: tables.statements.createdBy,
         createdAt: tables.statements.createdAt,
         updatedAt: tables.statements.updatedAt,
-        bankAccountName: tables.glAccounts.accountName,
-        bankAccountNumber: tables.glAccounts.accountNumber,
+        bankAccountName: tables.glAccounts.nameTh,
+        bankAccountNumber: tables.glAccounts.code,
       })
       .from(tables.statements)
       .leftJoin(tables.glAccounts, eq(tables.statements.bankAccountId, tables.glAccounts.id))
@@ -282,16 +282,18 @@ export async function listBankStatements(filter: BankStatementListFilter): Promi
 
     // Get line counts for each statement
     const enhancedStatements = await Promise.all(
-      statements.map(async (stmt: any) => {
+      (statements || []).map(async (stmt: any) => {
+        if (!stmt) return null;
+
         const lines = await db
           .select({ status: tables.lines.status })
           .from(tables.lines)
           .where(eq(tables.lines.statementId, stmt.id));
 
-        const matchedCount = lines.filter((l: any) =>
+        const matchedCount = (lines || []).filter((l: any) =>
           ['manually_matched', 'auto_matched', 'journal_created', 'reconciled'].includes(l.status)
         ).length;
-        const unmatchedCount = lines.filter((l: any) =>
+        const unmatchedCount = (lines || []).filter((l: any) =>
           ['imported', 'unmatched', 'suggested'].includes(l.status)
         ).length;
 
@@ -304,8 +306,11 @@ export async function listBankStatements(filter: BankStatementListFilter): Promi
       })
     );
 
+    // Filter out any null entries
+    const validStatements = enhancedStatements.filter(Boolean);
+
     return {
-      data: enhancedStatements,
+      data: validStatements,
       total,
       page,
       limit,
@@ -911,12 +916,12 @@ export async function getBankAccounts(): Promise<{ id: number; name: string; acc
     const accounts = await db
       .select({
         id: tables.glAccounts.id,
-        name: tables.glAccounts.accountName,
-        accountNumber: tables.glAccounts.accountNumber,
+        name: tables.glAccounts.nameTh,
+        accountNumber: tables.glAccounts.code,
       })
       .from(tables.glAccounts)
       .where(eq(tables.glAccounts.isBankAccount, true))
-      .orderBy(asc(tables.glAccounts.accountNumber));
+      .orderBy(asc(tables.glAccounts.code));
 
     return accounts;
   });
