@@ -7,7 +7,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { TextBox } from 'devextreme-react/text-box';
 import { NumberBox } from 'devextreme-react/number-box';
@@ -114,17 +113,14 @@ export default function NewBankStatementPage() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <LoadIndicator />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <LoadIndicator />
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="p-4">
+    <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
             Import Bank Statement
@@ -269,7 +265,6 @@ export default function NewBankStatementPage() {
           onClose={() => setShowImportDialog(false)}
           onImport={handleImport}
         />
-      </div>
-    </MainLayout>
+    </div>
   );
 }
