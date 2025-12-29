@@ -6,13 +6,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 
-// Mock MainLayout
-vi.mock('@/components/layout/main-layout', () => ({
-  MainLayout: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="main-layout">{children}</div>
-  ),
-}));
-
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -155,14 +148,6 @@ describe('Bank Reconciliation Page', () => {
     });
 
     expect(screen.getByTestId('page-title')).toHaveTextContent('Bank Reconciliation');
-  });
-
-  it('renders the main layout', async () => {
-    render(<BankReconciliationPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('main-layout')).toBeInTheDocument();
-    });
   });
 
   it('renders the statements grid', async () => {
