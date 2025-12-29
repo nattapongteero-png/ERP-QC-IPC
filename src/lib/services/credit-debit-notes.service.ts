@@ -46,7 +46,7 @@ function getTables() {
     vendors: getTableRef('vendors'),
     glAccounts: getTableRef('gLAccounts'),
     journalEntries: getTableRef('journalEntries'),
-    journalEntryLines: getTableRef('journalEntryLines'),
+    journalLines: getTableRef('journalLines'),
     vatTransactions: getTableRef('vATTransactions'),
     users: getTableRef('users'),
     employees: getTableRef('hREmployees'),
@@ -824,7 +824,7 @@ export async function postNote(
       // Dr Revenue (reduce revenue)
       for (const line of note.lines) {
         lineNumber++;
-        await db.insert(tables.journalEntryLines).values({
+        await db.insert(tables.journalLines).values({
           journalEntryId,
           lineNumber,
           accountId: line.glAccountId, // Revenue account
@@ -839,7 +839,7 @@ export async function postNote(
       if (note.vatAmount > 0) {
         lineNumber++;
         const vatOutputAccountId = 211; // VAT Output account - should be configured
-        await db.insert(tables.journalEntryLines).values({
+        await db.insert(tables.journalLines).values({
           journalEntryId,
           lineNumber,
           accountId: vatOutputAccountId,
@@ -853,7 +853,7 @@ export async function postNote(
       // Cr AR (reduce receivable)
       lineNumber++;
       const arAccountId = 103; // AR account - should be configured
-      await db.insert(tables.journalEntryLines).values({
+      await db.insert(tables.journalLines).values({
         journalEntryId,
         lineNumber,
         accountId: arAccountId,
@@ -867,7 +867,7 @@ export async function postNote(
       // Dr AP (reduce payable)
       lineNumber++;
       const apAccountId = 201; // AP account - should be configured
-      await db.insert(tables.journalEntryLines).values({
+      await db.insert(tables.journalLines).values({
         journalEntryId,
         lineNumber,
         accountId: apAccountId,
@@ -880,7 +880,7 @@ export async function postNote(
       // Cr Expense (reduce expense)
       for (const line of note.lines) {
         lineNumber++;
-        await db.insert(tables.journalEntryLines).values({
+        await db.insert(tables.journalLines).values({
           journalEntryId,
           lineNumber,
           accountId: line.glAccountId, // Expense account
@@ -895,7 +895,7 @@ export async function postNote(
       if (note.vatAmount > 0) {
         lineNumber++;
         const vatInputAccountId = 107; // VAT Input account - should be configured
-        await db.insert(tables.journalEntryLines).values({
+        await db.insert(tables.journalLines).values({
           journalEntryId,
           lineNumber,
           accountId: vatInputAccountId,

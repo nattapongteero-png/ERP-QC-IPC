@@ -33,7 +33,7 @@ function getTables() {
     bom: getTableRef('bom'),
     bomLines: getTableRef('bomLines'),
     journalEntries: getTableRef('journalEntries'),
-    journalEntryLines: getTableRef('journalEntryLines'),
+    journalLines: getTableRef('journalLines'),
     users: getTableRef('users'),
     fiscalPeriods: getTableRef('fiscalPeriods'),
   };

@@ -38,7 +38,7 @@ function getTables() {
     glAccounts: getTableRef('gLAccounts'),
     payments: getTableRef('payments'),
     journalEntries: getTableRef('journalEntries'),
-    journalEntryLines: getTableRef('journalEntryLines'),
+    journalLines: getTableRef('journalLines'),
     users: getTableRef('users'),
     employees: getTableRef('hREmployees'),
   };
@@ -663,7 +663,7 @@ export async function createBankChargeJournal(
 
     // Create journal entry lines
     // Debit the expense account
-    await db.insert(tables.journalEntryLines).values({
+    await db.insert(tables.journalLines).values({
       journalEntryId,
       lineNumber: 1,
       accountId: input.accountId,
@@ -674,7 +674,7 @@ export async function createBankChargeJournal(
     });
 
     // Credit the bank account
-    await db.insert(tables.journalEntryLines).values({
+    await db.insert(tables.journalLines).values({
       journalEntryId,
       lineNumber: 2,
       accountId: stmt.bankAccountId,
