@@ -10,6 +10,7 @@ import { getDb, isSqlite } from '../db';
 import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or, isNull, ne, lt } from 'drizzle-orm';
 import { getAccountingTables, generateEntryNumber, createJournalEntry, postJournalEntry, getCurrentFiscalPeriod, getPeriodByDate } from './accounting.service';
+import { getTableRef } from '../db/db-helper';
 import { createAuditLog } from '../audit';
 import type {
   FiscalPeriodStatus,
@@ -53,6 +54,7 @@ export interface PeriodCloseMetrics {
   draftAPInvoices: number;
   draftARInvoices: number;
   pendingPayments: number;
+  unreconciledBankStatements: number;
   totalDebits: number;
   totalCredits: number;
   isBalanced: boolean;
@@ -200,6 +202,27 @@ export async function validatePeriodClose(periodId: number): Promise<PeriodClose
     });
   }
 
+  // Check for unreconciled bank statements in period (T076.1)
+  // Bank statements that are not in 'reconciled' or 'closed' status
+  const bankStatements = getTableRef('bankStatements');
+  const unreconciledBankResult = await database
+    .select({ count: sql<number>`count(*)` })
+    .from(bankStatements)
+    .where(and(
+      gte(bankStatements.statementDate, toQueryDate(startDate)),
+      lte(bankStatements.statementDate, toQueryDate(endDate)),
+      sql`${bankStatements.status} NOT IN ('reconciled', 'closed')`
+    ));
+  const unreconciledBankStatements = Number(unreconciledBankResult[0]?.count || 0);
+
+  if (unreconciledBankStatements > 0) {
+    errors.push({
+      code: 'UNRECONCILED_BANK_STATEMENTS',
+      message: `There are ${unreconciledBankStatements} unreconciled bank statements. Bank reconciliation must be completed before period close.`,
+      count: unreconciledBankStatements,
+    });
+  }
+
   // Calculate trial balance for the period
   const postedJEs = await database
     .select({ id: journalEntries.id })
@@ -272,6 +295,7 @@ export async function validatePeriodClose(periodId: number): Promise<PeriodClose
       draftAPInvoices,
       draftARInvoices,
       pendingPayments,
+      unreconciledBankStatements,
       totalDebits,
       totalCredits,
       isBalanced,

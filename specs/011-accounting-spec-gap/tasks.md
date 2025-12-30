@@ -130,7 +130,7 @@
 - [X] T074 [US2] Add Bank Reconciliation to sidebar navigation in src/components/layout/sidebar.tsx
 - [X] T075 [US2] Create unit test for bank-reconciliation.service.ts in tests/unit/lib/services/bank-reconciliation.service.test.ts
 - [X] T076 [US2] Create UI test for bank reconciliation page in tests/app/accounting/bank-reconciliation/page.test.tsx
-- [ ] T076.1 [US2] Integrate bank reconciliation validation into period close workflow in src/lib/services/accounting-period.service.ts (check for unreconciled statements before allowing period close)
+- [X] T076.1 [US2] Integrate bank reconciliation validation into period close workflow in src/lib/services/accounting-period.service.ts (check for unreconciled statements before allowing period close)
 
 **Checkpoint**: User Story 2 complete - Bank statements can be imported, matched, reconciled, and period close validates reconciliation status
 
