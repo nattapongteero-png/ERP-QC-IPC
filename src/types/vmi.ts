@@ -657,3 +657,218 @@ export interface VmiVendorDashboardData {
     error: string;
   }>;
 }
+
+// ============================================
+// VMI Webhook Integration (012-vmi-webhook)
+// Webhook-based notifications from VMI Portal
+// ============================================
+
+/**
+ * Webhook event types from VMI Portal
+ * Per VMI-VENDOR-API.md section 10
+ */
+export type VmiWebhookEventType =
+  | 'order.created'
+  | 'order.cancelled'
+  | 'receipt.created'
+  | 'receipt.completed';
+
+/**
+ * Webhook health status (computed from isActive, isDisabledByFailures, consecutiveFailures)
+ */
+export type VmiWebhookHealthStatus =
+  | 'active'
+  | 'warning'
+  | 'disabled_by_failures'
+  | 'disabled_manual';
+
+/**
+ * Webhook delivery status
+ */
+export type VmiWebhookDeliveryStatus = 'pending' | 'processed' | 'failed';
+
+/**
+ * Webhook configuration stored in database
+ */
+export interface VmiWebhook {
+  id: number;
+  portalId: number;
+  vmiWebhookId: number | null;
+  name: string;
+  description: string | null;
+  url: string;
+  events: VmiWebhookEventType[];
+  isActive: boolean;
+  isDisabledByFailures: boolean;
+  consecutiveFailures: number;
+  lastSuccessAt: Date | null;
+  lastFailureAt: Date | null;
+  lastErrorMessage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: number | null;
+}
+
+/**
+ * Input for creating a webhook
+ */
+export interface VmiWebhookCreate {
+  name: string;
+  description?: string;
+  events: VmiWebhookEventType[];
+}
+
+/**
+ * Input for updating a webhook
+ */
+export interface VmiWebhookUpdate {
+  name?: string;
+  description?: string;
+  events?: VmiWebhookEventType[];
+  isActive?: boolean;
+  regenerateSecret?: boolean;
+  reenableWebhook?: boolean;
+}
+
+/**
+ * Webhook configuration response (without secret)
+ */
+export interface VmiWebhookResponse {
+  id: number;
+  portalId: number;
+  vmiWebhookId: number | null;
+  name: string;
+  description: string | null;
+  url: string;
+  events: VmiWebhookEventType[];
+  isActive: boolean;
+  isDisabledByFailures: boolean;
+  consecutiveFailures: number;
+  lastSuccessAt: string | null;
+  lastFailureAt: string | null;
+  healthStatus: VmiWebhookHealthStatus;
+  createdAt: string;
+}
+
+/**
+ * Webhook delivery record
+ */
+export interface VmiWebhookDelivery {
+  id: number;
+  webhookId: number;
+  deliveryId: string;
+  eventType: VmiWebhookEventType;
+  eventId: string | null;
+  payload: string; // JSON string
+  signature: string;
+  signatureValid: boolean;
+  status: VmiWebhookDeliveryStatus;
+  responseCode: number | null;
+  errorMessage: string | null;
+  processingDurationMs: number | null;
+  receivedAt: Date;
+  processedAt: Date | null;
+}
+
+/**
+ * Webhook delivery response for API
+ */
+export interface VmiWebhookDeliveryResponse {
+  id: number;
+  deliveryId: string;
+  eventType: VmiWebhookEventType;
+  eventId: string | null;
+  signatureValid: boolean;
+  status: VmiWebhookDeliveryStatus;
+  responseCode: number | null;
+  errorMessage: string | null;
+  processingDurationMs: number | null;
+  receivedAt: string;
+  processedAt: string | null;
+}
+
+// ============================================
+// Webhook Event Payloads (from VMI Portal)
+// ============================================
+
+/**
+ * order.created event payload
+ */
+export interface VmiOrderCreatedPayload {
+  orderId: number;
+  poNumber: string;
+  hospitalCode: string;
+  hospitalName: string;
+  orderDate: string;
+  totalValue: string;
+  itemCount: number;
+  items: Array<{
+    localCode: string;
+    name: string;
+    quantity: number;
+    unitPrice: string;
+  }>;
+}
+
+/**
+ * order.cancelled event payload
+ */
+export interface VmiOrderCancelledPayload {
+  orderId: number;
+  poNumber: string;
+  hospitalCode: string;
+  reason?: string;
+  cancelledAt: string;
+}
+
+/**
+ * receipt.created event payload
+ */
+export interface VmiReceiptCreatedPayload {
+  orderId: number;
+  poNumber: string;
+  receiptId: number;
+  receiptNumber: string;
+  receiptDate: string;
+  hospitalCode: string;
+  items: Array<{
+    localCode: string;
+    name: string;
+    quantityReceived: number;
+    quantityOrdered: number;
+  }>;
+}
+
+/**
+ * receipt.completed event payload
+ */
+export interface VmiReceiptCompletedPayload {
+  orderId: number;
+  poNumber: string;
+  hospitalCode: string;
+  completedAt: string;
+  totalReceipts: number;
+}
+
+/**
+ * Union type for all webhook payloads
+ */
+export type VmiWebhookPayload =
+  | VmiOrderCreatedPayload
+  | VmiOrderCancelledPayload
+  | VmiReceiptCreatedPayload
+  | VmiReceiptCompletedPayload;
+
+/**
+ * Helper to compute webhook health status
+ */
+export function computeWebhookHealthStatus(
+  isActive: boolean,
+  isDisabledByFailures: boolean,
+  consecutiveFailures: number
+): VmiWebhookHealthStatus {
+  if (isDisabledByFailures) return 'disabled_by_failures';
+  if (!isActive) return 'disabled_manual';
+  if (consecutiveFailures >= 3) return 'warning';
+  return 'active';
+}
