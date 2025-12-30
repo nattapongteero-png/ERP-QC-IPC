@@ -1,11 +1,29 @@
 /**
  * Matching Tolerances Settings Page UI Tests (T122)
  * Part of 011-accounting-spec-gap - User Story 4
+ * Updated to support TanStack Query and template pattern
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Create a wrapper with QueryClientProvider
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+}
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -21,70 +39,53 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock MainLayout
+// Mock MainLayout (used by layout.tsx)
 vi.mock('@/components/layout/main-layout', () => ({
   MainLayout: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="main-layout">{children}</div>
   ),
 }));
 
+// Mock TemplatePageHeader
+vi.mock('@/components/template', () => ({
+  TemplatePageHeader: ({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) => (
+    <div data-testid="page-header">
+      <h1 data-testid="page-title">{title}</h1>
+      {subtitle && <p data-testid="page-subtitle">{subtitle}</p>}
+      <div data-testid="header-actions">{actions}</div>
+    </div>
+  ),
+}));
+
+// Mock ui/card
+vi.mock('@/components/ui/card', () => ({
+  Card: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div data-testid="card" className={className}>{children}</div>
+  ),
+  CardContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div data-testid="card-content" className={className}>{children}</div>
+  ),
+}));
+
 // Mock DevExtreme components
 vi.mock('devextreme-react/button', () => ({
-  Button: ({ text, onClick, icon }: any) => (
+  Button: ({ text, onClick, icon, type }: { text?: string; onClick?: () => void; icon?: string; type?: string }) => (
     <button
       onClick={onClick}
-      data-testid={icon === 'plus' ? 'new-tolerance-btn' : icon === 'edit' ? 'edit-btn' : `dx-button-${text?.toLowerCase().replace(/\s+/g, '-')}`}
+      data-testid={type === 'success' ? 'new-tolerance-btn' : `dx-button-${text?.toLowerCase().replace(/\s+/g, '-')}`}
     >
       {text}
     </button>
   ),
 }));
 
-vi.mock('devextreme-react/load-indicator', () => ({
-  LoadIndicator: () => <div data-testid="load-indicator">Loading...</div>,
-}));
-
-vi.mock('devextreme-react/popup', () => ({
-  Popup: ({ visible, children, title }: any) =>
-    visible ? (
-      <div data-testid="popup" role="dialog">
-        <h2>{title}</h2>
-        {children}
-      </div>
-    ) : null,
-}));
-
-vi.mock('devextreme-react/text-box', () => ({
-  TextBox: ({ value, onValueChanged, placeholder }: any) => (
-    <input
-      data-testid="tolerance-name-input"
-      type="text"
-      value={value}
-      onChange={(e) => onValueChanged?.({ value: e.target.value })}
-      placeholder={placeholder}
-    />
-  ),
-}));
-
-vi.mock('devextreme-react/number-box', () => ({
-  NumberBox: ({ value, onValueChanged }: any) => (
-    <input
-      data-testid="tolerance-value-input"
-      type="number"
-      value={value}
-      onChange={(e) => onValueChanged?.({ value: parseFloat(e.target.value) })}
-    />
-  ),
-}));
-
 vi.mock('devextreme-react/select-box', () => ({
-  SelectBox: ({ value, onValueChanged, items }: any) => (
+  default: ({ value, dataSource, displayExpr, valueExpr }: { value: string; dataSource: { value: string; label: string }[]; displayExpr: string; valueExpr: string }) => (
     <select
-      data-testid="tolerance-type-select"
+      data-testid="select-box"
       value={value}
-      onChange={(e) => onValueChanged?.({ value: e.target.value })}
     >
-      {items?.map((item: any) => (
+      {dataSource?.map((item: { value: string; label: string }) => (
         <option key={item.value} value={item.value}>
           {item.label}
         </option>
@@ -93,27 +94,32 @@ vi.mock('devextreme-react/select-box', () => ({
   ),
 }));
 
-vi.mock('devextreme-react/switch', () => ({
-  Switch: ({ value, onValueChanged }: any) => (
+vi.mock('devextreme-react/text-box', () => ({
+  default: ({ value, placeholder }: { value: string; placeholder?: string }) => (
     <input
-      data-testid="tolerance-active-switch"
-      type="checkbox"
-      checked={value}
-      onChange={(e) => onValueChanged?.({ value: e.target.checked })}
+      data-testid="search-input"
+      type="text"
+      value={value}
+      placeholder={placeholder}
+      readOnly
     />
   ),
 }));
 
+vi.mock('devextreme/ui/notify', () => ({
+  default: vi.fn(),
+}));
+
 vi.mock('devextreme-react/data-grid', () => ({
-  default: ({ dataSource, children }: any) => (
+  default: ({ dataSource, children }: { dataSource: unknown[]; children: React.ReactNode }) => (
     <div data-testid="tolerances-grid">
       <table>
         <tbody>
-          {dataSource?.map((item: any, index: number) => (
+          {dataSource?.map((item: { id: number; name: string; toleranceType: string; toleranceValue: number; isActive: boolean }, index: number) => (
             <tr key={item.id || index}>
               <td>{item.name}</td>
-              <td>{item.quantityTolerancePct}%</td>
-              <td>{item.priceTolerancePct}%</td>
+              <td>{item.toleranceType}</td>
+              <td>{item.toleranceValue}%</td>
               <td>{item.isActive ? 'Active' : 'Inactive'}</td>
             </tr>
           ))}
@@ -124,36 +130,50 @@ vi.mock('devextreme-react/data-grid', () => ({
   ),
   Column: () => null,
   Paging: () => null,
+  Pager: () => null,
   FilterRow: () => null,
-  Toolbar: ({ children }: any) => <div data-testid="grid-toolbar">{children}</div>,
-  Item: ({ children }: any) => <div>{children}</div>,
+  Sorting: () => null,
+  Selection: () => null,
+  HeaderFilter: () => null,
+  LoadPanel: () => null,
 }));
 
-// Mock data
+// Mock lucide-react icons
+vi.mock('lucide-react', () => ({
+  Settings: () => <span data-testid="settings-icon">Settings</span>,
+  Filter: () => <span>Filter</span>,
+  Eye: () => <span>Eye</span>,
+  Edit: () => <span>Edit</span>,
+  Trash2: () => <span>Trash</span>,
+}));
+
+// Mock data matching the new MatchingTolerance interface
 const mockTolerances = [
   {
     id: 1,
-    name: 'Default Tolerance',
-    isDefault: true,
-    quantityTolerancePct: 5,
-    quantityToleranceAbs: 0,
-    priceTolerancePct: 2,
-    priceToleranceAbs: 0,
-    totalTolerancePct: 5,
+    name: 'Default Quantity Tolerance',
+    description: 'Default tolerance for quantity matching',
+    toleranceType: 'quantity',
+    toleranceMethod: 'percentage',
+    toleranceValue: 5,
+    priority: 10,
     isActive: true,
+    createdBy: 1,
     createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: 2,
-    name: 'High Tolerance',
-    isDefault: false,
-    quantityTolerancePct: 10,
-    quantityToleranceAbs: 0,
-    priceTolerancePct: 5,
-    priceToleranceAbs: 0,
-    totalTolerancePct: 10,
+    name: 'Price Tolerance',
+    description: 'Tolerance for price matching',
+    toleranceType: 'price',
+    toleranceMethod: 'percentage',
+    toleranceValue: 2,
+    priority: 20,
     isActive: true,
+    createdBy: 1,
     createdAt: '2024-01-02T00:00:00Z',
+    updatedAt: '2024-01-02T00:00:00Z',
   },
 ];
 
@@ -163,13 +183,15 @@ global.fetch = vi.fn();
 describe('Matching Tolerances Settings Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockImplementation((url: string) => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
       if (url.includes('/api/settings/matching-tolerances')) {
         return Promise.resolve({
-          json: () => Promise.resolve({ success: true, data: mockTolerances }),
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: mockTolerances, total: 2, page: 1, limit: 100, totalPages: 1 }),
         });
       }
       return Promise.resolve({
+        ok: false,
         json: () => Promise.resolve({ success: false, error: 'Not found' }),
       });
     });
@@ -177,32 +199,27 @@ describe('Matching Tolerances Settings Page', () => {
 
   it('should render page title', async () => {
     const MatchingTolerancesPage = (await import('@/app/settings/matching-tolerances/page')).default;
-    render(<MatchingTolerancesPage />);
+    render(<MatchingTolerancesPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByTestId('page-title')).toHaveTextContent('Matching Tolerances');
     });
   });
 
-  it('should show loading indicator initially', async () => {
-    const MatchingTolerancesPage = (await import('@/app/settings/matching-tolerances/page')).default;
-    render(<MatchingTolerancesPage />);
-
-    expect(screen.getByTestId('load-indicator')).toBeInTheDocument();
-  });
-
   it('should fetch tolerances on mount', async () => {
     const MatchingTolerancesPage = (await import('@/app/settings/matching-tolerances/page')).default;
-    render(<MatchingTolerancesPage />);
+    render(<MatchingTolerancesPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/settings/matching-tolerances');
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/settings/matching-tolerances')
+      );
     });
   });
 
   it('should render tolerances grid after loading', async () => {
     const MatchingTolerancesPage = (await import('@/app/settings/matching-tolerances/page')).default;
-    render(<MatchingTolerancesPage />);
+    render(<MatchingTolerancesPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByTestId('tolerances-grid')).toBeInTheDocument();
@@ -211,28 +228,39 @@ describe('Matching Tolerances Settings Page', () => {
 
   it('should display info box about 3-way matching', async () => {
     const MatchingTolerancesPage = (await import('@/app/settings/matching-tolerances/page')).default;
-    render(<MatchingTolerancesPage />);
+    render(<MatchingTolerancesPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('About 3-Way Matching')).toBeInTheDocument();
     });
   });
 
-  it('should render within MainLayout', async () => {
+  it('should display page header with subtitle', async () => {
     const MatchingTolerancesPage = (await import('@/app/settings/matching-tolerances/page')).default;
-    render(<MatchingTolerancesPage />);
+    render(<MatchingTolerancesPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByTestId('main-layout')).toBeInTheDocument();
+      expect(screen.getByTestId('page-subtitle')).toHaveTextContent(
+        'Configure tolerance thresholds for 3-way matching validation'
+      );
     });
   });
 
   it('should display new tolerance button', async () => {
     const MatchingTolerancesPage = (await import('@/app/settings/matching-tolerances/page')).default;
-    render(<MatchingTolerancesPage />);
+    render(<MatchingTolerancesPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByTestId('new-tolerance-btn')).toBeInTheDocument();
+    });
+  });
+
+  it('should display filter section', async () => {
+    const MatchingTolerancesPage = (await import('@/app/settings/matching-tolerances/page')).default;
+    render(<MatchingTolerancesPage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('Filters:')).toBeInTheDocument();
     });
   });
 });

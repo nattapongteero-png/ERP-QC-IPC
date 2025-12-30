@@ -11,12 +11,13 @@ import { toleranceCreateSchema, toleranceListFilterSchema } from '@/lib/validati
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    // Convert null to undefined for optional fields
     const filter = toleranceListFilterSchema.parse({
-      toleranceType: searchParams.get('toleranceType'),
-      isActive: searchParams.get('isActive'),
-      search: searchParams.get('search'),
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
+      toleranceType: searchParams.get('toleranceType') || undefined,
+      isActive: searchParams.get('isActive') || undefined,
+      search: searchParams.get('search') || undefined,
+      page: searchParams.get('page') || undefined,
+      limit: searchParams.get('limit') || undefined,
     });
 
     const result = await listTolerances(filter);
