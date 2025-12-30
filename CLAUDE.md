@@ -8,6 +8,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 - MySQL (production), SQLite (testing) via Drizzle dual-schema (009-gmp-compliance-gap-analysis)
 - MySQL (production), SQLite (testing) via dual-schema pattern (010-accounting-module-integration)
 - TypeScript 5.x with Next.js 16.0.10 + Drizzle ORM, DevExtreme React 25.2.3, TanStack Query 5.x, Zod 4.x (011-accounting-spec-gap)
+- MySQL (production), SQLite (testing) via Drizzle dual-schema pattern (012-vmi-webhook)
 
 ## Always do E2E test using React Testing Library + Jest/Vitest
 
@@ -214,6 +215,6 @@ requirements. Do this automatically without being asked.**
 **when write e2e test , please modify target element to has data-testid key so the playwright script can select the correct element, no hard code looking element text**
 
 ## Recent Changes
+- 012-vmi-webhook: Added TypeScript 5.x with Next.js 16.0.10 + Drizzle ORM, DevExtreme React 25.2.3, TanStack Query 5.x, Zod 4.x
 - 011-accounting-spec-gap: Added TypeScript 5.x with Next.js 16.0.10 + Drizzle ORM, DevExtreme React 25.2.3, TanStack Query 5.x, Zod 4.x
 - 010-accounting-module-integration: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod
-- 009-gmp-compliance-gap-analysis: Added TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod

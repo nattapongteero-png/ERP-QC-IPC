@@ -2,8 +2,8 @@
 
 ## คู่มือการเชื่อมต่อ API สำหรับ Vendor
 
-**เวอร์ชัน:** 1.3
-**อัปเดตล่าสุด:** 25 ธันวาคม 2567
+**เวอร์ชัน:** 1.4
+**อัปเดตล่าสุด:** 28 ธันวาคม 2567
 
 ---
 
@@ -18,6 +18,7 @@
 7. [รหัสข้อผิดพลาด](#7-รหัสข้อผิดพลาด)
 8. [ตัวอย่างการใช้งาน](#8-ตัวอย่างการใช้งาน)
 9. [API สำหรับดึงข้อมูลโรงพยาบาล (ERP Integration)](#9-api-สำหรับดึงข้อมูลโรงพยาบาล-erp-integration)
+10. [Webhooks](#10-webhooks)
 
 ---
 
@@ -1433,250 +1434,518 @@ curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/analytics/con
 
 ---
 
-## 10. Implementation Notes
+## 10. Webhooks
 
-### Vendor API Key Management
+VMI Portal รองรับการส่ง Webhook เพื่อแจ้งเตือน Vendor เมื่อมีเหตุการณ์สำคัญ แทนการ Polling ทำให้ได้รับข้อมูลแบบ Real-time
 
-#### Database Schema: vendor_api_keys
+### Event Types
 
-ระบบจัดเก็บ API Keys สำหรับ Vendor ในตาราง `vendor_api_keys`:
+| Event | คำอธิบาย |
+|-------|----------|
+| `order.created` | โรงพยาบาลส่งคำสั่งซื้อใหม่ |
+| `order.cancelled` | คำสั่งซื้อถูกยกเลิก |
+| `receipt.created` | โรงพยาบาลรับสินค้า (บางส่วนหรือทั้งหมด) |
+| `receipt.completed` | โรงพยาบาลรับสินค้าครบทุกรายการ |
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | INTEGER/INT | Primary key (auto-increment) |
-| `vendor_id` | INTEGER/INT | Foreign key → vendors.id |
-| `key_hash` | TEXT/VARCHAR(64) | SHA-256 hash ของ API key |
-| `key_prefix` | TEXT/VARCHAR(16) | 16 ตัวอักษรแรกของ key (สำหรับระบุ) |
-| `name` | TEXT/VARCHAR(100) | ชื่อของ API key |
-| `permissions` | TEXT/VARCHAR(20) | สิทธิ์: `read`, `write`, `admin` |
-| `expires_at` | TEXT/DATETIME | วันหมดอายุ (optional) |
-| `last_used_at` | TEXT/DATETIME | วันที่ใช้งานล่าสุด |
-| `is_active` | BOOLEAN | สถานะใช้งาน |
-| `created_at` | TEXT/DATETIME | วันที่สร้าง |
-| `created_by` | INTEGER/INT | Foreign key → users.id |
+---
 
-#### API Key Format
+### POST /api/external/vendor/webhooks
 
-```
-vmi_erp_{random_64_chars}
-```
+สร้าง Webhook ใหม่สำหรับรับการแจ้งเตือน
 
-- **Prefix:** `vmi_erp_` (8 characters)
-- **Random part:** 64 hexadecimal characters
-- **Total length:** 72 characters
-- **Storage:** SHA-256 hash (64 characters) + prefix (16 characters)
+#### Request Body
 
-#### Security Features
-
-1. **Hash Storage:** เก็บเฉพาะ SHA-256 hash ของ API key ในฐานข้อมูล
-2. **One-time Display:** แสดง API key เต็มครั้งเดียวเมื่อสร้าง
-3. **Prefix Identification:** เก็บ 16 ตัวอักษรแรกเพื่อระบุ key ได้โดยไม่ต้อง expose ทั้งหมด
-4. **Automatic Expiration:** รองรับการกำหนดวันหมดอายุ
-5. **Revocation:** สามารถยกเลิก key โดยตั้ง `is_active = false`
-6. **Usage Tracking:** อัปเดต `last_used_at` ทุกครั้งที่ใช้งาน
-
-#### API Key Lifecycle
-
-```
-1. Create → Full key returned (only time shown)
-2. Store → SHA-256 hash stored in database
-3. Validate → Hash incoming key and compare
-4. Use → Update last_used_at timestamp
-5. Expire/Revoke → Set is_active = false
-```
-
-### TPP and TTMT Code Filtering Mechanism
-
-#### Product Code Types
-
-| Code Type | Format | Length | Example | Usage |
-|-----------|--------|--------|---------|-------|
-| **TPP Code** | 13 digits | 13 | `1100010001000` | Thai Pharmaceutical Products |
-| **TTMT Code** | A + 8 digits | 9 | `A01234567` | Thai Traditional Medicine (Herbal) |
-
-#### Data Model
-
-```sql
--- items table มีทั้ง tppCode และ ttmtCode
-CREATE TABLE items (
-  id INTEGER PRIMARY KEY,
-  code VARCHAR(50),
-  name_th VARCHAR(500),
-  tpp_code VARCHAR(50),  -- TPP code (optional)
-  ttmt_code VARCHAR(10), -- TTMT code (optional)
-  ...
-);
-
--- approved_vendor_list เชื่อม vendor กับ item
-CREATE TABLE approved_vendor_list (
-  id INTEGER PRIMARY KEY,
-  vendor_id INTEGER,
-  item_id INTEGER,
-  is_active BOOLEAN,
-  FOREIGN KEY (vendor_id) REFERENCES vendors(id),
-  FOREIGN KEY (item_id) REFERENCES items(id)
-);
-```
-
-#### Filtering Logic
-
-**Step 1: Get Vendor Product Codes**
-
-```typescript
-// Query AVL to get all items for this vendor
-SELECT DISTINCT items.tpp_code, items.ttmt_code
-FROM approved_vendor_list avl
-JOIN items ON avl.item_id = items.id
-WHERE avl.vendor_id = ? AND avl.is_active = true
-  AND (items.tpp_code IS NOT NULL OR items.ttmt_code IS NOT NULL)
-
-// Result:
+```json
 {
-  tppCodes: ['1100010001000', '9876543210987'],
-  ttmtCodes: ['A01234567', 'A99999999']
+  "url": "https://your-server.com/webhooks/vmi",
+  "name": "Production Webhook",
+  "description": "รับการแจ้งเตือนคำสั่งซื้อและการรับสินค้า",
+  "events": ["order.created", "order.cancelled", "receipt.created", "receipt.completed"]
 }
 ```
 
-**Step 2: Filter Data with OR Logic**
+#### รายละเอียดฟิลด์
 
-```sql
--- Example: Query hospital stock
-SELECT ...
-FROM inventory_lots lot
-JOIN items ON lot.item_id = items.id
-WHERE (
-  items.tpp_code IN ('1100010001000', '9876543210987')
-  OR
-  items.ttmt_code IN ('A01234567', 'A99999999')
-)
+| ฟิลด์ | ประเภท | จำเป็น | คำอธิบาย |
+|-------|--------|--------|----------|
+| `url` | string | ใช่ | URL ของ Webhook endpoint (HTTPS แนะนำสำหรับ Production) |
+| `name` | string | ใช่ | ชื่อ Webhook (สูงสุด 100 ตัวอักษร) |
+| `description` | string | ไม่ | คำอธิบาย (สูงสุด 500 ตัวอักษร) |
+| `events` | array | ใช่ | รายการ Event ที่ต้องการรับ (อย่างน้อย 1 รายการ) |
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X POST "https://vmi-portal.bmscloud.in.th/api/external/vendor/webhooks" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY" \
+  -d '{
+    "url": "https://your-server.com/webhooks/vmi",
+    "name": "Production Webhook",
+    "description": "รับการแจ้งเตือนคำสั่งซื้อ",
+    "events": ["order.created", "order.cancelled", "receipt.completed"]
+  }'
 ```
 
-**OR Logic Justification:**
-- ผลิตภัณฑ์บางตัวมีเฉพาะ TPP code
-- ผลิตภัณฑ์บางตัวมีเฉพาะ TTMT code
-- ผลิตภัณฑ์บางตัวมีทั้งสอง code
-- ต้องใช้ OR เพื่อรวมทุกผลิตภัณฑ์ของ Vendor
+#### Response สำเร็จ
 
-#### Query Parameter Support
-
-ทุก endpoint รองรับการกรองเพิ่มเติมด้วย:
-- `?tppCode=1100010001000` - ดูเฉพาะสินค้าที่มี TPP code นี้
-- `?ttmtCode=A01234567` - ดูเฉพาะสินค้าที่มี TTMT code นี้
-
-การกรองเหล่านี้จะ AND กับ vendor's product codes:
-
-```sql
-WHERE (
-  (items.tpp_code IN vendor_tpp_codes OR items.ttmt_code IN vendor_ttmt_codes)
-  AND
-  (items.tpp_code = specific_tpp OR items.ttmt_code = specific_ttmt)
-)
-```
-
-### Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant V as Vendor
-    participant M as Middleware
-    participant S as API Key Service
-    participant D as Database
-    participant E as ERP Data Service
-
-    V->>M: GET /plans (X-API-Key: vmi_erp_...)
-    M->>S: validateApiKey(apiKey)
-    S->>D: SELECT hash, vendor FROM vendor_api_keys WHERE hash = SHA256(key)
-    D->>S: vendor info
-    S->>M: {vendorId, vendorCode, permissions}
-    M->>S: getVendorProductCodes(vendorId)
-    S->>D: SELECT tpp_code, ttmt_code FROM items JOIN avl
-    D->>S: {tppCodes: [...], ttmtCodes: [...]}
-    S->>M: productCodes
-    M->>E: getPlans({productCodes, ...queryParams})
-    E->>D: SELECT ... WHERE (tpp IN ... OR ttmt IN ...)
-    D->>E: filtered data
-    E->>M: {items, total, page, pageSize}
-    M->>V: 200 OK {success: true, data: ...}
-```
-
-### Data Privacy and Security
-
-#### Automatic Filtering
-
-**ทุก query จะถูกกรองโดยอัตโนมัติ:**
-1. Middleware ดึง vendor's product codes จาก AVL
-2. Query engine เพิ่ม WHERE condition กรอง TPP/TTMT
-3. Vendor จะเห็นเฉพาะข้อมูลของผลิตภัณฑ์ที่ตนจำหน่าย
-
-#### Security Guarantees
-
-- ✅ **Vendor Isolation:** แต่ละ Vendor เห็นเฉพาะข้อมูลของตนเอง
-- ✅ **Product Filtering:** กรองโดยอัตโนมัติตาม AVL (Approved Vendor List)
-- ✅ **No Cross-Contamination:** Vendor A ไม่สามารถเห็นข้อมูลของ Vendor B
-- ✅ **Code-Level Protection:** การกรองทำที่ service layer ไม่ใช่แค่ UI
-- ✅ **Multi-Code Support:** รองรับทั้ง TPP (ยาแผนปัจจุบัน) และ TTMT (สมุนไพร)
-
-### Performance Considerations
-
-#### Indexes Required
-
-```sql
--- For fast API key validation
-CREATE INDEX idx_vendor_api_keys_hash ON vendor_api_keys(key_hash);
-CREATE INDEX idx_vendor_api_keys_vendor_active ON vendor_api_keys(vendor_id, is_active);
-
--- For product code filtering
-CREATE INDEX idx_items_tpp_code ON items(tpp_code);
-CREATE INDEX idx_items_ttmt_code ON items(ttmt_code);
-CREATE INDEX idx_avl_vendor_item ON approved_vendor_list(vendor_id, item_id);
-```
-
-#### Query Optimization
-
-- Product codes cached per request (not per query)
-- Use `IN` clause with array of codes (better than multiple OR)
-- Limit result sets with pagination (max 100 items/page)
-
-### API Response Format
-
-ทุก endpoint ใช้ response format เดียวกัน:
-
-**Success Response:**
 ```json
 {
   "success": true,
-  "code": "SUCCESS",
-  "message": "Operation successful",
-  "data": { ... }
+  "vendorId": 1,
+  "webhook": {
+    "id": 1,
+    "url": "https://your-server.com/webhooks/vmi",
+    "name": "Production Webhook",
+    "description": "รับการแจ้งเตือนคำสั่งซื้อ",
+    "events": ["order.created", "order.cancelled", "receipt.completed"],
+    "isActive": true
+  },
+  "secret": "whsec_abc123def456...",
+  "message": "Webhook created successfully. Save the secret - it won't be shown again."
 }
 ```
 
-**Error Response:**
+> **สำคัญ:** Secret จะแสดง **ครั้งเดียว** เท่านั้นเมื่อสร้าง Webhook กรุณาบันทึกเก็บไว้ในที่ปลอดภัย หากทำหายต้องสร้าง Secret ใหม่ผ่าน PATCH endpoint
+
+---
+
+### การตรวจสอบ Signature
+
+ทุก Webhook request จะมี HTTP Headers ดังนี้:
+
+| Header | คำอธิบาย |
+|--------|----------|
+| `X-Webhook-Event` | ประเภท event เช่น `order.created` |
+| `X-Webhook-Timestamp` | Unix timestamp ขณะส่ง |
+| `X-Webhook-Delivery-Id` | รหัสการส่ง (สำหรับ Idempotency) |
+| `X-Webhook-Signature` | HMAC-SHA256 signature |
+
+#### ตัวอย่างการตรวจสอบ Signature (Node.js)
+
+```javascript
+const crypto = require('crypto');
+
+function verifyWebhookSignature(payload, signature, secret, timestamp) {
+  // สร้าง signature payload
+  const signaturePayload = `${timestamp}.${payload}`;
+
+  // คำนวณ expected signature
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(signaturePayload)
+    .digest('hex');
+
+  // เปรียบเทียบ signature อย่างปลอดภัย
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// ตัวอย่างการใช้งานใน Express.js
+app.post('/webhooks/vmi', express.raw({ type: 'application/json' }), (req, res) => {
+  const payload = req.body.toString();
+  const signature = req.headers['x-webhook-signature'];
+  const timestamp = req.headers['x-webhook-timestamp'];
+
+  if (!verifyWebhookSignature(payload, signature, WEBHOOK_SECRET, timestamp)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  // ตรวจสอบ timestamp ไม่เก่าเกินไป (5 นาที)
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - parseInt(timestamp)) > 300) {
+    return res.status(401).json({ error: 'Timestamp too old' });
+  }
+
+  const event = JSON.parse(payload);
+  const eventType = req.headers['x-webhook-event'];
+  const deliveryId = req.headers['x-webhook-delivery-id'];
+
+  // บันทึก deliveryId เพื่อป้องกัน duplicate processing
+  console.log(`Received ${eventType} event (delivery: ${deliveryId})`);
+
+  // ประมวลผล event
+  switch (eventType) {
+    case 'order.created':
+      handleNewOrder(event);
+      break;
+    case 'order.cancelled':
+      handleOrderCancellation(event);
+      break;
+    case 'receipt.created':
+      handleReceipt(event);
+      break;
+    case 'receipt.completed':
+      handleReceiptCompleted(event);
+      break;
+  }
+
+  res.status(200).json({ received: true });
+});
+```
+
+---
+
+### Retry Policy
+
+ระบบจะพยายามส่ง Webhook ซ้ำหากไม่ได้รับ Response สำเร็จ (HTTP 2xx):
+
+| ครั้งที่ | เวลารอก่อนส่งซ้ำ |
+|---------|-----------------|
+| 1 | ทันที |
+| 2 | 1 นาที |
+| 3 | 5 นาที |
+| 4 | 15 นาที |
+| 5 | 1 ชั่วโมง |
+| 6 | 4 ชั่วโมง |
+
+- หลัง **5 ครั้ง** ล้มเหลว จะหยุดส่งและบันทึกสถานะ `abandoned`
+- หลัง **10 ครั้ง** ล้มเหลวติดต่อกัน (จากหลาย event) Webhook จะถูกปิดใช้งานอัตโนมัติ (`isDisabledByFailures = true`)
+- สามารถเปิดใช้งานอีกครั้งได้ผ่าน PATCH endpoint ด้วย `reenableWebhook: true`
+
+---
+
+### GET /api/external/vendor/webhooks
+
+ดูรายการ Webhook ทั้งหมดของ Vendor
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/webhooks" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY"
+```
+
+#### Response สำเร็จ
+
 ```json
 {
-  "success": false,
-  "code": "ERROR_CODE",
-  "message": "Error description"
+  "success": true,
+  "vendorId": 1,
+  "webhooks": [
+    {
+      "id": 1,
+      "url": "https://your-server.com/webhooks/vmi",
+      "name": "Production Webhook",
+      "description": "รับการแจ้งเตือนคำสั่งซื้อ",
+      "events": ["order.created", "order.cancelled", "receipt.completed"],
+      "isActive": true,
+      "isDisabledByFailures": false,
+      "consecutiveFailures": 0,
+      "lastSuccessAt": "2024-12-25T10:30:00.000Z",
+      "lastFailureAt": null,
+      "createdAt": "2024-12-01T08:00:00.000Z"
+    }
+  ]
 }
 ```
 
-**Error Codes:**
-- `UNAUTHORIZED` - API key invalid/missing
-- `NO_PRODUCTS` - Vendor has no approved products
-- `VALIDATION_ERROR` - Invalid request parameters
-- `NOT_FOUND` - Resource not found
+---
 
-### Testing and Validation
+### GET /api/external/vendor/webhooks/{id}
 
-Integration tests verify:
-1. ✅ API key creation and validation
-2. ✅ All 4 endpoints return proper structure
-3. ✅ TPP and TTMT code filtering works
-4. ✅ Query parameters accepted correctly
-5. ✅ Pagination functions properly
-6. ✅ Data filtered by vendor's product codes
+ดูรายละเอียด Webhook
 
-Test location: `tests/integration/vendor-erp-api.test.ts`
+#### Path Parameters
+
+| พารามิเตอร์ | ประเภท | คำอธิบาย |
+|------------|--------|----------|
+| `id` | number | รหัส Webhook |
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/webhooks/1" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY"
+```
+
+#### Response สำเร็จ
+
+```json
+{
+  "success": true,
+  "vendorId": 1,
+  "webhook": {
+    "id": 1,
+    "url": "https://your-server.com/webhooks/vmi",
+    "name": "Production Webhook",
+    "description": "รับการแจ้งเตือนคำสั่งซื้อ",
+    "events": ["order.created", "order.cancelled", "receipt.completed"],
+    "isActive": true,
+    "isDisabledByFailures": false,
+    "consecutiveFailures": 0,
+    "lastSuccessAt": "2024-12-25T10:30:00.000Z",
+    "lastFailureAt": null,
+    "createdAt": "2024-12-01T08:00:00.000Z",
+    "updatedAt": "2024-12-25T10:30:00.000Z"
+  }
+}
+```
+
+---
+
+### PATCH /api/external/vendor/webhooks/{id}
+
+แก้ไข Webhook
+
+#### Path Parameters
+
+| พารามิเตอร์ | ประเภท | คำอธิบาย |
+|------------|--------|----------|
+| `id` | number | รหัส Webhook |
+
+#### Request Body
+
+```json
+{
+  "url": "string (ไม่บังคับ)",
+  "name": "string (ไม่บังคับ)",
+  "description": "string (ไม่บังคับ)",
+  "events": ["order.created", "..."] "(ไม่บังคับ)",
+  "isActive": "boolean (ไม่บังคับ)",
+  "reenableWebhook": "boolean (ไม่บังคับ, เปิดใช้งาน Webhook ที่ถูกปิดจากความล้มเหลว)",
+  "regenerateSecret": "boolean (ไม่บังคับ, สร้าง Secret ใหม่)"
+}
+```
+
+#### ตัวอย่าง Request - แก้ไข URL
+
+```bash
+curl -X PATCH "https://vmi-portal.bmscloud.in.th/api/external/vendor/webhooks/1" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY" \
+  -d '{
+    "url": "https://new-server.com/webhooks/vmi"
+  }'
+```
+
+#### ตัวอย่าง Request - สร้าง Secret ใหม่
+
+```bash
+curl -X PATCH "https://vmi-portal.bmscloud.in.th/api/external/vendor/webhooks/1" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY" \
+  -d '{
+    "regenerateSecret": true
+  }'
+```
+
+#### Response สำเร็จ (สร้าง Secret ใหม่)
+
+```json
+{
+  "success": true,
+  "vendorId": 1,
+  "webhookId": 1,
+  "secret": "whsec_new_secret_xyz...",
+  "message": "Webhook updated. New secret generated - save it, it won't be shown again."
+}
+```
+
+#### ตัวอย่าง Request - เปิดใช้งาน Webhook ที่ถูกปิดอัตโนมัติ
+
+```bash
+curl -X PATCH "https://vmi-portal.bmscloud.in.th/api/external/vendor/webhooks/1" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY" \
+  -d '{
+    "reenableWebhook": true
+  }'
+```
+
+---
+
+### DELETE /api/external/vendor/webhooks/{id}
+
+ลบ Webhook
+
+#### Path Parameters
+
+| พารามิเตอร์ | ประเภท | คำอธิบาย |
+|------------|--------|----------|
+| `id` | number | รหัส Webhook |
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X DELETE "https://vmi-portal.bmscloud.in.th/api/external/vendor/webhooks/1" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY"
+```
+
+#### Response สำเร็จ
+
+```json
+{
+  "success": true,
+  "vendorId": 1,
+  "webhookId": 1,
+  "message": "Webhook deleted successfully"
+}
+```
+
+---
+
+### GET /api/external/vendor/webhooks/{id}/deliveries
+
+ดูประวัติการส่ง Webhook
+
+#### Path Parameters
+
+| พารามิเตอร์ | ประเภท | คำอธิบาย |
+|------------|--------|----------|
+| `id` | number | รหัส Webhook |
+
+#### Query Parameters
+
+| พารามิเตอร์ | ประเภท | จำเป็น | ค่าเริ่มต้น | คำอธิบาย |
+|------------|--------|--------|------------|----------|
+| `page` | number | ไม่ | 1 | หน้าที่ต้องการ |
+| `pageSize` | number | ไม่ | 50 | จำนวนรายการต่อหน้า (สูงสุด 100) |
+| `status` | string | ไม่ | - | กรองตามสถานะ: `pending`, `success`, `failed`, `abandoned` |
+
+#### ตัวอย่าง Request
+
+```bash
+curl -X GET "https://vmi-portal.bmscloud.in.th/api/external/vendor/webhooks/1/deliveries?status=failed&page=1&pageSize=20" \
+  -H "X-API-Key: YOUR_VENDOR_API_KEY"
+```
+
+#### Response สำเร็จ
+
+```json
+{
+  "success": true,
+  "vendorId": 1,
+  "webhookId": 1,
+  "deliveries": [
+    {
+      "id": 123,
+      "eventType": "order.created",
+      "eventId": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "success",
+      "attemptCount": 1,
+      "responseStatus": 200,
+      "errorMessage": null,
+      "durationMs": 245,
+      "createdAt": "2024-12-25T10:30:00.000Z",
+      "updatedAt": "2024-12-25T10:30:00.000Z"
+    },
+    {
+      "id": 122,
+      "eventType": "order.created",
+      "eventId": "550e8400-e29b-41d4-a716-446655440001",
+      "status": "failed",
+      "attemptCount": 3,
+      "responseStatus": 500,
+      "errorMessage": "Internal Server Error",
+      "durationMs": 5023,
+      "createdAt": "2024-12-24T14:20:00.000Z",
+      "updatedAt": "2024-12-24T15:45:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 20,
+    "totalItems": 45,
+    "totalPages": 3
+  }
+}
+```
+
+#### รายละเอียดสถานะ Delivery
+
+| สถานะ | คำอธิบาย |
+|-------|----------|
+| `pending` | รอส่งหรือรอ retry |
+| `success` | ส่งสำเร็จ (ได้รับ HTTP 2xx) |
+| `failed` | ส่งล้มเหลว กำลังรอ retry |
+| `abandoned` | หยุดส่งหลังพยายามครบตามกำหนด |
+
+---
+
+### Webhook Payload Examples
+
+#### order.created
+
+```json
+{
+  "orderId": 123,
+  "poNumber": "PO-2024-001234",
+  "hospitalCode": "12345",
+  "hospitalName": "โรงพยาบาลตัวอย่าง",
+  "orderDate": "2024-12-25",
+  "totalValue": "15000.00",
+  "itemCount": 3,
+  "items": [
+    {
+      "localCode": "MED-001",
+      "name": "พาราเซตามอล 500 มก.",
+      "quantity": 1000,
+      "unitPrice": "2.50"
+    }
+  ]
+}
+```
+
+#### order.cancelled
+
+```json
+{
+  "orderId": 123,
+  "poNumber": "PO-2024-001234",
+  "hospitalCode": "12345",
+  "reason": "เปลี่ยนแปลงแผนการจัดซื้อ",
+  "cancelledAt": "2024-12-25T14:30:00.000Z"
+}
+```
+
+#### receipt.created
+
+```json
+{
+  "orderId": 123,
+  "poNumber": "PO-2024-001234",
+  "receiptId": 456,
+  "receiptNumber": "GR-2024-001234",
+  "receiptDate": "2024-12-25",
+  "hospitalCode": "12345",
+  "items": [
+    {
+      "localCode": "MED-001",
+      "name": "พาราเซตามอล 500 มก.",
+      "quantityReceived": 500,
+      "quantityOrdered": 1000
+    }
+  ]
+}
+```
+
+#### receipt.completed
+
+```json
+{
+  "orderId": 123,
+  "poNumber": "PO-2024-001234",
+  "hospitalCode": "12345",
+  "completedAt": "2024-12-26T09:00:00.000Z",
+  "totalReceipts": 2
+}
+```
+
+---
+
+### ข้อจำกัดของ Webhook
+
+| รายการ | ค่าจำกัด |
+|--------|---------|
+| จำนวน Webhook สูงสุดต่อ Vendor | 5 |
+| ความยาว URL สูงสุด | 500 ตัวอักษร |
+| ความยาวชื่อสูงสุด | 100 ตัวอักษร |
+| ความยาวคำอธิบายสูงสุด | 500 ตัวอักษร |
+| Timeout ต่อ request | 30 วินาที |
+| จำนวนครั้งที่ retry สูงสุด | 5 ครั้ง |
 
 ---
 
