@@ -2,10 +2,18 @@
  * Dashboard Service Unit Tests
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from '@/lib/db/schema';
+
+let testDb: ReturnType<typeof drizzle> | null = null;
+
+vi.mock('@/lib/db', () => ({
+  getDb: vi.fn(() => Promise.resolve(testDb)),
+  isSqlite: vi.fn(() => true),
+}));
+
 import {
   getHRKpis,
   getPurchaseKpis,
@@ -20,12 +28,11 @@ describe('Dashboard Service', () => {
   let db: ReturnType<typeof drizzle>;
 
   beforeAll(async () => {
-    // Set DB_TYPE to sqlite for tests
     process.env.DB_TYPE = 'sqlite';
 
-    // Create in-memory SQLite database
     sqliteDb = new Database(':memory:');
     db = drizzle(sqliteDb, { schema });
+    testDb = db;
 
     // Create minimal schema for tests
     sqliteDb.exec(`
@@ -41,6 +48,7 @@ describe('Dashboard Service', () => {
         employee_id INTEGER NOT NULL,
         fitness_status TEXT NOT NULL,
         next_exam_date TEXT,
+        next_exam_due TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -48,6 +56,7 @@ describe('Dashboard Service', () => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         employee_id INTEGER NOT NULL,
         status TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -78,6 +87,7 @@ describe('Dashboard Service', () => {
         item_id INTEGER NOT NULL,
         vendor_id INTEGER NOT NULL,
         status TEXT NOT NULL,
+        approval_date TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -155,10 +165,6 @@ describe('Dashboard Service', () => {
         ('DEV001', 'open'),
         ('DEV002', 'closed');
     `);
-
-    // Mock getDb to return our test database
-    const dbModule = await import('@/lib/db');
-    (dbModule as any).getDb = async () => db;
   });
 
   afterAll(() => {

@@ -87,7 +87,6 @@ vi.mock('recharts', () => ({
   Legend: vi.fn(() => null),
 }));
 
-// Mock KPICard component
 vi.mock('@/components/ui/kpi-card', () => ({
   KPICard: vi.fn(({ label, value, subtitle }) => (
     <div data-testid={`kpi-card-${label.replace(/\s+/g, '-').toLowerCase()}`}>
@@ -98,6 +97,28 @@ vi.mock('@/components/ui/kpi-card', () => ({
   )),
   KPICardSkeleton: vi.fn(() => (
     <div data-testid="kpi-skeleton">Loading...</div>
+  )),
+}));
+
+vi.mock('@/components/accounting', () => ({
+  AccountingPageHeader: vi.fn(({ title, subtitle, currentPeriod, periodStatus, onRefresh }) => (
+    <div data-testid="accounting-page-header">
+      <h1>{title || 'Accounting Dashboard'}</h1>
+      <p>{subtitle}</p>
+      {currentPeriod && <span>{currentPeriod}</span>}
+      {periodStatus && <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700">{periodStatus === 'open' ? 'เปิด' : 'ปิด'}</span>}
+      {onRefresh && <button data-testid="refresh-button" onClick={onRefresh}>Refresh</button>}
+    </div>
+  )),
+  AccountingKPICard: vi.fn(({ label, value, subtitle }) => (
+    <div data-testid={`accounting-kpi-${label.replace(/\s+/g, '-').toLowerCase()}`}>
+      <span>{label}</span>
+      <span>{value}</span>
+      {subtitle && <span>{subtitle}</span>}
+    </div>
+  )),
+  AccountingKPICardSkeleton: vi.fn(() => (
+    <div data-testid="accounting-kpi-skeleton">Loading...</div>
   )),
 }));
 
@@ -145,7 +166,7 @@ describe('Accounting Dashboard Page', () => {
       render(<AccountingDashboardPage />);
 
       expect(screen.getByText('December 2024')).toBeInTheDocument();
-      expect(screen.getByText('open')).toBeInTheDocument();
+      expect(screen.getByText('เปิด')).toBeInTheDocument();
     });
 
     it('should render refresh button', () => {
@@ -159,7 +180,7 @@ describe('Accounting Dashboard Page', () => {
     it('should render Cash Balance KPI card', () => {
       render(<AccountingDashboardPage />);
 
-      const kpiCard = screen.getByTestId('kpi-card-cash-balance');
+      const kpiCard = screen.getByTestId('kpi-cash-balance');
       expect(kpiCard).toBeInTheDocument();
       expect(kpiCard).toHaveTextContent('Cash Balance');
       expect(kpiCard).toHaveTextContent('Available cash');
@@ -168,7 +189,7 @@ describe('Accounting Dashboard Page', () => {
     it('should render Accounts Receivable KPI card', () => {
       render(<AccountingDashboardPage />);
 
-      const kpiCard = screen.getByTestId('kpi-card-accounts-receivable');
+      const kpiCard = screen.getByTestId('kpi-ar-balance');
       expect(kpiCard).toBeInTheDocument();
       expect(kpiCard).toHaveTextContent('Accounts Receivable');
       expect(kpiCard).toHaveTextContent('Due from customers');
@@ -177,7 +198,7 @@ describe('Accounting Dashboard Page', () => {
     it('should render Accounts Payable KPI card', () => {
       render(<AccountingDashboardPage />);
 
-      const kpiCard = screen.getByTestId('kpi-card-accounts-payable');
+      const kpiCard = screen.getByTestId('kpi-ap-balance');
       expect(kpiCard).toBeInTheDocument();
       expect(kpiCard).toHaveTextContent('Accounts Payable');
       expect(kpiCard).toHaveTextContent('Due to vendors');
@@ -186,7 +207,7 @@ describe('Accounting Dashboard Page', () => {
     it('should render Net Income KPI card', () => {
       render(<AccountingDashboardPage />);
 
-      const kpiCard = screen.getByTestId('kpi-card-net-income-(ytd)');
+      const kpiCard = screen.getByTestId('kpi-net-income');
       expect(kpiCard).toBeInTheDocument();
       expect(kpiCard).toHaveTextContent('Net Income');
       expect(kpiCard).toHaveTextContent('Year to date');

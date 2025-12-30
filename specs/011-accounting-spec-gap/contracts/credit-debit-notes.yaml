@@ -1,0 +1,479 @@
+openapi: 3.0.3
+info:
+  title: Credit/Debit Notes API
+  version: 1.0.0
+  description: API for managing AR/AP Credit Notes and Debit Notes
+
+paths:
+  /api/accounting/credit-notes:
+    get:
+      summary: List credit notes
+      tags: [Credit Notes]
+      parameters:
+        - name: note_type
+          in: query
+          schema:
+            type: string
+            enum: [ar_credit, ap_credit]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, submitted, approved, posted, cancelled]
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: vendor_id
+          in: query
+          schema:
+            type: integer
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of credit notes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CreditDebitNote'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create a credit note
+      tags: [Credit Notes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditDebitNoteCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditDebitNote'
+        '400':
+          description: Validation error
+
+  /api/accounting/debit-notes:
+    get:
+      summary: List debit notes
+      tags: [Debit Notes]
+      parameters:
+        - name: note_type
+          in: query
+          schema:
+            type: string
+            enum: [ar_debit, ap_debit]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, submitted, approved, posted, cancelled]
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: vendor_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of debit notes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CreditDebitNote'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create a debit note
+      tags: [Debit Notes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditDebitNoteCreate'
+      responses:
+        '201':
+          description: Created
+
+  /api/accounting/credit-notes/{id}:
+    get:
+      summary: Get credit note details
+      tags: [Credit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Credit note details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditDebitNoteDetail'
+
+    put:
+      summary: Update a credit note
+      tags: [Credit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditDebitNoteUpdate'
+      responses:
+        '200':
+          description: Updated
+
+  /api/accounting/credit-notes/{id}/submit:
+    post:
+      summary: Submit credit note for approval
+      tags: [Credit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Submitted
+
+  /api/accounting/credit-notes/{id}/approve:
+    post:
+      summary: Approve credit note
+      tags: [Credit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Approved
+
+  /api/accounting/credit-notes/{id}/post:
+    post:
+      summary: Post credit note (create journal entry and update invoice)
+      tags: [Credit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Posted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  journal_entry_id:
+                    type: integer
+                  journal_entry_number:
+                    type: string
+                  invoice_new_balance:
+                    type: number
+        '400':
+          description: Cannot post (period closed, etc.)
+
+  /api/accounting/credit-notes/{id}/cancel:
+    post:
+      summary: Cancel credit note
+      tags: [Credit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Cancelled
+
+  /api/accounting/debit-notes/{id}:
+    get:
+      summary: Get debit note details
+      tags: [Debit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Debit note details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditDebitNoteDetail'
+
+  /api/accounting/debit-notes/{id}/post:
+    post:
+      summary: Post debit note
+      tags: [Debit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Posted
+
+  /api/accounting/invoices/{id}/available-for-credit:
+    get:
+      summary: Get invoice balance available for credit note
+      tags: [Credit Notes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: invoice_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [ar, ap]
+      responses:
+        '200':
+          description: Invoice credit availability
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice_id:
+                    type: integer
+                  invoice_number:
+                    type: string
+                  original_amount:
+                    type: number
+                  paid_amount:
+                    type: number
+                  credited_amount:
+                    type: number
+                  available_for_credit:
+                    type: number
+                  lines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        line_id:
+                          type: integer
+                        description:
+                          type: string
+                        quantity:
+                          type: number
+                        credited_quantity:
+                          type: number
+                        available_quantity:
+                          type: number
+                        unit_price:
+                          type: number
+
+components:
+  schemas:
+    CreditDebitNote:
+      type: object
+      properties:
+        id:
+          type: integer
+        note_number:
+          type: string
+        note_type:
+          type: string
+          enum: [ar_credit, ap_credit, ar_debit, ap_debit]
+        reference_invoice_id:
+          type: integer
+        reference_invoice_number:
+          type: string
+        customer_id:
+          type: integer
+        customer_name:
+          type: string
+        vendor_id:
+          type: integer
+        vendor_name:
+          type: string
+        note_date:
+          type: string
+          format: date
+        reason_code:
+          type: string
+        subtotal:
+          type: number
+        vat_amount:
+          type: number
+        total_amount:
+          type: number
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CreditDebitNoteDetail:
+      allOf:
+        - $ref: '#/components/schemas/CreditDebitNote'
+        - type: object
+          properties:
+            reason_description:
+              type: string
+            vat_rate:
+              type: number
+            wht_amount:
+              type: number
+            journal_entry_id:
+              type: integer
+            journal_entry_number:
+              type: string
+            vat_transaction_id:
+              type: integer
+            approved_by:
+              type: integer
+            approved_at:
+              type: string
+              format: date-time
+            posted_at:
+              type: string
+              format: date-time
+            notes:
+              type: string
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/CreditDebitNoteLine'
+
+    CreditDebitNoteCreate:
+      type: object
+      required: [note_type, reference_invoice_id, note_date, reason_code]
+      properties:
+        note_type:
+          type: string
+          enum: [ar_credit, ap_credit, ar_debit, ap_debit]
+        reference_invoice_id:
+          type: integer
+        note_date:
+          type: string
+          format: date
+        reason_code:
+          type: string
+          enum: [return, price_adjustment, quantity_adjustment, defect, discount, other]
+        reason_description:
+          type: string
+        notes:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditDebitNoteLineCreate'
+
+    CreditDebitNoteUpdate:
+      type: object
+      properties:
+        note_date:
+          type: string
+          format: date
+        reason_code:
+          type: string
+        reason_description:
+          type: string
+        notes:
+          type: string
+
+    CreditDebitNoteLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        note_id:
+          type: integer
+        line_number:
+          type: integer
+        reference_invoice_line_id:
+          type: integer
+        item_id:
+          type: integer
+        item_code:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: number
+        unit_price:
+          type: number
+        line_total:
+          type: number
+        gl_account_id:
+          type: integer
+        gl_account_code:
+          type: string
+
+    CreditDebitNoteLineCreate:
+      type: object
+      required: [description, quantity, unit_price, gl_account_id]
+      properties:
+        reference_invoice_line_id:
+          type: integer
+        item_id:
+          type: integer
+        description:
+          type: string
+        quantity:
+          type: number
+        unit_price:
+          type: number
+        gl_account_id:
+          type: integer

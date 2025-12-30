@@ -1023,6 +1023,7 @@ export default function SalesOrdersPage() {
                 <button
                   onClick={() => refetch()}
                   className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center text-white transition-colors"
+                  data-testid="so-refresh-btn"
                 >
                   <RefreshCw className="h-5 w-5" />
                 </button>

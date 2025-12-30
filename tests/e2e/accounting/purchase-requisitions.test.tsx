@@ -1,0 +1,301 @@
+/**
+ * Purchase Requisitions E2E Test (T154)
+ * Feature: 011-accounting-spec-gap
+ * User Story 1: Purchase Requisitions with Approval
+ *
+ * Tests the Purchase Requisitions page rendering and interactions.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  usePathname: () => '/purchasing/requisitions',
+}));
+
+// Mock lucide-react icons
+vi.mock('lucide-react', async (importOriginal) => {
+  const MockIcon = ({ className }: { className?: string }) => <span className={className}>Icon</span>;
+  MockIcon.displayName = 'MockIcon';
+
+  return {
+    ...(await importOriginal<typeof import('lucide-react')>()),
+    Plus: MockIcon,
+    FileText: MockIcon,
+    Clock: MockIcon,
+    CheckCircle: MockIcon,
+    XCircle: MockIcon,
+    Search: MockIcon,
+    Filter: MockIcon,
+    ChevronDown: MockIcon,
+    ChevronUp: MockIcon,
+    MoreHorizontal: MockIcon,
+    Edit: MockIcon,
+    Trash: MockIcon,
+    Eye: MockIcon,
+    Send: MockIcon,
+    Check: MockIcon,
+    X: MockIcon,
+    AlertCircle: MockIcon,
+    Loader2: MockIcon,
+    RefreshCw: MockIcon,
+  };
+});
+
+// Mock MainLayout
+vi.mock('@/components/layout/main-layout', () => ({
+  MainLayout: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-layout">{children}</div>
+  ),
+}));
+
+// Mock DevExtreme components
+vi.mock('devextreme-react/data-grid', () => ({
+  default: ({ dataSource, children, ...props }: any) => (
+    <div data-testid={props['data-testid'] || 'data-grid'}>
+      <table>
+        <tbody>
+          {Array.isArray(dataSource) && dataSource.map((row: any, i: number) => (
+            <tr key={i} data-testid={`grid-row-${i}`}>
+              <td>{row.requisitionNumber || row.id}</td>
+              <td>{row.status}</td>
+              <td>{row.totalAmount}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {children}
+    </div>
+  ),
+  Column: () => null,
+  Paging: () => null,
+  FilterRow: () => null,
+  SearchPanel: () => null,
+  HeaderFilter: () => null,
+  Scrolling: () => null,
+  Selection: () => null,
+  Toolbar: ({ children }: any) => <div data-testid="grid-toolbar">{children}</div>,
+  Item: ({ children }: any) => <div>{children}</div>,
+}));
+
+vi.mock('devextreme-react/button', () => ({
+  Button: ({ text, onClick, ...props }: any) => (
+    <button onClick={onClick} data-testid={props['data-testid']}>{text}</button>
+  ),
+}));
+
+vi.mock('devextreme-react/select-box', () => ({
+  SelectBox: ({ value, onValueChanged, ...props }: any) => (
+    <select
+      value={value}
+      onChange={(e) => onValueChanged?.({ value: e.target.value })}
+      data-testid={props['data-testid']}
+    >
+      <option value="">All</option>
+      <option value="draft">Draft</option>
+      <option value="submitted">Submitted</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected</option>
+    </select>
+  ),
+}));
+
+vi.mock('devextreme-react/load-indicator', () => ({
+  LoadIndicator: () => <div data-testid="dx-loadindicator">Loading...</div>,
+}));
+
+// Mock fetch
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
+// Sample requisition data
+const mockRequisitions = [
+  {
+    id: 1,
+    requisitionNumber: 'PR-2024-0001',
+    requestDate: '2024-01-15',
+    requestedById: 1,
+    requestedByName: 'John Doe',
+    departmentId: 1,
+    departmentName: 'Production',
+    status: 'draft',
+    priority: 'normal',
+    requiredDate: '2024-01-30',
+    justification: 'Monthly supplies',
+    totalAmount: 15000,
+    lineCount: 3,
+    createdAt: '2024-01-15T10:00:00Z',
+  },
+  {
+    id: 2,
+    requisitionNumber: 'PR-2024-0002',
+    requestDate: '2024-01-16',
+    requestedById: 2,
+    requestedByName: 'Jane Smith',
+    departmentId: 2,
+    departmentName: 'QC',
+    status: 'submitted',
+    priority: 'high',
+    requiredDate: '2024-01-25',
+    justification: 'Urgent lab supplies',
+    totalAmount: 25000,
+    lineCount: 5,
+    createdAt: '2024-01-16T09:00:00Z',
+  },
+  {
+    id: 3,
+    requisitionNumber: 'PR-2024-0003',
+    requestDate: '2024-01-17',
+    requestedById: 1,
+    requestedByName: 'John Doe',
+    departmentId: 1,
+    departmentName: 'Production',
+    status: 'approved',
+    priority: 'normal',
+    requiredDate: '2024-02-01',
+    justification: 'Equipment replacement',
+    totalAmount: 50000,
+    lineCount: 2,
+    createdAt: '2024-01-17T14:00:00Z',
+  },
+];
+
+describe('Purchase Requisitions Page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/purchasing/requisitions')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: mockRequisitions,
+            total: mockRequisitions.length,
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: [] }),
+      });
+    });
+  });
+
+  it('should render page title', async () => {
+    const RequisitionsPage = (await import('@/app/purchasing/requisitions/page')).default;
+
+    render(<RequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('page-title')).toHaveTextContent('Purchase Requisitions');
+    });
+  });
+
+  it('should render requisitions data grid', async () => {
+    const RequisitionsPage = (await import('@/app/purchasing/requisitions/page')).default;
+
+    render(<RequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('pr-grid')).toBeInTheDocument();
+    });
+  });
+
+  it('should render new requisition button', async () => {
+    const RequisitionsPage = (await import('@/app/purchasing/requisitions/page')).default;
+
+    render(<RequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('new-pr-btn')).toBeInTheDocument();
+    });
+  });
+
+  it('should display requisition data in grid', async () => {
+    const RequisitionsPage = (await import('@/app/purchasing/requisitions/page')).default;
+
+    render(<RequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PR-2024-0001')).toBeInTheDocument();
+      expect(screen.getByText('PR-2024-0002')).toBeInTheDocument();
+    });
+  });
+
+  it('should fetch requisitions on mount', async () => {
+    const RequisitionsPage = (await import('@/app/purchasing/requisitions/page')).default;
+
+    render(<RequisitionsPage />);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/purchasing/requisitions')
+      );
+    });
+  });
+
+  it('should call API on mount', async () => {
+    const RequisitionsPage = (await import('@/app/purchasing/requisitions/page')).default;
+
+    render(<RequisitionsPage />);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/purchasing/requisitions');
+    });
+  });
+
+  it('should handle API error gracefully', async () => {
+    mockFetch.mockRejectedValue(new Error('Network error'));
+
+    const RequisitionsPage = (await import('@/app/purchasing/requisitions/page')).default;
+
+    render(<RequisitionsPage />);
+
+    await waitFor(() => {
+      // Should render page even on error
+      expect(screen.getByTestId('page-title')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('Purchase Requisitions Workflow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/purchasing/requisitions')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: mockRequisitions,
+            total: mockRequisitions.length,
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: [] }),
+      });
+    });
+  });
+
+  it('should display different status badges', async () => {
+    const RequisitionsPage = (await import('@/app/purchasing/requisitions/page')).default;
+
+    render(<RequisitionsPage />);
+
+    await waitFor(() => {
+      // Grid should contain different statuses
+      expect(screen.getByText('draft')).toBeInTheDocument();
+      expect(screen.getByText('submitted')).toBeInTheDocument();
+      expect(screen.getByText('approved')).toBeInTheDocument();
+    });
+  });
+});

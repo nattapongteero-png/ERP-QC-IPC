@@ -16,6 +16,7 @@ interface RouteParams {
 }
 
 // POST /api/accounting/ap-invoices/[id]/approve - Approve AP invoice
+// Body: { skipMatching?: boolean } - Skip 3-way matching validation for special cases
 export async function POST(request: NextRequest, { params }: RouteParams) {
   return withAuth(
     request,
@@ -28,7 +29,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           return errorResponse('Invalid invoice ID', 400);
         }
 
-        const invoice = await approveAPInvoice(invoiceId, session.userId);
+        // Parse request body for skipMatching option
+        let skipMatching = false;
+        try {
+          const body = await request.json();
+          skipMatching = body?.skipMatching === true;
+        } catch {
+          // No body provided, use default
+        }
+
+        const invoice = await approveAPInvoice(invoiceId, session.userId, skipMatching);
         return successResponse(invoice, 'AP invoice approved and posted successfully');
       } catch (error) {
         if (error instanceof Error) {
@@ -38,7 +48,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           if (
             error.message.includes('Cannot approve') ||
             error.message.includes('no lines') ||
-            error.message.includes('GL account')
+            error.message.includes('GL account') ||
+            error.message.includes('pending matching exception')
           ) {
             return errorResponse(error.message, 400);
           }

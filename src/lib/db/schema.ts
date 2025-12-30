@@ -4710,6 +4710,304 @@ export const sqliteAcctMaintenanceRecords = sqliteTable('acct_maintenance_record
 });
 
 // ============================================
+// Accounting Module Gap Analysis - SQLite Schema (011)
+// ============================================
+
+// Purchase Requisitions - SQLite (T001)
+export const sqlitePurchaseRequisitions = sqliteTable('purchase_requisitions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  prNumber: text('pr_number').notNull().unique(),
+  requesterId: integer('requester_id').notNull().references(() => sqliteHREmployees.id),
+  departmentId: integer('department_id').references(() => sqliteHROrgUnits.id),
+  requiredDate: text('required_date').notNull(),
+  priority: text('priority').notNull().default('normal'), // normal, urgent, critical
+  justification: text('justification'),
+  status: text('status').notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
+  totalAmount: real('total_amount').notNull().default(0),
+  approvedBy: integer('approved_by').references(() => sqliteHREmployees.id),
+  approvedAt: text('approved_at'),
+  rejectionReason: text('rejection_reason'),
+  notes: text('notes'),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqlitePurchaseRequisitionLines = sqliteTable('purchase_requisition_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  prId: integer('pr_id').notNull().references(() => sqlitePurchaseRequisitions.id),
+  lineNumber: integer('line_number').notNull(),
+  itemId: integer('item_id').references(() => sqliteItems.id),
+  description: text('description').notNull(),
+  quantity: real('quantity').notNull(),
+  unit: text('unit').notNull(),
+  estimatedPrice: real('estimated_price').notNull().default(0),
+  lineTotal: real('line_total').notNull().default(0),
+  preferredVendorId: integer('preferred_vendor_id').references(() => sqliteVendors.id),
+  notes: text('notes'),
+  status: text('status').notNull().default('open'), // open, converted, cancelled
+  convertedPoLineId: integer('converted_po_line_id').references(() => sqlitePurchaseOrderLines.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Bank Reconciliation - SQLite (T002)
+export const sqliteBankStatements = sqliteTable('bank_statements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  statementNumber: text('statement_number').notNull(),
+  bankAccountId: integer('bank_account_id').notNull().references(() => sqliteGLAccounts.id),
+  statementDate: text('statement_date').notNull(),
+  openingBalance: real('opening_balance').notNull(),
+  closingBalance: real('closing_balance').notNull(),
+  totalDebits: real('total_debits').notNull().default(0),
+  totalCredits: real('total_credits').notNull().default(0),
+  status: text('status').notNull().default('imported'), // imported, in_progress, reconciled, closed
+  importedFileName: text('imported_file_name'),
+  importedAt: text('imported_at').notNull().default('CURRENT_TIMESTAMP'),
+  reconciledBy: integer('reconciled_by').references(() => sqliteHREmployees.id),
+  reconciledAt: text('reconciled_at'),
+  notes: text('notes'),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteBankStatementLines = sqliteTable('bank_statement_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  statementId: integer('statement_id').notNull().references(() => sqliteBankStatements.id),
+  lineNumber: integer('line_number').notNull(),
+  transactionDate: text('transaction_date').notNull(),
+  valueDate: text('value_date'),
+  reference: text('reference'),
+  description: text('description').notNull(),
+  debitAmount: real('debit_amount'),
+  creditAmount: real('credit_amount'),
+  runningBalance: real('running_balance'),
+  status: text('status').notNull().default('imported'), // imported, auto_matched, suggested, unmatched, manually_matched, journal_created, reconciled
+  matchConfidence: real('match_confidence'),
+  matchedBy: integer('matched_by').references(() => sqliteHREmployees.id),
+  matchedAt: text('matched_at'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteReconciliationMatches = sqliteTable('reconciliation_matches', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  statementLineId: integer('statement_line_id').notNull().references(() => sqliteBankStatementLines.id),
+  paymentId: integer('payment_id').references(() => sqlitePayments.id),
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  matchType: text('match_type').notNull(), // exact, reference, amount, manual, journal
+  matchAmount: real('match_amount').notNull(),
+  varianceAmount: real('variance_amount').notNull().default(0),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Credit/Debit Notes - SQLite (T003)
+export const sqliteCreditDebitNotes = sqliteTable('credit_debit_notes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  noteNumber: text('note_number').notNull().unique(),
+  noteType: text('note_type').notNull(), // ar_credit, ap_credit, ar_debit, ap_debit
+  referenceType: text('reference_type').notNull(), // ar_invoice, ap_invoice
+  referenceInvoiceId: integer('reference_invoice_id').notNull(),
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  vendorId: integer('vendor_id').references(() => sqliteVendors.id),
+  noteDate: text('note_date').notNull(),
+  reasonCode: text('reason_code').notNull(), // return, price_adjustment, quantity_adjustment, defect, discount, other
+  reasonDescription: text('reason_description'),
+  subtotal: real('subtotal').notNull().default(0),
+  vatRate: real('vat_rate').notNull().default(0.07),
+  vatAmount: real('vat_amount').notNull().default(0),
+  whtAmount: real('wht_amount').notNull().default(0),
+  totalAmount: real('total_amount').notNull().default(0),
+  status: text('status').notNull().default('draft'), // draft, submitted, approved, posted, cancelled
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  vatTransactionId: integer('vat_transaction_id').references(() => sqliteVATTransactions.id),
+  approvedBy: integer('approved_by').references(() => sqliteHREmployees.id),
+  approvedAt: text('approved_at'),
+  postedAt: text('posted_at'),
+  notes: text('notes'),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteCreditDebitNoteLines = sqliteTable('credit_debit_note_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  noteId: integer('note_id').notNull().references(() => sqliteCreditDebitNotes.id),
+  lineNumber: integer('line_number').notNull(),
+  referenceInvoiceLineId: integer('reference_invoice_line_id'),
+  itemId: integer('item_id').references(() => sqliteItems.id),
+  description: text('description').notNull(),
+  quantity: real('quantity').notNull(),
+  unitPrice: real('unit_price').notNull(),
+  lineTotal: real('line_total').notNull(),
+  glAccountId: integer('gl_account_id').notNull().references(() => sqliteGLAccounts.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// 3-Way Matching - SQLite (T004)
+export const sqliteMatchingTolerances = sqliteTable('matching_tolerances', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+  quantityTolerancePct: real('quantity_tolerance_pct').notNull().default(5.00),
+  quantityToleranceAbs: real('quantity_tolerance_abs').notNull().default(10),
+  priceTolerancePct: real('price_tolerance_pct').notNull().default(2.00),
+  priceToleranceAbs: real('price_tolerance_abs').notNull().default(100),
+  totalTolerancePct: real('total_tolerance_pct').notNull().default(1.00),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteMatchingResults = sqliteTable('matching_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  apInvoiceId: integer('ap_invoice_id').notNull().references(() => sqliteAPInvoices.id),
+  apInvoiceLineId: integer('ap_invoice_line_id').notNull().references(() => sqliteAPInvoiceLines.id),
+  poLineId: integer('po_line_id').notNull().references(() => sqlitePurchaseOrderLines.id),
+  grnLotId: integer('grn_lot_id').references(() => sqliteInventoryLots.id),
+  toleranceProfileId: integer('tolerance_profile_id').notNull().references(() => sqliteMatchingTolerances.id),
+  poQuantity: real('po_quantity').notNull(),
+  grnQuantity: real('grn_quantity'),
+  invoiceQuantity: real('invoice_quantity').notNull(),
+  quantityVariance: real('quantity_variance').notNull().default(0),
+  quantityVariancePct: real('quantity_variance_pct').notNull().default(0),
+  poUnitPrice: real('po_unit_price').notNull(),
+  invoiceUnitPrice: real('invoice_unit_price').notNull(),
+  priceVariance: real('price_variance').notNull().default(0),
+  priceVariancePct: real('price_variance_pct').notNull().default(0),
+  matchStatus: text('match_status').notNull().default('pending'), // pending, matched, quantity_exception, price_exception, approved_variance, blocked
+  matchedAt: text('matched_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteMatchingExceptions = sqliteTable('matching_exceptions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  matchingResultId: integer('matching_result_id').notNull().references(() => sqliteMatchingResults.id),
+  exceptionType: text('exception_type').notNull(), // over_quantity, under_quantity, over_price, under_price, total_mismatch
+  varianceAmount: real('variance_amount').notNull(),
+  variancePct: real('variance_pct').notNull(),
+  status: text('status').notNull().default('pending'), // pending, approved, rejected
+  resolutionAction: text('resolution_action'), // accept, reject_excess, request_credit, adjust_price
+  resolutionNotes: text('resolution_notes'),
+  resolvedBy: integer('resolved_by').references(() => sqliteHREmployees.id),
+  resolvedAt: text('resolved_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Approval Workflows - SQLite (T005)
+export const sqliteApprovalFlows = sqliteTable('approval_flows', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  description: text('description'),
+  documentType: text('document_type').notNull(), // purchase_requisition, purchase_order, ap_invoice, ar_invoice, payment, credit_note, debit_note
+  priority: integer('priority').notNull().default(100),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteApprovalRules = sqliteTable('approval_rules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  flowId: integer('flow_id').notNull().references(() => sqliteApprovalFlows.id),
+  ruleOrder: integer('rule_order').notNull(),
+  fieldName: text('field_name').notNull(), // e.g., total_amount
+  operator: text('operator').notNull(), // eq, ne, gt, gte, lt, lte, between, in, not_in
+  value: text('value').notNull(),
+  valueTo: text('value_to'),
+  logicOperator: text('logic_operator').notNull().default('and'), // and, or
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteApprovalSteps = sqliteTable('approval_steps', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  flowId: integer('flow_id').notNull().references(() => sqliteApprovalFlows.id),
+  stepOrder: integer('step_order').notNull(),
+  stepName: text('step_name').notNull(),
+  approverType: text('approver_type').notNull(), // user, role, department_head, requester_manager
+  approverId: integer('approver_id'),
+  canDelegate: integer('can_delegate', { mode: 'boolean' }).notNull().default(false),
+  timeoutDays: integer('timeout_days').notNull().default(3),
+  escalationStepId: integer('escalation_step_id').references((): AnySQLiteColumn => sqliteApprovalSteps.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteApprovalRequests = sqliteTable('approval_requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  flowId: integer('flow_id').notNull().references(() => sqliteApprovalFlows.id),
+  documentType: text('document_type').notNull(),
+  documentId: integer('document_id').notNull(),
+  currentStepOrder: integer('current_step_order').notNull().default(1),
+  status: text('status').notNull().default('pending'), // pending, approved, rejected, cancelled
+  requestedBy: integer('requested_by').notNull().references(() => sqliteHREmployees.id),
+  requestedAt: text('requested_at').notNull().default('CURRENT_TIMESTAMP'),
+  completedAt: text('completed_at'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteApprovalRequestSteps = sqliteTable('approval_request_steps', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  requestId: integer('request_id').notNull().references(() => sqliteApprovalRequests.id),
+  stepId: integer('step_id').notNull().references(() => sqliteApprovalSteps.id),
+  stepOrder: integer('step_order').notNull(),
+  assignedTo: integer('assigned_to').notNull().references(() => sqliteHREmployees.id),
+  delegatedFrom: integer('delegated_from').references(() => sqliteHREmployees.id),
+  status: text('status').notNull().default('pending'), // pending, approved, rejected, delegated, timed_out
+  actionDate: text('action_date'),
+  comments: text('comments'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteApprovalDelegations = sqliteTable('approval_delegations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  delegatorId: integer('delegator_id').notNull().references(() => sqliteHREmployees.id),
+  delegateId: integer('delegate_id').notNull().references(() => sqliteHREmployees.id),
+  documentType: text('document_type'), // null for all types
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  reason: text('reason'),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Variance Analysis - SQLite (T006)
+export const sqliteStandardCosts = sqliteTable('standard_costs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  itemId: integer('item_id').notNull().references(() => sqliteItems.id),
+  effectiveDate: text('effective_date').notNull(),
+  materialCost: real('material_cost').notNull().default(0),
+  laborCost: real('labor_cost').notNull().default(0),
+  overheadCost: real('overhead_cost').notNull().default(0),
+  totalCost: real('total_cost').notNull().default(0),
+  standardHours: real('standard_hours').notNull().default(0),
+  standardLaborRate: real('standard_labor_rate').notNull().default(0),
+  notes: text('notes'),
+  isCurrent: integer('is_current', { mode: 'boolean' }).notNull().default(false),
+  createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteVarianceRecords = sqliteTable('variance_records', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  itemId: integer('item_id').notNull().references(() => sqliteItems.id),
+  varianceType: text('variance_type').notNull(), // mpv, muv, lrv, lev, voh_var, foh_vol
+  varianceDate: text('variance_date').notNull(),
+  standardValue: real('standard_value').notNull(),
+  actualValue: real('actual_value').notNull(),
+  varianceAmount: real('variance_amount').notNull(),
+  quantity: real('quantity'),
+  isFavorable: integer('is_favorable', { mode: 'boolean' }).notNull(),
+  journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
+  postedAt: text('posted_at'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// ============================================
 // Accounting Module - MySQL Schema (010)
 // ============================================
 
@@ -5124,6 +5422,304 @@ export const mysqlAcctMaintenanceRecords = mysqlTable('acct_maintenance_records'
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
 
+// ============================================
+// Accounting Module Gap Analysis - MySQL Schema (011)
+// ============================================
+
+// Purchase Requisitions - MySQL (T001)
+export const mysqlPurchaseRequisitions = mysqlTable('purchase_requisitions', {
+  id: int('id').primaryKey().autoincrement(),
+  prNumber: varchar('pr_number', { length: 20 }).notNull().unique(),
+  requesterId: int('requester_id').notNull().references(() => mysqlHREmployees.id),
+  departmentId: int('department_id').references(() => mysqlHROrgUnits.id),
+  requiredDate: datetime('required_date').notNull(),
+  priority: varchar('priority', { length: 20 }).notNull().default('normal'), // normal, urgent, critical
+  justification: mysqlText('justification'),
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
+  totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  approvedBy: int('approved_by').references(() => mysqlHREmployees.id),
+  approvedAt: datetime('approved_at'),
+  rejectionReason: mysqlText('rejection_reason'),
+  notes: mysqlText('notes'),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+export const mysqlPurchaseRequisitionLines = mysqlTable('purchase_requisition_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  prId: int('pr_id').notNull().references(() => mysqlPurchaseRequisitions.id),
+  lineNumber: int('line_number').notNull(),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  description: varchar('description', { length: 255 }).notNull(),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(),
+  unit: varchar('unit', { length: 20 }).notNull(),
+  estimatedPrice: decimal('estimated_price', { precision: 15, scale: 4 }).notNull().default('0'),
+  lineTotal: decimal('line_total', { precision: 15, scale: 2 }).notNull().default('0'),
+  preferredVendorId: int('preferred_vendor_id').references(() => mysqlVendors.id),
+  notes: mysqlText('notes'),
+  status: varchar('status', { length: 20 }).notNull().default('open'), // open, converted, cancelled
+  convertedPoLineId: int('converted_po_line_id').references(() => mysqlPurchaseOrderLines.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Bank Reconciliation - MySQL (T002)
+export const mysqlBankStatements = mysqlTable('bank_statements', {
+  id: int('id').primaryKey().autoincrement(),
+  statementNumber: varchar('statement_number', { length: 50 }).notNull(),
+  bankAccountId: int('bank_account_id').notNull().references(() => mysqlGLAccounts.id),
+  statementDate: datetime('statement_date').notNull(),
+  openingBalance: decimal('opening_balance', { precision: 15, scale: 2 }).notNull(),
+  closingBalance: decimal('closing_balance', { precision: 15, scale: 2 }).notNull(),
+  totalDebits: decimal('total_debits', { precision: 15, scale: 2 }).notNull().default('0'),
+  totalCredits: decimal('total_credits', { precision: 15, scale: 2 }).notNull().default('0'),
+  status: varchar('status', { length: 20 }).notNull().default('imported'), // imported, in_progress, reconciled, closed
+  importedFileName: varchar('imported_file_name', { length: 255 }),
+  importedAt: datetime('imported_at').notNull().default(new Date()),
+  reconciledBy: int('reconciled_by').references(() => mysqlHREmployees.id),
+  reconciledAt: datetime('reconciled_at'),
+  notes: mysqlText('notes'),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+export const mysqlBankStatementLines = mysqlTable('bank_statement_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  statementId: int('statement_id').notNull().references(() => mysqlBankStatements.id),
+  lineNumber: int('line_number').notNull(),
+  transactionDate: datetime('transaction_date').notNull(),
+  valueDate: datetime('value_date'),
+  reference: varchar('reference', { length: 100 }),
+  description: varchar('description', { length: 255 }).notNull(),
+  debitAmount: decimal('debit_amount', { precision: 15, scale: 2 }),
+  creditAmount: decimal('credit_amount', { precision: 15, scale: 2 }),
+  runningBalance: decimal('running_balance', { precision: 15, scale: 2 }),
+  status: varchar('status', { length: 30 }).notNull().default('imported'), // imported, auto_matched, suggested, unmatched, manually_matched, journal_created, reconciled
+  matchConfidence: decimal('match_confidence', { precision: 5, scale: 2 }),
+  matchedBy: int('matched_by').references(() => mysqlHREmployees.id),
+  matchedAt: datetime('matched_at'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+export const mysqlReconciliationMatches = mysqlTable('reconciliation_matches', {
+  id: int('id').primaryKey().autoincrement(),
+  statementLineId: int('statement_line_id').notNull().references(() => mysqlBankStatementLines.id),
+  paymentId: int('payment_id').references(() => mysqlPayments.id),
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  matchType: varchar('match_type', { length: 20 }).notNull(), // exact, reference, amount, manual, journal
+  matchAmount: decimal('match_amount', { precision: 15, scale: 2 }).notNull(),
+  varianceAmount: decimal('variance_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Credit/Debit Notes - MySQL (T003)
+export const mysqlCreditDebitNotes = mysqlTable('credit_debit_notes', {
+  id: int('id').primaryKey().autoincrement(),
+  noteNumber: varchar('note_number', { length: 20 }).notNull().unique(),
+  noteType: varchar('note_type', { length: 20 }).notNull(), // ar_credit, ap_credit, ar_debit, ap_debit
+  referenceType: varchar('reference_type', { length: 20 }).notNull(), // ar_invoice, ap_invoice
+  referenceInvoiceId: int('reference_invoice_id').notNull(),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  vendorId: int('vendor_id').references(() => mysqlVendors.id),
+  noteDate: datetime('note_date').notNull(),
+  reasonCode: varchar('reason_code', { length: 30 }).notNull(), // return, price_adjustment, quantity_adjustment, defect, discount, other
+  reasonDescription: mysqlText('reason_description'),
+  subtotal: decimal('subtotal', { precision: 15, scale: 2 }).notNull().default('0'),
+  vatRate: decimal('vat_rate', { precision: 5, scale: 4 }).notNull().default('0.0700'),
+  vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  whtAmount: decimal('wht_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, submitted, approved, posted, cancelled
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  vatTransactionId: int('vat_transaction_id').references(() => mysqlVATTransactions.id),
+  approvedBy: int('approved_by').references(() => mysqlHREmployees.id),
+  approvedAt: datetime('approved_at'),
+  postedAt: datetime('posted_at'),
+  notes: mysqlText('notes'),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+export const mysqlCreditDebitNoteLines = mysqlTable('credit_debit_note_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  noteId: int('note_id').notNull().references(() => mysqlCreditDebitNotes.id),
+  lineNumber: int('line_number').notNull(),
+  referenceInvoiceLineId: int('reference_invoice_line_id'),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  description: varchar('description', { length: 255 }).notNull(),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(),
+  unitPrice: decimal('unit_price', { precision: 15, scale: 4 }).notNull(),
+  lineTotal: decimal('line_total', { precision: 15, scale: 2 }).notNull(),
+  glAccountId: int('gl_account_id').notNull().references(() => mysqlGLAccounts.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// 3-Way Matching - MySQL (T004)
+export const mysqlMatchingTolerances = mysqlTable('matching_tolerances', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  isDefault: mysqlBoolean('is_default').notNull().default(false),
+  quantityTolerancePct: decimal('quantity_tolerance_pct', { precision: 5, scale: 2 }).notNull().default('5.00'),
+  quantityToleranceAbs: decimal('quantity_tolerance_abs', { precision: 15, scale: 4 }).notNull().default('10'),
+  priceTolerancePct: decimal('price_tolerance_pct', { precision: 5, scale: 2 }).notNull().default('2.00'),
+  priceToleranceAbs: decimal('price_tolerance_abs', { precision: 15, scale: 2 }).notNull().default('100'),
+  totalTolerancePct: decimal('total_tolerance_pct', { precision: 5, scale: 2 }).notNull().default('1.00'),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+export const mysqlMatchingResults = mysqlTable('matching_results', {
+  id: int('id').primaryKey().autoincrement(),
+  apInvoiceId: int('ap_invoice_id').notNull().references(() => mysqlAPInvoices.id),
+  apInvoiceLineId: int('ap_invoice_line_id').notNull().references(() => mysqlAPInvoiceLines.id),
+  poLineId: int('po_line_id').notNull().references(() => mysqlPurchaseOrderLines.id),
+  grnLotId: int('grn_lot_id').references(() => mysqlInventoryLots.id),
+  toleranceProfileId: int('tolerance_profile_id').notNull().references(() => mysqlMatchingTolerances.id),
+  poQuantity: decimal('po_quantity', { precision: 15, scale: 4 }).notNull(),
+  grnQuantity: decimal('grn_quantity', { precision: 15, scale: 4 }),
+  invoiceQuantity: decimal('invoice_quantity', { precision: 15, scale: 4 }).notNull(),
+  quantityVariance: decimal('quantity_variance', { precision: 15, scale: 4 }).notNull().default('0'),
+  quantityVariancePct: decimal('quantity_variance_pct', { precision: 5, scale: 2 }).notNull().default('0'),
+  poUnitPrice: decimal('po_unit_price', { precision: 15, scale: 4 }).notNull(),
+  invoiceUnitPrice: decimal('invoice_unit_price', { precision: 15, scale: 4 }).notNull(),
+  priceVariance: decimal('price_variance', { precision: 15, scale: 4 }).notNull().default('0'),
+  priceVariancePct: decimal('price_variance_pct', { precision: 5, scale: 2 }).notNull().default('0'),
+  matchStatus: varchar('match_status', { length: 30 }).notNull().default('pending'), // pending, matched, quantity_exception, price_exception, approved_variance, blocked
+  matchedAt: datetime('matched_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+export const mysqlMatchingExceptions = mysqlTable('matching_exceptions', {
+  id: int('id').primaryKey().autoincrement(),
+  matchingResultId: int('matching_result_id').notNull().references(() => mysqlMatchingResults.id),
+  exceptionType: varchar('exception_type', { length: 30 }).notNull(), // over_quantity, under_quantity, over_price, under_price, total_mismatch
+  varianceAmount: decimal('variance_amount', { precision: 15, scale: 4 }).notNull(),
+  variancePct: decimal('variance_pct', { precision: 5, scale: 2 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, approved, rejected
+  resolutionAction: varchar('resolution_action', { length: 30 }), // accept, reject_excess, request_credit, adjust_price
+  resolutionNotes: mysqlText('resolution_notes'),
+  resolvedBy: int('resolved_by').references(() => mysqlHREmployees.id),
+  resolvedAt: datetime('resolved_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Approval Workflows - MySQL (T005)
+export const mysqlApprovalFlows = mysqlTable('approval_flows', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: mysqlText('description'),
+  documentType: varchar('document_type', { length: 30 }).notNull(), // purchase_requisition, purchase_order, ap_invoice, ar_invoice, payment, credit_note, debit_note
+  priority: int('priority').notNull().default(100),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
+export const mysqlApprovalRules = mysqlTable('approval_rules', {
+  id: int('id').primaryKey().autoincrement(),
+  flowId: int('flow_id').notNull().references(() => mysqlApprovalFlows.id),
+  ruleOrder: int('rule_order').notNull(),
+  fieldName: varchar('field_name', { length: 50 }).notNull(), // e.g., total_amount
+  operator: varchar('operator', { length: 20 }).notNull(), // eq, ne, gt, gte, lt, lte, between, in, not_in
+  value: varchar('value', { length: 255 }).notNull(),
+  valueTo: varchar('value_to', { length: 255 }),
+  logicOperator: varchar('logic_operator', { length: 10 }).notNull().default('and'), // and, or
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+export const mysqlApprovalSteps = mysqlTable('approval_steps', {
+  id: int('id').primaryKey().autoincrement(),
+  flowId: int('flow_id').notNull().references(() => mysqlApprovalFlows.id),
+  stepOrder: int('step_order').notNull(),
+  stepName: varchar('step_name', { length: 100 }).notNull(),
+  approverType: varchar('approver_type', { length: 30 }).notNull(), // user, role, department_head, requester_manager
+  approverId: int('approver_id'),
+  canDelegate: mysqlBoolean('can_delegate').notNull().default(false),
+  timeoutDays: int('timeout_days').notNull().default(3),
+  escalationStepId: int('escalation_step_id').references((): AnyMySqlColumn => mysqlApprovalSteps.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+export const mysqlApprovalRequests = mysqlTable('approval_requests', {
+  id: int('id').primaryKey().autoincrement(),
+  flowId: int('flow_id').notNull().references(() => mysqlApprovalFlows.id),
+  documentType: varchar('document_type', { length: 30 }).notNull(),
+  documentId: int('document_id').notNull(),
+  currentStepOrder: int('current_step_order').notNull().default(1),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, approved, rejected, cancelled
+  requestedBy: int('requested_by').notNull().references(() => mysqlHREmployees.id),
+  requestedAt: datetime('requested_at').notNull().default(new Date()),
+  completedAt: datetime('completed_at'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+export const mysqlApprovalRequestSteps = mysqlTable('approval_request_steps', {
+  id: int('id').primaryKey().autoincrement(),
+  requestId: int('request_id').notNull().references(() => mysqlApprovalRequests.id),
+  stepId: int('step_id').notNull().references(() => mysqlApprovalSteps.id),
+  stepOrder: int('step_order').notNull(),
+  assignedTo: int('assigned_to').notNull().references(() => mysqlHREmployees.id),
+  delegatedFrom: int('delegated_from').references(() => mysqlHREmployees.id),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, approved, rejected, delegated, timed_out
+  actionDate: datetime('action_date'),
+  comments: mysqlText('comments'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+export const mysqlApprovalDelegations = mysqlTable('approval_delegations', {
+  id: int('id').primaryKey().autoincrement(),
+  delegatorId: int('delegator_id').notNull().references(() => mysqlHREmployees.id),
+  delegateId: int('delegate_id').notNull().references(() => mysqlHREmployees.id),
+  documentType: varchar('document_type', { length: 30 }), // null for all types
+  startDate: datetime('start_date').notNull(),
+  endDate: datetime('end_date').notNull(),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  reason: mysqlText('reason'),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+// Variance Analysis - MySQL (T006)
+export const mysqlStandardCosts = mysqlTable('standard_costs', {
+  id: int('id').primaryKey().autoincrement(),
+  itemId: int('item_id').notNull().references(() => mysqlItems.id),
+  effectiveDate: datetime('effective_date').notNull(),
+  materialCost: decimal('material_cost', { precision: 15, scale: 4 }).notNull().default('0'),
+  laborCost: decimal('labor_cost', { precision: 15, scale: 4 }).notNull().default('0'),
+  overheadCost: decimal('overhead_cost', { precision: 15, scale: 4 }).notNull().default('0'),
+  totalCost: decimal('total_cost', { precision: 15, scale: 4 }).notNull().default('0'),
+  standardHours: decimal('standard_hours', { precision: 10, scale: 4 }).notNull().default('0'),
+  standardLaborRate: decimal('standard_labor_rate', { precision: 15, scale: 4 }).notNull().default('0'),
+  notes: mysqlText('notes'),
+  isCurrent: mysqlBoolean('is_current').notNull().default(false),
+  createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
+export const mysqlVarianceRecords = mysqlTable('variance_records', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  itemId: int('item_id').notNull().references(() => mysqlItems.id),
+  varianceType: varchar('variance_type', { length: 20 }).notNull(), // mpv, muv, lrv, lev, voh_var, foh_vol
+  varianceDate: datetime('variance_date').notNull(),
+  standardValue: decimal('standard_value', { precision: 15, scale: 4 }).notNull(),
+  actualValue: decimal('actual_value', { precision: 15, scale: 4 }).notNull(),
+  varianceAmount: decimal('variance_amount', { precision: 15, scale: 4 }).notNull(),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }),
+  isFavorable: mysqlBoolean('is_favorable').notNull(),
+  journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
+  postedAt: datetime('posted_at'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+});
+
 // Export type aliases for easier use
 export type User = typeof sqliteUsers.$inferSelect;
 export type NewUser = typeof sqliteUsers.$inferInsert;
@@ -5390,6 +5986,44 @@ export type AcctMaintenanceSchedule = typeof sqliteAcctMaintenanceSchedules.$inf
 export type NewAcctMaintenanceSchedule = typeof sqliteAcctMaintenanceSchedules.$inferInsert;
 export type AcctMaintenanceRecord = typeof sqliteAcctMaintenanceRecords.$inferSelect;
 export type NewAcctMaintenanceRecord = typeof sqliteAcctMaintenanceRecords.$inferInsert;
+
+// Accounting Module Gap Analysis Types (011)
+export type PurchaseRequisition = typeof sqlitePurchaseRequisitions.$inferSelect;
+export type NewPurchaseRequisition = typeof sqlitePurchaseRequisitions.$inferInsert;
+export type PurchaseRequisitionLine = typeof sqlitePurchaseRequisitionLines.$inferSelect;
+export type NewPurchaseRequisitionLine = typeof sqlitePurchaseRequisitionLines.$inferInsert;
+export type BankStatement = typeof sqliteBankStatements.$inferSelect;
+export type NewBankStatement = typeof sqliteBankStatements.$inferInsert;
+export type BankStatementLine = typeof sqliteBankStatementLines.$inferSelect;
+export type NewBankStatementLine = typeof sqliteBankStatementLines.$inferInsert;
+export type ReconciliationMatch = typeof sqliteReconciliationMatches.$inferSelect;
+export type NewReconciliationMatch = typeof sqliteReconciliationMatches.$inferInsert;
+export type CreditDebitNote = typeof sqliteCreditDebitNotes.$inferSelect;
+export type NewCreditDebitNote = typeof sqliteCreditDebitNotes.$inferInsert;
+export type CreditDebitNoteLine = typeof sqliteCreditDebitNoteLines.$inferSelect;
+export type NewCreditDebitNoteLine = typeof sqliteCreditDebitNoteLines.$inferInsert;
+export type MatchingTolerance = typeof sqliteMatchingTolerances.$inferSelect;
+export type NewMatchingTolerance = typeof sqliteMatchingTolerances.$inferInsert;
+export type MatchingResult = typeof sqliteMatchingResults.$inferSelect;
+export type NewMatchingResult = typeof sqliteMatchingResults.$inferInsert;
+export type MatchingException = typeof sqliteMatchingExceptions.$inferSelect;
+export type NewMatchingException = typeof sqliteMatchingExceptions.$inferInsert;
+export type ApprovalFlow = typeof sqliteApprovalFlows.$inferSelect;
+export type NewApprovalFlow = typeof sqliteApprovalFlows.$inferInsert;
+export type ApprovalRule = typeof sqliteApprovalRules.$inferSelect;
+export type NewApprovalRule = typeof sqliteApprovalRules.$inferInsert;
+export type ApprovalStep = typeof sqliteApprovalSteps.$inferSelect;
+export type NewApprovalStep = typeof sqliteApprovalSteps.$inferInsert;
+export type ApprovalRequest = typeof sqliteApprovalRequests.$inferSelect;
+export type NewApprovalRequest = typeof sqliteApprovalRequests.$inferInsert;
+export type ApprovalRequestStep = typeof sqliteApprovalRequestSteps.$inferSelect;
+export type NewApprovalRequestStep = typeof sqliteApprovalRequestSteps.$inferInsert;
+export type ApprovalDelegation = typeof sqliteApprovalDelegations.$inferSelect;
+export type NewApprovalDelegation = typeof sqliteApprovalDelegations.$inferInsert;
+export type StandardCost = typeof sqliteStandardCosts.$inferSelect;
+export type NewStandardCost = typeof sqliteStandardCosts.$inferInsert;
+export type VarianceRecord = typeof sqliteVarianceRecords.$inferSelect;
+export type NewVarianceRecord = typeof sqliteVarianceRecords.$inferInsert;
 
 // ============================================
 // Template Module (ERP Prototype)

@@ -17,14 +17,12 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock toast
-const mockToastSuccess = vi.fn();
-const mockToastError = vi.fn();
-vi.mock('@/components/ui/toast', () => ({
-  useToast: () => ({
-    success: mockToastSuccess,
-    error: mockToastError,
-  }),
+// Mock devextreme/ui/notify - use vi.hoisted to avoid reference before initialization
+const { mockNotify } = vi.hoisted(() => ({
+  mockNotify: vi.fn(),
+}));
+vi.mock('devextreme/ui/notify', () => ({
+  default: mockNotify,
 }));
 
 // Mock fetch
@@ -177,8 +175,7 @@ describe('EmployeeForm', () => {
       }
 
       await waitFor(() => {
-        // Should show validation error for missing first name
-        expect(mockToastError).toHaveBeenCalled();
+        expect(mockNotify).toHaveBeenCalled();
       });
     });
 

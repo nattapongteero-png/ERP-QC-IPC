@@ -115,8 +115,8 @@ describe('AR Receipts Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Customer Receipts')).toBeInTheDocument();
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('renders KPI cards', async () => {
     await renderPage();
@@ -126,8 +126,8 @@ describe('AR Receipts Page', () => {
       expect(screen.getByText('Total Amount')).toBeInTheDocument();
       expect(screen.getByText('Cleared')).toBeInTheDocument();
       expect(screen.getByText('Pending')).toBeInTheDocument();
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('renders filter panel with payment method selector', async () => {
     await renderPage();

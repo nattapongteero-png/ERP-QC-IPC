@@ -58,6 +58,7 @@ import {
   mysqlWorkOrders,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
+import { runMatching } from './matching.service';
 import type {
   JournalEntryStatus,
   JournalSourceType,
@@ -1903,13 +1904,16 @@ export async function updateAPInvoice(
 
 /**
  * Approve AP invoice and create journal entry
+ * Integrates with 3-way matching for PO-linked invoices
  * @param id - AP invoice ID
  * @param approvedBy - User ID approving the invoice
+ * @param skipMatching - Skip 3-way matching validation (for special cases)
  * @returns Approved AP invoice with journal entry
  */
 export async function approveAPInvoice(
   id: number,
-  approvedBy: number
+  approvedBy: number,
+  skipMatching: boolean = false
 ): Promise<APInvoice> {
   const { apInvoices, apInvoiceLines, glAccounts } = getAccountingTables();
   const database = (await getDb()) as any;
@@ -1921,6 +1925,27 @@ export async function approveAPInvoice(
 
   if (!invoice.lines || invoice.lines.length === 0) {
     throw new Error('Invoice has no lines');
+  }
+
+  // 3-Way Matching Validation for PO-linked invoices
+  if (invoice.purchaseOrderId && !skipMatching) {
+    // Run 3-way matching
+    const matchingResult = await runMatching({ invoiceId: id }, approvedBy);
+
+    // Check for pending exceptions
+    if (matchingResult.exceptions && matchingResult.exceptions.length > 0) {
+      // Filter only pending exceptions
+      const pendingExceptions = matchingResult.exceptions.filter(
+        (exc: { status: string }) => exc.status === 'pending'
+      );
+      if (pendingExceptions.length > 0) {
+        throw new Error(
+          `Invoice has ${pendingExceptions.length} pending matching exception(s). ` +
+          `Please review and resolve all exceptions before approving. ` +
+          `Go to Accounting > 3-Way Matching to review exceptions.`
+        );
+      }
+    }
   }
 
   // Find AP liability account (code 2111 - Accounts Payable)

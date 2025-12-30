@@ -1,0 +1,681 @@
+openapi: 3.0.3
+info:
+  title: Approval Workflows API
+  version: 1.0.0
+  description: API for configurable approval workflows
+
+paths:
+  /api/settings/approval-flows:
+    get:
+      summary: List approval flows
+      tags: [Workflow Configuration]
+      parameters:
+        - name: document_type
+          in: query
+          schema:
+            type: string
+            enum: [purchase_requisition, purchase_order, ap_invoice, ar_invoice, payment, credit_note, debit_note]
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of approval flows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApprovalFlow'
+
+    post:
+      summary: Create an approval flow
+      tags: [Workflow Configuration]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalFlowCreate'
+      responses:
+        '201':
+          description: Created
+
+  /api/settings/approval-flows/{id}:
+    get:
+      summary: Get approval flow details
+      tags: [Workflow Configuration]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Flow details with rules and steps
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalFlowDetail'
+
+    put:
+      summary: Update approval flow
+      tags: [Workflow Configuration]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalFlowUpdate'
+      responses:
+        '200':
+          description: Updated
+
+    delete:
+      summary: Delete approval flow
+      tags: [Workflow Configuration]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          description: Cannot delete (has active requests)
+
+  /api/settings/approval-flows/{id}/rules:
+    post:
+      summary: Add a rule to the flow
+      tags: [Workflow Configuration]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalRuleCreate'
+      responses:
+        '201':
+          description: Rule added
+
+  /api/settings/approval-flows/{id}/steps:
+    post:
+      summary: Add a step to the flow
+      tags: [Workflow Configuration]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalStepCreate'
+      responses:
+        '201':
+          description: Step added
+
+  /api/approval/requests:
+    get:
+      summary: List approval requests (pending for current user)
+      tags: [Approval Requests]
+      parameters:
+        - name: document_type
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, cancelled]
+        - name: assigned_to_me
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: requested_by_me
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of approval requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApprovalRequest'
+                  total:
+                    type: integer
+
+  /api/approval/requests/{id}:
+    get:
+      summary: Get approval request details
+      tags: [Approval Requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Request details with steps
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalRequestDetail'
+
+  /api/approval/requests/{id}/approve:
+    post:
+      summary: Approve current step
+      tags: [Approval Requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+      responses:
+        '200':
+          description: Approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request_status:
+                    type: string
+                  next_step:
+                    type: integer
+                  is_fully_approved:
+                    type: boolean
+        '403':
+          description: Not authorized to approve
+
+  /api/approval/requests/{id}/reject:
+    post:
+      summary: Reject the request
+      tags: [Approval Requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comments]
+              properties:
+                comments:
+                  type: string
+      responses:
+        '200':
+          description: Rejected
+
+  /api/approval/requests/{id}/delegate:
+    post:
+      summary: Delegate current step to another user
+      tags: [Approval Requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [delegate_to]
+              properties:
+                delegate_to:
+                  type: integer
+                  description: Employee ID to delegate to
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Delegated
+        '400':
+          description: Cannot delegate (step doesn't allow)
+
+  /api/approval/submit:
+    post:
+      summary: Submit a document for approval
+      tags: [Approval Requests]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document_type, document_id]
+              properties:
+                document_type:
+                  type: string
+                  enum: [purchase_requisition, purchase_order, ap_invoice, ar_invoice, payment, credit_note, debit_note]
+                document_id:
+                  type: integer
+      responses:
+        '201':
+          description: Approval request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request_id:
+                    type: integer
+                  flow_id:
+                    type: integer
+                  flow_name:
+                    type: string
+                  first_approver:
+                    type: string
+        '400':
+          description: No matching workflow found
+
+  /api/approval/delegations:
+    get:
+      summary: List delegations (given or received)
+      tags: [Approval Delegations]
+      parameters:
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [given, received]
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of delegations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApprovalDelegation'
+
+    post:
+      summary: Create a delegation
+      tags: [Approval Delegations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalDelegationCreate'
+      responses:
+        '201':
+          description: Created
+
+  /api/approval/delegations/{id}:
+    delete:
+      summary: Cancel a delegation
+      tags: [Approval Delegations]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Cancelled
+
+  /api/approval/dashboard:
+    get:
+      summary: Approval dashboard summary
+      tags: [Approval Dashboard]
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending_count:
+                    type: integer
+                  by_document_type:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        document_type:
+                          type: string
+                        count:
+                          type: integer
+                  overdue_count:
+                    type: integer
+                  recent_approvals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApprovalRequest'
+
+components:
+  schemas:
+    ApprovalFlow:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        document_type:
+          type: string
+        priority:
+          type: integer
+        is_active:
+          type: boolean
+        step_count:
+          type: integer
+        rule_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    ApprovalFlowDetail:
+      allOf:
+        - $ref: '#/components/schemas/ApprovalFlow'
+        - type: object
+          properties:
+            rules:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApprovalRule'
+            steps:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApprovalStep'
+
+    ApprovalFlowCreate:
+      type: object
+      required: [name, document_type]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        document_type:
+          type: string
+          enum: [purchase_requisition, purchase_order, ap_invoice, ar_invoice, payment, credit_note, debit_note]
+        priority:
+          type: integer
+          default: 100
+        is_active:
+          type: boolean
+          default: true
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApprovalRuleCreate'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApprovalStepCreate'
+
+    ApprovalFlowUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        priority:
+          type: integer
+        is_active:
+          type: boolean
+
+    ApprovalRule:
+      type: object
+      properties:
+        id:
+          type: integer
+        flow_id:
+          type: integer
+        rule_order:
+          type: integer
+        field_name:
+          type: string
+        operator:
+          type: string
+        value:
+          type: string
+        value_to:
+          type: string
+        logic_operator:
+          type: string
+
+    ApprovalRuleCreate:
+      type: object
+      required: [field_name, operator, value]
+      properties:
+        field_name:
+          type: string
+          description: Field to evaluate (e.g., total_amount, department_id)
+        operator:
+          type: string
+          enum: [eq, ne, gt, gte, lt, lte, between, in, not_in]
+        value:
+          type: string
+        value_to:
+          type: string
+          description: End value for 'between' operator
+        logic_operator:
+          type: string
+          enum: [and, or]
+          default: and
+
+    ApprovalStep:
+      type: object
+      properties:
+        id:
+          type: integer
+        flow_id:
+          type: integer
+        step_order:
+          type: integer
+        step_name:
+          type: string
+        approver_type:
+          type: string
+          enum: [user, role, department_head, requester_manager]
+        approver_id:
+          type: integer
+        approver_name:
+          type: string
+        can_delegate:
+          type: boolean
+        timeout_days:
+          type: integer
+
+    ApprovalStepCreate:
+      type: object
+      required: [step_name, approver_type]
+      properties:
+        step_order:
+          type: integer
+        step_name:
+          type: string
+        approver_type:
+          type: string
+          enum: [user, role, department_head, requester_manager]
+        approver_id:
+          type: integer
+          description: Required for user/role types
+        can_delegate:
+          type: boolean
+          default: false
+        timeout_days:
+          type: integer
+          default: 3
+        escalation_step_id:
+          type: integer
+
+    ApprovalRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        flow_id:
+          type: integer
+        flow_name:
+          type: string
+        document_type:
+          type: string
+        document_id:
+          type: integer
+        document_number:
+          type: string
+        document_amount:
+          type: number
+        current_step_order:
+          type: integer
+        current_step_name:
+          type: string
+        status:
+          type: string
+        requested_by:
+          type: integer
+        requested_by_name:
+          type: string
+        requested_at:
+          type: string
+          format: date-time
+        is_overdue:
+          type: boolean
+
+    ApprovalRequestDetail:
+      allOf:
+        - $ref: '#/components/schemas/ApprovalRequest'
+        - type: object
+          properties:
+            completed_at:
+              type: string
+              format: date-time
+            steps:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApprovalRequestStep'
+            document_summary:
+              type: object
+              description: Summary of the document being approved
+
+    ApprovalRequestStep:
+      type: object
+      properties:
+        id:
+          type: integer
+        step_order:
+          type: integer
+        step_name:
+          type: string
+        assigned_to:
+          type: integer
+        assigned_to_name:
+          type: string
+        delegated_from:
+          type: integer
+        delegated_from_name:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected, delegated, timed_out]
+        action_date:
+          type: string
+          format: date-time
+        comments:
+          type: string
+        is_current:
+          type: boolean
+
+    ApprovalDelegation:
+      type: object
+      properties:
+        id:
+          type: integer
+        delegator_id:
+          type: integer
+        delegator_name:
+          type: string
+        delegate_id:
+          type: integer
+        delegate_name:
+          type: string
+        document_type:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+        reason:
+          type: string
+
+    ApprovalDelegationCreate:
+      type: object
+      required: [delegate_id, start_date, end_date]
+      properties:
+        delegate_id:
+          type: integer
+        document_type:
+          type: string
+          description: Specific type or null for all
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        reason:
+          type: string

@@ -1,0 +1,241 @@
+/**
+ * Debit Note Detail Page (T098)
+ * Part of 011-accounting-spec-gap - User Story 3
+ */
+
+'use client';
+
+import { useState, useEffect, useCallback, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { MainLayout } from '@/components/layout/main-layout';
+import { Button } from 'devextreme-react/button';
+import { LoadIndicator } from 'devextreme-react/load-indicator';
+import notify from 'devextreme/ui/notify';
+import type { CreditDebitNoteWithLines, NoteStatus } from '@/types/credit-debit-notes';
+
+const statusColors: Record<NoteStatus, string> = {
+  draft: 'bg-gray-100 text-gray-800',
+  submitted: 'bg-yellow-100 text-yellow-800',
+  approved: 'bg-blue-100 text-blue-800',
+  posted: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+};
+
+export default function DebitNoteDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const router = useRouter();
+  const noteId = parseInt(id, 10);
+
+  const [note, setNote] = useState<CreditDebitNoteWithLines | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchNote = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/accounting/debit-notes/${noteId}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setNote(data.data);
+      } else {
+        notify(data.error || 'Failed to load debit note', 'error', 3000);
+      }
+    } catch (error) {
+      console.error('Error fetching note:', error);
+      notify('Failed to load debit note', 'error', 3000);
+    } finally {
+      setLoading(false);
+    }
+  }, [noteId]);
+
+  useEffect(() => {
+    fetchNote();
+  }, [fetchNote]);
+
+  const handlePost = async () => {
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/accounting/debit-notes/${noteId}/post`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        notify(`Debit note posted. Journal Entry: ${data.journalEntryNumber}`, 'success', 3000);
+        fetchNote();
+      } else {
+        notify(data.error || 'Failed to post', 'error', 3000);
+      }
+    } catch (error) {
+      console.error('Error posting:', error);
+      notify('Failed to post', 'error', 3000);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <LoadIndicator />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!note) {
+    return (
+      <MainLayout>
+        <div className="p-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+            Debit note not found
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const formatDate = (date: Date | string | null | undefined) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString('th-TH');
+  };
+
+  const formatAmount = (amount: number) => {
+    return amount.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+  };
+
+  return (
+    <MainLayout>
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
+              Debit Note: {note.noteNumber}
+            </h1>
+            <span className={`mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium ${statusColors[note.status]}`}>
+              {note.status}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {note.status === 'approved' && (
+              <Button
+                text="Post to GL"
+                type="success"
+                stylingMode="contained"
+                onClick={handlePost}
+                disabled={actionLoading}
+              />
+            )}
+            <Button
+              text="Back to List"
+              stylingMode="outlined"
+              onClick={() => router.push('/accounting/debit-notes')}
+            />
+          </div>
+        </div>
+
+        {/* Note Details */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-medium text-gray-800 mb-4">Note Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <span className="text-sm text-gray-500">Note Type:</span>
+              <p className="font-medium">{note.noteType === 'ar_debit' ? 'AR Debit Note' : 'AP Debit Note'}</p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Note Date:</span>
+              <p className="font-medium">{formatDate(note.noteDate)}</p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Reference Invoice:</span>
+              <p className="font-medium">{note.referenceInvoiceNumber || '-'}</p>
+            </div>
+            {note.noteType.startsWith('ar_') ? (
+              <div>
+                <span className="text-sm text-gray-500">Customer:</span>
+                <p className="font-medium">{note.customerName || '-'}</p>
+              </div>
+            ) : (
+              <div>
+                <span className="text-sm text-gray-500">Vendor:</span>
+                <p className="font-medium">{note.vendorName || '-'}</p>
+              </div>
+            )}
+            <div>
+              <span className="text-sm text-gray-500">Reason Code:</span>
+              <p className="font-medium">{note.reasonCode}</p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Reason Description:</span>
+              <p className="font-medium">{note.reasonDescription || '-'}</p>
+            </div>
+            {note.journalEntryNumber && (
+              <div>
+                <span className="text-sm text-gray-500">Journal Entry:</span>
+                <p className="font-medium">{note.journalEntryNumber}</p>
+              </div>
+            )}
+            {note.postedAt && (
+              <div>
+                <span className="text-sm text-gray-500">Posted At:</span>
+                <p className="font-medium">{formatDate(note.postedAt)}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Lines */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-medium text-gray-800 mb-4">Lines</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">GL Account</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Line Total</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {note.lines.map((line) => (
+                  <tr key={line.id}>
+                    <td className="px-4 py-2">{line.lineNumber}</td>
+                    <td className="px-4 py-2">{line.description}</td>
+                    <td className="px-4 py-2">{line.glAccountCode} - {line.glAccountName}</td>
+                    <td className="px-4 py-2 text-right">{line.quantity.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-right">{formatAmount(line.unitPrice)}</td>
+                    <td className="px-4 py-2 text-right">{formatAmount(line.lineTotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50">
+                  <td colSpan={5} className="px-4 py-2 text-right font-medium">Subtotal:</td>
+                  <td className="px-4 py-2 text-right font-medium">{formatAmount(note.subtotal)}</td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td colSpan={5} className="px-4 py-2 text-right font-medium">VAT ({(note.vatRate * 100).toFixed(0)}%):</td>
+                  <td className="px-4 py-2 text-right font-medium">{formatAmount(note.vatAmount)}</td>
+                </tr>
+                <tr className="bg-gray-100">
+                  <td colSpan={5} className="px-4 py-2 text-right font-bold">Total:</td>
+                  <td className="px-4 py-2 text-right font-bold text-lg">{formatAmount(note.totalAmount)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}

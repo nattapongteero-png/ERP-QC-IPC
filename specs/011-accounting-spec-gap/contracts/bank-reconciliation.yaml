@@ -1,0 +1,425 @@
+openapi: 3.0.3
+info:
+  title: Bank Reconciliation API
+  version: 1.0.0
+  description: API for bank statement import and reconciliation
+
+paths:
+  /api/accounting/bank-statements:
+    get:
+      summary: List bank statements
+      tags: [Bank Reconciliation]
+      parameters:
+        - name: bank_account_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [imported, in_progress, reconciled, closed]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of bank statements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BankStatement'
+                  total:
+                    type: integer
+
+  /api/accounting/bank-statements/import:
+    post:
+      summary: Import bank statement from file
+      tags: [Bank Reconciliation]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, bank_account_id, statement_date]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                bank_account_id:
+                  type: integer
+                statement_date:
+                  type: string
+                  format: date
+                file_format:
+                  type: string
+                  enum: [csv, excel]
+                  default: csv
+                column_mapping:
+                  type: string
+                  description: JSON object with column mapping
+      responses:
+        '201':
+          description: Statement imported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statement_id:
+                    type: integer
+                  lines_imported:
+                    type: integer
+                  total_debits:
+                    type: number
+                  total_credits:
+                    type: number
+        '400':
+          description: Import error
+
+  /api/accounting/bank-statements/{id}:
+    get:
+      summary: Get bank statement details
+      tags: [Bank Reconciliation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Statement details with lines
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankStatementDetail'
+
+  /api/accounting/bank-statements/{id}/auto-match:
+    post:
+      summary: Run auto-matching algorithm
+      tags: [Bank Reconciliation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date_tolerance_days:
+                  type: integer
+                  default: 3
+                amount_tolerance_pct:
+                  type: number
+                  default: 0
+                confidence_threshold:
+                  type: number
+                  default: 90
+      responses:
+        '200':
+          description: Auto-match results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matched_count:
+                    type: integer
+                  suggested_count:
+                    type: integer
+                  unmatched_count:
+                    type: integer
+
+  /api/accounting/bank-statements/{id}/lines:
+    get:
+      summary: Get statement lines
+      tags: [Bank Reconciliation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [imported, auto_matched, suggested, unmatched, manually_matched, journal_created, reconciled]
+      responses:
+        '200':
+          description: Statement lines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BankStatementLine'
+
+  /api/accounting/bank-statements/{id}/lines/{lineId}/match:
+    post:
+      summary: Manually match a statement line
+      tags: [Bank Reconciliation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_id]
+              properties:
+                payment_id:
+                  type: integer
+      responses:
+        '200':
+          description: Matched
+        '400':
+          description: Cannot match
+
+  /api/accounting/bank-statements/{id}/lines/{lineId}/create-journal:
+    post:
+      summary: Create journal entry for unmatched item (bank charges, etc.)
+      tags: [Bank Reconciliation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expense_account_id, description]
+              properties:
+                expense_account_id:
+                  type: integer
+                  description: GL account for bank charges/interest
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Journal created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  journal_entry_id:
+                    type: integer
+                  journal_entry_number:
+                    type: string
+
+  /api/accounting/bank-statements/{id}/reconcile:
+    post:
+      summary: Mark statement as reconciled
+      tags: [Bank Reconciliation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reconciled
+        '400':
+          description: Cannot reconcile (unmatched lines exist)
+
+  /api/accounting/bank-statements/{id}/unmatched-payments:
+    get:
+      summary: Get payments that could match unmatched lines
+      tags: [Bank Reconciliation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of candidate payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentCandidate'
+
+components:
+  schemas:
+    BankStatement:
+      type: object
+      properties:
+        id:
+          type: integer
+        statement_number:
+          type: string
+        bank_account_id:
+          type: integer
+        bank_account_name:
+          type: string
+        statement_date:
+          type: string
+          format: date
+        opening_balance:
+          type: number
+        closing_balance:
+          type: number
+        total_debits:
+          type: number
+        total_credits:
+          type: number
+        status:
+          type: string
+        line_count:
+          type: integer
+        matched_count:
+          type: integer
+        unmatched_count:
+          type: integer
+        imported_at:
+          type: string
+          format: date-time
+
+    BankStatementDetail:
+      allOf:
+        - $ref: '#/components/schemas/BankStatement'
+        - type: object
+          properties:
+            imported_file_name:
+              type: string
+            reconciled_by:
+              type: integer
+            reconciled_at:
+              type: string
+              format: date-time
+            notes:
+              type: string
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/BankStatementLine'
+
+    BankStatementLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        statement_id:
+          type: integer
+        line_number:
+          type: integer
+        transaction_date:
+          type: string
+          format: date
+        value_date:
+          type: string
+          format: date
+        reference:
+          type: string
+        description:
+          type: string
+        debit_amount:
+          type: number
+        credit_amount:
+          type: number
+        running_balance:
+          type: number
+        status:
+          type: string
+        match_confidence:
+          type: number
+        matched_payment:
+          $ref: '#/components/schemas/MatchedPayment'
+        matched_journal:
+          type: object
+          properties:
+            journal_entry_id:
+              type: integer
+            journal_entry_number:
+              type: string
+
+    MatchedPayment:
+      type: object
+      properties:
+        payment_id:
+          type: integer
+        payment_reference:
+          type: string
+        payment_date:
+          type: string
+          format: date
+        payment_amount:
+          type: number
+        party_name:
+          type: string
+        match_type:
+          type: string
+          enum: [exact, reference, amount, manual]
+
+    PaymentCandidate:
+      type: object
+      properties:
+        payment_id:
+          type: integer
+        payment_reference:
+          type: string
+        payment_date:
+          type: string
+          format: date
+        amount:
+          type: number
+        party_name:
+          type: string
+        payment_type:
+          type: string
+          enum: [ap, ar]
+        match_score:
+          type: number
+          description: Confidence score 0-100

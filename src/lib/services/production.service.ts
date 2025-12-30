@@ -26,6 +26,7 @@ import {
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, issueMaterial, receiveMaterial } from './inventory.service';
 import { canStartProduction } from './line-clearance.service';
+import { calculateWorkOrderVariances } from './variance-analysis.service';
 
 // Types
 export interface BOMExplosionResult {
@@ -403,6 +404,16 @@ export async function updateWorkOrderStatus(
     .update(workOrders)
     .set(updateData)
     .where(eq(workOrders.id, workOrderId));
+
+  // T135: Calculate manufacturing variances when work order is completed
+  if (newStatus === 'completed') {
+    try {
+      await calculateWorkOrderVariances(workOrderId, userId);
+    } catch (varianceError) {
+      // Log but don't fail the completion - variance calculation is secondary
+      console.error(`Warning: Failed to calculate variances for WO ${workOrderId}:`, varianceError);
+    }
+  }
 
   // Create audit log
   await createAuditLog({

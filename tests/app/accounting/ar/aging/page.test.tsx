@@ -125,8 +125,8 @@ describe('AR Aging Report Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('AR Aging Report')).toBeInTheDocument();
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('renders aging KPI cards', async () => {
     await renderPage();

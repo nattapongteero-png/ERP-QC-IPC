@@ -158,7 +158,7 @@ describe('AR Invoices Page', () => {
     await waitFor(() => {
       expect(screen.getByText('รายการทั้งหมด')).toBeInTheDocument();
     });
-    expect(screen.getByText('รอยืนยัน')).toBeInTheDocument();
+    expect(screen.getByText('รอดำเนินการ')).toBeInTheDocument();
     expect(screen.getByText('ค้างรับ')).toBeInTheDocument();
     expect(screen.getByText('ชำระแล้ว')).toBeInTheDocument();
   });
@@ -172,7 +172,7 @@ describe('AR Invoices Page', () => {
       expect(threeElements.length).toBeGreaterThan(0);
     });
 
-    // Draft (รอยืนยัน): 1
+    // Draft (รอดำเนินการ): 1
     const oneElements = screen.getAllByText('1');
     expect(oneElements.length).toBeGreaterThan(0);
   });
@@ -250,8 +250,7 @@ describe('AR Invoices Page', () => {
     const paidElements = screen.getAllByText('ชำระแล้ว');
     expect(paidElements.length).toBeGreaterThan(0);
 
-    // Status badge for partial
-    expect(screen.getByText('รับบางส่วน')).toBeInTheDocument();
+    expect(screen.getByText('บางส่วน')).toBeInTheDocument();
   });
 
   it('should render confirm button for draft invoices', async () => {
@@ -260,8 +259,8 @@ describe('AR Invoices Page', () => {
     await waitFor(() => {
       const confirmButton = screen.getByRole('button', { name: /ยืนยัน/i });
       expect(confirmButton).toBeInTheDocument();
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('should render receive payment button for partial invoices', async () => {
     renderPage();

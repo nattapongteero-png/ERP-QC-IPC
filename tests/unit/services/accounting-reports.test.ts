@@ -27,15 +27,21 @@ import {
   ACCT_TEST_DATES,
 } from '../../helpers/seed-accounting';
 
-// Store db reference for module mock
+const { getTestDb, setTestDb } = vi.hoisted(() => {
+  let _testDb: any = null;
+  return {
+    getTestDb: () => _testDb,
+    setTestDb: (db: any) => { _testDb = db; },
+  };
+});
+
 let testSqlite: Database.Database;
 let testDb: ReturnType<typeof drizzle>;
 
-// Mock db module
 vi.mock('@/lib/db', () => ({
   isSqlite: () => true,
-  db: () => testDb,
-  getSqliteDb: () => testDb,
+  getDb: async () => getTestDb(),
+  getSqliteDb: () => getTestDb(),
   schema,
 }));
 
@@ -55,12 +61,11 @@ import {
 
 describe('Accounting Reports Service', () => {
   beforeEach(() => {
-    // Create in-memory SQLite database
     testSqlite = new Database(':memory:');
     testSqlite.pragma('journal_mode = WAL');
     testDb = drizzle(testSqlite, { schema });
+    setTestDb(testDb);
 
-    // Create required tables
     const tables = [
       schema.sqliteGLAccountTypes,
       schema.sqliteGLAccounts,

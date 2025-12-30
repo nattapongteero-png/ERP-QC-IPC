@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from '../../src/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { generateCreateTableSql } from '../helpers/schema-sync';
 
 describe('Items API', () => {
   let sqliteDb: ReturnType<typeof Database>;
@@ -13,38 +14,8 @@ describe('Items API', () => {
     sqliteDb = new Database(':memory:');
     db = drizzle(sqliteDb, { schema });
 
-    // Create tables
-    sqliteDb.exec(`
-      CREATE TABLE IF NOT EXISTS items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT NOT NULL UNIQUE,
-        name_th TEXT NOT NULL,
-        name_en TEXT,
-        type TEXT NOT NULL,
-        category TEXT,
-        primary_unit TEXT NOT NULL,
-        secondary_unit TEXT,
-        conversion_rate REAL DEFAULT 1,
-        shelf_life_days INTEGER,
-        storage_condition TEXT,
-        min_stock REAL DEFAULT 0,
-        max_stock REAL,
-        reorder_point REAL DEFAULT 0,
-        on_hand REAL NOT NULL DEFAULT 0,
-        on_hand_cost REAL NOT NULL DEFAULT 0,
-        is_lot_controlled INTEGER DEFAULT 1,
-        is_fefo INTEGER DEFAULT 1,
-        is_active INTEGER DEFAULT 1,
-        tpp_code TEXT,
-        tpp_name TEXT,
-        ttmt_code TEXT,
-        ttmt_name TEXT,
-        vmi_sync_enabled INTEGER DEFAULT 0,
-        last_vmi_sync_at TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    // Create tables using schema sync (ensures test schema matches production)
+    sqliteDb.exec(generateCreateTableSql(schema.sqliteItems));
   });
 
   afterAll(() => {

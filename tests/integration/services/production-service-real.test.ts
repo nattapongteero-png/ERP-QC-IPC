@@ -138,6 +138,7 @@ describe('Production Service Real Integration Tests', () => {
       schema.sqliteBOMLines,
       schema.sqliteWorkOrders,
       schema.sqliteWorkOrderMaterials,
+      schema.sqliteLineClearanceChecklists,
     ];
 
     for (const table of tables) {
@@ -152,6 +153,7 @@ describe('Production Service Real Integration Tests', () => {
 
   beforeEach(() => {
     // Clean up tables before each test (reverse order of creation for FK)
+    sqlite.exec('DELETE FROM line_clearance_checklists');
     sqlite.exec('DELETE FROM work_order_materials');
     sqlite.exec('DELETE FROM inventory_transactions');
     sqlite.exec('DELETE FROM inventory_lots');
@@ -210,6 +212,11 @@ describe('Production Service Real Integration Tests', () => {
     `);
   });
 
+  // Helper to disable line clearance requirement for a work order
+  const disableLineClearance = (workOrderId: number) => {
+    sqlite.exec(`UPDATE work_orders SET line_clearance_required = 0 WHERE id = ${workOrderId}`);
+  };
+
   // ============================================
   // SCENARIO 1: Work Order Execution Workflow
   // ============================================
@@ -237,6 +244,7 @@ describe('Production Service Real Integration Tests', () => {
 
     it('should transition work order from released to in_progress', async () => {
       const workOrderId = await createWorkOrder(1, 500, TODAY, TEST_USER_ID);
+      disableLineClearance(workOrderId);
       await updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID);
 
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID);
@@ -248,6 +256,7 @@ describe('Production Service Real Integration Tests', () => {
 
     it('should complete work order after production', async () => {
       const workOrderId = await createWorkOrder(1, 500, TODAY, TEST_USER_ID);
+      disableLineClearance(workOrderId);
       await updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID);
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID);
 
@@ -372,8 +381,8 @@ describe('Production Service Real Integration Tests', () => {
 
     it('should update work order status with proper workflow', async () => {
       const workOrderId = await createWorkOrder(1, 500, TODAY, TEST_USER_ID);
+      disableLineClearance(workOrderId);
 
-      // Follow proper workflow
       await updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID);
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID);
       await updateWorkOrderStatus(workOrderId, 'completed', TEST_USER_ID);
@@ -390,6 +399,7 @@ describe('Production Service Real Integration Tests', () => {
   describe('Batch Record Functions', () => {
     it('should record production output and create output lot', async () => {
       const workOrderId = await createWorkOrder(1, 500, TODAY, TEST_USER_ID);
+      disableLineClearance(workOrderId);
       await updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID);
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID);
 
@@ -397,20 +407,19 @@ describe('Production Service Real Integration Tests', () => {
 
       expect(outputLotId).toBeGreaterThan(0);
 
-      // Verify output lot created
       const lot = sqlite.prepare('SELECT * FROM inventory_lots WHERE id = ?').get(outputLotId) as any;
       expect(lot).toBeDefined();
       expect(lot.quantity).toBe(480);
-      expect(lot.warehouse_id).toBe(3); // FG warehouse
-      expect(lot.status).toBe('quarantine'); // Starts in quarantine
+      expect(lot.warehouse_id).toBe(3);
+      expect(lot.status).toBe('quarantine');
 
-      // Verify work order updated
       const wo = sqlite.prepare('SELECT * FROM work_orders WHERE id = ?').get(workOrderId) as any;
       expect(wo.actual_quantity).toBe(480);
     });
 
     it('should calculate yield correctly', async () => {
       const workOrderId = await createWorkOrder(1, 500, TODAY, TEST_USER_ID);
+      disableLineClearance(workOrderId);
       await updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID);
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID);
       await recordProductionOutput(workOrderId, 480, 10, 3, TEST_USER_ID);
@@ -425,6 +434,7 @@ describe('Production Service Real Integration Tests', () => {
 
     it('should flag low yield when below target', async () => {
       const workOrderId = await createWorkOrder(1, 500, TODAY, TEST_USER_ID);
+      disableLineClearance(workOrderId);
       await updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID);
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID);
       await recordProductionOutput(workOrderId, 400, 50, 3, TEST_USER_ID);
@@ -442,10 +452,10 @@ describe('Production Service Real Integration Tests', () => {
   describe('Edge Cases', () => {
     it('should handle yield variance deviation', async () => {
       const workOrderId = await createWorkOrder(1, 500, TODAY, TEST_USER_ID);
+      disableLineClearance(workOrderId);
       await updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID);
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID);
 
-      // Very low yield
       await recordProductionOutput(workOrderId, 350, 100, 3, TEST_USER_ID);
 
       const yield_ = await calculateYield(workOrderId);
@@ -461,7 +471,6 @@ describe('Production Service Real Integration Tests', () => {
       const wo = sqlite.prepare('SELECT status FROM work_orders WHERE id = ?').get(workOrderId) as any;
       expect(wo.status).toBe('cancelled');
 
-      // Cannot resume cancelled work order
       await expect(
         updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID)
       ).rejects.toThrow();
@@ -469,16 +478,15 @@ describe('Production Service Real Integration Tests', () => {
 
     it('should handle on_hold and resume', async () => {
       const workOrderId = await createWorkOrder(1, 500, TODAY, TEST_USER_ID);
+      disableLineClearance(workOrderId);
       await updateWorkOrderStatus(workOrderId, 'released', TEST_USER_ID);
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID);
 
-      // Put on hold
       await updateWorkOrderStatus(workOrderId, 'on_hold', TEST_USER_ID, 'Equipment breakdown');
 
       let wo = sqlite.prepare('SELECT status FROM work_orders WHERE id = ?').get(workOrderId) as any;
       expect(wo.status).toBe('on_hold');
 
-      // Resume
       await updateWorkOrderStatus(workOrderId, 'in_progress', TEST_USER_ID, 'Equipment fixed');
 
       wo = sqlite.prepare('SELECT status FROM work_orders WHERE id = ?').get(workOrderId) as any;

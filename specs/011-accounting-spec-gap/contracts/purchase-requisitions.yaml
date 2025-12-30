@@ -1,0 +1,419 @@
+openapi: 3.0.3
+info:
+  title: Purchase Requisitions API
+  version: 1.0.0
+  description: API for managing Purchase Requisitions (PR)
+
+paths:
+  /api/purchasing/requisitions:
+    get:
+      summary: List purchase requisitions
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled]
+        - name: requester_id
+          in: query
+          schema:
+            type: integer
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of purchase requisitions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PurchaseRequisition'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+    post:
+      summary: Create a new purchase requisition
+      tags: [Purchase Requisitions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseRequisitionCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseRequisition'
+        '400':
+          description: Validation error
+
+  /api/purchasing/requisitions/{id}:
+    get:
+      summary: Get a purchase requisition by ID
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Purchase requisition details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseRequisitionDetail'
+        '404':
+          description: Not found
+
+    put:
+      summary: Update a purchase requisition
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseRequisitionUpdate'
+      responses:
+        '200':
+          description: Updated
+        '400':
+          description: Validation error
+        '404':
+          description: Not found
+
+  /api/purchasing/requisitions/{id}/submit:
+    post:
+      summary: Submit PR for approval
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Submitted
+        '400':
+          description: Cannot submit (no lines or invalid status)
+
+  /api/purchasing/requisitions/{id}/approve:
+    post:
+      summary: Approve a purchase requisition
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+      responses:
+        '200':
+          description: Approved
+        '400':
+          description: Cannot approve
+        '403':
+          description: Not authorized to approve
+
+  /api/purchasing/requisitions/{id}/reject:
+    post:
+      summary: Reject a purchase requisition
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Rejected
+        '400':
+          description: Cannot reject
+
+  /api/purchasing/requisitions/{id}/convert:
+    post:
+      summary: Convert PR lines to Purchase Order
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vendor_id, line_ids]
+              properties:
+                vendor_id:
+                  type: integer
+                line_ids:
+                  type: array
+                  items:
+                    type: integer
+                delivery_date:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: PO created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  po_id:
+                    type: integer
+                  po_number:
+                    type: string
+        '400':
+          description: Cannot convert
+
+  /api/purchasing/requisitions/{id}/lines:
+    get:
+      summary: Get PR lines
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PR lines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseRequisitionLine'
+
+    post:
+      summary: Add a line to PR
+      tags: [Purchase Requisitions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseRequisitionLineCreate'
+      responses:
+        '201':
+          description: Line added
+
+components:
+  schemas:
+    PurchaseRequisition:
+      type: object
+      properties:
+        id:
+          type: integer
+        pr_number:
+          type: string
+        requester_id:
+          type: integer
+        requester_name:
+          type: string
+        department_id:
+          type: integer
+        department_name:
+          type: string
+        required_date:
+          type: string
+          format: date
+        priority:
+          type: string
+          enum: [normal, urgent, critical]
+        status:
+          type: string
+        total_amount:
+          type: number
+        line_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    PurchaseRequisitionDetail:
+      allOf:
+        - $ref: '#/components/schemas/PurchaseRequisition'
+        - type: object
+          properties:
+            justification:
+              type: string
+            approved_by:
+              type: integer
+            approved_at:
+              type: string
+              format: date-time
+            rejection_reason:
+              type: string
+            notes:
+              type: string
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/PurchaseRequisitionLine'
+
+    PurchaseRequisitionCreate:
+      type: object
+      required: [required_date]
+      properties:
+        department_id:
+          type: integer
+        required_date:
+          type: string
+          format: date
+        priority:
+          type: string
+          enum: [normal, urgent, critical]
+          default: normal
+        justification:
+          type: string
+        notes:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseRequisitionLineCreate'
+
+    PurchaseRequisitionUpdate:
+      type: object
+      properties:
+        department_id:
+          type: integer
+        required_date:
+          type: string
+          format: date
+        priority:
+          type: string
+          enum: [normal, urgent, critical]
+        justification:
+          type: string
+        notes:
+          type: string
+
+    PurchaseRequisitionLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        pr_id:
+          type: integer
+        line_number:
+          type: integer
+        item_id:
+          type: integer
+        item_code:
+          type: string
+        item_name:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        estimated_price:
+          type: number
+        line_total:
+          type: number
+        preferred_vendor_id:
+          type: integer
+        preferred_vendor_name:
+          type: string
+        status:
+          type: string
+          enum: [open, converted, cancelled]
+        converted_po_line_id:
+          type: integer
+        notes:
+          type: string
+
+    PurchaseRequisitionLineCreate:
+      type: object
+      required: [description, quantity, unit]
+      properties:
+        item_id:
+          type: integer
+        description:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        estimated_price:
+          type: number
+          default: 0
+        preferred_vendor_id:
+          type: integer
+        notes:
+          type: string

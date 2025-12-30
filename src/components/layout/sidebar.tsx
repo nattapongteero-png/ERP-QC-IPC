@@ -54,6 +54,8 @@ import {
   CalendarCheck,
   DollarSign,
   LayoutGrid,
+  CheckCircle,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -130,6 +132,7 @@ const navigation: NavItem[] = [
     icon: ShoppingCart,
     roles: ['admin', 'manager', 'purchasing', 'warehouse'],
     children: [
+      { name: 'Requisitions', href: '/purchasing/requisitions', icon: ClipboardList },
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
     ],
@@ -159,6 +162,12 @@ const navigation: NavItem[] = [
       { name: 'Fixed Assets', href: '/accounting/fixed-assets', icon: Building2 },
       { name: 'Equipment', href: '/accounting/equipment', icon: Wrench },
       { name: 'Period Close', href: '/accounting/period-close', icon: CalendarCheck },
+      { name: 'Bank Reconciliation', href: '/accounting/bank-reconciliation', icon: RefreshCw },
+      { name: 'Credit/Debit Notes', href: '/accounting/credit-debit-notes', icon: FileText },
+      { name: '3-Way Matching', href: '/accounting/matching', icon: ClipboardCheck },
+      { name: 'Approvals', href: '/accounting/approvals', icon: CheckCircle },
+      { name: 'Standard Costs', href: '/accounting/standard-costs', icon: Target },
+      { name: 'Variance Reports', href: '/accounting/variance-reports', icon: TrendingUp },
       { name: 'Reports', href: '/accounting/reports', icon: BarChart3 },
     ],
   },
@@ -202,7 +211,16 @@ const navigation: NavItem[] = [
   },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
   { name: 'Users', href: '/users', icon: Users, roles: ['admin', 'manager'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin', 'manager'] },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    roles: ['admin', 'manager'],
+    children: [
+      { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
+      { name: 'Matching Tolerances', href: '/settings/matching-tolerances', icon: Target },
+    ],
+  },
 ];
 
 interface SidebarProps {

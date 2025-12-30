@@ -33,8 +33,9 @@ let testDb: any;
 // Mock db module
 vi.mock('@/lib/db', () => ({
   isSqlite: () => true,
-  db: () => testDb,
+  getDb: async () => testDb,
   getSqliteDb: () => testDb,
+  markSchemaSynced: () => {},
   schema,
 }));
 

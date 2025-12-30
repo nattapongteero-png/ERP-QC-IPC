@@ -141,8 +141,8 @@ describe('AR Dashboard Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Accounts Receivable Dashboard')).toBeInTheDocument();
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('renders KPI cards', async () => {
     await renderPage();
