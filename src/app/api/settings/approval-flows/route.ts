@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const query = approvalFlowQuerySchema.parse({
-      documentType: searchParams.get('documentType'),
-      isActive: searchParams.get('isActive'),
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
+      documentType: searchParams.get('documentType') || undefined,
+      isActive: searchParams.get('isActive') || undefined,
+      page: searchParams.get('page') || undefined,
+      limit: searchParams.get('limit') || undefined,
     });
 
     const result = await listApprovalFlows(query);
