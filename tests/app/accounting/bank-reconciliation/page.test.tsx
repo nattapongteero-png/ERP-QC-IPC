@@ -1,15 +1,18 @@
 /**
  * Bank Reconciliation Page UI Test (T076)
  * Part of 011-accounting-spec-gap - User Story 2
+ * Updated to use TanStack Query pattern from template tests
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
+    back: vi.fn(),
     replace: vi.fn(),
     prefetch: vi.fn(),
   }),
@@ -27,22 +30,18 @@ vi.mock('next-auth/react', () => ({
 
 // Mock DevExtreme components
 vi.mock('devextreme-react/data-grid', () => {
-  const DataGrid = ({ children, ...props }: any) => (
-    <div data-testid={props['data-testid'] || 'data-grid'}>{children}</div>
+  const DataGrid = ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div data-testid={(props['data-testid'] as string) || 'data-grid'}>{children}</div>
   );
-  DataGrid.Column = () => null;
-  DataGrid.Paging = () => null;
-  DataGrid.FilterRow = () => null;
-  DataGrid.Toolbar = ({ children }: any) => <div>{children}</div>;
-  DataGrid.Item = () => null;
-  DataGrid.SearchPanel = () => null;
-  DataGrid.Selection = () => null;
   return {
     default: DataGrid,
     Column: () => null,
     Paging: () => null,
+    Pager: () => null,
     FilterRow: () => null,
-    Toolbar: ({ children }: any) => <div>{children}</div>,
+    HeaderFilter: () => null,
+    Sorting: () => null,
+    Toolbar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     Item: () => null,
     SearchPanel: () => null,
     Selection: () => null,
@@ -50,13 +49,17 @@ vi.mock('devextreme-react/data-grid', () => {
 });
 
 vi.mock('devextreme-react/button', () => ({
-  Button: ({ text, ...props }: any) => (
-    <button data-testid={props['data-testid']}>{text}</button>
+  Button: ({ text, ...props }: Record<string, unknown>) => (
+    <button data-testid={props['data-testid'] as string}>{text as string}</button>
   ),
 }));
 
 vi.mock('devextreme-react/load-indicator', () => ({
   LoadIndicator: () => <div data-testid="loading">Loading...</div>,
+}));
+
+vi.mock('devextreme/ui/notify', () => ({
+  default: vi.fn(),
 }));
 
 // Mock data
@@ -68,6 +71,8 @@ const mockStatements = [
     bankAccountName: 'Main Bank',
     bankAccountNumber: '1234567890',
     statementDate: '2024-01-15',
+    startDate: '2024-01-01',
+    endDate: '2024-01-15',
     openingBalance: 100000,
     closingBalance: 150000,
     totalDebits: 20000,
@@ -76,6 +81,8 @@ const mockStatements = [
     matchedCount: 5,
     unmatchedCount: 3,
     currency: 'THB',
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
   },
   {
     id: 2,
@@ -84,6 +91,8 @@ const mockStatements = [
     bankAccountName: 'Main Bank',
     bankAccountNumber: '1234567890',
     statementDate: '2024-02-15',
+    startDate: '2024-02-01',
+    endDate: '2024-02-15',
     openingBalance: 150000,
     closingBalance: 200000,
     totalDebits: 30000,
@@ -92,6 +101,8 @@ const mockStatements = [
     matchedCount: 10,
     unmatchedCount: 0,
     currency: 'THB',
+    createdAt: '2024-02-15T10:00:00Z',
+    updatedAt: '2024-02-15T10:00:00Z',
   },
 ];
 
@@ -102,56 +113,77 @@ const mockSummary = {
   unmatchedLines: 3,
 };
 
-global.fetch = vi.fn().mockImplementation((url: string) => {
-  if (url.includes('/dashboard')) {
-    return Promise.resolve({
-      json: () => Promise.resolve({ success: true, data: mockSummary }),
-    });
-  }
-  return Promise.resolve({
-    json: () =>
-      Promise.resolve({
-        success: true,
-        data: mockStatements,
-        total: mockStatements.length,
-      }),
+// Create a fresh QueryClient for each test
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+    },
   });
-});
+}
 
-import BankReconciliationPage from '@/app/accounting/bank-reconciliation/page';
+// Wrapper component for tests
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  const queryClient = createTestQueryClient();
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+}
+
+const mockFetch = vi.fn();
 
 describe('Bank Reconciliation Page', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    global.fetch = vi.fn().mockImplementation((url: string) => {
+    mockFetch.mockReset();
+    global.fetch = mockFetch;
+
+    mockFetch.mockImplementation((url: string) => {
       if (url.includes('/dashboard')) {
         return Promise.resolve({
+          ok: true,
           json: () => Promise.resolve({ success: true, data: mockSummary }),
         });
       }
+      if (url.includes('/statements')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: mockStatements }),
+        });
+      }
       return Promise.resolve({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: mockStatements,
-            total: mockStatements.length,
-          }),
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: [] }),
       });
     });
   });
 
   it('renders the page title', async () => {
-    render(<BankReconciliationPage />);
+    const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
+
+    render(
+      <TestWrapper>
+        <BankReconciliationPage />
+      </TestWrapper>
+    );
 
     await waitFor(() => {
-      expect(screen.getByTestId('page-title')).toBeInTheDocument();
+      expect(screen.getByText('Bank Reconciliation')).toBeInTheDocument();
     });
-
-    expect(screen.getByTestId('page-title')).toHaveTextContent('Bank Reconciliation');
   });
 
   it('renders the statements grid', async () => {
-    render(<BankReconciliationPage />);
+    const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
+
+    render(
+      <TestWrapper>
+        <BankReconciliationPage />
+      </TestWrapper>
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('statements-grid')).toBeInTheDocument();
@@ -159,27 +191,45 @@ describe('Bank Reconciliation Page', () => {
   });
 
   it('fetches statements on mount', async () => {
-    render(<BankReconciliationPage />);
+    const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
+
+    render(
+      <TestWrapper>
+        <BankReconciliationPage />
+      </TestWrapper>
+    );
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         '/api/accounting/bank-reconciliation/statements'
       );
     });
   });
 
   it('fetches dashboard summary on mount', async () => {
-    render(<BankReconciliationPage />);
+    const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
+
+    render(
+      <TestWrapper>
+        <BankReconciliationPage />
+      </TestWrapper>
+    );
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         '/api/accounting/bank-reconciliation/dashboard'
       );
     });
   });
 
   it('displays page description', async () => {
-    render(<BankReconciliationPage />);
+    const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
+
+    render(
+      <TestWrapper>
+        <BankReconciliationPage />
+      </TestWrapper>
+    );
 
     await waitFor(() => {
       expect(
@@ -187,14 +237,34 @@ describe('Bank Reconciliation Page', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('renders KPI cards', async () => {
+    const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
+
+    render(
+      <TestWrapper>
+        <BankReconciliationPage />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Total Statements')).toBeInTheDocument();
+      expect(screen.getByText('Pending Reconciliation')).toBeInTheDocument();
+      expect(screen.getByText('Reconciled This Month')).toBeInTheDocument();
+      expect(screen.getByText('Unmatched Lines')).toBeInTheDocument();
+    });
+  });
 });
 
 describe('Bank Reconciliation Page with empty data', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    global.fetch = vi.fn().mockImplementation((url: string) => {
+    mockFetch.mockReset();
+    global.fetch = mockFetch;
+
+    mockFetch.mockImplementation((url: string) => {
       if (url.includes('/dashboard')) {
         return Promise.resolve({
+          ok: true,
           json: () =>
             Promise.resolve({
               success: true,
@@ -208,13 +278,20 @@ describe('Bank Reconciliation Page with empty data', () => {
         });
       }
       return Promise.resolve({
-        json: () => Promise.resolve({ success: true, data: [], total: 0 }),
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: [] }),
       });
     });
   });
 
   it('renders grid with no data', async () => {
-    render(<BankReconciliationPage />);
+    const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
+
+    render(
+      <TestWrapper>
+        <BankReconciliationPage />
+      </TestWrapper>
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('statements-grid')).toBeInTheDocument();
@@ -224,17 +301,24 @@ describe('Bank Reconciliation Page with empty data', () => {
 
 describe('Bank Reconciliation Page with error', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    mockFetch.mockReset();
+    global.fetch = mockFetch;
+    mockFetch.mockRejectedValue(new Error('Network error'));
   });
 
   it('handles fetch error gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(
+      <TestWrapper>
+        <BankReconciliationPage />
+      </TestWrapper>
+    );
 
+    // Page should still render even with errors
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(screen.getByTestId('statements-grid')).toBeInTheDocument();
     });
 
     consoleSpy.mockRestore();

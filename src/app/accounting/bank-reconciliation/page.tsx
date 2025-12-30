@@ -1,21 +1,27 @@
 /**
  * Bank Reconciliation Dashboard Page (T072)
+ * Refactored to match /template page patterns
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import DataGrid, {
   Column,
   Paging,
+  Pager,
   FilterRow,
-  Toolbar,
-  Item,
-  SearchPanel,
+  HeaderFilter,
+  Sorting,
 } from 'devextreme-react/data-grid';
+import { Landmark, FileText, Clock, CheckCircle, AlertCircle, Eye, Edit, Trash2 } from 'lucide-react';
+import notify from 'devextreme/ui/notify';
+import { AccountingPageHeader } from '@/components/accounting/accounting-page-header';
+import { KPICard, KPICardSkeleton } from '@/components/ui/kpi-card';
+import { Card, CardContent } from '@/components/ui/card';
 import type { BankStatement } from '@/types/bank-reconciliation';
 
 interface DashboardSummary {
@@ -26,45 +32,62 @@ interface DashboardSummary {
 }
 
 const statusColors: Record<string, string> = {
+  draft: 'bg-gray-100 text-gray-800',
   imported: 'bg-gray-100 text-gray-800',
   in_progress: 'bg-yellow-100 text-yellow-800',
   reconciled: 'bg-green-100 text-green-800',
   closed: 'bg-blue-100 text-blue-800',
 };
 
+async function fetchStatements(): Promise<BankStatement[]> {
+  const res = await fetch('/api/accounting/bank-reconciliation/statements');
+  if (!res.ok) throw new Error('Failed to fetch statements');
+  const data = await res.json();
+  return data.data || [];
+}
+
+async function fetchDashboardSummary(): Promise<DashboardSummary> {
+  const res = await fetch('/api/accounting/bank-reconciliation/dashboard');
+  if (!res.ok) throw new Error('Failed to fetch dashboard summary');
+  const data = await res.json();
+  return data.data;
+}
+
+async function deleteStatement(id: number): Promise<void> {
+  const res = await fetch(`/api/accounting/bank-reconciliation/statements/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to delete statement');
+  }
+}
+
 export default function BankReconciliationPage() {
   const router = useRouter();
-  const [statements, setStatements] = useState<BankStatement[]>([]);
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data: statements = [], isLoading: isLoadingStatements, refetch, isFetching } = useQuery({
+    queryKey: ['bank-statements'],
+    queryFn: fetchStatements,
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [statementsRes, summaryRes] = await Promise.all([
-        fetch('/api/accounting/bank-reconciliation/statements'),
-        fetch('/api/accounting/bank-reconciliation/dashboard'),
-      ]);
+  const { data: summary, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ['bank-reconciliation-summary'],
+    queryFn: fetchDashboardSummary,
+  });
 
-      const statementsData = await statementsRes.json();
-      const summaryData = await summaryRes.json();
-
-      if (statementsData.success) {
-        setStatements(statementsData.data);
-      }
-      if (summaryData.success) {
-        setSummary(summaryData.data);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteMutation = useMutation({
+    mutationFn: deleteStatement,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-reconciliation-summary'] });
+      notify('Statement deleted successfully', 'success', 3000);
+    },
+    onError: (error: Error) => {
+      notify(error.message, 'error', 5000);
+    },
+  });
 
   const handleNewStatement = () => {
     router.push('/accounting/bank-reconciliation/statements/new');
@@ -74,119 +97,188 @@ export default function BankReconciliationPage() {
     router.push(`/accounting/bank-reconciliation/reconcile/${id}`);
   };
 
-  const renderStatus = (cellData: any) => {
+  const handleEditStatement = (id: number) => {
+    router.push(`/accounting/bank-reconciliation/statements/${id}`);
+  };
+
+  const handleDeleteStatement = (statement: BankStatement) => {
+    if (statement.status === 'reconciled' || statement.status === 'closed') {
+      notify('Cannot delete reconciled or closed statements', 'warning', 3000);
+      return;
+    }
+    if (confirm(`Are you sure you want to delete statement "${statement.statementNumber}"?`)) {
+      deleteMutation.mutate(statement.id);
+    }
+  };
+
+  const renderStatus = (cellData: { value: string }) => {
     const status = cellData.value as string;
     const colorClass = statusColors[status] || 'bg-gray-100 text-gray-800';
+    const displayText = status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
-        {status.replace('_', ' ')}
+        {displayText}
       </span>
     );
   };
 
-  const renderAmount = (cellData: any) => {
+  const renderAmount = (cellData: { value: number }) => {
     const amount = Number(cellData.value || 0);
-    return amount.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+    return (
+      <span className="font-mono">
+        {amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+      </span>
+    );
   };
 
-  const formatDate = (cellData: any) => {
+  const formatDate = (cellData: { value: string | Date }) => {
     const date = cellData.value;
     if (!date) return '';
     return new Date(date).toLocaleDateString('th-TH');
   };
 
-  const renderActions = (cellData: any) => {
-    const statement = cellData.data as BankStatement;
+  const renderUnmatched = (cellData: { value: number }) => (
+    <span className={cellData.value > 0 ? 'text-red-600 font-medium' : 'text-gray-500'}>
+      {cellData.value}
+    </span>
+  );
+
+  const renderActions = (cellData: { data: BankStatement }) => {
+    const statement = cellData.data;
+    const isLocked = statement.status === 'reconciled' || statement.status === 'closed';
     return (
-      <div className="flex gap-1">
-        <Button
-          icon="search"
-          hint="View/Reconcile"
-          stylingMode="text"
-          onClick={() => handleViewStatement(statement.id)}
-        />
+      <div className="flex items-center gap-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewStatement(statement.id);
+          }}
+          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          title="View/Reconcile"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEditStatement(statement.id);
+          }}
+          className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+          title="Edit"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        {!isLocked && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteStatement(statement);
+            }}
+            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
     );
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadIndicator />
-      </div>
-    );
-  }
+  const isLoading = isLoadingStatements || isLoadingSummary;
 
   return (
-    <div className="p-4">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            Bank Reconciliation
-          </h1>
-          <p className="text-gray-600">
-            Import bank statements and reconcile transactions with payments and receipts
-          </p>
-        </div>
+    <div className="space-y-6 p-1">
+      {/* Header */}
+      <AccountingPageHeader
+        title="Bank Reconciliation"
+        subtitle="Import bank statements and reconcile transactions with payments and receipts"
+        icon="banknote"
+        onRefresh={() => refetch()}
+        actions={
+          <Button
+            text="Import Statement"
+            icon="upload"
+            type="success"
+            stylingMode="contained"
+            onClick={handleNewStatement}
+            data-testid="import-btn"
+          />
+        }
+      />
 
-        {/* Dashboard Summary */}
-        {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-              <div className="text-sm text-gray-500">Total Statements</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {summary.totalStatements}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-              <div className="text-sm text-gray-500">Pending Reconciliation</div>
-              <div className="text-2xl font-bold text-yellow-600">
-                {summary.pendingReconciliation}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-              <div className="text-sm text-gray-500">Reconciled This Month</div>
-              <div className="text-2xl font-bold text-green-600">
-                {summary.reconciledThisMonth}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-              <div className="text-sm text-gray-500">Unmatched Lines</div>
-              <div className="text-2xl font-bold text-red-600">
-                {summary.unmatchedLines}
-              </div>
-            </div>
-          </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {isLoading ? (
+          <>
+            <KPICardSkeleton />
+            <KPICardSkeleton />
+            <KPICardSkeleton />
+            <KPICardSkeleton />
+          </>
+        ) : (
+          <>
+            <KPICard
+              value={summary?.totalStatements || 0}
+              label="Total Statements"
+              subtitle="All imported statements"
+              icon={<FileText className="h-6 w-6" />}
+              iconBgColor="bg-blue-100"
+              iconColor="text-blue-600"
+            />
+            <KPICard
+              value={summary?.pendingReconciliation || 0}
+              label="Pending Reconciliation"
+              subtitle="Awaiting processing"
+              icon={<Clock className="h-6 w-6" />}
+              iconBgColor="bg-yellow-100"
+              iconColor="text-yellow-600"
+            />
+            <KPICard
+              value={summary?.reconciledThisMonth || 0}
+              label="Reconciled This Month"
+              subtitle="Completed this period"
+              icon={<CheckCircle className="h-6 w-6" />}
+              iconBgColor="bg-green-100"
+              iconColor="text-green-600"
+            />
+            <KPICard
+              value={summary?.unmatchedLines || 0}
+              label="Unmatched Lines"
+              subtitle="Require attention"
+              icon={<AlertCircle className="h-6 w-6" />}
+              iconBgColor="bg-red-100"
+              iconColor="text-red-600"
+            />
+          </>
         )}
+      </div>
 
-        {/* Statements Grid */}
-        <div className="bg-white rounded-lg shadow">
+      {/* Statements Grid */}
+      <Card>
+        <CardContent className="p-0">
           <DataGrid
             dataSource={statements}
             keyExpr="id"
-            showBorders={true}
-            rowAlternationEnabled={true}
-            allowColumnResizing={true}
-            columnAutoWidth={true}
+            showBorders={false}
+            showRowLines
+            rowAlternationEnabled
+            hoverStateEnabled
+            columnAutoWidth
+            allowColumnResizing
+            onRowClick={(e) => handleViewStatement(e.data.id)}
+            className="min-h-[400px]"
             data-testid="statements-grid"
           >
-            <SearchPanel visible={true} placeholder="Search statements..." />
-            <FilterRow visible={true} />
+            <FilterRow visible />
+            <HeaderFilter visible />
+            <Sorting mode="multiple" />
             <Paging defaultPageSize={20} />
-            <Toolbar>
-              <Item location="before">
-                <span className="text-lg font-medium">Bank Statements</span>
-              </Item>
-              <Item location="after">
-                <Button
-                  text="Import Statement"
-                  icon="upload"
-                  type="default"
-                  stylingMode="contained"
-                  onClick={handleNewStatement}
-                  data-testid="import-btn"
-                />
-              </Item>
-            </Toolbar>
+            <Pager
+              showPageSizeSelector
+              allowedPageSizes={[10, 20, 50, 100]}
+              showInfo
+              showNavigationButtons
+            />
 
             <Column
               dataField="statementNumber"
@@ -202,55 +294,54 @@ export default function BankReconciliationPage() {
               dataField="statementDate"
               caption="Date"
               dataType="date"
-              width={100}
+              width={110}
               cellRender={formatDate}
             />
             <Column
               dataField="openingBalance"
               caption="Opening"
-              width={120}
+              width={130}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="closingBalance"
               caption="Closing"
-              width={120}
+              width={130}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="matchedCount"
               caption="Matched"
-              width={80}
+              width={90}
               alignment="center"
             />
             <Column
               dataField="unmatchedCount"
               caption="Unmatched"
-              width={90}
+              width={100}
               alignment="center"
-              cellRender={(cellData: any) => (
-                <span className={cellData.value > 0 ? 'text-red-600 font-medium' : ''}>
-                  {cellData.value}
-                </span>
-              )}
+              cellRender={renderUnmatched}
             />
             <Column
               dataField="status"
               caption="Status"
-              width={120}
+              width={130}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
               caption="Actions"
-              width={80}
+              width={120}
               alignment="center"
               cellRender={renderActions}
+              allowFiltering={false}
+              allowSorting={false}
             />
           </DataGrid>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
