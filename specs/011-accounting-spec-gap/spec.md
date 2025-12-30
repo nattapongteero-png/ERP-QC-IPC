@@ -201,10 +201,17 @@ A Cost Accountant needs to analyze manufacturing variances (material price, usag
 
 ### Edge Cases
 
-- What happens when a PR is cancelled after partial conversion to PO?
-- How does the system handle a bank statement line that matches multiple payments?
-- What happens when trying to close a period with unreconciled bank transactions?
-- How are credit notes handled for partially paid invoices?
+#### PR Cancelled After Partial Conversion
+- **Given** a PR has some lines converted to PO, **When** the PR is cancelled, **Then** only unconverted lines are marked cancelled; converted lines remain linked to their PO with status "converted". The PR header status becomes "partially_cancelled" if any lines were converted, otherwise "cancelled".
+
+#### Bank Statement Line Matches Multiple Payments
+- **Given** a bank statement line amount matches the sum of multiple payments, **When** auto-matching runs, **Then** the system suggests a "split match" with confidence < threshold, requiring manual confirmation. The user can select multiple payments to allocate against the single statement line.
+
+#### Period Close with Unreconciled Bank Transactions
+- **Given** unreconciled bank statement lines exist for accounts in the period, **When** period close is attempted, **Then** the system blocks close with error listing unreconciled statement count per bank account. User must reconcile or explicitly defer to next period.
+
+#### Credit Notes for Partially Paid Invoices
+- **Given** an invoice has partial payment applied (balance_due < total), **When** a credit note is created, **Then** the credit note amount cannot exceed the remaining balance_due. If credit note equals remaining balance, invoice status becomes "closed". Payment allocations are adjusted proportionally if credit exceeds unpaid portion.
 
 ---
 
@@ -262,12 +269,19 @@ A Cost Accountant needs to analyze manufacturing variances (material price, usag
 
 ### Functional Requirements - Enhancements to Existing Features
 
-- **FR-ENH-001**: Period Close needs bank reconciliation as validation requirement
-- **FR-ENH-002**: VAT reports need e-Tax export capability (JSON/XML format for RD submission)
-- **FR-ENH-003**: Payment batch run for AP due items (bulk payment processing)
-- **FR-ENH-004**: GR/IR clearing reconciliation report
-- **FR-ENH-005**: Recurring journal entries
-- **FR-ENH-006**: Check management (check numbers, clearing status)
+#### In Scope (This Iteration)
+
+- **FR-ENH-001**: Period Close needs bank reconciliation as validation requirement *(Task T076.1)*
+- **FR-ENH-004**: GR/IR clearing reconciliation report *(Tasks T107, T116)*
+
+#### Deferred (Future Iteration)
+
+The following enhancements are documented for future implementation and are **explicitly out of scope** for this iteration:
+
+- **FR-ENH-002**: VAT reports e-Tax export capability (JSON/XML format for RD submission) - *Requires RD format specification research*
+- **FR-ENH-003**: Payment batch run for AP due items (bulk payment processing) - *Nice-to-have, not blocking core workflow*
+- **FR-ENH-005**: Recurring journal entries - *Separate user story needed*
+- **FR-ENH-006**: Check management (check numbers, clearing status) - *Low usage in Thai banking context*
 
 ### Key Entities - Missing from Current Schema
 

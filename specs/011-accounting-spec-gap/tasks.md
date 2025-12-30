@@ -130,8 +130,9 @@
 - [X] T074 [US2] Add Bank Reconciliation to sidebar navigation in src/components/layout/sidebar.tsx
 - [X] T075 [US2] Create unit test for bank-reconciliation.service.ts in tests/unit/lib/services/bank-reconciliation.service.test.ts
 - [X] T076 [US2] Create UI test for bank reconciliation page in tests/app/accounting/bank-reconciliation/page.test.tsx
+- [ ] T076.1 [US2] Integrate bank reconciliation validation into period close workflow in src/lib/services/accounting-period.service.ts (check for unreconciled statements before allowing period close)
 
-**Checkpoint**: User Story 2 complete - Bank statements can be imported, matched, and reconciled
+**Checkpoint**: User Story 2 complete - Bank statements can be imported, matched, reconciled, and period close validates reconciliation status
 
 ---
 
@@ -373,15 +374,15 @@ Task: "Create API route POST /api/purchasing/requisitions/[id]/submit"
 | Phase 1 | T001-T007 | 5 | Setup - Database schema |
 | Phase 2 | T008-T030 | 12 | Foundational - Approval workflow engine |
 | Phase 3 | T031-T051 | 11 | US1 - Purchase Requisitions (P1) |
-| Phase 4 | T052-T076 | 12 | US2 - Bank Reconciliation (P1) |
+| Phase 4 | T052-T076.1 | 13 | US2 - Bank Reconciliation (P1) |
 | Phase 5 | T077-T100 | 11 | US3 - Credit/Debit Notes (P2) |
 | Phase 6 | T101-T122 | 11 | US4 - 3-Way Matching (P2) |
 | Phase 7 | T123-T128 | 0 | US5 - Approval Workflows UI (P2) |
 | Phase 8 | T129-T152 | 13 | US6 - Variance Analysis (P3) |
 | Phase 9 | T153-T160 | 5 | Polish & Cross-Cutting |
 
-**Total Tasks**: 160
-**MVP (US1 + US2)**: 76 tasks (Phases 1-4)
+**Total Tasks**: 161
+**MVP (US1 + US2)**: 77 tasks (Phases 1-4)
 **Suggested MVP Scope**: Complete Phases 1-4 for P1 features (Purchase Requisitions, Bank Reconciliation)
 
 ---
