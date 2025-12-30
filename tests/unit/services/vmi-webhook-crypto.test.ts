@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import crypto from 'crypto';
 import {
   generateWebhookSecret,
   computeSignature,
@@ -312,7 +313,6 @@ describe('VmiWebhookCrypto', () => {
       const signature = computeSignature(testTimestamp, testPayload, testSecret);
 
       // Compute expected signature manually
-      const crypto = require('crypto');
       const signedContent = `${testTimestamp}.${testPayload}`;
       const expectedSignature = crypto
         .createHmac('sha256', testSecret)
