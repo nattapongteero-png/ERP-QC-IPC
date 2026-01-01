@@ -70,6 +70,8 @@ services:
       - NEXTAUTH_URL=https://herbal-erp.bmscloud.in.th
       # Internal reporting backend URL (Docker internal network)
       - REPORTING_BACKEND_URL=http://reporting-backend:5000
+      # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
     depends_on:
       mysql:
         condition: service_healthy
@@ -104,6 +106,8 @@ services:
       - CHOKIDAR_USEPOLLING=true
       # Internal reporting backend URL (Docker internal network)
       - REPORTING_BACKEND_URL=http://reporting-backend:5000
+      # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
     # Increase file descriptor limits for Turbopack file watching
     ulimits:
       nofile:
@@ -144,6 +148,8 @@ services:
       - NEXTAUTH_URL=https://herbal-erp-arjaro.bmscloud.in.th
       # Internal reporting backend URL (Docker internal network)
       - REPORTING_BACKEND_URL=http://reporting-backend-arjaro:5000
+      # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
     depends_on:
       mysql:
         condition: service_healthy
