@@ -18,7 +18,7 @@ vi.mock('next/navigation', () => ({
 
 // Mock DevExtreme components
 vi.mock('devextreme-react/data-grid', () => ({
-  default: ({ children, ...props }: { children?: React.ReactNode }) => (
+  default: ({ children, ...props }: { children?: React.ReactNode; 'data-testid'?: string }) => (
     <div data-testid={props['data-testid']} {...props}>
       {children}
     </div>
@@ -29,7 +29,7 @@ vi.mock('devextreme-react/data-grid', () => ({
 }));
 
 vi.mock('devextreme-react/button', () => ({
-  Button: ({ text, onClick, ...props }: { text?: string; onClick?: () => void }) => (
+  Button: ({ text, onClick, ...props }: { text?: string; onClick?: () => void; 'data-testid'?: string }) => (
     <button onClick={onClick} data-testid={props['data-testid']}>
       {text}
     </button>

@@ -110,12 +110,20 @@ vi.mock('devextreme/ui/notify', () => ({
   default: vi.fn(),
 }));
 
+interface ToleranceItem {
+  id: number;
+  name: string;
+  toleranceType: string;
+  toleranceValue: number;
+  isActive: boolean;
+}
+
 vi.mock('devextreme-react/data-grid', () => ({
-  default: ({ dataSource, children }: { dataSource: unknown[]; children: React.ReactNode }) => (
+  default: ({ dataSource, children }: { dataSource: ToleranceItem[]; children: React.ReactNode }) => (
     <div data-testid="tolerances-grid">
       <table>
         <tbody>
-          {dataSource?.map((item: { id: number; name: string; toleranceType: string; toleranceValue: number; isActive: boolean }, index: number) => (
+          {dataSource?.map((item, index) => (
             <tr key={item.id || index}>
               <td>{item.name}</td>
               <td>{item.toleranceType}</td>

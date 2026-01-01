@@ -2430,6 +2430,9 @@ export const mysqlVmiPortalConfig = mysqlTable('vmi_portal_config', {
   lastOrdersPollAt: datetime('last_orders_poll_at'),
   connectionStatus: varchar('connection_status', { length: 20 }).notNull().default('disconnected'), // connected, disconnected, error
   lastErrorMessage: mysqlText('last_error_message'),
+  // Webhook integration (012-vmi-webhook)
+  webhookEnabled: mysqlBoolean('webhook_enabled').notNull().default(false),
+  webhookEndpointUrl: varchar('webhook_endpoint_url', { length: 500 }), // Our webhook endpoint for this portal
   createdBy: int('created_by').references(() => mysqlUsers.id),
   updatedBy: int('updated_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(new Date()),
@@ -2507,6 +2510,50 @@ export const mysqlVendorApiKeys = mysqlTable('vendor_api_keys', {
   isActive: mysqlBoolean('is_active').notNull().default(true),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   createdBy: int('created_by').references(() => mysqlUsers.id),
+});
+
+// ============================================
+// VMI Webhook Integration (012-vmi-webhook) - MySQL
+// Webhook-based notifications from VMI Portal
+// ============================================
+
+// VMI Webhooks - Registered webhook configurations per portal
+export const mysqlVmiWebhooks = mysqlTable('vmi_webhooks', {
+  id: int('id').primaryKey().autoincrement(),
+  portalId: int('portal_id').notNull().references(() => mysqlVmiPortalConfig.id),
+  vmiWebhookId: int('vmi_webhook_id'), // ID assigned by VMI Portal
+  name: varchar('name', { length: 100 }).notNull(),
+  description: varchar('description', { length: 500 }),
+  url: varchar('url', { length: 500 }).notNull(), // Our webhook endpoint URL
+  secretEncrypted: mysqlText('secret_encrypted').notNull(), // Encrypted webhook secret
+  events: mysqlText('events').notNull(), // JSON array of subscribed events
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  isDisabledByFailures: mysqlBoolean('is_disabled_by_failures').notNull().default(false),
+  consecutiveFailures: int('consecutive_failures').notNull().default(0),
+  lastSuccessAt: datetime('last_success_at'),
+  lastFailureAt: datetime('last_failure_at'),
+  lastErrorMessage: mysqlText('last_error_message'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+});
+
+// VMI Webhook Deliveries - Received webhook notification history
+export const mysqlVmiWebhookDeliveries = mysqlTable('vmi_webhook_deliveries', {
+  id: int('id').primaryKey().autoincrement(),
+  webhookId: int('webhook_id').notNull().references(() => mysqlVmiWebhooks.id),
+  deliveryId: varchar('delivery_id', { length: 100 }).notNull().unique(), // X-Webhook-Delivery-Id
+  eventType: varchar('event_type', { length: 50 }).notNull(), // order.created, order.cancelled, etc.
+  eventId: varchar('event_id', { length: 100 }), // Event ID from payload
+  payload: mysqlText('payload').notNull(), // Full JSON payload
+  signature: varchar('signature', { length: 128 }).notNull(), // Received signature
+  signatureValid: mysqlBoolean('signature_valid').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, processed, failed
+  responseCode: int('response_code'), // HTTP response code returned
+  errorMessage: mysqlText('error_message'),
+  processingDurationMs: int('processing_duration_ms'),
+  receivedAt: datetime('received_at').notNull().default(new Date()),
+  processedAt: datetime('processed_at'),
 });
 
 // ============================================
@@ -3186,6 +3233,9 @@ export const sqliteVmiPortalConfig = sqliteTable('vmi_portal_config', {
   lastOrdersPollAt: text('last_orders_poll_at'),
   connectionStatus: text('connection_status').notNull().default('disconnected'), // connected, disconnected, error
   lastErrorMessage: text('last_error_message'),
+  // Webhook integration (012-vmi-webhook)
+  webhookEnabled: integer('webhook_enabled', { mode: 'boolean' }).notNull().default(false),
+  webhookEndpointUrl: text('webhook_endpoint_url'), // Our webhook endpoint for this portal
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   updatedBy: integer('updated_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -3263,6 +3313,50 @@ export const sqliteVendorApiKeys = sqliteTable('vendor_api_keys', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
+});
+
+// ============================================
+// VMI Webhook Integration (012-vmi-webhook) - SQLite
+// Webhook-based notifications from VMI Portal
+// ============================================
+
+// VMI Webhooks - Registered webhook configurations per portal
+export const sqliteVmiWebhooks = sqliteTable('vmi_webhooks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  portalId: integer('portal_id').notNull().references(() => sqliteVmiPortalConfig.id),
+  vmiWebhookId: integer('vmi_webhook_id'), // ID assigned by VMI Portal
+  name: text('name').notNull(),
+  description: text('description'),
+  url: text('url').notNull(), // Our webhook endpoint URL
+  secretEncrypted: text('secret_encrypted').notNull(), // Encrypted webhook secret
+  events: text('events').notNull(), // JSON array of subscribed events
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  isDisabledByFailures: integer('is_disabled_by_failures', { mode: 'boolean' }).notNull().default(false),
+  consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+  lastSuccessAt: text('last_success_at'),
+  lastFailureAt: text('last_failure_at'),
+  lastErrorMessage: text('last_error_message'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+});
+
+// VMI Webhook Deliveries - Received webhook notification history
+export const sqliteVmiWebhookDeliveries = sqliteTable('vmi_webhook_deliveries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  webhookId: integer('webhook_id').notNull().references(() => sqliteVmiWebhooks.id),
+  deliveryId: text('delivery_id').notNull().unique(), // X-Webhook-Delivery-Id
+  eventType: text('event_type').notNull(), // order.created, order.cancelled, etc.
+  eventId: text('event_id'), // Event ID from payload
+  payload: text('payload').notNull(), // Full JSON payload
+  signature: text('signature').notNull(), // Received signature
+  signatureValid: integer('signature_valid', { mode: 'boolean' }).notNull(),
+  status: text('status').notNull().default('pending'), // pending, processed, failed
+  responseCode: integer('response_code'), // HTTP response code returned
+  errorMessage: text('error_message'),
+  processingDurationMs: integer('processing_duration_ms'),
+  receivedAt: text('received_at').notNull().default('CURRENT_TIMESTAMP'),
+  processedAt: text('processed_at'),
 });
 
 // ============================================
@@ -5809,6 +5903,12 @@ export type VmiSalesOrderLine = typeof sqliteVmiSalesOrderLines.$inferSelect;
 export type NewVmiSalesOrderLine = typeof sqliteVmiSalesOrderLines.$inferInsert;
 export type VendorApiKey = typeof sqliteVendorApiKeys.$inferSelect;
 export type NewVendorApiKey = typeof sqliteVendorApiKeys.$inferInsert;
+
+// VMI Webhook Integration Types (012-vmi-webhook)
+export type VmiWebhookDb = typeof sqliteVmiWebhooks.$inferSelect;
+export type NewVmiWebhookDb = typeof sqliteVmiWebhooks.$inferInsert;
+export type VmiWebhookDeliveryDb = typeof sqliteVmiWebhookDeliveries.$inferSelect;
+export type NewVmiWebhookDeliveryDb = typeof sqliteVmiWebhookDeliveries.$inferInsert;
 
 // GMP Compliance Gap Analysis Types (009-gmp-compliance-gap-analysis)
 // Document Control (หมวด 5)

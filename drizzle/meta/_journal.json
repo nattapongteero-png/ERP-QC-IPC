@@ -15,6 +15,13 @@
       "when": 1766556214846,
       "tag": "0001_shiny_yellow_claw",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1767056612794,
+      "tag": "0002_wooden_mole_man",
+      "breakpoints": true
     }
   ]
 }

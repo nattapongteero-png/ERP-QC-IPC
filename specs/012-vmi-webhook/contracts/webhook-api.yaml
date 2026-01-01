@@ -1,0 +1,681 @@
+openapi: 3.0.3
+info:
+  title: VMI Webhook API
+  description: |
+    API for VMI webhook integration.
+
+    **Context**: This system IS the vendor. We receive orders FROM hospitals via VMI portals.
+
+    Two categories of endpoints:
+    1. **Webhook Receiver** - Endpoint that receives notifications FROM VMI Portal (under /api/sales)
+    2. **Webhook Management** - Internal endpoints for managing webhook configurations (under /api/sales)
+  version: 1.0.0
+
+servers:
+  - url: https://erp.example.com
+    description: Production
+  - url: http://localhost:33021
+    description: Development
+
+tags:
+  - name: Webhook Receiver
+    description: Endpoint receiving notifications from VMI Portal
+  - name: Webhook Management
+    description: Internal webhook configuration management
+
+paths:
+  # ============================================
+  # WEBHOOK RECEIVER (called by VMI Portal)
+  # ============================================
+
+  /api/sales/vmi-orders/webhooks/{portalId}:
+    post:
+      tags:
+        - Webhook Receiver
+      summary: Receive webhook notification from VMI Portal
+      description: |
+        Endpoint that VMI Portal calls to deliver event notifications about orders.
+
+        **Context**: We are the vendor receiving order notifications from hospitals.
+
+        **Security:**
+        - Validates HMAC-SHA256 signature
+        - Validates timestamp (within 5 minutes)
+        - Returns 401 for invalid signatures
+
+        **Processing:**
+        - Returns 200 immediately after signature validation
+        - Processes payload asynchronously
+        - Idempotent (duplicate delivery IDs are ignored)
+      parameters:
+        - name: portalId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: VMI Portal configuration ID
+        - name: X-Webhook-Event
+          in: header
+          required: true
+          schema:
+            type: string
+            enum:
+              - order.created
+              - order.cancelled
+              - receipt.created
+              - receipt.completed
+          description: Event type
+        - name: X-Webhook-Timestamp
+          in: header
+          required: true
+          schema:
+            type: integer
+          description: Unix timestamp when notification was sent
+        - name: X-Webhook-Delivery-Id
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Unique delivery ID for idempotency
+        - name: X-Webhook-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: HMAC-SHA256 signature
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/OrderCreatedPayload'
+                - $ref: '#/components/schemas/OrderCancelledPayload'
+                - $ref: '#/components/schemas/ReceiptCreatedPayload'
+                - $ref: '#/components/schemas/ReceiptCompletedPayload'
+      responses:
+        '200':
+          description: Notification received successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '401':
+          description: Invalid signature or timestamp
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Portal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================
+  # WEBHOOK MANAGEMENT (internal endpoints)
+  # ============================================
+
+  /api/sales/vmi-orders/portals/{portalId}/webhooks:
+    get:
+      tags:
+        - Webhook Management
+      summary: List webhooks for a portal
+      description: Returns all webhook configurations for the specified portal
+      parameters:
+        - name: portalId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Portal configuration ID
+      responses:
+        '200':
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  webhooks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+        '404':
+          description: Portal not found
+
+    post:
+      tags:
+        - Webhook Management
+      summary: Register a new webhook
+      description: |
+        Registers a new webhook with the VMI Portal.
+
+        **Important:** The secret is returned only once in the response.
+        It must be saved immediately as it cannot be retrieved later.
+      parameters:
+        - name: portalId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCreate'
+      responses:
+        '201':
+          description: Webhook created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  webhook:
+                    $ref: '#/components/schemas/Webhook'
+                  secret:
+                    type: string
+                    description: Webhook secret (shown only once)
+                  message:
+                    type: string
+        '400':
+          description: Validation error
+        '404':
+          description: Portal not found
+        '409':
+          description: Maximum webhooks limit reached (5)
+
+  /api/sales/vmi-orders/portals/{portalId}/webhooks/{webhookId}:
+    get:
+      tags:
+        - Webhook Management
+      summary: Get webhook details
+      parameters:
+        - name: portalId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Webhook details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  webhook:
+                    $ref: '#/components/schemas/Webhook'
+        '404':
+          description: Webhook not found
+
+    patch:
+      tags:
+        - Webhook Management
+      summary: Update webhook configuration
+      description: |
+        Updates webhook configuration.
+
+        **Special flags:**
+        - `regenerateSecret: true` - Generate new secret (invalidates old one)
+        - `reenableWebhook: true` - Re-enable webhook disabled due to failures
+      parameters:
+        - name: portalId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookUpdate'
+      responses:
+        '200':
+          description: Webhook updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  webhook:
+                    $ref: '#/components/schemas/Webhook'
+                  secret:
+                    type: string
+                    description: New secret (only if regenerateSecret was true)
+        '400':
+          description: Validation error
+        '404':
+          description: Webhook not found
+
+    delete:
+      tags:
+        - Webhook Management
+      summary: Delete webhook
+      description: Deletes webhook configuration and unregisters from VMI Portal
+      parameters:
+        - name: portalId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Webhook deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: Webhook not found
+
+  /api/sales/vmi-orders/portals/{portalId}/webhooks/{webhookId}/deliveries:
+    get:
+      tags:
+        - Webhook Management
+      summary: Get webhook delivery history
+      parameters:
+        - name: portalId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - processed
+              - failed
+          description: Filter by status
+        - name: eventType
+          in: query
+          schema:
+            type: string
+            enum:
+              - order.created
+              - order.cancelled
+              - receipt.created
+              - receipt.completed
+          description: Filter by event type
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter from date (YYYY-MM-DD)
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter to date (YYYY-MM-DD)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Delivery history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deliveries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookDelivery'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          description: Webhook not found
+
+components:
+  schemas:
+    # Event Payloads (from VMI Portal)
+    OrderCreatedPayload:
+      type: object
+      description: Notification when a hospital submits a new order
+      required:
+        - orderId
+        - poNumber
+        - hospitalCode
+        - hospitalName
+        - orderDate
+        - totalValue
+        - itemCount
+        - items
+      properties:
+        orderId:
+          type: integer
+          description: Order ID in VMI Portal
+        poNumber:
+          type: string
+          description: Hospital purchase order number
+        hospitalCode:
+          type: string
+          description: Hospital code
+        hospitalName:
+          type: string
+          description: Hospital name
+        orderDate:
+          type: string
+          format: date
+        totalValue:
+          type: string
+        itemCount:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              localCode:
+                type: string
+                description: Our product code
+              name:
+                type: string
+              quantity:
+                type: number
+              unitPrice:
+                type: string
+
+    OrderCancelledPayload:
+      type: object
+      description: Notification when a hospital cancels an order
+      required:
+        - orderId
+        - poNumber
+        - hospitalCode
+        - cancelledAt
+      properties:
+        orderId:
+          type: integer
+        poNumber:
+          type: string
+        hospitalCode:
+          type: string
+        reason:
+          type: string
+        cancelledAt:
+          type: string
+          format: date-time
+
+    ReceiptCreatedPayload:
+      type: object
+      description: Notification when hospital records goods receipt (partial or full)
+      required:
+        - orderId
+        - poNumber
+        - receiptId
+        - receiptNumber
+        - receiptDate
+        - hospitalCode
+        - items
+      properties:
+        orderId:
+          type: integer
+        poNumber:
+          type: string
+        receiptId:
+          type: integer
+        receiptNumber:
+          type: string
+        receiptDate:
+          type: string
+          format: date
+        hospitalCode:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              localCode:
+                type: string
+              name:
+                type: string
+              quantityReceived:
+                type: number
+              quantityOrdered:
+                type: number
+
+    ReceiptCompletedPayload:
+      type: object
+      description: Notification when all items in order have been received
+      required:
+        - orderId
+        - poNumber
+        - hospitalCode
+        - completedAt
+        - totalReceipts
+      properties:
+        orderId:
+          type: integer
+        poNumber:
+          type: string
+        hospitalCode:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+        totalReceipts:
+          type: integer
+
+    # Webhook configuration
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: integer
+        portalId:
+          type: integer
+        vmiWebhookId:
+          type: integer
+          nullable: true
+          description: ID assigned by VMI Portal
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        url:
+          type: string
+          description: Our webhook endpoint URL registered with VMI Portal
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - order.created
+              - order.cancelled
+              - receipt.created
+              - receipt.completed
+        isActive:
+          type: boolean
+        isDisabledByFailures:
+          type: boolean
+        consecutiveFailures:
+          type: integer
+        lastSuccessAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastFailureAt:
+          type: string
+          format: date-time
+          nullable: true
+        healthStatus:
+          type: string
+          enum:
+            - active
+            - warning
+            - disabled_by_failures
+            - disabled_manual
+        createdAt:
+          type: string
+          format: date-time
+
+    WebhookCreate:
+      type: object
+      required:
+        - name
+        - events
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - order.created
+              - order.cancelled
+              - receipt.created
+              - receipt.completed
+          minItems: 1
+
+    WebhookUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - order.created
+              - order.cancelled
+              - receipt.created
+              - receipt.completed
+          minItems: 1
+        isActive:
+          type: boolean
+        regenerateSecret:
+          type: boolean
+          description: If true, generate new secret
+        reenableWebhook:
+          type: boolean
+          description: If true, re-enable webhook disabled by failures
+
+    WebhookDelivery:
+      type: object
+      properties:
+        id:
+          type: integer
+        deliveryId:
+          type: string
+          description: Unique ID from VMI Portal
+        eventType:
+          type: string
+        eventId:
+          type: string
+          nullable: true
+        signatureValid:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - pending
+            - processed
+            - failed
+        responseCode:
+          type: integer
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        processingDurationMs:
+          type: integer
+          nullable: true
+        receivedAt:
+          type: string
+          format: date-time
+        processedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        code:
+          type: string
+        message:
+          type: string
