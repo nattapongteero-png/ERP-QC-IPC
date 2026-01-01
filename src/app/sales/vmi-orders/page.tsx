@@ -555,7 +555,7 @@ export default function VmiOrdersPage() {
 
   const renderPriorityCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
-    const config = PRIORITY_CONFIG[data.data.priority];
+    const config = PRIORITY_CONFIG[data.data.priority] || PRIORITY_CONFIG.normal;
     return (
       <span className={cn('px-2 py-1 rounded text-xs font-medium', config.bgColor, config.color)}>
         {config.labelTh}
@@ -726,8 +726,8 @@ export default function VmiOrdersPage() {
 
   // Render order card
   const renderOrderCard = (order: VmiOrder) => {
-    const statusConfig = STATUS_CONFIG[order.status];
-    const priorityConfig = PRIORITY_CONFIG[order.priority];
+    const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+    const priorityConfig = PRIORITY_CONFIG[order.priority] || PRIORITY_CONFIG.normal;
     const overdue = isOverdue(order.requestedDeliveryDate || '', order.status);
     const daysUntil = getDaysUntilRequired(order.requestedDeliveryDate || '', order.status);
     const allMatched = order.matchedItems === order.totalItems;
@@ -1428,7 +1428,7 @@ export default function VmiOrdersPage() {
           <CardContent className="pt-0">
             <div className="space-y-2">
               {recentOrders.map((order) => {
-                const statusConfig = STATUS_CONFIG[order.status];
+                const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
                 return (
                   <div
                     key={order.id}
