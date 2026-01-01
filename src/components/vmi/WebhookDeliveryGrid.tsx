@@ -177,40 +177,50 @@ export function WebhookDeliveryGrid({
       caption: 'เวลาที่รับ',
       dataType: 'datetime',
       width: 180,
-      cellRender: ({ data }: { data: WebhookDelivery }) => (
-        <span className="text-sm">{formatDate(data.receivedAt)}</span>
-      ),
+      cellRender: ({ data }: { data?: WebhookDelivery }) => {
+        if (!data) return null;
+        return <span className="text-sm">{formatDate(data.receivedAt)}</span>;
+      },
     },
     {
       dataField: 'eventType',
       caption: 'ประเภท Event',
       width: 150,
-      cellRender: ({ data }: { data: WebhookDelivery }) => getEventTypeBadge(data.eventType),
+      cellRender: ({ data }: { data?: WebhookDelivery }) => {
+        if (!data) return null;
+        return getEventTypeBadge(data.eventType);
+      },
     },
     {
       dataField: 'status',
       caption: 'สถานะ',
       width: 120,
-      cellRender: ({ data }: { data: WebhookDelivery }) => getStatusBadge(data.status),
+      cellRender: ({ data }: { data?: WebhookDelivery }) => {
+        if (!data) return null;
+        return getStatusBadge(data.status);
+      },
     },
     {
       dataField: 'signatureValid',
       caption: 'Signature',
       width: 100,
       alignment: 'center',
-      cellRender: ({ data }: { data: WebhookDelivery }) =>
-        data.signatureValid ? (
+      cellRender: ({ data }: { data?: WebhookDelivery }) => {
+        if (!data) return null;
+        return data.signatureValid ? (
           <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
         ) : (
           <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-        ),
+        );
+      },
     },
     {
       dataField: 'responseCode',
       caption: 'Response',
       width: 100,
       alignment: 'center',
-      cellRender: ({ data }: { data: WebhookDelivery }) => {
+      cellRender: ({ data }: { data?: WebhookDelivery }) => {
+        if (!data) return null;
         if (data.responseCode === null) return '-';
         const isSuccess = data.responseCode >= 200 && data.responseCode < 300;
         return (
@@ -230,32 +240,38 @@ export function WebhookDeliveryGrid({
       caption: 'เวลาประมวลผล',
       width: 120,
       alignment: 'right',
-      cellRender: ({ data }: { data: WebhookDelivery }) => (
-        <span className="font-mono text-sm">{formatDuration(data.processingDurationMs)}</span>
-      ),
+      cellRender: ({ data }: { data?: WebhookDelivery }) => {
+        if (!data) return null;
+        return <span className="font-mono text-sm">{formatDuration(data.processingDurationMs)}</span>;
+      },
     },
     {
       dataField: 'deliveryId',
       caption: 'Delivery ID',
       width: 150,
-      cellRender: ({ data }: { data: WebhookDelivery }) => (
-        <span className="font-mono text-xs text-gray-500 truncate" title={data.deliveryId}>
-          {data.deliveryId.slice(0, 20)}...
-        </span>
-      ),
+      cellRender: ({ data }: { data?: WebhookDelivery }) => {
+        if (!data) return null;
+        return (
+          <span className="font-mono text-xs text-gray-500 truncate" title={data.deliveryId}>
+            {data.deliveryId.slice(0, 20)}...
+          </span>
+        );
+      },
     },
     {
       dataField: 'errorMessage',
       caption: 'ข้อผิดพลาด',
       minWidth: 200,
-      cellRender: ({ data }: { data: WebhookDelivery }) =>
-        data.errorMessage ? (
+      cellRender: ({ data }: { data?: WebhookDelivery }) => {
+        if (!data) return null;
+        return data.errorMessage ? (
           <span className="text-sm text-red-600 truncate" title={data.errorMessage}>
             {data.errorMessage}
           </span>
         ) : (
           <span className="text-gray-400">-</span>
-        ),
+        );
+      },
     },
   ];
 
