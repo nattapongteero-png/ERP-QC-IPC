@@ -214,8 +214,8 @@ As a system administrator, I want the system to maintain polling capability as a
 
 ### Measurable Outcomes
 
-- **SC-001**: Order notifications are received within 10 seconds of event occurrence (compared to 5-15 minute polling delay)
-- **SC-002**: 99.9% of webhook notifications are successfully processed on first delivery attempt
+- **SC-001**: Order notifications are received within 10 seconds of event occurrence (compared to 5-15 minute polling delay) *[Operational metric - measured via delivery history timestamps, not code-enforced]*
+- **SC-002**: 99.9% of webhook notifications are successfully processed on first delivery attempt *[Operational metric - calculated from vmi_webhook_deliveries success/fail ratio]*
 - **SC-003**: System correctly validates and rejects 100% of invalid webhook signatures
 - **SC-004**: Zero duplicate orders are created from receiving both webhook and polling notifications for the same order
 - **SC-005**: Administrators can view complete webhook delivery history within 2 clicks from the portal configuration screen

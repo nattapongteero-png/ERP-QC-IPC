@@ -81,7 +81,7 @@
 ### Tests for User Story 2
 
 - [ ] T019 [P] [US2] Create UI test for webhook config form in tests/app/sales/vmi-orders/webhooks.test.tsx
-- [ ] T020 [P] [US2] Create API test for webhook management endpoints in tests/integration/api/sales/vmi-orders/portals/webhooks.test.ts
+- [ ] T020 [P] [US2] Create API test for webhook management endpoints in tests/integration/api/sales/vmi-orders/portals/webhooks.test.ts (include: verify secret is not returned in plain text after initial creation per FR-103)
 
 ### Implementation for User Story 2
 
@@ -112,7 +112,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Implement order.cancelled event handler in src/lib/services/vmi-webhook-events.ts
+- [ ] T032 [US3] Implement order.cancelled event handler in src/lib/services/vmi-webhook-events.ts (FR-307: process based on event timestamp, not arrival order)
 - [ ] T033 [US3] Add shipped order cancellation handling (flag for manual review) in event handler
 - [ ] T034 [US3] Update webhook receiver to route cancellation events to handler
 
@@ -133,7 +133,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T037 [US4] Implement receipt.created event handler in src/lib/services/vmi-webhook-events.ts
+- [ ] T037 [US4] Implement receipt.created event handler in src/lib/services/vmi-webhook-events.ts (FR-307: process based on event timestamp, not arrival order)
 - [ ] T038 [US4] Implement receipt.completed event handler in src/lib/services/vmi-webhook-events.ts
 - [ ] T039 [US4] Handle unknown order ID (log error, queue for investigation) in receipt handlers
 - [ ] T040 [US4] Update webhook receiver to route receipt events to handlers
@@ -152,6 +152,7 @@
 
 - [ ] T041 [P] [US5] Create UI test for delivery history grid in tests/app/sales/vmi-orders/deliveries.test.tsx
 - [ ] T042 [P] [US5] Create API test for delivery history endpoint in tests/integration/api/sales/vmi-orders/portals/webhooks/deliveries.test.ts
+  <!-- Note: T042 tests filters that T044 will implement - this is intentional TDD pattern (test defines expected behavior before implementation) -->
 
 ### Implementation for User Story 5
 
