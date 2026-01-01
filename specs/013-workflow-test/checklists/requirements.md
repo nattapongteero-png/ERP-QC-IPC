@@ -33,10 +33,27 @@
 
 - All items pass validation
 - Specification is ready for `/speckit.clarify` or `/speckit.plan`
-- Verified that all 13 workflow steps are explicitly defined
 - API coverage verified: 439 routes exist across all required modules
-- **Updated 2026-01-01**: Added visual pathway display requirements (FR-002 to FR-010)
-- **Updated 2026-01-01**: Added real-time status update requirements (FR-006 to FR-010)
-- **Updated 2026-01-01**: Added step detail panel requirements (FR-022 to FR-024)
-- **Updated 2026-01-01**: Added visual pathway success criteria (SC-007 to SC-009)
-- Total: 24 functional requirements, 9 success criteria, 4 user stories
+
+### Update History
+
+- **2026-01-01 (Initial)**: Created spec with 13 basic workflow steps
+- **2026-01-01 (Update 1)**: Added visual pathway display requirements (FR-002 to FR-007)
+- **2026-01-01 (Update 2)**: Added real-time status update requirements (FR-008 to FR-012)
+- **2026-01-01 (Update 3)**: Expanded workflow to 31 steps in 8 phases based on real-world ERP analysis:
+  - Phase 1: Master Data Setup (4 steps)
+  - Phase 2: BOM & Production Planning (2 steps)
+  - Phase 3: Purchasing Flow (6 steps) - Added PR, AVL, incoming QC
+  - Phase 4: Production Flow (7 steps) - Added line clearance, material issuance, in-process QC
+  - Phase 5: Finished Goods QC (2 steps)
+  - Phase 6: Sales Flow (4 steps) - Added ATP, pick/pack, shipping
+  - Phase 7: Accounting Verification (4 steps) - Added 3-way matching
+  - Phase 8: VMI Integration (2 steps)
+- **2026-01-01 (Update 4)**: Added phase grouping visual requirements (FR-003, FR-007)
+- **2026-01-01 (Update 5)**: Added 5 new edge cases for QC, tolerance, line clearance, 3-way matching, VMI
+
+### Summary
+
+- **Total**: 26 functional requirements, 10 success criteria, 4 user stories
+- **Workflow Steps**: 31 steps organized in 8 phases
+- **Edge Cases**: 10 scenarios covered

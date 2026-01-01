@@ -13,11 +13,11 @@ As a system administrator, I want to see a graphic pathway diagram showing all t
 
 **Why this priority**: The visual pathway is the primary interface for understanding test execution. Without it, users cannot effectively monitor the automated test or quickly identify problem areas.
 
-**Independent Test**: Can be fully tested by loading the page, observing the pathway diagram renders all 13 steps as connected nodes, running a test, and watching nodes animate/change color in real-time.
+**Independent Test**: Can be fully tested by loading the page, observing the pathway diagram renders all 31 steps organized in 8 phases, running a test, and watching nodes animate/change color in real-time.
 
 **Acceptance Scenarios**:
 
-1. **Given** the workflow test page is loaded, **When** the page renders, **Then** I see a graphic pathway diagram showing all 13 test steps as connected nodes in sequence
+1. **Given** the workflow test page is loaded, **When** the page renders, **Then** I see a graphic pathway diagram showing all 31 test steps organized into 8 phases with visual grouping
 2. **Given** a test is running, **When** a step begins executing, **Then** the corresponding node visually highlights (e.g., pulsing animation, color change to "in progress")
 3. **Given** a step is executing, **When** I look at the current step node, **Then** I see a live activity indicator showing what action is being performed (e.g., "Creating inventory item...", "Calling /api/items POST...")
 4. **Given** a step completes successfully, **When** the step finishes, **Then** the node changes to a "passed" state (e.g., green with checkmark) and the connector to the next step animates
@@ -82,6 +82,11 @@ As a system administrator, I want to configure test parameters (like product nam
 - What happens if a required entity reference is missing (e.g., BOM references non-existent item)? Should show which entity lookup failed
 - How does system handle API timeout? Should display timeout error with the endpoint and retry suggestion
 - What happens when user navigates away during test execution? Test should continue in background; status available on return
+- What happens when QC test fails (step 11, 17, or 20)? System should mark lot as rejected and show the QC failure reason
+- What happens when material tolerance check fails (step 15)? System should show the expected vs actual quantity and tolerance threshold
+- What happens when line clearance fails (step 14)? System should show which line clearance checks failed
+- What happens when 3-way matching fails (step 29)? System should show the mismatched values (PO vs receipt vs invoice)
+- What happens when VMI portal is unreachable (steps 30-31)? System should show connection error and continue with partial success
 
 ## Requirements *(mandatory)*
 
@@ -90,68 +95,108 @@ As a system administrator, I want to configure test parameters (like product nam
 #### Visual Pathway Display
 
 - **FR-001**: System MUST provide a workflow test page accessible at `/settings/workflow-test`
-- **FR-002**: System MUST display a graphic pathway diagram showing all test steps as connected nodes arranged in a logical flow (left-to-right or top-to-bottom)
-- **FR-003**: Each pathway node MUST display:
+- **FR-002**: System MUST display a graphic pathway diagram showing all 31 test steps organized into 8 phases, arranged in a logical flow
+- **FR-003**: Each phase MUST be visually grouped with:
+  - Phase header (e.g., "Phase 1: Master Data Setup")
+  - Distinct background color or border per phase
+  - Collapsed/expanded state option for large phases
+- **FR-004**: Each pathway node MUST display:
   - Step number and name
   - Current status indicator (pending, running, passed, failed)
   - Module/category icon (e.g., inventory icon, HR icon, production icon)
-- **FR-004**: Pathway connectors between nodes MUST visually indicate flow direction with arrows
-- **FR-005**: System MUST support the following visual states for each node:
+- **FR-005**: Pathway connectors between nodes MUST visually indicate flow direction with arrows
+- **FR-006**: System MUST support the following visual states for each node:
   - **Pending**: Neutral/gray appearance indicating not yet executed
   - **Running**: Highlighted with animation (pulse or glow) indicating active execution
   - **Passed**: Green with checkmark indicating successful completion
   - **Failed**: Red with X icon indicating error occurred
+- **FR-007**: Phase headers MUST show aggregate status (e.g., "4/4 passed", "2/7 in progress")
 
 #### Real-Time Status Updates
 
-- **FR-006**: System MUST update the pathway visualization in real-time as each step executes (no page refresh required)
-- **FR-007**: The currently executing step MUST display a live activity message showing what action is being performed (e.g., "Creating vendor record...", "Posting to /api/vendors...")
-- **FR-008**: System MUST display elapsed time for the current step and total test duration
-- **FR-009**: When a step completes, the connector to the next step MUST animate to show progression
-- **FR-010**: System MUST display a real-time log panel alongside the pathway showing detailed execution messages
+- **FR-008**: System MUST update the pathway visualization in real-time as each step executes (no page refresh required)
+- **FR-009**: The currently executing step MUST display a live activity message showing what action is being performed (e.g., "Creating vendor record...", "Posting to /api/vendors...")
+- **FR-010**: System MUST display elapsed time for the current step and total test duration
+- **FR-011**: When a step completes, the connector to the next step MUST animate to show progression
+- **FR-012**: System MUST display a real-time log panel alongside the pathway showing detailed execution messages
 
 #### Test Execution
 
-- **FR-011**: System MUST support a "Basic Workflow Test" that executes the following steps in order:
-  1. Setup inventory items required for BOM (raw materials)
-  2. Setup HR/employee data for production workers
-  3. Create a Bill of Materials (BOM)
-  4. Setup vendor data for purchasing
-  5. Create purchase orders for BOM items
-  6. Receive items into inventory (warehouse receiving)
-  7. Create work orders from BOM
-  8. Execute work order steps with employee stamps
-  9. Complete QC testing for finished product
-  10. Setup customer data for sales
-  11. Create sales order for finished product
-  12. Verify accounting entries were created
-  13. Update VMI status
+- **FR-013**: System MUST support a "Basic Workflow Test" that executes the following steps organized into phases:
 
-- **FR-012**: System MUST execute all test steps via API calls (not direct database manipulation) to simulate real user data entry
-- **FR-013**: System MUST stop test execution immediately when any step fails and preserve the failure state
-- **FR-014**: System MUST display detailed error information when a step fails, including:
+**Phase 1: Master Data Setup** (Foundation)
+  1. Setup warehouse and storage locations
+  2. Setup item categories and units of measure
+  3. Setup inventory items (raw materials, packaging materials, finished goods definitions)
+  4. Setup HR employees with production roles and training records
+
+**Phase 2: BOM & Production Planning**
+  5. Create Bill of Materials (BOM) with raw materials and packaging
+  6. Execute BOM explosion to calculate material requirements
+
+**Phase 3: Purchasing Flow**
+  7. Setup vendor with Approved Vendor List (AVL) qualification
+  8. Create purchase requisition for BOM materials
+  9. Convert purchase requisition to purchase order
+  10. Receive goods into quarantine warehouse
+  11. Perform incoming QC testing on received materials
+  12. Release QC-passed lots from quarantine (or reject failed lots)
+
+**Phase 4: Production Flow**
+  13. Create work order from BOM
+  14. Complete line clearance (pre-production verification)
+  15. Issue/dispense materials to work order (with tolerance check)
+  16. Execute work order steps with employee stamps and timestamps
+  17. Perform in-process QC testing
+  18. Complete production and record yield
+  19. Receive finished goods to inventory (quarantine status)
+
+**Phase 5: Finished Goods QC**
+  20. Perform finished goods QC testing
+  21. Release finished goods lot (or reject if failed)
+
+**Phase 6: Sales Flow**
+  22. Setup customer master data
+  23. Create sales order with ATP (Available to Promise) check
+  24. Pick and pack order (FEFO lot selection)
+  25. Ship order and create delivery
+
+**Phase 7: Accounting Verification**
+  26. Verify AP invoice created from purchase receipt
+  27. Verify AR invoice created from sales shipment
+  28. Verify journal entries (inventory, COGS, revenue)
+  29. Verify 3-way matching (PO, receipt, invoice)
+
+**Phase 8: VMI Integration**
+  30. Sync inventory levels to VMI portal
+  31. Verify VMI order status update
+
+- **FR-014**: System MUST execute all test steps via API calls (not direct database manipulation) to simulate real user data entry
+- **FR-015**: System MUST stop test execution immediately when any step fails and preserve the failure state
+- **FR-016**: System MUST display detailed error information when a step fails, including:
   - API endpoint that failed
   - HTTP status code
   - Response body/error message
   - Request payload that was sent
-- **FR-015**: System MUST clean up test data from previous runs before starting a new test (using a consistent test data prefix/marker)
-- **FR-016**: System MUST log all test execution details for debugging (API calls, responses, timing)
-- **FR-017**: System MUST provide a summary report at test completion showing pass/fail status for each step and total execution time
-- **FR-018**: System MUST allow viewing details of each completed step (request/response data, created entity IDs)
-- **FR-019**: System MUST use test data that is clearly identifiable (e.g., prefixed with "WORKFLOW_TEST_" or similar marker)
-- **FR-020**: System MUST validate that accounting journal entries exist after relevant steps (purchase receipt, sales order)
-- **FR-021**: System MUST verify VMI status can be updated after the complete workflow
+- **FR-017**: System MUST clean up test data from previous runs before starting a new test (using a consistent test data prefix/marker)
+- **FR-018**: System MUST log all test execution details for debugging (API calls, responses, timing)
+- **FR-019**: System MUST provide a summary report at test completion showing pass/fail status for each step and total execution time
+- **FR-020**: System MUST allow viewing details of each completed step (request/response data, created entity IDs)
+- **FR-021**: System MUST use test data that is clearly identifiable (e.g., prefixed with "WORKFLOW_TEST_" or similar marker)
+- **FR-022**: System MUST validate that accounting journal entries exist after relevant steps (purchase receipt, sales order, production completion)
+- **FR-023**: System MUST verify VMI status can be updated after the complete workflow
 
 #### Step Detail Panel
 
-- **FR-022**: Clicking on any pathway node MUST open a detail panel showing step information
-- **FR-023**: The detail panel MUST show for completed steps: API endpoint, request payload, response data, created entity IDs, execution time
-- **FR-024**: The detail panel MUST provide links to view created entities in their respective ERP modules
+- **FR-024**: Clicking on any pathway node MUST open a detail panel showing step information
+- **FR-025**: The detail panel MUST show for completed steps: API endpoint, request payload, response data, created entity IDs, execution time
+- **FR-026**: The detail panel MUST provide links to view created entities in their respective ERP modules
 
 ### Key Entities
 
-- **WorkflowTest**: A test execution session with start time, end time, overall status, and collection of steps
-- **WorkflowTestStep**: Individual step within a test with sequence number, name, status (pending/running/passed/failed), timing, and result details
+- **WorkflowTest**: A test execution session with start time, end time, overall status, and collection of phases
+- **WorkflowPhase**: A logical grouping of related steps (e.g., "Purchasing Flow") with phase number, name, aggregate status, and collection of steps
+- **WorkflowTestStep**: Individual step within a phase with sequence number, name, status (pending/running/passed/failed), timing, API calls made, and result details
 - **TestConfiguration**: Optional user-defined parameters for test entities (item names, quantities, vendor names, customer names)
 - **TestDataMarker**: Identifier pattern used to mark test data for cleanup (e.g., "WFT_{timestamp}_" prefix)
 
@@ -159,15 +204,16 @@ As a system administrator, I want to configure test parameters (like product nam
 
 ### Measurable Outcomes
 
-- **SC-001**: Complete basic workflow test executes all 13 steps in under 60 seconds on standard hardware
+- **SC-001**: Complete basic workflow test executes all 31 steps (8 phases) in under 120 seconds on standard hardware
 - **SC-002**: 100% of test steps produce verifiable results (created entity IDs, API responses)
 - **SC-003**: Test cleanup removes 100% of previously created test data before new test run
 - **SC-004**: Failed tests display actionable error information within 1 second of failure
 - **SC-005**: Administrators can identify and resolve test failures within 5 minutes using provided error details
 - **SC-006**: Test execution log contains complete audit trail of all API calls for post-mortem analysis
 - **SC-007**: Visual pathway updates reflect step status changes within 500ms of actual status change
-- **SC-008**: Users can identify the current executing step at a glance without reading detailed logs
-- **SC-009**: Pathway visualization clearly shows test progress percentage (steps completed vs total)
+- **SC-008**: Users can identify the current executing step and current phase at a glance without reading detailed logs
+- **SC-009**: Pathway visualization clearly shows test progress (steps completed vs total, phases completed vs total)
+- **SC-010**: Each phase completion is visually distinguishable (all steps in phase turn green, phase header shows complete)
 
 ## Assumptions
 
