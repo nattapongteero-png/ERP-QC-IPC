@@ -30,6 +30,7 @@ describe('Order Cancellation Event Handler', () => {
       const validPayload: VmiOrderCancelledPayload = {
         orderId: 12345,
         poNumber: 'PO-001',
+        hospitalCode: 'HOSP001',
         reason: 'Customer requested cancellation',
         cancelledAt: '2024-01-15T10:00:00Z',
       };
@@ -44,6 +45,7 @@ describe('Order Cancellation Event Handler', () => {
       const payload: VmiOrderCancelledPayload = {
         orderId: 12345,
         poNumber: 'PO-001',
+        hospitalCode: 'HOSP001',
         reason: 'Out of stock',
         cancelledAt: '2024-01-15T10:00:00Z',
       };
@@ -67,6 +69,7 @@ describe('Order Cancellation Event Handler', () => {
         const payload: VmiOrderCancelledPayload = {
           orderId: 12345,
           poNumber: 'PO-001',
+          hospitalCode: 'HOSP001',
           reason,
           cancelledAt: '2024-01-15T10:00:00Z',
         };
@@ -138,7 +141,7 @@ describe('Order Cancellation Event Handler', () => {
     });
 
     it('should not require manual review for pending orders', () => {
-      const orderStatus = 'pending';
+      const orderStatus: string = 'pending';
       const needsManualReview = orderStatus === 'shipped' || orderStatus === 'delivered';
 
       expect(needsManualReview).toBe(false);
@@ -307,6 +310,7 @@ describe('Order Cancellation Event Handler', () => {
       const payload: VmiOrderCancelledPayload = {
         orderId: 12345,
         poNumber: 'PO-001',
+        hospitalCode: 'HOSP001',
         reason: '',
         cancelledAt: '2024-01-15T10:00:00Z',
       };
@@ -320,11 +324,12 @@ describe('Order Cancellation Event Handler', () => {
       const payload: VmiOrderCancelledPayload = {
         orderId: 12345,
         poNumber: 'PO-001',
+        hospitalCode: 'HOSP001',
         reason: longReason,
         cancelledAt: '2024-01-15T10:00:00Z',
       };
 
-      expect(payload.reason.length).toBe(1000);
+      expect(payload.reason?.length).toBe(1000);
     });
 
     it('should handle special characters in reason', () => {
@@ -332,6 +337,7 @@ describe('Order Cancellation Event Handler', () => {
       const payload: VmiOrderCancelledPayload = {
         orderId: 12345,
         poNumber: 'PO-001',
+        hospitalCode: 'HOSP001',
         reason: specialReason,
         cancelledAt: '2024-01-15T10:00:00Z',
       };
@@ -343,6 +349,7 @@ describe('Order Cancellation Event Handler', () => {
       const payload: VmiOrderCancelledPayload = {
         orderId: 999999999,
         poNumber: 'PO-LARGE',
+        hospitalCode: 'HOSP001',
         reason: 'Test',
         cancelledAt: '2024-01-15T10:00:00Z',
       };
@@ -362,6 +369,7 @@ describe('Order Cancellation Event Handler', () => {
         const payload: VmiOrderCancelledPayload = {
           orderId: 12345,
           poNumber: 'PO-001',
+          hospitalCode: 'HOSP001',
           reason: 'Test',
           cancelledAt: dateStr,
         };

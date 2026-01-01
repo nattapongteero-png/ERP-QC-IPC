@@ -37,6 +37,7 @@ describe('Receipt Event Handlers', () => {
           receiptId: 67890,
           receiptNumber: 'RCV-001',
           receiptDate: '2024-01-15',
+          hospitalCode: 'HOSP001',
           items: [
             {
               localCode: 'ITEM001',
@@ -60,6 +61,7 @@ describe('Receipt Event Handlers', () => {
           receiptId: 67890,
           receiptNumber: 'RCV-001',
           receiptDate: '2024-01-15',
+          hospitalCode: 'HOSP001',
           items: [],
         };
 
@@ -78,6 +80,7 @@ describe('Receipt Event Handlers', () => {
           receiptId: 67890,
           receiptNumber: 'RCV-001',
           receiptDate: '2024-01-15',
+          hospitalCode: 'HOSP001',
           items: [
             { localCode: 'ITEM001', name: 'Item 1', quantityOrdered: 100, quantityReceived: 100 },
             { localCode: 'ITEM002', name: 'Item 2', quantityOrdered: 50, quantityReceived: 50 },
@@ -95,6 +98,7 @@ describe('Receipt Event Handlers', () => {
           receiptId: 67890,
           receiptNumber: 'RCV-001',
           receiptDate: '2024-01-15',
+          hospitalCode: 'HOSP001',
           items: [
             { localCode: 'ITEM001', name: 'Item 1', quantityOrdered: 100, quantityReceived: 75 },
           ],
@@ -207,6 +211,7 @@ describe('Receipt Event Handlers', () => {
         const validPayload: VmiReceiptCompletedPayload = {
           orderId: 12345,
           poNumber: 'PO-001',
+          hospitalCode: 'HOSP001',
           totalReceipts: 3,
           completedAt: '2024-01-15T14:00:00Z',
         };
@@ -220,6 +225,7 @@ describe('Receipt Event Handlers', () => {
         const payload: VmiReceiptCompletedPayload = {
           orderId: 12345,
           poNumber: 'PO-001',
+          hospitalCode: 'HOSP001',
           totalReceipts: 1,
           completedAt: '2024-01-15T14:00:00Z',
         };
@@ -234,6 +240,7 @@ describe('Receipt Event Handlers', () => {
         const payload: VmiReceiptCompletedPayload = {
           orderId: 12345,
           poNumber: 'PO-001',
+          hospitalCode: 'HOSP001',
           totalReceipts: 1,
           completedAt: '2024-01-15T14:00:00Z',
         };
@@ -245,6 +252,7 @@ describe('Receipt Event Handlers', () => {
         const payload: VmiReceiptCompletedPayload = {
           orderId: 12345,
           poNumber: 'PO-001',
+          hospitalCode: 'HOSP001',
           totalReceipts: 5,
           completedAt: '2024-01-15T14:00:00Z',
         };
@@ -372,6 +380,7 @@ describe('Receipt Event Handlers', () => {
         receiptId: 67890,
         receiptNumber: 'RCV-001',
         receiptDate: '2024-01-15',
+        hospitalCode: 'HOSP001',
         items: [],
       };
 
@@ -385,6 +394,7 @@ describe('Receipt Event Handlers', () => {
         receiptId: 888888888,
         receiptNumber: 'RCV-LARGE',
         receiptDate: '2024-01-15',
+        hospitalCode: 'HOSP001',
         items: [],
       };
 
@@ -457,6 +467,7 @@ describe('Receipt Event Handlers', () => {
       const completionPayload: VmiReceiptCompletedPayload = {
         orderId: 12345,
         poNumber: 'PO-001',
+        hospitalCode: 'HOSP001',
         totalReceipts: 3,
         completedAt: '2024-01-15T16:00:00Z',
       };

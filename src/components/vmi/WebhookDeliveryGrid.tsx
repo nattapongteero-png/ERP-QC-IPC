@@ -371,9 +371,8 @@ export function WebhookDeliveryGrid({
         columnAutoWidth={false}
         allowColumnResizing
         rowAlternationEnabled
-        paging={{ enabled: false }}
-        loadingVisible={isLoading}
-        noDataText="ไม่มีข้อมูลการส่ง Webhook"
+        paging={false}
+        noDataText={isLoading ? "กำลังโหลด..." : "ไม่มีข้อมูลการส่ง Webhook"}
       />
 
       {/* Pagination */}
