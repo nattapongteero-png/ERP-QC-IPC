@@ -47,6 +47,7 @@ import {
   Search,
   Briefcase,
   BarChart3,
+  Sliders,
   Bug,
   Calculator,
   Landmark,
@@ -217,6 +218,7 @@ const navigation: NavItem[] = [
     icon: Settings,
     roles: ['admin', 'manager'],
     children: [
+      { name: 'General', href: '/settings', icon: Sliders },
       { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
       { name: 'Matching Tolerances', href: '/settings/matching-tolerances', icon: Target },
     ],
