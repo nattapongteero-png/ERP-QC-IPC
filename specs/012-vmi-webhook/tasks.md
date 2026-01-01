@@ -24,11 +24,11 @@
 
 **Purpose**: Project initialization and database schema
 
-- [ ] T001 Add webhook types to existing types file in src/types/vmi.ts
-- [ ] T002 [P] Add database schema for vmi_webhooks table in src/lib/db/schema.ts (MySQL + SQLite)
-- [ ] T003 [P] Add database schema for vmi_webhook_deliveries table in src/lib/db/schema.ts (MySQL + SQLite)
-- [ ] T004 Add webhook_enabled column to vmi_portal_config table in src/lib/db/schema.ts
-- [ ] T005 Run database migration with `pnpm db:push` to sync schema
+- [x] T001 Add webhook types to existing types file in src/types/vmi.ts
+- [x] T002 [P] Add database schema for vmi_webhooks table in src/lib/db/schema.ts (MySQL + SQLite)
+- [x] T003 [P] Add database schema for vmi_webhook_deliveries table in src/lib/db/schema.ts (MySQL + SQLite)
+- [x] T004 Add webhook_enabled column to vmi_portal_config table in src/lib/db/schema.ts
+- [x] T005 Run database migration with `pnpm db:push` to sync schema
 
 ---
 
@@ -38,11 +38,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create Zod validation schemas for webhook payloads in src/lib/validation/vmi-webhook.ts
-- [ ] T007 [P] Create signature validation utility in src/lib/services/vmi-webhook-crypto.ts
-- [ ] T008 [P] Create unit test for signature validation in tests/unit/services/vmi-webhook-crypto.test.ts
-- [ ] T009 Create webhook service foundation (CRUD operations) in src/lib/services/vmi-webhook.service.ts
-- [ ] T010 Create unit test for webhook service in tests/unit/services/vmi-webhook.service.test.ts
+- [x] T006 Create Zod validation schemas for webhook payloads in src/lib/validation/vmi-webhook.ts
+- [x] T007 [P] Create signature validation utility in src/lib/services/vmi-webhook-crypto.ts
+- [x] T008 [P] Create unit test for signature validation in tests/unit/services/vmi-webhook-crypto.test.ts
+- [x] T009 Create webhook service foundation (CRUD operations) in src/lib/services/vmi-webhook.service.ts
+- [x] T010 Create unit test for webhook service in tests/unit/services/vmi-webhook.service.test.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -56,17 +56,17 @@
 
 ### Tests for User Story 1
 
-- [ ] T011 [P] [US1] Create integration test for webhook receiver endpoint in tests/integration/api/sales/vmi-orders/webhooks.test.ts
-- [ ] T012 [P] [US1] Create unit test for order.created event processing in tests/unit/services/vmi-webhook-event.test.ts
+- [x] T011 [P] [US1] Create integration test for webhook receiver endpoint in tests/integration/api/sales/vmi-orders/webhooks.test.ts
+- [x] T012 [P] [US1] Create unit test for order.created event processing in tests/unit/services/vmi-webhook-event.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Create webhook receiver endpoint POST /api/sales/vmi-orders/webhooks/[portalId]/route.ts
-- [ ] T014 [US1] Implement order.created event handler in src/lib/services/vmi-webhook-events.ts
-- [ ] T015 [US1] Implement async processing with Next.js after() in webhook receiver endpoint
-- [ ] T016 [US1] Add delivery logging to vmi_webhook_deliveries table in vmi-webhook.service.ts
-- [ ] T017 [US1] Add idempotency check (skip duplicate delivery IDs) in webhook receiver
-- [ ] T018 [US1] Verify webhook endpoint returns 200 within 200ms via integration test
+- [x] T013 [US1] Create webhook receiver endpoint POST /api/sales/vmi-orders/webhooks/[portalId]/route.ts
+- [x] T014 [US1] Implement order.created event handler in src/lib/services/vmi-webhook-events.ts
+- [x] T015 [US1] Implement async processing with Next.js after() in webhook receiver endpoint
+- [x] T016 [US1] Add delivery logging to vmi_webhook_deliveries table in vmi-webhook.service.ts
+- [x] T017 [US1] Add idempotency check (skip duplicate delivery IDs) in webhook receiver
+- [x] T018 [US1] Verify webhook endpoint returns 200 within 200ms via integration test
 
 **Checkpoint**: User Story 1 complete - order.created webhooks are received and processed
 
@@ -80,21 +80,21 @@
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] Create UI test for webhook config form in tests/app/sales/vmi-orders/webhooks.test.tsx
-- [ ] T020 [P] [US2] Create API test for webhook management endpoints in tests/integration/api/sales/vmi-orders/portals/webhooks.test.ts (include: verify secret is not returned in plain text after initial creation per FR-103)
+- [x] T019 [P] [US2] Create UI test for webhook config form in tests/app/sales/vmi-orders/webhooks.test.tsx
+- [x] T020 [P] [US2] Create API test for webhook management endpoints in tests/integration/api/sales/vmi-orders/portals/webhooks.test.ts (include: verify secret is not returned in plain text after initial creation per FR-103)
 
 ### Implementation for User Story 2
 
-- [ ] T021 [P] [US2] Create webhook list API GET /api/sales/vmi-orders/portals/[portalId]/webhooks/route.ts
-- [ ] T022 [P] [US2] Create webhook create API POST /api/sales/vmi-orders/portals/[portalId]/webhooks/route.ts
-- [ ] T023 [US2] Create webhook update API PATCH /api/sales/vmi-orders/portals/[portalId]/webhooks/[webhookId]/route.ts
-- [ ] T024 [US2] Create webhook delete API DELETE /api/sales/vmi-orders/portals/[portalId]/webhooks/[webhookId]/route.ts
-- [ ] T025 [P] [US2] Create WebhookConfigForm component in src/components/vmi/WebhookConfigForm.tsx
-- [ ] T026 [P] [US2] Create WebhookHealthBadge component in src/components/vmi/WebhookHealthBadge.tsx
-- [ ] T027 [US2] Create webhook management page at src/app/sales/vmi-orders/portals/[id]/webhooks/page.tsx
-- [ ] T028 [US2] Implement secret encryption/decryption using existing pattern in vmi-webhook.service.ts
-- [ ] T029 [US2] Add regenerate secret functionality (PATCH with regenerateSecret: true)
-- [ ] T030 [US2] Enforce maximum 5 webhooks per portal limit in create endpoint
+- [x] T021 [P] [US2] Create webhook list API GET /api/sales/vmi-orders/portals/[portalId]/webhooks/route.ts
+- [x] T022 [P] [US2] Create webhook create API POST /api/sales/vmi-orders/portals/[portalId]/webhooks/route.ts
+- [x] T023 [US2] Create webhook update API PATCH /api/sales/vmi-orders/portals/[portalId]/webhooks/[webhookId]/route.ts
+- [x] T024 [US2] Create webhook delete API DELETE /api/sales/vmi-orders/portals/[portalId]/webhooks/[webhookId]/route.ts
+- [x] T025 [P] [US2] Create WebhookConfigForm component in src/components/vmi/WebhookConfigForm.tsx
+- [x] T026 [P] [US2] Create WebhookHealthBadge component in src/components/vmi/WebhookHealthBadge.tsx
+- [x] T027 [US2] Create webhook management page at src/app/sales/vmi-orders/portals/[id]/webhooks/page.tsx
+- [x] T028 [US2] Implement secret encryption/decryption using existing pattern in vmi-webhook.service.ts
+- [x] T029 [US2] Add regenerate secret functionality (PATCH with regenerateSecret: true)
+- [x] T030 [US2] Enforce maximum 5 webhooks per portal limit in create endpoint
 
 **Checkpoint**: User Story 2 complete - webhooks can be created, updated, and deleted via UI
 
@@ -108,13 +108,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T031 [P] [US3] Create unit test for order.cancelled event processing in tests/unit/services/vmi-webhook-event-cancel.test.ts
+- [x] T031 [P] [US3] Create unit test for order.cancelled event processing in tests/unit/services/vmi-webhook-event-cancel.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Implement order.cancelled event handler in src/lib/services/vmi-webhook-events.ts (FR-307: process based on event timestamp, not arrival order)
-- [ ] T033 [US3] Add shipped order cancellation handling (flag for manual review) in event handler
-- [ ] T034 [US3] Update webhook receiver to route cancellation events to handler
+- [x] T032 [US3] Implement order.cancelled event handler in src/lib/services/vmi-webhook-events.ts (FR-307: process based on event timestamp, not arrival order)
+- [x] T033 [US3] Add shipped order cancellation handling (flag for manual review) in event handler
+- [x] T034 [US3] Update webhook receiver to route cancellation events to handler
 
 **Checkpoint**: User Story 3 complete - order cancellations are processed, shipped orders flagged for review
 
@@ -128,15 +128,15 @@
 
 ### Tests for User Story 4
 
-- [ ] T035 [P] [US4] Create unit test for receipt.created event processing in tests/unit/services/vmi-webhook-event-receipt.test.ts
-- [ ] T036 [P] [US4] Create unit test for receipt.completed event processing in tests/unit/services/vmi-webhook-event-receipt.test.ts
+- [x] T035 [P] [US4] Create unit test for receipt.created event processing in tests/unit/services/vmi-webhook-event-receipt.test.ts
+- [x] T036 [P] [US4] Create unit test for receipt.completed event processing in tests/unit/services/vmi-webhook-event-receipt.test.ts
 
 ### Implementation for User Story 4
 
-- [ ] T037 [US4] Implement receipt.created event handler in src/lib/services/vmi-webhook-events.ts (FR-307: process based on event timestamp, not arrival order)
-- [ ] T038 [US4] Implement receipt.completed event handler in src/lib/services/vmi-webhook-events.ts
-- [ ] T039 [US4] Handle unknown order ID (log error, queue for investigation) in receipt handlers
-- [ ] T040 [US4] Update webhook receiver to route receipt events to handlers
+- [x] T037 [US4] Implement receipt.created event handler in src/lib/services/vmi-webhook-events.ts (FR-307: process based on event timestamp, not arrival order)
+- [x] T038 [US4] Implement receipt.completed event handler in src/lib/services/vmi-webhook-events.ts
+- [x] T039 [US4] Handle unknown order ID (log error, queue for investigation) in receipt handlers
+- [x] T040 [US4] Update webhook receiver to route receipt events to handlers
 
 **Checkpoint**: User Story 4 complete - receipt events update order line quantities and status
 
@@ -150,18 +150,18 @@
 
 ### Tests for User Story 5
 
-- [ ] T041 [P] [US5] Create UI test for delivery history grid in tests/app/sales/vmi-orders/deliveries.test.tsx
-- [ ] T042 [P] [US5] Create API test for delivery history endpoint in tests/integration/api/sales/vmi-orders/portals/webhooks/deliveries.test.ts
+- [x] T041 [P] [US5] Create UI test for delivery history grid in tests/app/sales/vmi-orders/deliveries.test.tsx
+- [x] T042 [P] [US5] Create API test for delivery history endpoint in tests/integration/api/sales/vmi-orders/portals/webhooks/deliveries.test.ts
   <!-- Note: T042 tests filters that T044 will implement - this is intentional TDD pattern (test defines expected behavior before implementation) -->
 
 ### Implementation for User Story 5
 
-- [ ] T043 [US5] Create delivery history API GET /api/sales/vmi-orders/portals/[portalId]/webhooks/[webhookId]/deliveries/route.ts
-- [ ] T044 [US5] Add status, eventType, date range filters to delivery history API
-- [ ] T045 [P] [US5] Create WebhookDeliveryGrid component with DevExtreme DataGrid in src/components/vmi/WebhookDeliveryGrid.tsx
-- [ ] T046 [US5] Create delivery history page at src/app/sales/vmi-orders/portals/[id]/webhooks/[webhookId]/deliveries/page.tsx
-- [ ] T047 [US5] Implement consecutive failure tracking and auto-disable after 10 failures
-- [ ] T048 [US5] Add re-enable functionality for auto-disabled webhooks (PATCH with reenableWebhook: true)
+- [x] T043 [US5] Create delivery history API GET /api/sales/vmi-orders/portals/[portalId]/webhooks/[webhookId]/deliveries/route.ts
+- [x] T044 [US5] Add status, eventType, date range filters to delivery history API
+- [x] T045 [P] [US5] Create WebhookDeliveryGrid component with DevExtreme DataGrid in src/components/vmi/WebhookDeliveryGrid.tsx
+- [x] T046 [US5] Create delivery history page at src/app/sales/vmi-orders/portals/[id]/webhooks/[webhookId]/deliveries/page.tsx
+- [x] T047 [US5] Implement consecutive failure tracking and auto-disable after 10 failures
+- [x] T048 [US5] Add re-enable functionality for auto-disabled webhooks (PATCH with reenableWebhook: true)
 
 **Checkpoint**: User Story 5 complete - delivery history visible with filters, health status reflects failures
 
@@ -175,13 +175,13 @@
 
 ### Tests for User Story 6
 
-- [ ] T049 [P] [US6] Create unit test for duplicate order detection in tests/unit/services/vmi-order-dedup.test.ts
+- [x] T049 [P] [US6] Create unit test for duplicate order detection in tests/unit/services/vmi-order-dedup.test.ts
 
 ### Implementation for User Story 6
 
-- [ ] T050 [US6] Add duplicate detection using vmi_order_id in existing polling service in src/lib/services/vmi-portal.service.ts
-- [ ] T051 [US6] Log when order received via both webhook and polling for monitoring
-- [ ] T052 [US6] Verify polling continues regardless of webhook status (no code changes if already working)
+- [x] T050 [US6] Add duplicate detection using vmi_order_id in existing polling service in src/lib/services/vmi-portal.service.ts
+- [x] T051 [US6] Log when order received via both webhook and polling for monitoring
+- [x] T052 [US6] Verify polling continues regardless of webhook status (no code changes if already working)
 
 **Checkpoint**: User Story 6 complete - polling and webhooks coexist, duplicates prevented
 
@@ -191,12 +191,12 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T053 [P] Add Thai/English error messages for webhook errors in UI components
-- [ ] T054 [P] Add loading states for webhook registration and management actions
-- [ ] T055 Add navigation link to webhooks from VMI portal detail page in src/app/sales/vmi-orders/portals/[id]/page.tsx
-- [ ] T056 Run all tests to verify no regressions with `pnpm test`
-- [ ] T057 Run linting to verify code quality with `pnpm lint`
-- [ ] T058 Validate quickstart.md curl example works against implementation
+- [x] T053 [P] Add Thai/English error messages for webhook errors in UI components
+- [x] T054 [P] Add loading states for webhook registration and management actions
+- [x] T055 Add navigation link to webhooks from VMI portal detail page in src/app/sales/vmi-orders/portals/[id]/page.tsx
+- [x] T056 Run all tests to verify no regressions with `pnpm test`
+- [x] T057 Run linting to verify code quality with `pnpm lint`
+- [x] T058 Validate quickstart.md curl example works against implementation
 
 ---
 
