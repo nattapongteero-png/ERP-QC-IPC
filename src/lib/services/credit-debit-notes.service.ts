@@ -49,7 +49,7 @@ function getTables() {
     journalLines: getTableRef('journalLines'),
     vatTransactions: getTableRef('vATTransactions'),
     users: getTableRef('users'),
-    employees: getTableRef('hREmployees'),
+    employees: getTableRef('HREmployees'),
     items: getTableRef('items'),
   };
 }
