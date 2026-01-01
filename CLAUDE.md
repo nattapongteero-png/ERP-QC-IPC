@@ -20,6 +20,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 
 ## Always check for coding error
 
+Run `npx tsc --noEmit --skipLibCheck` before finishing tasks. ESLint and Vitest don't catch all type errors.
+
 ## Project Structure
 
 ```text
