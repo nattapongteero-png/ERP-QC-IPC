@@ -84,7 +84,12 @@ async function fetchEmployees(): Promise<EmployeeSummary[]> {
   const res = await fetch('/api/hr/employees?status=active');
   if (!res.ok) throw new Error('Failed to fetch employees');
   const data = await res.json();
-  return data.data || [];
+  const employees = data.data || [];
+  // Compute fullName from firstName and lastName
+  return employees.map((emp: { firstName: string; lastName: string; id: number; employeeCode: string; positionTitle?: string; orgUnitName?: string; status: string }) => ({
+    ...emp,
+    fullName: `${emp.firstName} ${emp.lastName}`.trim(),
+  }));
 }
 
 async function fetchRecord(id: number): Promise<HealthRecord> {
