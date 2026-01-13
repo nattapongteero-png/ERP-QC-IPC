@@ -41,7 +41,7 @@ function getTables() {
     requests: getTableRef('approvalRequests'),
     requestSteps: getTableRef('approvalRequestSteps'),
     delegations: getTableRef('approvalDelegations'),
-    employees: getTableRef('hREmployees'),
+    employees: getTableRef('HREmployees'),
     users: getTableRef('users'),
   };
 }

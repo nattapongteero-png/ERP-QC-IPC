@@ -31,8 +31,8 @@ function getTables() {
   return {
     requisitions: getTableRef('purchaseRequisitions'),
     lines: getTableRef('purchaseRequisitionLines'),
-    employees: getTableRef('hREmployees'),
-    departments: getTableRef('hRDepartments'),
+    employees: getTableRef('HREmployees'),
+    departments: getTableRef('HROrgUnits'),
     vendors: getTableRef('vendors'),
     purchaseOrders: getTableRef('purchaseOrders'),
     purchaseOrderLines: getTableRef('purchaseOrderLines'),

@@ -5,6 +5,7 @@
 // Redesigned with KPIs, DataGrid, Cards, and Analytics views
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -32,7 +33,6 @@ import PieChart, {
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import SelectBox from 'devextreme-react/select-box';
 import TextBox from 'devextreme-react/text-box';
-import TagBox from 'devextreme-react/tag-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDateBox } from '@/components/ui/dx-date-box';
@@ -60,7 +60,7 @@ import type {
   AuthorizationWithDetails,
   AuthorizationType,
   DelegationWithDetails,
-  EmployeeSummary,
+  EmployeeWithDetails,
 } from '@/types/hr';
 
 // Authorization type configuration with colors and icons
@@ -115,28 +115,11 @@ async function fetchAuthorizations(): Promise<AuthorizationWithDetails[]> {
   return result.data || [];
 }
 
-async function fetchEmployees(): Promise<EmployeeSummary[]> {
+async function fetchEmployees(): Promise<EmployeeWithDetails[]> {
   const response = await fetch('/api/hr/employees?status=active');
   if (!response.ok) throw new Error('Failed to fetch employees');
   const result = await response.json();
   return result.data || [];
-}
-
-async function createAuthorization(data: {
-  employeeId: number;
-  authType: AuthorizationType;
-  scopeProductLines?: string[];
-  effectiveFrom: string;
-  effectiveTo?: string;
-}): Promise<AuthorizationWithDetails> {
-  const response = await fetch('/api/hr/authorizations', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to create authorization');
-  const result = await response.json();
-  return result.data;
 }
 
 async function revokeAuthorization(id: number): Promise<void> {
@@ -213,6 +196,7 @@ function getGradientForType(authType: AuthorizationType): string {
 }
 
 export default function AuthorizationsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -225,20 +209,11 @@ export default function AuthorizationsPage() {
   const [authTypeFilter, setAuthTypeFilter] = useState<AuthorizationType | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-  // Popup states
-  const [showGrantPopup, setShowGrantPopup] = useState(false);
+  // Popup states (delegation only - grant uses separate page)
   const [showDelegatePopup, setShowDelegatePopup] = useState(false);
   const [selectedAuth, setSelectedAuth] = useState<AuthorizationWithDetails | null>(null);
 
-  // Form states
-  const [newAuth, setNewAuth] = useState({
-    employeeId: undefined as number | undefined,
-    authType: undefined as AuthorizationType | undefined,
-    scopeProductLines: [] as string[],
-    effectiveFrom: new Date().toISOString().split('T')[0],
-    effectiveTo: '',
-  });
-
+  // Delegation form state
   const [newDelegation, setNewDelegation] = useState({
     delegateId: undefined as number | undefined,
     reason: '',
@@ -356,19 +331,6 @@ export default function AuthorizationsPage() {
   }, [authorizations, searchText, authTypeFilter, statusFilter]);
 
   // Mutations
-  const grantMutation = useMutation({
-    mutationFn: createAuthorization,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hr', 'authorizations'] });
-      setShowGrantPopup(false);
-      resetNewAuth();
-      toast.success('มอบสิทธิ์สำเร็จ');
-    },
-    onError: () => {
-      toast.error('ไม่สามารถมอบสิทธิ์ได้');
-    },
-  });
-
   const revokeMutation = useMutation({
     mutationFn: revokeAuthorization,
     onSuccess: () => {
@@ -393,16 +355,6 @@ export default function AuthorizationsPage() {
     },
   });
 
-  const resetNewAuth = () => {
-    setNewAuth({
-      employeeId: undefined,
-      authType: undefined,
-      scopeProductLines: [],
-      effectiveFrom: new Date().toISOString().split('T')[0],
-      effectiveTo: '',
-    });
-  };
-
   const resetNewDelegation = () => {
     setNewDelegation({
       delegateId: undefined,
@@ -412,17 +364,6 @@ export default function AuthorizationsPage() {
     });
     setSelectedAuth(null);
   };
-
-  const handleGrantAuth = useCallback(() => {
-    if (!newAuth.employeeId || !newAuth.authType) return;
-    grantMutation.mutate({
-      employeeId: newAuth.employeeId,
-      authType: newAuth.authType,
-      scopeProductLines: newAuth.scopeProductLines.length > 0 ? newAuth.scopeProductLines : undefined,
-      effectiveFrom: newAuth.effectiveFrom,
-      effectiveTo: newAuth.effectiveTo || undefined,
-    });
-  }, [newAuth, grantMutation]);
 
   const handleDelegate = useCallback(() => {
     if (!selectedAuth || !newDelegation.delegateId || !newDelegation.effectiveTo) return;
@@ -644,7 +585,7 @@ export default function AuthorizationsPage() {
           icon="add"
           type="default"
           stylingMode="contained"
-          onClick={() => setShowGrantPopup(true)}
+          onClick={() => router.push('/hr/authorizations/new')}
         />
       </div>
 
@@ -1079,7 +1020,7 @@ export default function AuthorizationsPage() {
                   type="default"
                   stylingMode="outlined"
                   width="100%"
-                  onClick={() => setShowGrantPopup(true)}
+                  onClick={() => router.push('/hr/authorizations/new')}
                 />
                 <DxButton
                   text="ดูสิทธิ์ใกล้หมดอายุ"
@@ -1123,96 +1064,6 @@ export default function AuthorizationsPage() {
         </div>
       )}
 
-      {/* Grant Authorization Popup */}
-      <Popup
-        visible={showGrantPopup}
-        onHiding={() => setShowGrantPopup(false)}
-        title="มอบสิทธิ์อนุมัติ"
-        width={500}
-        height="auto"
-        showCloseButton
-      >
-        <div className="p-4 space-y-4">
-          <SelectBox
-            dataSource={employees}
-            valueExpr="id"
-            displayExpr={(item: EmployeeSummary | null) =>
-              item ? item.employeeCode + ' - ' + item.fullName : ''
-            }
-            value={newAuth.employeeId}
-            onValueChanged={(e) => setNewAuth((prev) => ({ ...prev, employeeId: e.value }))}
-            label="พนักงาน"
-            labelMode="floating"
-            searchEnabled
-            placeholder="เลือกพนักงาน..."
-          />
-          <SelectBox
-            dataSource={authTypeOptions}
-            valueExpr="value"
-            displayExpr="text"
-            value={newAuth.authType}
-            onValueChanged={(e) => setNewAuth((prev) => ({ ...prev, authType: e.value }))}
-            label="ประเภทสิทธิ์"
-            labelMode="floating"
-            placeholder="เลือกประเภทสิทธิ์..."
-          />
-          <TagBox
-            items={['Herbal', 'Supplement', 'Cosmetic', 'Food']}
-            value={newAuth.scopeProductLines}
-            onValueChanged={(e) => setNewAuth((prev) => ({ ...prev, scopeProductLines: e.value || [] }))}
-            label="สายผลิตภัณฑ์ (ไม่บังคับ)"
-            labelMode="floating"
-            placeholder="เลือกสายผลิตภัณฑ์..."
-            showSelectionControls
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <DxDateBox
-              value={newAuth.effectiveFrom}
-              onValueChange={(value) =>
-                setNewAuth((prev) => ({
-                  ...prev,
-                  effectiveFrom: value || prev.effectiveFrom,
-                }))
-              }
-              label="วันที่เริ่มต้น"
-            />
-            <DxDateBox
-              value={newAuth.effectiveTo || ''}
-              onValueChange={(value) =>
-                setNewAuth((prev) => ({
-                  ...prev,
-                  effectiveTo: value || '',
-                }))
-              }
-              label="วันที่สิ้นสุด (ถ้ามี)"
-              showClearButton
-            />
-          </div>
-        </div>
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'มอบสิทธิ์',
-            type: 'default',
-            stylingMode: 'contained',
-            icon: 'check',
-            onClick: handleGrantAuth,
-            disabled: grantMutation.isPending || !newAuth.employeeId || !newAuth.authType,
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            type: 'default',
-            stylingMode: 'outlined',
-            onClick: () => setShowGrantPopup(false),
-          }}
-        />
-      </Popup>
-
       {/* Delegate Authorization Popup */}
       <Popup
         visible={showDelegatePopup}
@@ -1235,8 +1086,8 @@ export default function AuthorizationsPage() {
           <SelectBox
             dataSource={employees.filter((e) => e.id !== selectedAuth?.employeeId)}
             valueExpr="id"
-            displayExpr={(item: EmployeeSummary | null) =>
-              item ? item.employeeCode + ' - ' + item.fullName : ''
+            displayExpr={(item: EmployeeWithDetails | null) =>
+              item ? item.employeeCode + ' - ' + item.firstName + ' ' + item.lastName : ''
             }
             value={newDelegation.delegateId}
             onValueChanged={(e) => setNewDelegation((prev) => ({ ...prev, delegateId: e.value }))}

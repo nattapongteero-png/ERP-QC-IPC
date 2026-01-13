@@ -6,7 +6,6 @@
  * Follows BMPR Form [2568] requirements
  */
 
-import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -20,7 +19,6 @@ import {
   Thermometer,
   Scale,
   Package,
-  FileText,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -35,8 +33,8 @@ interface WorkOrderBasic {
   batchNumber: string;
   productName: string;
   status: string;
-  plannedQty: number;
-  actualQty: number;
+  plannedQuantity: number;
+  actualQuantity: number;
 }
 
 interface ExecutionSummary {
@@ -126,7 +124,7 @@ export default function WorkOrderExecutionPage() {
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
     queryKey: ['work-order', workOrderId],
     queryFn: async () => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}`);
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/detail`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data?.workOrder;
@@ -134,7 +132,7 @@ export default function WorkOrderExecutionPage() {
   });
 
   // Fetch execution summary
-  const { data: summary, isLoading: summaryLoading } = useQuery<ExecutionSummary>({
+  const { data: summary } = useQuery<ExecutionSummary>({
     queryKey: ['wo-execution-summary', workOrderId],
     queryFn: async () => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/execution-summary`);
@@ -466,8 +464,8 @@ export default function WorkOrderExecutionPage() {
                 {workOrder.status.replace('_', ' ').toUpperCase()}
               </span>
               <span className="text-gray-600">
-                Planned: <strong>{workOrder.plannedQty}</strong> |
-                Actual: <strong>{workOrder.actualQty || 0}</strong>
+                Planned: <strong>{workOrder.plannedQuantity}</strong> |
+                Actual: <strong>{workOrder.actualQuantity || 0}</strong>
               </span>
             </div>
             <div className="text-sm text-gray-500">

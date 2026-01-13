@@ -47,6 +47,7 @@ import {
   Search,
   Briefcase,
   BarChart3,
+  Sliders,
   Bug,
   Calculator,
   Landmark,
@@ -56,6 +57,7 @@ import {
   LayoutGrid,
   CheckCircle,
   TrendingUp,
+  Play,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -217,8 +219,10 @@ const navigation: NavItem[] = [
     icon: Settings,
     roles: ['admin', 'manager'],
     children: [
+      { name: 'General', href: '/settings', icon: Sliders },
       { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
       { name: 'Matching Tolerances', href: '/settings/matching-tolerances', icon: Target },
+      { name: 'Workflow Test', href: '/settings/workflow-test', icon: Play },
     ],
   },
 ];

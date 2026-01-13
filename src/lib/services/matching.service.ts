@@ -47,7 +47,7 @@ function getTables() {
     inventoryLots: getTableRef('inventoryLots'),
     vendors: getTableRef('vendors'),
     items: getTableRef('items'),
-    employees: getTableRef('hREmployees'),
+    employees: getTableRef('HREmployees'),
   };
 }
 

@@ -109,7 +109,7 @@ export async function GET(
 
       // Get journal entries for these lots
       const journalEntries = getTableRef('journalEntries');
-      const apInvoices = getTableRef('apInvoices');
+      const apInvoices = getTableRef('APInvoices');
       const lotIds = receivedLotsData.map((lot: { id: number }) => lot.id);
       const journalEntriesMap: Record<number, Array<{ id: number; entryNumber: string; status: string }>> = {};
       const apInvoicesMap: Record<number, Array<{ id: number; invoiceNumber: string; status: string; totalAmount: number }>> = {};

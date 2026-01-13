@@ -40,7 +40,7 @@ function getTables() {
     journalEntries: getTableRef('journalEntries'),
     journalLines: getTableRef('journalLines'),
     users: getTableRef('users'),
-    employees: getTableRef('hREmployees'),
+    employees: getTableRef('HREmployees'),
   };
 }
 

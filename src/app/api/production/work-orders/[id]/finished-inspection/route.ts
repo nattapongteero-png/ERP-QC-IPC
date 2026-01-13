@@ -57,27 +57,20 @@ export async function POST(
 
       const data = await request.json();
 
-      // Validate required fields
-      if (!data.sampleDate || !data.checklistResults) {
-        return errorResponse('Missing required fields: sampleDate, checklistResults');
-      }
-
-      // Validate checklistResults is valid JSON
-      try {
-        if (typeof data.checklistResults === 'string') {
-          JSON.parse(data.checklistResults);
-        }
-      } catch {
-        return errorResponse('Invalid checklistResults JSON format');
+      // Validate required fields - checklistResults is optional on create (will be filled later)
+      if (!data.sampleDate) {
+        return errorResponse('Missing required field: sampleDate');
       }
 
       // Use session user as sampler if not specified
       const samplerId = data.samplerId || session.userId;
 
-      const checklistResultsStr =
-        typeof data.checklistResults === 'object'
-          ? JSON.stringify(data.checklistResults)
-          : data.checklistResults;
+      // Default to empty checklist if not provided
+      const checklistResultsStr = data.checklistResults
+        ? (typeof data.checklistResults === 'object'
+            ? JSON.stringify(data.checklistResults)
+            : data.checklistResults)
+        : '{}';
 
       const inspection = await createWOFinishedInspection({
         workOrderId,
@@ -112,41 +105,48 @@ export async function PUT(
 
       const data = await request.json();
 
-      // Validate required fields
-      if (!data.inspectionId || !data.checklistResults || !data.status) {
-        return errorResponse('Missing required fields: inspectionId, checklistResults, status');
+      // Validate required fields - inspectionId can come from body or we get the existing inspection
+      if (!data.checklistResults) {
+        return errorResponse('Missing required field: checklistResults');
       }
 
-      const validStatuses = ['pending', 'pass', 'fail'];
-      if (!validStatuses.includes(data.status)) {
-        return errorResponse(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
-      }
-
-      // Validate checklistResults is valid JSON
-      try {
-        if (typeof data.checklistResults === 'string') {
-          JSON.parse(data.checklistResults);
+      // Get inspection ID from body or fetch existing inspection for this WO
+      let inspectionId = data.inspectionId || data.id;
+      if (!inspectionId) {
+        const existing = await getWOFinishedInspection(workOrderId);
+        if (!existing) {
+          return errorResponse('No inspection found for this work order');
         }
+        inspectionId = existing.id;
+      }
+
+      // Parse checklistResults
+      let checklistObj: Record<string, boolean>;
+      try {
+        checklistObj = typeof data.checklistResults === 'string'
+          ? JSON.parse(data.checklistResults)
+          : data.checklistResults;
       } catch {
         return errorResponse('Invalid checklistResults JSON format');
       }
 
+      // Auto-determine status based on checklistResults (all true = pass, any false = fail)
+      const allPassed = Object.values(checklistObj).every(v => v === true);
+      const status = data.status || (allPassed ? 'passed' : 'failed');
+
       // Use session user as inspector if not specified
       const inspectorId = data.inspectorId || session.userId;
 
-      const checklistResultsStr =
-        typeof data.checklistResults === 'object'
-          ? JSON.stringify(data.checklistResults)
-          : data.checklistResults;
+      const checklistResultsStr = JSON.stringify(checklistObj);
 
       const inspection = await updateWOFinishedInspection(
-        data.inspectionId,
+        inspectionId,
         checklistResultsStr,
         inspectorId,
-        data.status
+        status
       );
 
-      return successResponse(inspection, `Inspection updated - status: ${data.status}`);
+      return successResponse(inspection, `Inspection updated - status: ${status}`);
     } catch (error) {
       console.error('Error updating WO finished inspection:', error);
       return serverErrorResponse(error);
@@ -168,16 +168,28 @@ export async function PATCH(
         return errorResponse('Invalid work order ID');
       }
 
-      const data = await request.json();
+      // Try to get data from body, but it might be empty for simple re-inspect calls
+      let data: { inspectionId?: number; reInspectorId?: number } = {};
+      try {
+        data = await request.json();
+      } catch {
+        // Body might be empty, that's ok
+      }
 
-      if (!data.inspectionId) {
-        return errorResponse('Missing inspectionId');
+      // Get inspection ID from body or fetch existing inspection for this WO
+      let inspectionId = data.inspectionId;
+      if (!inspectionId) {
+        const existing = await getWOFinishedInspection(workOrderId);
+        if (!existing) {
+          return errorResponse('No inspection found for this work order');
+        }
+        inspectionId = existing.id;
       }
 
       // Use session user as re-inspector if not specified
       const reInspectorId = data.reInspectorId || session.userId;
 
-      const inspection = await reInspectWOFinishedInspection(data.inspectionId, reInspectorId);
+      const inspection = await reInspectWOFinishedInspection(inspectionId!, reInspectorId);
       return successResponse(inspection, 'Re-inspection recorded');
     } catch (error) {
       console.error('Error re-inspecting WO finished inspection:', error);

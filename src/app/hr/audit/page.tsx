@@ -21,7 +21,6 @@ import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Calendar, BarChart3, ShieldCheck } from 'lucide-react';
-import type { HRAuditAction } from '@/types/hr';
 import type { HRAuditLogWithDetails, AuditSummary, AccessReviewEntry } from '@/lib/services/hr.service';
 
 async function fetchAuditLogs(params: {
@@ -63,7 +62,8 @@ async function fetchAccessReview(): Promise<AccessReviewEntry[]> {
   return result.data || [];
 }
 
-const ACTION_COLORS: Partial<Record<HRAuditAction, string>> = {
+const ACTION_COLORS: Record<string, string> = {
+  // HR-specific actions
   HR_EMP_CREATE: 'bg-green-100 text-green-800',
   HR_EMP_UPDATE: 'bg-blue-100 text-blue-800',
   HR_EMP_DEACTIVATE: 'bg-red-100 text-red-800',
@@ -71,6 +71,12 @@ const ACTION_COLORS: Partial<Record<HRAuditAction, string>> = {
   HR_AUTH_REVOKE: 'bg-orange-100 text-orange-800',
   HR_ROLE_ASSIGN: 'bg-indigo-100 text-indigo-800',
   HR_ROLE_REVOKE: 'bg-yellow-100 text-yellow-800',
+  // Generic actions (from audit_trail)
+  CREATE: 'bg-green-100 text-green-800',
+  UPDATE: 'bg-blue-100 text-blue-800',
+  DELETE: 'bg-red-100 text-red-800',
+  APPROVE: 'bg-emerald-100 text-emerald-800',
+  REJECT: 'bg-orange-100 text-orange-800',
 };
 
 export default function AuditLogPage() {
@@ -266,7 +272,13 @@ export default function AuditLogPage() {
               rowAlternationEnabled
               hoverStateEnabled
               columnAutoWidth
-              className="min-h-[400px]"
+              className="min-h-[400px] [&_.dx-data-row]:cursor-pointer"
+              onRowClick={(e) => {
+                if (e.data) {
+                  setSelectedLog(e.data as HRAuditLogWithDetails);
+                  setShowDetailPopup(true);
+                }
+              }}
             >
               <FilterRow visible />
               <HeaderFilter visible />

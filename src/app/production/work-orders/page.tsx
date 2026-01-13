@@ -220,9 +220,9 @@ export default function WorkOrdersPage() {
     const completionRate = closedOrders > 0 ? (completed / closedOrders) * 100 : 0;
 
     // Average yield
-    const completedWithYield = workOrders.filter(wo => wo.status === 'completed' && wo.yieldPercentage > 0);
+    const completedWithYield = workOrders.filter(wo => wo.status === 'completed' && Number(wo.yieldPercentage) > 0);
     const avgYield = completedWithYield.length > 0
-      ? completedWithYield.reduce((sum, wo) => sum + wo.yieldPercentage, 0) / completedWithYield.length
+      ? completedWithYield.reduce((sum, wo) => sum + Number(wo.yieldPercentage), 0) / completedWithYield.length
       : 0;
 
     return {
@@ -361,8 +361,8 @@ export default function WorkOrdersPage() {
   }, []);
 
   const renderYieldCell = useCallback((data: { data: WorkOrder }) => {
-    const yield_pct = data.data.yieldPercentage;
-    if (!yield_pct || yield_pct === 0) return <span className="text-gray-400">-</span>;
+    const yield_pct = Number(data.data.yieldPercentage);
+    if (!yield_pct || yield_pct === 0 || isNaN(yield_pct)) return <span className="text-gray-400">-</span>;
     const colorClass = yield_pct >= 95 ? 'text-emerald-600' : yield_pct >= 85 ? 'text-amber-600' : 'text-red-600';
     return <span className={`font-semibold ${colorClass}`}>{yield_pct.toFixed(1)}%</span>;
   }, []);
@@ -491,7 +491,7 @@ export default function WorkOrdersPage() {
         />
         <StatCard
           label="Avg Yield"
-          value={stats.avgYield > 0 ? `${stats.avgYield.toFixed(1)}%` : '-'}
+          value={stats.avgYield > 0 ? `${Number(stats.avgYield).toFixed(1)}%` : '-'}
           icon={Percent}
           iconColor="text-cyan-500"
           accentColor="border-cyan-500"
@@ -597,7 +597,7 @@ export default function WorkOrdersPage() {
                   <span className="text-sm font-medium text-emerald-700">Completion Rate</span>
                 </div>
                 <span className="text-lg font-bold text-emerald-600">
-                  {stats.completionRate.toFixed(1)}%
+                  {Number(stats.completionRate).toFixed(1)}%
                 </span>
               </div>
             </div>
@@ -625,7 +625,7 @@ export default function WorkOrdersPage() {
                 stats.avgYield >= 95 ? 'text-emerald-600' :
                 stats.avgYield >= 85 ? 'text-amber-600' : 'text-red-600'
               }`}>
-                {stats.avgYield > 0 ? `${stats.avgYield.toFixed(1)}%` : 'N/A'}
+                {stats.avgYield > 0 ? `${Number(stats.avgYield).toFixed(1)}%` : 'N/A'}
               </span>
             </div>
 

@@ -15,7 +15,7 @@ export async function GET(
       const salesDeliveries = getTableRef('salesDeliveries');
       const items = getTableRef('items');
       const journalEntries = getTableRef('journalEntries');
-      const arInvoices = getTableRef('arInvoices');
+      const arInvoices = getTableRef('ARInvoices');
 
       // Fetch deliveries
       const deliveriesData = await executeDbOperation(async (db) => {

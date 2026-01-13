@@ -1,0 +1,104 @@
+# ============================================
+# .dockerignore - Exclude files from Docker build context
+# ============================================
+
+# Git
+.git
+.gitignore
+
+# Dependencies - handled separately in Dockerfile
+node_modules
+
+# Build outputs
+.next
+out
+build
+dist
+
+# Database data directories
+mysql_data
+data
+*.sqlite
+*.sqlite3
+*.db
+
+# Test files and coverage
+coverage
+tests
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+.playwright-mcp
+playwright-report
+test-results
+
+# Documentation
+docs
+*.md
+!README.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dev configuration files
+.claude
+.opencode
+.lsp.json
+.mcp.json
+cclsp.json
+AGENTS.md
+CLAUDE.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Docker files (prevent nested context issues)
+docker/Dockerfile.dev
+docker-compose*.yml
+
+# DevExtreme theme source (only need compiled output)
+devextreme-theme
+
+# Drizzle migrations (handled separately if needed)
+drizzle
+drizzle.config.ts
+migrations
+
+# Package manager files (lockfile needed, but not all)
+package-lock.json
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Reference materials
+reference
+
+# Code review files
+CODE_REVIEW*.md
+
+# Specs directory (development only)
+specs

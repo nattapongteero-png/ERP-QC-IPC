@@ -84,7 +84,7 @@ export default function MaterialWeighingPage() {
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
     queryKey: ['work-order', workOrderId],
     queryFn: async () => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}`);
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/detail`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data?.workOrder;
@@ -105,10 +105,10 @@ export default function MaterialWeighingPage() {
   // Record weight mutation
   const recordWeightMutation = useMutation({
     mutationFn: async ({ materialId, data }: { materialId: number; data: typeof formData }) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/material-weighing/${materialId}`, {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/material-weighing`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ materialId, ...data }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -136,8 +136,10 @@ export default function MaterialWeighingPage() {
   // Verify weight mutation
   const verifyWeightMutation = useMutation({
     mutationFn: async (materialId: number) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/material-weighing/${materialId}/verify`, {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/material-weighing`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materialId }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);

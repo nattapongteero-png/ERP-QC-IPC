@@ -176,46 +176,48 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Demo Credentials */}
-            <div className="mt-6 md:mt-8 pt-5 md:pt-6 border-t border-gray-100">
-              <p className="text-xs md:text-sm font-medium text-gray-500 text-center mb-3 md:mb-4">
-                บัญชีทดสอบ
-              </p>
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setEmail('admin@herbal-erp.com'); setPassword('admin123'); }}
-                  className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
-                >
-                  <span className="font-medium">Admin</span>
-                  <span className="text-gray-400 text-xs md:text-sm truncate ml-2">admin@herbal-erp.com</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('production@herbal-erp.com'); setPassword('user123'); }}
-                  className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
-                >
-                  <span className="font-medium">Production</span>
-                  <span className="text-gray-400 text-xs md:text-sm truncate ml-2">production@herbal-erp.com</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('qc@herbal-erp.com'); setPassword('user123'); }}
-                  className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
-                >
-                  <span className="font-medium">QC</span>
-                  <span className="text-gray-400 text-xs md:text-sm truncate ml-2">qc@herbal-erp.com</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('hr@herbal-erp.com'); setPassword('user123'); }}
-                  className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
-                >
-                  <span className="font-medium">HR</span>
-                  <span className="text-gray-400 text-xs md:text-sm truncate ml-2">hr@herbal-erp.com</span>
-                </button>
+            {/* Demo Credentials - Only show in development */}
+            {process.env.NODE_ENV !== 'production' && (
+              <div className="mt-6 md:mt-8 pt-5 md:pt-6 border-t border-gray-100">
+                <p className="text-xs md:text-sm font-medium text-gray-500 text-center mb-3 md:mb-4">
+                  บัญชีทดสอบ
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('admin@herbal-erp.com'); setPassword('admin123'); }}
+                    className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
+                  >
+                    <span className="font-medium">Admin</span>
+                    <span className="text-gray-400 text-xs md:text-sm truncate ml-2">admin@herbal-erp.com</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('production@herbal-erp.com'); setPassword('user123'); }}
+                    className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
+                  >
+                    <span className="font-medium">Production</span>
+                    <span className="text-gray-400 text-xs md:text-sm truncate ml-2">production@herbal-erp.com</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('qc@herbal-erp.com'); setPassword('user123'); }}
+                    className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
+                  >
+                    <span className="font-medium">QC</span>
+                    <span className="text-gray-400 text-xs md:text-sm truncate ml-2">qc@herbal-erp.com</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('hr@herbal-erp.com'); setPassword('user123'); }}
+                    className="px-3 md:px-4 py-2.5 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg text-sm text-gray-600 hover:text-emerald-700 transition-all duration-200 flex items-center justify-between"
+                  >
+                    <span className="font-medium">HR</span>
+                    <span className="text-gray-400 text-xs md:text-sm truncate ml-2">hr@herbal-erp.com</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Footer */}
