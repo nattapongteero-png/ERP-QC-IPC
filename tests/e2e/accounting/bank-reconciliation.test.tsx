@@ -9,6 +9,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+
+// Create a wrapper with QueryClientProvider for tests
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+};
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -43,6 +59,11 @@ vi.mock('lucide-react', async (importOriginal) => {
     Unlink: MockIcon,
     DollarSign: MockIcon,
     Calendar: MockIcon,
+    Landmark: MockIcon,
+    Eye: MockIcon,
+    Edit: MockIcon,
+    Trash2: MockIcon,
+    Clock: MockIcon,
   };
 });
 
@@ -51,6 +72,39 @@ vi.mock('@/components/layout/main-layout', () => ({
   MainLayout: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="main-layout">{children}</div>
   ),
+}));
+
+// Mock AccountingPageHeader
+vi.mock('@/components/accounting/accounting-page-header', () => ({
+  AccountingPageHeader: ({ title, actions }: { title: string; actions?: React.ReactNode }) => (
+    <div data-testid="accounting-header">
+      <h1 data-testid="page-title">{title}</h1>
+      {actions}
+    </div>
+  ),
+}));
+
+// Mock KPICard components
+vi.mock('@/components/ui/kpi-card', () => ({
+  KPICard: ({ title, value }: { title: string; value: any }) => (
+    <div data-testid="kpi-card"><span>{title}</span><span>{value}</span></div>
+  ),
+  KPICardSkeleton: () => <div data-testid="kpi-skeleton">Loading...</div>,
+}));
+
+// Mock Card components
+vi.mock('@/components/ui/card', () => ({
+  Card: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+  CardContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+}));
+
+// Mock devextreme notify
+vi.mock('devextreme/ui/notify', () => ({
+  default: vi.fn(),
 }));
 
 // Mock DevExtreme components
@@ -73,11 +127,13 @@ vi.mock('devextreme-react/data-grid', () => ({
   ),
   Column: () => null,
   Paging: () => null,
+  Pager: () => null,
   FilterRow: () => null,
   SearchPanel: () => null,
   HeaderFilter: () => null,
   Scrolling: () => null,
   Selection: () => null,
+  Sorting: () => null,
   Toolbar: ({ children }: any) => <div data-testid="grid-toolbar">{children}</div>,
   Item: ({ children }: any) => <div>{children}</div>,
 }));
@@ -208,7 +264,7 @@ describe('Bank Reconciliation Page', () => {
   it('should render page title', async () => {
     const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByTestId('page-title')).toHaveTextContent('Bank Reconciliation');
@@ -218,7 +274,7 @@ describe('Bank Reconciliation Page', () => {
   it('should render statements data grid', async () => {
     const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByTestId('statements-grid')).toBeInTheDocument();
@@ -228,7 +284,7 @@ describe('Bank Reconciliation Page', () => {
   it('should render import statement button', async () => {
     const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByTestId('import-btn')).toBeInTheDocument();
@@ -238,7 +294,7 @@ describe('Bank Reconciliation Page', () => {
   it('should display statement data in grid', async () => {
     const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('BS-2024-001')).toBeInTheDocument();
@@ -249,7 +305,7 @@ describe('Bank Reconciliation Page', () => {
   it('should fetch statements on mount', async () => {
     const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
@@ -263,15 +319,16 @@ describe('Bank Reconciliation Page', () => {
 
     const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
-    expect(screen.getByTestId('dx-loadindicator')).toBeInTheDocument();
+    // Page shows KPICardSkeleton during loading
+    expect(screen.getAllByTestId('kpi-skeleton').length).toBeGreaterThan(0);
   });
 
   it('should display different status values', async () => {
     const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('pending')).toBeInTheDocument();
@@ -316,7 +373,7 @@ describe('Bank Reconciliation Workflow', () => {
 
     const BankReconciliationPage = (await import('@/app/accounting/bank-reconciliation/page')).default;
 
-    render(<BankReconciliationPage />);
+    render(<BankReconciliationPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByTestId('page-title')).toBeInTheDocument();

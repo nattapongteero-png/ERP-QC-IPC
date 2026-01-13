@@ -28,7 +28,12 @@ export async function GET(
         return errorResponse('Invalid BOM ID');
       }
 
-      const steps = await getBOMSOPSteps(bomId);
+      const rawSteps = await getBOMSOPSteps(bomId);
+      // Flatten the nested structure for frontend
+      const steps = rawSteps.map((item: { bomStep: Record<string, unknown>; template: unknown }) => ({
+        ...item.bomStep,
+        template: item.template,
+      }));
       return successResponse(steps);
     } catch (error) {
       console.error('Error fetching BOM SOP steps:', error);

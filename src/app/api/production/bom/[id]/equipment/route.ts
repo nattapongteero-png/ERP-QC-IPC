@@ -36,7 +36,12 @@ export async function GET(
         return errorResponse(`Invalid phase. Must be one of: ${VALID_PHASES.join(', ')}`);
       }
 
-      const equipment = await getBOMEquipment(bomId, phase);
+      const rawEquipment = await getBOMEquipment(bomId, phase);
+      // Flatten the nested structure for frontend
+      const equipment = rawEquipment.map((item: { bomEquipment: Record<string, unknown>; equipment: unknown }) => ({
+        ...item.bomEquipment,
+        equipment: item.equipment,
+      }));
       return successResponse(equipment);
     } catch (error) {
       console.error('Error fetching BOM equipment:', error);

@@ -65,7 +65,7 @@ export function AccountingPageHeader({
             <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight" data-testid="page-title">{title}</h1>
             {subtitle && (
               <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
             )}

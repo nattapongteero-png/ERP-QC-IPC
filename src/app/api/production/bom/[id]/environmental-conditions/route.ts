@@ -35,7 +35,12 @@ export async function GET(
         return errorResponse(`Invalid phase. Must be one of: ${VALID_PHASES.join(', ')}`);
       }
 
-      const conditions = await getBOMEnvironmentalConditions(bomId, phase);
+      const rawConditions = await getBOMEnvironmentalConditions(bomId, phase);
+      // Flatten the nested structure for frontend
+      const conditions = rawConditions.map((item: { bomCondition: Record<string, unknown>; condition: unknown }) => ({
+        ...item.bomCondition,
+        condition: item.condition,
+      }));
       return successResponse(conditions);
     } catch (error) {
       console.error('Error fetching BOM environmental conditions:', error);

@@ -48,9 +48,12 @@ export const ACCT_TEST_IDS = {
 
   // Fiscal Year/Period
   FISCAL_YEAR_2025: 1,
+  FISCAL_YEAR_2026: 2,
   FISCAL_PERIOD_JAN: 1,
   FISCAL_PERIOD_FEB: 2,
   FISCAL_PERIOD_DEC: 12,
+  // 2026 periods start at 13
+  FISCAL_PERIOD_2026_JAN: 13,
 
   // Journal Entries
   JE_SALES: 1,
@@ -146,15 +149,16 @@ export function seedGLAccounts(sqlite: Database.Database): void {
  * Seed Fiscal Year and Periods
  */
 export function seedFiscalYearAndPeriods(sqlite: Database.Database): void {
-  // Fiscal Year
+  // Fiscal Years (2025 and 2026 for tests that use current date)
   sqlite.exec(`
     INSERT OR IGNORE INTO fiscal_years (id, year_code, start_date, end_date, is_current, status, created_at, updated_at)
     VALUES
-      (${ACCT_TEST_IDS.FISCAL_YEAR_2025}, 'FY2025', '${ACCT_TEST_DATES.FISCAL_YEAR_START}', '${ACCT_TEST_DATES.FISCAL_YEAR_END}', 1, 'open', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      (${ACCT_TEST_IDS.FISCAL_YEAR_2025}, 'FY2025', '${ACCT_TEST_DATES.FISCAL_YEAR_START}', '${ACCT_TEST_DATES.FISCAL_YEAR_END}', 0, 'open', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${ACCT_TEST_IDS.FISCAL_YEAR_2026}, 'FY2026', '2026-01-01', '2026-12-31', 1, 'open', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
 
-  // Fiscal Periods (12 months)
-  const months = [
+  // Fiscal Periods for 2025 (12 months)
+  const months2025 = [
     { num: 1, name: 'January', start: '2025-01-01', end: '2025-01-31' },
     { num: 2, name: 'February', start: '2025-02-01', end: '2025-02-28' },
     { num: 3, name: 'March', start: '2025-03-01', end: '2025-03-31' },
@@ -169,11 +173,35 @@ export function seedFiscalYearAndPeriods(sqlite: Database.Database): void {
     { num: 12, name: 'December', start: '2025-12-01', end: '2025-12-31' },
   ];
 
-  for (const month of months) {
+  for (const month of months2025) {
     sqlite.exec(`
       INSERT OR IGNORE INTO fiscal_periods (id, fiscal_year_id, period_number, period_name, start_date, end_date, status, created_at, updated_at)
       VALUES
         (${month.num}, ${ACCT_TEST_IDS.FISCAL_YEAR_2025}, ${month.num}, '${month.name}', '${month.start}', '${month.end}', 'open', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `);
+  }
+
+  // Fiscal Periods for 2026 (12 months) - for tests that use current date
+  const months2026 = [
+    { num: 13, name: 'January', start: '2026-01-01', end: '2026-01-31' },
+    { num: 14, name: 'February', start: '2026-02-01', end: '2026-02-28' },
+    { num: 15, name: 'March', start: '2026-03-01', end: '2026-03-31' },
+    { num: 16, name: 'April', start: '2026-04-01', end: '2026-04-30' },
+    { num: 17, name: 'May', start: '2026-05-01', end: '2026-05-31' },
+    { num: 18, name: 'June', start: '2026-06-01', end: '2026-06-30' },
+    { num: 19, name: 'July', start: '2026-07-01', end: '2026-07-31' },
+    { num: 20, name: 'August', start: '2026-08-01', end: '2026-08-31' },
+    { num: 21, name: 'September', start: '2026-09-01', end: '2026-09-30' },
+    { num: 22, name: 'October', start: '2026-10-01', end: '2026-10-31' },
+    { num: 23, name: 'November', start: '2026-11-01', end: '2026-11-30' },
+    { num: 24, name: 'December', start: '2026-12-01', end: '2026-12-31' },
+  ];
+
+  for (const month of months2026) {
+    sqlite.exec(`
+      INSERT OR IGNORE INTO fiscal_periods (id, fiscal_year_id, period_number, period_name, start_date, end_date, status, created_at, updated_at)
+      VALUES
+        (${month.num}, ${ACCT_TEST_IDS.FISCAL_YEAR_2026}, ${month.num - 12}, '${month.name}', '${month.start}', '${month.end}', 'open', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `);
   }
 }

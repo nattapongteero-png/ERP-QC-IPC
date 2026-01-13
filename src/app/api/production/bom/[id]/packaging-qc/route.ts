@@ -25,7 +25,12 @@ export async function GET(
         return errorResponse('Invalid BOM ID');
       }
 
-      const qc = await getBOMPackagingQC(bomId);
+      const rawQC = await getBOMPackagingQC(bomId);
+      // Flatten the nested structure for frontend
+      const qc = rawQC.map((item: { bomQC: Record<string, unknown>; criteria: unknown }) => ({
+        ...item.bomQC,
+        criteria: item.criteria,
+      }));
       return successResponse(qc);
     } catch (error) {
       console.error('Error fetching BOM packaging QC:', error);
