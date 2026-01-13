@@ -3,7 +3,6 @@
 import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { LineClearanceForm } from '@/components/production/line-clearance-form';
 import { DxButton } from '@/components/ui/dx-button';
@@ -202,8 +201,7 @@ function LineClearanceContent() {
     })) ?? [];
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <PageHeader
           title="Line Clearance"
           description="Complete line clearance verification before production start (FR-062)"
@@ -314,19 +312,16 @@ function LineClearanceContent() {
             </div>
           </div>
         )}
-      </div>
-    </MainLayout>
+    </div>
   );
 }
 
 export default function LineClearancePage() {
   return (
     <Suspense fallback={
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
     }>
       <LineClearanceContent />
     </Suspense>
