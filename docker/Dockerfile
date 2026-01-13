@@ -15,7 +15,7 @@ FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 
 # Install libc6-compat for native module compatibility and Node.js for Next.js build
-RUN apk add --no-cache libc6-compat nodejs npm
+RUN apk add --no-cache libc6-compat nodejs
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -30,9 +30,9 @@ ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV UV_THREADPOOL_SIZE=4
 
-# Build the application using Node (Next.js build requires Node)
-# npm run build uses --webpack flag (Turbopack has issues with next/font/google)
-RUN npm run build
+# Build the application (Next.js build uses Node.js internally)
+# bun run build uses --webpack flag (Turbopack has issues with next/font/google)
+RUN bun run build
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
