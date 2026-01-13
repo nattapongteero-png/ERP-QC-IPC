@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, Suspense } from 'react';
+import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -8,13 +8,13 @@ import { PageHeader } from '@/components/ui/page-header';
 import { LineClearanceForm } from '@/components/production/line-clearance-form';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { ClipboardCheck, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { ClipboardCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface WorkOrder {
   id: number;
-  workOrderNumber: string;
-  itemName: string;
+  woNumber: string;
+  productName: string;
   status: string;
   lineClearanceRequired: boolean;
   lineClearanceStatus: string | null;
@@ -198,7 +198,7 @@ function LineClearanceContent() {
   const workOrderItems =
     workOrders?.map((wo) => ({
       value: wo.id,
-      label: `${wo.workOrderNumber} - ${wo.itemName}`,
+      label: `${wo.woNumber} - ${wo.productName}`,
     })) ?? [];
 
   return (
@@ -264,8 +264,8 @@ function LineClearanceContent() {
             ) : lineClearanceData ? (
               <LineClearanceForm
                 workOrderId={selectedWorkOrderId}
-                workOrderNumber={selectedWorkOrder?.workOrderNumber ?? `WO-${selectedWorkOrderId}`}
-                productName={selectedWorkOrder?.itemName}
+                workOrderNumber={selectedWorkOrder?.woNumber ?? `WO-${selectedWorkOrderId}`}
+                productName={selectedWorkOrder?.productName}
                 initialData={
                   lineClearanceData.checklist
                     ? {
