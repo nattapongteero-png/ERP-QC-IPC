@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "build:theme": "devextreme build-theme --input-file=devextreme-theme/emerald-metadata.json --output-file=public/css/dx.material.emerald.css",
     "start": "next start",
     "lint": "eslint",

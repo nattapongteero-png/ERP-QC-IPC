@@ -31,6 +31,7 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV UV_THREADPOOL_SIZE=4
 
 # Build the application using Node (Next.js build requires Node)
+# npm run build uses --webpack flag (Turbopack has issues with next/font/google)
 RUN npm run build
 
 # Stage 3: Runner
