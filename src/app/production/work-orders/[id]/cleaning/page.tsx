@@ -102,7 +102,7 @@ export default function CleaningPage() {
   const { data: workOrder, isLoading: woLoading } = useQuery<WorkOrderBasic>({
     queryKey: ['work-order', workOrderId],
     queryFn: async () => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}`);
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/detail`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data?.workOrder;
