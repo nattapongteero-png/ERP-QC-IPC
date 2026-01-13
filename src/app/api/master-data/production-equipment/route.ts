@@ -22,11 +22,17 @@ export async function GET(request: NextRequest) {
       const roomId = searchParams.get('roomId');
       const isActive = searchParams.get('isActive');
 
-      const equipment = await getProductionEquipment({
+      const rawEquipment = await getProductionEquipment({
         equipmentType,
         roomId: roomId ? Number(roomId) : undefined,
         isActive: isActive ? isActive === 'true' : undefined,
       });
+
+      // Flatten the nested structure for frontend
+      const equipment = rawEquipment.map((item: { equipment: Record<string, unknown>; room: unknown }) => ({
+        ...item.equipment,
+        room: item.room,
+      }));
 
       return successResponse(equipment);
     } catch (error) {
