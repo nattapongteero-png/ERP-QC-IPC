@@ -1,6 +1,7 @@
 # Stage 1: Dependencies
 FROM oven/bun:1-alpine AS deps
-RUN apk add --no-cache libc6-compat
+# Install build tools for native modules (better-sqlite3 requires Python, make, g++)
+RUN apk add --no-cache libc6-compat python3 make g++ linux-headers
 WORKDIR /app
 
 # Copy package files
