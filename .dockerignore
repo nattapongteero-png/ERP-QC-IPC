@@ -88,8 +88,10 @@ drizzle
 drizzle.config.ts
 migrations
 
-# Package manager files (lockfile needed, but not all)
+# Package manager files (only bun.lock needed)
 package-lock.json
+pnpm-lock.yaml
+yarn.lock
 
 # TypeScript build info
 *.tsbuildinfo
