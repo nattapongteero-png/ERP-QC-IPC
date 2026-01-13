@@ -266,7 +266,13 @@ export default function AuditLogPage() {
               rowAlternationEnabled
               hoverStateEnabled
               columnAutoWidth
-              className="min-h-[400px]"
+              className="min-h-[400px] [&_.dx-data-row]:cursor-pointer"
+              onRowClick={(e) => {
+                if (e.data) {
+                  setSelectedLog(e.data as HRAuditLogWithDetails);
+                  setShowDetailPopup(true);
+                }
+              }}
             >
               <FilterRow visible />
               <HeaderFilter visible />
