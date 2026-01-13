@@ -5,19 +5,13 @@
  * Manages SOP step templates for production processes.
  */
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxPopup } from '@/components/ui/dx-popup';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxTextArea } from '@/components/ui/dx-text-area';
-import { DxSwitch } from '@/components/ui/dx-switch';
-import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, ClipboardList } from 'lucide-react';
+import { FileText, ClipboardList, Eye, Edit, Trash2 } from 'lucide-react';
 
 interface SOPTemplate {
   id: number;
@@ -56,13 +50,9 @@ const categoryColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function SOPTemplatesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [showForm, setShowForm] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<SOPTemplate | null>(null);
-  const [formData, setFormData] = useState<Partial<SOPTemplate>>({
-    isActive: true,
-  });
 
   // Fetch templates
   const { data: templates, isLoading } = useQuery<SOPTemplate[]>({
@@ -72,36 +62,6 @@ export default function SOPTemplatesPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;
-    },
-  });
-
-  // Create/Update mutation
-  const saveMutation = useMutation({
-    mutationFn: async (data: Partial<SOPTemplate>) => {
-      const url = editingTemplate
-        ? `/api/master-data/sop-templates?id=${editingTemplate.id}`
-        : '/api/master-data/sop-templates';
-      const method = editingTemplate ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sop-templates'] });
-      toast.success(
-        editingTemplate ? 'Template Updated' : 'Template Created',
-        `${formData.name} has been ${editingTemplate ? 'updated' : 'created'} successfully.`
-      );
-      handleCloseForm();
-    },
-    onError: (error: Error) => {
-      toast.error('Error', error.message);
     },
   });
 
@@ -124,29 +84,12 @@ export default function SOPTemplatesPage() {
     },
   });
 
-  const handleOpenForm = (template?: SOPTemplate) => {
-    if (template) {
-      setEditingTemplate(template);
-      setFormData(template);
-    } else {
-      setEditingTemplate(null);
-      setFormData({ isActive: true });
-    }
-    setShowForm(true);
+  const handleCreate = () => {
+    router.push('/master-data/sop-templates/new');
   };
 
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingTemplate(null);
-    setFormData({ isActive: true });
-  };
-
-  const handleSave = () => {
-    if (!formData.code || !formData.name || !formData.nameTh || !formData.category) {
-      toast.error('Validation Error', 'Please fill in all required fields.');
-      return;
-    }
-    saveMutation.mutate(formData);
+  const handleEdit = (id: number) => {
+    router.push(`/master-data/sop-templates/${id}`);
   };
 
   const renderCategoryBadge = (category: string) => {
@@ -190,7 +133,7 @@ export default function SOPTemplatesPage() {
             text="Add Template"
             icon="plus"
             type="success"
-            onClick={() => handleOpenForm()}
+            onClick={handleCreate}
           />
         }
       />
@@ -224,119 +167,33 @@ export default function SOPTemplatesPage() {
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+          <DxColumn caption="Actions" width={120} cellRender={(cell) => (
             <div className="flex gap-1">
-              <DxButton
-                icon="edit"
-                stylingMode="text"
-                hint="Edit"
-                onClick={() => handleOpenForm(cell.data)}
-              />
-              <DxButton
-                icon="trash"
-                stylingMode="text"
-                hint="Deactivate"
-                onClick={() => deleteMutation.mutate(cell.data.id)}
-              />
+              <button
+                onClick={() => handleEdit((cell.data as SOPTemplate).id)}
+                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="View"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleEdit((cell.data as SOPTemplate).id)}
+                className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                title="Edit"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate((cell.data as SOPTemplate).id)}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Deactivate"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           )} />
         </DxDataGrid>
       </div>
-
-      {/* Add/Edit Form Popup */}
-      <DxPopup
-        visible={showForm}
-        onHiding={handleCloseForm}
-        title={editingTemplate ? 'Edit SOP Template' : 'Add SOP Template'}
-        width={650}
-        height="auto"
-        showCloseButton
-        dragEnabled={false}
-      >
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-              <DxTextBox
-                value={formData.code || ''}
-                onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
-                placeholder="e.g., SOP-MIX-01"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-              <DxSelectBox
-                dataSource={categories}
-                displayExpr="label"
-                valueExpr="value"
-                value={formData.category}
-                onValueChanged={(e) => setFormData({ ...formData, category: e.value })}
-                placeholder="Select category"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN) *</label>
-            <DxTextBox
-              value={formData.name || ''}
-              onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="Step name in English"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (TH) *</label>
-            <DxTextBox
-              value={formData.nameTh || ''}
-              onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })}
-              placeholder="Step name in Thai"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
-            <DxTextArea
-              value={formData.instructions || ''}
-              onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
-              placeholder="Detailed instructions in English"
-              height={80}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (TH)</label>
-            <DxTextArea
-              value={formData.instructionsTh || ''}
-              onValueChanged={(e) => setFormData({ ...formData, instructionsTh: e.value })}
-              placeholder="Detailed instructions in Thai"
-              height={80}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Default Parameters (JSON)</label>
-            <DxTextArea
-              value={formData.defaultParameters || ''}
-              onValueChanged={(e) => setFormData({ ...formData, defaultParameters: e.value })}
-              placeholder='e.g., {"temperature": 75, "mixingSpeed": 45, "duration": 5}'
-              height={60}
-            />
-            <p className="text-xs text-gray-500 mt-1">Enter JSON object with default parameter values</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <DxSwitch
-              value={formData.isActive !== false}
-              onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setFormData({ ...formData, isActive: e.value })}
-            />
-            <span className="text-sm text-gray-700">Active</span>
-          </div>
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={handleCloseForm} />
-            <DxButton
-              text={editingTemplate ? 'Update' : 'Create'}
-              type="success"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-            />
-          </div>
-        </div>
-      </DxPopup>
     </div>
   );
 }

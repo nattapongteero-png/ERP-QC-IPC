@@ -5,19 +5,13 @@
  * Manages environmental condition profiles for GMP compliance.
  */
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxPopup } from '@/components/ui/dx-popup';
-import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxNumberBox } from '@/components/ui/dx-number-box';
-import { DxSwitch } from '@/components/ui/dx-switch';
-import { DxTextArea } from '@/components/ui/dx-text-area';
-import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Thermometer } from 'lucide-react';
+import { Thermometer, Eye, Edit, Trash2 } from 'lucide-react';
 
 interface EnvironmentalCondition {
   id: number;
@@ -32,17 +26,9 @@ interface EnvironmentalCondition {
 }
 
 export default function EnvironmentalConditionsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [showForm, setShowForm] = useState(false);
-  const [editingCondition, setEditingCondition] = useState<EnvironmentalCondition | null>(null);
-  const [formData, setFormData] = useState<Partial<EnvironmentalCondition>>({
-    temperatureMin: 20,
-    temperatureMax: 30,
-    humidityMax: 60,
-    monitoringIntervalMinutes: 60,
-    isActive: true,
-  });
 
   // Fetch conditions
   const { data: conditions, isLoading } = useQuery<EnvironmentalCondition[]>({
@@ -52,36 +38,6 @@ export default function EnvironmentalConditionsPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;
-    },
-  });
-
-  // Create/Update mutation
-  const saveMutation = useMutation({
-    mutationFn: async (data: Partial<EnvironmentalCondition>) => {
-      const url = editingCondition
-        ? `/api/master-data/environmental-conditions?id=${editingCondition.id}`
-        : '/api/master-data/environmental-conditions';
-      const method = editingCondition ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['environmental-conditions'] });
-      toast.success(
-        editingCondition ? 'Condition Updated' : 'Condition Created',
-        `${formData.name} has been ${editingCondition ? 'updated' : 'created'} successfully.`
-      );
-      handleCloseForm();
-    },
-    onError: (error: Error) => {
-      toast.error('Error', error.message);
     },
   });
 
@@ -104,48 +60,19 @@ export default function EnvironmentalConditionsPage() {
     },
   });
 
-  const handleOpenForm = (condition?: EnvironmentalCondition) => {
-    if (condition) {
-      setEditingCondition(condition);
-      setFormData(condition);
-    } else {
-      setEditingCondition(null);
-      setFormData({
-        temperatureMin: 20,
-        temperatureMax: 30,
-        humidityMax: 60,
-        monitoringIntervalMinutes: 60,
-        isActive: true,
-      });
-    }
-    setShowForm(true);
+  const handleCreate = () => {
+    router.push('/master-data/environmental-conditions/new');
   };
 
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingCondition(null);
-    setFormData({
-      temperatureMin: 20,
-      temperatureMax: 30,
-      humidityMax: 60,
-      monitoringIntervalMinutes: 60,
-      isActive: true,
-    });
-  };
-
-  const handleSave = () => {
-    if (!formData.code || !formData.name) {
-      toast.error('Validation Error', 'Please fill in all required fields.');
-      return;
-    }
-    saveMutation.mutate(formData);
+  const handleEdit = (id: number) => {
+    router.push(`/master-data/environmental-conditions/${id}`);
   };
 
   const renderTempRange = (data: EnvironmentalCondition) => {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
         <Thermometer className="h-3 w-3" />
-        {data.temperatureMin}-{data.temperatureMax}°C
+        {data.temperatureMin}-{data.temperatureMax}C
       </span>
     );
   };
@@ -153,7 +80,7 @@ export default function EnvironmentalConditionsPage() {
   const renderHumidity = (value: number) => {
     return (
       <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
-        ≤{value}% RH
+        {value}% RH
       </span>
     );
   };
@@ -184,7 +111,7 @@ export default function EnvironmentalConditionsPage() {
             text="Add Condition"
             icon="plus"
             type="success"
-            onClick={() => handleOpenForm()}
+            onClick={handleCreate}
           />
         }
       />
@@ -217,137 +144,33 @@ export default function EnvironmentalConditionsPage() {
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+          <DxColumn caption="Actions" width={120} cellRender={(cell) => (
             <div className="flex gap-1">
-              <DxButton
-                icon="edit"
-                stylingMode="text"
-                hint="Edit"
-                onClick={() => handleOpenForm(cell.data)}
-              />
-              <DxButton
-                icon="trash"
-                stylingMode="text"
-                hint="Deactivate"
-                onClick={() => deleteMutation.mutate(cell.data.id)}
-              />
+              <button
+                onClick={() => handleEdit((cell.data as EnvironmentalCondition).id)}
+                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="View"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleEdit((cell.data as EnvironmentalCondition).id)}
+                className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                title="Edit"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate((cell.data as EnvironmentalCondition).id)}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Deactivate"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           )} />
         </DxDataGrid>
       </div>
-
-      {/* Add/Edit Form Popup */}
-      <DxPopup
-        visible={showForm}
-        onHiding={handleCloseForm}
-        title={editingCondition ? 'Edit Condition Profile' : 'Add Condition Profile'}
-        width={550}
-        height="auto"
-        showCloseButton
-        dragEnabled={false}
-      >
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-              <DxTextBox
-                value={formData.code || ''}
-                onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
-                placeholder="e.g., COND-STD"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Profile Name *</label>
-              <DxTextBox
-                value={formData.name || ''}
-                onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-                placeholder="e.g., Standard Production"
-              />
-            </div>
-          </div>
-
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-800 mb-3 flex items-center gap-2">
-              <Thermometer className="h-4 w-4" />
-              Temperature Range (°C)
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-blue-700 mb-1">Minimum</label>
-                <DxNumberBox
-                  value={formData.temperatureMin}
-                  onValueChanged={(e) => setFormData({ ...formData, temperatureMin: e.value })}
-                  min={0}
-                  max={50}
-                  showSpinButtons
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-blue-700 mb-1">Maximum</label>
-                <DxNumberBox
-                  value={formData.temperatureMax}
-                  onValueChanged={(e) => setFormData({ ...formData, temperatureMax: e.value })}
-                  min={0}
-                  max={50}
-                  showSpinButtons
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max Humidity (% RH)</label>
-              <DxNumberBox
-                value={formData.humidityMax}
-                onValueChanged={(e) => setFormData({ ...formData, humidityMax: e.value })}
-                min={0}
-                max={100}
-                showSpinButtons
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Monitoring Interval (minutes)</label>
-              <DxNumberBox
-                value={formData.monitoringIntervalMinutes}
-                onValueChanged={(e) => setFormData({ ...formData, monitoringIntervalMinutes: e.value })}
-                min={5}
-                max={120}
-                step={5}
-                showSpinButtons
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <DxTextArea
-              value={formData.notes || ''}
-              onValueChanged={(e) => setFormData({ ...formData, notes: e.value })}
-              placeholder="e.g., Humidity may exceed during boiling process"
-              height={80}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <DxSwitch
-              value={formData.isActive !== false}
-              onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setFormData({ ...formData, isActive: e.value })}
-            />
-            <span className="text-sm text-gray-700">Active</span>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={handleCloseForm} />
-            <DxButton
-              text={editingCondition ? 'Update' : 'Create'}
-              type="success"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-            />
-          </div>
-        </div>
-      </DxPopup>
     </div>
   );
 }

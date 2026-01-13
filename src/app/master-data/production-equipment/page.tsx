@@ -5,18 +5,13 @@
  * Manages production equipment for GMP compliance.
  */
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxPopup } from '@/components/ui/dx-popup';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxSwitch } from '@/components/ui/dx-switch';
-import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Wrench, Plus } from 'lucide-react';
+import { Wrench, Eye, Edit, Trash2 } from 'lucide-react';
 
 interface ProductionEquipment {
   id: number;
@@ -27,14 +22,9 @@ interface ProductionEquipment {
   capacity?: string;
   roomId?: number;
   roomName?: string;
+  room?: { name: string };
   description?: string;
   isActive: boolean;
-}
-
-interface ProductionRoom {
-  id: number;
-  code: string;
-  name: string;
 }
 
 const equipmentTypes = [
@@ -50,13 +40,9 @@ const equipmentTypes = [
 ];
 
 export default function ProductionEquipmentPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [showForm, setShowForm] = useState(false);
-  const [editingEquipment, setEditingEquipment] = useState<ProductionEquipment | null>(null);
-  const [formData, setFormData] = useState<Partial<ProductionEquipment>>({
-    isActive: true,
-  });
 
   // Fetch equipment
   const { data: equipment, isLoading } = useQuery<ProductionEquipment[]>({
@@ -66,47 +52,6 @@ export default function ProductionEquipmentPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;
-    },
-  });
-
-  // Fetch rooms for dropdown
-  const { data: rooms } = useQuery<ProductionRoom[]>({
-    queryKey: ['production-rooms'],
-    queryFn: async () => {
-      const res = await fetch('/api/master-data/production-rooms');
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      return data.data;
-    },
-  });
-
-  // Create/Update mutation
-  const saveMutation = useMutation({
-    mutationFn: async (data: Partial<ProductionEquipment>) => {
-      const url = editingEquipment
-        ? `/api/master-data/production-equipment?id=${editingEquipment.id}`
-        : '/api/master-data/production-equipment';
-      const method = editingEquipment ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['production-equipment'] });
-      toast.success(
-        editingEquipment ? 'Equipment Updated' : 'Equipment Created',
-        `${formData.name} has been ${editingEquipment ? 'updated' : 'created'} successfully.`
-      );
-      handleCloseForm();
-    },
-    onError: (error: Error) => {
-      toast.error('Error', error.message);
     },
   });
 
@@ -129,29 +74,12 @@ export default function ProductionEquipmentPage() {
     },
   });
 
-  const handleOpenForm = (equip?: ProductionEquipment) => {
-    if (equip) {
-      setEditingEquipment(equip);
-      setFormData(equip);
-    } else {
-      setEditingEquipment(null);
-      setFormData({ isActive: true });
-    }
-    setShowForm(true);
+  const handleCreate = () => {
+    router.push('/master-data/production-equipment/new');
   };
 
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingEquipment(null);
-    setFormData({ isActive: true });
-  };
-
-  const handleSave = () => {
-    if (!formData.code || !formData.name || !formData.nameTh || !formData.equipmentType) {
-      toast.error('Validation Error', 'Please fill in all required fields.');
-      return;
-    }
-    saveMutation.mutate(formData);
+  const handleEdit = (id: number) => {
+    router.push(`/master-data/production-equipment/${id}`);
   };
 
   const renderTypeBadge = (type: string) => {
@@ -182,7 +110,7 @@ export default function ProductionEquipmentPage() {
             text="Add Equipment"
             icon="plus"
             type="success"
-            onClick={() => handleOpenForm()}
+            onClick={handleCreate}
           />
         }
       />
@@ -209,127 +137,42 @@ export default function ProductionEquipmentPage() {
           <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />
           <DxColumn dataField="equipmentType" caption="Type" width={120} cellRender={(cell) => renderTypeBadge(cell.value)} />
           <DxColumn dataField="capacity" caption="Capacity" width={120} />
-          <DxColumn dataField="roomName" caption="Default Room" minWidth={150} />
+          <DxColumn caption="Default Room" minWidth={150} cellRender={(cell) => {
+            const data = cell.data as ProductionEquipment;
+            return data.room?.name || data.roomName || '-';
+          }} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+          <DxColumn caption="Actions" width={120} cellRender={(cell) => (
             <div className="flex gap-1">
-              <DxButton
-                icon="edit"
-                stylingMode="text"
-                hint="Edit"
-                onClick={() => handleOpenForm(cell.data)}
-              />
-              <DxButton
-                icon="trash"
-                stylingMode="text"
-                hint="Deactivate"
-                onClick={() => deleteMutation.mutate(cell.data.id)}
-              />
+              <button
+                onClick={() => handleEdit((cell.data as ProductionEquipment).id)}
+                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="View"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleEdit((cell.data as ProductionEquipment).id)}
+                className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                title="Edit"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate((cell.data as ProductionEquipment).id)}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Deactivate"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           )} />
         </DxDataGrid>
       </div>
-
-      {/* Add/Edit Form Popup */}
-      <DxPopup
-        visible={showForm}
-        onHiding={handleCloseForm}
-        title={editingEquipment ? 'Edit Equipment' : 'Add Equipment'}
-        width={550}
-        height="auto"
-        showCloseButton
-        dragEnabled={false}
-      >
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-              <DxTextBox
-                value={formData.code || ''}
-                onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
-                placeholder="e.g., EQ-001"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Type *</label>
-              <DxSelectBox
-                dataSource={equipmentTypes}
-                displayExpr="label"
-                valueExpr="value"
-                value={formData.equipmentType}
-                onValueChanged={(e) => setFormData({ ...formData, equipmentType: e.value })}
-                placeholder="Select type"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN) *</label>
-            <DxTextBox
-              value={formData.name || ''}
-              onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="Equipment name in English"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (TH) *</label>
-            <DxTextBox
-              value={formData.nameTh || ''}
-              onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })}
-              placeholder="Equipment name in Thai"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-              <DxTextBox
-                value={formData.capacity || ''}
-                onValueChanged={(e) => setFormData({ ...formData, capacity: e.value })}
-                placeholder="e.g., 200 kg, 50 liters"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Default Room</label>
-              <DxSelectBox
-                dataSource={(rooms || []).map(r => ({ id: r.id, name: r.name }))}
-                displayExpr="name"
-                valueExpr="id"
-                value={formData.roomId}
-                onValueChanged={(e) => setFormData({ ...formData, roomId: e.value })}
-                placeholder="Select room"
-                showClearButton
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <DxTextBox
-              value={formData.description || ''}
-              onValueChanged={(e) => setFormData({ ...formData, description: e.value })}
-              placeholder="Optional description"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <DxSwitch
-              value={formData.isActive !== false}
-              onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setFormData({ ...formData, isActive: e.value })}
-            />
-            <span className="text-sm text-gray-700">Active</span>
-          </div>
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={handleCloseForm} />
-            <DxButton
-              text={editingEquipment ? 'Update' : 'Create'}
-              type="success"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-            />
-          </div>
-        </div>
-      </DxPopup>
     </div>
   );
 }
