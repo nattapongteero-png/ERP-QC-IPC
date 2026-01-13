@@ -4250,6 +4250,22 @@ const ACTION_LABELS: Record<HRAuditAction, string> = {
   HR_ROLE_REVOKE: 'ยกเลิกบทบาท',
 };
 
+// Generic action labels for audit_trail table (used by createAuditLog)
+const GENERIC_ACTION_LABELS: Record<string, string> = {
+  CREATE: 'สร้าง',
+  UPDATE: 'แก้ไข',
+  DELETE: 'ลบ',
+  LOGIN: 'เข้าสู่ระบบ',
+  LOGOUT: 'ออกจากระบบ',
+  APPROVE: 'อนุมัติ',
+  REJECT: 'ปฏิเสธ',
+};
+
+// Get action label - check HR-specific first, then generic
+function getActionLabel(action: string): string {
+  return ACTION_LABELS[action as HRAuditAction] || GENERIC_ACTION_LABELS[action] || action;
+}
+
 /**
  * Get HR audit logs with pagination
  * Reads from audit_trail table and filters for HR-related tables (hr_*)
@@ -4328,7 +4344,7 @@ export async function getHRAuditLogs(
       ...log,
       action: log.action as HRAuditAction,
       userName,
-      actionLabel: ACTION_LABELS[log.action as HRAuditAction] || log.action,
+      actionLabel: getActionLabel(log.action),
     });
   }
 
@@ -4492,7 +4508,7 @@ export async function getAuditSummary(
 
   return results.map((r: typeof results[number]) => ({
     action: r.action as HRAuditAction,
-    actionLabel: ACTION_LABELS[r.action as HRAuditAction] || r.action,
+    actionLabel: getActionLabel(r.action),
     count: Number(r.count),
   }));
 }
