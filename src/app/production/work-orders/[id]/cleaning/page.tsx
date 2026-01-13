@@ -12,7 +12,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxDataGrid, DxColumn, DxPaging } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSwitch } from '@/components/ui/dx-switch';
@@ -156,8 +155,10 @@ export default function CleaningPage() {
   // Verify cleaning log mutation
   const verifyLogMutation = useMutation({
     mutationFn: async (logId: number) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs/${logId}/verify`, {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/cleaning-logs`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
