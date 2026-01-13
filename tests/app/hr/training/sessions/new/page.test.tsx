@@ -22,7 +22,7 @@ vi.mock('next/navigation', () => ({
 // Mock DevExtreme components
 vi.mock('devextreme-react/form', () => ({
   __esModule: true,
-  default: React.forwardRef(({ children }: { children?: React.ReactNode }, ref) => (
+  default: React.forwardRef(({ children }: { children?: React.ReactNode }, _ref) => (
     <form data-testid="mock-form">{children}</form>
   )),
   SimpleItem: () => null,
