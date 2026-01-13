@@ -61,12 +61,9 @@ export async function POST(
         );
       }
 
-      // Use session user as operator if not specified
+      // Use session user as operator/inspector if not specified
       const operatorId = data.operatorId || session.userId;
-      // Inspector must be specified
-      if (!data.inspectorId) {
-        return errorResponse('Missing required field: inspectorId');
-      }
+      const inspectorId = data.inspectorId || session.userId;
 
       const log = await createWOPackagingIntegrityLog({
         workOrderId,
@@ -75,7 +72,7 @@ export async function POST(
         lotNumberCorrect: data.lotNumberCorrect,
         packingCorrect: data.packingCorrect,
         operatorId,
-        inspectorId: data.inspectorId,
+        inspectorId,
         notes: data.notes,
       });
 
