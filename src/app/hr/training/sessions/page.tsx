@@ -3,7 +3,8 @@
 // HR Training Sessions Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -15,18 +16,13 @@ import DataGrid, {
   Toolbar,
   Item,
 } from 'devextreme-react/data-grid';
-import { Popup, ToolbarItem } from 'devextreme-react/popup';
-import TextBox from 'devextreme-react/text-box';
-import SelectBox from 'devextreme-react/select-box';
-import NumberBox from 'devextreme-react/number-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxDateBox } from '@/components/ui/dx-date-box';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useToast } from '@/components/ui/toast';
 import { CalendarDays, Users, PlayCircle, CheckCircle, XCircle } from 'lucide-react';
-import type { TrainingSession, TrainingCourse, TrainingSessionStatus } from '@/types/hr';
+import type { TrainingSession, TrainingSessionStatus } from '@/types/hr';
 
 interface SessionWithDetails extends TrainingSession {
   courseName?: string;
@@ -51,26 +47,6 @@ async function fetchSessions(): Promise<SessionWithDetails[]> {
   return Array.isArray(data) ? data : [];
 }
 
-async function fetchCourses(): Promise<TrainingCourse[]> {
-  const response = await fetch('/api/hr/training/courses?isActive=true');
-  if (!response.ok) throw new Error('Failed to fetch courses');
-  const result = await response.json();
-  // Handle nested response structure: { success, data: { data: courses } }
-  const data = result.data?.data || result.data || [];
-  return Array.isArray(data) ? data : [];
-}
-
-async function createSession(data: Partial<TrainingSession>): Promise<TrainingSession> {
-  const response = await fetch('/api/hr/training/sessions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to create session');
-  const result = await response.json();
-  return result.data;
-}
-
 async function updateSessionStatus(id: number, action: 'complete' | 'cancel'): Promise<TrainingSession> {
   const response = await fetch('/api/hr/training/sessions/' + id, {
     method: 'PATCH',
@@ -83,19 +59,10 @@ async function updateSessionStatus(id: number, action: 'complete' | 'cancel'): P
 }
 
 export default function TrainingSessionsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [gridHeight, setGridHeight] = useState(600);
-  const [newSession, setNewSession] = useState({
-    courseId: undefined as number | undefined,
-    sessionDate: new Date().toISOString().split('T')[0],
-    startTime: '09:00',
-    endTime: '16:00',
-    location: '',
-    maxParticipants: undefined as number | undefined,
-    instructorExternal: '',
-  });
 
   // Responsive height calculation
   useEffect(() => {
@@ -117,32 +84,6 @@ export default function TrainingSessionsPage() {
     queryFn: fetchSessions,
   });
 
-  const { data: courses = [] } = useQuery({
-    queryKey: ['hr', 'training', 'courses'],
-    queryFn: fetchCourses,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: createSession,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'sessions'] });
-      setShowCreatePopup(false);
-      setNewSession({
-        courseId: undefined,
-        sessionDate: new Date().toISOString().split('T')[0],
-        startTime: '09:00',
-        endTime: '16:00',
-        location: '',
-        maxParticipants: undefined,
-        instructorExternal: '',
-      });
-      toast.success('สร้างการจัดอบรมสำเร็จ');
-    },
-    onError: () => {
-      toast.error('ไม่สามารถสร้างการจัดอบรมได้');
-    },
-  });
-
   const statusMutation = useMutation({
     mutationFn: ({ id, action }: { id: number; action: 'complete' | 'cancel' }) =>
       updateSessionStatus(id, action),
@@ -154,10 +95,6 @@ export default function TrainingSessionsPage() {
       toast.error('ไม่สามารถอัปเดตสถานะได้');
     },
   });
-
-  const handleCreateSession = useCallback(() => {
-    createMutation.mutate(newSession);
-  }, [newSession, createMutation]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('th-TH', {
@@ -228,7 +165,7 @@ export default function TrainingSessionsPage() {
             icon="add"
             type="default"
             stylingMode="contained"
-            onClick={() => setShowCreatePopup(true)}
+            onClick={() => router.push('/hr/training/sessions/new')}
           />
         }
       />
@@ -335,96 +272,6 @@ export default function TrainingSessionsPage() {
           />
         </DataGrid>
       </div>
-
-      {/* Create Session Popup */}
-      <Popup
-        visible={showCreatePopup}
-        onHiding={() => setShowCreatePopup(false)}
-        title="จัดอบรมใหม่"
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        <div className="p-4 space-y-4">
-          <SelectBox
-            dataSource={courses}
-            valueExpr="id"
-            displayExpr={(item: TrainingCourse | null) => item ? (item.code + ' - ' + item.name) : ''}
-            value={newSession.courseId}
-            onValueChanged={(e) => setNewSession((prev) => ({ ...prev, courseId: e.value }))}
-            label="หลักสูตร"
-            labelMode="floating"
-            searchEnabled
-            placeholder="เลือกหลักสูตร..."
-          />
-          <div className="grid grid-cols-3 gap-4">
-            <DxDateBox
-              value={newSession.sessionDate}
-              onValueChange={(value) => setNewSession((prev) => ({
-                ...prev,
-                sessionDate: value || prev.sessionDate
-              }))}
-              label="วันที่"
-            />
-            <TextBox
-              value={newSession.startTime}
-              onValueChanged={(e) => setNewSession((prev) => ({ ...prev, startTime: e.value || '' }))}
-              label="เวลาเริ่ม"
-              labelMode="floating"
-              placeholder="HH:MM"
-            />
-            <TextBox
-              value={newSession.endTime}
-              onValueChanged={(e) => setNewSession((prev) => ({ ...prev, endTime: e.value || '' }))}
-              label="เวลาสิ้นสุด"
-              labelMode="floating"
-              placeholder="HH:MM"
-            />
-          </div>
-          <TextBox
-            value={newSession.location}
-            onValueChanged={(e) => setNewSession((prev) => ({ ...prev, location: e.value || '' }))}
-            label="สถานที่"
-            labelMode="floating"
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <TextBox
-              value={newSession.instructorExternal}
-              onValueChanged={(e) => setNewSession((prev) => ({ ...prev, instructorExternal: e.value || '' }))}
-              label="วิทยากร (ภายนอก)"
-              labelMode="floating"
-            />
-            <NumberBox
-              value={newSession.maxParticipants}
-              onValueChanged={(e) => setNewSession((prev) => ({ ...prev, maxParticipants: e.value }))}
-              label="จำนวนผู้เข้าร่วมสูงสุด"
-              labelMode="floating"
-              min={1}
-            />
-          </div>
-        </div>
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'บันทึก',
-            type: 'default',
-            stylingMode: 'contained',
-            onClick: handleCreateSession,
-            disabled: createMutation.isPending || !newSession.courseId || !newSession.sessionDate,
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: 'ยกเลิก',
-            type: 'default',
-            stylingMode: 'outlined',
-            onClick: () => setShowCreatePopup(false),
-          }}
-        />
-      </Popup>
     </div>
   );
 }
