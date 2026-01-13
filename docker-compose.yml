@@ -56,6 +56,16 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      # Limit CPU during build to prevent 100% CPU usage on all cores
+      # Adjust cpus value: 2.0 = 2 cores, 4.0 = 4 cores
+      args:
+        - BUILDKIT_CPU_LIMIT=2
+    # Runtime resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
     container_name: herbal-erp-app
     restart: unless-stopped
    # profiles: ["donotstart"]
@@ -91,6 +101,12 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
+    # Runtime resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
     container_name: herbal-erp-app-dev
     restart: unless-stopped
     ports:
@@ -134,6 +150,12 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    # Runtime resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
     container_name: herbal-erp-app-arjaro
     restart: unless-stopped
    # profiles: ["donotstart"]

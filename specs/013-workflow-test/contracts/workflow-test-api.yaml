@@ -1,0 +1,554 @@
+openapi: 3.0.3
+info:
+  title: Workflow Test API
+  version: 1.0.0
+  description: |
+    API for executing and managing end-to-end workflow tests.
+    The main endpoint uses Server-Sent Events (SSE) for streaming test progress.
+
+servers:
+  - url: /api/workflow-test
+    description: Workflow Test API
+
+paths:
+  /run:
+    post:
+      summary: Execute Workflow Test (SSE Stream)
+      description: |
+        Starts a new workflow test execution and streams progress via SSE.
+        The response is a text/event-stream with JSON messages.
+      operationId: runWorkflowTest
+      tags:
+        - Execution
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestConfiguration'
+      responses:
+        '200':
+          description: SSE stream of test progress
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Newline-delimited SSE events. Each event is:
+                  `data: {json}\n\n`
+
+                  Message types:
+                  - connected: Initial connection with session info
+                  - cleanup_start/complete: Test data cleanup
+                  - phase_start/complete: Phase transitions
+                  - step_start/activity/complete: Step progress
+                  - test_complete: Final result
+                  - error: Error occurred
+                  - heartbeat: Keep-alive
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+        - bearerAuth: []
+
+  /cleanup:
+    post:
+      summary: Cleanup Test Data
+      description: Delete all test data created by previous workflow tests
+      operationId: cleanupTestData
+      tags:
+        - Management
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prefix:
+                  type: string
+                  default: WFTEST_
+                  description: Prefix pattern to match test data
+      responses:
+        '200':
+          description: Cleanup result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+
+  /status/{sessionId}:
+    get:
+      summary: Get Test Session Status
+      description: Retrieve the current status of a test session
+      operationId: getTestStatus
+      tags:
+        - Status
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Test session ID
+      responses:
+        '200':
+          description: Session status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowTestSession'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+
+  /history:
+    get:
+      summary: List Recent Test Sessions
+      description: Get history of recent workflow test executions
+      operationId: getTestHistory
+      tags:
+        - History
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+          description: Number of sessions to return
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowTestSessionSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+
+  /step/{stepId}:
+    get:
+      summary: Get Step Details
+      description: Get detailed information about a specific test step
+      operationId: getStepDetails
+      tags:
+        - Details
+      parameters:
+        - name: stepId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 31
+          description: Step ID (1-31)
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Test session ID
+      responses:
+        '200':
+          description: Step details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowTestStep'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      security:
+        - bearerAuth: []
+
+components:
+  schemas:
+    TestConfiguration:
+      type: object
+      properties:
+        prefix:
+          type: string
+          default: WFTEST_
+          description: Prefix for all test data
+        warehouseName:
+          type: string
+          default: WFTEST_MAIN
+        itemPrefix:
+          type: string
+          default: WFTEST_
+        vendorName:
+          type: string
+          default: WFTEST_VENDOR
+        purchaseQuantity:
+          type: number
+          default: 100
+        productionQuantity:
+          type: number
+          default: 50
+        customerName:
+          type: string
+          default: WFTEST_CUSTOMER
+        salesQuantity:
+          type: number
+          default: 10
+
+    WorkflowTestSession:
+      type: object
+      required:
+        - id
+        - status
+        - phases
+      properties:
+        id:
+          type: string
+          example: wftest-1704067200000
+        status:
+          $ref: '#/components/schemas/WorkflowStatus'
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        totalDuration:
+          type: integer
+          description: Duration in milliseconds
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowPhase'
+        currentPhase:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 8
+        currentStep:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 31
+        config:
+          $ref: '#/components/schemas/TestConfiguration'
+        cleanup:
+          $ref: '#/components/schemas/CleanupStatus'
+        createdBy:
+          type: integer
+
+    WorkflowTestSessionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/WorkflowStatus'
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        totalDuration:
+          type: integer
+        passedSteps:
+          type: integer
+        failedSteps:
+          type: integer
+        createdBy:
+          type: integer
+
+    WorkflowPhase:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - steps
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          maximum: 8
+        name:
+          type: string
+          example: Master Data Setup
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/PhaseStatus'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowTestStep'
+        stepCount:
+          type: integer
+        completedCount:
+          type: integer
+        passedCount:
+          type: integer
+        failedCount:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        duration:
+          type: integer
+
+    WorkflowTestStep:
+      type: object
+      required:
+        - id
+        - phaseId
+        - name
+        - status
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          maximum: 31
+        phaseId:
+          type: integer
+          minimum: 1
+          maximum: 8
+        stepNumber:
+          type: integer
+        name:
+          type: string
+          example: Setup warehouse and storage locations
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/StepStatus'
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        duration:
+          type: integer
+        apiCall:
+          $ref: '#/components/schemas/ApiCallDetails'
+        createdEntities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreatedEntity'
+        error:
+          $ref: '#/components/schemas/StepError'
+        activityMessage:
+          type: string
+          nullable: true
+
+    ApiCallDetails:
+      type: object
+      properties:
+        endpoint:
+          type: string
+          example: /api/warehouses
+        method:
+          type: string
+          enum: [GET, POST, PUT, PATCH, DELETE]
+        requestPayload:
+          type: object
+          nullable: true
+        requestHeaders:
+          type: object
+          additionalProperties:
+            type: string
+        responseStatus:
+          type: integer
+          example: 200
+        responseBody:
+          type: object
+          nullable: true
+        responseTime:
+          type: integer
+          description: Response time in milliseconds
+
+    CreatedEntity:
+      type: object
+      properties:
+        entityType:
+          type: string
+          example: warehouse
+        entityId:
+          type: integer
+        entityCode:
+          type: string
+          example: WFTEST_MAIN
+        viewUrl:
+          type: string
+          example: /inventory/warehouses/1
+
+    StepError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Vendor code already exists
+        code:
+          type: string
+          nullable: true
+        endpoint:
+          type: string
+        httpStatus:
+          type: integer
+        responseBody:
+          type: object
+          nullable: true
+        stackTrace:
+          type: string
+          nullable: true
+          description: Only in development mode
+        timestamp:
+          type: string
+          format: date-time
+
+    CleanupStatus:
+      type: object
+      properties:
+        performed:
+          type: boolean
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        deletedCounts:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            items: 5
+            vendors: 1
+            purchaseOrders: 2
+        errors:
+          type: array
+          items:
+            type: string
+
+    CleanupResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CleanupStatus'
+        message:
+          type: string
+
+    WorkflowStatus:
+      type: string
+      enum:
+        - pending
+        - running
+        - passed
+        - failed
+        - cancelled
+
+    PhaseStatus:
+      type: string
+      enum:
+        - pending
+        - running
+        - passed
+        - failed
+
+    StepStatus:
+      type: string
+      enum:
+        - pending
+        - running
+        - passed
+        - failed
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Please login
+
+    Forbidden:
+      description: Permission denied
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Permission denied
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Session not found
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: Execution
+    description: Run workflow tests
+  - name: Management
+    description: Manage test data
+  - name: Status
+    description: Check test status
+  - name: History
+    description: View test history
+  - name: Details
+    description: Get detailed step information

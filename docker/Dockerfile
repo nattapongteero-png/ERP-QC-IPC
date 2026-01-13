@@ -27,6 +27,11 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Limit build parallelism to reduce CPU usage (adjust number as needed)
+# --max-old-space-size limits memory, UV_THREADPOOL_SIZE limits I/O threads
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV UV_THREADPOOL_SIZE=4
+
 # Build the application
 RUN pnpm build
 

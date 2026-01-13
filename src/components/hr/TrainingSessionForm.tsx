@@ -325,7 +325,14 @@ export function TrainingSessionForm({
             formData={formData}
             onFieldDataChanged={(e) => {
               if (e.dataField) {
-                setFormData(prev => ({ ...prev, [e.dataField!]: e.value }));
+                // Prevent infinite loop by checking if value actually changed
+                setFormData(prev => {
+                  const currentValue = prev[e.dataField as keyof SessionFormData];
+                  if (currentValue === e.value) {
+                    return prev; // No change, return same reference
+                  }
+                  return { ...prev, [e.dataField!]: e.value };
+                });
               }
             }}
             labelLocation="top"

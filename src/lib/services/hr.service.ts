@@ -26,6 +26,7 @@ import {
   sqliteHREmployeeRoles,
   sqliteHRNotifications,
   sqliteHRAuditLog,
+  sqliteAuditTrail,
   mysqlHROrgUnits,
   mysqlHRPositions,
   mysqlHRJobDescriptions,
@@ -43,6 +44,7 @@ import {
   mysqlHREmployeeRoles,
   mysqlHRNotifications,
   mysqlHRAuditLog,
+  mysqlAuditTrail,
 } from '../db/schema';
 import type {
   OrgUnit,
@@ -127,6 +129,8 @@ function getHRTables() {
     employeeRoles: usingSqlite ? sqliteHREmployeeRoles : mysqlHREmployeeRoles,
     notifications: usingSqlite ? sqliteHRNotifications : mysqlHRNotifications,
     auditLog: usingSqlite ? sqliteHRAuditLog : mysqlHRAuditLog,
+    // Use audit_trail table for HR audit logs (shared with other modules)
+    auditTrail: usingSqlite ? sqliteAuditTrail : mysqlAuditTrail,
     isSqlite: usingSqlite,
   };
 }
@@ -4248,6 +4252,7 @@ const ACTION_LABELS: Record<HRAuditAction, string> = {
 
 /**
  * Get HR audit logs with pagination
+ * Reads from audit_trail table and filters for HR-related tables (hr_*)
  */
 export async function getHRAuditLogs(
   filters?: AuditLogFilters
@@ -4256,37 +4261,43 @@ export async function getHRAuditLogs(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = (await getDb()) as any;
 
+  // Use auditTrail table (shared audit_trail) instead of hr_audit_log
+  const auditTable = tables.auditTrail;
+
   const conditions: SQL[] = [];
 
+  // Always filter for HR-related tables (table_name starts with 'hr_')
+  conditions.push(sql`${auditTable.tableName} LIKE 'hr_%'`);
+
   if (filters?.userId) {
-    conditions.push(eq(tables.auditLog.userId, filters.userId));
+    conditions.push(eq(auditTable.userId, filters.userId));
   }
 
   if (filters?.action) {
-    conditions.push(eq(tables.auditLog.action, filters.action));
+    conditions.push(eq(auditTable.action, filters.action));
   }
 
   if (filters?.tableName) {
-    conditions.push(eq(tables.auditLog.tableName, filters.tableName));
+    conditions.push(eq(auditTable.tableName, filters.tableName));
   }
 
   if (filters?.recordId) {
-    conditions.push(eq(tables.auditLog.recordId, filters.recordId));
+    conditions.push(eq(auditTable.recordId, filters.recordId));
   }
 
   if (filters?.fromDate) {
-    conditions.push(sql`${tables.auditLog.createdAt} >= ${filters.fromDate}`);
+    conditions.push(sql`${auditTable.createdAt} >= ${filters.fromDate}`);
   }
 
   if (filters?.toDate) {
-    conditions.push(sql`${tables.auditLog.createdAt} <= ${filters.toDate}`);
+    conditions.push(sql`${auditTable.createdAt} <= ${filters.toDate}`);
   }
 
   // Get total count
   const [countResult] = await db
     .select({ count: sql<number>`COUNT(*)` })
-    .from(tables.auditLog)
-    .where(conditions.length > 0 ? and(...conditions) : undefined);
+    .from(auditTable)
+    .where(and(...conditions));
 
   const total = Number(countResult?.count || 0);
 
@@ -4294,22 +4305,13 @@ export async function getHRAuditLogs(
   const skip = filters?.skip || 0;
   const take = filters?.take || 50;
 
-  let query = db
+  const query = db
     .select()
-    .from(tables.auditLog)
-    .orderBy(desc(tables.auditLog.createdAt))
+    .from(auditTable)
+    .where(and(...conditions))
+    .orderBy(desc(auditTable.createdAt))
     .limit(take)
     .offset(skip);
-
-  if (conditions.length > 0) {
-    query = db
-      .select()
-      .from(tables.auditLog)
-      .where(and(...conditions))
-      .orderBy(desc(tables.auditLog.createdAt))
-      .limit(take)
-      .offset(skip);
-  }
 
   const logs = await query;
 
@@ -4461,34 +4463,30 @@ export async function getAuditSummary(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = (await getDb()) as any;
 
+  // Use auditTrail table (shared audit_trail) instead of hr_audit_log
+  const auditTable = tables.auditTrail;
+
   const conditions: SQL[] = [];
 
+  // Always filter for HR-related tables (table_name starts with 'hr_')
+  conditions.push(sql`${auditTable.tableName} LIKE 'hr_%'`);
+
   if (fromDate) {
-    conditions.push(sql`${tables.auditLog.createdAt} >= ${fromDate}`);
+    conditions.push(sql`${auditTable.createdAt} >= ${fromDate}`);
   }
 
   if (toDate) {
-    conditions.push(sql`${tables.auditLog.createdAt} <= ${toDate}`);
+    conditions.push(sql`${auditTable.createdAt} <= ${toDate}`);
   }
 
-  let query = db
+  const query = db
     .select({
-      action: tables.auditLog.action,
+      action: auditTable.action,
       count: sql<number>`COUNT(*)`,
     })
-    .from(tables.auditLog)
-    .groupBy(tables.auditLog.action);
-
-  if (conditions.length > 0) {
-    query = db
-      .select({
-        action: tables.auditLog.action,
-        count: sql<number>`COUNT(*)`,
-      })
-      .from(tables.auditLog)
-      .where(and(...conditions))
-      .groupBy(tables.auditLog.action);
-  }
+    .from(auditTable)
+    .where(and(...conditions))
+    .groupBy(auditTable.action);
 
   const results = await query;
 
