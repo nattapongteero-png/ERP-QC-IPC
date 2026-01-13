@@ -29,7 +29,6 @@ import {
   Package,
   FileText,
   Eye,
-  Droplets,
   FlaskConical,
 } from 'lucide-react';
 
@@ -179,10 +178,10 @@ export default function FinishedInspectionPage() {
   // Update inspection (submit checklist) mutation
   const updateInspectionMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: { checklistResults: Record<string, boolean>; notes?: string } }) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/finished-inspection/${id}`, {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/finished-inspection`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ id, ...data }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -201,8 +200,10 @@ export default function FinishedInspectionPage() {
   // Re-inspect mutation
   const reInspectMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/finished-inspection/${id}/re-inspect`, {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/finished-inspection`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inspectionId: id }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
