@@ -27,10 +27,11 @@ export const PHASE_DEFINITIONS: PhaseDefinition[] = [
   { id: 6, name: 'Sales Flow', description: 'Order to delivery', stepCount: 4 },
   { id: 7, name: 'Accounting Verification', description: 'Financial validation', stepCount: 4 },
   { id: 8, name: 'VMI Integration', description: 'External sync', stepCount: 2 },
+  { id: 9, name: 'HR Flow', description: 'HR management', stepCount: 8 },
 ]
 
-export const TOTAL_STEPS = 31
-export const TOTAL_PHASES = 8
+export const TOTAL_STEPS = 39
+export const TOTAL_PHASES = 9
 
 // ============================================================================
 // Helper Functions
@@ -1881,6 +1882,613 @@ export const STEP_DEFINITIONS: StepDefinition[] = [
               result.apiCall.responseBody
             )
           : undefined,
+      }
+    },
+  },
+
+  // =========================================================================
+  // Phase 9: HR Flow (Steps 32-39)
+  // =========================================================================
+  {
+    id: 32,
+    phaseId: 9,
+    name: 'Setup organization structure',
+    description: 'Create department and section org units for HR hierarchy',
+    endpoint: '/api/hr/org-units',
+    method: 'POST',
+    activityMessage: 'Creating organization units...',
+    execute: async (ctx: ExecutionContext): Promise<StepResult> => {
+      const today = new Date().toISOString().split('T')[0]
+
+      // Create a department first
+      const deptPayload = {
+        code: `${ctx.config.prefix}DEPT01`,
+        name: `${ctx.config.prefix}ฝ่ายผลิต`,
+        nameEn: `${ctx.config.prefix}Production Department`,
+        type: 'department',
+        parentId: null,
+        isGmpCritical: true,
+        effectiveFrom: today,
+      }
+
+      const deptResult = await executeApiCall(ctx, '/api/hr/org-units', 'POST', deptPayload)
+
+      if (!deptResult.success) {
+        return {
+          success: false,
+          apiCall: deptResult.apiCall,
+          createdEntities: [],
+          error: createStepError(
+            deptResult.data?.error as string || 'Failed to create department',
+            '/api/hr/org-units',
+            deptResult.apiCall.responseStatus,
+            deptResult.apiCall.responseBody
+          ),
+        }
+      }
+
+      const deptId = (deptResult.data?.data as Record<string, unknown>)?.id as number
+
+      // Create a section under the department
+      const sectionPayload = {
+        code: `${ctx.config.prefix}SEC01`,
+        name: `${ctx.config.prefix}แผนกควบคุมคุณภาพ`,
+        nameEn: `${ctx.config.prefix}QC Section`,
+        type: 'section',
+        parentId: deptId,
+        isGmpCritical: true,
+        effectiveFrom: today,
+      }
+
+      const sectionResult = await executeApiCall(ctx, '/api/hr/org-units', 'POST', sectionPayload)
+
+      const sectionId = sectionResult.success
+        ? ((sectionResult.data?.data as Record<string, unknown>)?.id as number)
+        : null
+
+      const createdEntities: CreatedEntity[] = [
+        {
+          entityType: 'orgUnit',
+          entityId: deptId,
+          entityCode: `${ctx.config.prefix}DEPT01`,
+          viewUrl: `/hr/org-units/${deptId}`,
+        },
+      ]
+
+      if (sectionId) {
+        createdEntities.push({
+          entityType: 'orgUnit',
+          entityId: sectionId,
+          entityCode: `${ctx.config.prefix}SEC01`,
+          viewUrl: `/hr/org-units/${sectionId}`,
+        })
+      }
+
+      ctx.createdData.orgUnits = {
+        departmentId: deptId,
+        sectionId: sectionId,
+      }
+
+      return {
+        success: true,
+        apiCall: deptResult.apiCall,
+        createdEntities,
+        data: { departmentId: deptId, sectionId },
+      }
+    },
+  },
+  {
+    id: 33,
+    phaseId: 9,
+    name: 'Setup positions',
+    description: 'Create positions for Production Manager and QC Supervisor',
+    endpoint: '/api/hr/positions',
+    method: 'POST',
+    activityMessage: 'Creating positions...',
+    execute: async (ctx: ExecutionContext): Promise<StepResult> => {
+      const orgUnits = ctx.createdData.orgUnits as Record<string, number>
+      const positions = [
+        {
+          code: `${ctx.config.prefix}POS01`,
+          title: `${ctx.config.prefix}ผู้จัดการฝ่ายผลิต`,
+          titleEn: `${ctx.config.prefix}Production Manager`,
+          orgUnitId: orgUnits.departmentId,
+          jobGrade: 'M3',
+          isGmpCritical: true,
+        },
+        {
+          code: `${ctx.config.prefix}POS02`,
+          title: `${ctx.config.prefix}หัวหน้าแผนก QC`,
+          titleEn: `${ctx.config.prefix}QC Supervisor`,
+          orgUnitId: orgUnits.sectionId || orgUnits.departmentId,
+          jobGrade: 'S2',
+          isGmpCritical: true,
+        },
+      ]
+
+      const createdEntities: CreatedEntity[] = []
+      const positionIds: Record<string, number> = {}
+
+      for (const pos of positions) {
+        const result = await executeApiCall(ctx, '/api/hr/positions', 'POST', pos)
+        if (result.success) {
+          const posId = (result.data?.data as Record<string, unknown>)?.id as number
+          positionIds[pos.code] = posId
+          createdEntities.push({
+            entityType: 'position',
+            entityId: posId,
+            entityCode: pos.code,
+            viewUrl: `/hr/positions/${posId}`,
+          })
+        }
+      }
+
+      ctx.createdData.positions = positionIds
+
+      return {
+        success: createdEntities.length > 0,
+        apiCall: {
+          endpoint: '/api/hr/positions',
+          method: 'POST',
+          requestPayload: { positions },
+          requestHeaders: { 'Content-Type': 'application/json' },
+          responseStatus: 200,
+          responseBody: { created: createdEntities.length },
+          responseTime: 0,
+        },
+        createdEntities,
+        data: { positionIds },
+      }
+    },
+  },
+  {
+    id: 34,
+    phaseId: 9,
+    name: 'Assign employees to positions',
+    description: 'Create employee-position assignments with effective dates',
+    endpoint: '/api/hr/employees/{id}/assignments',
+    method: 'POST',
+    activityMessage: 'Assigning employees to positions...',
+    execute: async (ctx: ExecutionContext): Promise<StepResult> => {
+      const employees = ctx.createdData.employees as Record<string, number>
+      const positions = ctx.createdData.positions as Record<string, number>
+      const orgUnits = ctx.createdData.orgUnits as Record<string, number>
+
+      const today = new Date().toISOString().split('T')[0]
+
+      // Get employee IDs
+      const emp1Code = `${ctx.config.prefix}EMP001`
+      const emp2Code = `${ctx.config.prefix}EMP002`
+      const pos1Code = `${ctx.config.prefix}POS01`
+      const pos2Code = `${ctx.config.prefix}POS02`
+
+      const assignments = [
+        {
+          employeeId: employees[emp1Code],
+          positionId: positions[pos1Code],
+          orgUnitId: orgUnits.departmentId,
+          effectiveFrom: today,
+        },
+        {
+          employeeId: employees[emp2Code],
+          positionId: positions[pos2Code],
+          orgUnitId: orgUnits.sectionId || orgUnits.departmentId,
+          effectiveFrom: today,
+        },
+      ]
+
+      const createdEntities: CreatedEntity[] = []
+
+      for (const assignment of assignments) {
+        if (!assignment.employeeId || !assignment.positionId) continue
+
+        const endpoint = `/api/hr/employees/${assignment.employeeId}/assignments`
+        const result = await executeApiCall(ctx, endpoint, 'POST', {
+          positionId: assignment.positionId,
+          orgUnitId: assignment.orgUnitId,
+          effectiveFrom: assignment.effectiveFrom,
+          isPrimary: true,
+        })
+
+        if (result.success) {
+          const assignId = (result.data?.data as Record<string, unknown>)?.id as number
+          createdEntities.push({
+            entityType: 'employeeAssignment',
+            entityId: assignId,
+            entityCode: `EMP-${assignment.employeeId}-POS-${assignment.positionId}`,
+            viewUrl: `/hr/employees/${assignment.employeeId}`,
+          })
+        }
+      }
+
+      ctx.createdData.employeeAssignments = { count: createdEntities.length }
+
+      return {
+        success: createdEntities.length > 0,
+        apiCall: {
+          endpoint: '/api/hr/employees/{id}/assignments',
+          method: 'POST',
+          requestPayload: { assignments },
+          requestHeaders: { 'Content-Type': 'application/json' },
+          responseStatus: 200,
+          responseBody: { created: createdEntities.length },
+          responseTime: 0,
+        },
+        createdEntities,
+        data: { assignedCount: createdEntities.length },
+      }
+    },
+  },
+  {
+    id: 35,
+    phaseId: 9,
+    name: 'Setup training courses',
+    description: 'Create mandatory GMP and SOP training courses',
+    endpoint: '/api/hr/training/courses',
+    method: 'POST',
+    activityMessage: 'Creating training courses...',
+    execute: async (ctx: ExecutionContext): Promise<StepResult> => {
+      const courses = [
+        {
+          code: `${ctx.config.prefix}TRN01`,
+          name: `${ctx.config.prefix}GMP Training`,
+          nameEn: `${ctx.config.prefix}GMP Training`,
+          description: 'Good Manufacturing Practice training for GMP-critical positions',
+          category: 'GMP',
+          validityDays: 365,
+          isMandatory: true,
+          durationHours: 8,
+        },
+        {
+          code: `${ctx.config.prefix}TRN02`,
+          name: `${ctx.config.prefix}SOP Training`,
+          nameEn: `${ctx.config.prefix}SOP Training`,
+          description: 'Standard Operating Procedure training',
+          category: 'SOP',
+          validityDays: 180,
+          isMandatory: true,
+          durationHours: 4,
+        },
+      ]
+
+      const createdEntities: CreatedEntity[] = []
+      const courseIds: Record<string, number> = {}
+
+      for (const course of courses) {
+        const result = await executeApiCall(ctx, '/api/hr/training/courses', 'POST', course)
+        if (result.success) {
+          const courseId = (result.data?.data as Record<string, unknown>)?.id as number
+          courseIds[course.code] = courseId
+          createdEntities.push({
+            entityType: 'trainingCourse',
+            entityId: courseId,
+            entityCode: course.code,
+            viewUrl: `/hr/training/courses/${courseId}`,
+          })
+        }
+      }
+
+      ctx.createdData.trainingCourses = courseIds
+
+      return {
+        success: createdEntities.length > 0,
+        apiCall: {
+          endpoint: '/api/hr/training/courses',
+          method: 'POST',
+          requestPayload: { courses },
+          requestHeaders: { 'Content-Type': 'application/json' },
+          responseStatus: 200,
+          responseBody: { created: createdEntities.length },
+          responseTime: 0,
+        },
+        createdEntities,
+        data: { courseIds },
+      }
+    },
+  },
+  {
+    id: 36,
+    phaseId: 9,
+    name: 'Create training sessions',
+    description: 'Schedule training sessions for created courses',
+    endpoint: '/api/hr/training/sessions',
+    method: 'POST',
+    activityMessage: 'Creating training sessions...',
+    execute: async (ctx: ExecutionContext): Promise<StepResult> => {
+      const courses = ctx.createdData.trainingCourses as Record<string, number>
+      const today = new Date().toISOString().split('T')[0]
+
+      const gmpCourseCode = `${ctx.config.prefix}TRN01`
+      const sopCourseCode = `${ctx.config.prefix}TRN02`
+
+      const sessions = [
+        {
+          courseId: courses[gmpCourseCode],
+          sessionDate: today,
+          startTime: '09:00',
+          endTime: '17:00',
+          location: 'Training Room A',
+          instructorExternal: 'External GMP Trainer',
+          maxParticipants: 20,
+        },
+        {
+          courseId: courses[sopCourseCode],
+          sessionDate: today,
+          startTime: '13:00',
+          endTime: '17:00',
+          location: 'Training Room B',
+          instructorExternal: 'Internal SOP Trainer',
+          maxParticipants: 15,
+        },
+      ]
+
+      const createdEntities: CreatedEntity[] = []
+      const sessionIds: Record<string, number> = {}
+
+      for (const session of sessions) {
+        if (!session.courseId) continue
+
+        const result = await executeApiCall(ctx, '/api/hr/training/sessions', 'POST', session)
+        if (result.success) {
+          const sessionId = (result.data?.data as Record<string, unknown>)?.id as number
+          const courseKey = Object.keys(courses).find(k => courses[k] === session.courseId)
+          if (courseKey) {
+            sessionIds[courseKey] = sessionId
+          }
+          createdEntities.push({
+            entityType: 'trainingSession',
+            entityId: sessionId,
+            entityCode: `Session-${sessionId}`,
+            viewUrl: `/hr/training/sessions/${sessionId}`,
+          })
+        }
+      }
+
+      ctx.createdData.trainingSessions = sessionIds
+
+      return {
+        success: createdEntities.length > 0,
+        apiCall: {
+          endpoint: '/api/hr/training/sessions',
+          method: 'POST',
+          requestPayload: { sessions },
+          requestHeaders: { 'Content-Type': 'application/json' },
+          responseStatus: 200,
+          responseBody: { created: createdEntities.length },
+          responseTime: 0,
+        },
+        createdEntities,
+        data: { sessionIds },
+      }
+    },
+  },
+  {
+    id: 37,
+    phaseId: 9,
+    name: 'Record training completion',
+    description: 'Record training records for employees completing courses',
+    endpoint: '/api/hr/training/records',
+    method: 'POST',
+    activityMessage: 'Recording training completion...',
+    execute: async (ctx: ExecutionContext): Promise<StepResult> => {
+      const employees = ctx.createdData.employees as Record<string, number>
+      const courses = ctx.createdData.trainingCourses as Record<string, number>
+      const sessions = ctx.createdData.trainingSessions as Record<string, number>
+
+      const today = new Date().toISOString().split('T')[0]
+      const emp1Code = `${ctx.config.prefix}EMP001`
+      const emp2Code = `${ctx.config.prefix}EMP002`
+      const gmpCourseCode = `${ctx.config.prefix}TRN01`
+      const sopCourseCode = `${ctx.config.prefix}TRN02`
+
+      const records = [
+        {
+          employeeId: employees[emp1Code],
+          courseId: courses[gmpCourseCode],
+          sessionId: sessions[gmpCourseCode],
+          completionDate: today,
+          result: 'pass',
+          score: 85,
+          certificateNumber: `${ctx.config.prefix}CERT-GMP-001`,
+          notes: 'Completed GMP training successfully',
+        },
+        {
+          employeeId: employees[emp2Code],
+          courseId: courses[gmpCourseCode],
+          sessionId: sessions[gmpCourseCode],
+          completionDate: today,
+          result: 'pass',
+          score: 92,
+          certificateNumber: `${ctx.config.prefix}CERT-GMP-002`,
+          notes: 'Completed GMP training with excellent score',
+        },
+        {
+          employeeId: employees[emp2Code],
+          courseId: courses[sopCourseCode],
+          sessionId: sessions[sopCourseCode],
+          completionDate: today,
+          result: 'pass',
+          score: 88,
+          certificateNumber: `${ctx.config.prefix}CERT-SOP-001`,
+          notes: 'Completed SOP training',
+        },
+      ]
+
+      const createdEntities: CreatedEntity[] = []
+
+      for (const record of records) {
+        if (!record.employeeId || !record.courseId) continue
+
+        const result = await executeApiCall(ctx, '/api/hr/training/records', 'POST', record)
+        if (result.success) {
+          const recordId = (result.data?.data as Record<string, unknown>)?.id as number
+          createdEntities.push({
+            entityType: 'trainingRecord',
+            entityId: recordId,
+            entityCode: record.certificateNumber || `Record-${recordId}`,
+            viewUrl: `/hr/training/records/${recordId}`,
+          })
+        }
+      }
+
+      ctx.createdData.trainingRecords = { count: createdEntities.length }
+
+      return {
+        success: createdEntities.length > 0,
+        apiCall: {
+          endpoint: '/api/hr/training/records',
+          method: 'POST',
+          requestPayload: { records },
+          requestHeaders: { 'Content-Type': 'application/json' },
+          responseStatus: 200,
+          responseBody: { created: createdEntities.length },
+          responseTime: 0,
+        },
+        createdEntities,
+        data: { recordCount: createdEntities.length },
+      }
+    },
+  },
+  {
+    id: 38,
+    phaseId: 9,
+    name: 'Create authorizations',
+    description: 'Grant batch release and QC approval authorizations',
+    endpoint: '/api/hr/authorizations',
+    method: 'POST',
+    activityMessage: 'Creating authorizations...',
+    execute: async (ctx: ExecutionContext): Promise<StepResult> => {
+      const employees = ctx.createdData.employees as Record<string, number>
+
+      const today = new Date().toISOString().split('T')[0]
+      const nextYear = new Date()
+      nextYear.setFullYear(nextYear.getFullYear() + 1)
+      const effectiveTo = nextYear.toISOString().split('T')[0]
+
+      const emp2Code = `${ctx.config.prefix}EMP002` // QC Inspector
+
+      const authorizations = [
+        {
+          employeeId: employees[emp2Code],
+          authType: 'batch_release',
+          effectiveFrom: today,
+          effectiveTo: effectiveTo,
+        },
+        {
+          employeeId: employees[emp2Code],
+          authType: 'sop_approval',
+          effectiveFrom: today,
+          effectiveTo: effectiveTo,
+        },
+      ]
+
+      const createdEntities: CreatedEntity[] = []
+
+      for (const auth of authorizations) {
+        if (!auth.employeeId) continue
+
+        const result = await executeApiCall(ctx, '/api/hr/authorizations', 'POST', auth)
+        if (result.success) {
+          const authId = (result.data?.data as Record<string, unknown>)?.id as number
+          createdEntities.push({
+            entityType: 'authorization',
+            entityId: authId,
+            entityCode: `${auth.authType}-${auth.employeeId}`,
+            viewUrl: `/hr/authorizations/${authId}`,
+          })
+        }
+      }
+
+      ctx.createdData.authorizations = { count: createdEntities.length }
+
+      return {
+        success: createdEntities.length > 0,
+        apiCall: {
+          endpoint: '/api/hr/authorizations',
+          method: 'POST',
+          requestPayload: { authorizations },
+          requestHeaders: { 'Content-Type': 'application/json' },
+          responseStatus: 200,
+          responseBody: { created: createdEntities.length },
+          responseTime: 0,
+        },
+        createdEntities,
+        data: { authCount: createdEntities.length },
+      }
+    },
+  },
+  {
+    id: 39,
+    phaseId: 9,
+    name: 'Record health examination',
+    description: 'Create health records for periodic examination',
+    endpoint: '/api/hr/health-records',
+    method: 'POST',
+    activityMessage: 'Recording health examinations...',
+    execute: async (ctx: ExecutionContext): Promise<StepResult> => {
+      const employees = ctx.createdData.employees as Record<string, number>
+
+      const today = new Date().toISOString().split('T')[0]
+      const nextYear = new Date()
+      nextYear.setFullYear(nextYear.getFullYear() + 1)
+      const nextExamDue = nextYear.toISOString().split('T')[0]
+
+      const emp1Code = `${ctx.config.prefix}EMP001`
+      const emp2Code = `${ctx.config.prefix}EMP002`
+
+      const healthRecords = [
+        {
+          employeeId: employees[emp1Code],
+          examinationType: 'periodic',
+          examinationDate: today,
+          nextExamDue: nextExamDue,
+          fitnessStatus: 'fit',
+          examinerName: 'Dr. Test Examiner',
+          examinerNotes: 'Annual health check - all clear',
+        },
+        {
+          employeeId: employees[emp2Code],
+          examinationType: 'periodic',
+          examinationDate: today,
+          nextExamDue: nextExamDue,
+          fitnessStatus: 'fit',
+          examinerName: 'Dr. Test Examiner',
+          examinerNotes: 'Annual health check - fit for QC duties',
+        },
+      ]
+
+      const createdEntities: CreatedEntity[] = []
+
+      for (const record of healthRecords) {
+        if (!record.employeeId) continue
+
+        const result = await executeApiCall(ctx, '/api/hr/health-records', 'POST', record)
+        if (result.success) {
+          const recordId = (result.data?.data as Record<string, unknown>)?.id as number
+          createdEntities.push({
+            entityType: 'healthRecord',
+            entityId: recordId,
+            entityCode: `Health-${record.employeeId}-${today}`,
+            viewUrl: `/hr/health-records/${recordId}`,
+          })
+        }
+      }
+
+      ctx.createdData.healthRecords = { count: createdEntities.length }
+
+      return {
+        success: createdEntities.length > 0,
+        apiCall: {
+          endpoint: '/api/hr/health-records',
+          method: 'POST',
+          requestPayload: { healthRecords },
+          requestHeaders: { 'Content-Type': 'application/json' },
+          responseStatus: 200,
+          responseBody: { created: createdEntities.length },
+          responseTime: 0,
+        },
+        createdEntities,
+        data: { recordCount: createdEntities.length },
       }
     },
   },

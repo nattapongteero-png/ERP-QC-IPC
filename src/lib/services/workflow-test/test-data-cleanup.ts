@@ -13,6 +13,14 @@ export const DEFAULT_TEST_PREFIX = 'WFTEST_'
 
 // Tables to clean in reverse dependency order
 const CLEANUP_ORDER = [
+  // Phase 9: HR Flow (most dependent first)
+  'HRHealthRecords',
+  'HRAuthorizations',
+  'HRTrainingRecords',
+  'HRTrainingSessions',
+  'HRTrainingCourses',
+  'HREmployeeAssignments',
+
   // Phase 8: VMI - no direct table, handled by sync logs
   // 'vmiSyncLogs',
 
@@ -49,9 +57,10 @@ const CLEANUP_ORDER = [
   'BOMLines',
   'BOM',
 
-  // Phase 1: Master Data
-  'HRTrainingRecords',
+  // Phase 1: Master Data (employees before positions/org units)
   'HREmployees',
+  'HRPositions',
+  'HROrgUnits',
   'items',
   'itemCategories',
   'warehouseLocations',
