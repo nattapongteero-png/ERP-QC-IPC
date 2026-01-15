@@ -14,6 +14,7 @@ import {
   sqliteGLAccounts,
   sqliteHROrgUnits,
   sqliteHREmployees,
+  sqliteUsers,
   mysqlItems,
   mysqlInventoryLots,
   mysqlPurchaseOrderLines,
@@ -22,6 +23,7 @@ import {
   mysqlGLAccounts,
   mysqlHROrgUnits,
   mysqlHREmployees,
+  mysqlUsers,
 } from './schema';
 
 // ============================================
@@ -191,9 +193,9 @@ export const sqliteConfidentialAccessGroups = sqliteTable('confidential_access_g
 export const sqliteConfidentialAccessGroupMembers = sqliteTable('confidential_access_group_members', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   groupId: integer('group_id').notNull().references(() => sqliteConfidentialAccessGroups.id),
-  userId: integer('user_id').notNull(),  // References users table from schema.ts
+  userId: integer('user_id').notNull().references(() => sqliteUsers.id),
   addedAt: text('added_at').notNull().default('CURRENT_TIMESTAMP'),
-  addedBy: integer('added_by'),  // References users table from schema.ts
+  addedBy: integer('added_by').references(() => sqliteUsers.id),
 });
 
 // ============================================
@@ -483,9 +485,9 @@ export const mysqlConfidentialAccessGroups = mysqlTable('confidential_access_gro
 export const mysqlConfidentialAccessGroupMembers = mysqlTable('confidential_access_group_members', {
   id: int('id').primaryKey().autoincrement(),
   groupId: int('group_id').notNull().references(() => mysqlConfidentialAccessGroups.id),
-  userId: int('user_id').notNull(),  // References users table
+  userId: int('user_id').notNull().references(() => mysqlUsers.id),
   addedAt: datetime('added_at').notNull().default(new Date()),
-  addedBy: int('added_by'),  // References users table
+  addedBy: int('added_by').references(() => mysqlUsers.id),
 });
 
 // ============================================
