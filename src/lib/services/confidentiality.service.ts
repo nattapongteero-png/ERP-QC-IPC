@@ -8,13 +8,14 @@
  * - BOM Access Grants
  */
 
-import { eq, count } from 'drizzle-orm';
+import { eq, count, and } from 'drizzle-orm';
 import { getTableRef, executeDbOperation, getInsertId } from '../db/db-helper';
 import { getNow } from '../db/date-utils';
 import type {
   ConfidentialAccessGroup,
   ConfidentialAccessGroupCreate,
   ConfidentialAccessGroupUpdate,
+  ConfidentialAccessGroupMember,
 } from '@/types/confidentiality';
 
 /**
@@ -156,4 +157,99 @@ export async function deleteConfidentialAccessGroup(id: number): Promise<void> {
     // Delete the group
     await db.delete(tables.groups).where(eq(tables.groups.id, id));
   });
+}
+
+// ============ Group Members ============
+
+/**
+ * Add a user to a confidential access group
+ */
+export async function addGroupMember(
+  groupId: number,
+  userId: number,
+  addedBy: number
+): Promise<{ id: number }> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const result = await db.insert(tables.groupMembers).values({
+      groupId,
+      userId,
+      addedBy,
+      addedAt: getNow(),
+    });
+    return { id: getInsertId(result) };
+  });
+}
+
+/**
+ * Remove a user from a confidential access group
+ */
+export async function removeGroupMember(
+  groupId: number,
+  userId: number
+): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    await db
+      .delete(tables.groupMembers)
+      .where(
+        and(
+          eq(tables.groupMembers.groupId, groupId),
+          eq(tables.groupMembers.userId, userId)
+        )
+      );
+  });
+}
+
+/**
+ * Get all members of a confidential access group with user info
+ */
+export async function getGroupMembers(
+  groupId: number
+): Promise<ConfidentialAccessGroupMember[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    return db
+      .select({
+        id: tables.groupMembers.id,
+        groupId: tables.groupMembers.groupId,
+        userId: tables.groupMembers.userId,
+        addedAt: tables.groupMembers.addedAt,
+        addedBy: tables.groupMembers.addedBy,
+        userName: tables.users.name,
+        userEmail: tables.users.email,
+      })
+      .from(tables.groupMembers)
+      .leftJoin(tables.users, eq(tables.groupMembers.userId, tables.users.id))
+      .where(eq(tables.groupMembers.groupId, groupId));
+  });
+}
+
+/**
+ * Get all groups that a user belongs to
+ */
+export async function getUserGroups(
+  userId: number
+): Promise<ConfidentialAccessGroup[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    return db
+      .select({
+        id: tables.groups.id,
+        code: tables.groups.code,
+        name: tables.groups.name,
+        description: tables.groups.description,
+      })
+      .from(tables.groupMembers)
+      .innerJoin(tables.groups, eq(tables.groupMembers.groupId, tables.groups.id))
+      .where(eq(tables.groupMembers.userId, userId));
+  });
+}
+
+/**
+ * Get all group IDs that a user belongs to
+ */
+export async function getUserGroupIds(userId: number): Promise<number[]> {
+  const groups = await getUserGroups(userId);
+  return groups.map(g => g.id);
 }

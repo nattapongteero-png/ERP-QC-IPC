@@ -48,6 +48,11 @@ import {
   listConfidentialAccessGroups,
   updateConfidentialAccessGroup,
   deleteConfidentialAccessGroup,
+  addGroupMember,
+  removeGroupMember,
+  getGroupMembers,
+  getUserGroups,
+  getUserGroupIds,
 } from '@/lib/services/confidentiality.service';
 
 describe('Confidentiality Service - Groups', () => {
@@ -298,5 +303,113 @@ describe('Confidentiality Service - Groups', () => {
       expect(result).toBeDefined();
       expect(result?.code).toBe('KEEP_THIS');
     });
+  });
+});
+
+describe('Confidentiality Service - Group Members', () => {
+  beforeEach(() => {
+    // Create in-memory SQLite database
+    testSqlite = new Database(':memory:');
+    testSqlite.pragma('journal_mode = WAL');
+    testDb = drizzle(testSqlite, { schema });
+    setTestDb(testDb);
+
+    // Create required tables for confidentiality testing
+    const tables = [
+      schema.sqliteUsers,
+      schema.sqliteConfidentialAccessGroups,
+      schema.sqliteConfidentialAccessGroupMembers,
+    ];
+
+    for (const table of tables) {
+      try {
+        const createSql = generateCreateTableSql(table);
+        testSqlite.exec(createSql);
+      } catch (err) {
+        console.log(`Table creation note: ${err}`);
+      }
+    }
+
+    // Seed test user (using actual schema column names)
+    testSqlite.exec(`
+      INSERT INTO users (id, email, password, name, role, is_active)
+      VALUES (1, 'test@example.com', 'hashed_password', 'Test User', 'admin', 1)
+    `);
+  });
+
+  afterEach(() => {
+    if (testSqlite) {
+      testSqlite.close();
+    }
+  });
+
+  it('should add user to group', async () => {
+    // Create a test group
+    const group = await createConfidentialAccessGroup({
+      code: 'MEMBER_TEST',
+      name: 'Member Test Group',
+    });
+
+    // Create a test user in the database
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('member@test.com', 'hash', 'Test Member', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    await addGroupMember(group.id, userId, userId);
+
+    const members = await getGroupMembers(group.id);
+    expect(members.length).toBe(1);
+    expect(members[0].userId).toBe(userId);
+  });
+
+  it('should remove user from group', async () => {
+    // Similar setup
+    const group = await createConfidentialAccessGroup({
+      code: 'REMOVE_TEST',
+      name: 'Remove Test Group',
+    });
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('remove@test.com', 'hash', 'Remove Test', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    await addGroupMember(group.id, userId, userId);
+    await removeGroupMember(group.id, userId);
+
+    const members = await getGroupMembers(group.id);
+    expect(members.length).toBe(0);
+  });
+
+  it('should get user groups', async () => {
+    const group = await createConfidentialAccessGroup({
+      code: 'USER_GROUPS_TEST',
+      name: 'User Groups Test',
+    });
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('groups@test.com', 'hash', 'Groups Test', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    await addGroupMember(group.id, userId, userId);
+
+    const groups = await getUserGroups(userId);
+    expect(groups.length).toBe(1);
+    expect(groups[0].id).toBe(group.id);
+  });
+
+  it('should get user group IDs', async () => {
+    const group = await createConfidentialAccessGroup({
+      code: 'GROUP_IDS_TEST',
+      name: 'Group IDs Test',
+    });
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('ids@test.com', 'hash', 'IDs Test', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    await addGroupMember(group.id, userId, userId);
+
+    const ids = await getUserGroupIds(userId);
+    expect(ids).toContain(group.id);
   });
 });
