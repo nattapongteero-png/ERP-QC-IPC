@@ -19,6 +19,102 @@ import { PHASE_DEFINITIONS, STEP_DEFINITIONS, TOTAL_STEPS } from './workflow-ste
 import { cleanupTestData } from './test-data-cleanup'
 
 // ============================================================================
+// Fiscal Period Setup
+// ============================================================================
+
+interface FiscalPeriod {
+  id: number
+  periodName: string
+  startDate: string
+  endDate: string
+  status: 'open' | 'soft_closed' | 'closed'
+}
+
+/**
+ * Ensure the fiscal period for today is open for journal entries
+ */
+async function ensureFiscalPeriodOpen(
+  baseUrl: string,
+  cookies: string
+): Promise<{ success: boolean; message: string; periodId?: number }> {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+
+    // Fetch all fiscal periods
+    const periodsResponse = await fetch(`${baseUrl}/api/accounting/fiscal-periods`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookies,
+      },
+    })
+
+    if (!periodsResponse.ok) {
+      return { success: false, message: 'Failed to fetch fiscal periods' }
+    }
+
+    const periodsData = await periodsResponse.json()
+    const periods: FiscalPeriod[] = periodsData.data || []
+
+    // Find period that covers today
+    const todayDate = new Date(today)
+    const currentPeriod = periods.find((p) => {
+      const start = new Date(p.startDate)
+      const end = new Date(p.endDate)
+      return todayDate >= start && todayDate <= end
+    })
+
+    if (!currentPeriod) {
+      return { success: false, message: `No fiscal period found for date ${today}` }
+    }
+
+    // If period is open, we're good
+    if (currentPeriod.status === 'open') {
+      return {
+        success: true,
+        message: `Fiscal period "${currentPeriod.periodName}" is already open`,
+        periodId: currentPeriod.id,
+      }
+    }
+
+    // Period is closed - try to reopen it
+    const reopenResponse = await fetch(
+      `${baseUrl}/api/accounting/fiscal-periods/${currentPeriod.id}/reopen`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: cookies,
+        },
+        body: JSON.stringify({
+          reason: 'Workflow test requires open period for journal entries',
+          reopenedBy: 1,
+        }),
+      }
+    )
+
+    if (!reopenResponse.ok) {
+      const errorData = await reopenResponse.json().catch(() => ({}))
+      return {
+        success: false,
+        message: `Failed to reopen period: ${errorData.error || reopenResponse.statusText}`,
+        periodId: currentPeriod.id,
+      }
+    }
+
+    return {
+      success: true,
+      message: `Reopened fiscal period "${currentPeriod.periodName}" for workflow test`,
+      periodId: currentPeriod.id,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error ensuring fiscal period: ${error instanceof Error ? error.message : String(error)}`
+    }
+  }
+}
+
+// ============================================================================
 // Session Storage (in-memory for now)
 // ============================================================================
 
@@ -162,6 +258,29 @@ export async function executeWorkflowTest(options: ExecuteOptions): Promise<void
     session.cleanup = cleanupResult
 
     sendMessage({ type: 'cleanup_complete', status: cleanupResult })
+
+    // Ensure fiscal period is open for accounting entries
+    sendMessage({
+      type: 'step_activity',
+      stepId: 0,
+      message: 'Checking fiscal period status...',
+    })
+
+    const fiscalPeriodResult = await ensureFiscalPeriodOpen(
+      baseUrl,
+      options.cookies || ''
+    )
+
+    sendMessage({
+      type: 'step_activity',
+      stepId: 0,
+      message: fiscalPeriodResult.message,
+    })
+
+    if (!fiscalPeriodResult.success) {
+      // Log warning but don't fail - some tests may not need accounting
+      console.warn('[WorkflowTest] Fiscal period warning:', fiscalPeriodResult.message)
+    }
 
     // Create execution context
     const context: ExecutionContext = {
