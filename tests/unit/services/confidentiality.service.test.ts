@@ -53,6 +53,10 @@ import {
   getGroupMembers,
   getUserGroups,
   getUserGroupIds,
+  grantBOMAccess,
+  revokeBOMAccess,
+  getBOMAccessList,
+  userHasBOMAccess,
 } from '@/lib/services/confidentiality.service';
 
 describe('Confidentiality Service - Groups', () => {
@@ -411,5 +415,159 @@ describe('Confidentiality Service - Group Members', () => {
 
     const ids = await getUserGroupIds(userId);
     expect(ids).toContain(group.id);
+  });
+});
+
+describe('Confidentiality Service - BOM Access', () => {
+  beforeEach(() => {
+    // Create in-memory SQLite database
+    testSqlite = new Database(':memory:');
+    testSqlite.pragma('journal_mode = WAL');
+    testDb = drizzle(testSqlite, { schema });
+    setTestDb(testDb);
+
+    // Create required tables for BOM access testing
+    const tables = [
+      schema.sqliteUsers,
+      schema.sqliteItems,
+      schema.sqliteBOM,
+      schema.sqliteConfidentialAccessGroups,
+      schema.sqliteConfidentialAccessGroupMembers,
+      schema.sqliteBOMConfidentialAccess,
+    ];
+
+    for (const table of tables) {
+      try {
+        const createSql = generateCreateTableSql(table);
+        testSqlite.exec(createSql);
+      } catch (err) {
+        console.log(`Table creation note: ${err}`);
+      }
+    }
+
+    // Seed test user
+    testSqlite.exec(`
+      INSERT INTO users (id, email, password, name, role, is_active)
+      VALUES (1, 'test@example.com', 'hashed_password', 'Test User', 'admin', 1)
+    `);
+
+    // Seed test item (required for BOM foreign key)
+    testSqlite.exec(`
+      INSERT INTO items (id, code, name_th, type, primary_unit, is_active)
+      VALUES (1, 'ITEM001', 'Test Item', 'finished_goods', 'unit', 1)
+    `);
+  });
+
+  afterEach(() => {
+    if (testSqlite) {
+      testSqlite.close();
+    }
+  });
+
+  it('should grant user access to BOM', async () => {
+    // Create a BOM record first
+    testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM001', 'Test BOM', 1, '1.0', 'draft', 100, 'kg')`);
+    const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const bomId = bomIdResult.id;
+
+    // Create test user
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('access@test.com', 'hash', 'Access Test', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    const result = await grantBOMAccess({ bomId, userId }, userId);
+    expect(result.id).toBeGreaterThan(0);
+  });
+
+  it('should grant group access to BOM', async () => {
+    // Create test data
+    testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM002', 'Test BOM 2', 1, '1.0', 'draft', 100, 'kg')`);
+    const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const bomId = bomIdResult.id;
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('granter@test.com', 'hash', 'Granter', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const granterId = userIdResult.id;
+
+    const group = await createConfidentialAccessGroup({ code: 'BOM_ACCESS_GROUP', name: 'BOM Access Group' });
+
+    const result = await grantBOMAccess({ bomId, groupId: group.id }, granterId);
+    expect(result.id).toBeGreaterThan(0);
+  });
+
+  it('should return BOM access list', async () => {
+    testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM003', 'Test BOM 3', 1, '1.0', 'draft', 100, 'kg')`);
+    const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const bomId = bomIdResult.id;
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('list@test.com', 'hash', 'List Test', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    await grantBOMAccess({ bomId, userId }, userId);
+
+    const grants = await getBOMAccessList(bomId);
+    expect(grants.length).toBe(1);
+  });
+
+  it('should revoke BOM access', async () => {
+    testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM004', 'Test BOM 4', 1, '1.0', 'draft', 100, 'kg')`);
+    const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const bomId = bomIdResult.id;
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('revoke@test.com', 'hash', 'Revoke Test', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    const grant = await grantBOMAccess({ bomId, userId }, userId);
+    await revokeBOMAccess(grant.id);
+
+    const grants = await getBOMAccessList(bomId);
+    expect(grants.length).toBe(0);
+  });
+
+  it('should check user has direct BOM access', async () => {
+    testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM005', 'Test BOM 5', 1, '1.0', 'draft', 100, 'kg')`);
+    const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const bomId = bomIdResult.id;
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('direct@test.com', 'hash', 'Direct Test', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    await grantBOMAccess({ bomId, userId }, userId);
+
+    const hasAccess = await userHasBOMAccess(userId, bomId);
+    expect(hasAccess).toBe(true);
+  });
+
+  it('should check user has group-based BOM access', async () => {
+    testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM006', 'Test BOM 6', 1, '1.0', 'draft', 100, 'kg')`);
+    const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const bomId = bomIdResult.id;
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('group-access@test.com', 'hash', 'Group Access', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    const group = await createConfidentialAccessGroup({ code: 'GROUP_ACCESS', name: 'Group Access' });
+    await addGroupMember(group.id, userId, userId);
+    await grantBOMAccess({ bomId, groupId: group.id }, userId);
+
+    const hasAccess = await userHasBOMAccess(userId, bomId);
+    expect(hasAccess).toBe(true);
+  });
+
+  it('should return false for user without BOM access', async () => {
+    testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM007', 'Test BOM 7', 1, '1.0', 'draft', 100, 'kg')`);
+    const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const bomId = bomIdResult.id;
+
+    testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('no-access@test.com', 'hash', 'No Access', 'USER', 1)`);
+    const userIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+    const userId = userIdResult.id;
+
+    const hasAccess = await userHasBOMAccess(userId, bomId);
+    expect(hasAccess).toBe(false);
   });
 });

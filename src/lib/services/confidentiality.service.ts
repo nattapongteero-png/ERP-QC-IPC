@@ -8,7 +8,7 @@
  * - BOM Access Grants
  */
 
-import { eq, count, and } from 'drizzle-orm';
+import { eq, count, and, inArray } from 'drizzle-orm';
 import { getTableRef, executeDbOperation, getInsertId } from '../db/db-helper';
 import { getNow } from '../db/date-utils';
 import type {
@@ -16,6 +16,8 @@ import type {
   ConfidentialAccessGroupCreate,
   ConfidentialAccessGroupUpdate,
   ConfidentialAccessGroupMember,
+  BOMConfidentialAccess,
+  BOMConfidentialAccessCreate,
 } from '@/types/confidentiality';
 
 /**
@@ -252,4 +254,100 @@ export async function getUserGroups(
 export async function getUserGroupIds(userId: number): Promise<number[]> {
   const groups = await getUserGroups(userId);
   return groups.map(g => g.id);
+}
+
+// ============ BOM Access Grants ============
+
+/**
+ * Grant access to a confidential BOM for a user or group
+ */
+export async function grantBOMAccess(
+  data: BOMConfidentialAccessCreate,
+  grantedBy: number
+): Promise<{ id: number }> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const result = await db.insert(tables.bomAccess).values({
+      bomId: data.bomId,
+      userId: data.userId || null,
+      groupId: data.groupId || null,
+      grantedBy,
+      grantedAt: getNow(),
+    });
+    return { id: getInsertId(result) };
+  });
+}
+
+/**
+ * Revoke a BOM access grant
+ */
+export async function revokeBOMAccess(grantId: number): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    await db.delete(tables.bomAccess).where(eq(tables.bomAccess.id, grantId));
+  });
+}
+
+/**
+ * Get all access grants for a specific BOM
+ */
+export async function getBOMAccessList(bomId: number): Promise<BOMConfidentialAccess[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    return db
+      .select({
+        id: tables.bomAccess.id,
+        bomId: tables.bomAccess.bomId,
+        userId: tables.bomAccess.userId,
+        groupId: tables.bomAccess.groupId,
+        grantedBy: tables.bomAccess.grantedBy,
+        grantedAt: tables.bomAccess.grantedAt,
+      })
+      .from(tables.bomAccess)
+      .where(eq(tables.bomAccess.bomId, bomId));
+  });
+}
+
+/**
+ * Check if a user has access to a confidential BOM
+ * Checks both direct user grants and group-based grants
+ */
+export async function userHasBOMAccess(
+  userId: number,
+  bomId: number
+): Promise<boolean> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    // Check direct user grant
+    const userGrant = await db
+      .select({ id: tables.bomAccess.id })
+      .from(tables.bomAccess)
+      .where(
+        and(
+          eq(tables.bomAccess.bomId, bomId),
+          eq(tables.bomAccess.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (userGrant.length > 0) return true;
+
+    // Check group grants
+    const userGroupIds = await getUserGroupIds(userId);
+    if (userGroupIds.length === 0) return false;
+
+    const groupGrant = await db
+      .select({ id: tables.bomAccess.id })
+      .from(tables.bomAccess)
+      .where(
+        and(
+          eq(tables.bomAccess.bomId, bomId),
+          inArray(tables.bomAccess.groupId, userGroupIds)
+        )
+      )
+      .limit(1);
+
+    return groupGrant.length > 0;
+  });
 }
