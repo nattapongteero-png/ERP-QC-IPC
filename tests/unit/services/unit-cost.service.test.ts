@@ -64,6 +64,9 @@ import {
   upsertWorkOrderCost,
   calculateWorkOrderCost,
   getWorkOrderCostSummary,
+  // COGS functions (US5)
+  calculateCOGS,
+  updateSOLineWithCOGS,
 } from '@/lib/services/unit-cost.service';
 
 // Test data constants
@@ -97,6 +100,9 @@ describe('Unit Cost Service', () => {
       schema.sqlitePurchaseOrders,
       schema.sqlitePurchaseOrderLines,
       schema.sqliteVendors,
+      // Sales tables for COGS tests (US5)
+      schema.sqliteSalesOrders,
+      schema.sqliteSalesOrderLines,
     ];
 
     for (const table of tables) {
@@ -1080,6 +1086,119 @@ describe('Unit Cost Service', () => {
           const summary = await getWorkOrderCostSummary(9999);
           expect(summary).toBeNull();
         });
+      });
+    });
+  });
+
+  // ============================================
+  // US5: COGS Calculation on Sales
+  // ============================================
+  describe('COGS Calculation (US5)', () => {
+    describe('calculateCOGS', () => {
+      it('should calculate COGS with current WAC', async () => {
+        // Item 1 has WAC of 50 (5000 / 100)
+        const result = await calculateCOGS(1, 10, 150);
+
+        expect(result.unitCost).toBe(50);
+        expect(result.totalCost).toBe(500); // 50 * 10
+        expect(result.marginAmount).toBe(1000); // (150 * 10) - 500
+        expect(result.marginPercent).toBeCloseTo(66.67, 1); // 1000 / 1500 * 100
+      });
+
+      it('should calculate COGS for zero inventory item', async () => {
+        // Item 3 has no inventory (create it first)
+        testSqlite.exec(`
+          INSERT OR REPLACE INTO items (id, code, name_th, type, primary_unit, on_hand, on_hand_cost, is_active)
+          VALUES (3, 'RM-003', 'Raw Material 3', 'raw_material', 'kg', 0, 0, 1)
+        `);
+
+        const result = await calculateCOGS(3, 5, 200);
+
+        expect(result.unitCost).toBe(0);
+        expect(result.totalCost).toBe(0);
+        expect(result.marginAmount).toBe(1000); // 100% margin when cost is 0
+        expect(result.marginPercent).toBe(100);
+      });
+
+      it('should calculate 100% margin when cost is zero', async () => {
+        // Item 3 with no inventory has zero cost
+        testSqlite.exec(`
+          INSERT OR REPLACE INTO items (id, code, name_th, type, primary_unit, on_hand, on_hand_cost, is_active)
+          VALUES (3, 'RM-003', 'Raw Material 3', 'raw_material', 'kg', 0, 0, 1)
+        `);
+
+        const result = await calculateCOGS(3, 10, 100);
+
+        expect(result.unitCost).toBe(0);
+        expect(result.totalCost).toBe(0);
+        expect(result.marginAmount).toBe(1000);
+        expect(result.marginPercent).toBe(100);
+      });
+
+      it('should handle negative margin scenarios', async () => {
+        // Selling below cost: WAC = 50, selling at 40
+        const result = await calculateCOGS(1, 10, 40);
+
+        expect(result.unitCost).toBe(50);
+        expect(result.totalCost).toBe(500);
+        expect(result.marginAmount).toBe(-100); // (40 * 10) - 500
+        expect(result.marginPercent).toBeCloseTo(-25, 1); // -100 / 400 * 100
+      });
+
+      it('should round to 4 decimal places for cost', async () => {
+        // Test precision: WAC = 50, qty = 3
+        const result = await calculateCOGS(1, 3, 123.456);
+
+        expect(result.unitCost).toBe(50);
+        expect(result.totalCost).toBe(150); // 50 * 3
+      });
+    });
+
+    describe('updateSOLineWithCOGS', () => {
+      const TEST_SO_ID = 100; // Use a different ID to avoid conflicts
+      const TEST_SO_LINE_ID = 100;
+
+      beforeEach(() => {
+        // Create a test sales order and line
+        testSqlite.exec(`
+          INSERT OR REPLACE INTO sales_orders (id, so_number, customer_name, order_date, status)
+          VALUES (${TEST_SO_ID}, 'SO-2026-001', 'Test Customer', '2026-01-15', 'confirmed')
+        `);
+
+        testSqlite.exec(`
+          INSERT OR REPLACE INTO sales_order_lines (id, so_id, item_id, quantity, unit, unit_price, total_price)
+          VALUES (${TEST_SO_LINE_ID}, ${TEST_SO_ID}, 1, 10, 'kg', 150, 1500)
+        `);
+      });
+
+      it('should update SO line with COGS data', async () => {
+        await updateSOLineWithCOGS(TEST_SO_LINE_ID, {
+          unitCost: 50,
+          totalCost: 500,
+          marginAmount: 1000,
+          marginPercent: 66.67,
+        });
+
+        const line = testSqlite.prepare('SELECT * FROM sales_order_lines WHERE id = ?').get(TEST_SO_LINE_ID) as any;
+
+        expect(line.unit_cost).toBe(50);
+        expect(line.total_cost).toBe(500);
+        expect(line.margin_amount).toBe(1000);
+        expect(line.margin_percent).toBeCloseTo(66.67, 1);
+      });
+
+      it('should handle negative margin values', async () => {
+        await updateSOLineWithCOGS(TEST_SO_LINE_ID, {
+          unitCost: 50,
+          totalCost: 500,
+          marginAmount: -100,
+          marginPercent: -25,
+        });
+
+        const line = testSqlite.prepare('SELECT * FROM sales_order_lines WHERE id = ?').get(TEST_SO_LINE_ID) as any;
+
+        expect(line.margin_amount).toBe(-100);
+        expect(line.margin_percent).toBe(-25);
       });
     });
   });

@@ -346,6 +346,91 @@ export async function getItemCostViewsWithPrice(
 }
 
 // ============================================
+// COGS CALCULATION (US5)
+// ============================================
+
+/**
+ * Calculate Cost of Goods Sold for a sales line
+ *
+ * Uses the item's current WAC (Weighted Average Cost) to calculate:
+ * - unitCost: WAC at time of shipment
+ * - totalCost: quantity × unitCost (COGS)
+ * - marginAmount: (unitPrice - unitCost) × quantity
+ * - marginPercent: marginAmount / (unitPrice × quantity) × 100
+ *
+ * @param itemId - Item being sold
+ * @param quantity - Quantity being shipped
+ * @param unitPrice - Selling price per unit
+ * @returns COGS result with all cost and margin fields
+ */
+export async function calculateCOGS(
+  itemId: number,
+  quantity: number,
+  unitPrice: number
+): Promise<{
+  unitCost: number;
+  totalCost: number;
+  marginAmount: number;
+  marginPercent: number;
+}> {
+  // Get current WAC for the item
+  const wac = await getItemWAC(itemId);
+  const unitCost = wac !== null ? Math.round(wac * 10000) / 10000 : 0;
+
+  // Calculate COGS
+  const totalCost = Math.round(unitCost * quantity * 10000) / 10000;
+
+  // Calculate margin
+  const revenue = unitPrice * quantity;
+  const marginAmount = Math.round((revenue - totalCost) * 10000) / 10000;
+
+  // Calculate margin percent (avoid division by zero)
+  let marginPercent = 0;
+  if (revenue > 0) {
+    marginPercent = Math.round((marginAmount / revenue) * 10000) / 100;
+  }
+
+  return {
+    unitCost,
+    totalCost,
+    marginAmount,
+    marginPercent,
+  };
+}
+
+/**
+ * Update sales order line with COGS and margin data
+ *
+ * Called after shipment to record the cost at time of sale for margin analysis.
+ *
+ * @param soLineId - Sales order line ID
+ * @param cogsData - COGS calculation result
+ */
+export async function updateSOLineWithCOGS(
+  soLineId: number,
+  cogsData: {
+    unitCost: number;
+    totalCost: number;
+    marginAmount: number;
+    marginPercent: number;
+  }
+): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const salesOrderLines = getTableRef('salesOrderLines');
+
+    await db
+      .update(salesOrderLines)
+      .set({
+        unitCost: cogsData.unitCost,
+        totalCost: cogsData.totalCost,
+        marginAmount: cogsData.marginAmount,
+        marginPercent: cogsData.marginPercent,
+      })
+      .where(eq(salesOrderLines.id, soLineId));
+  });
+}
+
+// ============================================
 // COST LAYERS
 // ============================================
 
