@@ -16,6 +16,13 @@ import type {
   RecalculateWACInput,
   RecalculateWACResult,
   ItemCostViews,
+  LandedCostHeader,
+  LandedCostHeaderCreate,
+  LandedCostHeaderUpdate,
+  LandedCostLine,
+  LandedCostAllocation,
+  LandedCostListFilters,
+  AllocationBasis,
 } from '@/types/unit-cost';
 
 // ============================================
@@ -706,5 +713,650 @@ export async function updateItemLastProduction(
         updatedAt: getNow(),
       })
       .where(eq(tables.items.id, itemId));
+  });
+}
+
+// ============================================
+// LANDED COST MANAGEMENT
+// ============================================
+
+/**
+ * Generate document number for landed cost
+ */
+async function generateLandedCostDocNumberInternal(): Promise<string> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const year = new Date().getFullYear();
+    const prefix = `LC${year}-`;
+
+    // Get the latest document number for this year
+    const result = await db
+      .select({ documentNumber: tables.landedCostHeaders.documentNumber })
+      .from(tables.landedCostHeaders)
+      .where(like(tables.landedCostHeaders.documentNumber, `${prefix}%`))
+      .orderBy(desc(tables.landedCostHeaders.documentNumber))
+      .limit(1);
+
+    let nextNumber = 1;
+    if (result.length > 0 && result[0].documentNumber) {
+      const lastNumber = parseInt(result[0].documentNumber.replace(prefix, ''), 10);
+      if (!isNaN(lastNumber)) {
+        nextNumber = lastNumber + 1;
+      }
+    }
+
+    return `${prefix}${nextNumber.toString().padStart(5, '0')}`;
+  });
+}
+
+/**
+ * Create a new landed cost header with optional lines
+ */
+export async function createLandedCost(
+  data: LandedCostHeaderCreate,
+  userId: number
+): Promise<{ id: number; documentNumber: string }> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const documentNumber = await generateLandedCostDocNumberInternal();
+
+    // Get reference number (PO number or shipment number)
+    let referenceNumber: string | null = null;
+    if (data.referenceType === 'po') {
+      // Get PO number from purchase_orders table
+      const purchaseOrders = getTableRef('purchaseOrders');
+      const poResult = await db
+        .select({ poNumber: purchaseOrders.poNumber })
+        .from(purchaseOrders)
+        .where(eq(purchaseOrders.id, data.referenceId))
+        .limit(1);
+      referenceNumber = poResult[0]?.poNumber || null;
+    }
+
+    // Insert header
+    const headerResult = await db
+      .insert(tables.landedCostHeaders)
+      .values({
+        documentNumber,
+        referenceType: data.referenceType,
+        referenceId: data.referenceId,
+        referenceNumber,
+        vendorId: data.vendorId || null,
+        invoiceNumber: data.invoiceNumber || null,
+        invoiceDate: data.invoiceDate || null,
+        totalAmount: 0, // Will be calculated from lines
+        currency: data.currency || 'THB',
+        exchangeRate: data.exchangeRate || 1,
+        status: 'draft',
+        createdBy: userId,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      });
+
+    const headerId = getInsertId(headerResult);
+
+    // Insert lines if provided
+    if (data.lines && data.lines.length > 0) {
+      let totalAmount = 0;
+
+      for (const line of data.lines) {
+        await db
+          .insert(tables.landedCostLines)
+          .values({
+            landedCostHeaderId: headerId,
+            costType: line.costType,
+            description: line.description || null,
+            amount: line.amount,
+            allocationBasis: line.allocationBasis || 'value',
+            createdAt: getNow(),
+          });
+        totalAmount += line.amount;
+      }
+
+      // Update header total
+      await db
+        .update(tables.landedCostHeaders)
+        .set({
+          totalAmount,
+          updatedAt: getNow(),
+        })
+        .where(eq(tables.landedCostHeaders.id, headerId));
+    }
+
+    return { id: headerId, documentNumber };
+  });
+}
+
+/**
+ * Get a landed cost header with lines and allocations
+ */
+export async function getLandedCost(id: number): Promise<LandedCostHeader | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    const headerResult = await db
+      .select()
+      .from(tables.landedCostHeaders)
+      .where(eq(tables.landedCostHeaders.id, id))
+      .limit(1);
+
+    if (headerResult.length === 0) {
+      return null;
+    }
+
+    const header = headerResult[0];
+
+    // Get lines
+    const lines = await db
+      .select()
+      .from(tables.landedCostLines)
+      .where(eq(tables.landedCostLines.landedCostHeaderId, id));
+
+    // Get allocations
+    const allocations = await db
+      .select()
+      .from(tables.landedCostAllocations)
+      .where(eq(tables.landedCostAllocations.landedCostHeaderId, id));
+
+    return {
+      id: header.id,
+      documentNumber: header.documentNumber,
+      referenceType: header.referenceType as 'po' | 'shipment',
+      referenceId: header.referenceId,
+      referenceNumber: header.referenceNumber,
+      vendorId: header.vendorId,
+      invoiceNumber: header.invoiceNumber,
+      invoiceDate: formatDateFromDb(header.invoiceDate),
+      totalAmount: Number(header.totalAmount) || 0,
+      currency: header.currency,
+      exchangeRate: Number(header.exchangeRate) || 1,
+      status: header.status as 'draft' | 'allocated' | 'posted',
+      postedAt: header.postedAt ? formatDateFromDb(header.postedAt) : null,
+      postedBy: header.postedBy,
+      createdBy: header.createdBy,
+      createdAt: formatDateFromDb(header.createdAt),
+      updatedAt: formatDateFromDb(header.updatedAt),
+      lines: lines.map((l: typeof lines[0]) => ({
+        id: l.id,
+        landedCostHeaderId: l.landedCostHeaderId,
+        costType: l.costType as 'freight' | 'duty' | 'insurance' | 'handling' | 'inspection' | 'other',
+        description: l.description,
+        amount: Number(l.amount) || 0,
+        allocationBasis: l.allocationBasis as AllocationBasis,
+        createdAt: formatDateFromDb(l.createdAt),
+      })),
+      allocations: allocations.map((a: typeof allocations[0]) => ({
+        id: a.id,
+        landedCostLineId: a.landedCostLineId,
+        landedCostHeaderId: a.landedCostHeaderId,
+        itemId: a.itemId,
+        lotId: a.lotId,
+        poLineId: a.poLineId,
+        allocatedAmount: Number(a.allocatedAmount) || 0,
+        basisValue: Number(a.basisValue) || 0,
+        createdAt: formatDateFromDb(a.createdAt),
+      })),
+    };
+  });
+}
+
+/**
+ * Update a landed cost header
+ */
+export async function updateLandedCost(
+  id: number,
+  data: LandedCostHeaderUpdate
+): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Check if landed cost exists and is in draft status
+    const existing = await db
+      .select({ status: tables.landedCostHeaders.status })
+      .from(tables.landedCostHeaders)
+      .where(eq(tables.landedCostHeaders.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw new Error(`Landed cost with ID ${id} not found`);
+    }
+
+    if (existing[0].status !== 'draft') {
+      throw new Error('Cannot update landed cost that is not in draft status');
+    }
+
+    // Update header fields
+    await db
+      .update(tables.landedCostHeaders)
+      .set({
+        vendorId: data.vendorId !== undefined ? data.vendorId : undefined,
+        invoiceNumber: data.invoiceNumber !== undefined ? data.invoiceNumber : undefined,
+        invoiceDate: data.invoiceDate !== undefined ? data.invoiceDate : undefined,
+        currency: data.currency !== undefined ? data.currency : undefined,
+        exchangeRate: data.exchangeRate !== undefined ? data.exchangeRate : undefined,
+        updatedAt: getNow(),
+      })
+      .where(eq(tables.landedCostHeaders.id, id));
+
+    // If lines are provided, replace all lines
+    if (data.lines !== undefined) {
+      // Delete existing lines
+      await db
+        .delete(tables.landedCostLines)
+        .where(eq(tables.landedCostLines.landedCostHeaderId, id));
+
+      // Delete existing allocations
+      await db
+        .delete(tables.landedCostAllocations)
+        .where(eq(tables.landedCostAllocations.landedCostHeaderId, id));
+
+      // Insert new lines
+      let totalAmount = 0;
+      for (const line of data.lines) {
+        await db
+          .insert(tables.landedCostLines)
+          .values({
+            landedCostHeaderId: id,
+            costType: line.costType,
+            description: line.description || null,
+            amount: line.amount,
+            allocationBasis: line.allocationBasis || 'value',
+            createdAt: getNow(),
+          });
+        totalAmount += line.amount;
+      }
+
+      // Update header total
+      await db
+        .update(tables.landedCostHeaders)
+        .set({
+          totalAmount,
+          status: 'draft', // Reset to draft if lines changed
+          updatedAt: getNow(),
+        })
+        .where(eq(tables.landedCostHeaders.id, id));
+    }
+  });
+}
+
+/**
+ * Delete a landed cost header and its lines
+ */
+export async function deleteLandedCost(id: number): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Check if landed cost exists and is in draft status
+    const existing = await db
+      .select({ status: tables.landedCostHeaders.status })
+      .from(tables.landedCostHeaders)
+      .where(eq(tables.landedCostHeaders.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw new Error(`Landed cost with ID ${id} not found`);
+    }
+
+    if (existing[0].status !== 'draft') {
+      throw new Error('Cannot delete landed cost that is not in draft status');
+    }
+
+    // Delete allocations, lines, then header
+    await db
+      .delete(tables.landedCostAllocations)
+      .where(eq(tables.landedCostAllocations.landedCostHeaderId, id));
+
+    await db
+      .delete(tables.landedCostLines)
+      .where(eq(tables.landedCostLines.landedCostHeaderId, id));
+
+    await db
+      .delete(tables.landedCostHeaders)
+      .where(eq(tables.landedCostHeaders.id, id));
+  });
+}
+
+/**
+ * List landed costs with filters and pagination
+ */
+export async function listLandedCosts(
+  filters: LandedCostListFilters = {}
+): Promise<{ data: LandedCostHeader[]; total: number; page: number; pageSize: number }> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const { status, fromDate, toDate, search, page = 1, pageSize = 20 } = filters;
+
+    // Build conditions
+    const conditions = [];
+
+    if (status) {
+      conditions.push(eq(tables.landedCostHeaders.status, status));
+    }
+
+    if (fromDate) {
+      conditions.push(gte(tables.landedCostHeaders.createdAt, fromDate));
+    }
+
+    if (toDate) {
+      conditions.push(lte(tables.landedCostHeaders.createdAt, toDate + ' 23:59:59'));
+    }
+
+    if (search) {
+      conditions.push(
+        sql`(${tables.landedCostHeaders.documentNumber} LIKE ${`%${search}%`} OR ${tables.landedCostHeaders.referenceNumber} LIKE ${`%${search}%`} OR ${tables.landedCostHeaders.invoiceNumber} LIKE ${`%${search}%`})`
+      );
+    }
+
+    // Get total count
+    const countResult = await db
+      .select({ count: count() })
+      .from(tables.landedCostHeaders)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+    const total = Number(countResult[0]?.count) || 0;
+
+    // Get paginated data
+    const offset = (page - 1) * pageSize;
+    const data = await db
+      .select()
+      .from(tables.landedCostHeaders)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(tables.landedCostHeaders.createdAt))
+      .limit(pageSize)
+      .offset(offset);
+
+    return {
+      data: data.map((row: typeof data[0]) => ({
+        id: row.id,
+        documentNumber: row.documentNumber,
+        referenceType: row.referenceType as 'po' | 'shipment',
+        referenceId: row.referenceId,
+        referenceNumber: row.referenceNumber,
+        vendorId: row.vendorId,
+        invoiceNumber: row.invoiceNumber,
+        invoiceDate: formatDateFromDb(row.invoiceDate),
+        totalAmount: Number(row.totalAmount) || 0,
+        currency: row.currency,
+        exchangeRate: Number(row.exchangeRate) || 1,
+        status: row.status as 'draft' | 'allocated' | 'posted',
+        postedAt: row.postedAt ? formatDateFromDb(row.postedAt) : null,
+        postedBy: row.postedBy,
+        createdBy: row.createdBy,
+        createdAt: formatDateFromDb(row.createdAt),
+        updatedAt: formatDateFromDb(row.updatedAt),
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  });
+}
+
+/**
+ * Allocate landed cost to items based on allocation basis
+ * Supports 4 allocation bases: value, quantity, weight, volume
+ */
+export async function allocateLandedCost(
+  landedCostId: number
+): Promise<LandedCostAllocation[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const purchaseOrderLines = getTableRef('purchaseOrderLines');
+
+    // Get landed cost header
+    const headerResult = await db
+      .select()
+      .from(tables.landedCostHeaders)
+      .where(eq(tables.landedCostHeaders.id, landedCostId))
+      .limit(1);
+
+    if (headerResult.length === 0) {
+      throw new Error(`Landed cost with ID ${landedCostId} not found`);
+    }
+
+    const header = headerResult[0];
+
+    if (header.status !== 'draft') {
+      throw new Error('Can only allocate landed cost in draft status');
+    }
+
+    // Get lines
+    const lines = await db
+      .select()
+      .from(tables.landedCostLines)
+      .where(eq(tables.landedCostLines.landedCostHeaderId, landedCostId));
+
+    if (lines.length === 0) {
+      throw new Error('No cost lines to allocate');
+    }
+
+    // Get PO lines for allocation (only for PO reference type)
+    if (header.referenceType !== 'po') {
+      throw new Error('Only PO reference type is currently supported');
+    }
+
+    const poLines = await db
+      .select({
+        id: purchaseOrderLines.id,
+        itemId: purchaseOrderLines.itemId,
+        quantity: purchaseOrderLines.quantity,
+        receivedQuantity: purchaseOrderLines.receivedQuantity,
+        unitPrice: purchaseOrderLines.unitPrice,
+      })
+      .from(purchaseOrderLines)
+      .where(eq(purchaseOrderLines.poId, header.referenceId));
+
+    if (poLines.length === 0) {
+      throw new Error('No PO lines found for allocation');
+    }
+
+    // Get item details for weight/volume (if needed)
+    const itemIds = [...new Set(poLines.map((l: typeof poLines[0]) => l.itemId))];
+    const itemDetails = await db
+      .select({
+        id: tables.items.id,
+        code: tables.items.code,
+        nameTh: tables.items.nameTh,
+        weight: tables.items.weight,
+        volume: tables.items.volume,
+      })
+      .from(tables.items)
+      .where(sql`${tables.items.id} IN (${sql.join(itemIds.map((id) => sql`${id}`), sql`, `)})`);
+
+    type ItemDetail = typeof itemDetails[0];
+    const itemMap = new Map<number, ItemDetail>(itemDetails.map((i: ItemDetail) => [i.id, i]));
+
+    // Delete existing allocations
+    await db
+      .delete(tables.landedCostAllocations)
+      .where(eq(tables.landedCostAllocations.landedCostHeaderId, landedCostId));
+
+    // Calculate allocations for each line
+    const allAllocations: LandedCostAllocation[] = [];
+
+    for (const line of lines) {
+      const basis = line.allocationBasis as AllocationBasis;
+
+      // Calculate total basis value
+      let totalBasisValue = 0;
+      const poLineBasisValues: { poLineId: number; itemId: number; value: number }[] = [];
+
+      for (const poLine of poLines) {
+        const qty = Number(poLine.receivedQuantity) || Number(poLine.quantity) || 0;
+        const item = itemMap.get(poLine.itemId);
+
+        let basisValue = 0;
+        switch (basis) {
+          case 'value':
+            basisValue = qty * (Number(poLine.unitPrice) || 0);
+            break;
+          case 'quantity':
+            basisValue = qty;
+            break;
+          case 'weight':
+            basisValue = qty * (Number(item?.weight) || 1); // Default weight 1 if not set
+            break;
+          case 'volume':
+            basisValue = qty * (Number(item?.volume) || 1); // Default volume 1 if not set
+            break;
+        }
+
+        poLineBasisValues.push({
+          poLineId: poLine.id,
+          itemId: poLine.itemId,
+          value: basisValue,
+        });
+        totalBasisValue += basisValue;
+      }
+
+      // Allocate cost proportionally
+      if (totalBasisValue > 0) {
+        for (const plBasis of poLineBasisValues) {
+          const allocatedAmount = (plBasis.value / totalBasisValue) * Number(line.amount);
+
+          const allocResult = await db
+            .insert(tables.landedCostAllocations)
+            .values({
+              landedCostLineId: line.id,
+              landedCostHeaderId: landedCostId,
+              itemId: plBasis.itemId,
+              poLineId: plBasis.poLineId,
+              allocatedAmount: Math.round(allocatedAmount * 10000) / 10000, // 4 decimal precision
+              basisValue: plBasis.value,
+              createdAt: getNow(),
+            });
+
+          const allocId = getInsertId(allocResult);
+          const item = itemMap.get(plBasis.itemId);
+
+          allAllocations.push({
+            id: allocId,
+            landedCostLineId: line.id,
+            landedCostHeaderId: landedCostId,
+            itemId: plBasis.itemId,
+            itemCode: item?.code,
+            itemName: item?.nameTh,
+            lotId: null,
+            poLineId: plBasis.poLineId,
+            allocatedAmount: Math.round(allocatedAmount * 10000) / 10000,
+            basisValue: plBasis.value,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    // Update header status to allocated
+    await db
+      .update(tables.landedCostHeaders)
+      .set({
+        status: 'allocated',
+        updatedAt: getNow(),
+      })
+      .where(eq(tables.landedCostHeaders.id, landedCostId));
+
+    return allAllocations;
+  });
+}
+
+/**
+ * Post landed cost - updates WAC for affected items and creates cost layers
+ */
+export async function postLandedCost(
+  landedCostId: number,
+  userId: number
+): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const purchaseOrderLines = getTableRef('purchaseOrderLines');
+
+    // Get landed cost header
+    const headerResult = await db
+      .select()
+      .from(tables.landedCostHeaders)
+      .where(eq(tables.landedCostHeaders.id, landedCostId))
+      .limit(1);
+
+    if (headerResult.length === 0) {
+      throw new Error(`Landed cost with ID ${landedCostId} not found`);
+    }
+
+    const header = headerResult[0];
+
+    if (header.status !== 'allocated') {
+      throw new Error('Can only post landed cost in allocated status');
+    }
+
+    // Get allocations grouped by item
+    const allocations = await db
+      .select()
+      .from(tables.landedCostAllocations)
+      .where(eq(tables.landedCostAllocations.landedCostHeaderId, landedCostId));
+
+    if (allocations.length === 0) {
+      throw new Error('No allocations found - please allocate first');
+    }
+
+    // Group allocations by item
+    const itemAllocations = new Map<number, number>();
+    const itemPoLineIds = new Map<number, number>();
+
+    for (const alloc of allocations) {
+      const currentAmount = itemAllocations.get(alloc.itemId) || 0;
+      itemAllocations.set(alloc.itemId, currentAmount + Number(alloc.allocatedAmount));
+      if (alloc.poLineId) {
+        itemPoLineIds.set(alloc.itemId, alloc.poLineId);
+      }
+    }
+
+    // Get PO lines to determine quantities
+    const poLineIds = Array.from(new Set(allocations.map((a: typeof allocations[0]) => a.poLineId).filter((id: number | null): id is number => id !== null)));
+
+    const poLines = await db
+      .select({
+        id: purchaseOrderLines.id,
+        itemId: purchaseOrderLines.itemId,
+        receivedQuantity: purchaseOrderLines.receivedQuantity,
+        quantity: purchaseOrderLines.quantity,
+      })
+      .from(purchaseOrderLines)
+      .where(sql`${purchaseOrderLines.id} IN (${sql.join(poLineIds.map((id) => sql`${id}`), sql`, `)})`);
+
+    type POLineInfo = typeof poLines[0];
+    const poLineMap = new Map<number, POLineInfo>(poLines.map((l: POLineInfo) => [l.id, l]));
+
+    // Calculate per-unit landed cost and update WAC for each item
+    for (const [itemId, totalLandedCost] of itemAllocations) {
+      // Get the PO line to determine quantity
+      const poLineId = itemPoLineIds.get(itemId);
+      const poLine = poLineId ? poLineMap.get(poLineId) : undefined;
+      const qty = Number(poLine?.receivedQuantity) || Number(poLine?.quantity) || 1;
+
+      // Calculate per-unit landed cost
+      const perUnitLandedCost = totalLandedCost / qty;
+
+      // Create cost layer for landed cost
+      await recalculateWAC({
+        itemId,
+        transactionType: 'landed_cost',
+        transactionId: landedCostId,
+        quantity: 0, // Landed cost doesn't change quantity
+        unitCost: perUnitLandedCost * qty, // Total landed cost for this item
+        transactionDate: getTodayStr(),
+        notes: `Landed Cost: ${header.documentNumber}`,
+        createdBy: userId,
+      });
+    }
+
+    // Update header status to posted
+    await db
+      .update(tables.landedCostHeaders)
+      .set({
+        status: 'posted',
+        postedAt: getNow(),
+        postedBy: userId,
+        updatedAt: getNow(),
+      })
+      .where(eq(tables.landedCostHeaders.id, landedCostId));
   });
 }
