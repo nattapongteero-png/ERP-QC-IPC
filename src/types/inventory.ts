@@ -25,8 +25,8 @@ export interface Item {
   isFEFO: boolean;
   isActive: boolean;
   // BOM Confidentiality Protection fields
-  confidentialityLevel?: 'public' | 'internal' | 'confidential';
-  defaultConfidential?: boolean;
+  confidentialityLevel: ConfidentialityLevel;
+  defaultConfidential: boolean;
   // VMI fields
   tppCode?: string | null;
   tppName?: string | null;

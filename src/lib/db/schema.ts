@@ -95,8 +95,8 @@ export const sqliteItems = sqliteTable('items', {
   isFEFO: integer('is_fefo', { mode: 'boolean' }).notNull().default(true),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   // BOM Confidentiality Protection fields (014-unit-cost)
-  confidentialityLevel: text('confidentiality_level').$type<'public' | 'internal' | 'confidential'>().default('public'),
-  defaultConfidential: integer('default_confidential', { mode: 'boolean' }).default(false),
+  confidentialityLevel: text('confidentiality_level').$type<'public' | 'internal' | 'confidential'>().notNull().default('public'),
+  defaultConfidential: integer('default_confidential', { mode: 'boolean' }).notNull().default(false),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: text('tpp_code'), // Thai Pharmaceutical Product code (13 digits)
   tppName: text('tpp_name'), // TPP product name from VMI Portal
@@ -1409,8 +1409,8 @@ export const mysqlItems = mysqlTable('items', {
   isFEFO: mysqlBoolean('is_fefo').notNull().default(true),
   isActive: mysqlBoolean('is_active').notNull().default(true),
   // BOM Confidentiality Protection fields (014-unit-cost)
-  confidentialityLevel: mysqlEnum('confidentiality_level', ['public', 'internal', 'confidential']).default('public'),
-  defaultConfidential: mysqlBoolean('default_confidential').default(false),
+  confidentialityLevel: mysqlEnum('confidentiality_level', ['public', 'internal', 'confidential']).notNull().default('public'),
+  defaultConfidential: mysqlBoolean('default_confidential').notNull().default(false),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: varchar('tpp_code', { length: 13 }), // Thai Pharmaceutical Product code (13 digits)
   tppName: varchar('tpp_name', { length: 255 }), // TPP product name from VMI Portal
