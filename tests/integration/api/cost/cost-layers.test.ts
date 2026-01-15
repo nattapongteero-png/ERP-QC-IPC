@@ -8,6 +8,24 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
+// Type definitions for SQLite query results
+interface CostLayerRow {
+  id: number;
+  item_id: number;
+  transaction_type: string;
+  transaction_id: number;
+  transaction_date: string;
+  quantity_in: number;
+  unit_cost: number;
+  total_cost: number;
+  running_qty: number;
+  running_total_cost: number;
+  running_wac: number;
+  notes: string | null;
+  created_by: number;
+  created_at: string;
+}
+
 // Mock Next.js headers
 vi.mock('next/headers', () => ({
   cookies: vi.fn(() => ({
@@ -128,7 +146,7 @@ describe('Cost Layers API Integration Tests', () => {
       const layers = testDb.prepare(`
         SELECT * FROM item_cost_layers WHERE item_id = ? AND transaction_type = ?
         ORDER BY transaction_date DESC
-      `).all(1, transactionType);
+      `).all(1, transactionType) as CostLayerRow[];
 
       expect(layers).toHaveLength(2);
       expect(layers[0].transaction_type).toBe('receipt');
@@ -144,7 +162,7 @@ describe('Cost Layers API Integration Tests', () => {
         AND transaction_date >= ?
         AND transaction_date <= ?
         ORDER BY transaction_date DESC
-      `).all(1, fromDate, toDate);
+      `).all(1, fromDate, toDate) as CostLayerRow[];
 
       expect(layers).toHaveLength(1);
       expect(layers[0].transaction_date).toBe('2026-01-12');
@@ -162,7 +180,7 @@ describe('Cost Layers API Integration Tests', () => {
       const layers = testDb.prepare(`
         SELECT * FROM item_cost_layers WHERE item_id = ?
         ORDER BY transaction_date ASC
-      `).all(1);
+      `).all(1) as CostLayerRow[];
 
       // First receipt: 50 kg @ 48 = WAC 48
       expect(layers[0].running_wac).toBe(48);

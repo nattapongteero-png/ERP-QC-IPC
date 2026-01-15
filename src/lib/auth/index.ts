@@ -240,6 +240,10 @@ export const PERMISSIONS = {
 
   // Accounting Module - Reports
   'accounting:reports:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+
+  // Cost Management (Feature: 014-unit-cost)
+  'cost:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT, ROLES.PURCHASING, ROLES.PRODUCTION],
+  'cost:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

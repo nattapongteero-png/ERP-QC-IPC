@@ -174,6 +174,15 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    name: 'Cost Management',
+    href: '/cost',
+    icon: DollarSign,
+    roles: ['admin', 'manager', 'finance', 'accounting', 'purchasing', 'production'],
+    children: [
+      { name: 'Landed Costs', href: '/cost/landed-costs', icon: Truck },
+    ],
+  },
+  {
     name: 'VMI Portal',
     href: '/vmi',
     icon: Share2,
