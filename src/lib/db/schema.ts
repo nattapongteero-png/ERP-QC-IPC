@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, real, blob, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
+import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, mysqlEnum, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Custom type for MySQL LONGBLOB (for storing large binary files)
@@ -94,6 +94,9 @@ export const sqliteItems = sqliteTable('items', {
   isLotControlled: integer('is_lot_controlled', { mode: 'boolean' }).notNull().default(true),
   isFEFO: integer('is_fefo', { mode: 'boolean' }).notNull().default(true),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // BOM Confidentiality Protection fields (014-unit-cost)
+  confidentialityLevel: text('confidentiality_level').$type<'public' | 'internal' | 'confidential'>().default('public'),
+  defaultConfidential: integer('default_confidential', { mode: 'boolean' }).default(false),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: text('tpp_code'), // Thai Pharmaceutical Product code (13 digits)
   tppName: text('tpp_name'), // TPP product name from VMI Portal
@@ -1405,6 +1408,9 @@ export const mysqlItems = mysqlTable('items', {
   isLotControlled: mysqlBoolean('is_lot_controlled').notNull().default(true),
   isFEFO: mysqlBoolean('is_fefo').notNull().default(true),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  // BOM Confidentiality Protection fields (014-unit-cost)
+  confidentialityLevel: mysqlEnum('confidentiality_level', ['public', 'internal', 'confidential']).default('public'),
+  defaultConfidential: mysqlBoolean('default_confidential').default(false),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: varchar('tpp_code', { length: 13 }), // Thai Pharmaceutical Product code (13 digits)
   tppName: varchar('tpp_name', { length: 255 }), // TPP product name from VMI Portal
