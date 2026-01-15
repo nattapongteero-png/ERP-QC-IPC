@@ -319,24 +319,22 @@ export async function addPRLines(
 
     for (const line of lines) {
       lineNumber++;
-      const estimatedAmount = (line.quantity || 0) * (line.estimatedUnitPrice || 0);
-      totalAmount += estimatedAmount;
+      const lineTotal = (line.quantity || 0) * (line.estimatedUnitPrice || 0);
+      totalAmount += lineTotal;
 
       const result = await db.insert(tables.lines).values({
         prId,
         lineNumber,
         itemId: line.itemId || null,
-        itemCode: line.itemCode || null,
         description: line.description,
         quantity: line.quantity,
-        unitOfMeasure: line.unitOfMeasure,
-        estimatedUnitPrice: line.estimatedUnitPrice || 0,
-        estimatedAmount,
-        suggestedVendorId: line.suggestedVendorId || null,
+        unit: line.unitOfMeasure, // Map from validation schema field to DB column
+        estimatedPrice: line.estimatedUnitPrice || 0,
+        lineTotal,
+        preferredVendorId: line.suggestedVendorId || null,
         notes: line.notes || null,
         status: 'pending',
         createdAt: now,
-        updatedAt: now,
       });
 
       insertedIds.push(getInsertId(result));
