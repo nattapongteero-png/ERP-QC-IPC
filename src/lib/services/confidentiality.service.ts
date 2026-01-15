@@ -29,6 +29,8 @@ function getTables() {
     groupMembers: getTableRef('confidentialAccessGroupMembers'),
     bomAccess: getTableRef('bOMConfidentialAccess'),
     users: getTableRef('users'),
+    bom: getTableRef('bOM'),
+    settings: getTableRef('settings'),
   };
 }
 
@@ -349,5 +351,110 @@ export async function userHasBOMAccess(
       .limit(1);
 
     return groupGrant.length > 0;
+  });
+}
+
+// ============ Confidentiality Checks ============
+
+/**
+ * Check if a BOM line is confidential based on override and item settings
+ */
+export function isLineConfidential(
+  line: { confidentialityOverride?: string | null },
+  item: { defaultConfidential?: boolean; confidentialityLevel?: string }
+): boolean {
+  // BOM line override takes precedence
+  if (line.confidentialityOverride === 'public') return false;
+  if (line.confidentialityOverride === 'confidential') return true;
+
+  // Fall back to item default (inherit behavior)
+  return item.defaultConfidential === true ||
+         item.confidentialityLevel === 'confidential';
+}
+
+/**
+ * Get roles that bypass confidentiality checks
+ */
+export async function getBypassRoles(): Promise<string[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const result = await db
+      .select({ value: tables.settings.value })
+      .from(tables.settings)
+      .where(eq(tables.settings.key, 'confidential_bypass_roles'))
+      .limit(1);
+
+    if (result.length === 0) return ['ADMIN']; // Default
+
+    try {
+      return JSON.parse(result[0].value || '["ADMIN"]');
+    } catch {
+      return ['ADMIN'];
+    }
+  });
+}
+
+/**
+ * Set roles that bypass confidentiality checks
+ */
+export async function setBypassRoles(roles: string[]): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const value = JSON.stringify(roles);
+
+    // Upsert pattern
+    const existing = await db
+      .select({ id: tables.settings.id })
+      .from(tables.settings)
+      .where(eq(tables.settings.key, 'confidential_bypass_roles'))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(tables.settings)
+        .set({ value, updatedAt: getNow() })
+        .where(eq(tables.settings.key, 'confidential_bypass_roles'));
+    } else {
+      await db.insert(tables.settings).values({
+        key: 'confidential_bypass_roles',
+        value,
+        description: 'User roles that can view confidential BOM items without explicit access',
+        category: 'confidentiality',
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      });
+    }
+  });
+}
+
+/**
+ * Check if user can view confidential items in a BOM
+ * Returns true if: user has bypass role, is BOM approver, or has explicit access
+ */
+export async function canViewConfidentialItems(
+  userId: number,
+  bomId: number,
+  userRole?: string
+): Promise<boolean> {
+  // 1. Check bypass roles
+  if (userRole) {
+    const bypassRoles = await getBypassRoles();
+    if (bypassRoles.includes(userRole)) return true;
+  }
+
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    // 2. Check if user is BOM approver (since BOM doesn't have createdBy, use approvedBy)
+    const bom = await db
+      .select({ approvedBy: tables.bom.approvedBy })
+      .from(tables.bom)
+      .where(eq(tables.bom.id, bomId))
+      .limit(1);
+
+    if (bom.length > 0 && bom[0].approvedBy === userId) return true;
+
+    // 3. Check explicit access
+    return userHasBOMAccess(userId, bomId);
   });
 }

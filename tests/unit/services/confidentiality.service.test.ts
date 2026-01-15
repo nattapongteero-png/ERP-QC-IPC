@@ -57,6 +57,10 @@ import {
   revokeBOMAccess,
   getBOMAccessList,
   userHasBOMAccess,
+  isLineConfidential,
+  getBypassRoles,
+  setBypassRoles,
+  canViewConfidentialItems,
 } from '@/lib/services/confidentiality.service';
 
 describe('Confidentiality Service - Groups', () => {
@@ -569,5 +573,185 @@ describe('Confidentiality Service - BOM Access', () => {
 
     const hasAccess = await userHasBOMAccess(userId, bomId);
     expect(hasAccess).toBe(false);
+  });
+});
+
+describe('Confidentiality Service - Access Checks', () => {
+  beforeEach(() => {
+    // Create in-memory SQLite database
+    testSqlite = new Database(':memory:');
+    testSqlite.pragma('journal_mode = WAL');
+    testDb = drizzle(testSqlite, { schema });
+    setTestDb(testDb);
+
+    // Create required tables for access check testing
+    const tables = [
+      schema.sqliteUsers,
+      schema.sqliteItems,
+      schema.sqliteBOM,
+      schema.sqliteConfidentialAccessGroups,
+      schema.sqliteConfidentialAccessGroupMembers,
+      schema.sqliteBOMConfidentialAccess,
+      schema.sqliteSettings,
+    ];
+
+    for (const table of tables) {
+      try {
+        const createSql = generateCreateTableSql(table);
+        testSqlite.exec(createSql);
+      } catch (err) {
+        console.log(`Table creation note: ${err}`);
+      }
+    }
+
+    // Seed test user
+    testSqlite.exec(`
+      INSERT INTO users (id, email, password, name, role, is_active)
+      VALUES (1, 'test@example.com', 'hashed_password', 'Test User', 'ADMIN', 1)
+    `);
+
+    // Seed test item (required for BOM foreign key)
+    testSqlite.exec(`
+      INSERT INTO items (id, code, name_th, type, primary_unit, is_active, confidentiality_level, default_confidential)
+      VALUES (1, 'ITEM001', 'Test Item', 'finished_goods', 'unit', 1, 'public', 0)
+    `);
+  });
+
+  afterEach(() => {
+    if (testSqlite) {
+      testSqlite.close();
+    }
+  });
+
+  describe('isLineConfidential', () => {
+    it('should return false for public override', () => {
+      const result = isLineConfidential(
+        { confidentialityOverride: 'public' },
+        { defaultConfidential: true }
+      );
+      expect(result).toBe(false);
+    });
+
+    it('should return true for confidential override', () => {
+      const result = isLineConfidential(
+        { confidentialityOverride: 'confidential' },
+        { defaultConfidential: false }
+      );
+      expect(result).toBe(true);
+    });
+
+    it('should inherit from item when override is inherit', () => {
+      const result = isLineConfidential(
+        { confidentialityOverride: 'inherit' },
+        { defaultConfidential: true }
+      );
+      expect(result).toBe(true);
+    });
+
+    it('should return false when inherit and item is not confidential', () => {
+      const result = isLineConfidential(
+        { confidentialityOverride: 'inherit' },
+        { defaultConfidential: false }
+      );
+      expect(result).toBe(false);
+    });
+
+    it('should return true when confidentialityLevel is confidential', () => {
+      const result = isLineConfidential(
+        { confidentialityOverride: 'inherit' },
+        { confidentialityLevel: 'confidential' }
+      );
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('getBypassRoles', () => {
+    it('should return default ADMIN role when no setting exists', async () => {
+      const roles = await getBypassRoles();
+      expect(roles).toContain('ADMIN');
+    });
+  });
+
+  describe('setBypassRoles', () => {
+    it('should save and retrieve bypass roles', async () => {
+      await setBypassRoles(['ADMIN', 'MANAGER']);
+      const roles = await getBypassRoles();
+      expect(roles).toEqual(['ADMIN', 'MANAGER']);
+    });
+
+    it('should update existing bypass roles setting', async () => {
+      await setBypassRoles(['ADMIN']);
+      await setBypassRoles(['ADMIN', 'MANAGER', 'SUPERVISOR']);
+      const roles = await getBypassRoles();
+      expect(roles).toEqual(['ADMIN', 'MANAGER', 'SUPERVISOR']);
+    });
+  });
+
+  describe('canViewConfidentialItems', () => {
+    it('should return true for bypass role user', async () => {
+      // Create user with ADMIN role
+      testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('admin@test.com', 'hash', 'Admin', 'ADMIN', 1)`);
+      const adminIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+      const adminId = adminIdResult.id;
+
+      // Create a BOM
+      testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM_ADMIN', 'Test BOM', 1, '1.0', 'draft', 100, 'kg')`);
+      const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+      const bomId = bomIdResult.id;
+
+      const result = await canViewConfidentialItems(adminId, bomId, 'ADMIN');
+      expect(result).toBe(true);
+    });
+
+    it('should return true for BOM approver', async () => {
+      // Create user
+      testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('approver@test.com', 'hash', 'Approver', 'USER', 1)`);
+      const approverId = (testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number }).id;
+
+      // Create BOM approved by user
+      testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit, approved_by) VALUES ('BOM_APPROVER', 'Test BOM', 1, '1.0', 'approved', 100, 'kg', ${approverId})`);
+      const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+      const bomId = bomIdResult.id;
+
+      const result = await canViewConfidentialItems(approverId, bomId, 'USER');
+      expect(result).toBe(true);
+    });
+
+    it('should return true for user with explicit access', async () => {
+      // Create two users
+      testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('owner3@test.com', 'hash', 'Owner', 'USER', 1)`);
+      const ownerId = (testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number }).id;
+
+      testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('granted@test.com', 'hash', 'Granted', 'USER', 1)`);
+      const grantedId = (testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number }).id;
+
+      // Create BOM
+      testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit) VALUES ('BOM_GRANTED', 'Test BOM', 1, '1.0', 'draft', 100, 'kg')`);
+      const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+      const bomId = bomIdResult.id;
+
+      // Grant explicit access
+      await grantBOMAccess({ bomId, userId: grantedId }, ownerId);
+
+      const result = await canViewConfidentialItems(grantedId, bomId, 'USER');
+      expect(result).toBe(true);
+    });
+
+    it('should return false for user without access', async () => {
+      // Create two users
+      testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('owner4@test.com', 'hash', 'Owner', 'USER', 1)`);
+      const ownerId = (testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number }).id;
+
+      testSqlite.exec(`INSERT INTO users (email, password, name, role, is_active) VALUES ('random2@test.com', 'hash', 'Random', 'USER', 1)`);
+      const randomId = (testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number }).id;
+
+      // Create BOM approved by first user
+      testSqlite.exec(`INSERT INTO bom (code, name, product_id, version, status, batch_size, batch_unit, approved_by) VALUES ('BOM_NO_ACCESS', 'Test BOM', 1, '1.0', 'draft', 100, 'kg', ${ownerId})`);
+      const bomIdResult = testSqlite.prepare('SELECT last_insert_rowid() as id').get() as { id: number };
+      const bomId = bomIdResult.id;
+
+      const result = await canViewConfidentialItems(randomId, bomId, 'USER');
+      expect(result).toBe(false);
+    });
   });
 });
