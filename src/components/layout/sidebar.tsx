@@ -33,6 +33,7 @@ import {
   Network,
   GraduationCap,
   Shield,
+  ShieldCheck,
   HeartPulse,
   Bell,
   History,
@@ -225,6 +226,15 @@ const navigation: NavItem[] = [
   },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
   { name: 'Users', href: '/users', icon: Users, roles: ['admin', 'manager'] },
+  {
+    name: 'Admin',
+    href: '/admin',
+    icon: Shield,
+    roles: ['admin'],
+    children: [
+      { name: 'Confidential Groups', href: '/admin/confidential-groups', icon: ShieldCheck },
+    ],
+  },
   {
     name: 'Settings',
     href: '/settings',
