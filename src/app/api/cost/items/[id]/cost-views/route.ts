@@ -1,13 +1,24 @@
 /**
  * API Route: GET /api/cost/items/[id]/cost-views
- * Returns all cost views for an item (WAC, standard, last purchase, production, full cost)
+ * Feature: 014-unit-cost (US4 - Multiple Cost View Access)
+ *
+ * Returns all cost views for an item:
+ * - WAC (Weighted Average Cost)
+ * - Standard Cost
+ * - Last Purchase Cost (with date)
+ * - Last Production Cost (with date)
+ * - Full Absorption Cost (WAC + SG&A)
+ * - Suggested Price (based on target margin)
+ *
+ * Query params:
+ * - margin: Target margin percentage (default: 30)
  */
 
-import { NextResponse } from 'next/server';
-import { getItemCostViews } from '@/lib/services/unit-cost.service';
+import { NextRequest, NextResponse } from 'next/server';
+import { getItemCostViewsWithPrice } from '@/lib/services/unit-cost.service';
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -21,7 +32,20 @@ export async function GET(
       );
     }
 
-    const costViews = await getItemCostViews(itemId);
+    // Get margin from query params, default to 30%
+    const searchParams = request.nextUrl.searchParams;
+    const marginParam = searchParams.get('margin');
+    const marginPercent = marginParam ? parseFloat(marginParam) : 30;
+
+    // Validate margin is in valid range (1-99)
+    if (isNaN(marginPercent) || marginPercent < 1 || marginPercent >= 100) {
+      return NextResponse.json(
+        { error: 'Margin must be between 1 and 99' },
+        { status: 400 }
+      );
+    }
+
+    const costViews = await getItemCostViewsWithPrice(itemId, marginPercent);
 
     if (!costViews) {
       return NextResponse.json(

@@ -265,6 +265,87 @@ export async function getItemCostViews(itemId: number): Promise<ItemCostViews | 
 }
 
 // ============================================
+// FULL COST & SUGGESTED PRICE (US4)
+// ============================================
+
+/**
+ * Calculate full cost (WAC + SG&A allocation)
+ *
+ * Full Cost = WAC × (1 + SG&A Rate %)
+ * Where SG&A Rate is stored at item level and represents
+ * selling, general & administrative overhead percentage.
+ *
+ * @param inventoryCost - Current WAC or inventory cost
+ * @param sgaAllocationRate - SG&A percentage (e.g., 15 means 15%)
+ * @returns Full cost rounded to 4 decimal places
+ */
+export function calculateFullCost(
+  inventoryCost: number | null,
+  sgaAllocationRate: number
+): number | null {
+  if (inventoryCost === null || inventoryCost <= 0) {
+    return null;
+  }
+  return Math.round(inventoryCost * (1 + sgaAllocationRate / 100) * 10000) / 10000;
+}
+
+/**
+ * Calculate suggested selling price based on target margin
+ *
+ * Formula: Suggested Price = Full Cost / (1 - Target Margin %)
+ *
+ * Example: If full cost is 100 and target margin is 30%,
+ * Price = 100 / (1 - 0.30) = 100 / 0.70 = 142.86
+ * Margin = (142.86 - 100) / 142.86 = 30%
+ *
+ * @param fullCost - Full absorption cost (WAC + SG&A)
+ * @param targetMarginPercent - Target gross margin percentage (e.g., 30 means 30%)
+ * @returns Suggested price rounded to 2 decimal places
+ */
+export function calculateSuggestedPrice(
+  fullCost: number | null,
+  targetMarginPercent: number
+): number | null {
+  if (fullCost === null || fullCost <= 0) {
+    return null;
+  }
+  if (targetMarginPercent >= 100) {
+    // Margin cannot be 100% or more
+    return null;
+  }
+  const marginFactor = 1 - targetMarginPercent / 100;
+  if (marginFactor <= 0) {
+    return null;
+  }
+  return Math.round((fullCost / marginFactor) * 100) / 100;
+}
+
+/**
+ * Get all cost views for an item with suggested price calculation
+ * Enhanced version that includes suggested price for common margin targets.
+ *
+ * @param itemId - Item ID
+ * @param targetMarginPercent - Optional target margin for suggested price (default 30%)
+ * @returns All cost perspectives for the item
+ */
+export async function getItemCostViewsWithPrice(
+  itemId: number,
+  targetMarginPercent: number = 30
+): Promise<(ItemCostViews & { suggestedPrice: number | null }) | null> {
+  const costViews = await getItemCostViews(itemId);
+  if (!costViews) {
+    return null;
+  }
+
+  const suggestedPrice = calculateSuggestedPrice(costViews.fullCost, targetMarginPercent);
+
+  return {
+    ...costViews,
+    suggestedPrice,
+  };
+}
+
+// ============================================
 // COST LAYERS
 // ============================================
 

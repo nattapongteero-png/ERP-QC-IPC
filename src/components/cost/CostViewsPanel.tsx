@@ -2,15 +2,33 @@
 
 /**
  * Cost Views Panel Component
- * Displays all 5 cost views for an item: WAC, Standard, Last Purchase, Production, Full Cost
+ * Feature: 014-unit-cost (US4 - Multiple Cost View Access)
+ *
+ * Displays all 5 cost views for an item:
+ * - Weighted Average Cost (WAC)
+ * - Standard Cost
+ * - Last Purchase Cost (with date)
+ * - Last Production Cost (with date)
+ * - Full Absorption Cost (WAC + SG&A)
+ *
+ * Plus: Suggested selling price based on configurable target margin
  */
 
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { NumberBox } from 'devextreme-react/number-box';
+import { DollarSign, TrendingUp } from 'lucide-react';
 import type { ItemCostViews } from '@/types/unit-cost';
 
 interface CostViewsPanelProps {
   itemId: number;
   className?: string;
+  showSuggestedPrice?: boolean;
+  defaultMarginPercent?: number;
+}
+
+interface CostViewsWithPrice extends ItemCostViews {
+  suggestedPrice: number | null;
 }
 
 function formatCurrency(value: number | null | undefined): string {
@@ -32,11 +50,26 @@ function formatDate(value: string | null | undefined): string {
   });
 }
 
-export function CostViewsPanel({ itemId, className = '' }: CostViewsPanelProps) {
-  const { data: costViews, isLoading, error } = useQuery<ItemCostViews>({
-    queryKey: ['item-cost-views', itemId],
+// Calculate suggested price client-side for real-time updates
+function calculateSuggestedPrice(fullCost: number | null, marginPercent: number): number | null {
+  if (fullCost === null || fullCost <= 0) return null;
+  if (marginPercent >= 100 || marginPercent <= 0) return null;
+  const marginFactor = 1 - marginPercent / 100;
+  return Math.round((fullCost / marginFactor) * 100) / 100;
+}
+
+export function CostViewsPanel({
+  itemId,
+  className = '',
+  showSuggestedPrice = true,
+  defaultMarginPercent = 30,
+}: CostViewsPanelProps) {
+  const [marginPercent, setMarginPercent] = useState(defaultMarginPercent);
+
+  const { data: costViews, isLoading, error } = useQuery<CostViewsWithPrice>({
+    queryKey: ['item-cost-views', itemId, marginPercent],
     queryFn: async () => {
-      const res = await fetch(`/api/cost/items/${itemId}/cost-views`);
+      const res = await fetch(`/api/cost/items/${itemId}/cost-views?margin=${marginPercent}`);
       if (!res.ok) throw new Error('Failed to fetch cost views');
       return res.json();
     },
@@ -44,9 +77,15 @@ export function CostViewsPanel({ itemId, className = '' }: CostViewsPanelProps) 
     staleTime: 30000, // 30 seconds
   });
 
+  // Calculate suggested price client-side for instant feedback when margin changes
+  const suggestedPrice = useMemo(() => {
+    if (!costViews?.fullCost) return null;
+    return calculateSuggestedPrice(costViews.fullCost, marginPercent);
+  }, [costViews?.fullCost, marginPercent]);
+
   if (isLoading) {
     return (
-      <div className={`p-4 bg-white rounded-lg shadow ${className}`}>
+      <div className={`p-4 bg-white rounded-lg shadow ${className}`} data-testid="cost-views-panel-loading">
         <div className="animate-pulse space-y-3">
           <div className="h-5 bg-gray-200 rounded w-1/3"></div>
           <div className="grid grid-cols-2 gap-4">
@@ -132,6 +171,48 @@ export function CostViewsPanel({ itemId, className = '' }: CostViewsPanelProps) 
           </div>
         ))}
       </div>
+
+      {/* Suggested Price Section */}
+      {showSuggestedPrice && costViews.fullCost && (
+        <div className="mt-6 pt-4 border-t border-gray-200" data-testid="suggested-price-section">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="h-5 w-5 text-teal-600" />
+            <h4 className="text-md font-semibold text-gray-700">Suggested Selling Price</h4>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            {/* Margin Input */}
+            <div data-testid="margin-input-container">
+              <label className="block text-sm text-gray-600 mb-1">Target Margin %</label>
+              <NumberBox
+                value={marginPercent}
+                onValueChanged={(e) => setMarginPercent(e.value ?? 30)}
+                min={1}
+                max={99}
+                showSpinButtons
+                format="#0'%'"
+                width="100%"
+              />
+            </div>
+            {/* Full Cost */}
+            <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="text-sm text-gray-600">Full Absorption Cost</div>
+              <div className="text-lg font-bold text-orange-700">{formatCurrency(costViews.fullCost)}</div>
+            </div>
+            {/* Suggested Price */}
+            <div className="p-3 bg-teal-50 rounded-lg border border-teal-200">
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                Suggested Price
+              </div>
+              <div className="text-xl font-bold text-teal-700" data-testid="suggested-price-value">
+                {formatCurrency(suggestedPrice)}
+              </div>
+              <div className="text-xs text-gray-500">at {marginPercent}% margin</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 text-xs text-gray-400">
         On Hand: {costViews.onHand?.toLocaleString() || 0} units |
         Total Value: {formatCurrency(costViews.onHandValue)}
