@@ -198,6 +198,17 @@ export const sqliteConfidentialAccessGroupMembers = sqliteTable('confidential_ac
   addedBy: integer('added_by').references(() => sqliteUsers.id),
 });
 
+// BOM Confidential Access Grants (014-unit-cost)
+// Grants access to confidential BOMs for users or groups
+export const sqliteBOMConfidentialAccess = sqliteTable('bom_confidential_access', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomId: integer('bom_id').notNull(),  // References BOM from schema.ts
+  userId: integer('user_id').references(() => sqliteUsers.id),  // Either userId or groupId must be set
+  groupId: integer('group_id').references(() => sqliteConfidentialAccessGroups.id),
+  grantedBy: integer('granted_by').notNull().references(() => sqliteUsers.id),
+  grantedAt: text('granted_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // ============================================
 // SQLite Relations
 // ============================================
@@ -490,6 +501,17 @@ export const mysqlConfidentialAccessGroupMembers = mysqlTable('confidential_acce
   addedBy: int('added_by').references(() => mysqlUsers.id),
 });
 
+// BOM Confidential Access Grants (014-unit-cost)
+// Grants access to confidential BOMs for users or groups
+export const mysqlBOMConfidentialAccess = mysqlTable('bom_confidential_access', {
+  id: int('id').primaryKey().autoincrement(),
+  bomId: int('bom_id').notNull(),  // References BOM from schema.ts
+  userId: int('user_id').references(() => mysqlUsers.id),  // Either userId or groupId must be set
+  groupId: int('group_id').references(() => mysqlConfidentialAccessGroups.id),
+  grantedBy: int('granted_by').notNull().references(() => mysqlUsers.id),
+  grantedAt: datetime('granted_at').notNull().default(new Date()),
+});
+
 // ============================================
 // MySQL Relations
 // ============================================
@@ -636,3 +658,5 @@ export type ConfidentialAccessGroup = typeof sqliteConfidentialAccessGroups.$inf
 export type NewConfidentialAccessGroup = typeof sqliteConfidentialAccessGroups.$inferInsert;
 export type ConfidentialAccessGroupMember = typeof sqliteConfidentialAccessGroupMembers.$inferSelect;
 export type NewConfidentialAccessGroupMember = typeof sqliteConfidentialAccessGroupMembers.$inferInsert;
+export type BOMConfidentialAccess = typeof sqliteBOMConfidentialAccess.$inferSelect;
+export type NewBOMConfidentialAccess = typeof sqliteBOMConfidentialAccess.$inferInsert;
