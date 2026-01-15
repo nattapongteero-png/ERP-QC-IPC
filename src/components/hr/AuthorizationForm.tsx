@@ -138,7 +138,7 @@ export function AuthorizationForm({
   });
 
   // Fetch active employees for SelectBox
-  const { data: employees = [] } = useQuery({
+  const { data: employees = [], isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['hr', 'employees', 'active'],
     queryFn: fetchEmployees,
   });
@@ -262,8 +262,9 @@ export function AuthorizationForm({
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isCreate = mode === 'create';
 
-  // Loading state for edit mode
-  if (mode === 'edit' && isLoadingAuthorization) {
+  // Loading state - wait for employees to load (and authorization in edit mode)
+  const isLoading = isLoadingEmployees || (mode === 'edit' && isLoadingAuthorization);
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="py-12">
