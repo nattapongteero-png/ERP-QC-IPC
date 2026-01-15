@@ -842,13 +842,13 @@ export default function BOMDetailPage() {
                   <div className="flex justify-center">
                     <DxLoadIndicator height={32} width={32} />
                   </div>
-                ) : bomCost ? (
+                ) : bomCost?.totalMaterialCost !== undefined ? (
                   <>
                     <p className="text-2xl font-bold text-green-700">
                       {bomCost.totalMaterialCost.toLocaleString()} {bomCost.currency}
                     </p>
                     <p className="text-xs text-green-600">
-                      {bomCost.costPerUnit.toLocaleString()} {bomCost.currency}/{bom.batchUnit}
+                      {bomCost.costPerUnit?.toLocaleString() || '0'} {bomCost.currency}/{bom.batchUnit}
                     </p>
                   </>
                 ) : (
