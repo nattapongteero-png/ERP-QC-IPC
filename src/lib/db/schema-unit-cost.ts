@@ -15,6 +15,7 @@ import {
   sqliteHROrgUnits,
   sqliteHREmployees,
   sqliteUsers,
+  sqliteBOM,
   mysqlItems,
   mysqlInventoryLots,
   mysqlPurchaseOrderLines,
@@ -24,6 +25,7 @@ import {
   mysqlHROrgUnits,
   mysqlHREmployees,
   mysqlUsers,
+  mysqlBOM,
 } from './schema';
 
 // ============================================
@@ -202,7 +204,7 @@ export const sqliteConfidentialAccessGroupMembers = sqliteTable('confidential_ac
 // Grants access to confidential BOMs for users or groups
 export const sqliteBOMConfidentialAccess = sqliteTable('bom_confidential_access', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  bomId: integer('bom_id').notNull(),  // References BOM from schema.ts
+  bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
   userId: integer('user_id').references(() => sqliteUsers.id),  // Either userId or groupId must be set
   groupId: integer('group_id').references(() => sqliteConfidentialAccessGroups.id),
   grantedBy: integer('granted_by').notNull().references(() => sqliteUsers.id),
@@ -505,7 +507,7 @@ export const mysqlConfidentialAccessGroupMembers = mysqlTable('confidential_acce
 // Grants access to confidential BOMs for users or groups
 export const mysqlBOMConfidentialAccess = mysqlTable('bom_confidential_access', {
   id: int('id').primaryKey().autoincrement(),
-  bomId: int('bom_id').notNull(),  // References BOM from schema.ts
+  bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
   userId: int('user_id').references(() => mysqlUsers.id),  // Either userId or groupId must be set
   groupId: int('group_id').references(() => mysqlConfidentialAccessGroups.id),
   grantedBy: int('granted_by').notNull().references(() => mysqlUsers.id),
