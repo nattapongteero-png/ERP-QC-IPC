@@ -244,6 +244,10 @@ export const PERMISSIONS = {
   // Cost Management (Feature: 014-unit-cost)
   'cost:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT, ROLES.PURCHASING, ROLES.PRODUCTION],
   'cost:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.ACCOUNTANT],
+
+  // Admin/System Management (Feature: 014-unit-cost)
+  'admin:read': [ROLES.ADMIN],
+  'admin:write': [ROLES.ADMIN],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
