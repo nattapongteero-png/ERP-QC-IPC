@@ -98,6 +98,8 @@ export async function POST(request: NextRequest) {
         tppName,
         ttmtCode,
         ttmtName,
+        confidentialityLevel,
+        defaultConfidential,
       } = body;
 
       if (!code || !nameTh || !type || !primaryUnit) {
@@ -141,6 +143,8 @@ export async function POST(request: NextRequest) {
           tppName: tppName || null,
           ttmtCode: ttmtCode || null,
           ttmtName: ttmtName || null,
+          confidentialityLevel: confidentialityLevel || 'public',
+          defaultConfidential: defaultConfidential || false,
         });
       });
 
