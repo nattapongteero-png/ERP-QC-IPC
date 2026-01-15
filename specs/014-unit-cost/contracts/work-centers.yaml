@@ -1,0 +1,761 @@
+openapi: 3.0.3
+info:
+  title: Unit Cost - Work Centers & Overhead Rates API
+  description: API for managing work centers, overhead rates, and production cost tracking
+  version: 1.0.0
+
+servers:
+  - url: /api/cost
+
+paths:
+  /work-centers:
+    get:
+      summary: List work centers
+      operationId: listWorkCenters
+      tags:
+        - Work Centers
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by code or name
+      responses:
+        '200':
+          description: List retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCenterListResponse'
+
+    post:
+      summary: Create work center
+      operationId: createWorkCenter
+      tags:
+        - Work Centers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkCenterCreate'
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCenterResponse'
+        '400':
+          description: Validation error
+        '409':
+          description: Code already exists
+
+  /work-centers/{id}:
+    get:
+      summary: Get work center
+      operationId: getWorkCenter
+      tags:
+        - Work Centers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Work center retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCenterDetailResponse'
+        '404':
+          description: Not found
+
+    put:
+      summary: Update work center
+      operationId: updateWorkCenter
+      tags:
+        - Work Centers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkCenterUpdate'
+      responses:
+        '200':
+          description: Updated successfully
+        '400':
+          description: Validation error
+        '404':
+          description: Not found
+        '409':
+          description: Code already exists
+
+    delete:
+      summary: Delete work center
+      operationId: deleteWorkCenter
+      tags:
+        - Work Centers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deleted successfully
+        '400':
+          description: Cannot delete (in use by work orders)
+        '404':
+          description: Not found
+
+  /overhead-rates:
+    get:
+      summary: List overhead rates
+      operationId: listOverheadRates
+      tags:
+        - Overhead Rates
+      parameters:
+        - name: workCenterId
+          in: query
+          schema:
+            type: integer
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: effectiveDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Get rates effective on this date
+      responses:
+        '200':
+          description: List retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverheadRateListResponse'
+
+    post:
+      summary: Create overhead rate
+      operationId: createOverheadRate
+      tags:
+        - Overhead Rates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OverheadRateCreate'
+      responses:
+        '201':
+          description: Created successfully
+        '400':
+          description: Validation error
+
+  /overhead-rates/{id}:
+    put:
+      summary: Update overhead rate
+      operationId: updateOverheadRate
+      tags:
+        - Overhead Rates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OverheadRateUpdate'
+      responses:
+        '200':
+          description: Updated successfully
+        '404':
+          description: Not found
+
+  /work-orders/{id}/costs:
+    get:
+      summary: Get work order cost summary
+      operationId: getWorkOrderCosts
+      tags:
+        - Production Costs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Cost summary retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderCostResponse'
+        '404':
+          description: Work order not found
+
+  /work-orders/{id}/operations:
+    get:
+      summary: Get work order operations with time tracking
+      operationId: getWorkOrderOperations
+      tags:
+        - Production Costs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Operations retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderOperationsResponse'
+        '404':
+          description: Work order not found
+
+    put:
+      summary: Update work order operation times
+      operationId: updateWorkOrderOperations
+      tags:
+        - Production Costs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderOperationsUpdate'
+      responses:
+        '200':
+          description: Operations updated
+        '400':
+          description: Validation error
+        '404':
+          description: Work order not found
+
+components:
+  schemas:
+    WorkCenterListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkCenter'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    WorkCenter:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        nameTh:
+          type: string
+          nullable: true
+        orgUnitId:
+          type: integer
+          nullable: true
+        orgUnitName:
+          type: string
+          nullable: true
+        laborRatePerHour:
+          type: number
+          format: decimal
+        overheadRatePerHour:
+          type: number
+          format: decimal
+        machineRatePerHour:
+          type: number
+          format: decimal
+        capacityHoursPerDay:
+          type: number
+          format: decimal
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    WorkCenterDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/WorkCenter'
+
+    WorkCenterCreate:
+      type: object
+      required:
+        - code
+        - name
+      properties:
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        nameTh:
+          type: string
+          maxLength: 100
+          nullable: true
+        orgUnitId:
+          type: integer
+          nullable: true
+        laborRatePerHour:
+          type: number
+          format: decimal
+          default: 0
+          minimum: 0
+        overheadRatePerHour:
+          type: number
+          format: decimal
+          default: 0
+          minimum: 0
+        machineRatePerHour:
+          type: number
+          format: decimal
+          default: 0
+          minimum: 0
+        capacityHoursPerDay:
+          type: number
+          format: decimal
+          nullable: true
+          minimum: 0
+        isActive:
+          type: boolean
+          default: true
+
+    WorkCenterUpdate:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        nameTh:
+          type: string
+          maxLength: 100
+          nullable: true
+        orgUnitId:
+          type: integer
+          nullable: true
+        laborRatePerHour:
+          type: number
+          format: decimal
+          minimum: 0
+        overheadRatePerHour:
+          type: number
+          format: decimal
+          minimum: 0
+        machineRatePerHour:
+          type: number
+          format: decimal
+          minimum: 0
+        capacityHoursPerDay:
+          type: number
+          format: decimal
+          nullable: true
+        isActive:
+          type: boolean
+
+    WorkCenterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            code:
+              type: string
+
+    OverheadRateListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverheadRate'
+
+    OverheadRate:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        orgUnitId:
+          type: integer
+          nullable: true
+        orgUnitName:
+          type: string
+          nullable: true
+        workCenterId:
+          type: integer
+          nullable: true
+        workCenterCode:
+          type: string
+          nullable: true
+        overheadType:
+          type: string
+          enum: [fixed, variable, mixed]
+        allocationBasis:
+          type: string
+          enum: [labor_hours, machine_hours, units, direct_labor_cost]
+        ratePerUnit:
+          type: number
+          format: decimal
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+          nullable: true
+        glAccountId:
+          type: integer
+          nullable: true
+        glAccountCode:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+
+    OverheadRateCreate:
+      type: object
+      required:
+        - code
+        - name
+        - overheadType
+        - allocationBasis
+        - ratePerUnit
+        - effectiveFrom
+      properties:
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        orgUnitId:
+          type: integer
+          nullable: true
+        workCenterId:
+          type: integer
+          nullable: true
+        overheadType:
+          type: string
+          enum: [fixed, variable, mixed]
+        allocationBasis:
+          type: string
+          enum: [labor_hours, machine_hours, units, direct_labor_cost]
+        ratePerUnit:
+          type: number
+          format: decimal
+          minimum: 0
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+          nullable: true
+        glAccountId:
+          type: integer
+          nullable: true
+        isActive:
+          type: boolean
+          default: true
+
+    OverheadRateUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        ratePerUnit:
+          type: number
+          format: decimal
+        effectiveTo:
+          type: string
+          format: date
+          nullable: true
+        isActive:
+          type: boolean
+
+    WorkOrderCostResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/WorkOrderCostSummary'
+
+    WorkOrderCostSummary:
+      type: object
+      properties:
+        workOrderId:
+          type: integer
+        workOrderNumber:
+          type: string
+        status:
+          type: string
+          enum: [in_progress, completed, adjusted]
+        materialCost:
+          type: number
+          format: decimal
+        laborCost:
+          type: number
+          format: decimal
+        overheadCost:
+          type: number
+          format: decimal
+        totalCost:
+          type: number
+          format: decimal
+        producedQuantity:
+          type: number
+          format: decimal
+          nullable: true
+        unitCost:
+          type: number
+          format: decimal
+          nullable: true
+        materials:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderMaterialCost'
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderOperationCost'
+
+    WorkOrderMaterialCost:
+      type: object
+      properties:
+        itemId:
+          type: integer
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        issuedQuantity:
+          type: number
+          format: decimal
+        unitCost:
+          type: number
+          format: decimal
+        totalCost:
+          type: number
+          format: decimal
+
+    WorkOrderOperationCost:
+      type: object
+      properties:
+        operationId:
+          type: integer
+        sequence:
+          type: integer
+        operationName:
+          type: string
+        workCenterCode:
+          type: string
+        plannedHours:
+          type: number
+          format: decimal
+        actualHours:
+          type: number
+          format: decimal
+          nullable: true
+        laborRate:
+          type: number
+          format: decimal
+        laborCost:
+          type: number
+          format: decimal
+          nullable: true
+        overheadRate:
+          type: number
+          format: decimal
+        overheadCost:
+          type: number
+          format: decimal
+          nullable: true
+        status:
+          type: string
+          enum: [pending, in_progress, completed, skipped]
+
+    WorkOrderOperationsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderOperation'
+
+    WorkOrderOperation:
+      type: object
+      properties:
+        id:
+          type: integer
+        workOrderId:
+          type: integer
+        operationId:
+          type: integer
+        workCenterId:
+          type: integer
+        workCenterCode:
+          type: string
+        workCenterName:
+          type: string
+        sequence:
+          type: integer
+        operationName:
+          type: string
+        plannedHours:
+          type: number
+          format: decimal
+        actualHours:
+          type: number
+          format: decimal
+          nullable: true
+        laborRate:
+          type: number
+          format: decimal
+        laborCost:
+          type: number
+          format: decimal
+          nullable: true
+        overheadRate:
+          type: number
+          format: decimal
+        overheadCost:
+          type: number
+          format: decimal
+          nullable: true
+        startTime:
+          type: string
+          format: date-time
+          nullable: true
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+        operatorId:
+          type: integer
+          nullable: true
+        operatorName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, in_progress, completed, skipped]
+        notes:
+          type: string
+          nullable: true
+
+    WorkOrderOperationsUpdate:
+      type: object
+      required:
+        - operations
+      properties:
+        operations:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                type: integer
+              actualHours:
+                type: number
+                format: decimal
+                minimum: 0
+              startTime:
+                type: string
+                format: date-time
+                nullable: true
+              endTime:
+                type: string
+                format: date-time
+                nullable: true
+              operatorId:
+                type: integer
+                nullable: true
+              status:
+                type: string
+                enum: [pending, in_progress, completed, skipped]
+              notes:
+                type: string
+                nullable: true
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer

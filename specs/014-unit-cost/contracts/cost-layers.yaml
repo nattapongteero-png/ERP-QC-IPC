@@ -1,0 +1,237 @@
+openapi: 3.0.3
+info:
+  title: Unit Cost - Cost Layers API
+  description: API for managing item cost layers and cost views
+  version: 1.0.0
+
+servers:
+  - url: /api/cost
+
+paths:
+  /items/{id}/cost-views:
+    get:
+      summary: Get all cost views for an item
+      description: Returns WAC, standard, last purchase, last production, and full cost views
+      operationId: getItemCostViews
+      tags:
+        - Cost Views
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Item ID
+      responses:
+        '200':
+          description: Cost views retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemCostViewsResponse'
+        '400':
+          description: Invalid item ID
+        '404':
+          description: Item not found
+        '401':
+          description: Unauthorized
+
+  /items/{id}/cost-layers:
+    get:
+      summary: Get cost layer history for an item
+      description: Returns chronological list of cost-affecting transactions
+      operationId: getItemCostLayers
+      tags:
+        - Cost Layers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Item ID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Items per page
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - name: transactionType
+          in: query
+          schema:
+            type: string
+            enum: [receipt, landed_cost, adjustment, return]
+          description: Filter by transaction type
+      responses:
+        '200':
+          description: Cost layers retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostLayerListResponse'
+        '400':
+          description: Invalid parameters
+        '404':
+          description: Item not found
+
+components:
+  schemas:
+    ItemCostViewsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ItemCostViews'
+
+    ItemCostViews:
+      type: object
+      required:
+        - itemId
+        - itemCode
+        - itemName
+      properties:
+        itemId:
+          type: integer
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        inventoryCost:
+          type: number
+          format: decimal
+          nullable: true
+          description: Current WAC
+        standardCost:
+          type: number
+          format: decimal
+          nullable: true
+        lastPurchaseCost:
+          type: number
+          format: decimal
+          nullable: true
+        lastPurchaseDate:
+          type: string
+          format: date
+          nullable: true
+        lastPurchasePoNumber:
+          type: string
+          nullable: true
+        lastProductionCost:
+          type: number
+          format: decimal
+          nullable: true
+        lastProductionDate:
+          type: string
+          format: date
+          nullable: true
+        lastProductionWoNumber:
+          type: string
+          nullable: true
+        fullCost:
+          type: number
+          format: decimal
+          nullable: true
+          description: WAC + SG&A allocation
+        sgaAllocationRate:
+          type: number
+          format: decimal
+          description: SG&A percentage
+        suggestedPrice:
+          type: number
+          format: decimal
+          nullable: true
+          description: Based on full cost and target margin
+        onHandQty:
+          type: number
+          format: decimal
+        onHandValue:
+          type: number
+          format: decimal
+          description: onHandQty × WAC
+
+    CostLayerListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CostLayer'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    CostLayer:
+      type: object
+      properties:
+        id:
+          type: integer
+        itemId:
+          type: integer
+        transactionType:
+          type: string
+          enum: [receipt, landed_cost, adjustment, return]
+        transactionId:
+          type: integer
+        transactionDate:
+          type: string
+          format: date
+        quantityIn:
+          type: number
+          format: decimal
+        unitCost:
+          type: number
+          format: decimal
+        totalCost:
+          type: number
+          format: decimal
+        runningQty:
+          type: number
+          format: decimal
+        runningTotalCost:
+          type: number
+          format: decimal
+        runningWAC:
+          type: number
+          format: decimal
+        notes:
+          type: string
+          nullable: true
+        createdBy:
+          type: string
+          description: User name
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer

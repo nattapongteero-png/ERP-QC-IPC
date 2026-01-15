@@ -1,0 +1,686 @@
+openapi: 3.0.3
+info:
+  title: Unit Cost - Reports & Dashboard API
+  description: API for cost management reports and dashboard KPIs
+  version: 1.0.0
+
+servers:
+  - url: /api
+
+paths:
+  /cost/dashboard/kpis:
+    get:
+      summary: Get cost management dashboard KPIs
+      operationId: getCostDashboardKPIs
+      tags:
+        - Dashboard
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [mtd, qtd, ytd, last30, last90]
+            default: mtd
+          description: Time period for trend calculations
+      responses:
+        '200':
+          description: KPIs retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostDashboardKPIsResponse'
+
+  /reports/cost-summary:
+    get:
+      summary: Item cost summary report
+      description: Shows all cost views per item with filtering
+      operationId: getCostSummaryReport
+      tags:
+        - Reports
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: itemType
+          in: query
+          schema:
+            type: string
+            enum: [raw_material, packaging, wip, finished_goods, consumable]
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by item code or name
+        - name: hasInventory
+          in: query
+          schema:
+            type: boolean
+          description: Only items with on-hand > 0
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [itemCode, itemName, currentWAC, onHandValue, lastPurchaseCost, lastProductionCost]
+            default: itemCode
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Report data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostSummaryReportResponse'
+
+  /reports/production-cost:
+    get:
+      summary: Production cost report
+      description: Work order cost breakdown by period
+      operationId: getProductionCostReport
+      tags:
+        - Reports
+      parameters:
+        - name: fromDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: itemId
+          in: query
+          schema:
+            type: integer
+          description: Filter by finished goods item
+        - name: workCenterId
+          in: query
+          schema:
+            type: integer
+          description: Filter by work center
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [in_progress, completed]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Report data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionCostReportResponse'
+
+  /reports/margin-analysis:
+    get:
+      summary: Margin analysis report
+      description: Sales margin analysis with drill-down capability
+      operationId: getMarginAnalysisReport
+      tags:
+        - Reports
+      parameters:
+        - name: fromDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [product, customer, salesRep, period]
+            default: product
+        - name: itemId
+          in: query
+          schema:
+            type: integer
+        - name: customerId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Report data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarginAnalysisReportResponse'
+
+  /reports/landed-cost:
+    get:
+      summary: Landed cost analysis report
+      description: Analyze procurement true cost including landed costs
+      operationId: getLandedCostReport
+      tags:
+        - Reports
+      parameters:
+        - name: fromDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+        - name: itemId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Report data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandedCostReportResponse'
+
+components:
+  schemas:
+    CostDashboardKPIsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CostDashboardKPIs'
+
+    CostDashboardKPIs:
+      type: object
+      properties:
+        inventoryValue:
+          type: number
+          format: decimal
+          description: Total inventory value at WAC
+        inventoryValueChange:
+          type: number
+          format: decimal
+          description: Change from prior period
+        wipValue:
+          type: number
+          format: decimal
+          description: Work in progress value
+        wipValueChange:
+          type: number
+          format: decimal
+        avgMaterialCostChange:
+          type: number
+          format: decimal
+          description: Percentage change in avg material cost
+        grossMarginPercent:
+          type: number
+          format: decimal
+          description: Gross margin %
+        grossMarginPercentPrior:
+          type: number
+          format: decimal
+        favorableVariance:
+          type: number
+          format: decimal
+          description: Total favorable variances
+        unfavorableVariance:
+          type: number
+          format: decimal
+          description: Total unfavorable variances
+        topCostIncreases:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemCostChange'
+          description: Top 5 items with cost increases
+        topMarginErosion:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemMarginChange'
+          description: Top 5 SKUs with margin erosion
+        costTrend:
+          type: array
+          items:
+            $ref: '#/components/schemas/CostTrendPoint'
+          description: Monthly cost trend data
+
+    ItemCostChange:
+      type: object
+      properties:
+        itemId:
+          type: integer
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        previousCost:
+          type: number
+          format: decimal
+        currentCost:
+          type: number
+          format: decimal
+        changePercent:
+          type: number
+          format: decimal
+
+    ItemMarginChange:
+      type: object
+      properties:
+        itemId:
+          type: integer
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        previousMargin:
+          type: number
+          format: decimal
+        currentMargin:
+          type: number
+          format: decimal
+        changePercent:
+          type: number
+          format: decimal
+
+    CostTrendPoint:
+      type: object
+      properties:
+        period:
+          type: string
+          description: YYYY-MM format
+        avgMaterialCost:
+          type: number
+          format: decimal
+        avgProductionCost:
+          type: number
+          format: decimal
+        avgGrossMargin:
+          type: number
+          format: decimal
+
+    CostSummaryReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemCostSummary'
+        totals:
+          $ref: '#/components/schemas/CostSummaryTotals'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ItemCostSummary:
+      type: object
+      properties:
+        itemId:
+          type: integer
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        itemType:
+          type: string
+        categoryName:
+          type: string
+          nullable: true
+        uom:
+          type: string
+        onHand:
+          type: number
+          format: decimal
+        currentWAC:
+          type: number
+          format: decimal
+          nullable: true
+        onHandValue:
+          type: number
+          format: decimal
+        standardCost:
+          type: number
+          format: decimal
+          nullable: true
+        lastPurchaseCost:
+          type: number
+          format: decimal
+          nullable: true
+        lastPurchaseDate:
+          type: string
+          format: date
+          nullable: true
+        lastProductionCost:
+          type: number
+          format: decimal
+          nullable: true
+        lastProductionDate:
+          type: string
+          format: date
+          nullable: true
+        fullCost:
+          type: number
+          format: decimal
+          nullable: true
+
+    CostSummaryTotals:
+      type: object
+      properties:
+        totalOnHandValue:
+          type: number
+          format: decimal
+        itemCount:
+          type: integer
+
+    ProductionCostReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionCostRow'
+        totals:
+          $ref: '#/components/schemas/ProductionCostTotals'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ProductionCostRow:
+      type: object
+      properties:
+        workOrderId:
+          type: integer
+        workOrderNumber:
+          type: string
+        itemId:
+          type: integer
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        plannedQty:
+          type: number
+          format: decimal
+        producedQty:
+          type: number
+          format: decimal
+          nullable: true
+        completedDate:
+          type: string
+          format: date
+          nullable: true
+        materialCost:
+          type: number
+          format: decimal
+        laborCost:
+          type: number
+          format: decimal
+        overheadCost:
+          type: number
+          format: decimal
+        totalCost:
+          type: number
+          format: decimal
+        unitCost:
+          type: number
+          format: decimal
+          nullable: true
+        standardUnitCost:
+          type: number
+          format: decimal
+          nullable: true
+        varianceAmount:
+          type: number
+          format: decimal
+          nullable: true
+        variancePercent:
+          type: number
+          format: decimal
+          nullable: true
+        status:
+          type: string
+
+    ProductionCostTotals:
+      type: object
+      properties:
+        totalMaterialCost:
+          type: number
+          format: decimal
+        totalLaborCost:
+          type: number
+          format: decimal
+        totalOverheadCost:
+          type: number
+          format: decimal
+        totalCost:
+          type: number
+          format: decimal
+        totalFavorableVariance:
+          type: number
+          format: decimal
+        totalUnfavorableVariance:
+          type: number
+          format: decimal
+        workOrderCount:
+          type: integer
+
+    MarginAnalysisReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarginAnalysisRow'
+        totals:
+          $ref: '#/components/schemas/MarginAnalysisTotals'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    MarginAnalysisRow:
+      type: object
+      properties:
+        groupKey:
+          type: string
+          description: Product code, customer name, or period depending on groupBy
+        groupId:
+          type: integer
+          nullable: true
+        groupName:
+          type: string
+        revenue:
+          type: number
+          format: decimal
+        cogs:
+          type: number
+          format: decimal
+        grossMargin:
+          type: number
+          format: decimal
+        marginPercent:
+          type: number
+          format: decimal
+        quantity:
+          type: number
+          format: decimal
+        orderCount:
+          type: integer
+
+    MarginAnalysisTotals:
+      type: object
+      properties:
+        totalRevenue:
+          type: number
+          format: decimal
+        totalCOGS:
+          type: number
+          format: decimal
+        totalGrossMargin:
+          type: number
+          format: decimal
+        overallMarginPercent:
+          type: number
+          format: decimal
+        totalQuantity:
+          type: number
+          format: decimal
+        totalOrderCount:
+          type: integer
+
+    LandedCostReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LandedCostAnalysisRow'
+        totals:
+          $ref: '#/components/schemas/LandedCostTotals'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    LandedCostAnalysisRow:
+      type: object
+      properties:
+        poNumber:
+          type: string
+        vendorName:
+          type: string
+        itemId:
+          type: integer
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        quantity:
+          type: number
+          format: decimal
+        poValue:
+          type: number
+          format: decimal
+          description: Original PO value
+        freightCost:
+          type: number
+          format: decimal
+        dutyCost:
+          type: number
+          format: decimal
+        insuranceCost:
+          type: number
+          format: decimal
+        otherCost:
+          type: number
+          format: decimal
+        totalLandedCost:
+          type: number
+          format: decimal
+        totalCost:
+          type: number
+          format: decimal
+          description: PO value + landed costs
+        landedCostPercent:
+          type: number
+          format: decimal
+          description: Landed cost as % of PO value
+        unitCost:
+          type: number
+          format: decimal
+          description: Total cost / quantity
+
+    LandedCostTotals:
+      type: object
+      properties:
+        totalPOValue:
+          type: number
+          format: decimal
+        totalFreight:
+          type: number
+          format: decimal
+        totalDuty:
+          type: number
+          format: decimal
+        totalInsurance:
+          type: number
+          format: decimal
+        totalOther:
+          type: number
+          format: decimal
+        totalLandedCost:
+          type: number
+          format: decimal
+        avgLandedCostPercent:
+          type: number
+          format: decimal
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
