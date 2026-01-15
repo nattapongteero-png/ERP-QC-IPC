@@ -175,6 +175,17 @@ export const sqliteCostGLMapping = sqliteTable('cost_gl_mapping', {
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Confidential Access Groups (014-unit-cost)
+// Groups that can be granted access to confidential BOMs
+export const sqliteConfidentialAccessGroups = sqliteTable('confidential_access_groups', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // ============================================
 // SQLite Relations
 // ============================================
@@ -446,6 +457,17 @@ export const mysqlCostGLMapping = mysqlTable('cost_gl_mapping', {
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
 
+// Confidential Access Groups (014-unit-cost)
+// Groups that can be granted access to confidential BOMs
+export const mysqlConfidentialAccessGroups = mysqlTable('confidential_access_groups', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: mysqlText('description'),
+  createdAt: datetime('created_at').notNull().default(new Date()),
+  updatedAt: datetime('updated_at').notNull().default(new Date()),
+});
+
 // ============================================
 // MySQL Relations
 // ============================================
@@ -588,3 +610,5 @@ export type WorkOrderCostDb = typeof sqliteWorkOrderCosts.$inferSelect;
 export type NewWorkOrderCostDb = typeof sqliteWorkOrderCosts.$inferInsert;
 export type CostGLMapping = typeof sqliteCostGLMapping.$inferSelect;
 export type NewCostGLMapping = typeof sqliteCostGLMapping.$inferInsert;
+export type ConfidentialAccessGroup = typeof sqliteConfidentialAccessGroups.$inferSelect;
+export type NewConfidentialAccessGroup = typeof sqliteConfidentialAccessGroups.$inferInsert;
