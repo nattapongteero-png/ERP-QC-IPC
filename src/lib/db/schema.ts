@@ -294,6 +294,9 @@ export const sqliteBOMLines = sqliteTable('bom_lines', {
   sequence: integer('sequence').notNull().default(1),
   isOptional: integer('is_optional', { mode: 'boolean' }).notNull().default(false),
   notes: text('notes'),
+  // BOM Line Confidentiality fields (014-unit-cost)
+  isConfidential: integer('is_confidential', { mode: 'boolean' }),
+  confidentialityOverride: text('confidentiality_override').$type<'inherit' | 'public' | 'confidential'>().notNull().default('inherit'),
   // Phase 2: BOM verification columns (FR-063)
   percentageInFormula: real('percentage_in_formula'),
   weighedQty: real('weighed_qty'),
@@ -1608,6 +1611,9 @@ export const mysqlBOMLines = mysqlTable('bom_lines', {
   sequence: int('sequence').notNull().default(1),
   isOptional: mysqlBoolean('is_optional').notNull().default(false),
   notes: mysqlText('notes'),
+  // BOM Line Confidentiality fields (014-unit-cost)
+  isConfidential: mysqlBoolean('is_confidential'),
+  confidentialityOverride: mysqlEnum('confidentiality_override', ['inherit', 'public', 'confidential']).notNull().default('inherit'),
   // Phase 2: BOM verification columns (FR-063)
   percentageInFormula: decimal('percentage_in_formula', { precision: 5, scale: 2 }),
   weighedQty: decimal('weighed_qty', { precision: 15, scale: 4 }),
