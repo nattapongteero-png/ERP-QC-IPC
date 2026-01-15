@@ -15,7 +15,7 @@ import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
 import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown, Settings, Lock, Shield } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
-import { BOMAccessControlTab } from '@/components/bom/BOMAccessControlTab';
+import { BOMAccessControlTab, ConfidentialityBanner } from '@/components/bom';
 import type { BOMConfidentialityInfo } from '@/types/confidentiality';
 
 interface BOMLine {
@@ -977,21 +977,11 @@ export default function BOMDetailPage() {
             </div>
 
             {/* Confidentiality info banner */}
-            {activeTab === 'materials' && bom.confidentialityInfo?.hasConfidentialItems && (
-              <div className="mt-4 flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <Lock className="h-4 w-4 text-amber-600" />
-                <span className="text-sm text-amber-700">
-                  {bom.confidentialityInfo.userHasFullAccess ? (
-                    <>
-                      This BOM contains confidential items. You have full access to view all {bom.confidentialityInfo.totalLineCount} items.
-                    </>
-                  ) : (
-                    <>
-                      This BOM contains confidential items. Showing {bom.confidentialityInfo.visibleLineCount} of {bom.confidentialityInfo.totalLineCount} items.
-                    </>
-                  )}
-                </span>
-              </div>
+            {activeTab === 'materials' && bom.confidentialityInfo && (
+              <ConfidentialityBanner
+                confidentialityInfo={bom.confidentialityInfo}
+                className="mt-4"
+              />
             )}
           </CardHeader>
           <CardContent>

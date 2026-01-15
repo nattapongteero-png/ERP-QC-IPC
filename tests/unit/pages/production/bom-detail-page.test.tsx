@@ -352,7 +352,8 @@ describe('BOMDetailPage - Confidentiality UI', () => {
       renderWithProviders(<BOMDetailPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Showing 1 of 2 items/)).toBeInTheDocument();
+        // New format: "1 confidential item you cannot view. Showing 1 of 2 items."
+        expect(screen.getByText(/1 confidential item/)).toBeInTheDocument();
       });
     });
 
@@ -387,7 +388,8 @@ describe('BOMDetailPage - Confidentiality UI', () => {
 
       // Check that the limited access message appears
       await waitFor(() => {
-        expect(screen.getByText(/Showing 1 of 2 items/)).toBeInTheDocument();
+        // New format: "1 confidential item you cannot view. Showing 1 of 2 items."
+        expect(screen.getByTestId('confidentiality-banner')).toBeInTheDocument();
       });
     });
   });
