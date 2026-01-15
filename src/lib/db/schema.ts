@@ -104,6 +104,16 @@ export const sqliteItems = sqliteTable('items', {
   lastVmiSyncAt: text('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
   strength: text('strength'),
+  // Unit Cost Calculation fields (014-unit-cost)
+  currentWAC: real('current_wac'), // Current weighted average cost
+  lastPurchaseCost: real('last_purchase_cost'), // From most recent PO receipt
+  lastPurchaseDate: text('last_purchase_date'), // Date of last purchase
+  lastPurchasePoId: integer('last_purchase_po_id'), // FK to purchase_orders (no Drizzle ref to avoid circular)
+  lastProductionCost: real('last_production_cost'), // From most recent completed WO
+  lastProductionDate: text('last_production_date'), // Date of last production
+  lastProductionWoId: integer('last_production_wo_id'), // FK to work_orders (no Drizzle ref to avoid circular)
+  sgaAllocationRate: real('sga_allocation_rate').default(0), // SG&A % for full cost
+  standardCost: real('standard_cost'), // Standard cost for variance analysis
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -358,6 +368,10 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   waterDate: text('water_date'),
   waterConductivity: real('water_conductivity'), // µS·cm⁻¹
   waterTemperature: real('water_temperature'), // °C
+  // Unit Cost Calculation fields (014-unit-cost)
+  unitCost: real('unit_cost'), // WAC at time of issue
+  totalCost: real('total_cost'), // quantity × unitCost
+  costLayerId: integer('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -528,6 +542,11 @@ export const sqliteSalesOrderLines = sqliteTable('sales_order_lines', {
   unitPrice: real('unit_price').notNull(),
   totalPrice: real('total_price').notNull(),
   notes: text('notes'),
+  // Unit Cost Calculation fields (014-unit-cost)
+  unitCost: real('unit_cost'), // WAC at time of shipment
+  totalCost: real('total_cost'), // quantity × unitCost (COGS)
+  marginAmount: real('margin_amount'), // (unitPrice - unitCost) × qty
+  marginPercent: real('margin_percent'), // margin ÷ revenue × 100
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1396,6 +1415,16 @@ export const mysqlItems = mysqlTable('items', {
   lastVmiSyncAt: datetime('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
   strength: varchar('strength', { length: 100 }),
+  // Unit Cost Calculation fields (014-unit-cost)
+  currentWAC: decimal('current_wac', { precision: 15, scale: 4 }), // Current weighted average cost
+  lastPurchaseCost: decimal('last_purchase_cost', { precision: 15, scale: 4 }), // From most recent PO receipt
+  lastPurchaseDate: datetime('last_purchase_date'), // Date of last purchase
+  lastPurchasePoId: int('last_purchase_po_id'), // FK to purchase_orders (no Drizzle ref to avoid circular)
+  lastProductionCost: decimal('last_production_cost', { precision: 15, scale: 4 }), // From most recent completed WO
+  lastProductionDate: datetime('last_production_date'), // Date of last production
+  lastProductionWoId: int('last_production_wo_id'), // FK to work_orders (no Drizzle ref to avoid circular)
+  sgaAllocationRate: decimal('sga_allocation_rate', { precision: 5, scale: 2 }).default('0'), // SG&A % for full cost
+  standardCost: decimal('standard_cost', { precision: 15, scale: 4 }), // Standard cost for variance analysis
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1650,6 +1679,10 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   waterDate: varchar('water_date', { length: 20 }),
   waterConductivity: decimal('water_conductivity', { precision: 10, scale: 4 }), // µS·cm⁻¹
   waterTemperature: decimal('water_temperature', { precision: 5, scale: 2 }), // °C
+  // Unit Cost Calculation fields (014-unit-cost)
+  unitCost: decimal('unit_cost', { precision: 15, scale: 4 }), // WAC at time of issue
+  totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost
+  costLayerId: int('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -1820,6 +1853,11 @@ export const mysqlSalesOrderLines = mysqlTable('sales_order_lines', {
   unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
   totalPrice: decimal('total_price', { precision: 15, scale: 2 }).notNull(),
   notes: mysqlText('notes'),
+  // Unit Cost Calculation fields (014-unit-cost)
+  unitCost: decimal('unit_cost', { precision: 15, scale: 4 }), // WAC at time of shipment
+  totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost (COGS)
+  marginAmount: decimal('margin_amount', { precision: 15, scale: 4 }), // (unitPrice - unitCost) × qty
+  marginPercent: decimal('margin_percent', { precision: 5, scale: 2 }), // margin ÷ revenue × 100
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -6140,3 +6178,49 @@ export {
   mysqlTemplateCategoriesRelations,
   mysqlTemplateItemsRelations,
 } from './schema-template';
+
+// ============================================
+// Unit Cost Calculation System (014-unit-cost)
+// ============================================
+export {
+  // SQLite tables
+  sqliteWorkCenters,
+  sqliteItemCostLayers,
+  sqliteLandedCostHeaders,
+  sqliteLandedCostLines,
+  sqliteLandedCostAllocations,
+  sqliteOverheadRates,
+  sqliteWorkOrderOperations,
+  sqliteWorkOrderCosts,
+  sqliteCostGLMapping,
+  // SQLite relations
+  sqliteWorkCentersRelations,
+  sqliteItemCostLayersRelations,
+  sqliteLandedCostHeadersRelations,
+  sqliteLandedCostLinesRelations,
+  sqliteLandedCostAllocationsRelations,
+  sqliteOverheadRatesRelations,
+  sqliteWorkOrderOperationsRelations,
+  sqliteWorkOrderCostsRelations,
+  sqliteCostGLMappingRelations,
+  // MySQL tables
+  mysqlWorkCenters,
+  mysqlItemCostLayers,
+  mysqlLandedCostHeaders,
+  mysqlLandedCostLines,
+  mysqlLandedCostAllocations,
+  mysqlOverheadRates,
+  mysqlWorkOrderOperations,
+  mysqlWorkOrderCosts,
+  mysqlCostGLMapping,
+  // MySQL relations
+  mysqlWorkCentersRelations,
+  mysqlItemCostLayersRelations,
+  mysqlLandedCostHeadersRelations,
+  mysqlLandedCostLinesRelations,
+  mysqlLandedCostAllocationsRelations,
+  mysqlOverheadRatesRelations,
+  mysqlWorkOrderOperationsRelations,
+  mysqlWorkOrderCostsRelations,
+  mysqlCostGLMappingRelations,
+} from './schema-unit-cost';
