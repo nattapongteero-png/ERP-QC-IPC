@@ -2,13 +2,25 @@
  * LandedCostForm Unit Tests
  * Feature: 014-unit-cost
  *
- * Tests that the form correctly fetches and displays vendors and POs
+ * Tests that the form correctly fetches and displays vendors and POs.
+ * Uses shared UI test utilities for consistent testing patterns.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { screen, waitFor } from '@testing-library/react';
 import { LandedCostForm } from '@/components/cost/LandedCostForm';
+import {
+  renderWithProviders,
+  setupFetchMock,
+  createPaginatedResponse,
+  assertPaginatedResponseStructure,
+  clearFetchMock,
+} from '../../../helpers/ui-test-utils';
+import {
+  MOCK_VENDORS,
+  MOCK_PURCHASE_ORDERS,
+  COST_FETCH_HANDLERS,
+} from '../../../helpers/fetch-mock-handlers';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -23,79 +35,16 @@ vi.mock('devextreme/ui/notify', () => ({
   default: vi.fn(),
 }));
 
-const mockVendors = [
-  { id: 1, code: 'V001', name: 'Vendor A' },
-  { id: 2, code: 'V002', name: 'Vendor B' },
-];
-
-const mockPurchaseOrders = [
-  { id: 1, poNumber: 'PO-001', vendorId: 1, vendorName: 'Vendor A', totalAmount: 10000, status: 'received' },
-  { id: 2, poNumber: 'PO-002', vendorId: 2, vendorName: 'Vendor B', totalAmount: 20000, status: 'received' },
-];
-
-function createTestQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-}
-
-function renderWithProviders(ui: React.ReactElement) {
-  const queryClient = createTestQueryClient();
-  return render(
-    <QueryClientProvider client={queryClient}>
-      {ui}
-    </QueryClientProvider>
-  );
-}
-
 describe('LandedCostForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearFetchMock();
   });
 
   describe('Data Fetching - Response Structure', () => {
     it('should correctly parse paginated API response for vendors', async () => {
-      // Mock API response with ACTUAL paginated structure
-      global.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/api/vendors')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              success: true,
-              data: {
-                items: mockVendors,  // Paginated response has items array
-                total: 2,
-                page: 1,
-                limit: 1000,
-                totalPages: 1,
-              },
-            }),
-          });
-        }
-        if (url.includes('/api/purchasing/orders')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              success: true,
-              data: {
-                items: mockPurchaseOrders,
-                total: 2,
-                page: 1,
-                limit: 1000,
-                totalPages: 1,
-              },
-            }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true, data: [] }),
-        });
-      });
+      // Use pre-built handlers from fetch-mock-handlers
+      setupFetchMock(COST_FETCH_HANDLERS);
 
       renderWithProviders(<LandedCostForm mode="create" />);
 
@@ -110,41 +59,9 @@ describe('LandedCostForm', () => {
     });
 
     it('should handle empty vendor list gracefully', async () => {
-      global.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/api/vendors')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              success: true,
-              data: {
-                items: [],
-                total: 0,
-                page: 1,
-                limit: 1000,
-                totalPages: 0,
-              },
-            }),
-          });
-        }
-        if (url.includes('/api/purchasing/orders')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              success: true,
-              data: {
-                items: [],
-                total: 0,
-                page: 1,
-                limit: 1000,
-                totalPages: 0,
-              },
-            }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true, data: [] }),
-        });
+      setupFetchMock({
+        '/api/vendors': { data: createPaginatedResponse([]) },
+        '/api/purchasing/orders': { data: createPaginatedResponse([]) },
       });
 
       renderWithProviders(<LandedCostForm mode="create" />);
@@ -155,11 +72,9 @@ describe('LandedCostForm', () => {
     });
 
     it('should handle API error gracefully', async () => {
-      global.fetch = vi.fn().mockImplementation(() => {
-        return Promise.resolve({
-          ok: false,
-          status: 500,
-        });
+      setupFetchMock({
+        '/api/vendors': { data: { success: false, error: 'Server error' }, ok: false, status: 500 },
+        '/api/purchasing/orders': { data: { success: false, error: 'Server error' }, ok: false, status: 500 },
       });
 
       renderWithProviders(<LandedCostForm mode="create" />);
@@ -169,26 +84,28 @@ describe('LandedCostForm', () => {
       });
     });
 
-    it('should fail if data.data is used instead of data.data.items (regression test)', async () => {
-      // This test documents the bug: if someone changes the code back to data.data,
-      // the vendors array would be undefined or the pagination object
+    it('should correctly parse paginated response structure (regression test)', () => {
+      // This test documents the API response structure
+      // and catches the common bug where data.data is used instead of data.data.items
+      const mockResponse = createPaginatedResponse(MOCK_VENDORS);
 
-      const mockResponse = {
-        success: true,
-        data: {
-          items: mockVendors,
-          total: 2,
-          page: 1,
-          limit: 1000,
-          totalPages: 1,
-        },
-      };
+      // Use the assertion helper to validate structure
+      assertPaginatedResponseStructure(mockResponse);
 
-      // Correct: data.data.items returns the array
-      expect(mockResponse.data.items).toEqual(mockVendors);
+      // Additional explicit checks
+      expect(mockResponse.success).toBe(true);
+      expect(Array.isArray(mockResponse.data.items)).toBe(true);
+      expect(mockResponse.data.items).toEqual(MOCK_VENDORS);
+      expect(mockResponse.data.total).toBe(MOCK_VENDORS.length);
+    });
+
+    it('should fail if data.data is used instead of data.data.items (regression)', () => {
+      const mockResponse = createPaginatedResponse(MOCK_PURCHASE_ORDERS);
+
+      // Correct: data.items returns the array
       expect(Array.isArray(mockResponse.data.items)).toBe(true);
 
-      // Wrong: data.data returns the pagination object, not an array
+      // Wrong: data should NOT be treated as an array
       expect(Array.isArray(mockResponse.data)).toBe(false);
       expect(mockResponse.data).toHaveProperty('items');
       expect(mockResponse.data).toHaveProperty('total');
@@ -197,30 +114,7 @@ describe('LandedCostForm', () => {
 
   describe('Form Elements', () => {
     beforeEach(() => {
-      global.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/api/vendors')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              success: true,
-              data: { items: mockVendors, total: 2, page: 1, limit: 1000, totalPages: 1 },
-            }),
-          });
-        }
-        if (url.includes('/api/purchasing/orders')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              success: true,
-              data: { items: mockPurchaseOrders, total: 2, page: 1, limit: 1000, totalPages: 1 },
-            }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true, data: [] }),
-        });
-      });
+      setupFetchMock(COST_FETCH_HANDLERS);
     });
 
     it('should render form with header labels', async () => {
@@ -246,6 +140,31 @@ describe('LandedCostForm', () => {
       // Check cost lines section exists
       expect(screen.getByText('Cost Lines')).toBeInTheDocument();
       expect(screen.getByText('Cost Type')).toBeInTheDocument();
+    });
+
+    it('should render header information section', async () => {
+      renderWithProviders(<LandedCostForm mode="create" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('landed-cost-form')).toBeInTheDocument();
+      });
+
+      // Check header info section
+      expect(screen.getByText('Header Information')).toBeInTheDocument();
+      expect(screen.getByText('Currency')).toBeInTheDocument();
+      expect(screen.getByText('Exchange Rate')).toBeInTheDocument();
+    });
+  });
+
+  describe('Create Mode', () => {
+    it('should render in create mode with correct title', async () => {
+      setupFetchMock(COST_FETCH_HANDLERS);
+
+      renderWithProviders(<LandedCostForm mode="create" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('New Landed Cost')).toBeInTheDocument();
+      });
     });
   });
 });
