@@ -4,9 +4,8 @@
  * Task 21: Modify BOM detail page for confidentiality
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, waitFor, cleanup } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
 import BOMDetailPage from '@/app/production/bom/[id]/page';
 import {
   renderWithProviders,
@@ -217,10 +216,6 @@ describe('BOMDetailPage - Confidentiality UI', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearFetchMock();
-  });
-
-  afterEach(() => {
-    cleanup();
   });
 
   describe('Page Rendering', () => {

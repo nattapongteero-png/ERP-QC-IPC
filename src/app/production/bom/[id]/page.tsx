@@ -566,7 +566,7 @@ export default function BOMDetailPage() {
         if (line.isHidden) {
           return <span className="text-gray-400">-</span>;
         }
-        const costInfo = bomCost?.breakdown.find(b => b.itemId === line.itemId);
+        const costInfo = bomCost?.breakdown?.find(b => b.itemId === line.itemId);
         return <span className="text-gray-600">{costInfo ? `${costInfo.unitCost.toLocaleString()} THB` : '-'}</span>;
       },
     },
@@ -580,7 +580,7 @@ export default function BOMDetailPage() {
         if (line.isHidden) {
           return <span className="text-gray-400">-</span>;
         }
-        const costInfo = bomCost?.breakdown.find(b => b.itemId === line.itemId);
+        const costInfo = bomCost?.breakdown?.find(b => b.itemId === line.itemId);
         return <span className="font-medium text-green-700">{costInfo ? `${costInfo.totalCost.toLocaleString()} THB` : '-'}</span>;
       },
     },

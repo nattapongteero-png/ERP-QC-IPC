@@ -26,16 +26,16 @@ vi.mock('next/navigation', () => ({
 const mockWorkOrders = [
   {
     id: 1,
-    workOrderNumber: 'WO-2024-001',
-    itemName: 'Herbal Capsule A',
+    woNumber: 'WO-2024-001',
+    productName: 'Herbal Capsule A',
     status: 'released',
     lineClearanceRequired: true,
     lineClearanceStatus: null,
   },
   {
     id: 2,
-    workOrderNumber: 'WO-2024-002',
-    itemName: 'Herbal Tablet B',
+    woNumber: 'WO-2024-002',
+    productName: 'Herbal Tablet B',
     status: 'released',
     lineClearanceRequired: true,
     lineClearanceStatus: 'performed',
