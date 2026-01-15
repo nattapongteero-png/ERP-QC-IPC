@@ -186,6 +186,16 @@ export const sqliteConfidentialAccessGroups = sqliteTable('confidential_access_g
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Confidential Access Group Members (014-unit-cost)
+// Links users to access groups
+export const sqliteConfidentialAccessGroupMembers = sqliteTable('confidential_access_group_members', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  groupId: integer('group_id').notNull().references(() => sqliteConfidentialAccessGroups.id),
+  userId: integer('user_id').notNull(),  // References users table from schema.ts
+  addedAt: text('added_at').notNull().default('CURRENT_TIMESTAMP'),
+  addedBy: integer('added_by'),  // References users table from schema.ts
+});
+
 // ============================================
 // SQLite Relations
 // ============================================
@@ -468,6 +478,16 @@ export const mysqlConfidentialAccessGroups = mysqlTable('confidential_access_gro
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
 
+// Confidential Access Group Members (014-unit-cost)
+// Links users to access groups
+export const mysqlConfidentialAccessGroupMembers = mysqlTable('confidential_access_group_members', {
+  id: int('id').primaryKey().autoincrement(),
+  groupId: int('group_id').notNull().references(() => mysqlConfidentialAccessGroups.id),
+  userId: int('user_id').notNull(),  // References users table
+  addedAt: datetime('added_at').notNull().default(new Date()),
+  addedBy: int('added_by'),  // References users table
+});
+
 // ============================================
 // MySQL Relations
 // ============================================
@@ -612,3 +632,5 @@ export type CostGLMapping = typeof sqliteCostGLMapping.$inferSelect;
 export type NewCostGLMapping = typeof sqliteCostGLMapping.$inferInsert;
 export type ConfidentialAccessGroup = typeof sqliteConfidentialAccessGroups.$inferSelect;
 export type NewConfidentialAccessGroup = typeof sqliteConfidentialAccessGroups.$inferInsert;
+export type ConfidentialAccessGroupMember = typeof sqliteConfidentialAccessGroupMembers.$inferSelect;
+export type NewConfidentialAccessGroupMember = typeof sqliteConfidentialAccessGroupMembers.$inferInsert;

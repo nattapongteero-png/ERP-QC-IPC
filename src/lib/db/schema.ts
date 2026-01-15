@@ -6206,6 +6206,7 @@ export {
   sqliteWorkOrderCosts,
   sqliteCostGLMapping,
   sqliteConfidentialAccessGroups,
+  sqliteConfidentialAccessGroupMembers,
   // SQLite relations
   sqliteWorkCentersRelations,
   sqliteItemCostLayersRelations,
@@ -6227,6 +6228,7 @@ export {
   mysqlWorkOrderCosts,
   mysqlCostGLMapping,
   mysqlConfidentialAccessGroups,
+  mysqlConfidentialAccessGroupMembers,
   // MySQL relations
   mysqlWorkCentersRelations,
   mysqlItemCostLayersRelations,
@@ -6240,4 +6242,6 @@ export {
   // Types
   type ConfidentialAccessGroup,
   type NewConfidentialAccessGroup,
+  type ConfidentialAccessGroupMember,
+  type NewConfidentialAccessGroupMember,
 } from './schema-unit-cost';
