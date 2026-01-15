@@ -70,14 +70,14 @@ async function fetchVendors(): Promise<Vendor[]> {
   const res = await fetch('/api/vendors?pageSize=1000');
   if (!res.ok) return [];
   const data = await res.json();
-  return data.data || [];
+  return data.data?.items || [];
 }
 
 async function fetchPurchaseOrders(): Promise<PurchaseOrder[]> {
   const res = await fetch('/api/purchasing/orders?status=received&pageSize=1000');
   if (!res.ok) return [];
   const data = await res.json();
-  return data.data || [];
+  return data.data?.items || [];
 }
 
 async function createLandedCost(data: LandedCostHeaderCreate): Promise<{ id: number; documentNumber: string }> {
