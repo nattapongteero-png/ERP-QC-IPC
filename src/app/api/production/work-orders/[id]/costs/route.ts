@@ -46,7 +46,7 @@ export async function GET(
       }
 
       // Return just the aggregated costs
-      let cost = await getWorkOrderCost(workOrderId);
+      const cost = await getWorkOrderCost(workOrderId);
 
       // If no stored cost, calculate it on-the-fly
       if (!cost) {
