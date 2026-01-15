@@ -2,7 +2,8 @@
 // Feature: 014-unit-cost
 // Core functions for WAC calculation, cost layers, and cost aggregation
 
-import { eq, and, like, desc, asc, sql, gte, lte, count } from 'drizzle-orm';
+import { eq, and, like, desc, asc, sql, gte, lte, lt, gt, count, inArray } from 'drizzle-orm';
+import { toQueryDate } from '../db/date-utils';
 import { getNow, formatDateFromDb, getTodayStr } from '../db/date-utils';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import type {
@@ -33,6 +34,12 @@ import type {
   OverheadRateCreate,
   OverheadRateUpdate,
   OverheadRateListFilters,
+  CostDashboardKPIs,
+  ItemCostChange,
+  ItemMarginChange,
+  CostTrendPoint,
+  ItemCostSummaryRow,
+  ProductionCostRow,
 } from '@/types/unit-cost';
 
 // ============================================
@@ -56,6 +63,9 @@ function getUnitCostTables() {
     workOrders: getTableRef('workOrders'),
     workOrderMaterials: getTableRef('workOrderMaterials'),
     operations: getTableRef('operations'),
+    // For dashboard reporting
+    salesOrders: getTableRef('salesOrders'),
+    salesOrderLines: getTableRef('salesOrderLines'),
   };
 }
 
@@ -2296,5 +2306,385 @@ export async function updateFinishedGoodsWAC(
     await updateItemLastProduction(wo.productId, costSummary.unitCost, workOrderId);
 
     return wacResult;
+  });
+}
+
+// ============================================
+// DASHBOARD & REPORTS (US7)
+// ============================================
+
+/**
+ * Get dashboard KPIs for cost management overview
+ */
+export async function getCostDashboardKPIs(): Promise<CostDashboardKPIs> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Get inventory value from items table
+    const inventoryResult = await db
+      .select({
+        totalValue: sql<number>`SUM(COALESCE(${tables.items.onHandCost}, 0))`,
+      })
+      .from(tables.items)
+      .where(eq(tables.items.isActive, true));
+    const inventoryValue = Number(inventoryResult[0]?.totalValue) || 0;
+
+    // Get WIP value from open work orders
+    const wipResult = await db
+      .select({
+        totalWIP: sql<number>`SUM(COALESCE(${tables.workOrderCosts.totalCost}, 0))`,
+      })
+      .from(tables.workOrderCosts)
+      .innerJoin(tables.workOrders, eq(tables.workOrderCosts.workOrderId, tables.workOrders.id))
+      .where(inArray(tables.workOrders.status, ['draft', 'in_progress']));
+    const wipValue = Number(wipResult[0]?.totalWIP) || 0;
+
+    // Calculate gross margin from recent sales (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+    const marginResult = await db
+      .select({
+        totalRevenue: sql<number>`SUM(${tables.salesOrderLines.quantity} * ${tables.salesOrderLines.unitPrice})`,
+        totalCost: sql<number>`SUM(COALESCE(${tables.salesOrderLines.totalCost}, 0))`,
+      })
+      .from(tables.salesOrderLines)
+      .innerJoin(tables.salesOrders, eq(tables.salesOrderLines.salesOrderId, tables.salesOrders.id))
+      .where(gte(tables.salesOrders.createdAt, toQueryDate(thirtyDaysAgoStr)));
+
+    const totalRevenue = Number(marginResult[0]?.totalRevenue) || 0;
+    const totalCost = Number(marginResult[0]?.totalCost) || 0;
+    const grossMarginPercent = totalRevenue > 0
+      ? Math.round(((totalRevenue - totalCost) / totalRevenue) * 10000) / 100
+      : 0;
+
+    // Get top cost increases (items with highest WAC increase in last 30 days)
+    const topCostIncreases = await getTopCostIncreases(5);
+
+    // Get top margin erosion (items with declining margins)
+    const topMarginErosion = await getTopMarginErosion(5);
+
+    // Get cost trend (last 6 months)
+    const costTrend = await getCostTrend(6);
+
+    return {
+      inventoryValue,
+      inventoryValueChange: 0, // Would require historical comparison
+      wipValue,
+      wipValueChange: 0, // Would require historical comparison
+      avgMaterialCostChange: 0, // Would require historical comparison
+      grossMarginPercent,
+      grossMarginPercentPrior: 0, // Would require historical comparison
+      favorableVariance: 0, // Calculated from production variances
+      unfavorableVariance: 0, // Calculated from production variances
+      topCostIncreases,
+      topMarginErosion,
+      costTrend,
+    };
+  });
+}
+
+/**
+ * Get items with the highest cost increases
+ */
+export async function getTopCostIncreases(limit: number = 5): Promise<ItemCostChange[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Get items with cost layer history
+    // Compare most recent cost to average of previous costs
+    const rows = await db
+      .select({
+        itemId: tables.items.id,
+        itemCode: tables.items.code,
+        itemName: tables.items.nameTh,
+        currentWAC: sql<number>`(${tables.items.onHandCost} / NULLIF(${tables.items.onHand}, 0))`,
+        lastCost: sql<number>`(
+          SELECT c.cost_after / NULLIF(c.quantity_after, 0)
+          FROM item_cost_layers c
+          WHERE c.item_id = ${tables.items.id}
+          ORDER BY c.created_at DESC
+          LIMIT 1 OFFSET 1
+        )`,
+      })
+      .from(tables.items)
+      .where(and(
+        eq(tables.items.isActive, true),
+        gt(tables.items.onHand, 0)
+      ))
+      .limit(limit * 2); // Get more and filter
+
+    const changes: ItemCostChange[] = [];
+    for (const row of rows) {
+      const currentCost = Number(row.currentWAC) || 0;
+      const previousCost = Number(row.lastCost) || 0;
+      if (previousCost > 0 && currentCost > previousCost) {
+        const changePercent = Math.round(((currentCost - previousCost) / previousCost) * 10000) / 100;
+        changes.push({
+          itemId: row.itemId,
+          itemCode: row.itemCode,
+          itemName: row.itemName || row.itemCode,
+          previousCost,
+          currentCost,
+          changePercent,
+        });
+      }
+    }
+
+    // Sort by change percent descending and take top N
+    return changes.sort((a, b) => b.changePercent - a.changePercent).slice(0, limit);
+  });
+}
+
+/**
+ * Get items with declining margins
+ */
+export async function getTopMarginErosion(_limit: number = 5): Promise<ItemMarginChange[]> {
+  // This requires sales history comparison
+  // For now return empty array - would need more complex query with historical data
+  return [];
+}
+
+/**
+ * Get cost trend data for charts
+ */
+export async function getCostTrend(months: number = 6): Promise<CostTrendPoint[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const trends: CostTrendPoint[] = [];
+
+    // Get monthly aggregates for the last N months
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+
+    for (let i = 0; i < months; i++) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - (months - i - 1));
+      const period = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthStart = `${period}-01`;
+      const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+      const monthEnd = nextMonth.toISOString().split('T')[0];
+
+      // Get average costs from cost layers created in this month
+      const costResult = await db
+        .select({
+          avgCost: sql<number>`AVG(${tables.itemCostLayers.unitCost})`,
+        })
+        .from(tables.itemCostLayers)
+        .where(and(
+          gte(tables.itemCostLayers.createdAt, toQueryDate(monthStart)),
+          lt(tables.itemCostLayers.createdAt, toQueryDate(monthEnd))
+        ));
+
+      trends.push({
+        period,
+        avgMaterialCost: Number(costResult[0]?.avgCost) || 0,
+        avgProductionCost: 0, // Would need production cost aggregation
+        avgGrossMargin: 0, // Would need sales margin aggregation
+      });
+    }
+
+    return trends;
+  });
+}
+
+/**
+ * Get cost summary report with filters
+ */
+export async function getCostSummaryReport(filters: {
+  itemType?: string;
+  categoryId?: number;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<{ data: ItemCostSummaryRow[]; total: number }> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const page = filters.page || 1;
+    const pageSize = filters.pageSize || 50;
+    const offset = (page - 1) * pageSize;
+
+    // Build conditions
+    const conditions = [eq(tables.items.isActive, true)];
+    if (filters.itemType) {
+      conditions.push(eq(tables.items.type, filters.itemType));
+    }
+    if (filters.categoryId) {
+      conditions.push(eq(tables.items.categoryId, filters.categoryId));
+    }
+    if (filters.search) {
+      conditions.push(
+        sql`(${tables.items.code} LIKE ${`%${filters.search}%`} OR ${tables.items.nameTh} LIKE ${`%${filters.search}%`})`
+      );
+    }
+
+    const whereClause = and(...conditions);
+
+    // Get total count
+    const countResult = await db
+      .select({ count: count() })
+      .from(tables.items)
+      .where(whereClause);
+    const total = Number(countResult[0]?.count) || 0;
+
+    // Get data with pagination
+    const rows = await db
+      .select({
+        itemId: tables.items.id,
+        itemCode: tables.items.code,
+        itemName: tables.items.nameTh,
+        itemType: tables.items.type,
+        categoryId: tables.items.categoryId,
+        uom: tables.items.primaryUnit,
+        onHand: tables.items.onHand,
+        onHandCost: tables.items.onHandCost,
+        standardCost: tables.items.standardCost,
+        lastPurchaseCost: tables.items.lastPurchaseCost,
+        lastPurchaseDate: tables.items.lastPurchaseDate,
+        lastProductionCost: tables.items.lastProductionCost,
+        lastProductionDate: tables.items.lastProductionDate,
+      })
+      .from(tables.items)
+      .where(whereClause)
+      .orderBy(tables.items.code)
+      .limit(pageSize)
+      .offset(offset);
+
+    const data: ItemCostSummaryRow[] = rows.map((row: typeof rows[number]) => {
+      const onHand = Number(row.onHand) || 0;
+      const onHandCost = Number(row.onHandCost) || 0;
+      const currentWAC = onHand > 0 ? Math.round((onHandCost / onHand) * 10000) / 10000 : null;
+      const fullCost = currentWAC !== null ? Math.round(currentWAC * 1.1 * 10000) / 10000 : null;
+
+      return {
+        itemId: row.itemId,
+        itemCode: row.itemCode,
+        itemName: row.itemName || row.itemCode,
+        itemType: row.itemType as ItemCostSummaryRow['itemType'],
+        categoryName: null, // Would need join to categories
+        uom: row.uom,
+        onHand,
+        currentWAC,
+        onHandValue: onHandCost,
+        standardCost: row.standardCost ? Number(row.standardCost) : null,
+        lastPurchaseCost: row.lastPurchaseCost ? Number(row.lastPurchaseCost) : null,
+        lastPurchaseDate: row.lastPurchaseDate ? formatDateFromDb(row.lastPurchaseDate) : null,
+        lastProductionCost: row.lastProductionCost ? Number(row.lastProductionCost) : null,
+        lastProductionDate: row.lastProductionDate ? formatDateFromDb(row.lastProductionDate) : null,
+        fullCost,
+      };
+    });
+
+    return { data, total };
+  });
+}
+
+/**
+ * Get production cost report
+ */
+export async function getProductionCostReport(filters: {
+  dateFrom?: string;
+  dateTo?: string;
+  itemId?: number;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<{ data: ProductionCostRow[]; total: number }> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const page = filters.page || 1;
+    const pageSize = filters.pageSize || 50;
+    const offset = (page - 1) * pageSize;
+
+    // Build conditions
+    const conditions = [];
+    if (filters.dateFrom) {
+      conditions.push(gte(tables.workOrders.createdAt, toQueryDate(filters.dateFrom)));
+    }
+    if (filters.dateTo) {
+      conditions.push(lte(tables.workOrders.createdAt, toQueryDate(filters.dateTo)));
+    }
+    if (filters.itemId) {
+      conditions.push(eq(tables.workOrders.productId, filters.itemId));
+    }
+    if (filters.status) {
+      conditions.push(eq(tables.workOrders.status, filters.status));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const countResult = await db
+      .select({ count: count() })
+      .from(tables.workOrders)
+      .leftJoin(tables.workOrderCosts, eq(tables.workOrders.id, tables.workOrderCosts.workOrderId))
+      .where(whereClause);
+    const total = Number(countResult[0]?.count) || 0;
+
+    // Get data
+    const rows = await db
+      .select({
+        workOrderId: tables.workOrders.id,
+        workOrderNumber: tables.workOrders.woNumber,
+        itemId: tables.workOrders.productId,
+        itemCode: tables.items.code,
+        itemName: tables.items.nameTh,
+        plannedQty: tables.workOrders.plannedQty,
+        producedQty: tables.workOrders.producedQty,
+        completedDate: tables.workOrders.completedDate,
+        status: tables.workOrders.status,
+        materialCost: tables.workOrderCosts.materialCost,
+        laborCost: tables.workOrderCosts.laborCost,
+        overheadCost: tables.workOrderCosts.overheadCost,
+        totalCost: tables.workOrderCosts.totalCost,
+        unitCost: tables.workOrderCosts.unitCost,
+        standardCost: tables.items.standardCost,
+      })
+      .from(tables.workOrders)
+      .innerJoin(tables.items, eq(tables.workOrders.productId, tables.items.id))
+      .leftJoin(tables.workOrderCosts, eq(tables.workOrders.id, tables.workOrderCosts.workOrderId))
+      .where(whereClause)
+      .orderBy(desc(tables.workOrders.createdAt))
+      .limit(pageSize)
+      .offset(offset);
+
+    const data: ProductionCostRow[] = rows.map((row: typeof rows[number]) => {
+      const materialCost = Number(row.materialCost) || 0;
+      const laborCost = Number(row.laborCost) || 0;
+      const overheadCost = Number(row.overheadCost) || 0;
+      const totalCost = Number(row.totalCost) || (materialCost + laborCost + overheadCost);
+      const unitCost = row.unitCost ? Number(row.unitCost) : null;
+      const standardCost = row.standardCost ? Number(row.standardCost) : null;
+
+      let varianceAmount: number | null = null;
+      let variancePercent: number | null = null;
+      if (unitCost !== null && standardCost !== null && standardCost > 0) {
+        varianceAmount = Math.round((unitCost - standardCost) * 10000) / 10000;
+        variancePercent = Math.round((varianceAmount / standardCost) * 10000) / 100;
+      }
+
+      return {
+        workOrderId: row.workOrderId,
+        workOrderNumber: row.workOrderNumber,
+        itemId: row.itemId,
+        itemCode: row.itemCode,
+        itemName: row.itemName || row.itemCode,
+        plannedQty: Number(row.plannedQty) || 0,
+        producedQty: row.producedQty ? Number(row.producedQty) : null,
+        completedDate: row.completedDate ? formatDateFromDb(row.completedDate) : null,
+        materialCost,
+        laborCost,
+        overheadCost,
+        totalCost,
+        unitCost,
+        standardUnitCost: standardCost,
+        varianceAmount,
+        variancePercent,
+        status: row.status,
+      };
+    });
+
+    return { data, total };
   });
 }

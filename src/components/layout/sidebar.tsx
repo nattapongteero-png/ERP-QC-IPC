@@ -179,8 +179,10 @@ const navigation: NavItem[] = [
     icon: DollarSign,
     roles: ['admin', 'manager', 'finance', 'accounting', 'purchasing', 'production'],
     children: [
+      { name: 'Dashboard', href: '/cost', icon: BarChart3 },
       { name: 'Landed Costs', href: '/cost/landed-costs', icon: Truck },
       { name: 'Work Centers', href: '/cost/work-centers', icon: Factory },
+      { name: 'Cost Summary', href: '/cost/reports/cost-summary', icon: FileText },
     ],
   },
   {
