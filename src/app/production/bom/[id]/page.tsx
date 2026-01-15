@@ -13,21 +13,27 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
-import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown, Settings } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Archive, Copy, DollarSign, ChevronDown, Settings, Lock, Shield } from 'lucide-react';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
+import { BOMAccessControlTab } from '@/components/bom/BOMAccessControlTab';
+import type { BOMConfidentialityInfo } from '@/types/confidentiality';
 
 interface BOMLine {
   id: number;
-  itemId: number;
-  itemCode: string;
-  itemName: string;
-  itemUnit: string;
-  itemType: string;
-  quantity: number;
-  unit: string;
+  itemId?: number;
+  itemCode?: string;
+  itemName?: string;
+  itemUnit?: string;
+  itemType?: string;
+  quantity?: number;
+  unit?: string;
   sequence: number;
-  isOptional: boolean;
-  notes: string;
+  isOptional?: boolean;
+  notes?: string;
+  // Confidentiality fields
+  isConfidential?: boolean;
+  isHidden?: boolean;
+  placeholder?: string;
 }
 
 interface BOMCostBreakdown {
@@ -68,6 +74,7 @@ interface BOMDetail {
   createdAt: string;
   updatedAt: string;
   lines: BOMLine[];
+  confidentialityInfo?: BOMConfidentialityInfo;
 }
 
 export default function BOMDetailPage() {
@@ -78,6 +85,7 @@ export default function BOMDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState<'materials' | 'access'>('materials');
   const statusMenuRef = useRef<HTMLDivElement>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
@@ -377,8 +385,8 @@ export default function BOMDetailPage() {
   const openEditLineDialog = (line: BOMLine) => {
     setEditingLine(line);
     setEditLineForm({
-      quantity: line.quantity,
-      isOptional: line.isOptional,
+      quantity: line.quantity || 0,
+      isOptional: line.isOptional || false,
       notes: line.notes || '',
     });
     setEditLineDialogOpen(true);
@@ -490,28 +498,63 @@ export default function BOMDetailPage() {
     {
       dataField: 'itemCode',
       caption: 'Item Code',
-      width: 120,
-      cellRender: (cellInfo) => (
-        <span className="font-medium">{cellInfo.data.itemCode}</span>
-      ),
+      width: 140,
+      cellRender: (cellInfo) => {
+        const line = cellInfo.data as BOMLine;
+        if (line.isHidden) {
+          return <span className="text-gray-400 italic">-</span>;
+        }
+        return (
+          <div className="flex items-center gap-1">
+            {line.isConfidential && (
+              <span title="Confidential Item">
+                <Lock className="h-3.5 w-3.5 text-amber-500" />
+              </span>
+            )}
+            <span className="font-medium">{line.itemCode}</span>
+          </div>
+        );
+      },
     },
     {
       dataField: 'itemName',
       caption: 'Item Name',
+      cellRender: (cellInfo) => {
+        const line = cellInfo.data as BOMLine;
+        if (line.isHidden) {
+          return (
+            <div className="flex items-center gap-2 text-gray-400">
+              <Lock className="h-4 w-4" />
+              <span className="italic">{line.placeholder || '[Confidential Item]'}</span>
+            </div>
+          );
+        }
+        return <span>{line.itemName}</span>;
+      },
     },
     {
       dataField: 'itemType',
       caption: 'Type',
       width: 120,
-      cellRender: (cellInfo) => getItemTypeBadge(cellInfo.data.itemType),
+      cellRender: (cellInfo) => {
+        const line = cellInfo.data as BOMLine;
+        if (line.isHidden) {
+          return <span className="text-gray-400">-</span>;
+        }
+        return getItemTypeBadge(line.itemType || '');
+      },
     },
     {
       dataField: 'quantity',
       caption: 'Quantity',
       width: 140,
-      cellRender: (cellInfo) => (
-        <span>{cellInfo.data.quantity?.toLocaleString()} {cellInfo.data.unit}</span>
-      ),
+      cellRender: (cellInfo) => {
+        const line = cellInfo.data as BOMLine;
+        if (line.isHidden) {
+          return <span className="text-gray-400">-</span>;
+        }
+        return <span>{line.quantity?.toLocaleString()} {line.unit}</span>;
+      },
     },
     {
       dataField: 'unitCost',
@@ -519,7 +562,11 @@ export default function BOMDetailPage() {
       width: 120,
       alignment: 'right',
       cellRender: (cellInfo) => {
-        const costInfo = bomCost?.breakdown.find(b => b.itemId === cellInfo.data.itemId);
+        const line = cellInfo.data as BOMLine;
+        if (line.isHidden) {
+          return <span className="text-gray-400">-</span>;
+        }
+        const costInfo = bomCost?.breakdown.find(b => b.itemId === line.itemId);
         return <span className="text-gray-600">{costInfo ? `${costInfo.unitCost.toLocaleString()} THB` : '-'}</span>;
       },
     },
@@ -529,7 +576,11 @@ export default function BOMDetailPage() {
       width: 120,
       alignment: 'right',
       cellRender: (cellInfo) => {
-        const costInfo = bomCost?.breakdown.find(b => b.itemId === cellInfo.data.itemId);
+        const line = cellInfo.data as BOMLine;
+        if (line.isHidden) {
+          return <span className="text-gray-400">-</span>;
+        }
+        const costInfo = bomCost?.breakdown.find(b => b.itemId === line.itemId);
         return <span className="font-medium text-green-700">{costInfo ? `${costInfo.totalCost.toLocaleString()} THB` : '-'}</span>;
       },
     },
@@ -537,34 +588,45 @@ export default function BOMDetailPage() {
       dataField: 'isOptional',
       caption: 'Optional',
       width: 100,
-      cellRender: (cellInfo) => (
-        cellInfo.data.isOptional ?
+      cellRender: (cellInfo) => {
+        const line = cellInfo.data as BOMLine;
+        if (line.isHidden) {
+          return <span className="text-gray-400">-</span>;
+        }
+        return line.isOptional ?
           <Badge variant="warning">Optional</Badge> :
-          <Badge variant="primary">Required</Badge>
-      ),
+          <Badge variant="primary">Required</Badge>;
+      },
     },
     {
       dataField: 'actions',
       caption: 'Actions',
       width: 120,
-      cellRender: (cellInfo) => (
-        <div className="flex gap-1">
-          <DxButton
-            icon="edit"
-            type="normal"
-            stylingMode="text"
-            onClick={() => openEditLineDialog(cellInfo.data)}
-            hint="Edit"
-          />
-          <DxButton
-            icon="trash"
-            type="danger"
-            stylingMode="text"
-            onClick={() => openDeleteLineDialog(cellInfo.data)}
-            hint="Delete"
-          />
-        </div>
-      ),
+      cellRender: (cellInfo) => {
+        const line = cellInfo.data as BOMLine;
+        // Don't show actions for hidden lines
+        if (line.isHidden) {
+          return <span className="text-gray-400">-</span>;
+        }
+        return (
+          <div className="flex gap-1">
+            <DxButton
+              icon="edit"
+              type="normal"
+              stylingMode="text"
+              onClick={() => openEditLineDialog(line)}
+              hint="Edit"
+            />
+            <DxButton
+              icon="trash"
+              type="danger"
+              stylingMode="text"
+              onClick={() => openDeleteLineDialog(line)}
+              hint="Delete"
+            />
+          </div>
+        );
+      },
     },
   ];
 
@@ -854,39 +916,102 @@ export default function BOMDetailPage() {
           </Card>
         </div>
 
-        {/* BOM Lines */}
+        {/* BOM Content Tabs */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Bill of Materials</CardTitle>
-            <DxButton
-              text="Add Material"
-              icon="plus"
-              type="normal"
-              stylingMode="outlined"
-              onClick={() => {
-                // Reset form before opening dialog
-                setNewLine({
-                  itemId: 0,
-                  itemCode: '',
-                  itemName: '',
-                  itemUnit: '',
-                  quantity: 0,
-                  isOptional: false,
-                  notes: '',
-                });
-                setAddLineDialogOpen(true);
-              }}
-            />
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 border-b border-gray-200">
+                <button
+                  onClick={() => setActiveTab('materials')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'materials'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  data-testid="tab-materials"
+                >
+                  Bill of Materials
+                  {bom.confidentialityInfo?.hasConfidentialItems && (
+                    <span title="Contains confidential items">
+                      <Lock className="inline-block ml-1.5 h-3.5 w-3.5 text-amber-500" />
+                    </span>
+                  )}
+                </button>
+                {bom.confidentialityInfo?.userHasFullAccess && (
+                  <button
+                    onClick={() => setActiveTab('access')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'access'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                    data-testid="tab-access-control"
+                  >
+                    <Shield className="inline-block mr-1.5 h-4 w-4" />
+                    Access Control
+                  </button>
+                )}
+              </div>
+
+              {/* Actions for Materials tab */}
+              {activeTab === 'materials' && (
+                <DxButton
+                  text="Add Material"
+                  icon="plus"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => {
+                    setNewLine({
+                      itemId: 0,
+                      itemCode: '',
+                      itemName: '',
+                      itemUnit: '',
+                      quantity: 0,
+                      isOptional: false,
+                      notes: '',
+                    });
+                    setAddLineDialogOpen(true);
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Confidentiality info banner */}
+            {activeTab === 'materials' && bom.confidentialityInfo?.hasConfidentialItems && (
+              <div className="mt-4 flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <Lock className="h-4 w-4 text-amber-600" />
+                <span className="text-sm text-amber-700">
+                  {bom.confidentialityInfo.userHasFullAccess ? (
+                    <>
+                      This BOM contains confidential items. You have full access to view all {bom.confidentialityInfo.totalLineCount} items.
+                    </>
+                  ) : (
+                    <>
+                      This BOM contains confidential items. Showing {bom.confidentialityInfo.visibleLineCount} of {bom.confidentialityInfo.totalLineCount} items.
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
-            <DxDataGrid
-              dataSource={bom.lines || []}
-              keyExpr="id"
-              columns={bomLinesColumns}
-              showBorders
-              rowAlternationEnabled
-              noDataText="No materials defined for this BOM"
-            />
+            {activeTab === 'materials' && (
+              <DxDataGrid
+                dataSource={bom.lines || []}
+                keyExpr="id"
+                columns={bomLinesColumns}
+                showBorders
+                rowAlternationEnabled
+                noDataText="No materials defined for this BOM"
+              />
+            )}
+
+            {activeTab === 'access' && bom.confidentialityInfo?.userHasFullAccess && (
+              <BOMAccessControlTab
+                bomId={bom.id}
+                canManage={bom.confidentialityInfo.userHasFullAccess}
+              />
+            )}
           </CardContent>
         </Card>
 
