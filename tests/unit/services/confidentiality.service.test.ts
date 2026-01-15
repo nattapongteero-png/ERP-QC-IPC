@@ -61,6 +61,8 @@ import {
   getBypassRoles,
   setBypassRoles,
   canViewConfidentialItems,
+  filterBOMLines,
+  type BOMLineWithItem,
 } from '@/lib/services/confidentiality.service';
 
 describe('Confidentiality Service - Groups', () => {
@@ -752,6 +754,95 @@ describe('Confidentiality Service - Access Checks', () => {
 
       const result = await canViewConfidentialItems(randomId, bomId, 'USER');
       expect(result).toBe(false);
+    });
+  });
+});
+
+describe('Confidentiality Service - BOM Line Filtering', () => {
+  describe('filterBOMLines', () => {
+    const publicLine: BOMLineWithItem = {
+      id: 1,
+      sequence: 1,
+      itemId: 100,
+      itemCode: 'ITEM-001',
+      itemName: 'Public Item',
+      quantity: 10,
+      unit: 'kg',
+      confidentialityOverride: 'public',
+    };
+
+    const confidentialLine: BOMLineWithItem = {
+      id: 2,
+      sequence: 2,
+      itemId: 200,
+      itemCode: 'SECRET-001',
+      itemName: 'Secret Formula',
+      quantity: 5,
+      unit: 'kg',
+      confidentialityOverride: 'confidential',
+    };
+
+    const inheritLine: BOMLineWithItem = {
+      id: 3,
+      sequence: 3,
+      itemId: 300,
+      itemCode: 'INHERIT-001',
+      itemName: 'Inherit Item',
+      quantity: 2,
+      unit: 'pcs',
+      confidentialityOverride: 'inherit',
+      item: { defaultConfidential: true },
+    };
+
+    it('should show all lines when user has full access', () => {
+      const lines = [publicLine, confidentialLine, inheritLine];
+      const result = filterBOMLines(lines, true);
+
+      expect(result.lines.length).toBe(3);
+      expect(result.lines.every(l => !l.isHidden)).toBe(true);
+      expect(result.info.visibleLineCount).toBe(3);
+      expect(result.info.totalLineCount).toBe(3);
+      expect(result.info.userHasFullAccess).toBe(true);
+    });
+
+    it('should hide confidential lines when user lacks access', () => {
+      const lines = [publicLine, confidentialLine, inheritLine];
+      const result = filterBOMLines(lines, false);
+
+      expect(result.lines.length).toBe(3);
+
+      // Public line visible
+      expect(result.lines[0].isHidden).toBe(false);
+      expect(result.lines[0].itemCode).toBe('ITEM-001');
+
+      // Confidential line hidden
+      expect(result.lines[1].isHidden).toBe(true);
+      expect(result.lines[1].placeholder).toBe('[Confidential Item]');
+      expect(result.lines[1].itemCode).toBeUndefined();
+
+      // Inherit (confidential) line hidden
+      expect(result.lines[2].isHidden).toBe(true);
+
+      expect(result.info.visibleLineCount).toBe(1);
+      expect(result.info.hasConfidentialItems).toBe(true);
+      expect(result.info.userHasFullAccess).toBe(false);
+    });
+
+    it('should correctly identify when no confidential items exist', () => {
+      const lines = [publicLine];
+      const result = filterBOMLines(lines, false);
+
+      expect(result.info.hasConfidentialItems).toBe(false);
+      expect(result.info.visibleLineCount).toBe(1);
+    });
+
+    it('should handle empty lines array', () => {
+      const result = filterBOMLines([], false);
+
+      expect(result.lines.length).toBe(0);
+      expect(result.info.hasConfidentialItems).toBe(false);
+      expect(result.info.visibleLineCount).toBe(0);
+      expect(result.info.totalLineCount).toBe(0);
     });
   });
 });

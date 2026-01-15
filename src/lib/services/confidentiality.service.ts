@@ -18,6 +18,9 @@ import type {
   ConfidentialAccessGroupMember,
   BOMConfidentialAccess,
   BOMConfidentialAccessCreate,
+  FilteredBOMLine,
+  BOMConfidentialityInfo,
+  ConfidentialityOverride,
 } from '@/types/confidentiality';
 
 /**
@@ -457,4 +460,83 @@ export async function canViewConfidentialItems(
     // 3. Check explicit access
     return userHasBOMAccess(userId, bomId);
   });
+}
+
+// ============ BOM Line Filtering ============
+
+export interface BOMLineWithItem {
+  id: number;
+  sequence: number;
+  itemId: number;
+  itemCode?: string;
+  itemName?: string;
+  quantity: number;
+  unit?: string;
+  unitCost?: number;
+  totalCost?: number;
+  isOptional?: boolean;
+  notes?: string;
+  confidentialityOverride?: string | null;
+  item?: {
+    defaultConfidential?: boolean;
+    confidentialityLevel?: string;
+  };
+}
+
+/**
+ * Filter BOM lines based on user's access to confidential items
+ * Returns filtered lines and metadata about confidentiality
+ */
+export function filterBOMLines(
+  lines: BOMLineWithItem[],
+  canViewConfidential: boolean
+): { lines: FilteredBOMLine[]; info: BOMConfidentialityInfo } {
+  let visibleCount = 0;
+  let hasConfidential = false;
+
+  const filteredLines = lines.map((line): FilteredBOMLine => {
+    const item = line.item || {};
+    const confidential = isLineConfidential(line, item);
+
+    if (confidential) hasConfidential = true;
+
+    if (!confidential || canViewConfidential) {
+      visibleCount++;
+      return {
+        id: line.id,
+        sequence: line.sequence,
+        isConfidential: confidential,
+        isHidden: false,
+        itemId: line.itemId,
+        itemCode: line.itemCode,
+        itemName: line.itemName,
+        quantity: line.quantity,
+        unit: line.unit,
+        unitCost: line.unitCost,
+        totalCost: line.totalCost,
+        isOptional: line.isOptional,
+        notes: line.notes,
+        confidentialityOverride: line.confidentialityOverride as ConfidentialityOverride | undefined,
+      };
+    }
+
+    // Return placeholder for hidden confidential items
+    return {
+      id: line.id,
+      sequence: line.sequence,
+      isConfidential: true,
+      isHidden: true,
+      placeholder: '[Confidential Item]',
+    };
+  });
+
+  return {
+    lines: filteredLines,
+    info: {
+      hasConfidentialItems: hasConfidential,
+      visibleLineCount: visibleCount,
+      totalLineCount: lines.length,
+      userHasFullAccess: canViewConfidential,
+    },
+  };
 }
