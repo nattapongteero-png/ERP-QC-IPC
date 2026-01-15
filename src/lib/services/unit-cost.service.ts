@@ -2401,7 +2401,7 @@ export async function getTopCostIncreases(limit: number = 5): Promise<ItemCostCh
         itemName: tables.items.nameTh,
         currentWAC: sql<number>`(${tables.items.onHandCost} / NULLIF(${tables.items.onHand}, 0))`,
         lastCost: sql<number>`(
-          SELECT c.cost_after / NULLIF(c.quantity_after, 0)
+          SELECT c.running_wac
           FROM item_cost_layers c
           WHERE c.item_id = ${tables.items.id}
           ORDER BY c.created_at DESC
