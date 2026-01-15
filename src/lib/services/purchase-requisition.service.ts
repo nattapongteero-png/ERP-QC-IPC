@@ -449,7 +449,7 @@ async function recalculatePRTotal(prId: number): Promise<void> {
     const tables = getTables();
 
     const sumResult = await db
-      .select({ total: sql<number>`COALESCE(SUM(estimated_amount), 0)` })
+      .select({ total: sql<number>`COALESCE(SUM(line_total), 0)` })
       .from(tables.lines)
       .where(eq(tables.lines.prId, prId));
 
@@ -458,7 +458,7 @@ async function recalculatePRTotal(prId: number): Promise<void> {
     await db
       .update(tables.requisitions)
       .set({
-        totalEstimatedAmount: total,
+        totalAmount: total,
         updatedAt: getNow(),
       })
       .where(eq(tables.requisitions.id, prId));
