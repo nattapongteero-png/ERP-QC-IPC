@@ -2350,7 +2350,7 @@ export async function getCostDashboardKPIs(): Promise<CostDashboardKPIs> {
         totalCost: sql<number>`SUM(COALESCE(${tables.salesOrderLines.totalCost}, 0))`,
       })
       .from(tables.salesOrderLines)
-      .innerJoin(tables.salesOrders, eq(tables.salesOrderLines.salesOrderId, tables.salesOrders.id))
+      .innerJoin(tables.salesOrders, eq(tables.salesOrderLines.soId, tables.salesOrders.id))
       .where(gte(tables.salesOrders.createdAt, toQueryDate(thirtyDaysAgoStr)));
 
     const totalRevenue = Number(marginResult[0]?.totalRevenue) || 0;
