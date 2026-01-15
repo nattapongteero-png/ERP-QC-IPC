@@ -522,6 +522,7 @@ export const STEP_DEFINITIONS: StepDefinition[] = [
         phone: '000-000-0000',
         email: `${ctx.config.prefix.toLowerCase()}vendor@test.com`,
         isActive: true,
+        isVMI: true, // Enable VMI for workflow test steps 30-31
       }
 
       const result = await executeApiCall(ctx, '/api/vendors', 'POST', vendorPayload)
