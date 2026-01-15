@@ -19,14 +19,14 @@ export async function GET(request: NextRequest) {
     try {
       const url = new URL(request.url);
       const itemType = url.searchParams.get('itemType') || undefined;
-      const categoryId = url.searchParams.get('categoryId');
+      const category = url.searchParams.get('category') || undefined;
       const search = url.searchParams.get('search') || undefined;
       const page = parseInt(url.searchParams.get('page') || '1');
       const pageSize = parseInt(url.searchParams.get('pageSize') || '50');
 
       const result = await getCostSummaryReport({
         itemType,
-        categoryId: categoryId ? parseInt(categoryId) : undefined,
+        category,
         search,
         page,
         pageSize,

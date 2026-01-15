@@ -2494,7 +2494,7 @@ export async function getCostTrend(months: number = 6): Promise<CostTrendPoint[]
  */
 export async function getCostSummaryReport(filters: {
   itemType?: string;
-  categoryId?: number;
+  category?: string;
   search?: string;
   page?: number;
   pageSize?: number;
@@ -2510,8 +2510,8 @@ export async function getCostSummaryReport(filters: {
     if (filters.itemType) {
       conditions.push(eq(tables.items.type, filters.itemType));
     }
-    if (filters.categoryId) {
-      conditions.push(eq(tables.items.categoryId, filters.categoryId));
+    if (filters.category) {
+      conditions.push(eq(tables.items.category, filters.category));
     }
     if (filters.search) {
       conditions.push(
@@ -2535,7 +2535,7 @@ export async function getCostSummaryReport(filters: {
         itemCode: tables.items.code,
         itemName: tables.items.nameTh,
         itemType: tables.items.type,
-        categoryId: tables.items.categoryId,
+        category: tables.items.category,
         uom: tables.items.primaryUnit,
         onHand: tables.items.onHand,
         onHandCost: tables.items.onHandCost,
