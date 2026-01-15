@@ -180,6 +180,7 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'finance', 'accounting', 'purchasing', 'production'],
     children: [
       { name: 'Landed Costs', href: '/cost/landed-costs', icon: Truck },
+      { name: 'Work Centers', href: '/cost/work-centers', icon: Factory },
     ],
   },
   {

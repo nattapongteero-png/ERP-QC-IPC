@@ -29,6 +29,10 @@ import type {
   WorkOrderCost,
   WorkOrderCostUpsert,
   ProductionCostSummary,
+  OverheadRate,
+  OverheadRateCreate,
+  OverheadRateUpdate,
+  OverheadRateListFilters,
 } from '@/types/unit-cost';
 
 // ============================================
@@ -809,6 +813,253 @@ export async function deleteWorkCenter(id: number): Promise<void> {
     await db
       .delete(tables.workCenters)
       .where(eq(tables.workCenters.id, id));
+  });
+}
+
+// ============================================
+// OVERHEAD RATES (US6)
+// ============================================
+
+/**
+ * List overhead rates with optional filters
+ */
+export async function listOverheadRates(
+  filters: OverheadRateListFilters = {}
+): Promise<{ data: OverheadRate[]; total: number }> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Build conditions
+    const conditions = [];
+    if (filters.workCenterId) {
+      conditions.push(eq(tables.overheadRates.workCenterId, filters.workCenterId));
+    }
+    if (filters.isActive !== undefined) {
+      conditions.push(eq(tables.overheadRates.isActive, filters.isActive ? 1 : 0));
+    }
+    if (filters.effectiveDate) {
+      conditions.push(lte(tables.overheadRates.effectiveFrom, filters.effectiveDate));
+      // Either effectiveTo is null or >= effectiveDate
+      conditions.push(
+        sql`(${tables.overheadRates.effectiveTo} IS NULL OR ${tables.overheadRates.effectiveTo} >= ${filters.effectiveDate})`
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const countResult = await db
+      .select({ count: count() })
+      .from(tables.overheadRates)
+      .where(whereClause);
+    const total = Number(countResult[0]?.count) || 0;
+
+    // Get data
+    const rows = await db
+      .select({
+        id: tables.overheadRates.id,
+        code: tables.overheadRates.code,
+        name: tables.overheadRates.name,
+        orgUnitId: tables.overheadRates.orgUnitId,
+        workCenterId: tables.overheadRates.workCenterId,
+        overheadType: tables.overheadRates.overheadType,
+        allocationBasis: tables.overheadRates.allocationBasis,
+        ratePerUnit: tables.overheadRates.ratePerUnit,
+        effectiveFrom: tables.overheadRates.effectiveFrom,
+        effectiveTo: tables.overheadRates.effectiveTo,
+        glAccountId: tables.overheadRates.glAccountId,
+        isActive: tables.overheadRates.isActive,
+        createdAt: tables.overheadRates.createdAt,
+        updatedAt: tables.overheadRates.updatedAt,
+        workCenterCode: tables.workCenters.code,
+      })
+      .from(tables.overheadRates)
+      .leftJoin(tables.workCenters, eq(tables.overheadRates.workCenterId, tables.workCenters.id))
+      .where(whereClause)
+      .orderBy(tables.overheadRates.code);
+
+    const data = rows.map((row: typeof rows[number]) => ({
+      ...row,
+      isActive: Boolean(row.isActive),
+      effectiveFrom: formatDateFromDb(row.effectiveFrom) || '',
+      effectiveTo: row.effectiveTo ? formatDateFromDb(row.effectiveTo) : null,
+      createdAt: formatDateFromDb(row.createdAt) || '',
+      updatedAt: formatDateFromDb(row.updatedAt) || '',
+    })) as OverheadRate[];
+
+    return { data, total };
+  });
+}
+
+/**
+ * Get a single overhead rate by ID
+ */
+export async function getOverheadRate(id: number): Promise<OverheadRate | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    const rows = await db
+      .select({
+        id: tables.overheadRates.id,
+        code: tables.overheadRates.code,
+        name: tables.overheadRates.name,
+        orgUnitId: tables.overheadRates.orgUnitId,
+        workCenterId: tables.overheadRates.workCenterId,
+        overheadType: tables.overheadRates.overheadType,
+        allocationBasis: tables.overheadRates.allocationBasis,
+        ratePerUnit: tables.overheadRates.ratePerUnit,
+        effectiveFrom: tables.overheadRates.effectiveFrom,
+        effectiveTo: tables.overheadRates.effectiveTo,
+        glAccountId: tables.overheadRates.glAccountId,
+        isActive: tables.overheadRates.isActive,
+        createdAt: tables.overheadRates.createdAt,
+        updatedAt: tables.overheadRates.updatedAt,
+        workCenterCode: tables.workCenters.code,
+      })
+      .from(tables.overheadRates)
+      .leftJoin(tables.workCenters, eq(tables.overheadRates.workCenterId, tables.workCenters.id))
+      .where(eq(tables.overheadRates.id, id))
+      .limit(1);
+
+    if (rows.length === 0) return null;
+
+    const row = rows[0];
+    return {
+      ...row,
+      isActive: Boolean(row.isActive),
+      effectiveFrom: formatDateFromDb(row.effectiveFrom) || '',
+      effectiveTo: row.effectiveTo ? formatDateFromDb(row.effectiveTo) : null,
+      createdAt: formatDateFromDb(row.createdAt) || '',
+      updatedAt: formatDateFromDb(row.updatedAt) || '',
+    } as OverheadRate;
+  });
+}
+
+/**
+ * Create a new overhead rate
+ */
+export async function createOverheadRate(
+  data: OverheadRateCreate
+): Promise<{ id: number; code: string }> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Check for duplicate code
+    const existing = await db
+      .select({ id: tables.overheadRates.id })
+      .from(tables.overheadRates)
+      .where(eq(tables.overheadRates.code, data.code))
+      .limit(1);
+
+    if (existing.length > 0) {
+      throw new Error(`Overhead rate with code ${data.code} already exists`);
+    }
+
+    const result = await db.insert(tables.overheadRates).values({
+      code: data.code,
+      name: data.name,
+      orgUnitId: data.orgUnitId ?? null,
+      workCenterId: data.workCenterId ?? null,
+      overheadType: data.overheadType,
+      allocationBasis: data.allocationBasis,
+      ratePerUnit: data.ratePerUnit,
+      effectiveFrom: data.effectiveFrom,
+      effectiveTo: data.effectiveTo ?? null,
+      glAccountId: data.glAccountId ?? null,
+      isActive: data.isActive !== false ? 1 : 0,
+      createdAt: getNow(),
+      updatedAt: getNow(),
+    });
+
+    const id = getInsertId(result);
+    return { id, code: data.code };
+  });
+}
+
+/**
+ * Update an overhead rate
+ */
+export async function updateOverheadRate(
+  id: number,
+  data: OverheadRateUpdate
+): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Check if exists
+    const existing = await db
+      .select({ id: tables.overheadRates.id })
+      .from(tables.overheadRates)
+      .where(eq(tables.overheadRates.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw new Error(`Overhead rate with ID ${id} not found`);
+    }
+
+    const updateData: Record<string, unknown> = { updatedAt: getNow() };
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.ratePerUnit !== undefined) updateData.ratePerUnit = data.ratePerUnit;
+    if (data.effectiveTo !== undefined) updateData.effectiveTo = data.effectiveTo;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive ? 1 : 0;
+
+    await db
+      .update(tables.overheadRates)
+      .set(updateData)
+      .where(eq(tables.overheadRates.id, id));
+  });
+}
+
+/**
+ * Get effective overhead rate for a work center on a specific date
+ */
+export async function getEffectiveOverheadRate(
+  workCenterId: number,
+  date: string
+): Promise<OverheadRate | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    const rows = await db
+      .select({
+        id: tables.overheadRates.id,
+        code: tables.overheadRates.code,
+        name: tables.overheadRates.name,
+        orgUnitId: tables.overheadRates.orgUnitId,
+        workCenterId: tables.overheadRates.workCenterId,
+        overheadType: tables.overheadRates.overheadType,
+        allocationBasis: tables.overheadRates.allocationBasis,
+        ratePerUnit: tables.overheadRates.ratePerUnit,
+        effectiveFrom: tables.overheadRates.effectiveFrom,
+        effectiveTo: tables.overheadRates.effectiveTo,
+        glAccountId: tables.overheadRates.glAccountId,
+        isActive: tables.overheadRates.isActive,
+        createdAt: tables.overheadRates.createdAt,
+        updatedAt: tables.overheadRates.updatedAt,
+      })
+      .from(tables.overheadRates)
+      .where(
+        and(
+          eq(tables.overheadRates.workCenterId, workCenterId),
+          eq(tables.overheadRates.isActive, 1),
+          lte(tables.overheadRates.effectiveFrom, date),
+          sql`(${tables.overheadRates.effectiveTo} IS NULL OR ${tables.overheadRates.effectiveTo} >= ${date})`
+        )
+      )
+      .orderBy(desc(tables.overheadRates.effectiveFrom))
+      .limit(1);
+
+    if (rows.length === 0) return null;
+
+    const row = rows[0];
+    return {
+      ...row,
+      isActive: Boolean(row.isActive),
+      effectiveFrom: formatDateFromDb(row.effectiveFrom) || '',
+      effectiveTo: row.effectiveTo ? formatDateFromDb(row.effectiveTo) : null,
+      createdAt: formatDateFromDb(row.createdAt) || '',
+      updatedAt: formatDateFromDb(row.updatedAt) || '',
+    } as OverheadRate;
   });
 }
 

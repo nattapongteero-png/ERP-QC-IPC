@@ -67,6 +67,12 @@ import {
   // COGS functions (US5)
   calculateCOGS,
   updateSOLineWithCOGS,
+  // Overhead rate functions (US6)
+  listOverheadRates,
+  getOverheadRate,
+  createOverheadRate,
+  updateOverheadRate,
+  getEffectiveOverheadRate,
 } from '@/lib/services/unit-cost.service';
 
 // Test data constants
@@ -103,6 +109,8 @@ describe('Unit Cost Service', () => {
       // Sales tables for COGS tests (US5)
       schema.sqliteSalesOrders,
       schema.sqliteSalesOrderLines,
+      // Overhead rates table (US6)
+      schema.sqliteOverheadRates,
     ];
 
     for (const table of tables) {
@@ -526,6 +534,162 @@ describe('Unit Cost Service', () => {
 
       it('should throw error for non-existent work center', async () => {
         await expect(deleteWorkCenter(9999)).rejects.toThrow('not found');
+      });
+    });
+  });
+
+  // ============================================
+  // OVERHEAD RATES CRUD TESTS (US6)
+  // ============================================
+
+  describe('Overhead Rates CRUD (US6)', () => {
+    let testWorkCenterId: number;
+
+    beforeEach(async () => {
+      // Create a work center for overhead rates
+      const wc = await createWorkCenter({
+        code: 'WC-OH-TEST',
+        name: 'Overhead Test Work Center',
+        laborRatePerHour: 100,
+        overheadRatePerHour: 50,
+        machineRatePerHour: 75,
+      });
+      testWorkCenterId = wc.id;
+    });
+
+    describe('createOverheadRate', () => {
+      it('should create a new overhead rate', async () => {
+        const result = await createOverheadRate({
+          code: 'OH-TEST-001',
+          name: 'Test Overhead Rate',
+          workCenterId: testWorkCenterId,
+          overheadType: 'fixed',
+          allocationBasis: 'labor_hours',
+          ratePerUnit: 25.5,
+          effectiveFrom: '2025-01-01',
+        });
+
+        expect(result).toBeDefined();
+        expect(result.id).toBeDefined();
+        expect(typeof result.id).toBe('number');
+      });
+    });
+
+    describe('getOverheadRate', () => {
+      it('should get overhead rate by ID', async () => {
+        const result = await createOverheadRate({
+          code: 'OH-TEST-002',
+          name: 'Test Overhead Rate 2',
+          workCenterId: testWorkCenterId,
+          overheadType: 'variable',
+          allocationBasis: 'machine_hours',
+          ratePerUnit: 30,
+          effectiveFrom: '2025-01-01',
+        });
+
+        const rate = await getOverheadRate(result.id);
+        expect(rate).not.toBeNull();
+        expect(rate?.code).toBe('OH-TEST-002');
+        expect(rate?.ratePerUnit).toBe(30);
+        expect(rate?.overheadType).toBe('variable');
+        expect(rate?.allocationBasis).toBe('machine_hours');
+      });
+
+      it('should return null for non-existent ID', async () => {
+        const rate = await getOverheadRate(9999);
+        expect(rate).toBeNull();
+      });
+    });
+
+    describe('listOverheadRates', () => {
+      it('should list overhead rates for a work center', async () => {
+        await createOverheadRate({
+          code: 'OH-LIST-001',
+          name: 'List Test Rate 1',
+          workCenterId: testWorkCenterId,
+          overheadType: 'fixed',
+          allocationBasis: 'labor_hours',
+          ratePerUnit: 20,
+          effectiveFrom: '2025-01-01',
+        });
+
+        await createOverheadRate({
+          code: 'OH-LIST-002',
+          name: 'List Test Rate 2',
+          workCenterId: testWorkCenterId,
+          overheadType: 'variable',
+          allocationBasis: 'machine_hours',
+          ratePerUnit: 25,
+          effectiveFrom: '2025-07-01',
+        });
+
+        const result = await listOverheadRates({ workCenterId: testWorkCenterId });
+        expect(result.data.length).toBeGreaterThanOrEqual(2);
+      });
+    });
+
+    describe('updateOverheadRate', () => {
+      it('should update an overhead rate', async () => {
+        const result = await createOverheadRate({
+          code: 'OH-UPDATE-001',
+          name: 'Update Test Rate',
+          workCenterId: testWorkCenterId,
+          overheadType: 'fixed',
+          allocationBasis: 'labor_hours',
+          ratePerUnit: 20,
+          effectiveFrom: '2025-01-01',
+        });
+
+        await updateOverheadRate(result.id, {
+          ratePerUnit: 35,
+        });
+
+        const updated = await getOverheadRate(result.id);
+        expect(updated?.ratePerUnit).toBe(35);
+      });
+
+      it('should throw error for non-existent ID', async () => {
+        await expect(
+          updateOverheadRate(9999, { ratePerUnit: 100 })
+        ).rejects.toThrow('not found');
+      });
+    });
+
+    describe('getEffectiveOverheadRate', () => {
+      it('should get the most recent rate before or on date', async () => {
+        // Create rates at different dates
+        await createOverheadRate({
+          code: 'OH-EFF-001',
+          name: 'Jan Rate',
+          workCenterId: testWorkCenterId,
+          overheadType: 'fixed',
+          allocationBasis: 'labor_hours',
+          ratePerUnit: 20,
+          effectiveFrom: '2025-01-01',
+        });
+
+        await createOverheadRate({
+          code: 'OH-EFF-002',
+          name: 'June Rate',
+          workCenterId: testWorkCenterId,
+          overheadType: 'fixed',
+          allocationBasis: 'labor_hours',
+          ratePerUnit: 25,
+          effectiveFrom: '2025-06-01',
+        });
+
+        // Query for mid-year should return June rate
+        const julyRate = await getEffectiveOverheadRate(testWorkCenterId, '2025-07-15');
+        expect(julyRate?.ratePerUnit).toBe(25);
+
+        // Query for Feb should return Jan rate
+        const febRate = await getEffectiveOverheadRate(testWorkCenterId, '2025-02-15');
+        expect(febRate?.ratePerUnit).toBe(20);
+      });
+
+      it('should return null if no effective rate exists', async () => {
+        const rate = await getEffectiveOverheadRate(testWorkCenterId, '2020-01-01');
+        expect(rate).toBeNull();
       });
     });
   });
