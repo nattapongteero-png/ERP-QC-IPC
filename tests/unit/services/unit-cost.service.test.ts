@@ -56,6 +56,14 @@ import {
   postLandedCost,
   listLandedCosts,
   deleteLandedCost,
+  // Production cost functions (US3)
+  getWorkOrderOperations,
+  createWorkOrderOperations,
+  updateWorkOrderOperation,
+  getWorkOrderCost,
+  upsertWorkOrderCost,
+  calculateWorkOrderCost,
+  getWorkOrderCostSummary,
 } from '@/lib/services/unit-cost.service';
 
 // Test data constants
@@ -77,9 +85,12 @@ describe('Unit Cost Service', () => {
       schema.sqliteWorkCenters,
       schema.sqliteHROrgUnits,
       schema.sqliteHREmployees,
+      schema.sqliteBOM,
       schema.sqliteWorkOrders,
+      schema.sqliteWorkOrderMaterials,
       schema.sqliteOperations,
       schema.sqliteWorkOrderOperations,
+      schema.sqliteWorkOrderCosts,
       schema.sqliteLandedCostHeaders,
       schema.sqliteLandedCostLines,
       schema.sqliteLandedCostAllocations,
@@ -744,6 +755,331 @@ describe('Unit Cost Service', () => {
 
       it('should throw error when deleting non-existent landed cost', async () => {
         await expect(deleteLandedCost(9999)).rejects.toThrow('Landed cost with ID 9999 not found');
+      });
+    });
+  });
+
+  // ============================================
+  // PRODUCTION COST TESTS (US3)
+  // ============================================
+
+  describe('Production Cost Aggregation (US3)', () => {
+    const TEST_WO_ID = 1;
+    const TEST_WC_ID = 1;
+    const TEST_BOM_ID = 1;
+    const TEST_OP_ID = 1;
+    const TEST_PRODUCT_ID = 10;
+    const TEST_ITEM_2_ID = 2;
+
+    beforeEach(async () => {
+      // Create work center first
+      testSqlite.exec(`
+        INSERT INTO work_centers (id, code, name, labor_rate_per_hour, overhead_rate_per_hour, machine_rate_per_hour, is_active)
+        VALUES (${TEST_WC_ID}, 'WC-001', 'Production Line 1', 150, 50, 100, 1)
+      `);
+
+      // Create finished goods item
+      testSqlite.exec(`
+        INSERT INTO items (id, code, name_th, type, primary_unit, on_hand, on_hand_cost, current_wac, is_active)
+        VALUES (${TEST_PRODUCT_ID}, 'FG-001', 'Finished Product', 'finished_goods', 'units', 0, 0, 0, 1)
+      `);
+
+      // Create BOM (required for operations)
+      testSqlite.exec(`
+        INSERT INTO bom (id, code, name, product_id, version, status, batch_size, batch_unit, yield_target)
+        VALUES (${TEST_BOM_ID}, 'BOM-001', 'Product BOM', ${TEST_PRODUCT_ID}, '1.0', 'approved', 100, 'units', 95)
+      `);
+
+      // Create operation (requires bom_id, no code column)
+      testSqlite.exec(`
+        INSERT INTO operations (id, bom_id, sequence, name, work_center_id)
+        VALUES (${TEST_OP_ID}, ${TEST_BOM_ID}, 1, 'Mixing', ${TEST_WC_ID})
+      `);
+
+      // Create work order
+      testSqlite.exec(`
+        INSERT INTO work_orders (id, wo_number, bom_id, product_id, batch_number, planned_quantity, actual_quantity, unit, status, created_by)
+        VALUES (${TEST_WO_ID}, 'WO-2026-001', ${TEST_BOM_ID}, ${TEST_PRODUCT_ID}, 'BATCH-001', 100, 95, 'units', 'in_progress', ${TEST_USER_ID})
+      `);
+
+      // Second raw material item
+      try {
+        testSqlite.exec(`
+          INSERT INTO items (id, code, name_th, type, primary_unit, on_hand, on_hand_cost, current_wac, is_active)
+          VALUES (${TEST_ITEM_2_ID}, 'RM-002', 'Raw Material 2', 'raw_material', 'kg', 100, 8000, 80, 1)
+        `);
+      } catch {
+        // Item might exist
+      }
+
+      // Create work order materials with costs
+      testSqlite.exec(`
+        INSERT INTO work_order_materials (id, work_order_id, item_id, planned_quantity, actual_quantity, unit, unit_cost, total_cost, status)
+        VALUES
+          (1, ${TEST_WO_ID}, ${TEST_ITEM_ID}, 50, 48, 'kg', 50, 2400, 'issued'),
+          (2, ${TEST_WO_ID}, ${TEST_ITEM_2_ID}, 25, 24, 'kg', 80, 1920, 'issued')
+      `);
+    });
+
+    describe('Work Order Operations', () => {
+      describe('createWorkOrderOperations', () => {
+        it('should create work order operations with rates', async () => {
+          const ids = await createWorkOrderOperations([
+            {
+              workOrderId: TEST_WO_ID,
+              operationId: TEST_OP_ID,
+              workCenterId: TEST_WC_ID,
+              sequence: 1,
+              plannedHours: 4,
+              laborRate: 150,
+              overheadRate: 50,
+            },
+          ]);
+
+          expect(ids).toHaveLength(1);
+          expect(ids[0]).toBeGreaterThan(0);
+
+          // Verify operation was created
+          const op = testSqlite.prepare('SELECT * FROM work_order_operations WHERE id = ?').get(ids[0]);
+          expect(op).toBeDefined();
+          expect((op as { planned_hours: number }).planned_hours).toBe(4);
+          expect((op as { labor_rate: number }).labor_rate).toBe(150);
+          expect((op as { status: string }).status).toBe('pending');
+        });
+
+        it('should create multiple operations', async () => {
+          const ids = await createWorkOrderOperations([
+            {
+              workOrderId: TEST_WO_ID,
+              operationId: TEST_OP_ID,
+              workCenterId: TEST_WC_ID,
+              sequence: 1,
+              plannedHours: 4,
+              laborRate: 150,
+              overheadRate: 50,
+            },
+            {
+              workOrderId: TEST_WO_ID,
+              operationId: TEST_OP_ID,
+              workCenterId: TEST_WC_ID,
+              sequence: 2,
+              plannedHours: 2,
+              laborRate: 150,
+              overheadRate: 50,
+            },
+          ]);
+
+          expect(ids).toHaveLength(2);
+        });
+      });
+
+      describe('getWorkOrderOperations', () => {
+        it('should return operations with details', async () => {
+          // Create operation first
+          await createWorkOrderOperations([
+            {
+              workOrderId: TEST_WO_ID,
+              operationId: TEST_OP_ID,
+              workCenterId: TEST_WC_ID,
+              sequence: 1,
+              plannedHours: 4,
+              laborRate: 150,
+              overheadRate: 50,
+            },
+          ]);
+
+          const operations = await getWorkOrderOperations(TEST_WO_ID);
+
+          expect(operations).toHaveLength(1);
+          expect(operations[0].workCenterId).toBe(TEST_WC_ID);
+          expect(operations[0].plannedHours).toBe(4);
+          expect(operations[0].laborRate).toBe(150);
+          expect(operations[0].status).toBe('pending');
+        });
+
+        it('should return empty array if no operations', async () => {
+          const operations = await getWorkOrderOperations(9999);
+          expect(operations).toHaveLength(0);
+        });
+      });
+
+      describe('updateWorkOrderOperation', () => {
+        it('should update actual hours and calculate costs', async () => {
+          const [opId] = await createWorkOrderOperations([
+            {
+              workOrderId: TEST_WO_ID,
+              operationId: TEST_OP_ID,
+              workCenterId: TEST_WC_ID,
+              sequence: 1,
+              plannedHours: 4,
+              laborRate: 150,
+              overheadRate: 50,
+            },
+          ]);
+
+          await updateWorkOrderOperation(opId, {
+            actualHours: 4.5,
+            status: 'completed',
+          });
+
+          // Verify costs were calculated
+          const op = testSqlite.prepare('SELECT * FROM work_order_operations WHERE id = ?').get(opId);
+          expect(op).toBeDefined();
+          expect((op as { actual_hours: number }).actual_hours).toBe(4.5);
+          // Labor cost = 4.5 * 150 = 675
+          expect((op as { labor_cost: number }).labor_cost).toBe(675);
+          // Overhead cost = 4.5 * 50 = 225
+          expect((op as { overhead_cost: number }).overhead_cost).toBe(225);
+          expect((op as { status: string }).status).toBe('completed');
+        });
+
+        it('should throw error for non-existent operation', async () => {
+          await expect(
+            updateWorkOrderOperation(9999, { actualHours: 5 })
+          ).rejects.toThrow('not found');
+        });
+      });
+    });
+
+    describe('Work Order Costs', () => {
+      describe('getWorkOrderCost', () => {
+        it('should return null if no cost record exists', async () => {
+          const cost = await getWorkOrderCost(TEST_WO_ID);
+          expect(cost).toBeNull();
+        });
+
+        it('should return cost record if exists', async () => {
+          // Insert cost record
+          testSqlite.exec(`
+            INSERT INTO work_order_costs (work_order_id, material_cost, labor_cost, overhead_cost, total_cost, status)
+            VALUES (${TEST_WO_ID}, 4320, 675, 225, 5220, 'in_progress')
+          `);
+
+          const cost = await getWorkOrderCost(TEST_WO_ID);
+
+          expect(cost).not.toBeNull();
+          expect(cost!.materialCost).toBe(4320);
+          expect(cost!.laborCost).toBe(675);
+          expect(cost!.overheadCost).toBe(225);
+          expect(cost!.totalCost).toBe(5220);
+        });
+      });
+
+      describe('upsertWorkOrderCost', () => {
+        it('should insert new cost record', async () => {
+          const id = await upsertWorkOrderCost({
+            workOrderId: TEST_WO_ID,
+            materialCost: 4320,
+            laborCost: 675,
+            overheadCost: 225,
+            totalCost: 5220,
+          });
+
+          expect(id).toBeGreaterThan(0);
+
+          const cost = await getWorkOrderCost(TEST_WO_ID);
+          expect(cost!.materialCost).toBe(4320);
+        });
+
+        it('should update existing cost record', async () => {
+          // Insert first
+          await upsertWorkOrderCost({
+            workOrderId: TEST_WO_ID,
+            materialCost: 4320,
+          });
+
+          // Update
+          await upsertWorkOrderCost({
+            workOrderId: TEST_WO_ID,
+            laborCost: 900,
+            status: 'completed',
+          });
+
+          const cost = await getWorkOrderCost(TEST_WO_ID);
+          expect(cost!.materialCost).toBe(4320); // Unchanged
+          expect(cost!.laborCost).toBe(900); // Updated
+          expect(cost!.status).toBe('completed');
+        });
+      });
+
+      describe('calculateWorkOrderCost', () => {
+        it('should aggregate material, labor, and overhead costs', async () => {
+          // Create operations with actual hours
+          const [opId] = await createWorkOrderOperations([
+            {
+              workOrderId: TEST_WO_ID,
+              operationId: TEST_OP_ID,
+              workCenterId: TEST_WC_ID,
+              sequence: 1,
+              plannedHours: 4,
+              laborRate: 150,
+              overheadRate: 50,
+            },
+          ]);
+
+          await updateWorkOrderOperation(opId, {
+            actualHours: 4.5,
+            status: 'completed',
+          });
+
+          const summary = await calculateWorkOrderCost(TEST_WO_ID);
+
+          // Material: 48*50 + 24*80 = 2400 + 1920 = 4320
+          expect(summary.materialCost).toBe(4320);
+          // Labor: 4.5 * 150 = 675
+          expect(summary.laborCost).toBe(675);
+          // Overhead: 4.5 * 50 = 225
+          expect(summary.overheadCost).toBe(225);
+          // Total: 4320 + 675 + 225 = 5220
+          expect(summary.totalCost).toBe(5220);
+          // Unit cost: 5220 / 95 = 54.9474
+          expect(summary.unitCost).toBeCloseTo(54.9474, 2);
+        });
+
+        it('should return null unit cost if no production quantity', async () => {
+          // Update WO to have no actual quantity
+          testSqlite.exec(`UPDATE work_orders SET actual_quantity = 0 WHERE id = ${TEST_WO_ID}`);
+
+          const summary = await calculateWorkOrderCost(TEST_WO_ID);
+
+          expect(summary.unitCost).toBeNull();
+        });
+      });
+
+      describe('getWorkOrderCostSummary', () => {
+        it('should return detailed cost breakdown', async () => {
+          // Create operation and record time
+          const [opId] = await createWorkOrderOperations([
+            {
+              workOrderId: TEST_WO_ID,
+              operationId: TEST_OP_ID,
+              workCenterId: TEST_WC_ID,
+              sequence: 1,
+              plannedHours: 4,
+              laborRate: 150,
+              overheadRate: 50,
+            },
+          ]);
+
+          await updateWorkOrderOperation(opId, {
+            actualHours: 4.5,
+            status: 'completed',
+          });
+
+          const summary = await getWorkOrderCostSummary(TEST_WO_ID);
+
+          expect(summary).not.toBeNull();
+          expect(summary!.workOrder.woNumber).toBe('WO-2026-001');
+          expect(summary!.workOrder.producedQty).toBe(95);
+          expect(summary!.materials).toHaveLength(2);
+          expect(summary!.operations).toHaveLength(1);
+          expect(summary!.summary.totalCost).toBeCloseTo(5220, 0);
+        });
+
+        it('should return null for non-existent work order', async () => {
+          const summary = await getWorkOrderCostSummary(9999);
+          expect(summary).toBeNull();
+        });
       });
     });
   });

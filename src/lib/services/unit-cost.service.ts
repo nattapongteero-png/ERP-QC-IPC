@@ -23,6 +23,12 @@ import type {
   LandedCostAllocation,
   LandedCostListFilters,
   AllocationBasis,
+  WorkOrderOperation,
+  WorkOrderOperationCreate,
+  WorkOrderOperationUpdate,
+  WorkOrderCost,
+  WorkOrderCostUpsert,
+  ProductionCostSummary,
 } from '@/types/unit-cost';
 
 // ============================================
@@ -43,6 +49,9 @@ function getUnitCostTables() {
     items: getTableRef('items'),
     hrEmployees: getTableRef('hREmployees'),
     hrOrgUnits: getTableRef('hROrgUnits'),
+    workOrders: getTableRef('workOrders'),
+    workOrderMaterials: getTableRef('workOrderMaterials'),
+    operations: getTableRef('operations'),
   };
 }
 
@@ -1358,5 +1367,517 @@ export async function postLandedCost(
         updatedAt: getNow(),
       })
       .where(eq(tables.landedCostHeaders.id, landedCostId));
+  });
+}
+
+// ============================================
+// PRODUCTION COST AGGREGATION (US3)
+// ============================================
+
+/**
+ * Get work order operations with time tracking and costs
+ */
+export async function getWorkOrderOperations(
+  workOrderId: number
+): Promise<WorkOrderOperation[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    const result = await db
+      .select({
+        id: tables.workOrderOperations.id,
+        workOrderId: tables.workOrderOperations.workOrderId,
+        operationId: tables.workOrderOperations.operationId,
+        workCenterId: tables.workOrderOperations.workCenterId,
+        workCenterCode: tables.workCenters.code,
+        workCenterName: tables.workCenters.name,
+        sequence: tables.workOrderOperations.sequence,
+        operationName: tables.operations.name,
+        plannedHours: tables.workOrderOperations.plannedHours,
+        actualHours: tables.workOrderOperations.actualHours,
+        laborRate: tables.workOrderOperations.laborRate,
+        laborCost: tables.workOrderOperations.laborCost,
+        overheadRate: tables.workOrderOperations.overheadRate,
+        overheadCost: tables.workOrderOperations.overheadCost,
+        startTime: tables.workOrderOperations.startTime,
+        endTime: tables.workOrderOperations.endTime,
+        operatorId: tables.workOrderOperations.operatorId,
+        operatorFirstName: tables.hrEmployees.firstName,
+        operatorLastName: tables.hrEmployees.lastName,
+        status: tables.workOrderOperations.status,
+        notes: tables.workOrderOperations.notes,
+        createdAt: tables.workOrderOperations.createdAt,
+        updatedAt: tables.workOrderOperations.updatedAt,
+      })
+      .from(tables.workOrderOperations)
+      .leftJoin(tables.workCenters, eq(tables.workOrderOperations.workCenterId, tables.workCenters.id))
+      .leftJoin(tables.operations, eq(tables.workOrderOperations.operationId, tables.operations.id))
+      .leftJoin(tables.hrEmployees, eq(tables.workOrderOperations.operatorId, tables.hrEmployees.id))
+      .where(eq(tables.workOrderOperations.workOrderId, workOrderId))
+      .orderBy(asc(tables.workOrderOperations.sequence));
+
+    return result.map((row: typeof result[0]) => {
+      const operatorName = row.operatorFirstName && row.operatorLastName
+        ? `${row.operatorFirstName} ${row.operatorLastName}`
+        : undefined;
+      return {
+      id: row.id,
+      workOrderId: row.workOrderId,
+      operationId: row.operationId,
+      workCenterId: row.workCenterId,
+      workCenterCode: row.workCenterCode || undefined,
+      workCenterName: row.workCenterName || undefined,
+      sequence: row.sequence,
+      operationName: row.operationName || undefined,
+      plannedHours: Number(row.plannedHours) || 0,
+      actualHours: row.actualHours !== null ? Number(row.actualHours) : null,
+      laborRate: Number(row.laborRate) || 0,
+      laborCost: row.laborCost !== null ? Number(row.laborCost) : null,
+      overheadRate: Number(row.overheadRate) || 0,
+      overheadCost: row.overheadCost !== null ? Number(row.overheadCost) : null,
+      startTime: formatDateFromDb(row.startTime),
+      endTime: formatDateFromDb(row.endTime),
+      operatorId: row.operatorId,
+      operatorName,
+      status: row.status as 'pending' | 'in_progress' | 'completed' | 'skipped',
+      notes: row.notes,
+      createdAt: formatDateFromDb(row.createdAt) || '',
+      updatedAt: formatDateFromDb(row.updatedAt) || '',
+    };
+    }) as WorkOrderOperation[];
+  });
+}
+
+/**
+ * Create work order operations from BOM routing
+ */
+export async function createWorkOrderOperations(
+  data: WorkOrderOperationCreate[]
+): Promise<number[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+    const ids: number[] = [];
+
+    for (const op of data) {
+      const result = await db
+        .insert(tables.workOrderOperations)
+        .values({
+          workOrderId: op.workOrderId,
+          operationId: op.operationId,
+          workCenterId: op.workCenterId,
+          sequence: op.sequence,
+          plannedHours: op.plannedHours,
+          laborRate: op.laborRate,
+          overheadRate: op.overheadRate,
+          status: 'pending',
+          createdAt: getNow(),
+          updatedAt: getNow(),
+        });
+      ids.push(getInsertId(result));
+    }
+
+    return ids;
+  });
+}
+
+/**
+ * Update work order operation (time tracking)
+ */
+export async function updateWorkOrderOperation(
+  operationId: number,
+  data: WorkOrderOperationUpdate
+): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Get existing operation
+    const existing = await db
+      .select()
+      .from(tables.workOrderOperations)
+      .where(eq(tables.workOrderOperations.id, operationId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw new Error(`Work order operation ${operationId} not found`);
+    }
+
+    const op = existing[0];
+    const updateData: Record<string, unknown> = {
+      updatedAt: getNow(),
+    };
+
+    if (data.actualHours !== undefined) {
+      updateData.actualHours = data.actualHours;
+      // Calculate costs when actual hours are set
+      if (data.actualHours !== null) {
+        updateData.laborCost = Math.round(data.actualHours * Number(op.laborRate) * 10000) / 10000;
+        updateData.overheadCost = Math.round(data.actualHours * Number(op.overheadRate) * 10000) / 10000;
+      }
+    }
+    if (data.startTime !== undefined) updateData.startTime = data.startTime;
+    if (data.endTime !== undefined) updateData.endTime = data.endTime;
+    if (data.operatorId !== undefined) updateData.operatorId = data.operatorId;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+
+    await db
+      .update(tables.workOrderOperations)
+      .set(updateData)
+      .where(eq(tables.workOrderOperations.id, operationId));
+  });
+}
+
+/**
+ * Get or create work order cost record
+ */
+export async function getWorkOrderCost(workOrderId: number): Promise<WorkOrderCost | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    const result = await db
+      .select({
+        id: tables.workOrderCosts.id,
+        workOrderId: tables.workOrderCosts.workOrderId,
+        workOrderNumber: tables.workOrders.woNumber,
+        materialCost: tables.workOrderCosts.materialCost,
+        laborCost: tables.workOrderCosts.laborCost,
+        overheadCost: tables.workOrderCosts.overheadCost,
+        totalCost: tables.workOrderCosts.totalCost,
+        producedQuantity: tables.workOrderCosts.producedQuantity,
+        unitCost: tables.workOrderCosts.unitCost,
+        status: tables.workOrderCosts.status,
+        completedAt: tables.workOrderCosts.completedAt,
+        createdAt: tables.workOrderCosts.createdAt,
+        updatedAt: tables.workOrderCosts.updatedAt,
+      })
+      .from(tables.workOrderCosts)
+      .leftJoin(tables.workOrders, eq(tables.workOrderCosts.workOrderId, tables.workOrders.id))
+      .where(eq(tables.workOrderCosts.workOrderId, workOrderId))
+      .limit(1);
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    const row = result[0];
+    return {
+      id: row.id,
+      workOrderId: row.workOrderId,
+      workOrderNumber: row.workOrderNumber || undefined,
+      materialCost: Number(row.materialCost) || 0,
+      laborCost: Number(row.laborCost) || 0,
+      overheadCost: Number(row.overheadCost) || 0,
+      totalCost: Number(row.totalCost) || 0,
+      producedQuantity: row.producedQuantity !== null ? Number(row.producedQuantity) : null,
+      unitCost: row.unitCost !== null ? Number(row.unitCost) : null,
+      status: row.status as 'in_progress' | 'completed' | 'adjusted',
+      completedAt: formatDateFromDb(row.completedAt),
+      createdAt: formatDateFromDb(row.createdAt) || '',
+      updatedAt: formatDateFromDb(row.updatedAt) || '',
+    };
+  });
+}
+
+/**
+ * Upsert work order cost record
+ */
+export async function upsertWorkOrderCost(data: WorkOrderCostUpsert): Promise<number> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Check if exists
+    const existing = await db
+      .select({ id: tables.workOrderCosts.id })
+      .from(tables.workOrderCosts)
+      .where(eq(tables.workOrderCosts.workOrderId, data.workOrderId))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Update
+      const updateData: Record<string, unknown> = {
+        updatedAt: getNow(),
+      };
+      if (data.materialCost !== undefined) updateData.materialCost = data.materialCost;
+      if (data.laborCost !== undefined) updateData.laborCost = data.laborCost;
+      if (data.overheadCost !== undefined) updateData.overheadCost = data.overheadCost;
+      if (data.totalCost !== undefined) updateData.totalCost = data.totalCost;
+      if (data.producedQuantity !== undefined) updateData.producedQuantity = data.producedQuantity;
+      if (data.unitCost !== undefined) updateData.unitCost = data.unitCost;
+      if (data.status !== undefined) updateData.status = data.status;
+      if (data.completedAt !== undefined) updateData.completedAt = data.completedAt;
+
+      await db
+        .update(tables.workOrderCosts)
+        .set(updateData)
+        .where(eq(tables.workOrderCosts.workOrderId, data.workOrderId));
+
+      return existing[0].id;
+    } else {
+      // Insert
+      const result = await db
+        .insert(tables.workOrderCosts)
+        .values({
+          workOrderId: data.workOrderId,
+          materialCost: data.materialCost ?? 0,
+          laborCost: data.laborCost ?? 0,
+          overheadCost: data.overheadCost ?? 0,
+          totalCost: data.totalCost ?? 0,
+          producedQuantity: data.producedQuantity ?? null,
+          unitCost: data.unitCost ?? null,
+          status: data.status ?? 'in_progress',
+          completedAt: data.completedAt ?? null,
+          createdAt: getNow(),
+          updatedAt: getNow(),
+        });
+
+      return getInsertId(result);
+    }
+  });
+}
+
+/**
+ * Calculate work order cost from materials issued and operations completed
+ *
+ * This aggregates:
+ * - Material Cost: Sum of (quantity × WAC) for all dispensed materials
+ * - Labor Cost: Sum of (actualHours × laborRate) for all operations
+ * - Overhead Cost: Sum of (actualHours × overheadRate) for all operations
+ *
+ * @param workOrderId - The work order to calculate costs for
+ * @returns Aggregated production cost summary
+ */
+export async function calculateWorkOrderCost(workOrderId: number): Promise<ProductionCostSummary> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // 1. Calculate Material Cost from work_order_materials
+    const materialResult = await db
+      .select({
+        totalMaterialCost: sql<number>`COALESCE(SUM(${tables.workOrderMaterials.actualQuantity} * COALESCE(${tables.workOrderMaterials.unitCost}, ${tables.items.currentWAC}, 0)), 0)`,
+      })
+      .from(tables.workOrderMaterials)
+      .leftJoin(tables.items, eq(tables.workOrderMaterials.itemId, tables.items.id))
+      .where(eq(tables.workOrderMaterials.workOrderId, workOrderId));
+
+    const materialCost = Number(materialResult[0]?.totalMaterialCost) || 0;
+
+    // 2. Calculate Labor and Overhead Cost from work_order_operations
+    const operationResult = await db
+      .select({
+        totalLaborCost: sql<number>`COALESCE(SUM(${tables.workOrderOperations.laborCost}), 0)`,
+        totalOverheadCost: sql<number>`COALESCE(SUM(${tables.workOrderOperations.overheadCost}), 0)`,
+      })
+      .from(tables.workOrderOperations)
+      .where(eq(tables.workOrderOperations.workOrderId, workOrderId));
+
+    const laborCost = Number(operationResult[0]?.totalLaborCost) || 0;
+    const overheadCost = Number(operationResult[0]?.totalOverheadCost) || 0;
+
+    // 3. Get produced quantity from work order
+    const woResult = await db
+      .select({
+        actualQuantity: tables.workOrders.actualQuantity,
+      })
+      .from(tables.workOrders)
+      .where(eq(tables.workOrders.id, workOrderId))
+      .limit(1);
+
+    const producedQuantity = Number(woResult[0]?.actualQuantity) || 0;
+
+    // 4. Calculate totals
+    const totalCost = Math.round((materialCost + laborCost + overheadCost) * 10000) / 10000;
+    const unitCost = producedQuantity > 0
+      ? Math.round((totalCost / producedQuantity) * 10000) / 10000
+      : null;
+
+    return {
+      workOrderId,
+      materialCost: Math.round(materialCost * 10000) / 10000,
+      laborCost: Math.round(laborCost * 10000) / 10000,
+      overheadCost: Math.round(overheadCost * 10000) / 10000,
+      totalCost,
+      unitCost,
+    };
+  });
+}
+
+/**
+ * Get production cost summary for a work order (detailed view)
+ */
+export async function getWorkOrderCostSummary(workOrderId: number): Promise<{
+  workOrder: { id: number; woNumber: string; productCode: string; productName: string; producedQty: number | null };
+  materials: { itemCode: string; itemName: string; quantity: number; unitCost: number; totalCost: number }[];
+  operations: { sequence: number; workCenterCode: string; actualHours: number | null; laborCost: number | null; overheadCost: number | null }[];
+  summary: ProductionCostSummary;
+} | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // Get work order details
+    const woResult = await db
+      .select({
+        id: tables.workOrders.id,
+        woNumber: tables.workOrders.woNumber,
+        productId: tables.workOrders.productId,
+        actualQuantity: tables.workOrders.actualQuantity,
+        productCode: tables.items.code,
+        productName: tables.items.nameTh,
+      })
+      .from(tables.workOrders)
+      .leftJoin(tables.items, eq(tables.workOrders.productId, tables.items.id))
+      .where(eq(tables.workOrders.id, workOrderId))
+      .limit(1);
+
+    if (woResult.length === 0) {
+      return null;
+    }
+
+    const wo = woResult[0];
+
+    // Get materials with costs
+    const materialsResult = await db
+      .select({
+        itemCode: tables.items.code,
+        itemName: tables.items.nameTh,
+        quantity: tables.workOrderMaterials.actualQuantity,
+        unitCost: tables.workOrderMaterials.unitCost,
+        itemWac: tables.items.currentWAC,
+      })
+      .from(tables.workOrderMaterials)
+      .leftJoin(tables.items, eq(tables.workOrderMaterials.itemId, tables.items.id))
+      .where(eq(tables.workOrderMaterials.workOrderId, workOrderId));
+
+    const materials = materialsResult.map((m: typeof materialsResult[0]) => {
+      const qty = Number(m.quantity) || 0;
+      const cost = Number(m.unitCost) || Number(m.itemWac) || 0;
+      return {
+        itemCode: m.itemCode || '',
+        itemName: m.itemName || '',
+        quantity: qty,
+        unitCost: cost,
+        totalCost: Math.round(qty * cost * 10000) / 10000,
+      };
+    });
+
+    // Get operations with costs
+    const operationsResult = await db
+      .select({
+        sequence: tables.workOrderOperations.sequence,
+        workCenterCode: tables.workCenters.code,
+        actualHours: tables.workOrderOperations.actualHours,
+        laborCost: tables.workOrderOperations.laborCost,
+        overheadCost: tables.workOrderOperations.overheadCost,
+      })
+      .from(tables.workOrderOperations)
+      .leftJoin(tables.workCenters, eq(tables.workOrderOperations.workCenterId, tables.workCenters.id))
+      .where(eq(tables.workOrderOperations.workOrderId, workOrderId))
+      .orderBy(asc(tables.workOrderOperations.sequence));
+
+    const operations = operationsResult.map((o: typeof operationsResult[0]) => ({
+      sequence: o.sequence,
+      workCenterCode: o.workCenterCode || '',
+      actualHours: o.actualHours !== null ? Number(o.actualHours) : null,
+      laborCost: o.laborCost !== null ? Number(o.laborCost) : null,
+      overheadCost: o.overheadCost !== null ? Number(o.overheadCost) : null,
+    }));
+
+    // Calculate summary
+    const summary = await calculateWorkOrderCost(workOrderId);
+
+    return {
+      workOrder: {
+        id: wo.id,
+        woNumber: wo.woNumber,
+        productCode: wo.productCode || '',
+        productName: wo.productName || '',
+        producedQty: wo.actualQuantity !== null ? Number(wo.actualQuantity) : null,
+      },
+      materials,
+      operations,
+      summary,
+    };
+  });
+}
+
+/**
+ * Update finished goods WAC after work order completion
+ *
+ * This is called when a work order is completed to:
+ * 1. Calculate the production unit cost
+ * 2. Update the finished goods item's WAC using the production transaction
+ * 3. Update the item's lastProductionCost and lastProductionDate
+ *
+ * @param workOrderId - The completed work order
+ * @param userId - User performing the action
+ * @returns Updated WAC for the finished goods item
+ */
+export async function updateFinishedGoodsWAC(
+  workOrderId: number,
+  userId: number
+): Promise<RecalculateWACResult | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getUnitCostTables();
+
+    // 1. Get work order with product info
+    const woResult = await db
+      .select({
+        id: tables.workOrders.id,
+        woNumber: tables.workOrders.woNumber,
+        productId: tables.workOrders.productId,
+        actualQuantity: tables.workOrders.actualQuantity,
+      })
+      .from(tables.workOrders)
+      .where(eq(tables.workOrders.id, workOrderId))
+      .limit(1);
+
+    if (woResult.length === 0) {
+      throw new Error(`Work order ${workOrderId} not found`);
+    }
+
+    const wo = woResult[0];
+    const producedQty = Number(wo.actualQuantity) || 0;
+
+    if (producedQty <= 0) {
+      // No output recorded, skip WAC update
+      return null;
+    }
+
+    // 2. Calculate production cost
+    const costSummary = await calculateWorkOrderCost(workOrderId);
+
+    if (costSummary.unitCost === null) {
+      return null;
+    }
+
+    // 3. Update work order costs record
+    await upsertWorkOrderCost({
+      workOrderId,
+      materialCost: costSummary.materialCost,
+      laborCost: costSummary.laborCost,
+      overheadCost: costSummary.overheadCost,
+      totalCost: costSummary.totalCost,
+      producedQuantity: producedQty,
+      unitCost: costSummary.unitCost,
+      status: 'completed',
+      completedAt: getTodayStr(),
+    });
+
+    // 4. Update finished goods WAC via recalculateWAC
+    // Note: Production adds to inventory, so we use positive quantity
+    const wacResult = await recalculateWAC({
+      itemId: wo.productId,
+      transactionType: 'receipt', // Production receipt
+      transactionId: workOrderId,
+      quantity: producedQty,
+      unitCost: costSummary.unitCost,
+      transactionDate: getTodayStr(),
+      notes: `Production from WO: ${wo.woNumber}`,
+      createdBy: userId,
+    });
+
+    // 5. Update last production info
+    await updateItemLastProduction(wo.productId, costSummary.unitCost, workOrderId);
+
+    return wacResult;
   });
 }

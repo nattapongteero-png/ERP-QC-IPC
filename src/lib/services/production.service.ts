@@ -27,6 +27,7 @@ import { createAuditLog } from '../audit';
 import { getLotsForPicking, issueMaterial, receiveMaterial } from './inventory.service';
 import { canStartProduction } from './line-clearance.service';
 import { calculateWorkOrderVariances } from './variance-analysis.service';
+import { getItemWAC, updateFinishedGoodsWAC } from './unit-cost.service';
 
 // Types
 export interface BOMExplosionResult {
@@ -413,6 +414,14 @@ export async function updateWorkOrderStatus(
       // Log but don't fail the completion - variance calculation is secondary
       console.error(`Warning: Failed to calculate variances for WO ${workOrderId}:`, varianceError);
     }
+
+    // US3 (014-unit-cost): Update finished goods WAC from production cost
+    try {
+      await updateFinishedGoodsWAC(workOrderId, userId);
+    } catch (costError) {
+      // Log but don't fail the completion - cost calculation is secondary
+      console.error(`Warning: Failed to update FG WAC for WO ${workOrderId}:`, costError);
+    }
   }
 
   // Create audit log
@@ -513,6 +522,11 @@ export async function dispenseMaterial(
     message = `Material dispensed successfully`;
   }
 
+  // Get current WAC for the item before issuing (US3: Production Cost Aggregation)
+  const itemWAC = await getItemWAC(lot.itemId);
+  const unitCost = itemWAC !== null ? itemWAC : 0;
+  const totalCost = Math.round(quantity * unitCost * 10000) / 10000;
+
   // Issue material from inventory
   await issueMaterial(
     lotId,
@@ -524,7 +538,7 @@ export async function dispenseMaterial(
     deviationRequired ? `Out of tolerance: ${quantity} vs required ${requiredQty}` : undefined
   );
 
-  // Record in work order lines
+  // Record in work order lines with cost information
   await database.insert(workOrderLines).values({
     workOrderId,
     itemId: lot.itemId,
@@ -532,6 +546,8 @@ export async function dispenseMaterial(
     actualQuantity: quantity,
     unit: bomLine.unit,
     lotId,
+    unitCost,   // WAC at time of issue
+    totalCost,  // quantity × unitCost
     dispensedBy: userId,
     dispensedAt: new Date().toISOString(),
   });

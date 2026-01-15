@@ -27,52 +27,52 @@ Following existing Next.js App Router structure per plan.md:
 
 ---
 
-## Phase 1: Setup (Shared Infrastructure)
+## Phase 1: Setup (Shared Infrastructure) ✓ COMPLETE
 
 **Purpose**: Create foundational types, validation, and database schema
 
-- [ ] T001 [P] Create unit cost TypeScript interfaces in `src/types/unit-cost.ts`
-- [ ] T002 [P] Create unit cost Zod validation schemas in `src/lib/validation/unit-cost.ts`
-- [ ] T003 [P] Add work_centers table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T004 [P] Add item_cost_layers table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T005 [P] Add landed_cost_headers table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T006 [P] Add landed_cost_lines table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T007 [P] Add landed_cost_allocations table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T008 [P] Add overhead_rates table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T009 [P] Add work_order_operations table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T010 [P] Add work_order_costs table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T011 [P] Add cost_gl_mapping table (SQLite + MySQL) to `src/lib/db/schema.ts`
-- [ ] T012 Add cost fields to items table (currentWAC, lastPurchaseCost, etc.) in `src/lib/db/schema.ts`
-- [ ] T013 Add cost fields to work_order_materials table (unitCost, totalCost) in `src/lib/db/schema.ts`
-- [ ] T014 Add cost fields to sales_order_lines table (unitCost, marginAmount, marginPercent) in `src/lib/db/schema.ts`
-- [ ] T015 Verify schema sync works and run type check with `pnpm tsc --noEmit`
-- [ ] T016 Commit Phase 1 setup changes
+- [x] T001 [P] Create unit cost TypeScript interfaces in `src/types/unit-cost.ts`
+- [x] T002 [P] Create unit cost Zod validation schemas in `src/lib/validation/unit-cost.ts`
+- [x] T003 [P] Add work_centers table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T004 [P] Add item_cost_layers table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T005 [P] Add landed_cost_headers table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T006 [P] Add landed_cost_lines table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T007 [P] Add landed_cost_allocations table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T008 [P] Add overhead_rates table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T009 [P] Add work_order_operations table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T010 [P] Add work_order_costs table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T011 [P] Add cost_gl_mapping table (SQLite + MySQL) to `src/lib/db/schema.ts`
+- [x] T012 Add cost fields to items table (currentWAC, lastPurchaseCost, etc.) in `src/lib/db/schema.ts`
+- [x] T013 Add cost fields to work_order_materials table (unitCost, totalCost) in `src/lib/db/schema.ts`
+- [x] T014 Add cost fields to sales_order_lines table (unitCost, marginAmount, marginPercent) in `src/lib/db/schema.ts`
+- [x] T015 Verify schema sync works and run type check with `pnpm tsc --noEmit`
+- [x] T016 Commit Phase 1 setup changes
 
 **Checkpoint**: Schema and types ready - foundational phase can begin
 
 ---
 
-## Phase 2: Foundational (Blocking Prerequisites)
+## Phase 2: Foundational (Blocking Prerequisites) ✓ COMPLETE
 
 **Purpose**: Core cost calculation service that ALL user stories depend on
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T017 Create `src/lib/services/unit-cost.service.ts` with core function stubs
-- [ ] T018 Implement `recalculateWAC()` function - core WAC calculation logic in `src/lib/services/unit-cost.service.ts`
-- [ ] T019 Implement `createCostLayer()` function - audit trail creation in `src/lib/services/unit-cost.service.ts`
-- [ ] T020 Implement `getItemCostViews()` function - retrieve all cost views in `src/lib/services/unit-cost.service.ts`
-- [ ] T021 Implement `getCostLayerHistory()` function - cost layer list in `src/lib/services/unit-cost.service.ts`
-- [ ] T022 Create unit test file `tests/unit/lib/services/unit-cost.service.test.ts`
-- [ ] T023 Write unit tests for WAC calculation (positive qty, zero inventory, negative prevention) in `tests/unit/lib/services/unit-cost.service.test.ts`
-- [ ] T024 Run tests and verify they pass with `pnpm test`
-- [ ] T025 Commit Phase 2 foundational changes
+- [x] T017 Create `src/lib/services/unit-cost.service.ts` with core function stubs
+- [x] T018 Implement `recalculateWAC()` function - core WAC calculation logic in `src/lib/services/unit-cost.service.ts`
+- [x] T019 Implement `createCostLayer()` function - audit trail creation in `src/lib/services/unit-cost.service.ts`
+- [x] T020 Implement `getItemCostViews()` function - retrieve all cost views in `src/lib/services/unit-cost.service.ts`
+- [x] T021 Implement `getCostLayerHistory()` function - cost layer list in `src/lib/services/unit-cost.service.ts`
+- [x] T022 Create unit test file `tests/unit/lib/services/unit-cost.service.test.ts`
+- [x] T023 Write unit tests for WAC calculation (positive qty, zero inventory, negative prevention) in `tests/unit/lib/services/unit-cost.service.test.ts`
+- [x] T024 Run tests and verify they pass with `pnpm test`
+- [x] T025 Commit Phase 2 foundational changes
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
 ---
 
-## Phase 3: User Story 1 - Inventory Cost Tracking on Purchase Receipt (Priority: P1) MVP
+## Phase 3: User Story 1 - Inventory Cost Tracking on Purchase Receipt (Priority: P1) MVP ✓ COMPLETE
 
 **Goal**: Automatically calculate and track WAC when receiving purchase orders with audit trail
 
@@ -80,23 +80,23 @@ Following existing Next.js App Router structure per plan.md:
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Modify `receiveMaterial()` in `src/lib/services/inventory.service.ts` to call `recalculateWAC()` on receipt
-- [ ] T027 [US1] Update item's lastPurchaseCost, lastPurchaseDate, lastPurchasePoId on receipt in `src/lib/services/inventory.service.ts`
-- [ ] T028 [US1] Create API route GET `src/app/api/cost/items/[id]/cost-views/route.ts`
-- [ ] T029 [US1] Create API route GET `src/app/api/cost/items/[id]/cost-layers/route.ts`
-- [ ] T030 [P] [US1] Create CostViewsPanel component in `src/components/cost/CostViewsPanel.tsx`
-- [ ] T031 [P] [US1] Create CostLayerHistory component in `src/components/cost/CostLayerHistory.tsx`
-- [ ] T032 [US1] Add cost display to item detail page (integrate CostViewsPanel and CostLayerHistory)
-- [ ] T033 [US1] Write integration test for cost layer API in `tests/integration/api/cost/cost-layers.test.ts`
-- [ ] T034 [US1] Test manually: receive PO, verify WAC updates, cost layer created
-- [ ] T035 [US1] Run all tests and type check with `pnpm test && pnpm tsc --noEmit`
-- [ ] T036 [US1] Commit User Story 1 changes
+- [x] T026 [US1] Modify `receiveMaterial()` in `src/lib/services/inventory.service.ts` to call `recalculateWAC()` on receipt
+- [x] T027 [US1] Update item's lastPurchaseCost, lastPurchaseDate, lastPurchasePoId on receipt in `src/lib/services/inventory.service.ts`
+- [x] T028 [US1] Create API route GET `src/app/api/cost/items/[id]/cost-views/route.ts`
+- [x] T029 [US1] Create API route GET `src/app/api/cost/items/[id]/cost-layers/route.ts`
+- [x] T030 [P] [US1] Create CostViewsPanel component in `src/components/cost/CostViewsPanel.tsx`
+- [x] T031 [P] [US1] Create CostLayerHistory component in `src/components/cost/CostLayerHistory.tsx`
+- [x] T032 [US1] Add cost display to item detail page (integrate CostViewsPanel and CostLayerHistory)
+- [x] T033 [US1] Write integration test for cost layer API in `tests/integration/api/cost/cost-layers.test.ts`
+- [x] T034 [US1] Test manually: receive PO, verify WAC updates, cost layer created
+- [x] T035 [US1] Run all tests and type check with `pnpm test && pnpm tsc --noEmit`
+- [x] T036 [US1] Commit User Story 1 changes
 
 **Checkpoint**: US1 complete - WAC tracking on receipt works independently
 
 ---
 
-## Phase 4: User Story 2 - Landed Cost Allocation (Priority: P2)
+## Phase 4: User Story 2 - Landed Cost Allocation (Priority: P2) ✓ COMPLETE
 
 **Goal**: Allocate freight, duty, insurance costs to received items and update WAC
 
@@ -104,36 +104,36 @@ Following existing Next.js App Router structure per plan.md:
 
 ### Implementation for User Story 2
 
-- [ ] T037 [US2] Implement landed cost service functions in `src/lib/services/unit-cost.service.ts`:
+- [x] T037 [US2] Implement landed cost service functions in `src/lib/services/unit-cost.service.ts`:
   - `createLandedCost()` - create header with lines
   - `getLandedCost()` - get with lines and allocations
   - `listLandedCosts()` - list with filters
   - `updateLandedCost()` - update draft document
   - `deleteLandedCost()` - delete draft document
-- [ ] T038 [US2] Implement `allocateLandedCost()` function (4 allocation bases) in `src/lib/services/unit-cost.service.ts`
-- [ ] T039 [US2] Implement `postLandedCost()` function (update WAC, create cost layers) in `src/lib/services/unit-cost.service.ts`
-- [ ] T040 [US2] Write unit tests for landed cost allocation (value, quantity, weight, volume) in `tests/unit/lib/services/unit-cost.service.test.ts`
-- [ ] T041 [P] [US2] Create API route GET/POST `src/app/api/cost/landed-costs/route.ts`
-- [ ] T042 [P] [US2] Create API route GET/PUT/DELETE `src/app/api/cost/landed-costs/[id]/route.ts`
-- [ ] T043 [P] [US2] Create API route POST `src/app/api/cost/landed-costs/[id]/allocate/route.ts`
-- [ ] T044 [P] [US2] Create API route POST `src/app/api/cost/landed-costs/[id]/post/route.ts`
-- [ ] T045 [P] [US2] Create LandedCostForm component in `src/components/cost/LandedCostForm.tsx`
-- [ ] T046 [P] [US2] Create LandedCostAllocationGrid component in `src/components/cost/LandedCostAllocationGrid.tsx`
-- [ ] T047 [US2] Create cost module layout in `src/app/cost/layout.tsx`
-- [ ] T048 [US2] Create landed costs list page in `src/app/cost/landed-costs/page.tsx`
-- [ ] T049 [US2] Create new landed cost page in `src/app/cost/landed-costs/new/page.tsx`
-- [ ] T050 [US2] Create edit landed cost page in `src/app/cost/landed-costs/[id]/page.tsx`
-- [ ] T051 [US2] Add Landed Costs menu to sidebar in `src/components/layout/sidebar.tsx`
-- [ ] T052 [US2] Write integration test for landed cost API in `tests/integration/api/cost/landed-costs.test.ts`
-- [ ] T053 [US2] Test manually: create landed cost, allocate, post, verify WAC updates
-- [ ] T054 [US2] Run all tests and type check
-- [ ] T055 [US2] Commit User Story 2 changes
+- [x] T038 [US2] Implement `allocateLandedCost()` function (4 allocation bases) in `src/lib/services/unit-cost.service.ts`
+- [x] T039 [US2] Implement `postLandedCost()` function (update WAC, create cost layers) in `src/lib/services/unit-cost.service.ts`
+- [x] T040 [US2] Write unit tests for landed cost allocation (value, quantity, weight, volume) in `tests/unit/lib/services/unit-cost.service.test.ts`
+- [x] T041 [P] [US2] Create API route GET/POST `src/app/api/cost/landed-costs/route.ts`
+- [x] T042 [P] [US2] Create API route GET/PUT/DELETE `src/app/api/cost/landed-costs/[id]/route.ts`
+- [x] T043 [P] [US2] Create API route POST `src/app/api/cost/landed-costs/[id]/allocate/route.ts`
+- [x] T044 [P] [US2] Create API route POST `src/app/api/cost/landed-costs/[id]/post/route.ts`
+- [x] T045 [P] [US2] Create LandedCostForm component in `src/components/cost/LandedCostForm.tsx`
+- [x] T046 [P] [US2] Create LandedCostAllocationGrid component in `src/components/cost/LandedCostAllocationGrid.tsx` (combined into LandedCostForm)
+- [x] T047 [US2] Create cost module layout in `src/app/cost/layout.tsx`
+- [x] T048 [US2] Create landed costs list page in `src/app/cost/landed-costs/page.tsx`
+- [x] T049 [US2] Create new landed cost page in `src/app/cost/landed-costs/new/page.tsx`
+- [x] T050 [US2] Create edit landed cost page in `src/app/cost/landed-costs/[id]/page.tsx`
+- [x] T051 [US2] Add Landed Costs menu to sidebar in `src/components/layout/sidebar.tsx`
+- [x] T052 [US2] Write integration test for landed cost API in `tests/integration/api/cost/landed-costs.test.ts`
+- [x] T053 [US2] Test manually: create landed cost, allocate, post, verify WAC updates
+- [x] T054 [US2] Run all tests and type check
+- [x] T055 [US2] Commit User Story 2 changes
 
 **Checkpoint**: US2 complete - Landed cost allocation works independently
 
 ---
 
-## Phase 5: User Story 3 - Production Cost Aggregation (Priority: P3)
+## Phase 5: User Story 3 - Production Cost Aggregation (Priority: P3) ✓ COMPLETE
 
 **Goal**: Calculate work order costs (material + labor + overhead) and update FG WAC
 
@@ -143,25 +143,25 @@ Following existing Next.js App Router structure per plan.md:
 
 ### Implementation for User Story 3
 
-- [ ] T056 [US3] Implement production cost functions in `src/lib/services/unit-cost.service.ts`:
+- [x] T056 [US3] Implement production cost functions in `src/lib/services/unit-cost.service.ts`:
   - `calculateWorkOrderCost()` - aggregate material, labor, overhead
   - `getWorkOrderOperations()` - get operations with time tracking
   - `updateWorkOrderOperations()` - update actual hours
   - `getWorkOrderCostSummary()` - cost breakdown view
-- [ ] T057 [US3] Modify `issueMaterialToWorkOrder()` in `src/lib/services/production.service.ts` to capture unitCost
-- [ ] T058 [US3] Modify `completeWorkOrder()` in `src/lib/services/production.service.ts` to:
+- [x] T057 [US3] Modify `issueMaterialToWorkOrder()` in `src/lib/services/production.service.ts` to capture unitCost
+- [x] T058 [US3] Modify `completeWorkOrder()` in `src/lib/services/production.service.ts` to:
   - Calculate total production cost
   - Update work_order_costs table
   - Update finished goods WAC
   - Update item's lastProductionCost, lastProductionDate
-- [ ] T059 [US3] Write unit tests for production cost calculation in `tests/unit/lib/services/unit-cost.service.test.ts`
-- [ ] T060 [P] [US3] Create API route GET `src/app/api/cost/work-orders/[id]/costs/route.ts`
-- [ ] T061 [P] [US3] Create API route GET/PUT `src/app/api/cost/work-orders/[id]/operations/route.ts`
-- [ ] T062 [P] [US3] Create WorkOrderCostSummary component in `src/components/cost/WorkOrderCostSummary.tsx`
-- [ ] T063 [US3] Add WorkOrderCostSummary to work order detail page
-- [ ] T064 [US3] Test manually: create WO, issue materials, record hours, complete, verify costs
-- [ ] T065 [US3] Run all tests and type check
-- [ ] T066 [US3] Commit User Story 3 changes
+- [x] T059 [US3] Write unit tests for production cost calculation in `tests/unit/lib/services/unit-cost.service.test.ts`
+- [x] T060 [P] [US3] Create API route GET `src/app/api/production/work-orders/[id]/costs/route.ts`
+- [x] T061 [P] [US3] Create API route GET/PUT `src/app/api/production/work-orders/[id]/operations/route.ts`
+- [x] T062 [P] [US3] Create WorkOrderCostSummary component in `src/components/production/work-order-cost-summary.tsx`
+- [x] T063 [US3] Add WorkOrderCostSummary to work order detail page
+- [x] T064 [US3] Test manually: create WO, issue materials, record hours, complete, verify costs
+- [x] T065 [US3] Run all tests and type check
+- [x] T066 [US3] Commit User Story 3 changes
 
 **Checkpoint**: US3 complete - Production costing works independently
 
