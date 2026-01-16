@@ -24,3 +24,6 @@ export type { EquipmentFormProps } from './EquipmentForm';
 
 export { ExecutiveKPICard, ExecutiveKPICardSkeleton } from './executive-kpi-card';
 export type { ExecutiveKPICardProps } from './executive-kpi-card';
+
+export { ExecutiveAlertBar, ExecutiveAlertBarSkeleton } from './executive-alert-bar';
+export type { ExecutiveAlertBarProps } from './executive-alert-bar';
