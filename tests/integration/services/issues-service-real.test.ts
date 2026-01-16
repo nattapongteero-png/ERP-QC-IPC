@@ -246,12 +246,12 @@ describe('Issues Module Real Integration Tests', () => {
         );
 
         expect(issue).toBeDefined();
-        expect(issue.id).toBeGreaterThan(0);
-        expect(issue.issueNumber).toMatch(new RegExp(`^ISS-${year}-\\d{4}$`));
-        expect(issue.title).toBe('Login button not working');
-        expect(issue.status).toBe('submitted');
-        expect(issue.severity).toBe('critical');
-        expect(issue.reporterId).toBe(1);
+        expect(issue!.id).toBeGreaterThan(0);
+        expect(issue!.issueNumber).toMatch(new RegExp(`^ISS-${year}-\\d{4}$`));
+        expect(issue!.title).toBe('Login button not working');
+        expect(issue!.status).toBe('submitted');
+        expect(issue!.severity).toBe('critical');
+        expect(issue!.reporterId).toBe(1);
       });
 
       it('should create issue with draft status', async () => {
@@ -266,8 +266,8 @@ describe('Issues Module Real Integration Tests', () => {
           'draft'
         );
 
-        expect(issue.status).toBe('draft');
-        expect(issue.reporterId).toBe(2);
+        expect(issue!.status).toBe('draft');
+        expect(issue!.reporterId).toBe(2);
       });
 
       it('should create issue with priority via update', async () => {
@@ -287,12 +287,12 @@ describe('Issues Module Real Integration Tests', () => {
         );
 
         // Update to set priority
-        const issue = await updateIssue(created.id, { priority: 'urgent' }, 1);
+        const issue = await updateIssue(created!.id, { priority: 'urgent' }, 1);
 
-        expect(issue.priority).toBe('urgent');
-        const desc = typeof issue.description === 'string'
-          ? JSON.parse(issue.description)
-          : issue.description;
+        expect(issue!.priority).toBe('urgent');
+        const desc = typeof issue!.description === 'string'
+          ? JSON.parse(issue!.description)
+          : issue!.description;
         expect(desc.impact).toBe('High impact');
       });
     });
@@ -310,9 +310,9 @@ describe('Issues Module Real Integration Tests', () => {
           'submitted'
         );
 
-        const issue = await getIssue(created.id);
+        const issue = await getIssue(created!.id);
         expect(issue).not.toBeNull();
-        expect(issue!.id).toBe(created.id);
+        expect(issue!.id).toBe(created!.id);
         expect(issue!.title).toBe('Test Issue');
       });
 
@@ -336,7 +336,7 @@ describe('Issues Module Real Integration Tests', () => {
         );
 
         const updated = await updateIssue(
-          created.id,
+          created!.id,
           {
             title: 'Updated Title',
             status: 'in_progress',
@@ -345,9 +345,9 @@ describe('Issues Module Real Integration Tests', () => {
           1
         );
 
-        expect(updated.title).toBe('Updated Title');
-        expect(updated.status).toBe('in_progress');
-        expect(updated.priority).toBe('urgent');
+        expect(updated!.title).toBe('Updated Title');
+        expect(updated!.status).toBe('in_progress');
+        expect(updated!.priority).toBe('urgent');
       });
 
       it('should update issue assignee', async () => {
@@ -363,12 +363,12 @@ describe('Issues Module Real Integration Tests', () => {
         );
 
         const updated = await updateIssue(
-          created.id,
+          created!.id,
           { assigneeId: 2 },
           1
         );
 
-        expect(updated.assigneeId).toBe(2);
+        expect(updated!.assigneeId).toBe(2);
       });
 
       it('should update issue status to resolved', async () => {
@@ -384,13 +384,13 @@ describe('Issues Module Real Integration Tests', () => {
         );
 
         const updated = await updateIssue(
-          created.id,
+          created!.id,
           { status: 'resolved' },
           1
         );
 
-        expect(updated.status).toBe('resolved');
-        expect(updated.resolvedAt).toBeDefined();
+        expect(updated!.status).toBe('resolved');
+        expect(updated!.resolvedAt).toBeDefined();
       });
     });
 
@@ -473,10 +473,10 @@ describe('Issues Module Real Integration Tests', () => {
           'draft'
         );
 
-        const result = await deleteIssue(created.id);
+        const result = await deleteIssue(created!.id);
         expect(result).toBe(true);
 
-        const deleted = await getIssue(created.id);
+        const deleted = await getIssue(created!.id);
         expect(deleted).toBeNull();
       });
     });
@@ -533,7 +533,7 @@ describe('Issues Module Real Integration Tests', () => {
         1,
         'submitted'
       );
-      testIssueId = issue.id;
+      testIssueId = issue!.id;
     });
 
     describe('Create Comment', () => {
@@ -545,9 +545,9 @@ describe('Issues Module Real Integration Tests', () => {
         );
 
         expect(comment).toBeDefined();
-        expect(comment.issueId).toBe(testIssueId);
-        expect(comment.content).toBe('This is a test comment');
-        expect(comment.authorId).toBe(1);
+        expect(comment!.issueId).toBe(testIssueId);
+        expect(comment!.content).toBe('This is a test comment');
+        expect(comment!.authorId).toBe(1);
       });
     });
 
@@ -573,7 +573,7 @@ describe('Issues Module Real Integration Tests', () => {
         );
 
         const updated = await updateComment(
-          comment.id,
+          comment!.id,
           'Updated content',
           1
         );
@@ -592,7 +592,7 @@ describe('Issues Module Real Integration Tests', () => {
           1
         );
 
-        const result = await deleteComment(comment.id, 1);
+        const result = await deleteComment(comment!.id, 1);
         expect(result).toBe(true);
       });
     });
@@ -614,7 +614,7 @@ describe('Issues Module Real Integration Tests', () => {
         1,
         'submitted'
       );
-      testIssueId = issue.id;
+      testIssueId = issue!.id;
 
       // Make some updates to create timeline events
       await updateIssue(testIssueId, { status: 'in_progress' }, 1);

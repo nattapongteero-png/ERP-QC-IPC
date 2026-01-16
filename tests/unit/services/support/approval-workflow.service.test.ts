@@ -437,7 +437,7 @@ describe('Approval Workflow Service', () => {
 
       const result = await listApprovalDelegations({ isActive: true });
 
-      expect(result.data.every((d: { isActive: boolean }) => d.isActive === true)).toBe(true);
+      expect((result.data as { isActive: boolean }[]).every(d => d.isActive === true)).toBe(true);
     });
   });
 

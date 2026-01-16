@@ -444,7 +444,7 @@ describe('Accounting Service', () => {
       const entry = await getJournalEntryById(1);
 
       expect(entry.lines).toBeInstanceOf(Array);
-      expect(entry.lines.length).toBe(2);
+      expect(entry.lines!.length).toBe(2);
     });
   });
 
