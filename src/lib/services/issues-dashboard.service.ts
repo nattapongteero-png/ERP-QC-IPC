@@ -3,7 +3,7 @@
  * Task 8: Dashboard analytics and KPIs for issue tracking system
  */
 
-import { eq, and, gte, lte, sql, count, isNotNull } from 'drizzle-orm';
+import { eq, and, gte, count, isNotNull } from 'drizzle-orm';
 import { getTableRef, executeDbOperation, isSqlite } from '../db/db-helper';
 import { toDateSafe, formatDateFromDb } from '../db/date-utils';
 import type {
@@ -461,6 +461,8 @@ export async function getIssueDashboardMetrics(): Promise<IssueDashboardMetrics>
     recentIssues: [], // This should be populated by a separate call if needed
     monthlyTrend,
     avgResolutionTime: avgResolutionTime || 0,
+    issuesCreatedThisWeek: createdThisWeek,
+    issuesResolvedThisWeek: resolvedThisWeek,
   };
 }
 

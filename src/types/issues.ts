@@ -230,4 +230,6 @@ export interface IssueDashboardMetrics {
   recentIssues: Issue[];
   monthlyTrend: Array<{ month: string; created: number; resolved: number }>;
   avgResolutionTime: number; // in hours
+  issuesCreatedThisWeek: number;
+  issuesResolvedThisWeek: number;
 }
