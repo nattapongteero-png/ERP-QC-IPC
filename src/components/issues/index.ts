@@ -17,3 +17,7 @@ export type { PriorityBadgeProps } from './PriorityBadge';
 
 // Form Components
 export { IssueForm } from './IssueForm';
+
+// Feedback Components
+export { AIValidationFeedback } from './AIValidationFeedback';
+export type { AIValidationFeedbackProps } from './AIValidationFeedback';
