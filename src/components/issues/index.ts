@@ -21,3 +21,7 @@ export { IssueForm } from './IssueForm';
 // Feedback Components
 export { AIValidationFeedback } from './AIValidationFeedback';
 export type { AIValidationFeedbackProps } from './AIValidationFeedback';
+
+// Timeline Components
+export { IssueTimeline } from './IssueTimeline';
+export type { IssueTimelineProps } from './IssueTimeline';
