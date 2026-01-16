@@ -72,6 +72,11 @@ function toJsonField<T>(value: T): T | string {
 
 /**
  * Generate unique issue number in format "ISS-YYYY-NNNN"
+ *
+ * Note: In high-concurrency scenarios, there's a potential race condition
+ * where two concurrent requests could generate the same number. The database
+ * unique constraint on issueNumber will prevent duplicates - callers should
+ * handle the constraint violation error by retrying.
  */
 export async function generateIssueNumber(): Promise<string> {
   return executeDbOperation(async (db) => {
@@ -608,60 +613,61 @@ export async function getIssue(id: number): Promise<Issue | null> {
 
     const row = result[0];
 
-    // Get assignee if exists
-    let assignee = null;
-    if (row.issue.assigneeId) {
-      const assigneeResult = await db
-        .select({
-          id: tables.users.id,
-          name: tables.users.name,
-          email: tables.users.email,
-        })
-        .from(tables.users)
-        .where(eq(tables.users.id, row.issue.assigneeId))
-        .limit(1);
-      assignee = assigneeResult[0] || null;
-    }
+    // Run independent queries in parallel for better performance
+    const [assigneeResult, duplicateResult, tagLinks, attachmentCount, commentCount] = await Promise.all([
+      // Get assignee if exists
+      row.issue.assigneeId
+        ? db
+            .select({
+              id: tables.users.id,
+              name: tables.users.name,
+              email: tables.users.email,
+            })
+            .from(tables.users)
+            .where(eq(tables.users.id, row.issue.assigneeId))
+            .limit(1)
+        : Promise.resolve([]),
 
-    // Get duplicate issue if exists
-    let duplicateOf = null;
-    if (row.issue.duplicateOfId) {
-      const dupResult = await db
-        .select()
-        .from(tables.issues)
-        .where(eq(tables.issues.id, row.issue.duplicateOfId))
-        .limit(1);
-      if (dupResult.length > 0) {
-        duplicateOf = {
-          ...dupResult[0],
-          description: parseJsonField<IssueDescription>(dupResult[0].description, { summary: '' }),
-        };
-      }
-    }
+      // Get duplicate issue if exists
+      row.issue.duplicateOfId
+        ? db
+            .select()
+            .from(tables.issues)
+            .where(eq(tables.issues.id, row.issue.duplicateOfId))
+            .limit(1)
+        : Promise.resolve([]),
 
-    // Get tags
-    const tagLinks = await db
-      .select({ tag: tables.issueTags })
-      .from(tables.issueTagLinks)
-      .innerJoin(tables.issueTags, eq(tables.issueTagLinks.tagId, tables.issueTags.id))
-      .where(eq(tables.issueTagLinks.issueId, id));
+      // Get tags
+      db
+        .select({ tag: tables.issueTags })
+        .from(tables.issueTagLinks)
+        .innerJoin(tables.issueTags, eq(tables.issueTagLinks.tagId, tables.issueTags.id))
+        .where(eq(tables.issueTagLinks.issueId, id)),
 
+      // Get attachment count
+      db
+        .select({ count: count() })
+        .from(tables.issueAttachments)
+        .where(and(
+          eq(tables.issueAttachments.issueId, id),
+          eq(tables.issueAttachments.isDeleted, false)
+        )),
+
+      // Get comment count
+      db
+        .select({ count: count() })
+        .from(tables.issueComments)
+        .where(eq(tables.issueComments.issueId, id)),
+    ]);
+
+    const assignee = assigneeResult[0] || null;
+    const duplicateOf = duplicateResult.length > 0
+      ? {
+          ...duplicateResult[0],
+          description: parseJsonField<IssueDescription>(duplicateResult[0].description, { summary: '' }),
+        }
+      : null;
     const tags = tagLinks.map((link: any) => link.tag);
-
-    // Get attachment count
-    const attachmentCount = await db
-      .select({ count: count() })
-      .from(tables.issueAttachments)
-      .where(and(
-        eq(tables.issueAttachments.issueId, id),
-        eq(tables.issueAttachments.isDeleted, false)
-      ));
-
-    // Get comment count
-    const commentCount = await db
-      .select({ count: count() })
-      .from(tables.issueComments)
-      .where(eq(tables.issueComments.issueId, id));
 
     return {
       ...row.issue,
@@ -731,15 +737,15 @@ export async function createIssue(
     const result = await db.insert(tables.issues).values(insertData);
     const insertId = getInsertId(result);
 
-    // Add tag links if provided
+    // Add tag links if provided (batch insert for efficiency)
     if (data.tagIds && data.tagIds.length > 0) {
-      for (const tagId of data.tagIds) {
-        await db.insert(tables.issueTagLinks).values({
+      await db.insert(tables.issueTagLinks).values(
+        data.tagIds.map((tagId) => ({
           issueId: insertId,
           tagId,
           createdAt: now,
-        });
-      }
+        }))
+      );
     }
 
     // Create audit event
@@ -920,15 +926,15 @@ export async function updateIssue(
       // Remove existing tag links
       await db.delete(tables.issueTagLinks).where(eq(tables.issueTagLinks.issueId, id));
 
-      // Add new tag links
+      // Add new tag links (batch insert for efficiency)
       if (data.tagIds.length > 0) {
-        for (const tagId of data.tagIds) {
-          await db.insert(tables.issueTagLinks).values({
+        await db.insert(tables.issueTagLinks).values(
+          data.tagIds.map((tagId) => ({
             issueId: id,
             tagId,
             createdAt: now,
-          });
-        }
+          }))
+        );
       }
     }
 
@@ -938,8 +944,9 @@ export async function updateIssue(
 
 /**
  * Delete an issue and all related records
+ * Note: actorId removed as audit events are deleted along with the issue
  */
-export async function deleteIssue(id: number, actorId: number): Promise<boolean> {
+export async function deleteIssue(id: number): Promise<boolean> {
   return executeDbOperation(async (db) => {
     const tables = getIssueTables();
 
@@ -975,14 +982,26 @@ export async function deleteIssue(id: number, actorId: number): Promise<boolean>
 
 /**
  * Mark AI validation as passed or skipped
+ * @returns true if issue was found and updated, false if issue not found
  */
 export async function updateAIValidation(
   id: number,
   passed: boolean,
   skipped: boolean
-): Promise<void> {
+): Promise<boolean> {
   return executeDbOperation(async (db) => {
     const tables = getIssueTables();
+
+    // Verify issue exists
+    const existing = await db
+      .select({ id: tables.issues.id })
+      .from(tables.issues)
+      .where(eq(tables.issues.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return false;
+    }
 
     await db
       .update(tables.issues)
@@ -992,6 +1011,8 @@ export async function updateAIValidation(
         updatedAt: getNow(),
       })
       .where(eq(tables.issues.id, id));
+
+    return true;
   });
 }
 

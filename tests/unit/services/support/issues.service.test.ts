@@ -447,12 +447,9 @@ describe('Issue Tracker Service', () => {
   // ============================================
   describe('Utility Functions', () => {
     describe('updateAIValidation', () => {
-      it('should accept passed and skipped flags', async () => {
-        // Test passed validation
-        await expect(updateAIValidation(1, true, false)).resolves.not.toThrow();
-
-        // Test skipped validation
-        await expect(updateAIValidation(1, false, true)).resolves.not.toThrow();
+      it('should return false for non-existent issue', async () => {
+        const result = await updateAIValidation(99999, true, false);
+        expect(result).toBe(false);
       });
     });
 
@@ -462,6 +459,37 @@ describe('Issue Tracker Service', () => {
         const result = await getIssueByNumber(issueNumber);
         // Should not throw
         expect(result === null || typeof result === 'object').toBe(true);
+      });
+    });
+
+    describe('markAsDuplicate', () => {
+      it('should throw error when issue not found', async () => {
+        await expect(markAsDuplicate(99999, 1, 1)).rejects.toThrow('Issue not found');
+      });
+    });
+
+    describe('deleteIssue', () => {
+      it('should throw error when issue not found', async () => {
+        await expect(deleteIssue(99999)).rejects.toThrow('Issue not found');
+      });
+    });
+
+    describe('createIssue', () => {
+      it('should throw error when category not found', async () => {
+        const data: IssueCreate = {
+          title: 'Test Issue',
+          description: { summary: 'Test summary' },
+          categoryId: 99999,
+          severity: 'major',
+        };
+        await expect(createIssue(data, 1, 'draft')).rejects.toThrow('Category not found');
+      });
+    });
+
+    describe('updateIssue', () => {
+      it('should throw error when issue not found', async () => {
+        const updates: IssueUpdate = { title: 'Updated' };
+        await expect(updateIssue(99999, updates, 1)).rejects.toThrow('Issue not found');
       });
     });
   });
