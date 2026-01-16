@@ -224,6 +224,17 @@ const navigation: NavItem[] = [
       { name: 'Items', href: '/template/items', icon: Package },
     ],
   },
+  {
+    name: 'Issues',
+    href: '/issues',
+    icon: Bug,
+    roles: [], // Accessible to all authenticated users
+    children: [
+      { name: 'Dashboard', href: '/issues', icon: LayoutDashboard },
+      { name: 'All Issues', href: '/issues/list', icon: ClipboardList },
+      { name: 'Report Issue', href: '/issues/new', icon: AlertTriangle },
+    ],
+  },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
   { name: 'Users', href: '/users', icon: Users, roles: ['admin', 'manager'] },
   {
