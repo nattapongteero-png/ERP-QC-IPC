@@ -2794,12 +2794,12 @@ export async function getFinancialHealthKPIs(
     // Inventory value by category
     const invByCat = await db
       .select({
-        category: tables.items.itemType,
+        category: tables.items.type,
         value: sql<number>`SUM(COALESCE(${tables.items.onHandCost}, 0))`,
       })
       .from(tables.items)
       .where(eq(tables.items.isActive, true))
-      .groupBy(tables.items.itemType);
+      .groupBy(tables.items.type);
 
     const totalInventory = invByCat.reduce((sum: number, r: typeof invByCat[number]) => sum + Number(r.value || 0), 0);
     const inventoryByCategory = invByCat.map((r: typeof invByCat[number]) => ({
