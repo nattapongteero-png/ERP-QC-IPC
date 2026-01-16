@@ -5,8 +5,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock data for tests
-const mockComment = {
+// Mock data for tests (prefixed with underscore to indicate intentionally unused reference data)
+const _mockComment = {
   id: 1,
   issueId: 1,
   authorId: 1,
@@ -17,13 +17,13 @@ const mockComment = {
   updatedAt: '2026-01-16T00:00:00.000Z',
 };
 
-const mockUser = {
+const _mockUser = {
   id: 1,
   name: 'Test User',
   email: 'test@example.com',
 };
 
-const mockIssue = {
+const _mockIssue = {
   id: 1,
   issueNumber: 'ISS-2026-0001',
   title: 'Test Issue',
@@ -31,7 +31,7 @@ const mockIssue = {
   assigneeId: 6,
 };
 
-const mockUsers = [
+const _mockUsers = [
   { id: 1, name: 'Test User', email: 'test@example.com' },
   { id: 2, name: 'john', email: 'john@example.com' },
   { id: 3, name: 'jane', email: 'jane@example.com' },
@@ -41,7 +41,7 @@ const mockUsers = [
 
 // Track mock return data
 let mockSelectReturnData: any[] = [];
-let mockQueryContext = 'default';
+let mockQueryContext = 'default'; // Used in beforeEach reset
 
 // Mock the database modules
 vi.mock('@/lib/db', async (importOriginal) => {
