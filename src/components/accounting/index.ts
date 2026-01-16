@@ -21,3 +21,6 @@ export type { FixedAssetFormProps } from './FixedAssetForm';
 
 export { EquipmentForm } from './EquipmentForm';
 export type { EquipmentFormProps } from './EquipmentForm';
+
+export { ExecutiveKPICard, ExecutiveKPICardSkeleton } from './executive-kpi-card';
+export type { ExecutiveKPICardProps } from './executive-kpi-card';
