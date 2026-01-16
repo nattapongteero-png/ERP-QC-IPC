@@ -79,6 +79,7 @@ export interface IssueComment {
   // Relations
   author?: { id: number; name: string; email: string };
   attachments?: IssueAttachment[];
+  attachmentCount?: number;
 }
 
 export interface IssueAttachment {

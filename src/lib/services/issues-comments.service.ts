@@ -427,6 +427,17 @@ export async function updateComment(
       .set(updateData)
       .where(eq(tables.issueComments.id, commentId));
 
+    // Create audit event for comment edit
+    await createAuditEvent(
+      db,
+      tables,
+      existingComment.issueId,
+      'edited',
+      actorId,
+      { content: existingComment.content },
+      { content, commentId }
+    );
+
     return getComment(commentId);
   });
 }
