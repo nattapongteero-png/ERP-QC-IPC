@@ -25,3 +25,7 @@ export type { AIValidationFeedbackProps } from './AIValidationFeedback';
 // Timeline Components
 export { IssueTimeline } from './IssueTimeline';
 export type { IssueTimelineProps } from './IssueTimeline';
+
+// Comment Components
+export { CommentEditor } from './CommentEditor';
+export type { CommentEditorProps } from './CommentEditor';
