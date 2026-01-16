@@ -50,10 +50,10 @@ export const issueCategoryCreateSchema = z.object({
 // Category Update Schema
 export const issueCategoryUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  description: z.string().max(500).optional().nullable(),
+  description: z.string().max(500).optional(),
   type: issueCategoryTypeSchema.optional(),
   requiredFields: z.array(z.string()).optional(),
-  aiPrompt: z.string().max(2000).optional().nullable(),
+  aiPrompt: z.string().max(2000).optional(),
   isActive: z.boolean().optional(),
 });
 
