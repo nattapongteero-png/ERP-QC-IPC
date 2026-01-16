@@ -10,7 +10,6 @@ import type {
   IssueCategory,
   AIValidationResult,
   AIDuplicateResult,
-  Issue,
 } from '@/types/issues';
 
 // ============================================
