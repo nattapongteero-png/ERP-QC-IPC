@@ -156,6 +156,19 @@ export const SERVICE_TABLE_SETS = {
     schema.sqliteVMIOrders,
     schema.sqliteVMIOrderLines,
   ],
+
+  // Issues / Support
+  issues: [
+    schema.sqliteUsers,
+    schema.sqliteIssueCategories,
+    schema.sqliteIssues,
+    schema.sqliteIssueTags,
+    schema.sqliteIssueTagLinks,
+    schema.sqliteIssueComments,
+    schema.sqliteIssueAttachments,
+    schema.sqliteIssueAuditEvents,
+    schema.sqliteIssueNotifications,
+  ],
 };
 
 /**
