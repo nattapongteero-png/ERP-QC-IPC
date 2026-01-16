@@ -5,7 +5,7 @@
  */
 
 import { getDb } from '../db';
-import { eq, and, sql, gte, lte, lt, desc } from 'drizzle-orm';
+import { eq, and, sql, gte, lte, lt } from 'drizzle-orm';
 import { toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { getAccountingTables } from './accounting.service';
 import type {
@@ -13,7 +13,6 @@ import type {
   ExecutiveMetrics,
   ExecutiveAlert,
   AlertPriority,
-  AlertType,
 } from '@/types/accounting';
 
 // ============================================
@@ -194,7 +193,7 @@ export function getDateRange(
  * @returns Cash balance amount
  */
 export async function getCashBalance(asOfDate: string): Promise<number> {
-  const { glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
+  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
   const database = (await getDb()) as any;
 
   const result = await database
