@@ -37,13 +37,6 @@ function formatValue(value: number, format: 'currency' | 'percent' | 'number'): 
 export function KPICard({ title, icon, kpi, format = 'currency', expandable = false, children }: KPICardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const statusColors = {
-    good: 'text-green-600',
-    warning: 'text-yellow-600',
-    critical: 'text-red-600',
-    neutral: 'text-gray-600',
-  };
-
   const bgColors = {
     good: 'bg-green-100',
     warning: 'bg-yellow-100',

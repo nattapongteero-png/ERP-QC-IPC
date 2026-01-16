@@ -2,31 +2,59 @@
 
 /**
  * Cost Management Dashboard Page
- * Feature: 014-unit-cost (US7 - Cost Reports Dashboard)
+ * Feature: 014-unit-cost (US7 - Executive Dashboard)
  */
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ResponsivePageHeader } from '@/components/shared';
 import { CostDashboard } from '@/components/cost/CostDashboard';
-import { DollarSign, FileText, Factory, Truck } from 'lucide-react';
+import { DollarSign, FileText, Factory, Truck, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import SelectBox from 'devextreme-react/select-box';
+
+const periodOptions = [
+  { value: 'this_month', label: 'This Month' },
+  { value: 'last_month', label: 'Last Month' },
+  { value: 'this_quarter', label: 'This Quarter' },
+  { value: 'last_quarter', label: 'Last Quarter' },
+  { value: 'ytd', label: 'Year to Date' },
+];
 
 export default function CostManagementPage() {
   const router = useRouter();
+  const [periodType, setPeriodType] = useState('this_month');
 
   return (
     <div className="p-6 space-y-6" data-testid="cost-management-page">
-      <ResponsivePageHeader
-        title="Cost Management"
-        icon={DollarSign}
-        subtitle="Monitor costs, margins, and variances across your operations"
-      />
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <ResponsivePageHeader
+          title="Cost Management"
+          icon={DollarSign}
+          subtitle="Executive dashboard for cost control and margin analysis"
+        />
+
+        {/* Period Selector */}
+        <div className="flex items-center gap-2" data-testid="period-selector">
+          <Calendar className="h-5 w-5 text-gray-500" />
+          <SelectBox
+            dataSource={periodOptions}
+            valueExpr="value"
+            displayExpr="label"
+            value={periodType}
+            onValueChanged={(e) => setPeriodType(e.value)}
+            width={180}
+            stylingMode="outlined"
+          />
+        </div>
+      </div>
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => router.push('/cost/landed-costs')}
+          data-testid="quick-link-landed-costs"
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -44,6 +72,7 @@ export default function CostManagementPage() {
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => router.push('/cost/work-centers')}
+          data-testid="quick-link-work-centers"
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -61,6 +90,7 @@ export default function CostManagementPage() {
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => router.push('/cost/reports/cost-summary')}
+          data-testid="quick-link-reports"
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -77,7 +107,7 @@ export default function CostManagementPage() {
       </div>
 
       {/* Dashboard */}
-      <CostDashboard />
+      <CostDashboard periodType={periodType} />
     </div>
   );
 }
