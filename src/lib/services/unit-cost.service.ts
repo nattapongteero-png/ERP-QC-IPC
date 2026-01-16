@@ -3119,7 +3119,6 @@ export async function getMarginKPIs(
 ): Promise<MarginKPIs> {
   return executeDbOperation(async (db) => {
     const tables = getUnitCostTables();
-    const itemCategories = getTableRef('itemCategories');
 
     // Revenue and COGS MTD
     const revCogs = await db
@@ -3153,22 +3152,21 @@ export async function getMarginKPIs(
     const cogsPriorVal = Number(revPrior[0]?.cogs || 0);
     const grossProfitPrior = revPriorVal - cogsPriorVal;
 
-    // Margin by category
+    // Margin by category (using items.category text field directly)
     const byCategory = await db
       .select({
-        category: itemCategories.name,
+        category: tables.items.category,
         revenue: sql<number>`SUM(${tables.salesOrderLines.quantity} * ${tables.salesOrderLines.unitPrice})`,
         cogs: sql<number>`SUM(COALESCE(${tables.salesOrderLines.totalCost}, 0))`,
       })
       .from(tables.salesOrderLines)
       .innerJoin(tables.salesOrders, eq(tables.salesOrderLines.soId, tables.salesOrders.id))
       .innerJoin(tables.items, eq(tables.salesOrderLines.itemId, tables.items.id))
-      .leftJoin(itemCategories, eq(tables.items.categoryId, itemCategories.id))
       .where(and(
         gte(tables.salesOrders.orderDate, toQueryDate(currentFrom)),
         lte(tables.salesOrders.orderDate, toQueryDate(currentTo))
       ))
-      .groupBy(itemCategories.name);
+      .groupBy(tables.items.category);
 
     const marginByCategory = byCategory.map((r: typeof byCategory[number]) => {
       const rev = Number(r.revenue || 0);
