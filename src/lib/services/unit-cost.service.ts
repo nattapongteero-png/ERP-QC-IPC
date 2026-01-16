@@ -2906,7 +2906,7 @@ export async function getMaterialCostKPIs(
 
     // Purchases MTD - from PO lines with received status
     const purchasesCurrent = await db
-      .select({ total: sql<number>`SUM(${purchaseOrderLines.receivedQty} * ${purchaseOrderLines.unitPrice})` })
+      .select({ total: sql<number>`SUM(${purchaseOrderLines.receivedQuantity} * ${purchaseOrderLines.unitPrice})` })
       .from(purchaseOrderLines)
       .innerJoin(purchaseOrders, eq(purchaseOrderLines.poId, purchaseOrders.id))
       .where(and(
@@ -2915,7 +2915,7 @@ export async function getMaterialCostKPIs(
       ));
 
     const purchasesPrior = await db
-      .select({ total: sql<number>`SUM(${purchaseOrderLines.receivedQty} * ${purchaseOrderLines.unitPrice})` })
+      .select({ total: sql<number>`SUM(${purchaseOrderLines.receivedQuantity} * ${purchaseOrderLines.unitPrice})` })
       .from(purchaseOrderLines)
       .innerJoin(purchaseOrders, eq(purchaseOrderLines.poId, purchaseOrders.id))
       .where(and(
