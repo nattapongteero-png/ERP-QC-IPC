@@ -143,7 +143,7 @@ export interface IssueUpdate {
   description?: IssueDescription;
   categoryId?: number;
   severity?: IssueSeverity;
-  priority?: IssuePriority;
+  priority?: IssuePriority | null;
   status?: IssueStatus;
   assigneeId?: number | null;
   tagIds?: number[];

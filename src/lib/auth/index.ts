@@ -248,6 +248,12 @@ export const PERMISSIONS = {
   // Admin/System Management (Feature: 014-unit-cost)
   'admin:read': [ROLES.ADMIN],
   'admin:write': [ROLES.ADMIN],
+
+  // Issue Tracker
+  'issues:read': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION, ROLES.USER],
+  'issues:write': [ROLES.ADMIN, ROLES.MANAGER, ROLES.QC, ROLES.PRODUCTION, ROLES.USER],
+  'issues:assign': [ROLES.ADMIN, ROLES.MANAGER],
+  'issues:delete': [ROLES.ADMIN],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
