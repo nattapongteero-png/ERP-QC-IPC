@@ -1,8 +1,8 @@
 // Issue Tracker Schema
 // Feature: Issue tracking system for GMP compliance
 
-import { sqliteTable, text, integer, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, datetime, boolean as mysqlBoolean, text as mysqlText, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { mysqlTable, varchar, int, datetime, boolean as mysqlBoolean, text as mysqlText } from 'drizzle-orm/mysql-core';
 import { relations } from 'drizzle-orm';
 import { sqliteUsers, mysqlUsers } from './schema';
 
@@ -37,7 +37,7 @@ export const sqliteIssues = sqliteTable('issues', {
   assigneeId: integer('assignee_id').references(() => sqliteUsers.id),
   aiValidationPassed: integer('ai_validation_passed', { mode: 'boolean' }).notNull().default(false),
   aiValidationSkipped: integer('ai_validation_skipped', { mode: 'boolean' }).notNull().default(false),
-  duplicateOfId: integer('duplicate_of_id').references((): AnySQLiteColumn => sqliteIssues.id),
+  duplicateOfId: integer('duplicate_of_id').references((): any => sqliteIssues.id),
   resolvedAt: text('resolved_at'),
   verifiedAt: text('verified_at'),
   closedAt: text('closed_at'),
@@ -240,7 +240,7 @@ export const mysqlIssues = mysqlTable('issues', {
   assigneeId: int('assignee_id').references(() => mysqlUsers.id),
   aiValidationPassed: mysqlBoolean('ai_validation_passed').notNull().default(false),
   aiValidationSkipped: mysqlBoolean('ai_validation_skipped').notNull().default(false),
-  duplicateOfId: int('duplicate_of_id').references((): AnyMySqlColumn => mysqlIssues.id),
+  duplicateOfId: int('duplicate_of_id').references((): any => mysqlIssues.id),
   resolvedAt: datetime('resolved_at'),
   verifiedAt: datetime('verified_at'),
   closedAt: datetime('closed_at'),
