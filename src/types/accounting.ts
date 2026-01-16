@@ -1371,3 +1371,139 @@ export interface PayrollAccountConfig {
   salaryPayableAccountId: number;
   cashAccountId: number;
 }
+
+// ============================================
+// Executive Dashboard Types (Dashboard Redesign)
+// ============================================
+
+export type AlertPriority = 'critical' | 'warning' | 'info';
+
+export type AlertType =
+  | 'cash_below_threshold'
+  | 'ar_overdue_critical'
+  | 'ap_overdue_supplier_risk'
+  | 'gross_margin_declining'
+  | 'inventory_expiring'
+  | 'budget_variance'
+  | 'period_close_pending'
+  | 'pending_approvals';
+
+export interface ExecutiveKPI {
+  id: string;
+  label: string;
+  value: number;
+  formattedValue: string;
+  unit: 'currency' | 'percentage' | 'days' | 'ratio' | 'times';
+  trend: 'up' | 'down' | 'neutral';
+  trendValue: number;
+  trendPercentage: number;
+  sparklineData: number[];
+  status: 'good' | 'warning' | 'danger';
+  targetMin?: number;
+  targetMax?: number;
+}
+
+export interface ExecutiveMetrics {
+  asOfDate: string;
+  periodStart: string;
+  periodEnd: string;
+
+  // Financial Health KPIs
+  workingCapital: ExecutiveKPI;
+  currentRatio: ExecutiveKPI;
+  quickRatio: ExecutiveKPI;
+  dso: ExecutiveKPI;
+
+  // Business Performance KPIs
+  grossProfitMargin: ExecutiveKPI;
+  operatingCashFlow: ExecutiveKPI;
+  dpo: ExecutiveKPI;
+  inventoryTurnover: ExecutiveKPI;
+}
+
+export interface ExecutiveAlert {
+  id: string;
+  type: AlertType;
+  priority: AlertPriority;
+  title: string;
+  message: string;
+  value?: number;
+  formattedValue?: string;
+  threshold?: number;
+  actionLink: string;
+  actionLabel: string;
+  createdAt: string;
+  dismissedAt?: string;
+}
+
+export interface CashFlowWaterfallItem {
+  category: string;
+  label: string;
+  value: number;
+  isTotal: boolean;
+  runningTotal: number;
+}
+
+export interface CashFlowWaterfallData {
+  periodStart: string;
+  periodEnd: string;
+  items: CashFlowWaterfallItem[];
+  openingCash: number;
+  closingCash: number;
+}
+
+export interface CategoryProfitability {
+  categoryId: number;
+  categoryName: string;
+  revenue: number;
+  cogs: number;
+  grossProfit: number;
+  grossMarginPercent: number;
+  revenueContributionPercent: number;
+}
+
+export interface ProfitabilityByCategoryData {
+  periodStart: string;
+  periodEnd: string;
+  categories: CategoryProfitability[];
+  totalRevenue: number;
+  totalCogs: number;
+  totalGrossProfit: number;
+  overallMarginPercent: number;
+}
+
+export interface ExpenseCategory {
+  categoryName: string;
+  glAccountIds: number[];
+  amount: number;
+  percentage: number;
+}
+
+export interface ExpenseBreakdownData {
+  periodStart: string;
+  periodEnd: string;
+  categories: ExpenseCategory[];
+  totalExpenses: number;
+}
+
+export interface BusinessIntelMetrics {
+  asOfDate: string;
+
+  // Inventory & Quality
+  inventoryAtRisk: number;
+  expiredWriteOffYtd: number;
+  qualityCostRatio: number;
+  rejectedBatchCostYtd: number;
+
+  // Operational Efficiency
+  productionYieldPercent: number | null;
+  equipmentDowntimeCost: number;
+  vendorConcentrationPercent: number;
+  paymentDiscountsCapturedPercent: number;
+
+  // Sparklines (6 months)
+  inventoryAtRiskTrend: number[];
+  qualityCostTrend: number[];
+  productionYieldTrend: number[];
+  vendorConcentrationTrend: number[];
+}
