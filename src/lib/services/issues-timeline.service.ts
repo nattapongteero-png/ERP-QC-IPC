@@ -3,7 +3,7 @@
 // Merges audit events and comments into a single chronological timeline
 
 import { eq, asc } from 'drizzle-orm';
-import { getTableRef, executeDbOperation, isSqlite } from '../db/db-helper';
+import { getTableRef, executeDbOperation } from '../db/db-helper';
 import type { IssueAuditEventType } from '@/types/issues';
 
 // ============================================
