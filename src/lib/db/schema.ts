@@ -6249,3 +6249,62 @@ export {
   type BOMConfidentialAccess,
   type NewBOMConfidentialAccess,
 } from './schema-unit-cost';
+
+// ============================================
+// Issue Tracker Module
+// ============================================
+export {
+  // SQLite tables
+  sqliteIssueCategories,
+  sqliteIssues,
+  sqliteIssueTags,
+  sqliteIssueTagLinks,
+  sqliteIssueComments,
+  sqliteIssueAttachments,
+  sqliteIssueAuditEvents,
+  sqliteIssueNotifications,
+  // SQLite relations
+  sqliteIssueCategoriesRelations,
+  sqliteIssuesRelations,
+  sqliteIssueTagsRelations,
+  sqliteIssueTagLinksRelations,
+  sqliteIssueCommentsRelations,
+  sqliteIssueAttachmentsRelations,
+  sqliteIssueAuditEventsRelations,
+  sqliteIssueNotificationsRelations,
+  // MySQL tables
+  mysqlIssueCategories,
+  mysqlIssues,
+  mysqlIssueTags,
+  mysqlIssueTagLinks,
+  mysqlIssueComments,
+  mysqlIssueAttachments,
+  mysqlIssueAuditEvents,
+  mysqlIssueNotifications,
+  // MySQL relations
+  mysqlIssueCategoriesRelations,
+  mysqlIssuesRelations,
+  mysqlIssueTagsRelations,
+  mysqlIssueTagLinksRelations,
+  mysqlIssueCommentsRelations,
+  mysqlIssueAttachmentsRelations,
+  mysqlIssueAuditEventsRelations,
+  mysqlIssueNotificationsRelations,
+  // Types
+  type IssueCategoryDb,
+  type NewIssueCategoryDb,
+  type IssueDb,
+  type NewIssueDb,
+  type IssueTagDb,
+  type NewIssueTagDb,
+  type IssueTagLinkDb,
+  type NewIssueTagLinkDb,
+  type IssueCommentDb,
+  type NewIssueCommentDb,
+  type IssueAttachmentDb,
+  type NewIssueAttachmentDb,
+  type IssueAuditEventDb,
+  type NewIssueAuditEventDb,
+  type IssueNotificationDb,
+  type NewIssueNotificationDb,
+} from './schema-issues';
