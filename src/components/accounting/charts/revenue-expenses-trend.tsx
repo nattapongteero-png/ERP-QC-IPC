@@ -19,6 +19,7 @@ interface TrendDataPoint {
   cogs: number;
   operatingExpenses: number;
   netIncome: number;
+  [key: string]: string | number; // Index signature for recharts compatibility
 }
 
 export interface RevenueExpensesTrendProps {
@@ -73,7 +74,10 @@ export function RevenueExpensesTrend({ data, isLoading, className = '' }: Revenu
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} />
                 <YAxis tick={{ fontSize: 12 }} tickLine={false} tickFormatter={formatCompactCurrency} />
                 <Tooltip
-                  formatter={(value) => formatCompactCurrency(value as number)}
+                  formatter={(value) => {
+                    if (value === undefined || value === null) return '';
+                    return formatCompactCurrency(typeof value === 'number' ? value : Number(value));
+                  }}
                   labelStyle={{ fontWeight: 600 }}
                 />
                 <Legend />

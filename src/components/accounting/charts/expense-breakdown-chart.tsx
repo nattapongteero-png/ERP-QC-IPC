@@ -45,10 +45,11 @@ export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, classNam
     percentage: item.percentage,
   }));
 
-  // Custom label renderer for pie chart
-  const renderLabel = (props: { payload?: ChartDataItem }) => {
-    if (!props.payload) return '';
-    return `${props.payload.categoryName} (${props.payload.percentage.toFixed(0)}%)`;
+  // Custom label renderer for pie chart - use any to avoid recharts strict typing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renderLabel = (entry: any) => {
+    if (!entry || !entry.categoryName) return '';
+    return `${entry.categoryName} (${entry.percentage?.toFixed(0) ?? 0}%)`;
   };
 
   return (
@@ -69,7 +70,7 @@ export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, classNam
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={chartData}
+                  data={chartData as unknown as Array<Record<string, unknown>>}
                   cx="50%"
                   cy="50%"
                   innerRadius={50}
@@ -85,7 +86,10 @@ export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, classNam
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value) => formatCurrency(value as number)}
+                  formatter={(value) => {
+                    if (value === undefined || value === null) return '';
+                    return formatCurrency(typeof value === 'number' ? value : Number(value));
+                  }}
                 />
                 <Legend />
               </PieChart>

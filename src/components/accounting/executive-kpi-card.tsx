@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
