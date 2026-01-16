@@ -615,3 +615,97 @@ export interface COGSResult {
   marginAmount: number;
   marginPercent: number;
 }
+
+// ============================================================================
+// EXECUTIVE DASHBOARD TYPES
+// ============================================================================
+
+export interface KPIValue {
+  current: number;
+  prior: number;
+  budget: number | null;
+  changePercent: number;
+  changeDirection: 'up' | 'down' | 'flat';
+  status: 'good' | 'warning' | 'critical' | 'neutral';
+}
+
+export interface FinancialHealthKPIs {
+  inventoryValue: KPIValue;
+  cogsMTD: KPIValue;
+  grossMarginPercent: KPIValue;
+  netCostVariance: KPIValue;
+  inventoryByCategory: { category: string; value: number; percent: number; change: number }[];
+}
+
+export interface MaterialCostKPIs {
+  purchasesMTD: KPIValue;
+  landedCostPercent: KPIValue;
+  avgMaterialCostChange: KPIValue;
+  inventoryTurnover: KPIValue;
+  daysInventoryOutstanding: KPIValue;
+  topCostIncreases: ItemCostChange[];
+  purchasesBySupplier: { supplierId: number; supplierName: string; amount: number; percent: number }[];
+}
+
+export interface ProductionCostKPIs {
+  wipValue: KPIValue;
+  productionCostMTD: KPIValue;
+  laborEfficiency: KPIValue;
+  overheadAbsorption: KPIValue;
+  avgUnitCost: KPIValue;
+  productionVariance: KPIValue;
+  costBreakdown: { material: number; labor: number; overhead: number };
+  byWorkCenter: { workCenterId: number; workCenterName: string; laborCost: number; overheadCost: number; efficiency: number }[];
+}
+
+export interface MarginKPIs {
+  revenueMTD: KPIValue;
+  grossProfitMTD: KPIValue;
+  marginByCategory: { category: string; revenue: number; cogs: number; margin: number; marginPercent: number; change: number }[];
+  marginErosion: ItemMarginChange[];
+  topMarginProducts: { itemId: number; itemCode: string; itemName: string; marginPercent: number }[];
+}
+
+export interface CostAlert {
+  id: string;
+  severity: 'critical' | 'warning' | 'info';
+  category: 'cost' | 'variance' | 'margin' | 'inventory';
+  title: string;
+  description: string;
+  value: number;
+  threshold: number;
+  entityId?: number;
+}
+
+export interface TrendDataPoint {
+  period: string;
+  grossMargin: number;
+  avgUnitCost: number;
+}
+
+export interface MoMComparisonRow {
+  metric: string;
+  thisMonth: number;
+  lastMonth: number;
+  change: number;
+  changePercent: number;
+  unit: 'currency' | 'percent' | 'number' | 'days';
+}
+
+export interface ExecutiveDashboardKPIs {
+  period: { from: string; to: string; label: string };
+  priorPeriod: { from: string; to: string; label: string };
+  financialHealth: FinancialHealthKPIs;
+  materialCosts: MaterialCostKPIs;
+  productionCosts: ProductionCostKPIs;
+  margins: MarginKPIs;
+  alerts: CostAlert[];
+  trends: TrendDataPoint[];
+  momComparison: MoMComparisonRow[];
+}
+
+export interface DashboardPeriodParams {
+  periodType: 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'ytd' | 'custom';
+  fromDate?: string;
+  toDate?: string;
+}
