@@ -42,6 +42,7 @@ import {
   getFinancialHealthKPIs,
   getProductionCostKPIs,
   getMarginKPIs,
+  getMaterialCostKPIs,
 } from '@/lib/services/unit-cost.service';
 
 // ============================================
@@ -166,6 +167,41 @@ function seedWorkOrderTestData() {
       (1, 1, 5000, 2000, 1000, 8000, 100, 80, 'in_progress', NULL),
       (2, 2, 7500, 3000, 1500, 12000, 50, 240, 'completed', '2025-01-20')
   `);
+}
+
+function seedPurchaseOrderTestData() {
+  // Seed vendors
+  testSqlite.exec(`
+    INSERT INTO vendors (id, code, name, is_active)
+    VALUES
+      (1, 'V-001', 'Vendor A', 1),
+      (2, 'V-002', 'Vendor B', 1)
+  `);
+
+  // Current period POs (Jan 2025)
+  // PO-001: Vendor A, 2025-01-10
+  //   Line 1: 100 kg @ 50 THB, received 80 kg → 80 * 50 = 4,000 THB
+  //   Line 2: 50 kg @ 100 THB, received 50 kg → 50 * 100 = 5,000 THB
+  // PO-002: Vendor B, 2025-01-20
+  //   Line 1: 200 kg @ 30 THB, received 150 kg → 150 * 30 = 4,500 THB
+  // Total current: 4,000 + 5,000 + 4,500 = 13,500 THB
+  testSqlite.exec(`
+    INSERT INTO purchase_orders (id, po_number, vendor_id, status, order_date)
+    VALUES
+      (1, 'PO-001', 1, 'received', '2025-01-10'),
+      (2, 'PO-002', 2, 'received', '2025-01-20'),
+      (3, 'PO-003', 1, 'received', '2024-12-15')
+  `);
+
+  testSqlite.exec(`
+    INSERT INTO purchase_order_lines (id, po_id, item_id, quantity, received_quantity, unit, unit_price, total_price)
+    VALUES
+      (1, 1, 1, 100, 80, 'kg', 50, 5000),
+      (2, 1, 1, 50, 50, 'kg', 100, 5000),
+      (3, 2, 1, 200, 150, 'kg', 30, 6000),
+      (4, 3, 1, 100, 100, 'kg', 45, 4500)
+  `);
+  // Prior period: PO-003 → 100 * 45 = 4,500 THB
 }
 
 // ============================================
@@ -385,6 +421,87 @@ describe('Executive Dashboard Calculation Validation', () => {
       // Gross margin change: ((37.5 - 33.33) / 33.33) * 100 ≈ 12.5%
       expect(result.grossMarginPercent.changePercent).toBeGreaterThan(10);
       expect(result.grossMarginPercent.changePercent).toBeLessThan(15);
+    });
+  });
+
+  describe('Material Cost KPIs Calculation', () => {
+    it('calculates purchases MTD from received PO lines within date range', async () => {
+      seedInventoryTestData();
+      seedPurchaseOrderTestData();
+
+      const result = await getMaterialCostKPIs(
+        TEST_DATES.CURRENT_FROM,
+        TEST_DATES.CURRENT_TO,
+        TEST_DATES.PRIOR_FROM,
+        TEST_DATES.PRIOR_TO
+      );
+
+      // Current period (Jan 2025):
+      // PO-001 Line 1: 80 * 50 = 4,000
+      // PO-001 Line 2: 50 * 100 = 5,000
+      // PO-002 Line 1: 150 * 30 = 4,500
+      // Total: 13,500 THB
+      expect(result.purchasesMTD.current).toBe(13500);
+
+      // Prior period (Dec 2024):
+      // PO-003 Line 1: 100 * 45 = 4,500 THB
+      expect(result.purchasesMTD.prior).toBe(4500);
+    });
+
+    it('calculates purchases by supplier correctly', async () => {
+      seedInventoryTestData();
+      seedPurchaseOrderTestData();
+
+      const result = await getMaterialCostKPIs(
+        TEST_DATES.CURRENT_FROM,
+        TEST_DATES.CURRENT_TO,
+        TEST_DATES.PRIOR_FROM,
+        TEST_DATES.PRIOR_TO
+      );
+
+      // Vendor A (PO-001): 4,000 + 5,000 = 9,000 THB
+      // Vendor B (PO-002): 4,500 THB
+      expect(result.purchasesBySupplier.length).toBe(2);
+
+      const vendorA = result.purchasesBySupplier.find(s => s.supplierName === 'Vendor A');
+      const vendorB = result.purchasesBySupplier.find(s => s.supplierName === 'Vendor B');
+
+      expect(vendorA?.amount).toBe(9000);
+      expect(vendorB?.amount).toBe(4500);
+    });
+
+    it('calculates inventory turnover and DIO', async () => {
+      seedInventoryTestData();
+      seedSalesTestData();
+
+      const result = await getMaterialCostKPIs(
+        TEST_DATES.CURRENT_FROM,
+        TEST_DATES.CURRENT_TO,
+        TEST_DATES.PRIOR_FROM,
+        TEST_DATES.PRIOR_TO
+      );
+
+      // Annual COGS from all sales: 1,500 + 1,000 + 2,000 = 4,500 THB
+      // Inventory value: 15,000 THB
+      // Turnover: 4,500 / 15,000 = 0.3
+      // DIO: 365 / 0.3 ≈ 1,217 days
+      expect(result.inventoryTurnover.current).toBeCloseTo(0.3, 1);
+      expect(result.daysInventoryOutstanding.current).toBeGreaterThan(1000);
+    });
+
+    it('returns zero for purchases when no PO data exists', async () => {
+      // No purchase order data seeded
+
+      const result = await getMaterialCostKPIs(
+        TEST_DATES.CURRENT_FROM,
+        TEST_DATES.CURRENT_TO,
+        TEST_DATES.PRIOR_FROM,
+        TEST_DATES.PRIOR_TO
+      );
+
+      expect(result.purchasesMTD.current).toBe(0);
+      expect(result.purchasesMTD.prior).toBe(0);
+      expect(result.purchasesBySupplier.length).toBe(0);
     });
   });
 });

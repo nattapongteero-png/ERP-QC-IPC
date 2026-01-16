@@ -2961,7 +2961,7 @@ export async function getMaterialCostKPIs(
       .select({
         supplierId: vendors.id,
         supplierName: vendors.name,
-        amount: sql<number>`SUM(${purchaseOrderLines.receivedQty} * ${purchaseOrderLines.unitPrice})`,
+        amount: sql<number>`SUM(${purchaseOrderLines.receivedQuantity} * ${purchaseOrderLines.unitPrice})`,
       })
       .from(purchaseOrderLines)
       .innerJoin(purchaseOrders, eq(purchaseOrderLines.poId, purchaseOrders.id))
@@ -2971,7 +2971,7 @@ export async function getMaterialCostKPIs(
         lte(purchaseOrders.orderDate, toQueryDate(currentTo))
       ))
       .groupBy(vendors.id, vendors.name)
-      .orderBy(desc(sql`SUM(${purchaseOrderLines.receivedQty} * ${purchaseOrderLines.unitPrice})`))
+      .orderBy(desc(sql`SUM(${purchaseOrderLines.receivedQuantity} * ${purchaseOrderLines.unitPrice})`))
       .limit(10);
 
     const purchasesBySupplier = bySupplier.map((r: typeof bySupplier[number]) => ({
