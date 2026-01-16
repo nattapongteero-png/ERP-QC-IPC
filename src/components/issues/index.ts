@@ -14,3 +14,6 @@ export type { SeverityBadgeProps } from './SeverityBadge';
 
 export { PriorityBadge } from './PriorityBadge';
 export type { PriorityBadgeProps } from './PriorityBadge';
+
+// Form Components
+export { IssueForm } from './IssueForm';
