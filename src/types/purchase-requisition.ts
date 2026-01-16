@@ -87,7 +87,7 @@ export interface PurchaseRequisition {
   justification?: string | null;
   costCenterId?: number | null;
   projectId?: number | null;
-  totalEstimatedAmount: number;
+  totalAmount: number;
   approvalRequestId?: number | null;
   createdAt: Date | string;
   updatedAt: Date | string;

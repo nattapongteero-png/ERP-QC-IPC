@@ -4863,7 +4863,7 @@ export const sqlitePurchaseRequisitions = sqliteTable('purchase_requisitions', {
   prNumber: text('pr_number').notNull().unique(),
   requesterId: integer('requester_id').notNull().references(() => sqliteHREmployees.id),
   departmentId: integer('department_id').references(() => sqliteHROrgUnits.id),
-  requiredDate: text('required_date').notNull(),
+  requiredDate: text('required_date'), // Nullable - PR can be saved as draft without required date
   priority: text('priority').notNull().default('normal'), // normal, urgent, critical
   justification: text('justification'),
   status: text('status').notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
@@ -5576,7 +5576,7 @@ export const mysqlPurchaseRequisitions = mysqlTable('purchase_requisitions', {
   prNumber: varchar('pr_number', { length: 20 }).notNull().unique(),
   requesterId: int('requester_id').notNull().references(() => mysqlHREmployees.id),
   departmentId: int('department_id').references(() => mysqlHROrgUnits.id),
-  requiredDate: datetime('required_date').notNull(),
+  requiredDate: datetime('required_date'), // Nullable - PR can be saved as draft without required date
   priority: varchar('priority', { length: 20 }).notNull().default('normal'), // normal, urgent, critical
   justification: mysqlText('justification'),
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled

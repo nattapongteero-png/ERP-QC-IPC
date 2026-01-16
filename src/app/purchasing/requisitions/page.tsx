@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
   Paging,
@@ -80,7 +79,7 @@ export default function PurchaseRequisitionsPage() {
   };
 
   const renderAmountCell = (cellInfo: any) => {
-    const amount = cellInfo.data.totalEstimatedAmount || 0;
+    const amount = cellInfo.data.totalAmount || 0;
     return (
       <span className="font-mono">
         {amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
@@ -113,18 +112,17 @@ export default function PurchaseRequisitionsPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="p-4">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            Purchase Requisitions
-          </h1>
-          <p className="text-gray-600">
-            Create and manage purchase requisitions with approval workflow
-          </p>
-        </div>
+    <div className="p-4">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
+          Purchase Requisitions
+        </h1>
+        <p className="text-gray-600">
+          Create and manage purchase requisitions with approval workflow
+        </p>
+      </div>
 
-        <DataGrid
+      <DataGrid
           dataSource={requisitions}
           keyExpr="id"
           showBorders={true}
@@ -179,7 +177,7 @@ export default function PurchaseRequisitionsPage() {
           />
           <Column dataField="description" caption="Description" minWidth={200} data-testid="col-description" />
           <Column
-            dataField="totalEstimatedAmount"
+            dataField="totalAmount"
             caption="Est. Amount"
             width={130}
             cellRender={renderAmountCell}
@@ -208,8 +206,7 @@ export default function PurchaseRequisitionsPage() {
             cellRender={renderActionsCell}
             data-testid="col-actions"
           />
-        </DataGrid>
-      </div>
-    </MainLayout>
+      </DataGrid>
+    </div>
   );
 }
