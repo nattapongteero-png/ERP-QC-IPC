@@ -1,0 +1,85 @@
+{
+  "title": "แดชบอร์ด",
+  "description": "ภาพรวมระบบบริหารจัดการการผลิตยาสมุนไพร",
+  "kpis": {
+    "totalItems": {
+      "label": "รายการทั้งหมด",
+      "subtitle": "รายการสินค้าคงคลังที่ใช้งานอยู่"
+    },
+    "activeWorkOrders": {
+      "label": "ใบสั่งผลิตที่กำลังดำเนินการ",
+      "subtitle": "อยู่ระหว่างการผลิต"
+    },
+    "openDeviations": {
+      "label": "ความเบี่ยงเบนที่เปิดอยู่",
+      "subtitle": "ต้องดำเนินการ",
+      "actionNeeded": "ต้องดำเนินการ",
+      "allClear": "ปกติ"
+    },
+    "expiringSoon": {
+      "label": "ใกล้หมดอายุ",
+      "subtitle": "ภายใน 30 วัน",
+      "monitorClosely": "ต้องติดตามใกล้ชิด",
+      "lowRisk": "ความเสี่ยงต่ำ"
+    },
+    "lotsInQuarantine": {
+      "label": "ล็อตในกักกัน",
+      "subtitle": "รอการตรวจสอบ QC"
+    },
+    "pendingPOs": {
+      "label": "ใบสั่งซื้อที่รอดำเนินการ",
+      "subtitle": "รอการอนุมัติหรือจัดส่ง"
+    },
+    "pendingSOs": {
+      "label": "ใบสั่งขายที่รอดำเนินการ",
+      "subtitle": "รอดำเนินการ"
+    },
+    "trend": {
+      "up": "เพิ่มขึ้น",
+      "down": "ลดลง",
+      "neutral": "คงที่"
+    }
+  },
+  "sections": {
+    "recentWorkOrders": {
+      "title": "ใบสั่งผลิตล่าสุด",
+      "emptyMessage": "ไม่มีใบสั่งผลิตล่าสุด",
+      "columns": {
+        "woNumber": "เลขที่ใบสั่งผลิต",
+        "batchNumber": "เลขที่แบตช์",
+        "status": "สถานะ",
+        "quantity": "ปริมาณ"
+      }
+    },
+    "inventoryByStatus": {
+      "title": "สินค้าคงคลังตามสถานะ",
+      "emptyMessage": "ไม่มีข้อมูลสินค้าคงคลัง"
+    },
+    "workOrdersByStatus": {
+      "title": "ใบสั่งผลิตตามสถานะ",
+      "emptyMessage": "ไม่มีข้อมูลใบสั่งผลิต"
+    },
+    "warehouseOverview": {
+      "title": "ภาพรวมคลังสินค้า",
+      "emptyMessage": "ไม่มีข้อมูลคลังสินค้า"
+    }
+  },
+  "warehouseTypes": {
+    "rawMaterial": "วัตถุดิบ",
+    "wip": "งานระหว่างทำ",
+    "finishedGoods": "สินค้าสำเร็จรูป",
+    "quarantine": "กักกัน",
+    "rejected": "ถูกปฏิเสธ",
+    "coldStorage": "ห้องเย็น"
+  },
+  "moduleKpis": {
+    "title": "ตัวชี้วัดแยกตามโมดูล",
+    "tabs": {
+      "inventory": "คลังสินค้า",
+      "production": "การผลิต",
+      "quality": "คุณภาพ",
+      "purchasing": "จัดซื้อ",
+      "sales": "ขาย"
+    }
+  }
+}

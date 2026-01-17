@@ -1,0 +1,85 @@
+{
+  "title": "Dashboard",
+  "description": "Overview of the Herbal Medicine Manufacturing System",
+  "kpis": {
+    "totalItems": {
+      "label": "Total Items",
+      "subtitle": "Active inventory items"
+    },
+    "activeWorkOrders": {
+      "label": "Active Work Orders",
+      "subtitle": "Currently in production"
+    },
+    "openDeviations": {
+      "label": "Open Deviations",
+      "subtitle": "Requires attention",
+      "actionNeeded": "Action needed",
+      "allClear": "All clear"
+    },
+    "expiringSoon": {
+      "label": "Expiring Soon",
+      "subtitle": "Within 30 days",
+      "monitorClosely": "Monitor closely",
+      "lowRisk": "Low risk"
+    },
+    "lotsInQuarantine": {
+      "label": "Lots in Quarantine",
+      "subtitle": "Awaiting QC inspection"
+    },
+    "pendingPOs": {
+      "label": "Pending POs",
+      "subtitle": "Awaiting approval or delivery"
+    },
+    "pendingSOs": {
+      "label": "Pending SOs",
+      "subtitle": "Awaiting processing"
+    },
+    "trend": {
+      "up": "Increase",
+      "down": "Decrease",
+      "neutral": "No change"
+    }
+  },
+  "sections": {
+    "recentWorkOrders": {
+      "title": "Recent Work Orders",
+      "emptyMessage": "No recent work orders",
+      "columns": {
+        "woNumber": "WO Number",
+        "batchNumber": "Batch Number",
+        "status": "Status",
+        "quantity": "Quantity"
+      }
+    },
+    "inventoryByStatus": {
+      "title": "Inventory by Status",
+      "emptyMessage": "No inventory data"
+    },
+    "workOrdersByStatus": {
+      "title": "Work Orders by Status",
+      "emptyMessage": "No work order data"
+    },
+    "warehouseOverview": {
+      "title": "Warehouse Overview",
+      "emptyMessage": "No warehouse data"
+    }
+  },
+  "warehouseTypes": {
+    "rawMaterial": "Raw Material",
+    "wip": "Work in Progress",
+    "finishedGoods": "Finished Goods",
+    "quarantine": "Quarantine",
+    "rejected": "Rejected",
+    "coldStorage": "Cold Storage"
+  },
+  "moduleKpis": {
+    "title": "Module KPIs",
+    "tabs": {
+      "inventory": "Inventory",
+      "production": "Production",
+      "quality": "Quality",
+      "purchasing": "Purchasing",
+      "sales": "Sales"
+    }
+  }
+}

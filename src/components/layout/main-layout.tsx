@@ -6,6 +6,7 @@ import { Sidebar } from './sidebar';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useVmiAutoSync } from '@/hooks/use-vmi-auto-sync';
+import { CompactLanguageSwitcher } from '@/components/shared/language-switcher';
 
 interface User {
   id: number;
@@ -164,17 +165,20 @@ export function MainLayout({ children }: MainLayoutProps) {
               </div>
               <span className="font-semibold text-slate-800">Herbal ERP</span>
             </div>
-            <div
-              className={cn(
-                'w-10 h-10 rounded-xl',
-                'bg-gradient-to-br from-emerald-400 to-teal-500',
-                'flex items-center justify-center',
-                'shadow-lg shadow-emerald-500/20'
-              )}
-            >
-              <span className="text-white text-sm font-bold">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
+            <div className="flex items-center gap-2">
+              <CompactLanguageSwitcher />
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-xl',
+                  'bg-gradient-to-br from-emerald-400 to-teal-500',
+                  'flex items-center justify-center',
+                  'shadow-lg shadow-emerald-500/20'
+                )}
+              >
+                <span className="text-white text-sm font-bold">
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
             </div>
           </div>
         </header>

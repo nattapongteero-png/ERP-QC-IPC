@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { ClientErrorReporter } from "@/components/dev/ClientErrorReporter";
+import { I18nProvider } from "@/components/providers/i18n-provider";
+import { getLocale, getMessages } from "next-intl/server";
 import Script from "next/script";
 import "./globals.css";
 
@@ -20,13 +22,16 @@ export const metadata: Metadata = {
   description: "ERP System for Herbal Medicine Manufacturing",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="th">
+    <html lang={locale}>
       <head>
         {/* Suppress harmless DevExtreme DOM cleanup errors */}
         <Script id="dx-error-filter" strategy="beforeInteractive">{`
@@ -45,9 +50,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>
-          <ClientErrorReporter>{children}</ClientErrorReporter>
-        </Providers>
+        <I18nProvider locale={locale} messages={messages}>
+          <Providers>
+            <ClientErrorReporter>{children}</ClientErrorReporter>
+          </Providers>
+        </I18nProvider>
       </body>
     </html>
   );

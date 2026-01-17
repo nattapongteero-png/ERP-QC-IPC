@@ -1,0 +1,126 @@
+{
+  "modules": {
+    "dashboard": "แดชบอร์ด",
+    "inventory": "คลังสินค้า",
+    "production": "การผลิต",
+    "quality": "ควบคุมคุณภาพ",
+    "gmp": "GMP Compliance",
+    "purchasing": "จัดซื้อ",
+    "sales": "ขาย",
+    "accounting": "บัญชี",
+    "cost": "การจัดการต้นทุน",
+    "vmi": "VMI Portal",
+    "hr": "ทรัพยากรบุคคล",
+    "template": "เทมเพลต",
+    "issues": "ปัญหา",
+    "reports": "รายงาน",
+    "users": "ผู้ใช้",
+    "admin": "ผู้ดูแลระบบ",
+    "settings": "การตั้งค่า",
+    "workflow": "เวิร์กโฟลว์"
+  },
+  "inventory": {
+    "items": "รายการสินค้า",
+    "lots": "ล็อต",
+    "warehouses": "คลังสินค้า",
+    "transactions": "ธุรกรรม",
+    "expiryAlerts": "แจ้งเตือนหมดอายุ"
+  },
+  "production": {
+    "bom": "สูตร/BOM",
+    "workOrders": "ใบสั่งผลิต",
+    "batchRecords": "บันทึกแบตช์",
+    "masterData": "ข้อมูลหลัก"
+  },
+  "quality": {
+    "tests": "การทดสอบ",
+    "specs": "ข้อกำหนด",
+    "deviations": "ความเบี่ยงเบน"
+  },
+  "gmp": {
+    "documents": "เอกสาร",
+    "capa": "CAPA",
+    "complaints": "ข้อร้องเรียน",
+    "recalls": "การเรียกคืน",
+    "sanitation": "สุขาภิบาล",
+    "stability": "ความคงตัว",
+    "internalAudit": "ตรวจสอบภายใน",
+    "contracts": "สัญญา",
+    "pqr": "PQR"
+  },
+  "purchasing": {
+    "requisitions": "ใบขอซื้อ",
+    "orders": "ใบสั่งซื้อ",
+    "vendors": "ผู้ขาย"
+  },
+  "sales": {
+    "orders": "ใบสั่งขาย",
+    "vmiOrders": "VMI Orders",
+    "customers": "ลูกค้า"
+  },
+  "accounting": {
+    "dashboard": "แดชบอร์ด",
+    "chartOfAccounts": "ผังบัญชี",
+    "journalEntries": "รายการบันทึกบัญชี",
+    "apInvoices": "ใบแจ้งหนี้เจ้าหนี้",
+    "arInvoices": "ใบแจ้งหนี้ลูกหนี้",
+    "fixedAssets": "สินทรัพย์ถาวร",
+    "equipment": "อุปกรณ์",
+    "periodClose": "ปิดงวด",
+    "bankReconciliation": "กระทบยอดธนาคาร",
+    "creditDebitNotes": "ใบลดหนี้/เพิ่มหนี้",
+    "threeWayMatching": "การจับคู่ 3 ทาง",
+    "approvals": "การอนุมัติ",
+    "standardCosts": "ต้นทุนมาตรฐาน",
+    "varianceReports": "รายงานความแตกต่าง",
+    "reports": "รายงาน"
+  },
+  "cost": {
+    "dashboard": "แดชบอร์ด",
+    "landedCosts": "ต้นทุนรวม",
+    "workCenters": "ศูนย์งาน",
+    "costSummary": "สรุปต้นทุน"
+  },
+  "vmi": {
+    "dashboard": "แดชบอร์ด",
+    "sync": "ซิงค์",
+    "orders": "คำสั่งซื้อ"
+  },
+  "hr": {
+    "organization": "โครงสร้างองค์กร",
+    "employees": "พนักงาน",
+    "positions": "ตำแหน่ง",
+    "training": "การฝึกอบรม",
+    "authorizations": "การอนุญาต",
+    "healthRecords": "บันทึกสุขภาพ",
+    "roles": "บทบาท",
+    "notifications": "การแจ้งเตือน",
+    "auditTrail": "ประวัติการใช้งาน"
+  },
+  "template": {
+    "dashboard": "แดชบอร์ด",
+    "items": "รายการ"
+  },
+  "issues": {
+    "dashboard": "แดชบอร์ด",
+    "allIssues": "ปัญหาทั้งหมด",
+    "reportIssue": "รายงานปัญหา"
+  },
+  "admin": {
+    "confidentialGroups": "กลุ่มความลับ"
+  },
+  "workflow": {
+    "runner": "เรียกใช้เวิร์กโฟลว์"
+  },
+  "header": {
+    "appName": "ระบบ ERP สมุนไพร",
+    "logout": "ออกจากระบบ",
+    "profile": "โปรไฟล์",
+    "settings": "การตั้งค่า",
+    "notifications": "การแจ้งเตือน",
+    "language": "ภาษา"
+  },
+  "breadcrumb": {
+    "home": "หน้าหลัก"
+  }
+}

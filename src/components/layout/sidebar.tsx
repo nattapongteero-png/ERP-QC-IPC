@@ -61,6 +61,7 @@ import {
   Play,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { LanguageSwitcher } from '@/components/shared/language-switcher';
 
 interface NavItem {
   name: string;
@@ -562,6 +563,11 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
             >
               <LogOut className="h-4 w-4 md:h-5 md:w-5" />
             </button>
+          </div>
+
+          {/* Language Switcher */}
+          <div className="mt-3 px-1">
+            <LanguageSwitcher width="100%" showFlag={true} />
           </div>
         </div>
       )}

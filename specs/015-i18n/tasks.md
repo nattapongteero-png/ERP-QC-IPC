@@ -19,11 +19,11 @@
 
 **Purpose**: Install dependencies and create project structure for i18n
 
-- [ ] T001 Install next-intl and js-cookie dependencies via `bun add next-intl js-cookie`
-- [ ] T002 Install dev dependencies via `bun add -D @types/js-cookie eslint-plugin-i18n-json`
-- [ ] T003 [P] Create locale directory structure `src/locales/th/` and `src/locales/en/`
-- [ ] T004 [P] Create i18n library directory `src/lib/i18n/`
-- [ ] T005 [P] Create TypeScript type augmentation file `src/types/i18n.ts`
+- [x] T001 Install next-intl and js-cookie dependencies via `bun add next-intl js-cookie`
+- [x] T002 Install dev dependencies via `bun add -D @types/js-cookie eslint-plugin-i18n-json`
+- [x] T003 [P] Create locale directory structure `src/locales/th/` and `src/locales/en/`
+- [x] T004 [P] Create i18n library directory `src/lib/i18n/`
+- [x] T005 [P] Create TypeScript type augmentation file `src/types/i18n.ts`
 
 ---
 
@@ -35,36 +35,36 @@
 
 ### Core Configuration
 
-- [ ] T006 Create locale configuration in `src/lib/i18n/config.ts` with locales, defaultLocale, fallbackLocale, localeNames, and namespaces
-- [ ] T007 Create request configuration for next-intl in `src/lib/i18n/request.ts` with cookie-based locale detection
-- [ ] T008 Create custom translation hook wrappers in `src/lib/i18n/use-translations.ts`
-- [ ] T009 Create DevExtreme locale sync utility in `src/lib/i18n/devextreme-sync.ts`
-- [ ] T010 Create i18n module index exporting all utilities in `src/lib/i18n/index.ts`
+- [x] T006 Create locale configuration in `src/lib/i18n/config.ts` with locales, defaultLocale, fallbackLocale, localeNames, and namespaces
+- [x] T007 Create request configuration for next-intl in `src/lib/i18n/request.ts` with cookie-based locale detection
+- [x] T008 Create custom translation hook wrappers in `src/lib/i18n/use-translations.ts`
+- [x] T009 Create DevExtreme locale sync utility in `src/lib/i18n/devextreme-sync.ts`
+- [x] T010 Create i18n module index exporting all utilities in `src/lib/i18n/index.ts`
 
 ### Base Translation Files
 
-- [ ] T011 [P] Create Thai common translations in `src/locales/th/common.json` with actions, status, validation, errors, loading, empty sections
-- [ ] T012 [P] Create English common translations in `src/locales/en/common.json` mirroring Thai structure
-- [ ] T013 [P] Create Thai navigation translations in `src/locales/th/navigation.json` with modules, submenus, breadcrumb, header
-- [ ] T014 [P] Create English navigation translations in `src/locales/en/navigation.json` mirroring Thai structure
+- [x] T011 [P] Create Thai common translations in `src/locales/th/common.json` with actions, status, validation, errors, loading, empty sections
+- [x] T012 [P] Create English common translations in `src/locales/en/common.json` mirroring Thai structure
+- [x] T013 [P] Create Thai navigation translations in `src/locales/th/navigation.json` with modules, submenus, breadcrumb, header
+- [x] T014 [P] Create English navigation translations in `src/locales/en/navigation.json` mirroring Thai structure
 
 ### Next.js Integration
 
-- [ ] T015 Update `next.config.ts` to use next-intl plugin with request configuration path
-- [ ] T016 Create i18n provider wrapper in `src/components/providers/i18n-provider.tsx`
-- [ ] T017 Update root layout `src/app/layout.tsx` to wrap with NextIntlClientProvider
+- [x] T015 Update `next.config.ts` to use next-intl plugin with request configuration path
+- [x] T016 Create i18n provider wrapper in `src/components/providers/i18n-provider.tsx`
+- [x] T017 Update root layout `src/app/layout.tsx` to wrap with NextIntlClientProvider
 
 ### DevExtreme Integration
 
-- [ ] T018 Update DevExtremeProvider in `src/components/providers/devextreme-provider.tsx` to sync locale with i18n system
-- [ ] T019 [P] Create English DevExtreme message overrides in `src/locales/en/devextreme.json`
+- [x] T018 Update DevExtremeProvider in `src/components/providers/devextreme-provider.tsx` to sync locale with i18n system
+- [x] T019 [P] Create English DevExtreme message overrides in `src/locales/en/devextreme.json`
 
 ### Unit Test Infrastructure
 
-- [ ] T020 Create i18n test wrapper utility in `tests/helpers/i18n-test-wrapper.tsx` for mocking translations in tests
-- [ ] T021 Create unit test for i18n config in `tests/lib/i18n/config.test.ts`
+- [x] T020 Create i18n test wrapper utility in `tests/helpers/i18n-test-wrapper.tsx` for mocking translations in tests
+- [x] T021 Create unit test for i18n config in `tests/lib/i18n/config.test.ts`
 
-**Checkpoint**: Foundation ready - user story implementation can now begin
+**Checkpoint**: Foundation ready - user story implementation can now begin ✅
 
 ---
 
@@ -76,20 +76,20 @@
 
 ### Tests for User Story 1
 
-- [ ] T022 [P] [US1] Create unit test for LanguageSwitcher component in `tests/components/shared/language-switcher.test.tsx`
+- [x] T022 [P] [US1] Create unit test for LanguageSwitcher component in `tests/components/shared/language-switcher.test.tsx`
 - [ ] T023 [P] [US1] Create integration test for language switching in `tests/integration/i18n-switch.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Create LanguageSwitcher component using DevExtreme SelectBox in `src/components/shared/language-switcher.tsx`
-- [ ] T025 [US1] Add LanguageSwitcher to MainLayout header in `src/components/layout/main-layout.tsx`
-- [ ] T026 [US1] Update Sidebar component to use translations in `src/components/layout/sidebar.tsx`
-- [ ] T027 [US1] Create Thai dashboard translations in `src/locales/th/dashboard.json`
-- [ ] T028 [P] [US1] Create English dashboard translations in `src/locales/en/dashboard.json`
+- [x] T024 [US1] Create LanguageSwitcher component using DevExtreme SelectBox in `src/components/shared/language-switcher.tsx`
+- [x] T025 [US1] Add LanguageSwitcher to MainLayout header in `src/components/layout/main-layout.tsx`
+- [x] T026 [US1] Update Sidebar component to add LanguageSwitcher in `src/components/layout/sidebar.tsx`
+- [x] T027 [US1] Create Thai dashboard translations in `src/locales/th/dashboard.json`
+- [x] T028 [P] [US1] Create English dashboard translations in `src/locales/en/dashboard.json`
 - [ ] T029 [US1] Update Dashboard page to use translations in `src/app/dashboard/page.tsx`
 - [ ] T030 [US1] Verify language switch preserves scroll position and form data (manual testing + document)
 
-**Checkpoint**: User Story 1 complete - Language switching works on Dashboard and Sidebar
+**Checkpoint**: User Story 1 in progress - LanguageSwitcher added, dashboard translations created
 
 ---
 
