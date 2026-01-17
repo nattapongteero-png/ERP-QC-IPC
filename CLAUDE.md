@@ -12,6 +12,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 - TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, TanStack Query 5.x, Lucide React (icons) (013-workflow-test)
 - MySQL (production), SQLite (testing) via Drizzle ORM (013-workflow-test)
 - TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, Drizzle ORM, TanStack Query 5.x, Zod 4.x (014-unit-cost)
+- TypeScript 5.x with Next.js 16.0.10 + React 19.2.1 + next-intl (i18n), DevExtreme React 25.2.3 (UI components), js-cookie (persistence) (015-i18n)
+- Browser localStorage for preference, optional user profile sync (015-i18n)
 
 ## Always do E2E test using React Testing Library + Jest/Vitest
 
@@ -220,6 +222,6 @@ requirements. Do this automatically without being asked.**
 **when write e2e test , please modify target element to has data-testid key so the playwright script can select the correct element, no hard code looking element text**
 
 ## Recent Changes
+- 015-i18n: Added TypeScript 5.x with Next.js 16.0.10 + React 19.2.1 + next-intl (i18n), DevExtreme React 25.2.3 (UI components), js-cookie (persistence)
 - 014-unit-cost: Added TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, Drizzle ORM, TanStack Query 5.x, Zod 4.x
 - 013-workflow-test: Added TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, TanStack Query 5.x, Lucide React (icons)
-- 012-vmi-webhook: Added TypeScript 5.x with Next.js 16.0.10 + Drizzle ORM, DevExtreme React 25.2.3, TanStack Query 5.x, Zod 4.x

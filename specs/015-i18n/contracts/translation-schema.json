@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "translation-schema.json",
+  "title": "i18n Translation File Schema",
+  "description": "JSON Schema for validating translation files in the Herbal Medicine ERP",
+  "definitions": {
+    "commonActions": {
+      "type": "object",
+      "description": "Common action button labels",
+      "properties": {
+        "save": { "type": "string" },
+        "cancel": { "type": "string" },
+        "delete": { "type": "string" },
+        "edit": { "type": "string" },
+        "create": { "type": "string" },
+        "search": { "type": "string" },
+        "filter": { "type": "string" },
+        "export": { "type": "string" },
+        "import": { "type": "string" },
+        "refresh": { "type": "string" },
+        "submit": { "type": "string" },
+        "close": { "type": "string" },
+        "back": { "type": "string" },
+        "next": { "type": "string" },
+        "previous": { "type": "string" },
+        "yes": { "type": "string" },
+        "no": { "type": "string" },
+        "confirm": { "type": "string" },
+        "clear": { "type": "string" },
+        "reset": { "type": "string" },
+        "apply": { "type": "string" },
+        "view": { "type": "string" },
+        "download": { "type": "string" },
+        "upload": { "type": "string" },
+        "print": { "type": "string" },
+        "copy": { "type": "string" },
+        "add": { "type": "string" },
+        "remove": { "type": "string" },
+        "select": { "type": "string" },
+        "selectAll": { "type": "string" }
+      },
+      "required": ["save", "cancel", "delete", "edit", "create", "search", "refresh"]
+    },
+    "commonStatus": {
+      "type": "object",
+      "description": "Common status labels",
+      "properties": {
+        "active": { "type": "string" },
+        "inactive": { "type": "string" },
+        "pending": { "type": "string" },
+        "approved": { "type": "string" },
+        "rejected": { "type": "string" },
+        "draft": { "type": "string" },
+        "completed": { "type": "string" },
+        "cancelled": { "type": "string" },
+        "inProgress": { "type": "string" },
+        "onHold": { "type": "string" },
+        "archived": { "type": "string" },
+        "expired": { "type": "string" }
+      },
+      "required": ["active", "inactive", "pending", "approved", "draft"]
+    },
+    "commonValidation": {
+      "type": "object",
+      "description": "Form validation messages",
+      "properties": {
+        "required": { "type": "string" },
+        "invalidEmail": { "type": "string" },
+        "invalidNumber": { "type": "string" },
+        "invalidDate": { "type": "string" },
+        "minLength": { "type": "string", "description": "Supports {min} interpolation" },
+        "maxLength": { "type": "string", "description": "Supports {max} interpolation" },
+        "minValue": { "type": "string", "description": "Supports {min} interpolation" },
+        "maxValue": { "type": "string", "description": "Supports {max} interpolation" },
+        "pattern": { "type": "string" },
+        "unique": { "type": "string" }
+      },
+      "required": ["required", "invalidEmail"]
+    },
+    "commonErrors": {
+      "type": "object",
+      "description": "Error messages",
+      "properties": {
+        "generic": { "type": "string" },
+        "networkError": { "type": "string" },
+        "notFound": { "type": "string" },
+        "unauthorized": { "type": "string" },
+        "forbidden": { "type": "string" },
+        "serverError": { "type": "string" },
+        "timeout": { "type": "string" },
+        "conflict": { "type": "string" }
+      },
+      "required": ["generic", "networkError", "notFound"]
+    },
+    "commonLoading": {
+      "type": "object",
+      "description": "Loading state messages",
+      "properties": {
+        "processing": { "type": "string" },
+        "loading": { "type": "string" },
+        "saving": { "type": "string" },
+        "deleting": { "type": "string" },
+        "uploading": { "type": "string" },
+        "downloading": { "type": "string" }
+      },
+      "required": ["loading", "saving"]
+    },
+    "commonEmpty": {
+      "type": "object",
+      "description": "Empty state messages",
+      "properties": {
+        "noData": { "type": "string" },
+        "noResults": { "type": "string" },
+        "noRecords": { "type": "string" },
+        "noItems": { "type": "string" }
+      },
+      "required": ["noData"]
+    },
+    "navigationModules": {
+      "type": "object",
+      "description": "Main navigation module names",
+      "properties": {
+        "dashboard": { "type": "string" },
+        "accounting": { "type": "string" },
+        "inventory": { "type": "string" },
+        "production": { "type": "string" },
+        "purchasing": { "type": "string" },
+        "sales": { "type": "string" },
+        "quality": { "type": "string" },
+        "gmp": { "type": "string" },
+        "hr": { "type": "string" },
+        "reports": { "type": "string" },
+        "settings": { "type": "string" },
+        "admin": { "type": "string" },
+        "masterData": { "type": "string" },
+        "cost": { "type": "string" },
+        "vmi": { "type": "string" },
+        "issues": { "type": "string" },
+        "users": { "type": "string" }
+      },
+      "required": ["dashboard", "inventory", "production", "quality", "settings"]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "actions": { "$ref": "#/definitions/commonActions" },
+    "status": { "$ref": "#/definitions/commonStatus" },
+    "validation": { "$ref": "#/definitions/commonValidation" },
+    "errors": { "$ref": "#/definitions/commonErrors" },
+    "loading": { "$ref": "#/definitions/commonLoading" },
+    "empty": { "$ref": "#/definitions/commonEmpty" }
+  }
+}
