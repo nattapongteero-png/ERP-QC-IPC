@@ -46,7 +46,7 @@ describe('WorkflowTestPage', () => {
       expect(screen.getByText(/end-to-end.*test/i)).toBeInTheDocument()
     })
 
-    it('renders all 8 phases in the pathway', async () => {
+    it('renders all 9 phases in the pathway', async () => {
       render(<WorkflowTestPage />)
 
       // Check for phase names
@@ -58,6 +58,7 @@ describe('WorkflowTestPage', () => {
       expect(screen.getByText('Sales Flow')).toBeInTheDocument()
       expect(screen.getByText('Accounting Verification')).toBeInTheDocument()
       expect(screen.getByText('VMI Integration')).toBeInTheDocument()
+      expect(screen.getByText('HR Flow')).toBeInTheDocument()
     })
 
     it('renders Run button enabled initially', async () => {
@@ -84,7 +85,7 @@ describe('WorkflowTestPage', () => {
 
       // Find step nodes - they should have pending styling (gray)
       const stepNodes = screen.getAllByTestId(/^step-node-/)
-      expect(stepNodes.length).toBe(31)
+      expect(stepNodes.length).toBe(39)
 
       // Check that steps have pending status class
       stepNodes.forEach((node) => {
@@ -111,7 +112,7 @@ describe('WorkflowTestPage', () => {
         read: vi.fn()
           .mockResolvedValueOnce({
             done: false,
-            value: new TextEncoder().encode('data: {"type":"connected","sessionId":"test-1","totalSteps":31}\n\n'),
+            value: new TextEncoder().encode('data: {"type":"connected","sessionId":"test-1","totalSteps":39}\n\n'),
           })
           .mockResolvedValueOnce({
             done: true,
@@ -192,7 +193,7 @@ describe('WorkflowTestPage', () => {
 
       // Verify step nodes exist and have pending status initially
       const stepNodes = screen.getAllByTestId(/^step-node-/)
-      expect(stepNodes.length).toBe(31)
+      expect(stepNodes.length).toBe(39)
 
       // Check first step has pending status (gray background)
       const step1 = screen.getByTestId('step-node-1')
@@ -212,11 +213,11 @@ describe('WorkflowTestPage', () => {
       expect(step1).toHaveClass('justify-center')
     })
 
-    it('all 31 step nodes are clickable', async () => {
+    it('all 39 step nodes are clickable', async () => {
       render(<WorkflowTestPage />)
 
       const stepNodes = screen.getAllByTestId(/^step-node-/)
-      expect(stepNodes.length).toBe(31)
+      expect(stepNodes.length).toBe(39)
 
       // Verify each step is a button and clickable
       stepNodes.forEach((node) => {

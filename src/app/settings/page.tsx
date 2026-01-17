@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { PageHeader } from '@/components/ui/page-header';
-import { Check, AlertCircle, Wifi, ChevronRight } from 'lucide-react';
+import { Check, AlertCircle, Wifi, Shield, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
 
@@ -235,6 +235,34 @@ export default function SettingsPage() {
                   onValueChange={(value) => handleChange('woPrefix', value)}
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Security & Confidentiality */}
+        <Card elevation="raised">
+          <CardHeader>
+            <CardTitle>Security & Confidentiality</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Link
+                href="/settings/confidentiality"
+                className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-blue-300 transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Confidentiality Settings</div>
+                    <div className="text-sm text-gray-500">
+                      Configure bypass roles and access control for confidential BOM items
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+              </Link>
             </div>
           </CardContent>
         </Card>

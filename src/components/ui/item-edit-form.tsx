@@ -35,6 +35,7 @@ import {
   Barcode,
   RefreshCw,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { TppSearchDialog, TppItem } from '@/components/ui/tpp-search-dialog';
 import { TtmtSearchDialog, TtmtItem } from '@/components/ui/ttmt-search-dialog';
@@ -44,6 +45,8 @@ import { ItemPriceOffersSection } from '@/components/ui/item-price-offers-sectio
 // ============================================================================
 // Types
 // ============================================================================
+
+export type ConfidentialityLevel = 'public' | 'internal' | 'confidential';
 
 export interface Item {
   id: number;
@@ -73,6 +76,9 @@ export interface Item {
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string | null;
+  // BOM Confidentiality Protection fields (014-unit-cost)
+  confidentialityLevel: ConfidentialityLevel;
+  defaultConfidential: boolean;
 }
 
 export interface ItemFormData {
@@ -98,6 +104,9 @@ export interface ItemFormData {
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string;
+  // BOM Confidentiality Protection fields (014-unit-cost)
+  confidentialityLevel: ConfidentialityLevel;
+  defaultConfidential: boolean;
 }
 
 export interface ItemEditFormProps {
@@ -121,6 +130,12 @@ export const itemTypes = [
   { value: 'wip', label: 'Work in Progress', icon: FlaskConical, color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-200' },
   { value: 'finished_goods', label: 'Finished Goods', icon: Pill, color: 'text-purple-600', bgColor: 'bg-purple-100', borderColor: 'border-purple-200' },
   { value: 'consumable', label: 'Consumable', icon: Package, color: 'text-gray-600', bgColor: 'bg-gray-100', borderColor: 'border-gray-200' },
+];
+
+export const confidentialityLevelOptions = [
+  { value: 'public', label: 'Public', description: 'Visible to all users' },
+  { value: 'internal', label: 'Internal', description: 'Visible to internal staff only' },
+  { value: 'confidential', label: 'Confidential', description: 'Restricted access only' },
 ];
 
 // ============================================================================
@@ -148,6 +163,8 @@ export const getDefaultFormData = (): ItemFormData => ({
   ttmtName: '',
   vmiSyncEnabled: false,
   strength: '',
+  confidentialityLevel: 'public',
+  defaultConfidential: false,
 });
 
 export const itemToFormData = (item: Item): ItemFormData => ({
@@ -171,6 +188,8 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   ttmtName: item.ttmtName || '',
   vmiSyncEnabled: item.vmiSyncEnabled || false,
   strength: item.strength || '',
+  confidentialityLevel: item.confidentialityLevel || 'public',
+  defaultConfidential: item.defaultConfidential || false,
 });
 
 export const getTypeConfig = (type: string) => {
@@ -907,6 +926,59 @@ export function ItemEditForm({
                     />
                     <p className="text-xs text-gray-500 mt-1">Temperature, humidity, special requirements</p>
                   </div>
+                </div>
+              </SectionCard>
+
+              {/* BOM Confidentiality Settings */}
+              <SectionCard
+                icon={<Lock className="h-5 w-5 text-gray-600" />}
+                title="Confidentiality"
+                description="Control access to cost and BOM information for this item"
+              >
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Confidentiality Level</label>
+                    <DxSelectBox
+                      items={confidentialityLevelOptions}
+                      value={formData.confidentialityLevel}
+                      onValueChange={(value) => updateFormData('confidentialityLevel', value as ConfidentialityLevel)}
+                      valueExpr="value"
+                      displayExpr="label"
+                      placeholder="Select confidentiality level"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {confidentialityLevelOptions.find(o => o.value === formData.confidentialityLevel)?.description || 'Select a level'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${formData.defaultConfidential ? 'bg-amber-100' : 'bg-gray-100'}`}>
+                          <Lock className={`h-5 w-5 ${formData.defaultConfidential ? 'text-amber-600' : 'text-gray-400'}`} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Default Confidential in BOM</p>
+                          <p className="text-xs text-gray-500">When used as a component, mark as confidential by default</p>
+                        </div>
+                      </div>
+                      <DxCheckBox
+                        value={formData.defaultConfidential}
+                        onValueChange={(value) => updateFormData('defaultConfidential', value)}
+                      />
+                    </div>
+                  </div>
+
+                  {formData.confidentialityLevel === 'confidential' && (
+                    <div className="bg-amber-50 rounded-xl p-4 flex items-center gap-3 border border-amber-100">
+                      <div className="p-2 bg-amber-100 rounded-lg">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div className="text-sm text-amber-700">
+                        <span className="font-semibold">Restricted Access:</span> Only users with confidential access will see cost and BOM details
+                      </div>
+                    </div>
+                  )}
                 </div>
               </SectionCard>
             </div>

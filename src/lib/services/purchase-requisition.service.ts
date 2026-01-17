@@ -90,7 +90,7 @@ export async function createPR(
       justification: data.justification || null,
       costCenterId: data.costCenterId || null,
       projectId: data.projectId || null,
-      totalEstimatedAmount: 0,
+      totalAmount: 0,
       createdBy,
       createdAt: now,
       updatedAt: now,
@@ -130,12 +130,21 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
     let requesterName = '';
     if (pr.requesterId) {
       const empResult = await db
-        .select({ nameEn: tables.employees.nameEn })
+        .select({
+          firstNameEn: tables.employees.firstNameEn,
+          lastNameEn: tables.employees.lastNameEn,
+          firstName: tables.employees.firstName,
+          lastName: tables.employees.lastName,
+        })
         .from(tables.employees)
         .where(eq(tables.employees.id, pr.requesterId))
         .limit(1);
       if (empResult.length > 0) {
-        requesterName = empResult[0].nameEn || '';
+        const emp = empResult[0];
+        // Prefer English name, fallback to Thai name
+        requesterName = emp.firstNameEn && emp.lastNameEn
+          ? `${emp.firstNameEn} ${emp.lastNameEn}`
+          : `${emp.firstName} ${emp.lastName}`;
       }
     }
 
@@ -156,9 +165,36 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
       ...pr,
       requesterName,
       departmentName,
-      lines: lines.map((line: { quantity?: number | null; estimatedUnitPrice?: number | null; [key: string]: unknown }) => ({
-        ...line,
-        estimatedAmount: (line.quantity || 0) * (line.estimatedUnitPrice || 0),
+      lines: lines.map((line: {
+        id?: number;
+        prId?: number;
+        lineNumber?: number;
+        itemId?: number | null;
+        description?: string;
+        quantity?: number | null;
+        unit?: string | null;
+        estimatedPrice?: number | null;
+        lineTotal?: number | null;
+        preferredVendorId?: number | null;
+        notes?: string | null;
+        status?: string;
+        createdAt?: unknown;
+        [key: string]: unknown
+      }) => ({
+        id: line.id,
+        prId: line.prId,
+        lineNumber: line.lineNumber,
+        itemId: line.itemId,
+        itemCode: null, // Database doesn't store itemCode separately
+        description: line.description || '',
+        quantity: Number(line.quantity) || 0,
+        unitOfMeasure: line.unit || '', // Map unit -> unitOfMeasure
+        estimatedUnitPrice: Number(line.estimatedPrice) || 0, // Map estimatedPrice -> estimatedUnitPrice
+        estimatedAmount: (Number(line.quantity) || 0) * (Number(line.estimatedPrice) || 0),
+        suggestedVendorId: line.preferredVendorId, // Map preferredVendorId -> suggestedVendorId
+        notes: line.notes,
+        status: line.status || 'pending',
+        createdAt: line.createdAt,
       })),
     } as PRWithLines;
   });
@@ -319,24 +355,22 @@ export async function addPRLines(
 
     for (const line of lines) {
       lineNumber++;
-      const estimatedAmount = (line.quantity || 0) * (line.estimatedUnitPrice || 0);
-      totalAmount += estimatedAmount;
+      const lineTotal = (line.quantity || 0) * (line.estimatedUnitPrice || 0);
+      totalAmount += lineTotal;
 
       const result = await db.insert(tables.lines).values({
         prId,
         lineNumber,
         itemId: line.itemId || null,
-        itemCode: line.itemCode || null,
         description: line.description,
         quantity: line.quantity,
-        unitOfMeasure: line.unitOfMeasure,
-        estimatedUnitPrice: line.estimatedUnitPrice || 0,
-        estimatedAmount,
-        suggestedVendorId: line.suggestedVendorId || null,
+        unit: line.unitOfMeasure, // Map from validation schema field to DB column
+        estimatedPrice: line.estimatedUnitPrice || 0,
+        lineTotal,
+        preferredVendorId: line.suggestedVendorId || null,
         notes: line.notes || null,
         status: 'pending',
         createdAt: now,
-        updatedAt: now,
       });
 
       insertedIds.push(getInsertId(result));
@@ -451,7 +485,7 @@ async function recalculatePRTotal(prId: number): Promise<void> {
     const tables = getTables();
 
     const sumResult = await db
-      .select({ total: sql<number>`COALESCE(SUM(estimated_amount), 0)` })
+      .select({ total: sql<number>`COALESCE(SUM(line_total), 0)` })
       .from(tables.lines)
       .where(eq(tables.lines.prId, prId));
 
@@ -460,7 +494,7 @@ async function recalculatePRTotal(prId: number): Promise<void> {
     await db
       .update(tables.requisitions)
       .set({
-        totalEstimatedAmount: total,
+        totalAmount: total,
         updatedAt: getNow(),
       })
       .where(eq(tables.requisitions.id, prId));
@@ -509,7 +543,7 @@ export async function submitPRForApproval(
       documentType: 'purchase_requisition',
       documentId: prId,
       requesterId: submitterId,
-      totalAmount: pr.totalEstimatedAmount,
+      totalAmount: pr.totalAmount,
       priority: pr.priority,
       departmentId: pr.departmentId,
     });

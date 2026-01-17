@@ -8,16 +8,24 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import {
+  canViewConfidentialItems,
+  filterBOMLines,
+} from '@/lib/services/confidentiality.service';
 
 // GET /api/bom/[id] - Get BOM details with lines
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async () => {
+  return withAuth(request, async (session) => {
     try {
       const { id } = await params;
       const bomId = parseInt(id);
+
+      if (isNaN(bomId)) {
+        return errorResponse('Invalid BOM ID');
+      }
 
       const bomTable = getTableRef('bOM');
       const bomLinesTable = getTableRef('bOMLines');
@@ -57,7 +65,7 @@ export async function GET(
 
       const bom = bomResult[0];
 
-      // Get BOM lines with item details
+      // Get BOM lines with item details including confidentiality fields
       const linesResult = await executeDbOperation(async (db) => {
         return db
           .select({
@@ -73,6 +81,10 @@ export async function GET(
             sequence: bomLinesTable.sequence,
             isOptional: bomLinesTable.isOptional,
             notes: bomLinesTable.notes,
+            // Confidentiality fields
+            confidentialityOverride: bomLinesTable.confidentialityOverride,
+            defaultConfidential: itemsTable.defaultConfidential,
+            confidentialityLevel: itemsTable.confidentialityLevel,
           })
           .from(bomLinesTable)
           .leftJoin(itemsTable, eq(bomLinesTable.itemId, itemsTable.id))
@@ -80,9 +92,32 @@ export async function GET(
           .orderBy(bomLinesTable.sequence);
       });
 
+      // Check confidentiality access
+      const canViewConfidential = await canViewConfidentialItems(
+        session.userId,
+        bomId,
+        session.role
+      );
+
+      // Map lines to include item confidentiality info for filtering
+      const linesWithItems = linesResult.map((line: typeof linesResult[number]) => ({
+        ...line,
+        item: {
+          defaultConfidential: line.defaultConfidential,
+          confidentialityLevel: line.confidentialityLevel,
+        },
+      }));
+
+      // Filter lines based on access
+      const { lines: filteredLines, info: confidentialityInfo } = filterBOMLines(
+        linesWithItems,
+        canViewConfidential
+      );
+
       return successResponse({
         ...bom,
-        lines: linesResult,
+        lines: filteredLines,
+        confidentialityInfo,
       });
     } catch (error) {
       return serverErrorResponse(error);

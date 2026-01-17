@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -258,6 +259,7 @@ export default function CustomerDetailPage({
 }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [data, setData] = useState<CustomerDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -331,6 +333,8 @@ export default function CustomerDetailPage({
       const result = await res.json();
 
       if (result.success) {
+        // Invalidate customers query to refresh the list when navigating back
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
         setIsEditDialogOpen(false);
         fetchCustomerDetail();
       } else {
@@ -353,6 +357,8 @@ export default function CustomerDetailPage({
       const result = await res.json();
 
       if (result.success) {
+        // Invalidate customers query to refresh the list when navigating back
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
         router.push('/sales/customers');
       } else {
         alert(result.error || 'Failed to delete customer');

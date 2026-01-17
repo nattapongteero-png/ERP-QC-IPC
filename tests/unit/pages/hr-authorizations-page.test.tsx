@@ -522,17 +522,15 @@ describe('HR Authorizations Page', () => {
     });
   });
 
-  describe('Grant Authorization Popup', () => {
-    it('should open grant popup when grant button is clicked', async () => {
+  describe('Grant Authorization Navigation', () => {
+    it('should navigate to new authorization page when grant button is clicked', async () => {
       render(<AuthorizationsPage />);
 
       const grantButton = screen.getByTestId('dx-button-add');
       fireEvent.click(grantButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId('dx-popup')).toBeInTheDocument();
-        // Popup title should match
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(mockPush).toHaveBeenCalledWith('/hr/authorizations/new');
       });
     });
   });

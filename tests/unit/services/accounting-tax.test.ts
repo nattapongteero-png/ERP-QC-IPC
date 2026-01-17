@@ -4,71 +4,10 @@
  * User Story 6: Manage VAT and Withholding Tax
  *
  * Tests VAT calculation, WHT calculation, and tax report generation.
+ * These are pure calculation functions - no database access needed.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock the database module
-vi.mock('@/lib/db', () => ({
-  db: vi.fn(),
-  isSqlite: vi.fn(() => true),
-}));
-
-// Mock date-utils
-vi.mock('@/lib/db/date-utils', () => ({
-  getNow: vi.fn(() => '2025-01-15'),
-  toDbDate: vi.fn((date: string) => date),
-  toQueryDate: vi.fn((date: string) => date),
-  getTodayStr: vi.fn(() => '2025-01-15'),
-  formatDateFromDb: vi.fn((date: string | Date) => {
-    if (date instanceof Date) return date.toISOString().split('T')[0];
-    return date;
-  }),
-}));
-
-// Mock schema
-vi.mock('@/lib/db/schema', () => ({
-  sqliteVATTransactions: {
-    id: { name: 'id' },
-    transactionType: { name: 'transaction_type' },
-    taxInvoiceNumber: { name: 'tax_invoice_number' },
-    taxInvoiceDate: { name: 'tax_invoice_date' },
-    taxPeriod: { name: 'tax_period' },
-    partyName: { name: 'party_name' },
-    partyTaxId: { name: 'party_tax_id' },
-    branchCode: { name: 'branch_code' },
-    taxableAmount: { name: 'taxable_amount' },
-    vatAmount: { name: 'vat_amount' },
-    totalAmount: { name: 'total_amount' },
-  },
-  sqliteWHTTransactions: {
-    id: { name: 'id' },
-    certificateNumber: { name: 'certificate_number' },
-    certificateType: { name: 'certificate_type' },
-    paymentId: { name: 'payment_id' },
-    vendorId: { name: 'vendor_id' },
-    paymentDate: { name: 'payment_date' },
-    taxPeriod: { name: 'tax_period' },
-    whtType: { name: 'wht_type' },
-    whtDescription: { name: 'wht_description' },
-    paymentAmount: { name: 'payment_amount' },
-    whtRate: { name: 'wht_rate' },
-    whtAmount: { name: 'wht_amount' },
-    netAmount: { name: 'net_amount' },
-    createdAt: { name: 'created_at' },
-  },
-  sqliteVendors: {
-    id: { name: 'id' },
-    name: { name: 'name' },
-    taxId: { name: 'tax_id' },
-    address: { name: 'address' },
-  },
-  mysqlVATTransactions: {},
-  mysqlWHTTransactions: {},
-  mysqlVendors: {},
-}));
-
-// Import after mocks
+import { describe, it, expect } from 'vitest';
 import { calculateVAT, calculateWHT } from '@/lib/services/accounting.service';
 import {
   WHT_RATES,

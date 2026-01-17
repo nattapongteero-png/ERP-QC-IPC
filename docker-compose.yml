@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # DevExpress Reporting Backend Service (.NET)
   reporting-backend:
@@ -40,6 +38,37 @@ services:
       - MYSQL_DATABASE=herbal_erp
       - MYSQL_USER=${MYSQL_USER:-herbal_user}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-herbal_password}
+    # MySQL performance tuning
+    command:
+      - --max_connections=500
+      - --innodb_buffer_pool_size=4G
+      - --innodb_redo_log_capacity=1G
+      - --innodb_log_buffer_size=64M
+      - --innodb_flush_log_at_trx_commit=2
+      - --innodb_flush_method=O_DIRECT
+      - --innodb_read_io_threads=8
+      - --innodb_write_io_threads=8
+      - --thread_cache_size=128
+      - --table_open_cache=4000
+      - --table_definition_cache=2000
+      - --tmp_table_size=256M
+      - --max_heap_table_size=256M
+      - --join_buffer_size=4M
+      - --sort_buffer_size=4M
+      - --read_buffer_size=2M
+      - --read_rnd_buffer_size=4M
+      - --wait_timeout=28800
+      - --interactive_timeout=28800
+      - --max_allowed_packet=256M
+    # Runtime resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
+        reservations:
+          cpus: '4.0'
+          memory: 4G
     volumes:
       - ./mysql_data:/var/lib/mysql
     healthcheck:
@@ -199,6 +228,135 @@ services:
       - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp_arjaro;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
       - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th,https://herbal-erp-arjaro.bmscloud.in.th
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health | grep -q healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+
+  app-prd-metaherb:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    # Runtime resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
+    container_name: herbal-erp-app-metaherb
+    restart: unless-stopped
+   # profiles: ["donotstart"]
+    ports:
+      - "33025:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_TYPE=mysql
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp_metaherb
+      - NEXT_PUBLIC_APP_URL=https://herbal-erp-metaherb.bmscloud.in.th
+      - NEXTAUTH_URL=https://herbal-erp-metaherb.bmscloud.in.th
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend-metaherb:5000
+      # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      reporting-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+
+  reporting-backend-metaherb:
+    build:
+      context: ./reporting-backend
+      dockerfile: Dockerfile
+    container_name: herbal-erp-reporting-metaherb
+    restart: unless-stopped
+  
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp_metaherb;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
+      - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th,https://herbal-erp-metaherb.bmscloud.in.th
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health | grep -q healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+  app-prd-more:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    # Runtime resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '16.0'
+          memory: 16G
+    container_name: herbal-erp-app-more
+    restart: unless-stopped
+   # profiles: ["donotstart"]
+    ports:
+      - "33024:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_TYPE=mysql
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - DATABASE_URL=mysql://${MYSQL_USER:-herbal_user}:${MYSQL_PASSWORD:-herbal_password}@mysql:3306/herbal_erp_more
+      - NEXT_PUBLIC_APP_URL=https://herbal-erp-more.bmscloud.in.th
+      - NEXTAUTH_URL=https://herbal-erp-more.bmscloud.in.th
+      # Internal reporting backend URL (Docker internal network)
+      - REPORTING_BACKEND_URL=http://reporting-backend-more:5000
+      # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      reporting-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - herbal-erp-network
+
+  reporting-backend-more:
+    build:
+      context: ./reporting-backend
+      dockerfile: Dockerfile
+    container_name: herbal-erp-reporting-more
+    restart: unless-stopped
+  
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=herbal_erp_more;User=${MYSQL_USER:-herbal_user};Password=${MYSQL_PASSWORD:-herbal_password};
+      - Jwt__Secret=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - Cors__AllowedOrigins=http://localhost:3000,http://localhost:33020,https://herbal-erp.bmscloud.in.th,https://herbal-erp-more.bmscloud.in.th
     depends_on:
       mysql:
         condition: service_healthy

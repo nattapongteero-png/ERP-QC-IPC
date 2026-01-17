@@ -33,6 +33,7 @@ import {
   Network,
   GraduationCap,
   Shield,
+  ShieldCheck,
   HeartPulse,
   Bell,
   History,
@@ -174,6 +175,18 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    name: 'Cost Management',
+    href: '/cost',
+    icon: DollarSign,
+    roles: ['admin', 'manager', 'finance', 'accounting', 'purchasing', 'production'],
+    children: [
+      { name: 'Dashboard', href: '/cost', icon: BarChart3 },
+      { name: 'Landed Costs', href: '/cost/landed-costs', icon: Truck },
+      { name: 'Work Centers', href: '/cost/work-centers', icon: Factory },
+      { name: 'Cost Summary', href: '/cost/reports/cost-summary', icon: FileText },
+    ],
+  },
+  {
     name: 'VMI Portal',
     href: '/vmi',
     icon: Share2,
@@ -211,8 +224,28 @@ const navigation: NavItem[] = [
       { name: 'Items', href: '/template/items', icon: Package },
     ],
   },
+  {
+    name: 'Issues',
+    href: '/issues',
+    icon: Bug,
+    roles: [], // Accessible to all authenticated users
+    children: [
+      { name: 'Dashboard', href: '/issues', icon: LayoutDashboard },
+      { name: 'All Issues', href: '/issues/list', icon: ClipboardList },
+      { name: 'Report Issue', href: '/issues/new', icon: AlertTriangle },
+    ],
+  },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
   { name: 'Users', href: '/users', icon: Users, roles: ['admin', 'manager'] },
+  {
+    name: 'Admin',
+    href: '/admin',
+    icon: Shield,
+    roles: ['admin'],
+    children: [
+      { name: 'Confidential Groups', href: '/admin/confidential-groups', icon: ShieldCheck },
+    ],
+  },
   {
     name: 'Settings',
     href: '/settings',

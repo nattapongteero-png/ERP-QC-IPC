@@ -106,6 +106,9 @@ export function ItemSearchDialog({
   const excludeIdsRef = useRef(excludeIds);
   excludeIdsRef.current = excludeIds;
 
+  // Track last clicked row for manual double-click detection (more reliable with virtual scrolling)
+  const lastClickRef = useRef<{ id: number | null; time: number }>({ id: null, time: 0 });
+
   // Type tabs configuration - dynamically built from results
   const typeTabs = useMemo(() => {
     const types = new Map<string, number>();
@@ -232,10 +235,23 @@ export function ItemSearchDialog({
     return new Intl.NumberFormat('th-TH').format(num);
   };
 
-  // Grid row double-click handler
-  const onRowDblClick = useCallback((e: DataGridTypes.RowDblClickEvent) => {
-    if (e.data) {
-      handleSelect(e.data as Item);
+  // Grid row click handler with manual double-click detection
+  // This is more reliable than onRowDblClick with virtual scrolling enabled
+  const onRowClick = useCallback((e: DataGridTypes.RowClickEvent) => {
+    if (!e.data) return;
+
+    const item = e.data as Item;
+    const now = Date.now();
+    const lastClick = lastClickRef.current;
+
+    // Detect double-click: same row clicked within 400ms
+    if (lastClick.id === item.id && (now - lastClick.time) < 400) {
+      // Double-click detected - select the item
+      handleSelect(item);
+      lastClickRef.current = { id: null, time: 0 };
+    } else {
+      // Single click - record for potential double-click
+      lastClickRef.current = { id: item.id, time: now };
     }
   }, [handleSelect]);
 
@@ -451,7 +467,7 @@ export function ItemSearchDialog({
             showBorders
             showRowLines
             rowAlternationEnabled
-            onRowDblClick={onRowDblClick}
+            onRowClick={onRowClick}
             onSelectionChanged={onSelectionChanged}
             height="100%"
             columnAutoWidth

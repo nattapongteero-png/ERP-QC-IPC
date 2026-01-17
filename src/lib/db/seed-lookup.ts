@@ -9,6 +9,18 @@ import { sql } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from './index';
 import * as schema from './schema';
 
+// Default issue categories for Issue Tracker module
+const defaultIssueCategories = [
+  { name: 'Software Bug', description: 'Software defects, errors, or unexpected behavior', type: 'software', requiredFields: '["summary", "stepsToReproduce", "expectedBehavior", "actualBehavior"]', isActive: true },
+  { name: 'Feature Request', description: 'New feature suggestions or enhancements', type: 'software', requiredFields: '["summary", "businessJustification"]', isActive: true },
+  { name: 'Documentation', description: 'Documentation errors or improvements needed', type: 'software', requiredFields: '["summary"]', isActive: true },
+  { name: 'Process Issue', description: 'Operational process problems or inefficiencies', type: 'operational', requiredFields: '["summary", "impact", "department"]', isActive: true },
+  { name: 'Equipment Issue', description: 'Equipment malfunction or maintenance requests', type: 'operational', requiredFields: '["summary", "equipmentId", "impact"]', isActive: true },
+  { name: 'Quality Issue', description: 'Quality control problems or deviations', type: 'operational', requiredFields: '["summary", "impact", "lotNumber"]', isActive: true },
+  { name: 'Compliance Issue', description: 'Regulatory or GMP compliance concerns', type: 'operational', requiredFields: '["summary", "regulatoryArea", "impact"]', isActive: true },
+  { name: 'Training Request', description: 'Training needs or skill gap issues', type: 'operational', requiredFields: '["summary", "trainingTopic"]', isActive: true },
+];
+
 // Default item categories
 const defaultCategories = [
   { code: 'herb', nameTh: 'สมุนไพร', nameEn: 'Herb', description: 'Raw herbal materials', sortOrder: 1 },
@@ -174,21 +186,72 @@ async function seedItemUnits(isSqlite: boolean): Promise<number> {
 }
 
 /**
+ * Seed issue categories if table is empty
+ */
+async function seedIssueCategories(isSqlite: boolean): Promise<number> {
+  const tableName = 'issue_categories';
+  const isEmpty = await isTableEmpty(tableName, isSqlite);
+
+  if (!isEmpty) {
+    console.log(`[Lookup Seed] Table ${tableName} already has data, skipping seed`);
+    return 0;
+  }
+
+  console.log(`[Lookup Seed] Seeding ${tableName} with ${defaultIssueCategories.length} default values...`);
+
+  try {
+    if (isSqlite) {
+      const db = getSqliteDb();
+      const categoriesTable = schema.sqliteIssueCategories;
+      for (const category of defaultIssueCategories) {
+        await db.insert(categoriesTable).values({
+          name: category.name,
+          description: category.description,
+          type: category.type,
+          requiredFields: category.requiredFields,
+          isActive: category.isActive,
+        });
+      }
+    } else {
+      const db = await getMysqlDb();
+      const categoriesTable = schema.mysqlIssueCategories;
+      for (const category of defaultIssueCategories) {
+        await db.insert(categoriesTable).values({
+          name: category.name,
+          description: category.description,
+          type: category.type,
+          requiredFields: category.requiredFields,
+          isActive: category.isActive,
+        });
+      }
+    }
+
+    console.log(`[Lookup Seed] Successfully seeded ${defaultIssueCategories.length} issue categories`);
+    return defaultIssueCategories.length;
+  } catch (error) {
+    console.error(`[Lookup Seed] Failed to seed ${tableName}:`, error);
+    return 0;
+  }
+}
+
+/**
  * Seed all lookup tables if they are empty
  * This function is called during server startup after schema sync
  */
 export async function seedLookupTables(): Promise<{
   categoriesSeeded: number;
   unitsSeeded: number;
+  issueCategoriesSeeded: number;
 }> {
   const usingSqlite = isSqlite();
   console.log(`[Lookup Seed] Starting lookup tables seeding for ${usingSqlite ? 'SQLite' : 'MySQL'}...`);
 
   const categoriesSeeded = await seedItemCategories(usingSqlite);
   const unitsSeeded = await seedItemUnits(usingSqlite);
+  const issueCategoriesSeeded = await seedIssueCategories(usingSqlite);
 
   console.log(`[Lookup Seed] Lookup tables seeding complete.`);
-  console.log(`[Lookup Seed] Categories seeded: ${categoriesSeeded}, Units seeded: ${unitsSeeded}`);
+  console.log(`[Lookup Seed] Categories seeded: ${categoriesSeeded}, Units seeded: ${unitsSeeded}, Issue Categories seeded: ${issueCategoriesSeeded}`);
 
-  return { categoriesSeeded, unitsSeeded };
+  return { categoriesSeeded, unitsSeeded, issueCategoriesSeeded };
 }

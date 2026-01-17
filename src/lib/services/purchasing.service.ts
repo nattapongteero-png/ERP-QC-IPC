@@ -24,6 +24,7 @@ import {
 import { createAuditLog } from '../audit';
 import { receiveMaterial } from './inventory.service';
 import { createPOReceiptJournalEntry, createAPInvoiceFromPOReceipt, THAI_VAT_RATE } from './accounting.service';
+import { recalculateWAC, updateItemLastPurchase } from './unit-cost.service';
 
 // Types
 export interface VMISnapshot {
@@ -490,6 +491,36 @@ export async function receivePurchaseOrder(
       po.poNumber,
       userId
     );
+
+    // ============================================
+    // Unit Cost Integration - Recalculate WAC on receipt
+    // ============================================
+    const unitPrice = Number(poLine.unitPrice) || 0;
+    if (unitPrice > 0 && received.receivedQuantity > 0) {
+      try {
+        // Recalculate WAC with the received quantity and cost
+        await recalculateWAC({
+          itemId: poLine.itemId,
+          transactionType: 'receipt',
+          transactionId: lotId, // Use lot ID as transaction reference
+          quantity: received.receivedQuantity,
+          unitCost: unitPrice,
+          transactionDate: getTodayStr(),
+          notes: `PO Receipt: ${po.poNumber}, Lot: ${received.lotNumber}`,
+          createdBy: userId,
+        });
+
+        // Update item's last purchase info
+        await updateItemLastPurchase(
+          poLine.itemId,
+          unitPrice,
+          poId
+        );
+      } catch (costError) {
+        // Log error but don't fail the receipt
+        console.error('WAC calculation error:', costError);
+      }
+    }
 
     // Update PO line received quantity
     const newReceivedQty = (Number(poLine.receivedQuantity) || 0) + received.receivedQuantity;

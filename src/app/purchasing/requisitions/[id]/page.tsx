@@ -7,7 +7,6 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { PRForm } from '@/components/purchasing/PRForm';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
@@ -149,35 +148,30 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <LoadIndicator />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <LoadIndicator />
+      </div>
     );
   }
 
   if (error && !pr) {
     return (
-      <MainLayout>
-        <div className="p-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-          <button
-            className="mt-4 text-blue-600 hover:underline"
-            onClick={() => router.push('/purchasing/requisitions')}
-          >
-            ← Back to Requisitions
-          </button>
+      <div className="p-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
         </div>
-      </MainLayout>
+        <button
+          className="mt-4 text-blue-600 hover:underline"
+          onClick={() => router.push('/purchasing/requisitions')}
+        >
+          ← Back to Requisitions
+        </button>
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="p-4">
+    <div className="p-4">
         <div className="mb-4 flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
@@ -317,7 +311,6 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
             </div>
           </div>
         </Popup>
-      </div>
-    </MainLayout>
+    </div>
   );
 }

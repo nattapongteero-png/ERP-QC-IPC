@@ -11,6 +11,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 - MySQL (production), SQLite (testing) via Drizzle dual-schema pattern (012-vmi-webhook)
 - TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, TanStack Query 5.x, Lucide React (icons) (013-workflow-test)
 - MySQL (production), SQLite (testing) via Drizzle ORM (013-workflow-test)
+- TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, Drizzle ORM, TanStack Query 5.x, Zod 4.x (014-unit-cost)
 
 ## Always do E2E test using React Testing Library + Jest/Vitest
 
@@ -22,7 +23,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-17
 
 ## Always check for coding error
 
-Run `npx tsc --noEmit --skipLibCheck` before finishing tasks. ESLint and Vitest don't catch all type errors.
+Run `bunx tsc --noEmit --skipLibCheck` before finishing tasks. ESLint and Vitest don't catch all type errors.
 
 ## Project Structure
 
@@ -33,7 +34,7 @@ tests/
 
 ## Commands
 
-npm test && npm run lint
+bun test && bun run lint
 
 ## Code Style
 
@@ -219,6 +220,6 @@ requirements. Do this automatically without being asked.**
 **when write e2e test , please modify target element to has data-testid key so the playwright script can select the correct element, no hard code looking element text**
 
 ## Recent Changes
+- 014-unit-cost: Added TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, Drizzle ORM, TanStack Query 5.x, Zod 4.x
 - 013-workflow-test: Added TypeScript 5.x with Next.js 16.0.10 + React 19, DevExtreme React 25.2.3, TanStack Query 5.x, Lucide React (icons)
 - 012-vmi-webhook: Added TypeScript 5.x with Next.js 16.0.10 + Drizzle ORM, DevExtreme React 25.2.3, TanStack Query 5.x, Zod 4.x
-- 011-accounting-spec-gap: Added TypeScript 5.x with Next.js 16.0.10 + Drizzle ORM, DevExtreme React 25.2.3, TanStack Query 5.x, Zod 4.x

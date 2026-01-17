@@ -1,0 +1,465 @@
+openapi: 3.0.3
+info:
+  title: Unit Cost - Landed Costs API
+  description: API for managing landed cost documents and allocations
+  version: 1.0.0
+
+servers:
+  - url: /api/cost
+
+paths:
+  /landed-costs:
+    get:
+      summary: List landed cost documents
+      operationId: listLandedCosts
+      tags:
+        - Landed Costs
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, allocated, posted]
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by document number or invoice number
+      responses:
+        '200':
+          description: List retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandedCostListResponse'
+
+    post:
+      summary: Create landed cost document
+      operationId: createLandedCost
+      tags:
+        - Landed Costs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LandedCostCreate'
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandedCostResponse'
+        '400':
+          description: Validation error
+
+  /landed-costs/{id}:
+    get:
+      summary: Get landed cost document
+      operationId: getLandedCost
+      tags:
+        - Landed Costs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Document retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LandedCostDetailResponse'
+        '404':
+          description: Not found
+
+    put:
+      summary: Update landed cost document
+      operationId: updateLandedCost
+      tags:
+        - Landed Costs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LandedCostUpdate'
+      responses:
+        '200':
+          description: Updated successfully
+        '400':
+          description: Cannot update posted document
+        '404':
+          description: Not found
+
+    delete:
+      summary: Delete landed cost document
+      operationId: deleteLandedCost
+      tags:
+        - Landed Costs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deleted successfully
+        '400':
+          description: Cannot delete posted document
+        '404':
+          description: Not found
+
+  /landed-costs/{id}/allocate:
+    post:
+      summary: Calculate and apply cost allocations
+      description: Calculates allocation per item based on allocation basis and saves results
+      operationId: allocateLandedCost
+      tags:
+        - Landed Costs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Allocation calculated and saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationResultResponse'
+        '400':
+          description: Cannot allocate (missing lines or PO items)
+        '404':
+          description: Not found
+
+  /landed-costs/{id}/post:
+    post:
+      summary: Post landed cost to inventory
+      description: Updates item WAC, creates cost layers, and generates GL entries
+      operationId: postLandedCost
+      tags:
+        - Landed Costs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Posted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResultResponse'
+        '400':
+          description: Cannot post (not allocated or already posted)
+        '404':
+          description: Not found
+
+components:
+  schemas:
+    LandedCostListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LandedCostSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    LandedCostSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        documentNumber:
+          type: string
+        referenceType:
+          type: string
+          enum: [po, shipment]
+        referenceNumber:
+          type: string
+          description: PO number or shipment number
+        vendorName:
+          type: string
+          nullable: true
+        invoiceNumber:
+          type: string
+          nullable: true
+        invoiceDate:
+          type: string
+          format: date
+          nullable: true
+        totalAmount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [draft, allocated, posted]
+        createdAt:
+          type: string
+          format: date-time
+
+    LandedCostDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/LandedCostDetail'
+
+    LandedCostDetail:
+      allOf:
+        - $ref: '#/components/schemas/LandedCostSummary'
+        - type: object
+          properties:
+            exchangeRate:
+              type: number
+              format: decimal
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/LandedCostLine'
+            allocations:
+              type: array
+              items:
+                $ref: '#/components/schemas/LandedCostAllocation'
+            postedAt:
+              type: string
+              format: date-time
+              nullable: true
+            postedBy:
+              type: string
+              nullable: true
+
+    LandedCostLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        costType:
+          type: string
+          enum: [freight, duty, insurance, handling, inspection, other]
+        description:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: decimal
+        allocationBasis:
+          type: string
+          enum: [value, quantity, weight, volume]
+
+    LandedCostAllocation:
+      type: object
+      properties:
+        id:
+          type: integer
+        lineId:
+          type: integer
+        itemId:
+          type: integer
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        lotId:
+          type: integer
+          nullable: true
+        lotNumber:
+          type: string
+          nullable: true
+        allocatedAmount:
+          type: number
+          format: decimal
+        basisValue:
+          type: number
+          format: decimal
+        perUnitAllocation:
+          type: number
+          format: decimal
+          description: allocatedAmount / quantity
+
+    LandedCostCreate:
+      type: object
+      required:
+        - referenceType
+        - referenceId
+      properties:
+        referenceType:
+          type: string
+          enum: [po, shipment]
+        referenceId:
+          type: integer
+        vendorId:
+          type: integer
+          nullable: true
+        invoiceNumber:
+          type: string
+          nullable: true
+        invoiceDate:
+          type: string
+          format: date
+          nullable: true
+        currency:
+          type: string
+          default: THB
+        exchangeRate:
+          type: number
+          format: decimal
+          default: 1
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/LandedCostLineCreate'
+
+    LandedCostLineCreate:
+      type: object
+      required:
+        - costType
+        - amount
+      properties:
+        costType:
+          type: string
+          enum: [freight, duty, insurance, handling, inspection, other]
+        description:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+        allocationBasis:
+          type: string
+          enum: [value, quantity, weight, volume]
+          default: value
+
+    LandedCostUpdate:
+      type: object
+      properties:
+        vendorId:
+          type: integer
+          nullable: true
+        invoiceNumber:
+          type: string
+          nullable: true
+        invoiceDate:
+          type: string
+          format: date
+          nullable: true
+        currency:
+          type: string
+        exchangeRate:
+          type: number
+          format: decimal
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/LandedCostLineCreate'
+
+    LandedCostResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            documentNumber:
+              type: string
+
+    AllocationResultResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [allocated]
+            totalAllocated:
+              type: number
+              format: decimal
+            itemCount:
+              type: integer
+            allocations:
+              type: array
+              items:
+                $ref: '#/components/schemas/LandedCostAllocation'
+
+    PostResultResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [posted]
+            postedAt:
+              type: string
+              format: date-time
+            journalEntryId:
+              type: integer
+              nullable: true
+            costLayersCreated:
+              type: integer
+            itemsUpdated:
+              type: integer
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer

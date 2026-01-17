@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, real, blob, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
+import { mysqlTable, varchar, int, decimal, datetime, boolean as mysqlBoolean, text as mysqlText, customType, mysqlEnum, type AnyMySqlColumn } from 'drizzle-orm/mysql-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Custom type for MySQL LONGBLOB (for storing large binary files)
@@ -94,6 +94,9 @@ export const sqliteItems = sqliteTable('items', {
   isLotControlled: integer('is_lot_controlled', { mode: 'boolean' }).notNull().default(true),
   isFEFO: integer('is_fefo', { mode: 'boolean' }).notNull().default(true),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // BOM Confidentiality Protection fields (014-unit-cost)
+  confidentialityLevel: text('confidentiality_level').$type<'public' | 'internal' | 'confidential'>().notNull().default('public'),
+  defaultConfidential: integer('default_confidential', { mode: 'boolean' }).notNull().default(false),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: text('tpp_code'), // Thai Pharmaceutical Product code (13 digits)
   tppName: text('tpp_name'), // TPP product name from VMI Portal
@@ -104,6 +107,16 @@ export const sqliteItems = sqliteTable('items', {
   lastVmiSyncAt: text('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
   strength: text('strength'),
+  // Unit Cost Calculation fields (014-unit-cost)
+  currentWAC: real('current_wac'), // Current weighted average cost
+  lastPurchaseCost: real('last_purchase_cost'), // From most recent PO receipt
+  lastPurchaseDate: text('last_purchase_date'), // Date of last purchase
+  lastPurchasePoId: integer('last_purchase_po_id'), // FK to purchase_orders (no Drizzle ref to avoid circular)
+  lastProductionCost: real('last_production_cost'), // From most recent completed WO
+  lastProductionDate: text('last_production_date'), // Date of last production
+  lastProductionWoId: integer('last_production_wo_id'), // FK to work_orders (no Drizzle ref to avoid circular)
+  sgaAllocationRate: real('sga_allocation_rate').default(0), // SG&A % for full cost
+  standardCost: real('standard_cost'), // Standard cost for variance analysis
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -281,6 +294,9 @@ export const sqliteBOMLines = sqliteTable('bom_lines', {
   sequence: integer('sequence').notNull().default(1),
   isOptional: integer('is_optional', { mode: 'boolean' }).notNull().default(false),
   notes: text('notes'),
+  // BOM Line Confidentiality fields (014-unit-cost)
+  isConfidential: integer('is_confidential', { mode: 'boolean' }),
+  confidentialityOverride: text('confidentiality_override').$type<'inherit' | 'public' | 'confidential'>().notNull().default('inherit'),
   // Phase 2: BOM verification columns (FR-063)
   percentageInFormula: real('percentage_in_formula'),
   weighedQty: real('weighed_qty'),
@@ -358,6 +374,10 @@ export const sqliteWorkOrderMaterials = sqliteTable('work_order_materials', {
   waterDate: text('water_date'),
   waterConductivity: real('water_conductivity'), // µS·cm⁻¹
   waterTemperature: real('water_temperature'), // °C
+  // Unit Cost Calculation fields (014-unit-cost)
+  unitCost: real('unit_cost'), // WAC at time of issue
+  totalCost: real('total_cost'), // quantity × unitCost
+  costLayerId: integer('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -528,6 +548,11 @@ export const sqliteSalesOrderLines = sqliteTable('sales_order_lines', {
   unitPrice: real('unit_price').notNull(),
   totalPrice: real('total_price').notNull(),
   notes: text('notes'),
+  // Unit Cost Calculation fields (014-unit-cost)
+  unitCost: real('unit_cost'), // WAC at time of shipment
+  totalCost: real('total_cost'), // quantity × unitCost (COGS)
+  marginAmount: real('margin_amount'), // (unitPrice - unitCost) × qty
+  marginPercent: real('margin_percent'), // margin ÷ revenue × 100
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -1386,6 +1411,9 @@ export const mysqlItems = mysqlTable('items', {
   isLotControlled: mysqlBoolean('is_lot_controlled').notNull().default(true),
   isFEFO: mysqlBoolean('is_fefo').notNull().default(true),
   isActive: mysqlBoolean('is_active').notNull().default(true),
+  // BOM Confidentiality Protection fields (014-unit-cost)
+  confidentialityLevel: mysqlEnum('confidentiality_level', ['public', 'internal', 'confidential']).notNull().default('public'),
+  defaultConfidential: mysqlBoolean('default_confidential').notNull().default(false),
   // VMI Standard Codes - items need EITHER tppCode OR ttmtCode for VMI sync
   tppCode: varchar('tpp_code', { length: 13 }), // Thai Pharmaceutical Product code (13 digits)
   tppName: varchar('tpp_name', { length: 255 }), // TPP product name from VMI Portal
@@ -1396,6 +1424,16 @@ export const mysqlItems = mysqlTable('items', {
   lastVmiSyncAt: datetime('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
   strength: varchar('strength', { length: 100 }),
+  // Unit Cost Calculation fields (014-unit-cost)
+  currentWAC: decimal('current_wac', { precision: 15, scale: 4 }), // Current weighted average cost
+  lastPurchaseCost: decimal('last_purchase_cost', { precision: 15, scale: 4 }), // From most recent PO receipt
+  lastPurchaseDate: datetime('last_purchase_date'), // Date of last purchase
+  lastPurchasePoId: int('last_purchase_po_id'), // FK to purchase_orders (no Drizzle ref to avoid circular)
+  lastProductionCost: decimal('last_production_cost', { precision: 15, scale: 4 }), // From most recent completed WO
+  lastProductionDate: datetime('last_production_date'), // Date of last production
+  lastProductionWoId: int('last_production_wo_id'), // FK to work_orders (no Drizzle ref to avoid circular)
+  sgaAllocationRate: decimal('sga_allocation_rate', { precision: 5, scale: 2 }).default('0'), // SG&A % for full cost
+  standardCost: decimal('standard_cost', { precision: 15, scale: 4 }), // Standard cost for variance analysis
   createdAt: datetime('created_at').notNull().default(new Date()),
   updatedAt: datetime('updated_at').notNull().default(new Date()),
 });
@@ -1573,6 +1611,9 @@ export const mysqlBOMLines = mysqlTable('bom_lines', {
   sequence: int('sequence').notNull().default(1),
   isOptional: mysqlBoolean('is_optional').notNull().default(false),
   notes: mysqlText('notes'),
+  // BOM Line Confidentiality fields (014-unit-cost)
+  isConfidential: mysqlBoolean('is_confidential'),
+  confidentialityOverride: mysqlEnum('confidentiality_override', ['inherit', 'public', 'confidential']).notNull().default('inherit'),
   // Phase 2: BOM verification columns (FR-063)
   percentageInFormula: decimal('percentage_in_formula', { precision: 5, scale: 2 }),
   weighedQty: decimal('weighed_qty', { precision: 15, scale: 4 }),
@@ -1650,6 +1691,10 @@ export const mysqlWorkOrderMaterials = mysqlTable('work_order_materials', {
   waterDate: varchar('water_date', { length: 20 }),
   waterConductivity: decimal('water_conductivity', { precision: 10, scale: 4 }), // µS·cm⁻¹
   waterTemperature: decimal('water_temperature', { precision: 5, scale: 2 }), // °C
+  // Unit Cost Calculation fields (014-unit-cost)
+  unitCost: decimal('unit_cost', { precision: 15, scale: 4 }), // WAC at time of issue
+  totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost
+  costLayerId: int('cost_layer_id'), // Reference to cost layer (added after schema-unit-cost import)
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -1820,6 +1865,11 @@ export const mysqlSalesOrderLines = mysqlTable('sales_order_lines', {
   unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
   totalPrice: decimal('total_price', { precision: 15, scale: 2 }).notNull(),
   notes: mysqlText('notes'),
+  // Unit Cost Calculation fields (014-unit-cost)
+  unitCost: decimal('unit_cost', { precision: 15, scale: 4 }), // WAC at time of shipment
+  totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost (COGS)
+  marginAmount: decimal('margin_amount', { precision: 15, scale: 4 }), // (unitPrice - unitCost) × qty
+  marginPercent: decimal('margin_percent', { precision: 5, scale: 2 }), // margin ÷ revenue × 100
   createdAt: datetime('created_at').notNull().default(new Date()),
 });
 
@@ -4813,7 +4863,7 @@ export const sqlitePurchaseRequisitions = sqliteTable('purchase_requisitions', {
   prNumber: text('pr_number').notNull().unique(),
   requesterId: integer('requester_id').notNull().references(() => sqliteHREmployees.id),
   departmentId: integer('department_id').references(() => sqliteHROrgUnits.id),
-  requiredDate: text('required_date').notNull(),
+  requiredDate: text('required_date'), // Nullable - PR can be saved as draft without required date
   priority: text('priority').notNull().default('normal'), // normal, urgent, critical
   justification: text('justification'),
   status: text('status').notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
@@ -5526,7 +5576,7 @@ export const mysqlPurchaseRequisitions = mysqlTable('purchase_requisitions', {
   prNumber: varchar('pr_number', { length: 20 }).notNull().unique(),
   requesterId: int('requester_id').notNull().references(() => mysqlHREmployees.id),
   departmentId: int('department_id').references(() => mysqlHROrgUnits.id),
-  requiredDate: datetime('required_date').notNull(),
+  requiredDate: datetime('required_date'), // Nullable - PR can be saved as draft without required date
   priority: varchar('priority', { length: 20 }).notNull().default('normal'), // normal, urgent, critical
   justification: mysqlText('justification'),
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
@@ -6140,3 +6190,121 @@ export {
   mysqlTemplateCategoriesRelations,
   mysqlTemplateItemsRelations,
 } from './schema-template';
+
+// ============================================
+// Unit Cost Calculation System (014-unit-cost)
+// ============================================
+export {
+  // SQLite tables
+  sqliteWorkCenters,
+  sqliteItemCostLayers,
+  sqliteLandedCostHeaders,
+  sqliteLandedCostLines,
+  sqliteLandedCostAllocations,
+  sqliteOverheadRates,
+  sqliteWorkOrderOperations,
+  sqliteWorkOrderCosts,
+  sqliteCostGLMapping,
+  sqliteConfidentialAccessGroups,
+  sqliteConfidentialAccessGroupMembers,
+  sqliteBOMConfidentialAccess,
+  // SQLite relations
+  sqliteWorkCentersRelations,
+  sqliteItemCostLayersRelations,
+  sqliteLandedCostHeadersRelations,
+  sqliteLandedCostLinesRelations,
+  sqliteLandedCostAllocationsRelations,
+  sqliteOverheadRatesRelations,
+  sqliteWorkOrderOperationsRelations,
+  sqliteWorkOrderCostsRelations,
+  sqliteCostGLMappingRelations,
+  // MySQL tables
+  mysqlWorkCenters,
+  mysqlItemCostLayers,
+  mysqlLandedCostHeaders,
+  mysqlLandedCostLines,
+  mysqlLandedCostAllocations,
+  mysqlOverheadRates,
+  mysqlWorkOrderOperations,
+  mysqlWorkOrderCosts,
+  mysqlCostGLMapping,
+  mysqlConfidentialAccessGroups,
+  mysqlConfidentialAccessGroupMembers,
+  mysqlBOMConfidentialAccess,
+  // MySQL relations
+  mysqlWorkCentersRelations,
+  mysqlItemCostLayersRelations,
+  mysqlLandedCostHeadersRelations,
+  mysqlLandedCostLinesRelations,
+  mysqlLandedCostAllocationsRelations,
+  mysqlOverheadRatesRelations,
+  mysqlWorkOrderOperationsRelations,
+  mysqlWorkOrderCostsRelations,
+  mysqlCostGLMappingRelations,
+  // Types
+  type ConfidentialAccessGroup,
+  type NewConfidentialAccessGroup,
+  type ConfidentialAccessGroupMember,
+  type NewConfidentialAccessGroupMember,
+  type BOMConfidentialAccess,
+  type NewBOMConfidentialAccess,
+} from './schema-unit-cost';
+
+// ============================================
+// Issue Tracker Module
+// ============================================
+export {
+  // SQLite tables
+  sqliteIssueCategories,
+  sqliteIssues,
+  sqliteIssueTags,
+  sqliteIssueTagLinks,
+  sqliteIssueComments,
+  sqliteIssueAttachments,
+  sqliteIssueAuditEvents,
+  sqliteIssueNotifications,
+  // SQLite relations
+  sqliteIssueCategoriesRelations,
+  sqliteIssuesRelations,
+  sqliteIssueTagsRelations,
+  sqliteIssueTagLinksRelations,
+  sqliteIssueCommentsRelations,
+  sqliteIssueAttachmentsRelations,
+  sqliteIssueAuditEventsRelations,
+  sqliteIssueNotificationsRelations,
+  // MySQL tables
+  mysqlIssueCategories,
+  mysqlIssues,
+  mysqlIssueTags,
+  mysqlIssueTagLinks,
+  mysqlIssueComments,
+  mysqlIssueAttachments,
+  mysqlIssueAuditEvents,
+  mysqlIssueNotifications,
+  // MySQL relations
+  mysqlIssueCategoriesRelations,
+  mysqlIssuesRelations,
+  mysqlIssueTagsRelations,
+  mysqlIssueTagLinksRelations,
+  mysqlIssueCommentsRelations,
+  mysqlIssueAttachmentsRelations,
+  mysqlIssueAuditEventsRelations,
+  mysqlIssueNotificationsRelations,
+  // Types
+  type IssueCategoryDb,
+  type NewIssueCategoryDb,
+  type IssueDb,
+  type NewIssueDb,
+  type IssueTagDb,
+  type NewIssueTagDb,
+  type IssueTagLinkDb,
+  type NewIssueTagLinkDb,
+  type IssueCommentDb,
+  type NewIssueCommentDb,
+  type IssueAttachmentDb,
+  type NewIssueAttachmentDb,
+  type IssueAuditEventDb,
+  type NewIssueAuditEventDb,
+  type IssueNotificationDb,
+  type NewIssueNotificationDb,
+} from './schema-issues';

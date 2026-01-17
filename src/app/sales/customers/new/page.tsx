@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -167,6 +168,7 @@ const paymentTermOptions = [
 
 export default function NewCustomerPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [generatedCode, setGeneratedCode] = useState<string>('');
@@ -231,6 +233,8 @@ export default function NewCustomerPage() {
       const result = await res.json();
 
       if (result.success) {
+        // Invalidate customers query to refresh the list when navigating back
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
         router.push(`/sales/customers/${result.data.id}`);
       } else {
         alert(result.error || 'ไม่สามารถสร้างลูกค้าได้');

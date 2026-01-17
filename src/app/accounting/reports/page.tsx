@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -16,7 +17,7 @@ import {
   AccountingKPICard,
   AccountingFilterPanel,
 } from '@/components/accounting';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, FileText, TrendingUp, DollarSign, Clock, ChevronRight } from 'lucide-react';
 import type {
   TrialBalanceReport,
   BalanceSheetReport,
@@ -439,52 +440,109 @@ export default function ReportsPage() {
       />
 
       <div className="p-6 space-y-6">
-        {/* Report Quick Access Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <AccountingKPICard
-            label="Trial Balance"
-            value="View Report"
-            subtitle="Account balances summary"
-            icon="file-text"
-            variant="info"
-            onClick={() => {
-              setSelectedReport('trial-balance');
-              handleGenerateReport();
-            }}
-          />
-          <AccountingKPICard
-            label="Balance Sheet"
-            value="View Report"
-            subtitle="Assets & liabilities"
-            icon="trending-up"
-            variant="success"
-            onClick={() => {
-              setSelectedReport('balance-sheet');
-              handleGenerateReport();
-            }}
-          />
-          <AccountingKPICard
-            label="Income Statement"
-            value="View Report"
-            subtitle="P&L statement"
-            icon="trending-up"
-            variant="warning"
-            onClick={() => {
-              setSelectedReport('income-statement');
-              handleGenerateReport();
-            }}
-          />
-          <AccountingKPICard
-            label="Aging Reports"
-            value="View Report"
-            subtitle="AP/AR aging analysis"
-            icon="clock"
-            variant="default"
-            onClick={() => {
-              setSelectedReport('aging-ap');
-              handleGenerateReport();
-            }}
-          />
+        {/* Dedicated Report Pages - Featured Reports */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Financial Reports (Bilingual)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/accounting/reports/trial-balance" className="group" data-testid="link-trial-balance">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+                <div className="flex items-center justify-between mb-3">
+                  <FileText className="w-8 h-8 text-blue-600" />
+                  <ChevronRight className="w-5 h-5 text-blue-400 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <h3 className="font-semibold text-gray-900">Trial Balance</h3>
+                <p className="text-sm text-gray-500 mt-1">งบทดลอง</p>
+                <p className="text-xs text-blue-600 mt-2">Charts • KPIs • Export</p>
+              </div>
+            </Link>
+
+            <Link href="/accounting/reports/balance-sheet" className="group" data-testid="link-balance-sheet">
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+                <div className="flex items-center justify-between mb-3">
+                  <TrendingUp className="w-8 h-8 text-emerald-600" />
+                  <ChevronRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <h3 className="font-semibold text-gray-900">Balance Sheet</h3>
+                <p className="text-sm text-gray-500 mt-1">งบแสดงฐานะการเงิน</p>
+                <p className="text-xs text-emerald-600 mt-2">Financial Ratios • Pie Chart</p>
+              </div>
+            </Link>
+
+            <Link href="/accounting/reports/income-statement" className="group" data-testid="link-income-statement">
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+                <div className="flex items-center justify-between mb-3">
+                  <DollarSign className="w-8 h-8 text-amber-600" />
+                  <ChevronRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <h3 className="font-semibold text-gray-900">Income Statement</h3>
+                <p className="text-sm text-gray-500 mt-1">งบกำไรขาดทุน</p>
+                <p className="text-xs text-amber-600 mt-2">Margins • Area Chart</p>
+              </div>
+            </Link>
+
+            <Link href="/accounting/reports/cash-flow" className="group" data-testid="link-cash-flow">
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
+                <div className="flex items-center justify-between mb-3">
+                  <BarChart3 className="w-8 h-8 text-purple-600" />
+                  <ChevronRight className="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <h3 className="font-semibold text-gray-900">Cash Flow</h3>
+                <p className="text-sm text-gray-500 mt-1">งบกระแสเงินสด</p>
+                <p className="text-xs text-purple-600 mt-2">Waterfall • Reconciliation</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Legacy Report Quick Access Cards */}
+        <div className="border-t border-gray-200 pt-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Report Generation</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <AccountingKPICard
+              label="Trial Balance"
+              value="View Report"
+              subtitle="Account balances summary"
+              icon="file-text"
+              variant="info"
+              onClick={() => {
+                setSelectedReport('trial-balance');
+                handleGenerateReport();
+              }}
+            />
+            <AccountingKPICard
+              label="Balance Sheet"
+              value="View Report"
+              subtitle="Assets & liabilities"
+              icon="trending-up"
+              variant="success"
+              onClick={() => {
+                setSelectedReport('balance-sheet');
+                handleGenerateReport();
+              }}
+            />
+            <AccountingKPICard
+              label="Income Statement"
+              value="View Report"
+              subtitle="P&L statement"
+              icon="trending-up"
+              variant="warning"
+              onClick={() => {
+                setSelectedReport('income-statement');
+                handleGenerateReport();
+              }}
+            />
+            <AccountingKPICard
+              label="Aging Reports"
+              value="View Report"
+              subtitle="AP/AR aging analysis"
+              icon="clock"
+              variant="default"
+              onClick={() => {
+                setSelectedReport('aging-ap');
+                handleGenerateReport();
+              }}
+            />
+          </div>
         </div>
 
         {/* Report Selection & Filter Panel */}

@@ -170,3 +170,175 @@ export function seedAllTestData(sqlite: Database.Database): void {
   seedDocumentTypes(sqlite);
   seedStockAlertRules(sqlite);
 }
+
+// ============================================
+// Extended Seed Functions for UI Testing
+// Feature: 014-unit-cost
+// ============================================
+
+/**
+ * Seed test vendors
+ */
+export function seedTestVendors(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO vendors (id, code, name, contact_person, phone, email, is_approved, is_vmi, lead_time_days)
+    VALUES
+      (1, 'V001', 'Vendor Alpha', 'John Doe', '0812345678', 'alpha@vendor.com', 1, 0, 7),
+      (2, 'V002', 'Vendor Beta', 'Jane Smith', '0823456789', 'beta@vendor.com', 1, 1, 14),
+      (3, 'V003', 'Vendor Gamma', 'Bob Wilson', '0834567890', 'gamma@vendor.com', 0, 0, 21)
+  `);
+}
+
+/**
+ * Seed test customers
+ */
+export function seedTestCustomers(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO customers (id, code, name, contact_person, phone, email, credit_limit)
+    VALUES
+      (1, 'C001', 'Customer Alpha', 'Alice Brown', '0811111111', 'alpha@customer.com', 500000),
+      (2, 'C002', 'Customer Beta', 'Charlie Davis', '0822222222', 'beta@customer.com', 1000000),
+      (3, 'C003', 'Customer Gamma', 'Diana Evans', '0833333333', 'gamma@customer.com', 250000)
+  `);
+}
+
+/**
+ * Seed test purchase orders
+ */
+export function seedTestPurchaseOrders(sqlite: Database.Database): void {
+  const today = TEST_DATES.TODAY;
+  const pastDate = TEST_DATES.PAST_DATE;
+  sqlite.exec(`
+    INSERT OR IGNORE INTO purchase_orders (id, po_number, vendor_id, status, order_date, expected_date, total_amount, currency, created_by)
+    VALUES
+      (1, 'PO2026-0001', 1, 'draft', '${today}', '${TEST_DATES.FUTURE_DATE}', 50000, 'THB', ${TEST_USER_IDS.QA_MANAGER}),
+      (2, 'PO2026-0002', 2, 'approved', '${today}', '${TEST_DATES.FUTURE_DATE}', 75000, 'THB', ${TEST_USER_IDS.QA_MANAGER}),
+      (3, 'PO2026-0003', 1, 'received', '${pastDate}', '${today}', 100000, 'THB', ${TEST_USER_IDS.QA_MANAGER}),
+      (4, 'PO2026-0004', 3, 'received', '${pastDate}', '${today}', 25000, 'THB', ${TEST_USER_IDS.PRODUCTION_SUPERVISOR})
+  `);
+}
+
+/**
+ * Seed test sales orders
+ */
+export function seedTestSalesOrders(sqlite: Database.Database): void {
+  const today = TEST_DATES.TODAY;
+  const pastDate = TEST_DATES.PAST_DATE;
+  sqlite.exec(`
+    INSERT OR IGNORE INTO sales_orders (id, so_number, customer_id, status, order_date, total_amount, currency, created_by)
+    VALUES
+      (1, 'SO2026-0001', 1, 'draft', '${today}', 150000, 'THB', ${TEST_USER_IDS.QA_MANAGER}),
+      (2, 'SO2026-0002', 2, 'confirmed', '${today}', 250000, 'THB', ${TEST_USER_IDS.QA_MANAGER}),
+      (3, 'SO2026-0003', 1, 'shipped', '${pastDate}', 100000, 'THB', ${TEST_USER_IDS.QA_MANAGER})
+  `);
+}
+
+/**
+ * Seed test work orders
+ */
+export function seedTestWorkOrders(sqlite: Database.Database): void {
+  const today = TEST_DATES.TODAY;
+  const pastDate = TEST_DATES.PAST_DATE;
+  sqlite.exec(`
+    INSERT OR IGNORE INTO work_orders (id, wo_number, item_id, quantity, status, planned_start_date, created_by)
+    VALUES
+      (1, 'WO2026-0001', ${TEST_PRODUCT_IDS.PRODUCT_A}, 100, 'draft', '${today}', ${TEST_USER_IDS.PRODUCTION_SUPERVISOR}),
+      (2, 'WO2026-0002', ${TEST_PRODUCT_IDS.PRODUCT_B}, 50, 'in_progress', '${today}', ${TEST_USER_IDS.PRODUCTION_SUPERVISOR}),
+      (3, 'WO2026-0003', ${TEST_PRODUCT_IDS.PRODUCT_A}, 200, 'completed', '${pastDate}', ${TEST_USER_IDS.PRODUCTION_SUPERVISOR})
+  `);
+}
+
+/**
+ * Seed test positions
+ */
+export function seedTestPositions(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO positions (id, code, name, department, level, is_active)
+    VALUES
+      (1, 'POS001', 'QA Manager', 'Quality Assurance', 'Manager', 1),
+      (2, 'POS002', 'Production Supervisor', 'Production', 'Supervisor', 1),
+      (3, 'POS003', 'QC Analyst', 'Quality Control', 'Staff', 1),
+      (4, 'POS004', 'Document Controller', 'Quality Assurance', 'Staff', 1),
+      (5, 'POS005', 'Internal Auditor', 'Quality Assurance', 'Staff', 1)
+  `);
+}
+
+/**
+ * Seed test training courses
+ */
+export function seedTestTrainingCourses(sqlite: Database.Database): void {
+  sqlite.exec(`
+    INSERT OR IGNORE INTO training_courses (id, code, name, category, duration_hours, is_active)
+    VALUES
+      (1, 'GMP-101', 'GMP Fundamentals', 'Compliance', 8, 1),
+      (2, 'QC-201', 'Quality Control Methods', 'Technical', 16, 1),
+      (3, 'SAFE-101', 'Workplace Safety', 'Safety', 4, 1)
+  `);
+}
+
+// ============================================
+// Combined Module Seed Functions
+// ============================================
+
+/**
+ * Seed data for Purchasing module tests
+ */
+export function seedPurchasingTestData(sqlite: Database.Database): void {
+  seedTestUsers(sqlite);
+  seedTestVendors(sqlite);
+  seedTestItems(sqlite);
+  seedTestPurchaseOrders(sqlite);
+}
+
+/**
+ * Seed data for Inventory module tests
+ */
+export function seedInventoryTestData(sqlite: Database.Database): void {
+  seedTestUsers(sqlite);
+  seedTestItems(sqlite);
+  seedTestLots(sqlite);
+  seedTestVendors(sqlite);
+}
+
+/**
+ * Seed data for Sales module tests
+ */
+export function seedSalesTestData(sqlite: Database.Database): void {
+  seedTestUsers(sqlite);
+  seedTestCustomers(sqlite);
+  seedTestItems(sqlite);
+  seedTestSalesOrders(sqlite);
+}
+
+/**
+ * Seed data for Production module tests
+ */
+export function seedProductionTestData(sqlite: Database.Database): void {
+  seedTestUsers(sqlite);
+  seedTestItems(sqlite);
+  seedTestLots(sqlite);
+  seedTestWorkOrders(sqlite);
+}
+
+/**
+ * Seed data for HR module tests
+ */
+export function seedHrTestData(sqlite: Database.Database): void {
+  seedTestUsers(sqlite);
+  seedTestPositions(sqlite);
+  seedTestTrainingCourses(sqlite);
+}
+
+/**
+ * Seed comprehensive test data for full integration testing
+ */
+export function seedComprehensiveTestData(sqlite: Database.Database): void {
+  seedAllTestData(sqlite);
+  seedTestVendors(sqlite);
+  seedTestCustomers(sqlite);
+  seedTestPurchaseOrders(sqlite);
+  seedTestSalesOrders(sqlite);
+  seedTestWorkOrders(sqlite);
+  seedTestPositions(sqlite);
+  seedTestTrainingCourses(sqlite);
+}

@@ -18,6 +18,7 @@ import {
   ArrowDown,
   CornerDownLeft,
   CreditCard,
+  FileText,
 } from 'lucide-react';
 
 export interface Customer {
@@ -32,6 +33,7 @@ export interface Customer {
   creditLimit: number | null;
   creditTermDays: number | null;
   paymentTerms: string | null;
+  taxId: string | null;
   isActive: boolean;
 }
 
@@ -292,6 +294,12 @@ export function CustomerSearchDialog({
                             <span>{customer.email}</span>
                           </div>
                         )}
+                        {customer.taxId && (
+                          <div className="flex items-center gap-1">
+                            <FileText className="h-3.5 w-3.5" />
+                            <span>Tax ID: {customer.taxId}</span>
+                          </div>
+                        )}
                         {customer.address && (
                           <div className="flex items-center gap-1 max-w-xs truncate">
                             <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
@@ -365,39 +373,49 @@ export function CustomerSearchDialog({
 
       {/* Footer */}
       <div className="pt-3 border-t -mx-4 px-4 pb-2 bg-gray-50 flex items-center justify-between rounded-b-lg">
-        {results.length > 0 ? (
-          <>
+        <div className="flex items-center gap-4">
+          {results.length > 0 ? (
             <div className="text-sm text-gray-500">
               <span className="font-medium text-gray-700">{results.length}</span> customer{results.length !== 1 ? 's' : ''} found
             </div>
-            <div className="flex items-center gap-4 text-xs text-gray-400">
-              <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                  <ArrowUp className="h-3 w-3 inline" />
-                </kbd>
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                  <ArrowDown className="h-3 w-3 inline" />
-                </kbd>
-                <span className="ml-1">Navigate</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
-                  <CornerDownLeft className="h-3 w-3 inline" />
-                </kbd>
-                <span className="ml-1">Select</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Esc</kbd>
-                <span className="ml-1">Close</span>
-              </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Keyboard className="h-4 w-4" />
+              <span>Use keyboard shortcuts for faster navigation</span>
             </div>
-          </>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-gray-400 w-full justify-center">
-            <Keyboard className="h-4 w-4" />
-            <span>Use keyboard shortcuts for faster navigation</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Keyboard shortcuts */}
+          <div className="flex items-center gap-3 text-xs text-gray-400">
+            <div className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
+                <ArrowUp className="h-3 w-3 inline" />
+              </kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
+                <ArrowDown className="h-3 w-3 inline" />
+              </kbd>
+              <span className="ml-1">Navigate</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
+                <CornerDownLeft className="h-3 w-3 inline" />
+              </kbd>
+              <span className="ml-1">Select</span>
+            </div>
           </div>
-        )}
+
+          {/* Close Button */}
+          <DxButton
+            text="Close"
+            icon="close"
+            type="normal"
+            stylingMode="outlined"
+            onClick={() => onOpenChange(false)}
+            elementAttr={{ 'data-testid': 'customer-search-close-btn' }}
+          />
+        </div>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import {
 import {
   getEmployeeAssignments,
   getEmployeeById,
+  createEmployeeAssignment,
 } from '@/lib/services/hr.service';
 
 interface RouteParams {
@@ -39,5 +40,40 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     },
     ['hr:read']
+  );
+}
+
+// POST /api/hr/employees/[id]/assignments - Create new assignment for employee
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  return withAuth(
+    request,
+    async () => {
+      try {
+        const { id } = await params;
+        const employeeId = Number(id);
+
+        // Verify employee exists
+        const employee = await getEmployeeById(employeeId);
+        if (!employee) {
+          return notFoundResponse('Employee not found');
+        }
+
+        const body = await request.json();
+
+        const assignment = await createEmployeeAssignment({
+          employeeId,
+          positionId: body.positionId,
+          orgUnitId: body.orgUnitId,
+          isPrimary: body.isPrimary ?? true,
+          effectiveFrom: body.effectiveFrom,
+          reason: body.reason,
+        });
+
+        return successResponse({ data: assignment }, 'Assignment created successfully');
+      } catch (error) {
+        return serverErrorResponse(error);
+      }
+    },
+    ['hr:write']
   );
 }

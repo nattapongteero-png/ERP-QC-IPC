@@ -242,7 +242,12 @@ function generateMysqlCreateTable(tableName: string, columns: ColumnInfo[]): str
       primaryKeyCol = col.name;
     }
 
-    if (col.hasDefault && col.defaultValue !== undefined && !col.isAutoIncrement) {
+    // Skip DEFAULT for TEXT, BLOB, JSON, GEOMETRY columns - MySQL doesn't allow defaults for these types
+    const noDefaultTypes = ['TEXT', 'BLOB', 'JSON', 'GEOMETRY', 'MEDIUMTEXT', 'LONGTEXT', 'TINYTEXT'];
+    const upperDataType = col.dataType.toUpperCase();
+    const canHaveDefault = !noDefaultTypes.some(t => upperDataType.includes(t));
+
+    if (col.hasDefault && col.defaultValue !== undefined && !col.isAutoIncrement && canHaveDefault) {
       const defaultVal = formatDefaultValue(col.defaultValue, false);
       if (defaultVal !== null) {
         def += ` DEFAULT ${defaultVal}`;
@@ -288,11 +293,16 @@ function generateAddColumnSql(tableName: string, column: ColumnInfo, usingSqlite
   } else {
     let sql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${column.name}\` ${column.dataType}`;
 
-    if (column.isNotNull && column.hasDefault) {
+    // Skip DEFAULT for TEXT, BLOB, JSON, GEOMETRY columns - MySQL doesn't allow defaults for these types
+    const noDefaultTypes = ['TEXT', 'BLOB', 'JSON', 'GEOMETRY', 'MEDIUMTEXT', 'LONGTEXT', 'TINYTEXT'];
+    const upperDataType = column.dataType.toUpperCase();
+    const canHaveDefault = !noDefaultTypes.some(t => upperDataType.includes(t));
+
+    if (column.isNotNull && column.hasDefault && canHaveDefault) {
       sql += ' NOT NULL';
     }
 
-    if (column.hasDefault && column.defaultValue !== undefined) {
+    if (column.hasDefault && column.defaultValue !== undefined && canHaveDefault) {
       const defaultVal = formatDefaultValue(column.defaultValue, false);
       if (defaultVal !== null) {
         sql += ` DEFAULT ${defaultVal}`;

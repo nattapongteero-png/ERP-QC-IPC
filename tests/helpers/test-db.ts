@@ -120,3 +120,52 @@ export function createDbMock(db: TestDatabase) {
     schema,
   };
 }
+
+/**
+ * Create a hoisted getter/setter for test database
+ * Usage in test file:
+ *
+ * const { getTestDb, setTestDb } = vi.hoisted(() => createTestDbHoisted());
+ *
+ * vi.mock('@/lib/db', () => ({
+ *   isSqlite: () => true,
+ *   getDb: async () => getTestDb(),
+ *   getSqliteDb: () => getTestDb(),
+ *   schema,
+ * }));
+ */
+export function createTestDbHoisted() {
+  let _testDb: TestDatabase | null = null;
+  return {
+    getTestDb: () => _testDb,
+    setTestDb: (db: TestDatabase) => { _testDb = db; },
+  };
+}
+
+/**
+ * Standard tables needed for most tests
+ */
+export const COMMON_TABLES = {
+  users: schema.sqliteUsers,
+  items: schema.sqliteItems,
+  inventoryLots: schema.sqliteInventoryLots,
+  purchaseOrders: schema.sqlitePurchaseOrders,
+  purchaseOrderLines: schema.sqlitePurchaseOrderLines,
+  salesOrders: schema.sqliteSalesOrders,
+  salesOrderLines: schema.sqliteSalesOrderLines,
+  workOrders: schema.sqliteWorkOrders,
+  vendors: schema.sqliteVendors,
+  customers: schema.sqliteCustomers,
+};
+
+/**
+ * Accounting tables
+ */
+export const ACCOUNTING_TABLES = {
+  glAccountTypes: schema.sqliteGLAccountTypes,
+  glAccounts: schema.sqliteGLAccounts,
+  fiscalYears: schema.sqliteFiscalYears,
+  fiscalPeriods: schema.sqliteFiscalPeriods,
+  journalEntries: schema.sqliteJournalEntries,
+  journalLines: schema.sqliteJournalLines,
+};

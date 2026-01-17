@@ -22,6 +22,7 @@ import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
 import { getNow, getTodayStr } from '../db/date-utils';
 import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, THAI_VAT_RATE } from './accounting.service';
+import { calculateCOGS, updateSOLineWithCOGS } from './unit-cost.service';
 
 // Types
 export interface ATPResult {
@@ -403,22 +404,22 @@ export async function fulfillSalesOrderLine(
     const unitPrice = Number(soLine.unitPrice) || 0;
     const lineTotal = unitPrice * input.quantity;
 
+    // ============================================
+    // US5: COGS Calculation - Calculate and store cost/margin data
+    // ============================================
+    const cogsResult = await calculateCOGS(input.itemId, input.quantity, unitPrice);
+
+    // Update SO line with COGS and margin data
+    await updateSOLineWithCOGS(input.soLineId, cogsResult);
+
     // Only create journal entries if there's a price
     if (lineTotal > 0) {
       // Calculate VAT (7%)
       const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
       const netAmount = lineTotal - vatAmount;
 
-      // Get item for cost calculation
-      const { items } = getTables();
-      const [item] = await database.select().from(items).where(eq(items.id, input.itemId));
-
-      // Calculate COGS - use on_hand_cost / on_hand for average cost, or 0 if not available
-      let costOfGoodsSold = 0;
-      if (item && Number(item.onHand) > 0 && Number(item.onHandCost) > 0) {
-        const avgCost = Number(item.onHandCost) / Number(item.onHand);
-        costOfGoodsSold = Math.round(avgCost * input.quantity * 100) / 100;
-      }
+      // Use COGS from the calculated result
+      const costOfGoodsSold = cogsResult.totalCost;
 
       // Create and post journal entries
       const accountingResult = await createSOShipmentJournalEntry(
@@ -449,6 +450,7 @@ export async function fulfillSalesOrderLine(
       const dueDateStr = dueDate.toISOString().split('T')[0];
 
       // Get item details for AR invoice
+      const { items } = getTables();
       const [itemDetail] = await database.select().from(items).where(eq(items.id, input.itemId));
 
       try {
