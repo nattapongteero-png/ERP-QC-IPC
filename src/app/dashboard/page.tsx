@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
@@ -30,24 +31,24 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
-// Warehouse type configuration
+// Warehouse type configuration (icon, color, bgColor only - labels come from translations)
 const warehouseTypeConfig: Record<string, {
-  label: string;
+  translationKey: string;
   icon: typeof Package;
   color: string;
   bgColor: string;
 }> = {
-  raw_material: { label: 'Raw Material', icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  wip: { label: 'Work in Progress', icon: Activity, color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  finished_goods: { label: 'Finished Goods', icon: Boxes, color: 'text-green-600', bgColor: 'bg-green-100' },
-  quarantine: { label: 'Quarantine', icon: ShieldAlert, color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
-  rejected: { label: 'Rejected', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
-  cold_storage: { label: 'Cold Storage', icon: Snowflake, color: 'text-cyan-600', bgColor: 'bg-cyan-100' },
+  raw_material: { translationKey: 'rawMaterial', icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  wip: { translationKey: 'wip', icon: Activity, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  finished_goods: { translationKey: 'finishedGoods', icon: Boxes, color: 'text-green-600', bgColor: 'bg-green-100' },
+  quarantine: { translationKey: 'quarantine', icon: ShieldAlert, color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
+  rejected: { translationKey: 'rejected', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
+  cold_storage: { translationKey: 'coldStorage', icon: Snowflake, color: 'text-cyan-600', bgColor: 'bg-cyan-100' },
 };
 
 const getWarehouseTypeConfig = (type: string) => {
   return warehouseTypeConfig[type] || {
-    label: type.replace(/_/g, ' '),
+    translationKey: type,
     icon: Warehouse,
     color: 'text-gray-600',
     bgColor: 'bg-gray-100'
@@ -93,6 +94,7 @@ interface DashboardData {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const t = useTranslations('dashboard');
 
   useEffect(() => {
     fetch('/api/dashboard')
@@ -110,8 +112,8 @@ export default function DashboardPage() {
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Dashboard"
-          description="ภาพรวมระบบบริหารจัดการการผลิตยาสมุนไพร"
+          title={t('title')}
+          description={t('description')}
         />
 
         {isLoading ? (
@@ -147,9 +149,9 @@ export default function DashboardPage() {
             {/* Primary KPIs - Most Important Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KPICard
-                label="Total Items"
+                label={t('kpis.totalItems.label')}
                 value={data?.summary.totalItems || 0}
-                subtitle="Active inventory items"
+                subtitle={t('kpis.totalItems.subtitle')}
                 icon={<Package className="h-6 w-6" />}
                 iconBgColor="bg-blue-100"
                 iconColor="text-blue-600"
@@ -160,9 +162,9 @@ export default function DashboardPage() {
               />
 
               <KPICard
-                label="Active Work Orders"
+                label={t('kpis.activeWorkOrders.label')}
                 value={data?.summary.activeWorkOrders || 0}
-                subtitle="Currently in production"
+                subtitle={t('kpis.activeWorkOrders.subtitle')}
                 icon={<Factory className="h-6 w-6" />}
                 iconBgColor="bg-emerald-100"
                 iconColor="text-emerald-600"
@@ -171,27 +173,27 @@ export default function DashboardPage() {
               />
 
               <KPICard
-                label="Open Deviations"
+                label={t('kpis.openDeviations.label')}
                 value={data?.summary.openDeviations || 0}
-                subtitle="Requires attention"
+                subtitle={t('kpis.openDeviations.subtitle')}
                 icon={<AlertTriangle className="h-6 w-6" />}
                 iconBgColor="bg-red-100"
                 iconColor="text-red-600"
                 trend={data?.summary.openDeviations && data.summary.openDeviations > 0 ? 'up' : 'neutral'}
-                trendValue={data?.summary.openDeviations && data.summary.openDeviations > 0 ? 'Action needed' : 'All clear'}
+                trendValue={data?.summary.openDeviations && data.summary.openDeviations > 0 ? t('kpis.openDeviations.actionNeeded') : t('kpis.openDeviations.allClear')}
                 className="motion-safe:animate-fade-in motion-reduce:animate-none"
                 style={{ animationDelay: '100ms' }}
               />
 
               <KPICard
-                label="Expiring Soon"
+                label={t('kpis.expiringSoon.label')}
                 value={data?.summary.lotsExpiringSoon || 0}
-                subtitle="Within 30 days"
+                subtitle={t('kpis.expiringSoon.subtitle')}
                 icon={<Calendar className="h-6 w-6" />}
                 iconBgColor="bg-orange-100"
                 iconColor="text-orange-600"
                 trend={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? 'up' : 'down'}
-                trendValue={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? 'Monitor closely' : 'Low risk'}
+                trendValue={data?.summary.lotsExpiringSoon && data.summary.lotsExpiringSoon > 5 ? t('kpis.expiringSoon.monitorClosely') : t('kpis.expiringSoon.lowRisk')}
                 className="motion-safe:animate-fade-in motion-reduce:animate-none"
                 style={{ animationDelay: '150ms' }}
               />
@@ -200,7 +202,7 @@ export default function DashboardPage() {
             {/* Secondary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard
-                label="Lots in Quarantine"
+                label={t('kpis.lotsInQuarantine.label')}
                 value={data?.summary.lotsInQuarantine || 0}
                 icon={<Clock className="h-5 w-5" />}
                 variant="warning"
@@ -210,7 +212,7 @@ export default function DashboardPage() {
               />
 
               <StatCard
-                label="Pending POs"
+                label={t('kpis.pendingPOs.label')}
                 value={data?.summary.pendingPOs || 0}
                 icon={<ShoppingCart className="h-5 w-5" />}
                 variant="info"
@@ -220,7 +222,7 @@ export default function DashboardPage() {
               />
 
               <StatCard
-                label="Pending SOs"
+                label={t('kpis.pendingSOs.label')}
                 value={data?.summary.pendingSOs || 0}
                 icon={<Truck className="h-5 w-5" />}
                 variant="primary"
@@ -230,7 +232,7 @@ export default function DashboardPage() {
               />
 
               <StatCard
-                label="Monthly Growth"
+                label={t('kpis.monthlyGrowth.label')}
                 value="+8.5%"
                 icon={<TrendingUp className="h-5 w-5" />}
                 variant="success"
@@ -249,8 +251,8 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Work Orders */}
               <Card
-                title="Recent Work Orders"
-                description="ใบสั่งผลิตล่าสุด"
+                title={t('sections.recentWorkOrders.title')}
+                description=""
                 elevation="raised"
                 className="motion-safe:animate-fade-in motion-reduce:animate-none"
                 style={{ animationDelay: '400ms' }}
@@ -276,7 +278,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                               <p className="font-medium text-gray-900">{wo.woNumber}</p>
-                              <p className="text-sm text-gray-500">Batch: {wo.batchNumber}</p>
+                              <p className="text-sm text-gray-500">{t('sections.recentWorkOrders.batchPrefix')}: {wo.batchNumber}</p>
                             </div>
                           </div>
                           <div className="text-right">
@@ -293,8 +295,8 @@ export default function DashboardPage() {
                   ) : (
                     <EmptyState
                       icon={<Inbox className="h-6 w-6" />}
-                      title="No recent work orders"
-                      description="Work orders will appear here once created"
+                      title={t('sections.recentWorkOrders.emptyMessage')}
+                      description=""
                       size="sm"
                     />
                   )}
@@ -303,8 +305,8 @@ export default function DashboardPage() {
 
               {/* Inventory by Status */}
               <Card
-                title="Inventory by Status"
-                description="สถานะสินค้าคงคลัง"
+                title={t('sections.inventoryByStatus.title')}
+                description=""
                 elevation="raised"
                 className="motion-safe:animate-fade-in motion-reduce:animate-none"
                 style={{ animationDelay: '450ms' }}
@@ -332,9 +334,9 @@ export default function DashboardPage() {
                             </Badge>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-gray-900">{item.count} lots</p>
+                            <p className="font-bold text-gray-900">{item.count} {t('sections.inventoryByStatus.lotsUnit')}</p>
                             <p className="text-sm text-gray-500">
-                              Total: {Number(item.totalQuantity || 0).toLocaleString()}
+                              {t('sections.inventoryByStatus.totalPrefix')}: {Number(item.totalQuantity || 0).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -343,8 +345,8 @@ export default function DashboardPage() {
                   ) : (
                     <EmptyState
                       icon={<Package className="h-6 w-6" />}
-                      title="No inventory data"
-                      description="Inventory status will appear here"
+                      title={t('sections.inventoryByStatus.emptyMessage')}
+                      description=""
                       size="sm"
                     />
                   )}
@@ -354,8 +356,8 @@ export default function DashboardPage() {
 
             {/* Inventory by Warehouse Type */}
             <Card
-              title="Inventory by Warehouse Type"
-              description="สินค้าคงคลังแยกตามประเภทคลัง"
+              title={t('sections.warehouseOverview.title')}
+              description=""
               elevation="raised"
               className="motion-safe:animate-fade-in motion-reduce:animate-none"
               style={{ animationDelay: '500ms' }}
@@ -389,19 +391,19 @@ export default function DashboardPage() {
                                 {item.warehouseName}
                               </p>
                               <p className={cn('text-xs font-medium', config.color)}>
-                                {config.label}
+                                {t(`warehouseTypes.${config.translationKey}`)}
                               </p>
                             </div>
                           </div>
                           <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2">
                             <div>
-                              <p className="text-xs text-gray-500">Lots</p>
+                              <p className="text-xs text-gray-500">{t('sections.warehouseOverview.lotsLabel')}</p>
                               <p className="text-lg font-bold text-gray-900">
                                 {Number(item.lotCount || 0).toLocaleString()}
                               </p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500">Total Qty</p>
+                              <p className="text-xs text-gray-500">{t('sections.warehouseOverview.totalQtyLabel')}</p>
                               <p className="text-lg font-bold text-gray-900">
                                 {Number(item.totalQuantity || 0).toLocaleString()}
                               </p>
@@ -414,8 +416,8 @@ export default function DashboardPage() {
                 ) : (
                   <EmptyState
                     icon={<Warehouse className="h-6 w-6" />}
-                    title="No warehouse data"
-                    description="Warehouse inventory will appear here once warehouses are set up"
+                    title={t('sections.warehouseOverview.emptyMessage')}
+                    description={t('sections.warehouseOverview.emptyDescription')}
                     size="sm"
                   />
                 )}

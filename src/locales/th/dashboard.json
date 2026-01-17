@@ -34,6 +34,9 @@
       "label": "ใบสั่งขายที่รอดำเนินการ",
       "subtitle": "รอดำเนินการ"
     },
+    "monthlyGrowth": {
+      "label": "การเติบโตรายเดือน"
+    },
     "trend": {
       "up": "เพิ่มขึ้น",
       "down": "ลดลง",
@@ -44,6 +47,7 @@
     "recentWorkOrders": {
       "title": "ใบสั่งผลิตล่าสุด",
       "emptyMessage": "ไม่มีใบสั่งผลิตล่าสุด",
+      "batchPrefix": "แบตช์",
       "columns": {
         "woNumber": "เลขที่ใบสั่งผลิต",
         "batchNumber": "เลขที่แบตช์",
@@ -53,7 +57,9 @@
     },
     "inventoryByStatus": {
       "title": "สินค้าคงคลังตามสถานะ",
-      "emptyMessage": "ไม่มีข้อมูลสินค้าคงคลัง"
+      "emptyMessage": "ไม่มีข้อมูลสินค้าคงคลัง",
+      "lotsUnit": "ล็อต",
+      "totalPrefix": "รวม"
     },
     "workOrdersByStatus": {
       "title": "ใบสั่งผลิตตามสถานะ",
@@ -61,7 +67,10 @@
     },
     "warehouseOverview": {
       "title": "ภาพรวมคลังสินค้า",
-      "emptyMessage": "ไม่มีข้อมูลคลังสินค้า"
+      "emptyMessage": "ไม่มีข้อมูลคลังสินค้า",
+      "emptyDescription": "ข้อมูลสินค้าคงคลังในคลังสินค้าจะปรากฏเมื่อมีการตั้งค่าคลังสินค้าแล้ว",
+      "lotsLabel": "ล็อต",
+      "totalQtyLabel": "จำนวนรวม"
     }
   },
   "warehouseTypes": {

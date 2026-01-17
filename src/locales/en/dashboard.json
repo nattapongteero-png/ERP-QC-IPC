@@ -34,6 +34,9 @@
       "label": "Pending SOs",
       "subtitle": "Awaiting processing"
     },
+    "monthlyGrowth": {
+      "label": "Monthly Growth"
+    },
     "trend": {
       "up": "Increase",
       "down": "Decrease",
@@ -44,6 +47,7 @@
     "recentWorkOrders": {
       "title": "Recent Work Orders",
       "emptyMessage": "No recent work orders",
+      "batchPrefix": "Batch",
       "columns": {
         "woNumber": "WO Number",
         "batchNumber": "Batch Number",
@@ -53,7 +57,9 @@
     },
     "inventoryByStatus": {
       "title": "Inventory by Status",
-      "emptyMessage": "No inventory data"
+      "emptyMessage": "No inventory data",
+      "lotsUnit": "lots",
+      "totalPrefix": "Total"
     },
     "workOrdersByStatus": {
       "title": "Work Orders by Status",
@@ -61,7 +67,10 @@
     },
     "warehouseOverview": {
       "title": "Warehouse Overview",
-      "emptyMessage": "No warehouse data"
+      "emptyMessage": "No warehouse data",
+      "emptyDescription": "Warehouse inventory will appear here once warehouses are set up",
+      "lotsLabel": "Lots",
+      "totalQtyLabel": "Total Qty"
     }
   },
   "warehouseTypes": {
