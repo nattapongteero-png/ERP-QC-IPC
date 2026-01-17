@@ -77,7 +77,7 @@
 ### Tests for User Story 1
 
 - [x] T022 [P] [US1] Create unit test for LanguageSwitcher component in `tests/components/shared/language-switcher.test.tsx`
-- [ ] T023 [P] [US1] Create integration test for language switching in `tests/integration/i18n-switch.test.tsx`
+- [x] T023 [P] [US1] Create integration test for language switching in `tests/integration/i18n-switch.test.tsx`
 
 ### Implementation for User Story 1
 
@@ -86,10 +86,10 @@
 - [x] T026 [US1] Update Sidebar component to add LanguageSwitcher in `src/components/layout/sidebar.tsx`
 - [x] T027 [US1] Create Thai dashboard translations in `src/locales/th/dashboard.json`
 - [x] T028 [P] [US1] Create English dashboard translations in `src/locales/en/dashboard.json`
-- [ ] T029 [US1] Update Dashboard page to use translations in `src/app/dashboard/page.tsx`
-- [ ] T030 [US1] Verify language switch preserves scroll position and form data (manual testing + document)
+- [x] T029 [US1] Update Dashboard page to use translations in `src/app/dashboard/page.tsx`
+- [x] T030 [US1] Verify language switch preserves scroll position and form data (manual testing + document)
 
-**Checkpoint**: User Story 1 in progress - LanguageSwitcher added, dashboard translations created
+**Checkpoint**: User Story 1 complete - Language switching works on Dashboard with translations ✅
 
 ---
 
