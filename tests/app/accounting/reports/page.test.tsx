@@ -31,12 +31,17 @@ describe('ReportsPage', () => {
     expect(screen.getByText('Generate TFRS-compliant financial statements')).toBeInTheDocument();
   });
 
-  it('renders KPI cards for report types', async () => {
+  it('renders navigation links and KPI cards for report types', async () => {
     render(<ReportsPage />, { wrapper: createWrapper() });
-    expect(screen.getByText('Trial Balance')).toBeInTheDocument();
-    expect(screen.getByText('Balance Sheet')).toBeInTheDocument();
-    expect(screen.getByText('Income Statement')).toBeInTheDocument();
-    expect(screen.getByText('Aging Reports')).toBeInTheDocument();
+    // Check for navigation links to dedicated report pages
+    expect(screen.getByTestId('link-trial-balance')).toBeInTheDocument();
+    expect(screen.getByTestId('link-balance-sheet')).toBeInTheDocument();
+    expect(screen.getByTestId('link-income-statement')).toBeInTheDocument();
+    expect(screen.getByTestId('link-cash-flow')).toBeInTheDocument();
+    // Check that multiple elements with same text exist (links + KPI cards)
+    expect(screen.getAllByText('Trial Balance').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('Balance Sheet').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('Income Statement').length).toBeGreaterThanOrEqual(2);
   });
 
   it('renders filter panel with glassmorphism styling', async () => {
