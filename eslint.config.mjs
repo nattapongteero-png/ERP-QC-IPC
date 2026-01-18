@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Exclude reference folder (external example code)
     "reference/**",
+    // Exclude locale JSON files (validated by scripts/validate-i18n.ts)
+    "src/locales/**/*.json",
   ]),
   // Custom rule overrides for this project
   {

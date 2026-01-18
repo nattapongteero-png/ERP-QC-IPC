@@ -6,6 +6,8 @@
  * - Cookie persistence
  * - DevExtreme locale sync
  * - Component re-rendering with new translations
+ *
+ * @vitest-environment jsdom
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -72,6 +74,7 @@ function renderWithProviders(
 
 // Cookie utilities for testing
 function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) {
@@ -81,6 +84,7 @@ function getCookie(name: string): string | undefined {
 }
 
 function clearCookies() {
+  if (typeof document === 'undefined') return;
   document.cookie.split(';').forEach((c) => {
     document.cookie = c
       .replace(/^ +/, '')
@@ -92,12 +96,16 @@ describe('Language Switching Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearCookies();
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
   });
 
   afterEach(() => {
     clearCookies();
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
   });
 
   describe('CompactLanguageSwitcher', () => {

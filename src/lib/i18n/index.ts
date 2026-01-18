@@ -38,3 +38,14 @@ export {
   loadDevExtremeMessages,
   initDevExtremeLocale,
 } from './devextreme-sync';
+
+// Locale persistence
+export {
+  getStoredLocale,
+  setStoredLocale,
+  clearStoredLocale,
+  createLocaleStorageService,
+  useLocalePersistence,
+  localeStorage,
+  type LocaleStorageService,
+} from './locale-persistence';

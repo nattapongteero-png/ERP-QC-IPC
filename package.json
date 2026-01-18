@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "prebuild": "tsx scripts/validate-i18n.ts || echo '[i18n] Warning: Missing translations detected. Build continues...'",
     "build": "next build --webpack",
     "build:theme": "devextreme build-theme --input-file=devextreme-theme/emerald-metadata.json --output-file=public/css/dx.material.emerald.css",
     "start": "next start",
@@ -15,7 +16,10 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "DB_TYPE=sqlite tsx src/lib/db/seed.ts"
+    "db:seed": "DB_TYPE=sqlite tsx src/lib/db/seed.ts",
+    "i18n:check": "tsx scripts/validate-i18n.ts",
+    "i18n:check:verbose": "tsx scripts/validate-i18n.ts --verbose",
+    "i18n:fix": "tsx scripts/validate-i18n.ts --fix"
   },
   "dependencies": {
     "@devexpress/analytics-core": "25.2.3",

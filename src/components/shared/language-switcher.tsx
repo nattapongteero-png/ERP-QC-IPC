@@ -5,6 +5,7 @@
  *
  * A dropdown component that allows users to switch between supported languages.
  * Uses DevExtreme SelectBox for consistent UI with the rest of the application.
+ * Persists language preference using cookies and localStorage.
  */
 
 import { useCallback, useMemo } from 'react';
@@ -15,11 +16,10 @@ import {
   locales,
   localeNames,
   localeFlags,
-  LOCALE_COOKIE_NAME,
-  LOCALE_COOKIE_EXPIRY,
   type Locale,
 } from '@/lib/i18n/config';
 import { initDevExtremeLocale } from '@/lib/i18n/devextreme-sync';
+import { setStoredLocale } from '@/lib/i18n/locale-persistence';
 
 interface LocaleOption {
   id: Locale;
@@ -71,15 +71,8 @@ export function LanguageSwitcher({
         return;
       }
 
-      // Update cookie
-      document.cookie = `${LOCALE_COOKIE_NAME}=${newLocale};path=/;max-age=${LOCALE_COOKIE_EXPIRY * 24 * 60 * 60}`;
-
-      // Also store in localStorage for redundancy
-      try {
-        localStorage.setItem('i18n-locale', newLocale);
-      } catch {
-        // localStorage might not be available
-      }
+      // Persist locale preference (cookie + localStorage)
+      setStoredLocale(newLocale);
 
       // Sync DevExtreme locale
       await initDevExtremeLocale(newLocale);
@@ -128,15 +121,8 @@ export function CompactLanguageSwitcher({
   const handleToggle = useCallback(async () => {
     const newLocale: Locale = currentLocale === 'th' ? 'en' : 'th';
 
-    // Update cookie
-    document.cookie = `${LOCALE_COOKIE_NAME}=${newLocale};path=/;max-age=${LOCALE_COOKIE_EXPIRY * 24 * 60 * 60}`;
-
-    // Also store in localStorage for redundancy
-    try {
-      localStorage.setItem('i18n-locale', newLocale);
-    } catch {
-      // localStorage might not be available
-    }
+    // Persist locale preference (cookie + localStorage)
+    setStoredLocale(newLocale);
 
     // Sync DevExtreme locale
     await initDevExtremeLocale(newLocale);

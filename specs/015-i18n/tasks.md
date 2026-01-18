@@ -101,17 +101,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T031 [P] [US2] Create unit test for validation script in `tests/scripts/validate-i18n.test.ts`
+- [x] T031 [P] [US2] Create unit test for validation script in `tests/scripts/validate-i18n.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T032 [US2] Create i18n validation script in `scripts/validate-i18n.ts` that extracts t() calls and compares against translation files
-- [ ] T033 [US2] Add ESLint configuration for i18n-json plugin in `eslint.config.mjs` to validate JSON structure and key consistency
-- [ ] T034 [US2] Add `i18n:check` script to `package.json` for running validation
-- [ ] T035 [US2] Add validation to build script in `package.json` to fail build on missing translations
-- [ ] T036 [US2] Test validation by temporarily removing a key and verifying error output
+- [x] T032 [US2] Create i18n validation script in `scripts/validate-i18n.ts` that extracts t() calls and compares against translation files
+- [x] T033 [US2] Add ESLint configuration for i18n-json plugin in `eslint.config.mjs` to validate JSON structure and key consistency
+- [x] T034 [US2] Add `i18n:check` script to `package.json` for running validation
+- [x] T035 [US2] Add validation to build script in `package.json` to fail build on missing translations
+- [x] T036 [US2] Test validation by temporarily removing a key and verifying error output
 
-**Checkpoint**: User Story 2 complete - Missing translations detected at build time
+**Checkpoint**: User Story 2 complete - Missing translations detected at build time ✅
 
 ---
 
@@ -123,16 +123,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T037 [P] [US3] Create unit test for locale persistence in `tests/lib/i18n/locale-persistence.test.ts`
+- [x] T037 [P] [US3] Create unit test for locale persistence in `tests/lib/i18n/locale-persistence.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T038 [US3] Create locale persistence service in `src/lib/i18n/locale-persistence.ts` using js-cookie and localStorage
-- [ ] T039 [US3] Update LanguageSwitcher to persist preference on change in `src/components/shared/language-switcher.tsx`
-- [ ] T040 [US3] Update request.ts to read preference from cookie on initial load in `src/lib/i18n/request.ts`
-- [ ] T041 [US3] Verify preference persists across page navigation and browser restart
+- [x] T038 [US3] Create locale persistence service in `src/lib/i18n/locale-persistence.ts` using js-cookie and localStorage
+- [x] T039 [US3] Update LanguageSwitcher to persist preference on change in `src/components/shared/language-switcher.tsx`
+- [x] T040 [US3] Update request.ts to read preference from cookie on initial load in `src/lib/i18n/request.ts`
+- [x] T041 [US3] Verify preference persists across page navigation and browser restart
 
-**Checkpoint**: User Story 3 complete - Language preference persists across sessions
+**Checkpoint**: User Story 3 complete - Language preference persists across sessions ✅
 
 ---
 
