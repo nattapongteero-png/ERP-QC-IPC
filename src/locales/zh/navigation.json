@@ -1,0 +1,28 @@
+{
+  "modules": {
+    "dashboard": "仪表板",
+    "inventory": "库存",
+    "production": "生产",
+    "purchasing": "采购",
+    "sales": "销售",
+    "quality": "质量",
+    "gmp": "GMP合规",
+    "accounting": "会计",
+    "hr": "人力资源",
+    "cost": "成本",
+    "vmi": "VMI",
+    "reports": "报表",
+    "settings": "设置"
+  },
+  "header": {
+    "logout": "退出登录",
+    "profile": "个人资料",
+    "notifications": "通知",
+    "settings": "设置",
+    "help": "帮助",
+    "search": "搜索..."
+  },
+  "breadcrumb": {
+    "home": "首页"
+  }
+}

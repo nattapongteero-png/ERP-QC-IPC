@@ -24,8 +24,25 @@ import * as path from 'path';
 const CONFIG = {
   srcDir: 'src',
   localesDir: 'src/locales',
-  locales: ['th', 'en'] as const,
+  locales: ['th', 'en', 'zh'] as const,
   primaryLocale: 'th',
+  /**
+   * Required locales must have 100% translation coverage.
+   * Missing translations in required locales cause validation to FAIL (exit code 1).
+   */
+  requiredLocales: ['th', 'en'] as const,
+  /**
+   * Optional locales can have partial translation coverage.
+   * Missing translations in optional locales generate WARNINGS only.
+   * Useful for gradual rollout of new languages (e.g., 'zh', 'ja').
+   *
+   * To add a new optional locale:
+   * 1. Create locale directory: mkdir -p src/locales/zh
+   * 2. Add to CONFIG.locales array above
+   * 3. Add to CONFIG.optionalLocales array below
+   * 4. Translation gaps will show as warnings, not errors
+   */
+  optionalLocales: ['zh'] as string[],
   fileExtensions: ['.tsx', '.ts'],
   excludePatterns: [
     /node_modules/,
@@ -37,6 +54,20 @@ const CONFIG = {
 };
 
 type Locale = (typeof CONFIG.locales)[number];
+
+/**
+ * Check if a locale is required (must have 100% coverage)
+ */
+function isRequiredLocale(locale: string): boolean {
+  return (CONFIG.requiredLocales as readonly string[]).includes(locale);
+}
+
+/**
+ * Check if a locale is optional (warnings only for missing keys)
+ */
+function isOptionalLocale(locale: string): boolean {
+  return CONFIG.optionalLocales.includes(locale);
+}
 
 // Types
 interface UsedKey {
@@ -280,37 +311,49 @@ function validateTranslations(verbose: boolean = false): ValidationResult {
     for (const locale of CONFIG.locales) {
       const value = getNestedValue(translations[locale], key);
       if (value === undefined) {
-        errors.push({
+        // Determine severity based on locale requirement status
+        const isOptional = isOptionalLocale(locale);
+        const severity = isOptional ? 'warning' : 'error';
+        const errorItem: ValidationError = {
           key,
           file,
           line,
           locale,
-          severity: 'error',
-          message: `Missing translation for key "${key}" in locale "${locale}"`,
-        });
+          severity,
+          message: `Missing translation for key "${key}" in locale "${locale}"${isOptional ? ' (optional locale)' : ''}`,
+        };
+
+        if (isOptional) {
+          warnings.push(errorItem);
+        } else {
+          errors.push(errorItem);
+        }
       }
     }
   }
 
   // Check for inconsistent keys (present in some locales but not all)
+  // Only check required locales for inconsistencies - optional locales are expected to be incomplete
   const allDefinedKeys = new Set<string>();
   for (const locale of CONFIG.locales) {
     definedKeysPerLocale[locale].forEach((k) => allDefinedKeys.add(k));
   }
 
   for (const key of allDefinedKeys) {
-    const missingInLocales = CONFIG.locales.filter(
+    // Filter only required locales for inconsistency check
+    const requiredLocales = CONFIG.locales.filter((l) => isRequiredLocale(l));
+    const missingInRequiredLocales = requiredLocales.filter(
       (locale) => !definedKeysPerLocale[locale].has(key)
     );
-    if (missingInLocales.length > 0 && missingInLocales.length < CONFIG.locales.length) {
-      for (const locale of missingInLocales) {
+    if (missingInRequiredLocales.length > 0 && missingInRequiredLocales.length < requiredLocales.length) {
+      for (const locale of missingInRequiredLocales) {
         warnings.push({
           key,
           file: `src/locales/${locale}/`,
           line: 0,
           locale,
           severity: 'warning',
-          message: `Key "${key}" is defined in other locales but missing in "${locale}"`,
+          message: `Key "${key}" is defined in other required locales but missing in "${locale}"`,
         });
       }
     }
@@ -359,18 +402,23 @@ function printResults(result: ValidationResult, verbose: boolean) {
   console.log(`${colors.bold}Summary:${colors.reset}`);
   console.log(`  Total unique keys used: ${summary.totalKeysUsed}`);
   console.log('');
-  console.log('  Locale  | Defined | Coverage');
-  console.log('  --------|---------|----------');
+  console.log('  Locale  | Status   | Defined | Coverage');
+  console.log('  --------|----------|---------|----------');
   for (const locale of CONFIG.locales) {
     const coverage = summary.coveragePercent[locale];
+    const isOptional = isOptionalLocale(locale);
+    const status = isOptional ? 'optional' : 'required';
+    const statusColor = isOptional ? colors.yellow : colors.cyan;
     const coverageColor =
       coverage === 100
         ? colors.green
         : coverage >= 90
           ? colors.yellow
-          : colors.red;
+          : isOptional
+            ? colors.yellow
+            : colors.red;
     console.log(
-      `  ${locale.padEnd(7)} | ${String(summary.totalKeysDefined[locale]).padStart(7)} | ${coverageColor}${coverage}%${colors.reset}`
+      `  ${locale.padEnd(7)} | ${statusColor}${status.padEnd(8)}${colors.reset} | ${String(summary.totalKeysDefined[locale]).padStart(7)} | ${coverageColor}${coverage}%${colors.reset}`
     );
   }
   console.log('');

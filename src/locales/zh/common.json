@@ -1,0 +1,114 @@
+{
+  "actions": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "create": "创建",
+    "view": "查看",
+    "search": "搜索",
+    "filter": "筛选",
+    "export": "导出",
+    "import": "导入",
+    "refresh": "刷新",
+    "close": "关闭",
+    "confirm": "确认",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "submit": "提交",
+    "reset": "重置",
+    "clear": "清除",
+    "select": "选择",
+    "selectAll": "全选",
+    "deselectAll": "取消全选",
+    "print": "打印",
+    "download": "下载",
+    "upload": "上传",
+    "duplicate": "复制",
+    "archive": "归档",
+    "restore": "恢复"
+  },
+  "status": {
+    "active": "活跃",
+    "inactive": "未激活",
+    "pending": "待处理",
+    "approved": "已批准",
+    "rejected": "已拒绝",
+    "draft": "草稿",
+    "completed": "已完成",
+    "cancelled": "已取消",
+    "inProgress": "进行中",
+    "onHold": "暂停",
+    "expired": "已过期",
+    "archived": "已归档"
+  },
+  "validation": {
+    "required": "此字段为必填项",
+    "email": "请输入有效的电子邮件地址",
+    "minLength": "最少需要 {min} 个字符",
+    "maxLength": "最多允许 {max} 个字符",
+    "min": "最小值为 {min}",
+    "max": "最大值为 {max}",
+    "pattern": "格式无效",
+    "unique": "此值已存在",
+    "date": "请输入有效日期",
+    "number": "请输入有效数字",
+    "integer": "请输入整数",
+    "positive": "值必须为正数",
+    "phone": "请输入有效的电话号码"
+  },
+  "errors": {
+    "generic": "发生错误，请重试",
+    "notFound": "未找到请求的资源",
+    "unauthorized": "您无权执行此操作",
+    "forbidden": "禁止访问",
+    "network": "网络错误，请检查您的连接",
+    "server": "服务器错误，请稍后重试",
+    "validation": "请检查输入数据",
+    "timeout": "请求超时，请重试"
+  },
+  "loading": {
+    "default": "加载中...",
+    "saving": "保存中...",
+    "processing": "处理中...",
+    "fetching": "获取数据中...",
+    "submitting": "提交中..."
+  },
+  "empty": {
+    "noData": "暂无数据",
+    "noResults": "未找到结果",
+    "noItems": "暂无项目",
+    "noSelection": "未选择任何内容"
+  },
+  "pagination": {
+    "showing": "显示第 {from} 至 {to} 条，共 {total} 条",
+    "page": "第 {page} 页，共 {total} 页",
+    "rowsPerPage": "每页行数",
+    "firstPage": "首页",
+    "lastPage": "末页",
+    "nextPage": "下一页",
+    "previousPage": "上一页"
+  },
+  "confirmation": {
+    "delete": "确定要删除吗？此操作无法撤销。",
+    "cancel": "确定要取消吗？未保存的更改将丢失。",
+    "unsavedChanges": "您有未保存的更改。确定要离开吗？",
+    "archive": "确定要归档此项目吗？"
+  },
+  "toast": {
+    "success": {
+      "created": "创建成功",
+      "updated": "更新成功",
+      "deleted": "删除成功",
+      "saved": "保存成功"
+    },
+    "error": {
+      "created": "创建失败",
+      "updated": "更新失败",
+      "deleted": "删除失败",
+      "saved": "保存失败"
+    }
+  }
+}

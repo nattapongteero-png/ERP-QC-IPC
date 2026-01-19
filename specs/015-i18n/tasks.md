@@ -144,15 +144,15 @@
 
 ### Tests for User Story 4
 
-- [ ] T042 [P] [US4] Create unit test for fallback behavior in `tests/lib/i18n/fallback.test.ts`
+- [x] T042 [P] [US4] Create unit test for fallback behavior in `tests/lib/i18n/fallback.test.tsx`
 
 ### Implementation for User Story 4
 
-- [ ] T043 [US4] Configure next-intl fallback in `src/lib/i18n/request.ts` to use Thai messages when English key missing
-- [ ] T044 [US4] Add development-mode console warning for missing translations in `src/lib/i18n/use-translations.ts`
-- [ ] T045 [US4] Test fallback by temporarily removing English key and verifying Thai appears
+- [x] T043 [US4] Configure next-intl fallback in `src/lib/i18n/request.ts` to use Thai messages when English key missing
+- [x] T044 [US4] Add development-mode console warning for missing translations in `src/lib/i18n/use-translations.ts`
+- [x] T045 [US4] Test fallback by temporarily removing English key and verifying Thai appears
 
-**Checkpoint**: User Story 4 complete - Thai fallback works for missing English translations
+**Checkpoint**: User Story 4 complete - Thai fallback works for missing English translations ✅
 
 ---
 
@@ -164,14 +164,14 @@
 
 ### Implementation for User Story 5
 
-- [ ] T046 [P] [US5] Create module translation files for high-traffic modules:
+- [x] T046 [P] [US5] Create module translation files for high-traffic modules:
   - `src/locales/th/inventory.json` and `src/locales/en/inventory.json`
   - `src/locales/th/production.json` and `src/locales/en/production.json`
   - `src/locales/th/accounting.json` and `src/locales/en/accounting.json`
-- [ ] T047 [US5] Create developer guide for i18n in `docs/i18n-developer-guide.md` covering key naming, file organization, validation
-- [ ] T048 [US5] Update quickstart.md with common tasks and troubleshooting
+- [x] T047 [US5] Create developer guide for i18n in `docs/i18n-developer-guide.md` covering key naming, file organization, validation
+- [x] T048 [US5] Update quickstart.md with common tasks and troubleshooting
 
-**Checkpoint**: User Story 5 complete - Developers have clear workflow for translations
+**Checkpoint**: User Story 5 complete - Developers have clear workflow for translations ✅
 
 ---
 
@@ -183,15 +183,15 @@
 
 ### Tests for User Story 6
 
-- [ ] T049 [P] [US6] Create integration test for adding new language in `tests/integration/i18n-extensibility.test.ts`
+- [x] T049 [P] [US6] Create integration test for adding new language in `tests/integration/i18n-extensibility.test.tsx`
 
 ### Implementation for User Story 6
 
-- [ ] T050 [US6] Document process for adding new languages in `docs/i18n-developer-guide.md`
-- [ ] T051 [US6] Add configuration option for required vs optional locales in validation script `scripts/validate-i18n.ts`
-- [ ] T052 [US6] Test extensibility by adding stub Chinese locale files and verifying registration
+- [x] T050 [US6] Document process for adding new languages in `docs/i18n-developer-guide.md`
+- [x] T051 [US6] Add configuration option for required vs optional locales in validation script `scripts/validate-i18n.ts`
+- [x] T052 [US6] Test extensibility by adding stub Chinese locale files and verifying registration
 
-**Checkpoint**: User Story 6 complete - New languages can be added without code changes
+**Checkpoint**: User Story 6 complete - New languages can be added without code changes ✅
 
 ---
 
