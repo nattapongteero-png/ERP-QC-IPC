@@ -1,0 +1,192 @@
+{
+  "page": {
+    "title": "คลังสินค้า",
+    "description": "จัดการสินค้าคงคลัง ล็อต และคลังสินค้า"
+  },
+  "items": {
+    "title": "รายการสินค้า",
+    "description": "จัดการรายการสินค้าคงคลังทั้งหมด",
+    "table": {
+      "columns": {
+        "itemCode": "รหัสสินค้า",
+        "name": "ชื่อสินค้า",
+        "category": "หมวดหมู่",
+        "type": "ประเภท",
+        "unit": "หน่วย",
+        "reorderLevel": "ระดับสั่งซื้อใหม่",
+        "safetyStock": "สต็อกสำรอง",
+        "status": "สถานะ",
+        "totalStock": "สต็อกรวม",
+        "availableStock": "สต็อกที่ใช้ได้",
+        "lastReceived": "รับล่าสุด",
+        "lastIssued": "เบิกล่าสุด"
+      }
+    },
+    "form": {
+      "itemCode": {
+        "label": "รหัสสินค้า",
+        "placeholder": "ป้อนรหัสสินค้า",
+        "hint": "รหัสเฉพาะสำหรับสินค้า"
+      },
+      "name": {
+        "label": "ชื่อสินค้า",
+        "placeholder": "ป้อนชื่อสินค้า"
+      },
+      "description": {
+        "label": "คำอธิบาย",
+        "placeholder": "ป้อนคำอธิบายสินค้า"
+      },
+      "category": {
+        "label": "หมวดหมู่",
+        "placeholder": "เลือกหมวดหมู่"
+      },
+      "unit": {
+        "label": "หน่วย",
+        "placeholder": "เลือกหน่วย"
+      },
+      "reorderLevel": {
+        "label": "ระดับสั่งซื้อใหม่",
+        "placeholder": "ป้อนระดับสั่งซื้อใหม่",
+        "hint": "ระบบจะแจ้งเตือนเมื่อสต็อกต่ำกว่าระดับนี้"
+      },
+      "safetyStock": {
+        "label": "สต็อกสำรอง",
+        "placeholder": "ป้อนสต็อกสำรอง"
+      }
+    },
+    "actions": {
+      "addItem": "เพิ่มสินค้า",
+      "editItem": "แก้ไขสินค้า",
+      "viewItem": "ดูรายละเอียดสินค้า",
+      "deleteItem": "ลบสินค้า",
+      "adjustStock": "ปรับปรุงสต็อก",
+      "viewLots": "ดูล็อต"
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "discontinued": "หยุดใช้งาน"
+    },
+    "types": {
+      "rawMaterial": "วัตถุดิบ",
+      "wip": "งานระหว่างทำ",
+      "finishedGoods": "สินค้าสำเร็จรูป",
+      "packaging": "บรรจุภัณฑ์"
+    },
+    "toast": {
+      "create": {
+        "success": "สร้างสินค้าสำเร็จ",
+        "error": "ไม่สามารถสร้างสินค้าได้"
+      },
+      "update": {
+        "success": "อัปเดตสินค้าสำเร็จ",
+        "error": "ไม่สามารถอัปเดตสินค้าได้"
+      },
+      "delete": {
+        "success": "ลบสินค้าสำเร็จ",
+        "error": "ไม่สามารถลบสินค้าได้"
+      }
+    },
+    "empty": {
+      "title": "ไม่มีรายการสินค้า",
+      "description": "เริ่มต้นโดยเพิ่มสินค้าใหม่",
+      "action": "เพิ่มสินค้าแรก"
+    }
+  },
+  "lots": {
+    "title": "ล็อต",
+    "description": "จัดการล็อตสินค้าและการติดตาม",
+    "table": {
+      "columns": {
+        "lotNumber": "เลขที่ล็อต",
+        "itemCode": "รหัสสินค้า",
+        "itemName": "ชื่อสินค้า",
+        "quantity": "ปริมาณ",
+        "warehouse": "คลังสินค้า",
+        "status": "สถานะ",
+        "expiryDate": "วันหมดอายุ",
+        "receivedDate": "วันที่รับ",
+        "supplier": "ผู้ขาย"
+      }
+    },
+    "status": {
+      "available": "พร้อมใช้งาน",
+      "reserved": "จอง",
+      "quarantine": "กักกัน",
+      "expired": "หมดอายุ",
+      "released": "ปล่อย",
+      "rejected": "ถูกปฏิเสธ"
+    }
+  },
+  "warehouses": {
+    "title": "คลังสินค้า",
+    "description": "จัดการคลังสินค้าและสถานที่จัดเก็บ",
+    "table": {
+      "columns": {
+        "code": "รหัสคลังสินค้า",
+        "name": "ชื่อคลังสินค้า",
+        "type": "ประเภท",
+        "location": "สถานที่",
+        "capacity": "ความจุ",
+        "currentUsage": "การใช้งานปัจจุบัน",
+        "status": "สถานะ"
+      }
+    },
+    "types": {
+      "rawMaterial": "วัตถุดิบ",
+      "wip": "งานระหว่างทำ",
+      "finishedGoods": "สินค้าสำเร็จรูป",
+      "quarantine": "กักกัน",
+      "coldStorage": "ห้องเย็น"
+    }
+  },
+  "stockMovements": {
+    "title": "การเคลื่อนไหวสต็อก",
+    "description": "ติดตามการรับ การเบิก และการโอนย้าย",
+    "table": {
+      "columns": {
+        "movementNumber": "เลขที่เอกสาร",
+        "type": "ประเภท",
+        "itemCode": "รหัสสินค้า",
+        "lotNumber": "เลขที่ล็อต",
+        "quantity": "ปริมาณ",
+        "fromWarehouse": "จากคลัง",
+        "toWarehouse": "ไปคลัง",
+        "date": "วันที่",
+        "reference": "อ้างอิง"
+      }
+    },
+    "types": {
+      "receipt": "รับเข้า",
+      "issue": "เบิกออก",
+      "transfer": "โอนย้าย",
+      "adjustment": "ปรับปรุง",
+      "return": "คืน"
+    }
+  },
+  "stockAdjustments": {
+    "title": "ปรับปรุงสต็อก",
+    "description": "ปรับปรุงปริมาณสต็อกและบันทึกเหตุผล",
+    "form": {
+      "reason": {
+        "label": "เหตุผล",
+        "placeholder": "เลือกเหตุผล"
+      },
+      "quantity": {
+        "label": "ปริมาณปรับปรุง",
+        "placeholder": "ป้อนปริมาณ"
+      },
+      "remarks": {
+        "label": "หมายเหตุ",
+        "placeholder": "ป้อนหมายเหตุเพิ่มเติม"
+      }
+    },
+    "reasons": {
+      "physicalCount": "ตรวจนับสต็อก",
+      "damage": "เสียหาย",
+      "expired": "หมดอายุ",
+      "loss": "สูญหาย",
+      "other": "อื่นๆ"
+    }
+  }
+}

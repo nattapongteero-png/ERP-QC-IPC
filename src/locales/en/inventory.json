@@ -1,0 +1,192 @@
+{
+  "page": {
+    "title": "Inventory",
+    "description": "Manage inventory items, lots, and warehouses"
+  },
+  "items": {
+    "title": "Items",
+    "description": "Manage all inventory items",
+    "table": {
+      "columns": {
+        "itemCode": "Item Code",
+        "name": "Item Name",
+        "category": "Category",
+        "type": "Type",
+        "unit": "Unit",
+        "reorderLevel": "Reorder Level",
+        "safetyStock": "Safety Stock",
+        "status": "Status",
+        "totalStock": "Total Stock",
+        "availableStock": "Available Stock",
+        "lastReceived": "Last Received",
+        "lastIssued": "Last Issued"
+      }
+    },
+    "form": {
+      "itemCode": {
+        "label": "Item Code",
+        "placeholder": "Enter item code",
+        "hint": "Unique code for the item"
+      },
+      "name": {
+        "label": "Item Name",
+        "placeholder": "Enter item name"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Enter item description"
+      },
+      "category": {
+        "label": "Category",
+        "placeholder": "Select category"
+      },
+      "unit": {
+        "label": "Unit",
+        "placeholder": "Select unit"
+      },
+      "reorderLevel": {
+        "label": "Reorder Level",
+        "placeholder": "Enter reorder level",
+        "hint": "System will alert when stock falls below this level"
+      },
+      "safetyStock": {
+        "label": "Safety Stock",
+        "placeholder": "Enter safety stock"
+      }
+    },
+    "actions": {
+      "addItem": "Add Item",
+      "editItem": "Edit Item",
+      "viewItem": "View Item Details",
+      "deleteItem": "Delete Item",
+      "adjustStock": "Adjust Stock",
+      "viewLots": "View Lots"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "discontinued": "Discontinued"
+    },
+    "types": {
+      "rawMaterial": "Raw Material",
+      "wip": "Work in Progress",
+      "finishedGoods": "Finished Goods",
+      "packaging": "Packaging"
+    },
+    "toast": {
+      "create": {
+        "success": "Item created successfully",
+        "error": "Failed to create item"
+      },
+      "update": {
+        "success": "Item updated successfully",
+        "error": "Failed to update item"
+      },
+      "delete": {
+        "success": "Item deleted successfully",
+        "error": "Failed to delete item"
+      }
+    },
+    "empty": {
+      "title": "No items found",
+      "description": "Get started by adding a new item",
+      "action": "Add First Item"
+    }
+  },
+  "lots": {
+    "title": "Lots",
+    "description": "Manage lot tracking and traceability",
+    "table": {
+      "columns": {
+        "lotNumber": "Lot Number",
+        "itemCode": "Item Code",
+        "itemName": "Item Name",
+        "quantity": "Quantity",
+        "warehouse": "Warehouse",
+        "status": "Status",
+        "expiryDate": "Expiry Date",
+        "receivedDate": "Received Date",
+        "supplier": "Supplier"
+      }
+    },
+    "status": {
+      "available": "Available",
+      "reserved": "Reserved",
+      "quarantine": "Quarantine",
+      "expired": "Expired",
+      "released": "Released",
+      "rejected": "Rejected"
+    }
+  },
+  "warehouses": {
+    "title": "Warehouses",
+    "description": "Manage warehouses and storage locations",
+    "table": {
+      "columns": {
+        "code": "Warehouse Code",
+        "name": "Warehouse Name",
+        "type": "Type",
+        "location": "Location",
+        "capacity": "Capacity",
+        "currentUsage": "Current Usage",
+        "status": "Status"
+      }
+    },
+    "types": {
+      "rawMaterial": "Raw Material",
+      "wip": "Work in Progress",
+      "finishedGoods": "Finished Goods",
+      "quarantine": "Quarantine",
+      "coldStorage": "Cold Storage"
+    }
+  },
+  "stockMovements": {
+    "title": "Stock Movements",
+    "description": "Track receipts, issues, and transfers",
+    "table": {
+      "columns": {
+        "movementNumber": "Movement Number",
+        "type": "Type",
+        "itemCode": "Item Code",
+        "lotNumber": "Lot Number",
+        "quantity": "Quantity",
+        "fromWarehouse": "From Warehouse",
+        "toWarehouse": "To Warehouse",
+        "date": "Date",
+        "reference": "Reference"
+      }
+    },
+    "types": {
+      "receipt": "Receipt",
+      "issue": "Issue",
+      "transfer": "Transfer",
+      "adjustment": "Adjustment",
+      "return": "Return"
+    }
+  },
+  "stockAdjustments": {
+    "title": "Stock Adjustments",
+    "description": "Adjust stock quantities and record reasons",
+    "form": {
+      "reason": {
+        "label": "Reason",
+        "placeholder": "Select reason"
+      },
+      "quantity": {
+        "label": "Adjustment Quantity",
+        "placeholder": "Enter quantity"
+      },
+      "remarks": {
+        "label": "Remarks",
+        "placeholder": "Enter additional remarks"
+      }
+    },
+    "reasons": {
+      "physicalCount": "Physical Count",
+      "damage": "Damage",
+      "expired": "Expired",
+      "loss": "Loss",
+      "other": "Other"
+    }
+  }
+}

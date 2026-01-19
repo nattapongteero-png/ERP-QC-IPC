@@ -1,0 +1,178 @@
+{
+  "page": {
+    "title": "Production",
+    "description": "Manage work orders, recipes, and production lines"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "description": "Manage production work orders and track progress",
+    "table": {
+      "columns": {
+        "woNumber": "WO Number",
+        "batchNumber": "Batch Number",
+        "product": "Product",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "status": "Status",
+        "plannedStart": "Planned Start",
+        "plannedEnd": "Planned End",
+        "actualStart": "Actual Start",
+        "actualEnd": "Actual End",
+        "productionLine": "Production Line",
+        "priority": "Priority"
+      }
+    },
+    "form": {
+      "product": {
+        "label": "Product",
+        "placeholder": "Select product"
+      },
+      "quantity": {
+        "label": "Quantity",
+        "placeholder": "Enter quantity"
+      },
+      "batchSize": {
+        "label": "Batch Size",
+        "placeholder": "Enter batch size"
+      },
+      "plannedStart": {
+        "label": "Planned Start",
+        "placeholder": "Select start date"
+      },
+      "plannedEnd": {
+        "label": "Planned End",
+        "placeholder": "Select end date"
+      },
+      "productionLine": {
+        "label": "Production Line",
+        "placeholder": "Select production line"
+      },
+      "priority": {
+        "label": "Priority",
+        "placeholder": "Select priority"
+      },
+      "remarks": {
+        "label": "Remarks",
+        "placeholder": "Enter remarks"
+      }
+    },
+    "actions": {
+      "createWO": "Create Work Order",
+      "editWO": "Edit Work Order",
+      "viewWO": "View Details",
+      "startWO": "Start Production",
+      "completeWO": "Complete Production",
+      "cancelWO": "Cancel Work Order",
+      "holdWO": "Hold Work Order",
+      "releaseWO": "Release Work Order",
+      "printLabel": "Print Label",
+      "viewBOM": "View BOM"
+    },
+    "status": {
+      "draft": "Draft",
+      "planned": "Planned",
+      "released": "Released",
+      "inProgress": "In Progress",
+      "onHold": "On Hold",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "toast": {
+      "create": {
+        "success": "Work order created successfully",
+        "error": "Failed to create work order"
+      },
+      "update": {
+        "success": "Work order updated successfully",
+        "error": "Failed to update work order"
+      },
+      "start": {
+        "success": "Production started successfully",
+        "error": "Failed to start production"
+      },
+      "complete": {
+        "success": "Production completed successfully",
+        "error": "Failed to complete production"
+      }
+    },
+    "empty": {
+      "title": "No work orders found",
+      "description": "Get started by creating a new work order",
+      "action": "Create Work Order"
+    }
+  },
+  "bom": {
+    "title": "Bill of Materials (BOM)",
+    "description": "Manage production recipes and ingredients",
+    "table": {
+      "columns": {
+        "bomCode": "BOM Code",
+        "product": "Product",
+        "version": "Version",
+        "batchSize": "Batch Size",
+        "unit": "Unit",
+        "status": "Status",
+        "effectiveDate": "Effective Date",
+        "expiryDate": "Expiry Date"
+      }
+    },
+    "ingredients": {
+      "title": "Ingredients",
+      "columns": {
+        "item": "Item",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "percentage": "Percentage",
+        "scrap": "Scrap/Loss"
+      }
+    },
+    "actions": {
+      "createBOM": "Create BOM",
+      "editBOM": "Edit BOM",
+      "copyBOM": "Copy BOM",
+      "newVersion": "Create New Version",
+      "activateBOM": "Activate",
+      "deactivateBOM": "Deactivate"
+    }
+  },
+  "productionLines": {
+    "title": "Production Lines",
+    "description": "Manage production lines and capacity",
+    "table": {
+      "columns": {
+        "code": "Line Code",
+        "name": "Line Name",
+        "capacity": "Capacity",
+        "status": "Status",
+        "currentWO": "Current WO",
+        "efficiency": "Efficiency"
+      }
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "maintenance": "Maintenance"
+    }
+  },
+  "batches": {
+    "title": "Batches",
+    "description": "Track production batches and quality control",
+    "table": {
+      "columns": {
+        "batchNumber": "Batch Number",
+        "product": "Product",
+        "quantity": "Quantity",
+        "status": "Status",
+        "productionDate": "Production Date",
+        "expiryDate": "Expiry Date",
+        "qcStatus": "QC Status"
+      }
+    }
+  }
+}

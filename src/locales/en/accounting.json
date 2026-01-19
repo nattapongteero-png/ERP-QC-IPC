@@ -1,0 +1,178 @@
+{
+  "page": {
+    "title": "Accounting",
+    "description": "Manage general ledger, receivables, payables, and financial reports"
+  },
+  "generalLedger": {
+    "title": "General Ledger",
+    "description": "Manage chart of accounts and journal entries",
+    "chartOfAccounts": {
+      "title": "Chart of Accounts",
+      "table": {
+        "columns": {
+          "accountCode": "Account Code",
+          "accountName": "Account Name",
+          "accountType": "Account Type",
+          "parentAccount": "Parent Account",
+          "balance": "Balance",
+          "status": "Status"
+        }
+      }
+    },
+    "journalEntries": {
+      "title": "Journal Entries",
+      "table": {
+        "columns": {
+          "entryNumber": "Entry Number",
+          "date": "Date",
+          "description": "Description",
+          "debit": "Debit",
+          "credit": "Credit",
+          "status": "Status",
+          "reference": "Reference"
+        }
+      },
+      "actions": {
+        "createEntry": "Create Entry",
+        "postEntry": "Post Entry",
+        "reverseEntry": "Reverse Entry"
+      }
+    },
+    "accountTypes": {
+      "asset": "Asset",
+      "liability": "Liability",
+      "equity": "Equity",
+      "revenue": "Revenue",
+      "expense": "Expense"
+    }
+  },
+  "accountsReceivable": {
+    "title": "Accounts Receivable",
+    "description": "Manage customer invoices and payment receipts",
+    "invoices": {
+      "title": "Invoices",
+      "table": {
+        "columns": {
+          "invoiceNumber": "Invoice Number",
+          "customer": "Customer",
+          "invoiceDate": "Invoice Date",
+          "dueDate": "Due Date",
+          "amount": "Amount",
+          "paidAmount": "Paid Amount",
+          "balance": "Balance",
+          "status": "Status"
+        }
+      },
+      "status": {
+        "draft": "Draft",
+        "sent": "Sent",
+        "partial": "Partially Paid",
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "cancelled": "Cancelled"
+      }
+    },
+    "receipts": {
+      "title": "Receipts",
+      "table": {
+        "columns": {
+          "receiptNumber": "Receipt Number",
+          "customer": "Customer",
+          "date": "Date",
+          "amount": "Amount",
+          "paymentMethod": "Payment Method"
+        }
+      }
+    },
+    "actions": {
+      "createInvoice": "Create Invoice",
+      "recordPayment": "Record Payment",
+      "sendReminder": "Send Reminder",
+      "viewAging": "View Aging Report"
+    }
+  },
+  "accountsPayable": {
+    "title": "Accounts Payable",
+    "description": "Manage supplier bills and payments",
+    "bills": {
+      "title": "Supplier Bills",
+      "table": {
+        "columns": {
+          "billNumber": "Bill Number",
+          "supplier": "Supplier",
+          "billDate": "Bill Date",
+          "dueDate": "Due Date",
+          "amount": "Amount",
+          "paidAmount": "Paid Amount",
+          "balance": "Balance",
+          "status": "Status"
+        }
+      }
+    },
+    "payments": {
+      "title": "Payments",
+      "table": {
+        "columns": {
+          "paymentNumber": "Payment Number",
+          "supplier": "Supplier",
+          "date": "Date",
+          "amount": "Amount",
+          "paymentMethod": "Payment Method"
+        }
+      }
+    },
+    "actions": {
+      "recordBill": "Record Bill",
+      "makePayment": "Make Payment",
+      "viewAging": "View Aging Report"
+    }
+  },
+  "fixedAssets": {
+    "title": "Fixed Assets",
+    "description": "Manage fixed assets and depreciation",
+    "table": {
+      "columns": {
+        "assetCode": "Asset Code",
+        "assetName": "Asset Name",
+        "category": "Category",
+        "acquisitionDate": "Acquisition Date",
+        "acquisitionCost": "Acquisition Cost",
+        "currentValue": "Current Value",
+        "depreciation": "Accumulated Depreciation",
+        "status": "Status"
+      }
+    },
+    "actions": {
+      "addAsset": "Add Asset",
+      "recordDepreciation": "Record Depreciation",
+      "disposeAsset": "Dispose Asset"
+    }
+  },
+  "reports": {
+    "title": "Financial Reports",
+    "balanceSheet": "Balance Sheet",
+    "incomeStatement": "Income Statement",
+    "cashFlow": "Cash Flow Statement",
+    "trialBalance": "Trial Balance",
+    "agingReport": "Aging Report",
+    "taxReport": "Tax Report"
+  },
+  "periods": {
+    "title": "Accounting Periods",
+    "actions": {
+      "closePeriod": "Close Period",
+      "openPeriod": "Open Period",
+      "yearEnd": "Year-End Close"
+    }
+  },
+  "common": {
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "discount": "Discount",
+    "grandTotal": "Grand Total"
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "page": {
+    "title": "บัญชี",
+    "description": "จัดการบัญชีแยกประเภท รายรับ รายจ่าย และรายงานทางการเงิน"
+  },
+  "generalLedger": {
+    "title": "บัญชีแยกประเภท",
+    "description": "จัดการผังบัญชีและรายการบันทึกบัญชี",
+    "chartOfAccounts": {
+      "title": "ผังบัญชี",
+      "table": {
+        "columns": {
+          "accountCode": "รหัสบัญชี",
+          "accountName": "ชื่อบัญชี",
+          "accountType": "ประเภทบัญชี",
+          "parentAccount": "บัญชีหลัก",
+          "balance": "ยอดคงเหลือ",
+          "status": "สถานะ"
+        }
+      }
+    },
+    "journalEntries": {
+      "title": "รายการบันทึกบัญชี",
+      "table": {
+        "columns": {
+          "entryNumber": "เลขที่รายการ",
+          "date": "วันที่",
+          "description": "คำอธิบาย",
+          "debit": "เดบิต",
+          "credit": "เครดิต",
+          "status": "สถานะ",
+          "reference": "อ้างอิง"
+        }
+      },
+      "actions": {
+        "createEntry": "สร้างรายการ",
+        "postEntry": "ลงรายการ",
+        "reverseEntry": "กลับรายการ"
+      }
+    },
+    "accountTypes": {
+      "asset": "สินทรัพย์",
+      "liability": "หนี้สิน",
+      "equity": "ส่วนของผู้ถือหุ้น",
+      "revenue": "รายได้",
+      "expense": "ค่าใช้จ่าย"
+    }
+  },
+  "accountsReceivable": {
+    "title": "บัญชีลูกหนี้",
+    "description": "จัดการใบแจ้งหนี้และการรับชำระเงินจากลูกค้า",
+    "invoices": {
+      "title": "ใบแจ้งหนี้",
+      "table": {
+        "columns": {
+          "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+          "customer": "ลูกค้า",
+          "invoiceDate": "วันที่ออกใบแจ้งหนี้",
+          "dueDate": "วันครบกำหนด",
+          "amount": "จำนวนเงิน",
+          "paidAmount": "ชำระแล้ว",
+          "balance": "ยอดคงเหลือ",
+          "status": "สถานะ"
+        }
+      },
+      "status": {
+        "draft": "แบบร่าง",
+        "sent": "ส่งแล้ว",
+        "partial": "ชำระบางส่วน",
+        "paid": "ชำระแล้ว",
+        "overdue": "เกินกำหนด",
+        "cancelled": "ยกเลิก"
+      }
+    },
+    "receipts": {
+      "title": "ใบเสร็จรับเงิน",
+      "table": {
+        "columns": {
+          "receiptNumber": "เลขที่ใบเสร็จ",
+          "customer": "ลูกค้า",
+          "date": "วันที่",
+          "amount": "จำนวนเงิน",
+          "paymentMethod": "วิธีการชำระเงิน"
+        }
+      }
+    },
+    "actions": {
+      "createInvoice": "สร้างใบแจ้งหนี้",
+      "recordPayment": "บันทึกการรับชำระ",
+      "sendReminder": "ส่งการแจ้งเตือน",
+      "viewAging": "ดูรายงานอายุหนี้"
+    }
+  },
+  "accountsPayable": {
+    "title": "บัญชีเจ้าหนี้",
+    "description": "จัดการใบแจ้งหนี้ผู้ขายและการชำระเงิน",
+    "bills": {
+      "title": "ใบแจ้งหนี้ผู้ขาย",
+      "table": {
+        "columns": {
+          "billNumber": "เลขที่ใบแจ้งหนี้",
+          "supplier": "ผู้ขาย",
+          "billDate": "วันที่",
+          "dueDate": "วันครบกำหนด",
+          "amount": "จำนวนเงิน",
+          "paidAmount": "ชำระแล้ว",
+          "balance": "ยอดคงเหลือ",
+          "status": "สถานะ"
+        }
+      }
+    },
+    "payments": {
+      "title": "การชำระเงิน",
+      "table": {
+        "columns": {
+          "paymentNumber": "เลขที่การชำระ",
+          "supplier": "ผู้ขาย",
+          "date": "วันที่",
+          "amount": "จำนวนเงิน",
+          "paymentMethod": "วิธีการชำระเงิน"
+        }
+      }
+    },
+    "actions": {
+      "recordBill": "บันทึกใบแจ้งหนี้",
+      "makePayment": "ชำระเงิน",
+      "viewAging": "ดูรายงานอายุหนี้"
+    }
+  },
+  "fixedAssets": {
+    "title": "สินทรัพย์ถาวร",
+    "description": "จัดการสินทรัพย์ถาวรและค่าเสื่อมราคา",
+    "table": {
+      "columns": {
+        "assetCode": "รหัสสินทรัพย์",
+        "assetName": "ชื่อสินทรัพย์",
+        "category": "หมวดหมู่",
+        "acquisitionDate": "วันที่ได้มา",
+        "acquisitionCost": "ราคาทุน",
+        "currentValue": "มูลค่าปัจจุบัน",
+        "depreciation": "ค่าเสื่อมราคาสะสม",
+        "status": "สถานะ"
+      }
+    },
+    "actions": {
+      "addAsset": "เพิ่มสินทรัพย์",
+      "recordDepreciation": "บันทึกค่าเสื่อมราคา",
+      "disposeAsset": "จำหน่ายสินทรัพย์"
+    }
+  },
+  "reports": {
+    "title": "รายงานทางการเงิน",
+    "balanceSheet": "งบดุล",
+    "incomeStatement": "งบกำไรขาดทุน",
+    "cashFlow": "งบกระแสเงินสด",
+    "trialBalance": "งบทดลอง",
+    "agingReport": "รายงานอายุหนี้",
+    "taxReport": "รายงานภาษี"
+  },
+  "periods": {
+    "title": "รอบบัญชี",
+    "actions": {
+      "closePeriod": "ปิดรอบบัญชี",
+      "openPeriod": "เปิดรอบบัญชี",
+      "yearEnd": "ปิดบัญชีประจำปี"
+    }
+  },
+  "common": {
+    "debit": "เดบิต",
+    "credit": "เครดิต",
+    "balance": "ยอดคงเหลือ",
+    "total": "รวม",
+    "subtotal": "รวมย่อย",
+    "tax": "ภาษี",
+    "discount": "ส่วนลด",
+    "grandTotal": "รวมทั้งสิ้น"
+  }
+}

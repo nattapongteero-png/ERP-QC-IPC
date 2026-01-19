@@ -1,0 +1,178 @@
+{
+  "page": {
+    "title": "การผลิต",
+    "description": "จัดการใบสั่งผลิต สูตรการผลิต และสายการผลิต"
+  },
+  "workOrders": {
+    "title": "ใบสั่งผลิต",
+    "description": "จัดการใบสั่งผลิตและติดตามความคืบหน้า",
+    "table": {
+      "columns": {
+        "woNumber": "เลขที่ใบสั่งผลิต",
+        "batchNumber": "เลขที่แบตช์",
+        "product": "ผลิตภัณฑ์",
+        "quantity": "ปริมาณ",
+        "unit": "หน่วย",
+        "status": "สถานะ",
+        "plannedStart": "วันเริ่มต้นตามแผน",
+        "plannedEnd": "วันสิ้นสุดตามแผน",
+        "actualStart": "วันเริ่มต้นจริง",
+        "actualEnd": "วันสิ้นสุดจริง",
+        "productionLine": "สายการผลิต",
+        "priority": "ความสำคัญ"
+      }
+    },
+    "form": {
+      "product": {
+        "label": "ผลิตภัณฑ์",
+        "placeholder": "เลือกผลิตภัณฑ์"
+      },
+      "quantity": {
+        "label": "ปริมาณ",
+        "placeholder": "ป้อนปริมาณ"
+      },
+      "batchSize": {
+        "label": "ขนาดแบตช์",
+        "placeholder": "ป้อนขนาดแบตช์"
+      },
+      "plannedStart": {
+        "label": "วันเริ่มต้นตามแผน",
+        "placeholder": "เลือกวันเริ่มต้น"
+      },
+      "plannedEnd": {
+        "label": "วันสิ้นสุดตามแผน",
+        "placeholder": "เลือกวันสิ้นสุด"
+      },
+      "productionLine": {
+        "label": "สายการผลิต",
+        "placeholder": "เลือกสายการผลิต"
+      },
+      "priority": {
+        "label": "ความสำคัญ",
+        "placeholder": "เลือกความสำคัญ"
+      },
+      "remarks": {
+        "label": "หมายเหตุ",
+        "placeholder": "ป้อนหมายเหตุ"
+      }
+    },
+    "actions": {
+      "createWO": "สร้างใบสั่งผลิต",
+      "editWO": "แก้ไขใบสั่งผลิต",
+      "viewWO": "ดูรายละเอียด",
+      "startWO": "เริ่มการผลิต",
+      "completeWO": "เสร็จสิ้นการผลิต",
+      "cancelWO": "ยกเลิกใบสั่งผลิต",
+      "holdWO": "พักใบสั่งผลิต",
+      "releaseWO": "ปล่อยใบสั่งผลิต",
+      "printLabel": "พิมพ์ฉลาก",
+      "viewBOM": "ดูสูตรการผลิต"
+    },
+    "status": {
+      "draft": "แบบร่าง",
+      "planned": "วางแผนแล้ว",
+      "released": "ปล่อยแล้ว",
+      "inProgress": "กำลังดำเนินการ",
+      "onHold": "พักไว้",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิก"
+    },
+    "priority": {
+      "low": "ต่ำ",
+      "normal": "ปกติ",
+      "high": "สูง",
+      "urgent": "เร่งด่วน"
+    },
+    "toast": {
+      "create": {
+        "success": "สร้างใบสั่งผลิตสำเร็จ",
+        "error": "ไม่สามารถสร้างใบสั่งผลิตได้"
+      },
+      "update": {
+        "success": "อัปเดตใบสั่งผลิตสำเร็จ",
+        "error": "ไม่สามารถอัปเดตใบสั่งผลิตได้"
+      },
+      "start": {
+        "success": "เริ่มการผลิตสำเร็จ",
+        "error": "ไม่สามารถเริ่มการผลิตได้"
+      },
+      "complete": {
+        "success": "เสร็จสิ้นการผลิตสำเร็จ",
+        "error": "ไม่สามารถเสร็จสิ้นการผลิตได้"
+      }
+    },
+    "empty": {
+      "title": "ไม่มีใบสั่งผลิต",
+      "description": "เริ่มต้นโดยสร้างใบสั่งผลิตใหม่",
+      "action": "สร้างใบสั่งผลิต"
+    }
+  },
+  "bom": {
+    "title": "สูตรการผลิต (BOM)",
+    "description": "จัดการสูตรการผลิตและส่วนผสม",
+    "table": {
+      "columns": {
+        "bomCode": "รหัส BOM",
+        "product": "ผลิตภัณฑ์",
+        "version": "เวอร์ชัน",
+        "batchSize": "ขนาดแบตช์",
+        "unit": "หน่วย",
+        "status": "สถานะ",
+        "effectiveDate": "วันที่มีผล",
+        "expiryDate": "วันหมดอายุ"
+      }
+    },
+    "ingredients": {
+      "title": "ส่วนผสม",
+      "columns": {
+        "item": "รายการ",
+        "quantity": "ปริมาณ",
+        "unit": "หน่วย",
+        "percentage": "เปอร์เซ็นต์",
+        "scrap": "เศษ/สูญเสีย"
+      }
+    },
+    "actions": {
+      "createBOM": "สร้างสูตรการผลิต",
+      "editBOM": "แก้ไขสูตรการผลิต",
+      "copyBOM": "คัดลอกสูตรการผลิต",
+      "newVersion": "สร้างเวอร์ชันใหม่",
+      "activateBOM": "เปิดใช้งาน",
+      "deactivateBOM": "ปิดใช้งาน"
+    }
+  },
+  "productionLines": {
+    "title": "สายการผลิต",
+    "description": "จัดการสายการผลิตและกำลังการผลิต",
+    "table": {
+      "columns": {
+        "code": "รหัสสายการผลิต",
+        "name": "ชื่อสายการผลิต",
+        "capacity": "กำลังการผลิต",
+        "status": "สถานะ",
+        "currentWO": "ใบสั่งผลิตปัจจุบัน",
+        "efficiency": "ประสิทธิภาพ"
+      }
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "maintenance": "ซ่อมบำรุง"
+    }
+  },
+  "batches": {
+    "title": "แบตช์",
+    "description": "ติดตามแบตช์การผลิตและการควบคุมคุณภาพ",
+    "table": {
+      "columns": {
+        "batchNumber": "เลขที่แบตช์",
+        "product": "ผลิตภัณฑ์",
+        "quantity": "ปริมาณ",
+        "status": "สถานะ",
+        "productionDate": "วันที่ผลิต",
+        "expiryDate": "วันหมดอายุ",
+        "qcStatus": "สถานะ QC"
+      }
+    }
+  }
+}
