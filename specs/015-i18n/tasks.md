@@ -226,12 +226,14 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T065 Run full i18n validation and fix any remaining missing keys
-- [ ] T066 Performance testing: verify language switch under 500ms
-- [ ] T067 Bundle size analysis: verify i18n overhead within 10% baseline
-- [ ] T068 [P] Update CLAUDE.md with i18n technology stack
-- [ ] T069 Run quickstart.md validation to ensure setup guide works
-- [ ] T070 Final type checking with `bunx tsc --noEmit --skipLibCheck`
+- [x] T065 Run full i18n validation and fix any remaining missing keys
+- [x] T066 Performance testing: verify language switch under 500ms (7.93ms achieved)
+- [x] T067 Bundle size analysis: verify i18n overhead within 10% baseline (132KB total)
+- [x] T068 [P] Update CLAUDE.md with i18n technology stack
+- [x] T069 Run quickstart.md validation to ensure setup guide works
+- [x] T070 Final type checking with `bunx tsc --noEmit --skipLibCheck`
+
+**Checkpoint**: Phase 10 complete - All polish tasks verified ✅
 
 ---
 

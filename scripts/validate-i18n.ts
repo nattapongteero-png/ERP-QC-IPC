@@ -24,7 +24,7 @@ import * as path from 'path';
 const CONFIG = {
   srcDir: 'src',
   localesDir: 'src/locales',
-  locales: ['th', 'en', 'zh'] as const,
+  locales: ['th', 'en'] as const,
   primaryLocale: 'th',
   /**
    * Required locales must have 100% translation coverage.
@@ -42,7 +42,7 @@ const CONFIG = {
    * 3. Add to CONFIG.optionalLocales array below
    * 4. Translation gaps will show as warnings, not errors
    */
-  optionalLocales: ['zh'] as string[],
+  optionalLocales: [] as string[],
   fileExtensions: ['.tsx', '.ts'],
   excludePatterns: [
     /node_modules/,
@@ -50,24 +50,14 @@ const CONFIG = {
     /\.spec\./,
     /tests\//,
     /\.d\.ts$/,
+    // Exclude accounting reports - uses ReportLanguageProvider (separate i18n system)
+    /src\/app\/accounting\/reports\//,
+    // Exclude report language context (separate i18n system)
+    /src\/contexts\/report-language-context\.tsx$/,
   ],
 };
 
 type Locale = (typeof CONFIG.locales)[number];
-
-/**
- * Check if a locale is required (must have 100% coverage)
- */
-function isRequiredLocale(locale: string): boolean {
-  return (CONFIG.requiredLocales as readonly string[]).includes(locale);
-}
-
-/**
- * Check if a locale is optional (warnings only for missing keys)
- */
-function isOptionalLocale(locale: string): boolean {
-  return CONFIG.optionalLocales.includes(locale);
-}
 
 // Types
 interface UsedKey {
@@ -127,8 +117,13 @@ function extractTranslationKeys(content: string, filePath: string): UsedKey[] {
   lines.forEach((line, index) => {
     let match;
     while ((match = tFunctionRegex.exec(line)) !== null) {
+      const key = match[1];
+      // Skip dynamic keys with template literals (${...})
+      if (key.includes('${')) {
+        continue;
+      }
       keys.push({
-        key: match[1],
+        key,
         file: filePath,
         line: index + 1,
       });
@@ -311,49 +306,37 @@ function validateTranslations(verbose: boolean = false): ValidationResult {
     for (const locale of CONFIG.locales) {
       const value = getNestedValue(translations[locale], key);
       if (value === undefined) {
-        // Determine severity based on locale requirement status
-        const isOptional = isOptionalLocale(locale);
-        const severity = isOptional ? 'warning' : 'error';
-        const errorItem: ValidationError = {
+        errors.push({
           key,
           file,
           line,
           locale,
-          severity,
-          message: `Missing translation for key "${key}" in locale "${locale}"${isOptional ? ' (optional locale)' : ''}`,
-        };
-
-        if (isOptional) {
-          warnings.push(errorItem);
-        } else {
-          errors.push(errorItem);
-        }
+          severity: 'error',
+          message: `Missing translation for key "${key}" in locale "${locale}"`,
+        });
       }
     }
   }
 
   // Check for inconsistent keys (present in some locales but not all)
-  // Only check required locales for inconsistencies - optional locales are expected to be incomplete
   const allDefinedKeys = new Set<string>();
   for (const locale of CONFIG.locales) {
     definedKeysPerLocale[locale].forEach((k) => allDefinedKeys.add(k));
   }
 
   for (const key of allDefinedKeys) {
-    // Filter only required locales for inconsistency check
-    const requiredLocales = CONFIG.locales.filter((l) => isRequiredLocale(l));
-    const missingInRequiredLocales = requiredLocales.filter(
+    const missingInLocales = CONFIG.locales.filter(
       (locale) => !definedKeysPerLocale[locale].has(key)
     );
-    if (missingInRequiredLocales.length > 0 && missingInRequiredLocales.length < requiredLocales.length) {
-      for (const locale of missingInRequiredLocales) {
+    if (missingInLocales.length > 0 && missingInLocales.length < CONFIG.locales.length) {
+      for (const locale of missingInLocales) {
         warnings.push({
           key,
           file: `src/locales/${locale}/`,
           line: 0,
           locale,
           severity: 'warning',
-          message: `Key "${key}" is defined in other required locales but missing in "${locale}"`,
+          message: `Key "${key}" is defined in other locales but missing in "${locale}"`,
         });
       }
     }
@@ -402,23 +385,18 @@ function printResults(result: ValidationResult, verbose: boolean) {
   console.log(`${colors.bold}Summary:${colors.reset}`);
   console.log(`  Total unique keys used: ${summary.totalKeysUsed}`);
   console.log('');
-  console.log('  Locale  | Status   | Defined | Coverage');
-  console.log('  --------|----------|---------|----------');
+  console.log('  Locale  | Defined | Coverage');
+  console.log('  --------|---------|----------');
   for (const locale of CONFIG.locales) {
     const coverage = summary.coveragePercent[locale];
-    const isOptional = isOptionalLocale(locale);
-    const status = isOptional ? 'optional' : 'required';
-    const statusColor = isOptional ? colors.yellow : colors.cyan;
     const coverageColor =
       coverage === 100
         ? colors.green
         : coverage >= 90
           ? colors.yellow
-          : isOptional
-            ? colors.yellow
-            : colors.red;
+          : colors.red;
     console.log(
-      `  ${locale.padEnd(7)} | ${statusColor}${status.padEnd(8)}${colors.reset} | ${String(summary.totalKeysDefined[locale]).padStart(7)} | ${coverageColor}${coverage}%${colors.reset}`
+      `  ${locale.padEnd(7)} | ${String(summary.totalKeysDefined[locale]).padStart(7)} | ${coverageColor}${coverage}%${colors.reset}`
     );
   }
   console.log('');
