@@ -16,7 +16,7 @@ import { exportToPDF, exportToExcel, exportToCSV, downloadCSV } from '@/lib/serv
 import type { CashFlowStatementReport, CashFlowSection } from '@/types/accounting';
 
 async function fetchCashFlow(startDate: string, endDate: string): Promise<CashFlowStatementReport> {
-  const res = await fetch(`/api/accounting/reports/cash-flow?startDate=${startDate}&endDate=${endDate}`);
+  const res = await fetch(`/api/accounting/reports/cash-flow?periodStart=${startDate}&periodEnd=${endDate}`);
   if (!res.ok) throw new Error('Failed to fetch cash flow statement');
   const data = await res.json();
   return data.data;
