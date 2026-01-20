@@ -11,7 +11,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { NextIntlClientProvider, useTranslations, useLocale } from 'next-intl';
@@ -132,15 +132,15 @@ function deepMerge(
 
 interface ExtensibleProviderProps {
   children: ReactNode;
-  locale: string; // Accept any locale string for extensibility testing
+  locale: string;
   messages: Record<string, unknown>;
 }
 
 function ExtensibleProvider({ children, locale, messages }: ExtensibleProviderProps) {
   return (
     <NextIntlClientProvider
-      // Cast to satisfy next-intl types while testing extensibility
-      locale={locale as 'th' | 'en'}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      locale={locale as any}
       messages={messages}
       timeZone="Asia/Bangkok"
       onError={() => {}}

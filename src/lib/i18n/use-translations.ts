@@ -11,12 +11,9 @@
 'use client';
 
 import { useTranslations, useLocale, useMessages } from 'next-intl';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { Locale } from './config';
 import { fallbackLocale } from './config';
-
-// Type for translation values
-type TranslationValues = Record<string, string | number | Date> | undefined;
 
 // Track warned keys to avoid spamming console
 const warnedKeys = new Set<string>();
@@ -78,8 +75,8 @@ export function useModuleTranslations(namespace: string) {
 
   // Wrap translation function with dev warning support
   const t = useCallback(
-    (key: string, values?: TranslationValues) => {
-      const result = baseT(key, values as Parameters<typeof baseT>[1]);
+    (key: string, values?: Record<string, string | number | Date>) => {
+      const result = baseT(key, values);
 
       // In dev mode, check if we're using a fallback
       if (process.env.NODE_ENV === 'development' && locale !== fallbackLocale) {
@@ -116,8 +113,8 @@ export function useCommonTranslations() {
   const messages = useMessages();
 
   const t = useCallback(
-    (key: string, values?: TranslationValues) => {
-      const result = baseT(key, values as Parameters<typeof baseT>[1]);
+    (key: string, values?: Record<string, string | number | Date>) => {
+      const result = baseT(key, values);
 
       if (process.env.NODE_ENV === 'development' && locale !== fallbackLocale) {
         const commonMessages = messages.common as Record<string, unknown> | undefined;
@@ -150,8 +147,8 @@ export function useNavigationTranslations() {
   const messages = useMessages();
 
   const t = useCallback(
-    (key: string, values?: TranslationValues) => {
-      const result = baseT(key, values as Parameters<typeof baseT>[1]);
+    (key: string, values?: Record<string, string | number | Date>) => {
+      const result = baseT(key, values);
 
       if (process.env.NODE_ENV === 'development' && locale !== fallbackLocale) {
         const navMessages = messages.navigation as Record<string, unknown> | undefined;
@@ -184,8 +181,8 @@ export function useDashboardTranslations() {
   const messages = useMessages();
 
   const t = useCallback(
-    (key: string, values?: TranslationValues) => {
-      const result = baseT(key, values as Parameters<typeof baseT>[1]);
+    (key: string, values?: Record<string, string | number | Date>) => {
+      const result = baseT(key, values);
 
       if (process.env.NODE_ENV === 'development' && locale !== fallbackLocale) {
         const dashboardMessages = messages.dashboard as Record<string, unknown> | undefined;

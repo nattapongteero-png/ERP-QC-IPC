@@ -4,6 +4,8 @@
  *
  * Tests that when English translation is missing, the system falls back to Thai
  * text instead of showing raw keys.
+ *
+ * @vitest-environment jsdom
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -397,7 +399,7 @@ describe('i18n Fallback Behavior', () => {
 
 describe('Fallback with interpolation', () => {
   it('handles interpolation in fallback messages', () => {
-    const thaiWithInterpolation = {
+    const thaiWithInterpolation: Record<string, unknown> = {
       common: {
         validation: {
           minLength: 'ต้องมีอย่างน้อย {min} ตัวอักษร',
@@ -405,7 +407,7 @@ describe('Fallback with interpolation', () => {
       },
     };
 
-    const emptyEnglish = {
+    const emptyEnglish: Record<string, unknown> = {
       common: {
         validation: {},
       },

@@ -343,62 +343,78 @@ Enable verbose logging in development:
 
 ## Adding a New Language
 
-The system is designed to support adding new languages without code changes (beyond configuration).
+This section explains how to extend the i18n system with additional languages (e.g., Chinese, Japanese).
 
-### Step 1: Create Translation Files
+### Step 1: Create Locale Directory and Files
 
 ```bash
 # Create directory for new locale (e.g., Chinese)
 mkdir -p src/locales/zh
 
-# Copy structure from Thai (primary locale)
-cp src/locales/th/common.json src/locales/zh/common.json
-cp src/locales/th/navigation.json src/locales/zh/navigation.json
-# ... copy other namespaces as needed
+# Copy Thai files as templates
+cp src/locales/th/common.json src/locales/zh/
+cp src/locales/th/navigation.json src/locales/zh/
+# ... copy other namespace files as needed
 ```
 
-### Step 2: Update Locale Configuration
+### Step 2: Register the Locale
+
+Update `src/lib/i18n/config.ts`:
 
 ```typescript
-// src/lib/i18n/config.ts
-
 // Add to locales array
 export const locales = ['th', 'en', 'zh'] as const;
-export type Locale = (typeof locales)[number];
 
 // Add display name
 export const localeNames: Record<Locale, string> = {
   th: 'ไทย',
   en: 'English',
-  zh: '中文',  // Add new language
-};
-
-// Add flag (optional)
-export const localeFlags: Record<Locale, string> = {
-  th: '🇹🇭',
-  en: '🇬🇧',
-  zh: '🇨🇳',  // Add new language flag
+  zh: '中文',
 };
 ```
 
-### Step 3: Update Request Configuration
+### Step 3: Configure as Optional (Recommended for Gradual Rollout)
+
+Update `scripts/validate-i18n.ts` to mark the new locale as optional:
 
 ```typescript
-// src/lib/i18n/request.ts
-
-// The request config will automatically pick up the new locale
-// if it's in the locales array and has translation files
-
-// For fallback support, ensure Thai messages are loaded for new locale
-if (locale !== 'th') {
-  // Load Thai fallback messages
-  // ... existing fallback logic works automatically
-}
+const CONFIG = {
+  // ... existing config
+  requiredLocales: ['th', 'en'] as const,
+  optionalLocales: ['zh'] as const,  // Add new locale here
+};
 ```
 
-### Step 4: Translate Files
+This allows partial translation coverage during rollout:
+- **Required locales** (th, en): Missing translations cause validation to FAIL
+- **Optional locales** (zh): Missing translations show as WARNINGS only
 
-Replace Thai text with the new language translations:
+### Step 4: Update Message Loading
+
+Update `src/lib/i18n/request.ts` to load the new locale's messages:
+
+```typescript
+export default getRequestConfig(async () => {
+  // ... existing locale detection ...
+
+  // Load fallback (Thai) messages first
+  const fallbackMessages = await loadMessages('th');
+
+  // Load current locale messages
+  const localeMessages = locale !== 'th'
+    ? await loadMessages(locale)
+    : {};
+
+  // Merge: fallback first, then current locale (current takes precedence)
+  const messages = deepMerge(fallbackMessages, localeMessages);
+
+  return { locale, messages, timeZone: 'Asia/Bangkok' };
+});
+```
+
+### Step 5: Translate Files
+
+Translate the copied JSON files in `src/locales/zh/`:
 
 ```json
 // src/locales/zh/common.json
@@ -406,42 +422,36 @@ Replace Thai text with the new language translations:
   "actions": {
     "save": "保存",
     "cancel": "取消",
-    "delete": "删除"
+    // ... translate all keys
   }
 }
 ```
 
-### Step 5: Configure Validation (Optional)
+**Important:** Only translate keys that you've verified. Missing keys will automatically fall back to Thai text.
 
-For gradual rollout, configure as optional locale:
+### Step 6: Verify
 
-```typescript
-// scripts/validate-i18n.ts or validation config
-export const validationConfig = {
-  requiredLocales: ['th', 'en'],   // Must have 100% coverage
-  optionalLocales: ['zh'],          // Warnings only, not errors
-};
+```bash
+# Run validation (optional locale will show warnings, not errors)
+bun run i18n:check
+
+# Test in browser
+# 1. Start dev server: bun dev
+# 2. Use language selector to switch to new language
+# 3. Verify translations appear, missing keys show Thai fallback
 ```
 
-### Fallback Behavior for New Languages
+### Promotion from Optional to Required
 
-When adding a new language, you don't need to translate everything immediately:
+Once the new locale has 100% translation coverage:
 
-1. **Missing keys fallback to Thai** - Users see Thai text instead of raw keys
-2. **Console warnings in dev mode** - Developers see which keys need translation
-3. **Gradual coverage is OK** - Start with critical UI, add more over time
+1. Move from `optionalLocales` to `requiredLocales` in `validate-i18n.ts`
+2. Run `bun run i18n:check` to verify no missing translations
+3. Commit the change
 
-### Testing New Language
+### Language Selector
 
-```tsx
-// Test that new locale works
-import { renderWithI18n } from '@/tests/helpers/i18n-test-wrapper';
-
-it('should render Chinese translation', () => {
-  const { getByText } = renderWithI18n(<MyComponent />, { locale: 'zh' });
-  expect(getByText('保存')).toBeInTheDocument();
-});
-```
+The language selector automatically includes all registered locales from `config.ts`. No additional changes needed - the new language will appear in the dropdown.
 
 ## Best Practices
 
@@ -452,4 +462,3 @@ it('should render Chinese translation', () => {
 5. **Test with both locales**: Switch languages during development
 6. **Avoid hardcoded text**: Extract all user-facing strings
 7. **Document new namespaces**: Update this guide when adding modules
-8. **Start small with new languages**: Begin with common/navigation, expand gradually
