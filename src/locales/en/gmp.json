@@ -1,0 +1,47 @@
+{
+  "page": {
+    "title": "GMP",
+    "description": "Good Manufacturing Practice compliance"
+  },
+  "compliance": {
+    "title": "Compliance",
+    "description": "Track GMP compliance status"
+  },
+  "audits": {
+    "title": "Audits",
+    "description": "Manage GMP audits",
+    "table": {
+      "columns": {
+        "auditNumber": "Audit Number",
+        "type": "Type",
+        "scheduledDate": "Scheduled Date",
+        "status": "Status",
+        "findings": "Findings",
+        "auditor": "Auditor"
+      }
+    },
+    "actions": {
+      "scheduleAudit": "Schedule Audit",
+      "conductAudit": "Conduct Audit",
+      "viewAudit": "View Audit"
+    }
+  },
+  "capa": {
+    "title": "CAPA",
+    "description": "Corrective and Preventive Actions"
+  },
+  "documents": {
+    "title": "Documents",
+    "description": "Manage GMP documents"
+  },
+  "training": {
+    "title": "Training",
+    "description": "Manage GMP training"
+  },
+  "toast": {
+    "createAudit": {
+      "success": "Audit created successfully",
+      "error": "Failed to create audit"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "page": {
+    "title": "Cost",
+    "description": "Manage cost calculation and analysis"
+  },
+  "unitCost": {
+    "title": "Unit Cost",
+    "description": "Calculate and manage product unit costs"
+  },
+  "productCost": {
+    "title": "Product Cost",
+    "description": "Analyze product costs",
+    "table": {
+      "columns": {
+        "productCode": "Product Code",
+        "productName": "Product Name",
+        "materialCost": "Material Cost",
+        "laborCost": "Labor Cost",
+        "overheadCost": "Overhead Cost",
+        "totalCost": "Total Cost"
+      }
+    }
+  },
+  "analysis": {
+    "title": "Analysis",
+    "description": "Analyze cost structure"
+  },
+  "variance": {
+    "title": "Cost Variance",
+    "description": "Analyze actual vs standard cost variance"
+  },
+  "toast": {
+    "calculate": {
+      "success": "Cost calculated successfully",
+      "error": "Failed to calculate cost"
+    }
+  }
+}

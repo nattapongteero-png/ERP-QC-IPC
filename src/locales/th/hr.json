@@ -1,0 +1,64 @@
+{
+  "page": {
+    "title": "ทรัพยากรบุคคล",
+    "description": "จัดการพนักงานและโครงสร้างองค์กร"
+  },
+  "employees": {
+    "title": "พนักงาน",
+    "description": "จัดการข้อมูลพนักงาน",
+    "table": {
+      "columns": {
+        "employeeId": "รหัสพนักงาน",
+        "name": "ชื่อ-นามสกุล",
+        "department": "แผนก",
+        "position": "ตำแหน่ง",
+        "joinDate": "วันที่เริ่มงาน",
+        "status": "สถานะ"
+      }
+    },
+    "form": {
+      "employeeId": {
+        "label": "รหัสพนักงาน"
+      },
+      "firstName": {
+        "label": "ชื่อ",
+        "placeholder": "ป้อนชื่อ"
+      },
+      "lastName": {
+        "label": "นามสกุล",
+        "placeholder": "ป้อนนามสกุล"
+      },
+      "department": {
+        "label": "แผนก",
+        "placeholder": "เลือกแผนก"
+      },
+      "position": {
+        "label": "ตำแหน่ง",
+        "placeholder": "เลือกตำแหน่ง"
+      }
+    },
+    "actions": {
+      "addEmployee": "เพิ่มพนักงาน",
+      "editEmployee": "แก้ไขพนักงาน",
+      "viewEmployee": "ดูข้อมูลพนักงาน"
+    }
+  },
+  "departments": {
+    "title": "แผนก",
+    "description": "จัดการโครงสร้างแผนก"
+  },
+  "positions": {
+    "title": "ตำแหน่ง",
+    "description": "จัดการตำแหน่งงาน"
+  },
+  "attendance": {
+    "title": "การลงเวลา",
+    "description": "จัดการการลงเวลาทำงาน"
+  },
+  "toast": {
+    "addEmployee": {
+      "success": "เพิ่มพนักงานสำเร็จ",
+      "error": "ไม่สามารถเพิ่มพนักงานได้"
+    }
+  }
+}

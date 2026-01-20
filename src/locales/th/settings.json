@@ -1,0 +1,66 @@
+{
+  "page": {
+    "title": "ตั้งค่า",
+    "description": "ตั้งค่าระบบและการกำหนดค่า"
+  },
+  "general": {
+    "title": "ทั่วไป",
+    "description": "การตั้งค่าทั่วไปของระบบ",
+    "companyName": "ชื่อบริษัท",
+    "companyLogo": "โลโก้บริษัท",
+    "timezone": "เขตเวลา",
+    "dateFormat": "รูปแบบวันที่",
+    "currency": "สกุลเงิน"
+  },
+  "users": {
+    "title": "ผู้ใช้งาน",
+    "description": "จัดการผู้ใช้งานและสิทธิ์",
+    "table": {
+      "columns": {
+        "username": "ชื่อผู้ใช้",
+        "email": "อีเมล",
+        "role": "บทบาท",
+        "status": "สถานะ",
+        "lastLogin": "เข้าใช้งานล่าสุด"
+      }
+    },
+    "actions": {
+      "addUser": "เพิ่มผู้ใช้",
+      "editUser": "แก้ไขผู้ใช้",
+      "deleteUser": "ลบผู้ใช้",
+      "resetPassword": "รีเซ็ตรหัสผ่าน"
+    }
+  },
+  "roles": {
+    "title": "บทบาท",
+    "description": "จัดการบทบาทและสิทธิ์การเข้าถึง"
+  },
+  "security": {
+    "title": "ความปลอดภัย",
+    "description": "การตั้งค่าความปลอดภัย",
+    "passwordPolicy": "นโยบายรหัสผ่าน",
+    "sessionTimeout": "หมดเวลาเซสชัน",
+    "twoFactor": "การยืนยันตัวตนสองชั้น"
+  },
+  "notifications": {
+    "title": "การแจ้งเตือน",
+    "description": "ตั้งค่าการแจ้งเตือน",
+    "email": "อีเมล",
+    "inApp": "ในแอพ",
+    "sms": "SMS"
+  },
+  "integrations": {
+    "title": "การเชื่อมต่อ",
+    "description": "จัดการการเชื่อมต่อกับระบบภายนอก"
+  },
+  "backup": {
+    "title": "สำรองข้อมูล",
+    "description": "การสำรองและกู้คืนข้อมูล"
+  },
+  "toast": {
+    "save": {
+      "success": "บันทึกการตั้งค่าสำเร็จ",
+      "error": "ไม่สามารถบันทึกการตั้งค่าได้"
+    }
+  }
+}

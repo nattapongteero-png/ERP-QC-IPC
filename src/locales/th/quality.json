@@ -1,0 +1,46 @@
+{
+  "page": {
+    "title": "คุณภาพ",
+    "description": "จัดการการควบคุมคุณภาพและการตรวจสอบ"
+  },
+  "inspections": {
+    "title": "การตรวจสอบ",
+    "description": "จัดการการตรวจสอบคุณภาพ",
+    "table": {
+      "columns": {
+        "inspectionNumber": "เลขที่ตรวจสอบ",
+        "type": "ประเภท",
+        "item": "สินค้า",
+        "lot": "ล็อต",
+        "date": "วันที่ตรวจสอบ",
+        "result": "ผลการตรวจสอบ",
+        "inspector": "ผู้ตรวจสอบ"
+      }
+    },
+    "actions": {
+      "createInspection": "สร้างการตรวจสอบ",
+      "viewInspection": "ดูการตรวจสอบ",
+      "approveInspection": "อนุมัติผลตรวจสอบ"
+    },
+    "results": {
+      "pass": "ผ่าน",
+      "fail": "ไม่ผ่าน",
+      "pending": "รอผล",
+      "onHold": "พักไว้"
+    }
+  },
+  "specifications": {
+    "title": "ข้อกำหนด",
+    "description": "จัดการข้อกำหนดคุณภาพ"
+  },
+  "nonConformance": {
+    "title": "ความไม่สอดคล้อง",
+    "description": "จัดการรายงานความไม่สอดคล้อง"
+  },
+  "toast": {
+    "approve": {
+      "success": "อนุมัติผลตรวจสอบสำเร็จ",
+      "error": "ไม่สามารถอนุมัติผลตรวจสอบได้"
+    }
+  }
+}

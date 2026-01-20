@@ -1,0 +1,46 @@
+{
+  "page": {
+    "title": "Quality",
+    "description": "Manage quality control and inspections"
+  },
+  "inspections": {
+    "title": "Inspections",
+    "description": "Manage quality inspections",
+    "table": {
+      "columns": {
+        "inspectionNumber": "Inspection Number",
+        "type": "Type",
+        "item": "Item",
+        "lot": "Lot",
+        "date": "Inspection Date",
+        "result": "Result",
+        "inspector": "Inspector"
+      }
+    },
+    "actions": {
+      "createInspection": "Create Inspection",
+      "viewInspection": "View Inspection",
+      "approveInspection": "Approve Result"
+    },
+    "results": {
+      "pass": "Pass",
+      "fail": "Fail",
+      "pending": "Pending",
+      "onHold": "On Hold"
+    }
+  },
+  "specifications": {
+    "title": "Specifications",
+    "description": "Manage quality specifications"
+  },
+  "nonConformance": {
+    "title": "Non-Conformance",
+    "description": "Manage non-conformance reports"
+  },
+  "toast": {
+    "approve": {
+      "success": "Inspection result approved successfully",
+      "error": "Failed to approve inspection result"
+    }
+  }
+}

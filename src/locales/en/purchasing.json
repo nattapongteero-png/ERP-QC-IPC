@@ -1,0 +1,85 @@
+{
+  "page": {
+    "title": "Purchasing",
+    "description": "Manage purchase orders and suppliers"
+  },
+  "orders": {
+    "title": "Purchase Orders",
+    "description": "Manage all purchase orders",
+    "table": {
+      "columns": {
+        "orderNumber": "Order Number",
+        "supplier": "Supplier",
+        "orderDate": "Order Date",
+        "expectedDate": "Expected Date",
+        "totalAmount": "Total Amount",
+        "status": "Status",
+        "createdBy": "Created By"
+      }
+    },
+    "form": {
+      "orderNumber": {
+        "label": "Order Number",
+        "placeholder": "Will be auto-generated"
+      },
+      "supplier": {
+        "label": "Supplier",
+        "placeholder": "Select supplier"
+      },
+      "orderDate": {
+        "label": "Order Date"
+      },
+      "expectedDate": {
+        "label": "Expected Date"
+      },
+      "notes": {
+        "label": "Notes",
+        "placeholder": "Enter notes"
+      }
+    },
+    "actions": {
+      "createOrder": "Create Order",
+      "editOrder": "Edit Order",
+      "viewOrder": "View Order",
+      "cancelOrder": "Cancel Order",
+      "approveOrder": "Approve Order",
+      "receiveGoods": "Receive Goods"
+    },
+    "status": {
+      "draft": "Draft",
+      "pending": "Pending",
+      "approved": "Approved",
+      "partiallyReceived": "Partially Received",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    }
+  },
+  "suppliers": {
+    "title": "Suppliers",
+    "description": "Manage supplier information",
+    "table": {
+      "columns": {
+        "code": "Supplier Code",
+        "name": "Supplier Name",
+        "contact": "Contact",
+        "phone": "Phone",
+        "email": "Email",
+        "status": "Status"
+      }
+    }
+  },
+  "receiving": {
+    "title": "Receiving",
+    "description": "Record goods receipt from purchase orders"
+  },
+  "toast": {
+    "createOrder": {
+      "success": "Purchase order created successfully",
+      "error": "Failed to create purchase order"
+    },
+    "approveOrder": {
+      "success": "Purchase order approved successfully",
+      "error": "Failed to approve purchase order"
+    }
+  }
+}

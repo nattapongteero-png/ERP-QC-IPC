@@ -1,0 +1,85 @@
+{
+  "page": {
+    "title": "การจัดซื้อ",
+    "description": "จัดการใบสั่งซื้อและผู้ขาย"
+  },
+  "orders": {
+    "title": "ใบสั่งซื้อ",
+    "description": "จัดการใบสั่งซื้อทั้งหมด",
+    "table": {
+      "columns": {
+        "orderNumber": "เลขที่ใบสั่งซื้อ",
+        "supplier": "ผู้ขาย",
+        "orderDate": "วันที่สั่งซื้อ",
+        "expectedDate": "วันที่คาดว่าจะได้รับ",
+        "totalAmount": "จำนวนเงินรวม",
+        "status": "สถานะ",
+        "createdBy": "สร้างโดย"
+      }
+    },
+    "form": {
+      "orderNumber": {
+        "label": "เลขที่ใบสั่งซื้อ",
+        "placeholder": "เลขที่จะถูกสร้างอัตโนมัติ"
+      },
+      "supplier": {
+        "label": "ผู้ขาย",
+        "placeholder": "เลือกผู้ขาย"
+      },
+      "orderDate": {
+        "label": "วันที่สั่งซื้อ"
+      },
+      "expectedDate": {
+        "label": "วันที่คาดว่าจะได้รับ"
+      },
+      "notes": {
+        "label": "หมายเหตุ",
+        "placeholder": "ป้อนหมายเหตุ"
+      }
+    },
+    "actions": {
+      "createOrder": "สร้างใบสั่งซื้อ",
+      "editOrder": "แก้ไขใบสั่งซื้อ",
+      "viewOrder": "ดูใบสั่งซื้อ",
+      "cancelOrder": "ยกเลิกใบสั่งซื้อ",
+      "approveOrder": "อนุมัติใบสั่งซื้อ",
+      "receiveGoods": "รับสินค้า"
+    },
+    "status": {
+      "draft": "แบบร่าง",
+      "pending": "รออนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "partiallyReceived": "รับบางส่วน",
+      "received": "รับครบแล้ว",
+      "cancelled": "ยกเลิก"
+    }
+  },
+  "suppliers": {
+    "title": "ผู้ขาย",
+    "description": "จัดการข้อมูลผู้ขาย",
+    "table": {
+      "columns": {
+        "code": "รหัสผู้ขาย",
+        "name": "ชื่อผู้ขาย",
+        "contact": "ผู้ติดต่อ",
+        "phone": "โทรศัพท์",
+        "email": "อีเมล",
+        "status": "สถานะ"
+      }
+    }
+  },
+  "receiving": {
+    "title": "การรับสินค้า",
+    "description": "บันทึกการรับสินค้าจากใบสั่งซื้อ"
+  },
+  "toast": {
+    "createOrder": {
+      "success": "สร้างใบสั่งซื้อสำเร็จ",
+      "error": "ไม่สามารถสร้างใบสั่งซื้อได้"
+    },
+    "approveOrder": {
+      "success": "อนุมัติใบสั่งซื้อสำเร็จ",
+      "error": "ไม่สามารถอนุมัติใบสั่งซื้อได้"
+    }
+  }
+}

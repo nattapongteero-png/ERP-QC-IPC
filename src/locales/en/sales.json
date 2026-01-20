@@ -1,0 +1,81 @@
+{
+  "page": {
+    "title": "Sales",
+    "description": "Manage sales orders and customers"
+  },
+  "orders": {
+    "title": "Sales Orders",
+    "description": "Manage all sales orders",
+    "table": {
+      "columns": {
+        "orderNumber": "Order Number",
+        "customer": "Customer",
+        "orderDate": "Order Date",
+        "deliveryDate": "Delivery Date",
+        "totalAmount": "Total Amount",
+        "status": "Status",
+        "createdBy": "Created By"
+      }
+    },
+    "form": {
+      "orderNumber": {
+        "label": "Order Number",
+        "placeholder": "Will be auto-generated"
+      },
+      "customer": {
+        "label": "Customer",
+        "placeholder": "Select customer"
+      },
+      "orderDate": {
+        "label": "Order Date"
+      },
+      "deliveryDate": {
+        "label": "Delivery Date"
+      }
+    },
+    "actions": {
+      "createOrder": "Create Order",
+      "editOrder": "Edit Order",
+      "viewOrder": "View Order",
+      "cancelOrder": "Cancel Order",
+      "confirmOrder": "Confirm Order",
+      "shipOrder": "Ship Order"
+    },
+    "status": {
+      "draft": "Draft",
+      "confirmed": "Confirmed",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    }
+  },
+  "customers": {
+    "title": "Customers",
+    "description": "Manage customer information",
+    "table": {
+      "columns": {
+        "code": "Customer Code",
+        "name": "Customer Name",
+        "contact": "Contact",
+        "phone": "Phone",
+        "email": "Email",
+        "status": "Status"
+      }
+    }
+  },
+  "shipping": {
+    "title": "Shipping",
+    "description": "Manage order shipments"
+  },
+  "toast": {
+    "createOrder": {
+      "success": "Sales order created successfully",
+      "error": "Failed to create sales order"
+    },
+    "confirmOrder": {
+      "success": "Sales order confirmed successfully",
+      "error": "Failed to confirm sales order"
+    }
+  }
+}

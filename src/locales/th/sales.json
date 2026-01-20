@@ -1,0 +1,81 @@
+{
+  "page": {
+    "title": "การขาย",
+    "description": "จัดการใบสั่งขายและลูกค้า"
+  },
+  "orders": {
+    "title": "ใบสั่งขาย",
+    "description": "จัดการใบสั่งขายทั้งหมด",
+    "table": {
+      "columns": {
+        "orderNumber": "เลขที่ใบสั่งขาย",
+        "customer": "ลูกค้า",
+        "orderDate": "วันที่สั่งซื้อ",
+        "deliveryDate": "วันที่ส่งมอบ",
+        "totalAmount": "จำนวนเงินรวม",
+        "status": "สถานะ",
+        "createdBy": "สร้างโดย"
+      }
+    },
+    "form": {
+      "orderNumber": {
+        "label": "เลขที่ใบสั่งขาย",
+        "placeholder": "เลขที่จะถูกสร้างอัตโนมัติ"
+      },
+      "customer": {
+        "label": "ลูกค้า",
+        "placeholder": "เลือกลูกค้า"
+      },
+      "orderDate": {
+        "label": "วันที่สั่งซื้อ"
+      },
+      "deliveryDate": {
+        "label": "วันที่ส่งมอบ"
+      }
+    },
+    "actions": {
+      "createOrder": "สร้างใบสั่งขาย",
+      "editOrder": "แก้ไขใบสั่งขาย",
+      "viewOrder": "ดูใบสั่งขาย",
+      "cancelOrder": "ยกเลิกใบสั่งขาย",
+      "confirmOrder": "ยืนยันใบสั่งขาย",
+      "shipOrder": "จัดส่งสินค้า"
+    },
+    "status": {
+      "draft": "แบบร่าง",
+      "confirmed": "ยืนยันแล้ว",
+      "processing": "กำลังดำเนินการ",
+      "shipped": "จัดส่งแล้ว",
+      "delivered": "ส่งมอบแล้ว",
+      "cancelled": "ยกเลิก"
+    }
+  },
+  "customers": {
+    "title": "ลูกค้า",
+    "description": "จัดการข้อมูลลูกค้า",
+    "table": {
+      "columns": {
+        "code": "รหัสลูกค้า",
+        "name": "ชื่อลูกค้า",
+        "contact": "ผู้ติดต่อ",
+        "phone": "โทรศัพท์",
+        "email": "อีเมล",
+        "status": "สถานะ"
+      }
+    }
+  },
+  "shipping": {
+    "title": "การจัดส่ง",
+    "description": "จัดการการจัดส่งสินค้า"
+  },
+  "toast": {
+    "createOrder": {
+      "success": "สร้างใบสั่งขายสำเร็จ",
+      "error": "ไม่สามารถสร้างใบสั่งขายได้"
+    },
+    "confirmOrder": {
+      "success": "ยืนยันใบสั่งขายสำเร็จ",
+      "error": "ไม่สามารถยืนยันใบสั่งขายได้"
+    }
+  }
+}

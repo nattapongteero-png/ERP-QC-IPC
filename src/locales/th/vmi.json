@@ -1,0 +1,38 @@
+{
+  "page": {
+    "title": "VMI",
+    "description": "Vendor Managed Inventory - การจัดการสินค้าคงคลังโดยผู้ขาย"
+  },
+  "agreements": {
+    "title": "ข้อตกลง VMI",
+    "description": "จัดการข้อตกลง VMI กับผู้ขาย",
+    "table": {
+      "columns": {
+        "agreementNumber": "เลขที่ข้อตกลง",
+        "supplier": "ผู้ขาย",
+        "item": "สินค้า",
+        "minLevel": "ระดับต่ำสุด",
+        "maxLevel": "ระดับสูงสุด",
+        "status": "สถานะ"
+      }
+    }
+  },
+  "replenishment": {
+    "title": "การเติมสินค้า",
+    "description": "จัดการการเติมสินค้าอัตโนมัติ"
+  },
+  "consignment": {
+    "title": "สินค้าฝากขาย",
+    "description": "จัดการสินค้าฝากขายจากผู้ขาย"
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "จัดการ Webhook สำหรับการแจ้งเตือน"
+  },
+  "toast": {
+    "createAgreement": {
+      "success": "สร้างข้อตกลง VMI สำเร็จ",
+      "error": "ไม่สามารถสร้างข้อตกลง VMI ได้"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "page": {
+    "title": "GMP",
+    "description": "การปฏิบัติตาม Good Manufacturing Practice"
+  },
+  "compliance": {
+    "title": "การปฏิบัติตามข้อกำหนด",
+    "description": "ติดตามสถานะการปฏิบัติตามข้อกำหนด GMP"
+  },
+  "audits": {
+    "title": "การตรวจสอบ",
+    "description": "จัดการการตรวจสอบ GMP",
+    "table": {
+      "columns": {
+        "auditNumber": "เลขที่ตรวจสอบ",
+        "type": "ประเภท",
+        "scheduledDate": "วันที่กำหนด",
+        "status": "สถานะ",
+        "findings": "ข้อค้นพบ",
+        "auditor": "ผู้ตรวจสอบ"
+      }
+    },
+    "actions": {
+      "scheduleAudit": "กำหนดการตรวจสอบ",
+      "conductAudit": "ดำเนินการตรวจสอบ",
+      "viewAudit": "ดูการตรวจสอบ"
+    }
+  },
+  "capa": {
+    "title": "CAPA",
+    "description": "การแก้ไขและป้องกัน"
+  },
+  "documents": {
+    "title": "เอกสาร",
+    "description": "จัดการเอกสาร GMP"
+  },
+  "training": {
+    "title": "การฝึกอบรม",
+    "description": "จัดการการฝึกอบรม GMP"
+  },
+  "toast": {
+    "createAudit": {
+      "success": "สร้างการตรวจสอบสำเร็จ",
+      "error": "ไม่สามารถสร้างการตรวจสอบได้"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "page": {
+    "title": "VMI",
+    "description": "Vendor Managed Inventory"
+  },
+  "agreements": {
+    "title": "VMI Agreements",
+    "description": "Manage VMI agreements with suppliers",
+    "table": {
+      "columns": {
+        "agreementNumber": "Agreement Number",
+        "supplier": "Supplier",
+        "item": "Item",
+        "minLevel": "Min Level",
+        "maxLevel": "Max Level",
+        "status": "Status"
+      }
+    }
+  },
+  "replenishment": {
+    "title": "Replenishment",
+    "description": "Manage automatic replenishment"
+  },
+  "consignment": {
+    "title": "Consignment",
+    "description": "Manage consignment inventory from suppliers"
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "Manage webhooks for notifications"
+  },
+  "toast": {
+    "createAgreement": {
+      "success": "VMI agreement created successfully",
+      "error": "Failed to create VMI agreement"
+    }
+  }
+}

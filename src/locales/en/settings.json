@@ -1,0 +1,66 @@
+{
+  "page": {
+    "title": "Settings",
+    "description": "System settings and configuration"
+  },
+  "general": {
+    "title": "General",
+    "description": "General system settings",
+    "companyName": "Company Name",
+    "companyLogo": "Company Logo",
+    "timezone": "Timezone",
+    "dateFormat": "Date Format",
+    "currency": "Currency"
+  },
+  "users": {
+    "title": "Users",
+    "description": "Manage users and permissions",
+    "table": {
+      "columns": {
+        "username": "Username",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "lastLogin": "Last Login"
+      }
+    },
+    "actions": {
+      "addUser": "Add User",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "resetPassword": "Reset Password"
+    }
+  },
+  "roles": {
+    "title": "Roles",
+    "description": "Manage roles and access permissions"
+  },
+  "security": {
+    "title": "Security",
+    "description": "Security settings",
+    "passwordPolicy": "Password Policy",
+    "sessionTimeout": "Session Timeout",
+    "twoFactor": "Two-Factor Authentication"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Notification settings",
+    "email": "Email",
+    "inApp": "In-App",
+    "sms": "SMS"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "description": "Manage external system integrations"
+  },
+  "backup": {
+    "title": "Backup",
+    "description": "Data backup and recovery"
+  },
+  "toast": {
+    "save": {
+      "success": "Settings saved successfully",
+      "error": "Failed to save settings"
+    }
+  }
+}

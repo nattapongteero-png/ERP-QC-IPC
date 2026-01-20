@@ -1,0 +1,64 @@
+{
+  "page": {
+    "title": "Human Resources",
+    "description": "Manage employees and organization structure"
+  },
+  "employees": {
+    "title": "Employees",
+    "description": "Manage employee information",
+    "table": {
+      "columns": {
+        "employeeId": "Employee ID",
+        "name": "Name",
+        "department": "Department",
+        "position": "Position",
+        "joinDate": "Join Date",
+        "status": "Status"
+      }
+    },
+    "form": {
+      "employeeId": {
+        "label": "Employee ID"
+      },
+      "firstName": {
+        "label": "First Name",
+        "placeholder": "Enter first name"
+      },
+      "lastName": {
+        "label": "Last Name",
+        "placeholder": "Enter last name"
+      },
+      "department": {
+        "label": "Department",
+        "placeholder": "Select department"
+      },
+      "position": {
+        "label": "Position",
+        "placeholder": "Select position"
+      }
+    },
+    "actions": {
+      "addEmployee": "Add Employee",
+      "editEmployee": "Edit Employee",
+      "viewEmployee": "View Employee"
+    }
+  },
+  "departments": {
+    "title": "Departments",
+    "description": "Manage department structure"
+  },
+  "positions": {
+    "title": "Positions",
+    "description": "Manage job positions"
+  },
+  "attendance": {
+    "title": "Attendance",
+    "description": "Manage work attendance"
+  },
+  "toast": {
+    "addEmployee": {
+      "success": "Employee added successfully",
+      "error": "Failed to add employee"
+    }
+  }
+}

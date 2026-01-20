@@ -1,0 +1,44 @@
+{
+  "page": {
+    "title": "รายงาน",
+    "description": "รายงานและการวิเคราะห์ข้อมูล"
+  },
+  "inventory": {
+    "title": "รายงานคลังสินค้า",
+    "stockSummary": "สรุปสต็อก",
+    "stockMovement": "การเคลื่อนไหวสต็อก",
+    "expiryReport": "รายงานวันหมดอายุ",
+    "lotTracking": "ติดตามล็อต"
+  },
+  "production": {
+    "title": "รายงานการผลิต",
+    "productionSummary": "สรุปการผลิต",
+    "batchHistory": "ประวัติแบทช์",
+    "yieldAnalysis": "วิเคราะห์ผลผลิต"
+  },
+  "quality": {
+    "title": "รายงานคุณภาพ",
+    "inspectionSummary": "สรุปการตรวจสอบ",
+    "nonConformance": "ความไม่สอดคล้อง",
+    "trendAnalysis": "วิเคราะห์แนวโน้ม"
+  },
+  "financial": {
+    "title": "รายงานการเงิน",
+    "balanceSheet": "งบดุล",
+    "incomeStatement": "งบกำไรขาดทุน",
+    "cashFlow": "งบกระแสเงินสด"
+  },
+  "actions": {
+    "generate": "สร้างรายงาน",
+    "export": "ส่งออก",
+    "print": "พิมพ์",
+    "schedule": "กำหนดเวลา"
+  },
+  "filters": {
+    "dateRange": "ช่วงวันที่",
+    "fromDate": "จากวันที่",
+    "toDate": "ถึงวันที่",
+    "category": "หมวดหมู่",
+    "department": "แผนก"
+  }
+}
