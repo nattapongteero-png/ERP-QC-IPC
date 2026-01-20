@@ -16,7 +16,7 @@ import { exportToPDF, exportToExcel, exportToCSV, downloadCSV } from '@/lib/serv
 import type { IncomeStatementReport, IncomeStatementSection } from '@/types/accounting';
 
 async function fetchIncomeStatement(startDate: string, endDate: string): Promise<IncomeStatementReport> {
-  const res = await fetch(`/api/accounting/reports/income-statement?startDate=${startDate}&endDate=${endDate}`);
+  const res = await fetch(`/api/accounting/reports/income-statement?periodStart=${startDate}&periodEnd=${endDate}`);
   if (!res.ok) throw new Error('Failed to fetch income statement');
   const data = await res.json();
   return data.data;
