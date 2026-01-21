@@ -98,9 +98,9 @@ export async function GET(
         inventoryByType[type].quantity += lot.quantity || 0;
       });
 
-      // Calculate storage utilization using actual warehouse capacity
+      // Calculate storage utilization using actual warehouse capacity (in lots/positions)
       const storageCapacity = Number(warehouse.capacity) || 0;
-      const usedCapacity = totalQuantity;
+      const usedCapacity = totalLots;  // Number of lots, not sum of quantities
       const utilizationPercent = storageCapacity > 0
         ? Math.round((usedCapacity / storageCapacity) * 100)
         : 0;

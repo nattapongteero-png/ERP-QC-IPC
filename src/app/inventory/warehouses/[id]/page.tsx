@@ -399,7 +399,7 @@ export default function WarehouseDetailPage() {
               ></div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {summary.usedCapacity.toLocaleString()} / {summary.storageCapacity.toLocaleString()} units
+              {summary.usedCapacity.toLocaleString()} / {summary.storageCapacity.toLocaleString()} lots
             </p>
           </CardContent>
         </Card>
