@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
@@ -761,7 +760,7 @@ export default function PurchaseOrderDetailPage() {
 
   if (loading) {
     return (
-      <MainLayout>
+      <>
         <div className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="h-9 w-20 bg-gray-200 rounded animate-pulse" />
@@ -774,13 +773,13 @@ export default function PurchaseOrderDetailPage() {
           </div>
           <div className="h-96 bg-gray-200 rounded animate-pulse" />
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   if (!data) {
     return (
-      <MainLayout>
+      <>
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
           <p className="text-gray-500 mb-4">ไม่พบข้อมูล Purchase Order</p>
@@ -792,7 +791,7 @@ export default function PurchaseOrderDetailPage() {
             onClick={() => router.push('/purchasing/orders')}
           />
         </div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -800,7 +799,7 @@ export default function PurchaseOrderDetailPage() {
   const statusConfig = getStatusConfig(po.status);
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-4">
         {/* Header */}
         <PageHeader
@@ -1419,6 +1418,6 @@ export default function PurchaseOrderDetailPage() {
           }}
         />
       </div>
-    </MainLayout>
+    </>
   );
 }

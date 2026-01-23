@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -72,7 +71,6 @@ export default function NewVendorPage() {
   };
 
   return (
-    <MainLayout>
       <div className="space-y-6">
         <PageHeader
           title="New Vendor"
@@ -211,6 +209,5 @@ export default function NewVendorPage() {
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
   );
 }

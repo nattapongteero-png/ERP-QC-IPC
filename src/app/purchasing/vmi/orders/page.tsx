@@ -13,7 +13,6 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -340,19 +339,19 @@ export default function VmiOrdersPage() {
   if (selectedOrderId) {
     if (isLoadingDetail || !selectedOrderDetail) {
       return (
-        <MainLayout>
+        <>
           <div className="flex items-center justify-center h-[calc(100vh-200px)]">
             <div className="text-center">
               <DxLoadIndicator visible height={48} width={48} />
               <p className="text-gray-500 mt-4">Loading order details...</p>
             </div>
           </div>
-        </MainLayout>
+        </>
       );
     }
 
     return (
-      <MainLayout>
+      <>
         <VmiOrderDetail
           order={selectedOrderDetail}
           onConfirm={handleConfirm}
@@ -364,7 +363,7 @@ export default function VmiOrdersPage() {
           isShipping={isShipping}
           isCheckingReceipt={isCheckingReceipt}
         />
-      </MainLayout>
+      </>
     );
   }
 
@@ -373,7 +372,7 @@ export default function VmiOrdersPage() {
   // ============================================================================
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col h-full gap-4">
         {/* Header */}
         <PageHeader
@@ -467,6 +466,6 @@ export default function VmiOrdersPage() {
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
+    </>
   );
 }

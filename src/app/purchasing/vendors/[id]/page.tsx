@@ -2,7 +2,6 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -248,7 +247,7 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
   // Loading State
   if (isLoading) {
     return (
-      <MainLayout>
+      <>
         <div className="space-y-6">
           <div className="h-40 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl animate-pulse" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -258,14 +257,14 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   // Not Found State
   if (!data) {
     return (
-      <MainLayout>
+      <>
         <div className="flex flex-col items-center justify-center py-16">
           <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <AlertCircle className="h-10 w-10 text-gray-400" />
@@ -279,7 +278,7 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
             onClick={() => router.push('/purchasing/vendors')}
           />
         </div>
-      </MainLayout>
+      </>
     );
   }
 
@@ -579,7 +578,7 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
   );
 
   return (
-    <MainLayout>
+    <>
       <div className="space-y-6">
         {/* Hero Header */}
         <div className={cn('relative overflow-hidden rounded-xl bg-gradient-to-r', statusStyle.bg)}>
@@ -1025,6 +1024,6 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </DxPopup>
-    </MainLayout>
+    </>
   );
 }

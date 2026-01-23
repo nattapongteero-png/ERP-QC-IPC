@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
@@ -293,7 +292,7 @@ export default function NewPurchaseOrderPage() {
   ];
 
   return (
-    <MainLayout>
+    <>
       <div className="flex flex-col h-full gap-4">
         <PageHeader
           title="สร้างใบสั่งซื้อใหม่"
@@ -967,6 +966,6 @@ export default function NewPurchaseOrderPage() {
           </div>
         )}
       </DxPopup>
-    </MainLayout>
+    </>
   );
 }
