@@ -182,7 +182,7 @@ export interface PaginatedResponse<T> {
 export function getPaginationParams(searchParams: URLSearchParams): PaginationParams {
   return {
     page: Math.max(1, parseInt(searchParams.get('page') || '1')),
-    limit: Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20'))),
+    limit: Math.min(1000, Math.max(1, parseInt(searchParams.get('limit') || '20'))),
     sortBy: searchParams.get('sortBy') || undefined,
     sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
   };
