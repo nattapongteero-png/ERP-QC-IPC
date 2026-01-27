@@ -28,7 +28,6 @@ import DataGrid, {
   Toolbar,
   Item as ToolbarItem,
   Scrolling,
-  Selection,
 } from 'devextreme-react/data-grid';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -566,14 +565,13 @@ export default function ItemsPage() {
             className="items-professional-grid"
           >
             <Scrolling mode="virtual" />
-            <Selection mode="multiple" showCheckBoxesMode="onClick" />
             <SearchPanel visible={true} placeholder="Search items..." width={250} />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
             <GroupPanel visible={true} />
             <Grouping autoExpandAll={false} />
             <ColumnChooser enabled={true} mode="select" />
-            <Export enabled={true} allowExportSelectedData={true} />
+            <Export enabled={true} />
 
             <Column
               caption="#"
