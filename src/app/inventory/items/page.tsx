@@ -576,6 +576,19 @@ export default function ItemsPage() {
             <Export enabled={true} allowExportSelectedData={true} />
 
             <Column
+              caption="#"
+              width={60}
+              alignment="center"
+              allowFiltering={false}
+              allowSorting={false}
+              allowGrouping={false}
+              cellRender={(cellInfo) => (
+                <span className="text-gray-500 text-sm font-medium">
+                  {cellInfo.rowIndex + 1}
+                </span>
+              )}
+            />
+            <Column
               dataField="code"
               caption="Code"
               width={150}
