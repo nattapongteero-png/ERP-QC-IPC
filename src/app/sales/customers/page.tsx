@@ -11,6 +11,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,8 +79,7 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 // ============================================================================
 
 const CUSTOMER_TYPE_CONFIG: Record<string, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   color: string;
   bgClass: string;
   textClass: string;
@@ -87,8 +87,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
   badgeVariant: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'secondary';
 }> = {
   hospital: {
-    label: 'Hospital',
-    labelTh: 'โรงพยาบาล',
+    translationKey: 'hospital',
     color: '#ef4444',
     bgClass: 'bg-red-100',
     textClass: 'text-red-700',
@@ -96,8 +95,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     badgeVariant: 'danger',
   },
   clinic: {
-    label: 'Clinic',
-    labelTh: 'คลินิก',
+    translationKey: 'clinic',
     color: '#f97316',
     bgClass: 'bg-orange-100',
     textClass: 'text-orange-700',
@@ -105,8 +103,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     badgeVariant: 'warning',
   },
   pharmacy: {
-    label: 'Pharmacy',
-    labelTh: 'ร้านขายยา',
+    translationKey: 'pharmacy',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
@@ -114,8 +111,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     badgeVariant: 'success',
   },
   distributor: {
-    label: 'Distributor',
-    labelTh: 'ตัวแทนจำหน่าย',
+    translationKey: 'distributor',
     color: '#3b82f6',
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
@@ -123,8 +119,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     badgeVariant: 'info',
   },
   traditional_medicine: {
-    label: 'Traditional Medicine',
-    labelTh: 'แพทย์แผนไทย',
+    translationKey: 'traditional_medicine',
     color: '#84cc16',
     bgClass: 'bg-lime-100',
     textClass: 'text-lime-700',
@@ -132,8 +127,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     badgeVariant: 'success',
   },
   spa_wellness: {
-    label: 'Spa & Wellness',
-    labelTh: 'สปา & เวลเนส',
+    translationKey: 'spa_wellness',
     color: '#ec4899',
     bgClass: 'bg-pink-100',
     textClass: 'text-pink-700',
@@ -141,8 +135,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     badgeVariant: 'primary',
   },
   government: {
-    label: 'Government',
-    labelTh: 'หน่วยงานรัฐ',
+    translationKey: 'government',
     color: '#8b5cf6',
     bgClass: 'bg-violet-100',
     textClass: 'text-violet-700',
@@ -150,8 +143,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     badgeVariant: 'secondary',
   },
   export: {
-    label: 'Export',
-    labelTh: 'ส่งออก',
+    translationKey: 'export',
     color: '#06b6d4',
     bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
@@ -159,8 +151,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     badgeVariant: 'info',
   },
   other: {
-    label: 'Other',
-    labelTh: 'อื่นๆ',
+    translationKey: 'other',
     color: '#6b7280',
     bgClass: 'bg-gray-100',
     textClass: 'text-gray-700',
@@ -169,18 +160,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
   },
 };
 
-const customerTypeOptions = [
-  { value: '', label: 'ทุกประเภท' },
-  { value: 'hospital', label: 'โรงพยาบาล' },
-  { value: 'clinic', label: 'คลินิก' },
-  { value: 'pharmacy', label: 'ร้านขายยา' },
-  { value: 'distributor', label: 'ตัวแทนจำหน่าย' },
-  { value: 'traditional_medicine', label: 'แพทย์แผนไทย' },
-  { value: 'spa_wellness', label: 'สปา & เวลเนส' },
-  { value: 'government', label: 'หน่วยงานรัฐ' },
-  { value: 'export', label: 'ส่งออก' },
-  { value: 'other', label: 'อื่นๆ' },
-];
+const CUSTOMER_TYPE_KEYS = ['hospital', 'clinic', 'pharmacy', 'distributor', 'traditional_medicine', 'spa_wellness', 'government', 'export', 'other'];
 
 // ============================================================================
 // Helper Functions
@@ -244,10 +224,20 @@ async function fetchCustomers(): Promise<Customer[]> {
 
 export default function CustomersPage() {
   const router = useRouter();
+  const t = useTranslations('sales');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  // Create memoized type options from translations
+  const customerTypeOptions = useMemo(() => [
+    { value: '', label: t('customers.type.all') },
+    ...CUSTOMER_TYPE_KEYS.map(key => ({
+      value: key,
+      label: t(`customers.type.${key}`),
+    })),
+  ], [t]);
 
   // Data fetching with React Query
   const { data: customers = [], isLoading, refetch } = useQuery<Customer[]>({
@@ -333,14 +323,14 @@ export default function CustomersPage() {
       .map(([type, count]) => {
         const config = getTypeConfig(type);
         return {
-          type: config.labelTh,
+          type: t(`customers.type.${config.translationKey}`),
           count,
           color: config.color,
         };
       })
       .filter(item => item.count > 0)
       .sort((a, b) => b.count - a.count);
-  }, [stats.byType]);
+  }, [stats.byType, t]);
 
   // Chart data for credit by type
   const creditChartData = useMemo(() => {
@@ -348,14 +338,14 @@ export default function CustomersPage() {
       .map(([type, credit]) => {
         const config = getTypeConfig(type);
         return {
-          type: config.labelTh,
+          type: t(`customers.type.${config.translationKey}`),
           credit,
           color: config.color,
         };
       })
       .filter(item => item.credit > 0)
       .sort((a, b) => b.credit - a.credit);
-  }, [stats.creditByType]);
+  }, [stats.creditByType, t]);
 
   // Top customers by credit limit
   const topCustomers = useMemo(() => {
@@ -387,7 +377,7 @@ export default function CustomersPage() {
   const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'code',
-      caption: 'รหัส',
+      caption: t('customers.grid.columns.code'),
       width: 110,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
@@ -405,7 +395,7 @@ export default function CustomersPage() {
     },
     {
       dataField: 'name',
-      caption: 'ชื่อลูกค้า',
+      caption: t('customers.grid.columns.name'),
       minWidth: 200,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
@@ -421,7 +411,7 @@ export default function CustomersPage() {
     },
     {
       dataField: 'phone',
-      caption: 'โทรศัพท์',
+      caption: t('customers.grid.columns.phone'),
       width: 130,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
@@ -441,7 +431,7 @@ export default function CustomersPage() {
     },
     {
       dataField: 'email',
-      caption: 'อีเมล',
+      caption: t('customers.grid.columns.email'),
       width: 180,
       hideOnMobile: true,
       cellRender: (data: { data?: Customer }) => {
@@ -462,7 +452,7 @@ export default function CustomersPage() {
     },
     {
       dataField: 'creditLimit',
-      caption: 'วงเงินเครดิต',
+      caption: t('customers.grid.columns.creditLimit'),
       width: 140,
       dataType: 'number',
       hideOnMobile: true,
@@ -477,32 +467,32 @@ export default function CustomersPage() {
     },
     {
       dataField: 'customerType',
-      caption: 'ประเภท',
+      caption: t('customers.grid.columns.type'),
       width: 150,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
         const config = getTypeConfig(data.data.customerType);
         return (
           <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
-            {config.labelTh}
+            {t(`customers.type.${config.translationKey}`)}
           </span>
         );
       },
     },
     {
       dataField: 'isActive',
-      caption: 'สถานะ',
+      caption: t('customers.grid.columns.status'),
       width: 100,
       cellRender: (data: { data?: Customer }) => {
         if (!data.data) return null;
         return (
           <Badge variant={data.data.isActive ? 'success' : 'danger'} dot>
-            {data.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+            {data.data.isActive ? t('customers.status.active') : t('customers.status.inactive')}
           </Badge>
         );
       },
     },
-  ], []);
+  ], [t]);
 
   // ============================================================================
   // Render Functions
@@ -534,7 +524,7 @@ export default function CustomersPage() {
                   </div>
                 </div>
                 <Badge variant={customer.isActive ? 'success' : 'danger'} dot>
-                  {customer.isActive ? 'ใช้งาน' : 'ปิด'}
+                  {customer.isActive ? t('customers.status.active') : t('customers.status.inactive')}
                 </Badge>
               </div>
 
@@ -561,7 +551,7 @@ export default function CustomersPage() {
 
               <div className="flex items-center justify-between mt-3 pt-3 border-t">
                 <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
-                  {config.labelTh}
+                  {t(`customers.type.${config.translationKey}`)}
                 </span>
                 {customer.creditLimit ? (
                   <span className="text-sm font-semibold text-green-600">
@@ -585,7 +575,7 @@ export default function CustomersPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            การกระจายตามประเภท
+            {t('customers.charts.typeDistribution')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -607,12 +597,12 @@ export default function CustomersPage() {
                 verticalAlignment="bottom"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${arg.valueText} ราย`
+                text: `${arg.argumentText}: ${t('customers.cards.count', { count: arg.valueText || 0 })}`
               })} />
             </PieChart>
           ) : (
             <div className="h-[220px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('customers.charts.noData')}
             </div>
           )}
         </CardContent>
@@ -623,7 +613,7 @@ export default function CustomersPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            วงเงินเครดิตตามประเภท
+            {t('customers.charts.creditByType')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -650,7 +640,7 @@ export default function CustomersPage() {
             </PieChart>
           ) : (
             <div className="h-[220px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('customers.charts.noData')}
             </div>
           )}
         </CardContent>
@@ -676,16 +666,16 @@ export default function CustomersPage() {
             virtualScrolling={filteredCustomers.length > 100}
             fillHeight
             onRowClick={handleRowClick}
-            noDataText="ไม่พบลูกค้า"
+            noDataText={t('customers.grid.noData')}
             rowAlternationEnabled
           />
         ) : (
           <EmptyState
             icon={<Inbox className="h-8 w-8" />}
-            title="ไม่พบลูกค้า"
-            description="เริ่มต้นด้วยการเพิ่มลูกค้าใหม่"
+            title={t('customers.empty.title')}
+            description={t('customers.empty.description')}
             action={{
-              label: 'เพิ่มลูกค้า',
+              label: t('customers.actions.addCustomer'),
               onClick: () => router.push('/sales/customers/new'),
             }}
           />
@@ -704,7 +694,7 @@ export default function CustomersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-500" />
-              ลูกค้าที่กรองแล้ว ({filteredCustomers.length})
+              {t('customers.cards.filteredCustomers')} ({filteredCustomers.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -714,13 +704,13 @@ export default function CustomersPage() {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-400">
-                ไม่พบลูกค้าที่ตรงกับเงื่อนไข
+                {t('customers.cards.noMatchingCustomers')}
               </div>
             )}
             {filteredCustomers.length > 10 && (
               <div className="mt-4 text-center">
                 <DxButton
-                  text={`ดูเพิ่มเติมอีก ${filteredCustomers.length - 10} ราย`}
+                  text={t('customers.actions.viewMore', { count: filteredCustomers.length - 10 })}
                   type="normal"
                   onClick={() => setViewMode('grid')}
                 />
@@ -737,25 +727,25 @@ export default function CustomersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-500" />
-              สรุปรวม
+              {t('customers.cards.summary')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 space-y-3">
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">วงเงินเครดิตรวม</span>
+              <span className="text-sm text-gray-500">{t('customers.cards.totalCreditLimit')}</span>
               <span className="font-semibold text-green-600">{formatCurrencyShort(stats.totalCreditLimit)}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">เครดิตเฉลี่ย</span>
+              <span className="text-sm text-gray-500">{t('customers.cards.avgCreditLimit')}</span>
               <span className="font-semibold text-blue-600">{formatCurrencyShort(stats.avgCreditLimit)}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">วงเงินสูง (≥1M)</span>
-              <span className="font-semibold">{stats.highCredit} ราย</span>
+              <span className="text-sm text-gray-500">{t('customers.cards.highCredit')}</span>
+              <span className="font-semibold">{t('customers.cards.count', { count: stats.highCredit })}</span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-gray-500">ลูกค้าใหม่ (30 วัน)</span>
-              <span className="font-semibold text-emerald-600">{stats.recentCustomers} ราย</span>
+              <span className="text-sm text-gray-500">{t('customers.cards.recentCustomers')}</span>
+              <span className="font-semibold text-emerald-600">{t('customers.cards.count', { count: stats.recentCustomers })}</span>
             </div>
           </CardContent>
         </Card>
@@ -765,7 +755,7 @@ export default function CustomersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Star className="h-4 w-4 text-amber-500" />
-              วงเงินเครดิตสูงสุด
+              {t('customers.cards.topCreditLimit')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -793,7 +783,7 @@ export default function CustomersPage() {
                 );
               })}
               {topCustomers.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">ไม่มีข้อมูล</p>
+                <p className="text-sm text-gray-400 text-center py-4">{t('customers.charts.noData')}</p>
               )}
             </div>
           </CardContent>
@@ -804,7 +794,7 @@ export default function CustomersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Calendar className="h-4 w-4 text-gray-500" />
-              ล่าสุด
+              {t('customers.cards.recent')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -821,7 +811,7 @@ export default function CustomersPage() {
                     <div className="flex items-center justify-between">
                       <p className="font-mono text-xs text-blue-600">{customer.code}</p>
                       <Badge variant={customer.isActive ? 'success' : 'danger'} className="text-xs">
-                        {customer.isActive ? 'ใช้งาน' : 'ปิด'}
+                        {customer.isActive ? t('customers.status.active') : t('customers.status.inactive')}
                       </Badge>
                     </div>
                     <p className="text-sm truncate">{customer.name}</p>
@@ -830,7 +820,7 @@ export default function CustomersPage() {
                 );
               })}
               {recentCustomersList.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">ไม่มีข้อมูล</p>
+                <p className="text-sm text-gray-400 text-center py-4">{t('customers.charts.noData')}</p>
               )}
             </div>
           </CardContent>
@@ -851,7 +841,7 @@ export default function CustomersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-indigo-500" />
-              สรุปตามประเภท
+              {t('customers.analytics.typeBreakdown')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -867,7 +857,7 @@ export default function CustomersPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">{config.labelTh}</span>
+                        <span className="text-sm font-medium">{t(`customers.type.${config.translationKey}`)}</span>
                         <span className="text-sm text-gray-500">{count} ({percentage.toFixed(0)}%)</span>
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -889,28 +879,28 @@ export default function CustomersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-green-500" />
-              สรุปวงเงินเครดิต
+              {t('customers.analytics.creditSummary')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <p className="text-sm text-gray-600">วงเงินเครดิตรวม</p>
+                <p className="text-sm text-gray-600">{t('customers.analytics.totalCreditLimit')}</p>
                 <p className="text-3xl font-bold text-green-600">{formatCurrency(stats.totalCreditLimit)}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-gray-500">เครดิตเฉลี่ย</p>
+                  <p className="text-xs text-gray-500">{t('customers.analytics.avgCreditLimit')}</p>
                   <p className="text-lg font-bold text-blue-600">{formatCurrencyShort(stats.avgCreditLimit)}</p>
                 </div>
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <p className="text-xs text-gray-500">วงเงินสูง (≥1M)</p>
-                  <p className="text-lg font-bold text-amber-600">{stats.highCredit} ราย</p>
+                  <p className="text-xs text-gray-500">{t('customers.analytics.highCredit')}</p>
+                  <p className="text-lg font-bold text-amber-600">{t('customers.cards.count', { count: stats.highCredit })}</p>
                 </div>
               </div>
               <div className="pt-3 border-t">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">อัตราลูกค้าใช้งาน</span>
+                  <span className="text-sm text-gray-600">{t('customers.analytics.activeRate')}</span>
                   <span className="text-sm font-semibold">
                     {stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%
                   </span>
@@ -932,7 +922,7 @@ export default function CustomersPage() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Award className="h-5 w-5 text-amber-500" />
-            ลูกค้าวงเงินสูงสุด 5 อันดับ
+            {t('customers.analytics.topCustomers')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -961,7 +951,7 @@ export default function CustomersPage() {
                         <p className="font-mono text-xs text-blue-600 mb-1">{customer.code}</p>
                         <p className="font-medium text-sm truncate">{customer.name}</p>
                         <div className="mt-2 pt-2 border-t">
-                          <span className="text-xs text-gray-500">วงเงินเครดิต</span>
+                          <span className="text-xs text-gray-500">{t('customers.analytics.creditLimit')}</span>
                           <p className="font-semibold text-green-600">{formatCurrency(customer.creditLimit)}</p>
                         </div>
                       </div>
@@ -972,7 +962,7 @@ export default function CustomersPage() {
             })}
             {topCustomers.length === 0 && (
               <div className="col-span-5 text-center py-8 text-gray-400">
-                ไม่มีข้อมูลลูกค้า
+                {t('customers.analytics.noCustomers')}
               </div>
             )}
           </div>
@@ -1001,8 +991,8 @@ export default function CustomersPage() {
                   <Users className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">ลูกค้า</h1>
-                  <p className="text-white/80 text-sm">จัดการข้อมูลลูกค้าและวิเคราะห์การขาย</p>
+                  <h1 className="text-2xl font-bold text-white">{t('customers.pageTitle')}</h1>
+                  <p className="text-white/80 text-sm">{t('customers.description')}</p>
                 </div>
               </div>
 
@@ -1048,7 +1038,7 @@ export default function CustomersPage() {
                   <RefreshCw className="h-5 w-5" />
                 </button>
                 <DxButton
-                  text="เพิ่มลูกค้า"
+                  text={t('customers.actions.addCustomer')}
                   icon="plus"
                   type="success"
                   onClick={() => router.push('/sales/customers/new')}
@@ -1059,21 +1049,21 @@ export default function CustomersPage() {
             {/* Quick Stats in Header */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
               <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">ทั้งหมด</p>
+                <p className="text-white/70 text-xs">{t('customers.stats.total')}</p>
                 <p className="text-2xl font-bold text-white">{stats.total}</p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">ใช้งาน</p>
+                <p className="text-white/70 text-xs">{t('customers.stats.active')}</p>
                 <p className="text-2xl font-bold text-white">{stats.active}</p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">วงเงินรวม</p>
+                <p className="text-white/70 text-xs">{t('customers.stats.totalCreditLimit')}</p>
                 <p className="text-2xl font-bold text-white">{formatCurrencyShort(stats.totalCreditLimit)}</p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <p className="text-white/70 text-xs">ประเภทหลัก</p>
+                <p className="text-white/70 text-xs">{t('customers.stats.mainType')}</p>
                 <p className="text-lg font-bold text-white truncate">
-                  {stats.topType ? getTypeConfig(stats.topType.type).labelTh : '-'}
+                  {stats.topType ? t(`customers.type.${getTypeConfig(stats.topType.type).translationKey}`) : '-'}
                 </p>
               </div>
             </div>
@@ -1087,10 +1077,10 @@ export default function CustomersPage() {
             <div className="flex items-center gap-1 overflow-x-auto pb-0 scrollbar-thin">
               {(['all', 'active', 'inactive'] as StatusFilter[]).map((status) => {
                 const config = status === 'all'
-                  ? { label: 'ทั้งหมด', icon: Users, bgClass: 'bg-gray-100', textClass: 'text-gray-700', hoverBg: 'hover:bg-gray-200' }
+                  ? { translationKey: 'all', icon: Users, bgClass: 'bg-gray-100', textClass: 'text-gray-700', hoverBg: 'hover:bg-gray-200' }
                   : status === 'active'
-                  ? { label: 'ใช้งาน', icon: UserCheck, bgClass: 'bg-green-100', textClass: 'text-green-700', hoverBg: 'hover:bg-green-200' }
-                  : { label: 'ปิดใช้งาน', icon: UserX, bgClass: 'bg-red-100', textClass: 'text-red-700', hoverBg: 'hover:bg-red-200' };
+                  ? { translationKey: 'active', icon: UserCheck, bgClass: 'bg-green-100', textClass: 'text-green-700', hoverBg: 'hover:bg-green-200' }
+                  : { translationKey: 'inactive', icon: UserX, bgClass: 'bg-red-100', textClass: 'text-red-700', hoverBg: 'hover:bg-red-200' };
                 const count = statusCounts[status];
                 const isActive = statusFilter === status;
                 const Icon = config.icon;
@@ -1107,7 +1097,7 @@ export default function CustomersPage() {
                     )}
                   >
                     <Icon className="h-4 w-4" />
-                    <span>{config.label}</span>
+                    <span>{t(`customers.status.${config.translationKey}`)}</span>
                     <span
                       className={cn(
                         'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
@@ -1125,7 +1115,7 @@ export default function CustomersPage() {
             <div className="flex flex-col md:flex-row items-center gap-3 pb-3">
               <div className="flex-1 w-full md:max-w-md">
                 <DxTextBox
-                  placeholder="ค้นหาด้วยรหัส ชื่อ อีเมล หรือโทรศัพท์..."
+                  placeholder={t('customers.searchPlaceholder')}
                   value={search}
                   onValueChange={setSearch}
                   showClearButton
@@ -1137,12 +1127,12 @@ export default function CustomersPage() {
                   items={customerTypeOptions}
                   value={typeFilter}
                   onValueChange={setTypeFilter}
-                  placeholder="ประเภท"
+                  placeholder={t('customers.typePlaceholder')}
                   showClearButton
                 />
               </div>
               <div className="text-sm text-gray-500">
-                แสดง <span className="font-semibold text-gray-700">{filteredCustomers.length}</span> ราย
+                {t('customers.grid.showing', { count: filteredCustomers.length })}
               </div>
             </div>
           </CardHeader>
