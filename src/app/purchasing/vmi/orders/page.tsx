@@ -13,6 +13,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -89,6 +90,7 @@ function StatsCard({ icon: Icon, iconColor, bgColor, label, value, onClick, acti
 
 export default function VmiOrdersPage() {
   const router = useRouter();
+  const t = useTranslations('purchasing');
 
   // State
   const [orders, setOrders] = React.useState<VmiOrder[]>([]);
@@ -343,7 +345,7 @@ export default function VmiOrdersPage() {
           <div className="flex items-center justify-center h-[calc(100vh-200px)]">
             <div className="text-center">
               <DxLoadIndicator visible height={48} width={48} />
-              <p className="text-gray-500 mt-4">Loading order details...</p>
+              <p className="text-gray-500 mt-4">{t('vmi.loading')}</p>
             </div>
           </div>
         </>
@@ -376,11 +378,11 @@ export default function VmiOrdersPage() {
       <div className="flex flex-col h-full gap-4">
         {/* Header */}
         <PageHeader
-          title="VMI Orders"
-          description="Manage orders received from hospitals via VMI Portal"
+          title={t('vmi.pageTitle')}
+          description={t('vmi.description')}
           actions={
             <DxButton
-              text={isPollLoading ? 'Polling...' : 'Poll All Vendors'}
+              text={isPollLoading ? t('vmi.actions.polling') : t('vmi.actions.pollAll')}
               icon="refresh"
               type="default"
               onClick={() => handlePollOrders()}
@@ -395,7 +397,7 @@ export default function VmiOrdersPage() {
             icon={Package}
             iconColor="text-gray-600"
             bgColor="bg-gray-100"
-            label="Total Orders"
+            label={t('vmi.stats.total')}
             value={stats.total}
             onClick={() => handleStatsClick(undefined)}
             active={!filters.status}
@@ -404,7 +406,7 @@ export default function VmiOrdersPage() {
             icon={Clock}
             iconColor="text-amber-600"
             bgColor="bg-amber-100"
-            label="Submitted"
+            label={t('vmi.stats.submitted')}
             value={stats.submitted}
             onClick={() => handleStatsClick('submitted')}
             active={filters.status === 'submitted'}
@@ -413,7 +415,7 @@ export default function VmiOrdersPage() {
             icon={CheckCircle}
             iconColor="text-blue-600"
             bgColor="bg-blue-100"
-            label="Confirmed"
+            label={t('vmi.stats.confirmed')}
             value={stats.confirmed}
             onClick={() => handleStatsClick('confirmed')}
             active={filters.status === 'confirmed'}
@@ -422,7 +424,7 @@ export default function VmiOrdersPage() {
             icon={Truck}
             iconColor="text-purple-600"
             bgColor="bg-purple-100"
-            label="Shipped"
+            label={t('vmi.stats.shipped')}
             value={stats.shipped}
             onClick={() => handleStatsClick('shipped')}
             active={filters.status === 'shipped'}
@@ -431,7 +433,7 @@ export default function VmiOrdersPage() {
             icon={PackageCheck}
             iconColor="text-emerald-600"
             bgColor="bg-emerald-100"
-            label="Received"
+            label={t('vmi.stats.received')}
             value={stats.received}
             onClick={() => handleStatsClick('received')}
             active={filters.status === 'received'}
@@ -455,10 +457,10 @@ export default function VmiOrdersPage() {
             ) : (
               <EmptyState
                 icon={<Package className="h-12 w-12" />}
-                title="No VMI Orders"
-                description="Click 'Poll All Vendors' to fetch new orders from VMI Portal"
+                title={t('vmi.empty.title')}
+                description={t('vmi.empty.description')}
                 action={{
-                  label: 'Poll Orders',
+                  label: t('vmi.actions.pollOrders'),
                   onClick: () => handlePollOrders(),
                 }}
               />

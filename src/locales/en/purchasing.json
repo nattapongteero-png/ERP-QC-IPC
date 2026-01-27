@@ -5,7 +5,40 @@
   },
   "orders": {
     "title": "Purchase Orders",
-    "description": "Manage all purchase orders",
+    "pageTitle": "Purchase Orders",
+    "description": "Manage purchase orders for raw materials and supplies",
+    "status": {
+      "all": "All",
+      "draft": "Draft",
+      "pendingApproval": "Pending",
+      "approved": "Approved",
+      "sent": "Sent",
+      "partial": "Partial",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    },
+    "stats": {
+      "total": "total",
+      "pending": "pending",
+      "awaiting": "awaiting"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "createPO": "Create PO"
+    },
+    "grid": {
+      "columns": {
+        "poNumber": "PO Number",
+        "vendor": "Vendor",
+        "orderDate": "Order Date",
+        "expectedDate": "Expected Date",
+        "totalAmount": "Total Amount",
+        "status": "Status"
+      },
+      "showing": "Showing {count} items",
+      "noData": "No purchase orders found"
+    },
+    "searchPlaceholder": "Search by PO number or vendor name...",
     "table": {
       "columns": {
         "orderNumber": "Order Number",
@@ -68,9 +101,108 @@
       }
     }
   },
+  "vendors": {
+    "pageTitle": "Vendors",
+    "description": "Manage vendors and partners",
+    "status": {
+      "all": "All",
+      "approved": "Approved",
+      "pending": "Pending",
+      "vmi": "VMI",
+      "inactive": "Inactive"
+    },
+    "stats": {
+      "approved": "approved",
+      "vmi": "VMI",
+      "avgDays": "avg days"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "addVendor": "Add Vendor"
+    },
+    "grid": {
+      "columns": {
+        "code": "Code",
+        "name": "Vendor Name",
+        "phone": "Phone",
+        "email": "Email",
+        "leadTime": "Lead Time",
+        "paymentTerms": "Payment Terms",
+        "status": "Status"
+      },
+      "showing": "Showing {count} items",
+      "noData": "No vendors found",
+      "days": "{days} days"
+    },
+    "searchPlaceholder": "Search by code, name, or contact..."
+  },
+  "requisitions": {
+    "pageTitle": "Purchase Requisitions",
+    "description": "Create and manage purchase requisitions with approval workflow",
+    "status": {
+      "all": "All",
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "pendingApproval": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "converted": "Converted to PO"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "stats": {
+      "total": "total",
+      "pending": "pending",
+      "urgent": "urgent"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "createPR": "Create PR"
+    },
+    "grid": {
+      "columns": {
+        "prNumber": "PR Number",
+        "description": "Description",
+        "priority": "Priority",
+        "totalAmount": "Est. Amount",
+        "requiredDate": "Required By",
+        "createdAt": "Created Date",
+        "status": "Status"
+      },
+      "showing": "Showing {count} items",
+      "noData": "No purchase requisitions found"
+    },
+    "searchPlaceholder": "Search by PR number or description..."
+  },
   "receiving": {
     "title": "Receiving",
     "description": "Record goods receipt from purchase orders"
+  },
+  "vmi": {
+    "pageTitle": "VMI Orders",
+    "description": "Manage orders received from hospitals via VMI Portal",
+    "actions": {
+      "pollAll": "Poll All Vendors",
+      "polling": "Polling...",
+      "pollOrders": "Poll Orders"
+    },
+    "stats": {
+      "total": "Total Orders",
+      "submitted": "Submitted",
+      "confirmed": "Confirmed",
+      "shipped": "Shipped",
+      "received": "Received"
+    },
+    "loading": "Loading order details...",
+    "empty": {
+      "title": "No VMI Orders",
+      "description": "Click 'Poll All Vendors' to fetch new orders from VMI Portal"
+    }
   },
   "toast": {
     "createOrder": {

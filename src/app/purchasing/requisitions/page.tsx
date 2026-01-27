@@ -6,8 +6,9 @@
  * Redesigned to match PO list UI pattern
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -35,8 +36,7 @@ type PRStatusFilter = '' | PRStatus;
 
 // Status configuration for tabs and styling
 const STATUS_CONFIG: Record<PRStatusFilter, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   bgColor: string;
   textColor: string;
   hoverBg: string;
@@ -44,8 +44,7 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
   badgeVariant: 'success' | 'warning' | 'danger' | 'info' | 'default' | 'primary' | 'secondary';
 }> = {
   '': {
-    label: 'All',
-    labelTh: 'ทั้งหมด',
+    translationKey: 'all',
     bgColor: 'bg-gray-100',
     textColor: 'text-gray-700',
     hoverBg: 'hover:bg-gray-200',
@@ -53,8 +52,7 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
     badgeVariant: 'default',
   },
   draft: {
-    label: 'Draft',
-    labelTh: 'ร่าง',
+    translationKey: 'draft',
     bgColor: 'bg-slate-100',
     textColor: 'text-slate-700',
     hoverBg: 'hover:bg-slate-200',
@@ -62,8 +60,7 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
     badgeVariant: 'default',
   },
   submitted: {
-    label: 'Submitted',
-    labelTh: 'ส่งแล้ว',
+    translationKey: 'submitted',
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-700',
     hoverBg: 'hover:bg-blue-200',
@@ -71,8 +68,7 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
     badgeVariant: 'info',
   },
   pending_approval: {
-    label: 'Pending',
-    labelTh: 'รออนุมัติ',
+    translationKey: 'pendingApproval',
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-700',
     hoverBg: 'hover:bg-yellow-200',
@@ -80,8 +76,7 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
     badgeVariant: 'warning',
   },
   approved: {
-    label: 'Approved',
-    labelTh: 'อนุมัติแล้ว',
+    translationKey: 'approved',
     bgColor: 'bg-green-100',
     textColor: 'text-green-700',
     hoverBg: 'hover:bg-green-200',
@@ -89,8 +84,7 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
     badgeVariant: 'success',
   },
   rejected: {
-    label: 'Rejected',
-    labelTh: 'ไม่อนุมัติ',
+    translationKey: 'rejected',
     bgColor: 'bg-red-100',
     textColor: 'text-red-700',
     hoverBg: 'hover:bg-red-200',
@@ -98,8 +92,7 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
     badgeVariant: 'danger',
   },
   cancelled: {
-    label: 'Cancelled',
-    labelTh: 'ยกเลิก',
+    translationKey: 'cancelled',
     bgColor: 'bg-gray-100',
     textColor: 'text-gray-500',
     hoverBg: 'hover:bg-gray-200',
@@ -107,8 +100,7 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
     badgeVariant: 'secondary',
   },
   converted: {
-    label: 'Converted',
-    labelTh: 'แปลงเป็น PO',
+    translationKey: 'converted',
     bgColor: 'bg-purple-100',
     textColor: 'text-purple-700',
     hoverBg: 'hover:bg-purple-200',
@@ -119,34 +111,29 @@ const STATUS_CONFIG: Record<PRStatusFilter, {
 
 // Priority configuration
 const PRIORITY_CONFIG: Record<PRPriority, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   color: string;
   bgColor: string;
   icon?: React.ReactNode;
 }> = {
   low: {
-    label: 'Low',
-    labelTh: 'ต่ำ',
+    translationKey: 'low',
     color: 'text-gray-500',
     bgColor: 'bg-gray-100',
   },
   normal: {
-    label: 'Normal',
-    labelTh: 'ปกติ',
+    translationKey: 'normal',
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
   },
   high: {
-    label: 'High',
-    labelTh: 'สูง',
+    translationKey: 'high',
     color: 'text-orange-600',
     bgColor: 'bg-orange-100',
     icon: <AlertTriangle className="h-3 w-3" />,
   },
   urgent: {
-    label: 'Urgent',
-    labelTh: 'เร่งด่วน',
+    translationKey: 'urgent',
     color: 'text-red-600',
     bgColor: 'bg-red-100',
     icon: <Zap className="h-3 w-3" />,
@@ -187,6 +174,7 @@ const formatCompactCurrency = (amount: number) => {
 
 export default function PurchaseRequisitionsPage() {
   const router = useRouter();
+  const t = useTranslations('purchasing');
   const [requisitions, setRequisitions] = useState<PurchaseRequisition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -250,10 +238,10 @@ export default function PurchaseRequisitionsPage() {
   };
 
   // Define columns for DevExtreme DataGrid
-  const columns: DxDataGridColumn[] = [
+  const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'prNumber',
-      caption: 'เลขที่ PR',
+      caption: t('requisitions.grid.columns.prNumber'),
       width: 150,
       cellRender: (cellInfo) => {
         const status = normalizeStatus(cellInfo.data.status) as PRStatusFilter;
@@ -272,7 +260,7 @@ export default function PurchaseRequisitionsPage() {
     },
     {
       dataField: 'description',
-      caption: 'รายละเอียด',
+      caption: t('requisitions.grid.columns.description'),
       minWidth: 200,
       cellRender: (cellInfo) => (
         <span className="text-gray-800 truncate">{cellInfo.data.description || '-'}</span>
@@ -280,7 +268,7 @@ export default function PurchaseRequisitionsPage() {
     },
     {
       dataField: 'priority',
-      caption: 'ความสำคัญ',
+      caption: t('requisitions.grid.columns.priority'),
       width: 110,
       cellRender: (cellInfo) => {
         const priority = (cellInfo.data.priority as PRPriority) || 'normal';
@@ -288,14 +276,14 @@ export default function PurchaseRequisitionsPage() {
         return (
           <div className={cn('flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium w-fit', config.bgColor, config.color)}>
             {config.icon}
-            <span>{config.labelTh}</span>
+            <span>{t(`requisitions.priority.${config.translationKey}`)}</span>
           </div>
         );
       },
     },
     {
       dataField: 'totalAmount',
-      caption: 'ยอดประมาณ',
+      caption: t('requisitions.grid.columns.totalAmount'),
       width: 130,
       dataType: 'number',
       cellRender: (cellInfo) => (
@@ -308,7 +296,7 @@ export default function PurchaseRequisitionsPage() {
     },
     {
       dataField: 'requiredDate',
-      caption: 'ต้องการภายใน',
+      caption: t('requisitions.grid.columns.requiredDate'),
       width: 130,
       dataType: 'date',
       hideOnMobile: true,
@@ -330,7 +318,7 @@ export default function PurchaseRequisitionsPage() {
     },
     {
       dataField: 'createdAt',
-      caption: 'วันที่สร้าง',
+      caption: t('requisitions.grid.columns.createdAt'),
       width: 120,
       dataType: 'date',
       hideOnMobile: true,
@@ -340,37 +328,37 @@ export default function PurchaseRequisitionsPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('requisitions.grid.columns.status'),
       width: 130,
       cellRender: (cellInfo) => {
         const status = normalizeStatus(cellInfo.data.status) as PRStatusFilter;
         const config = STATUS_CONFIG[status] || STATUS_CONFIG[''];
         return (
           <Badge variant={config.badgeVariant} dot>
-            {config.labelTh}
+            {t(`requisitions.status.${config.translationKey}`)}
           </Badge>
         );
       },
     },
-  ];
+  ], [t]);
 
   return (
     <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
       <PageHeader
-        title="ใบขอซื้อ"
-        description="สร้างและจัดการใบขอซื้อพร้อมระบบอนุมัติ"
+        title={t('requisitions.pageTitle')}
+        description={t('requisitions.description')}
         actions={
           <div className="flex items-center gap-2">
             <DxButton
               icon="refresh"
               type="normal"
               stylingMode="outlined"
-              hint="รีเฟรช"
+              hint={t('requisitions.actions.refresh')}
               onClick={() => fetchRequisitions()}
               data-testid="refresh-btn"
             />
             <DxButton
-              text="สร้าง PR"
+              text={t('requisitions.actions.createPR')}
               icon="plus"
               type="success"
               onClick={() => router.push('/purchasing/requisitions/new')}
@@ -404,7 +392,7 @@ export default function PurchaseRequisitionsPage() {
                     data-testid={`status-tab-${status || 'all'}`}
                   >
                     {config.icon}
-                    <span>{config.labelTh}</span>
+                    <span>{t(`requisitions.status.${config.translationKey}`)}</span>
                     <span
                       className={cn(
                         'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
@@ -423,17 +411,17 @@ export default function PurchaseRequisitionsPage() {
               <div className="flex items-center gap-1.5 text-blue-600">
                 <TrendingUp className="h-4 w-4" />
                 <span className="font-semibold">{formatCompactCurrency(totalAmount)}</span>
-                <span className="text-gray-400">total</span>
+                <span className="text-gray-400">{t('requisitions.stats.total')}</span>
               </div>
               <div className="flex items-center gap-1.5 text-yellow-600">
                 <Clock className="h-4 w-4" />
                 <span className="font-semibold">{pendingCount}</span>
-                <span className="text-gray-400">pending</span>
+                <span className="text-gray-400">{t('requisitions.stats.pending')}</span>
               </div>
               <div className="flex items-center gap-1.5 text-red-600">
                 <Zap className="h-4 w-4" />
                 <span className="font-semibold">{urgentCount}</span>
-                <span className="text-gray-400">urgent</span>
+                <span className="text-gray-400">{t('requisitions.stats.urgent')}</span>
               </div>
             </div>
           </div>
@@ -442,7 +430,7 @@ export default function PurchaseRequisitionsPage() {
           <div className="flex items-center gap-3">
             <div className="flex-1 max-w-md">
               <DxTextBox
-                placeholder="ค้นหาด้วยเลขที่ PR หรือรายละเอียด..."
+                placeholder={t('requisitions.searchPlaceholder')}
                 value={search}
                 onValueChange={setSearch}
                 showClearButton
@@ -451,7 +439,7 @@ export default function PurchaseRequisitionsPage() {
               />
             </div>
             <div className="text-sm text-gray-500">
-              แสดง <span className="font-semibold text-gray-700">{filteredRequisitions.length}</span> รายการ
+              {t('requisitions.grid.showing', { count: filteredRequisitions.length })}
             </div>
           </div>
         </CardHeader>
@@ -471,7 +459,7 @@ export default function PurchaseRequisitionsPage() {
             virtualScrolling={filteredRequisitions.length > 100}
             fillHeight
             onRowClick={handleRowClick}
-            noDataText="ไม่พบใบขอซื้อ"
+            noDataText={t('requisitions.grid.noData')}
             data-testid="pr-grid"
           />
         </CardContent>

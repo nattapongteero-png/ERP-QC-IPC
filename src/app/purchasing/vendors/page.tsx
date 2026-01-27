@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -41,8 +42,7 @@ type VendorStatusFilter = '' | 'approved' | 'pending' | 'vmi' | 'inactive';
 
 // Status configuration for tabs and styling
 const STATUS_CONFIG: Record<VendorStatusFilter, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   bgColor: string;
   textColor: string;
   hoverBg: string;
@@ -50,8 +50,7 @@ const STATUS_CONFIG: Record<VendorStatusFilter, {
   badgeVariant: 'success' | 'warning' | 'danger' | 'info' | 'default' | 'primary' | 'secondary';
 }> = {
   '': {
-    label: 'All',
-    labelTh: 'ทั้งหมด',
+    translationKey: 'all',
     bgColor: 'bg-gray-100',
     textColor: 'text-gray-700',
     hoverBg: 'hover:bg-gray-200',
@@ -59,8 +58,7 @@ const STATUS_CONFIG: Record<VendorStatusFilter, {
     badgeVariant: 'default',
   },
   approved: {
-    label: 'Approved',
-    labelTh: 'อนุมัติแล้ว',
+    translationKey: 'approved',
     bgColor: 'bg-green-100',
     textColor: 'text-green-700',
     hoverBg: 'hover:bg-green-200',
@@ -68,8 +66,7 @@ const STATUS_CONFIG: Record<VendorStatusFilter, {
     badgeVariant: 'success',
   },
   pending: {
-    label: 'Pending',
-    labelTh: 'รอดำเนินการ',
+    translationKey: 'pending',
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-700',
     hoverBg: 'hover:bg-yellow-200',
@@ -77,8 +74,7 @@ const STATUS_CONFIG: Record<VendorStatusFilter, {
     badgeVariant: 'warning',
   },
   vmi: {
-    label: 'VMI',
-    labelTh: 'VMI',
+    translationKey: 'vmi',
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-700',
     hoverBg: 'hover:bg-blue-200',
@@ -86,8 +82,7 @@ const STATUS_CONFIG: Record<VendorStatusFilter, {
     badgeVariant: 'info',
   },
   inactive: {
-    label: 'Inactive',
-    labelTh: 'ไม่ใช้งาน',
+    translationKey: 'inactive',
     bgColor: 'bg-red-100',
     textColor: 'text-red-700',
     hoverBg: 'hover:bg-red-200',
@@ -100,6 +95,7 @@ const STATUS_ORDER: VendorStatusFilter[] = ['', 'approved', 'pending', 'vmi', 'i
 
 export default function VendorsPage() {
   const router = useRouter();
+  const t = useTranslations('purchasing');
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -178,10 +174,10 @@ export default function VendorsPage() {
   };
 
   // Define columns for DevExtreme DataGrid
-  const columns: DxDataGridColumn[] = [
+  const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'code',
-      caption: 'รหัส',
+      caption: t('vendors.grid.columns.code'),
       width: 120,
       cellRender: (cellInfo) => {
         const isApproved = cellInfo.data.isApproved;
@@ -222,7 +218,7 @@ export default function VendorsPage() {
     },
     {
       dataField: 'name',
-      caption: 'ชื่อผู้ขาย',
+      caption: t('vendors.grid.columns.name'),
       minWidth: 200,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
@@ -240,7 +236,7 @@ export default function VendorsPage() {
     },
     {
       dataField: 'phone',
-      caption: 'โทรศัพท์',
+      caption: t('vendors.grid.columns.phone'),
       width: 140,
       cellRender: (cellInfo) => {
         if (!cellInfo.data.phone) return <span className="text-gray-400">-</span>;
@@ -254,7 +250,7 @@ export default function VendorsPage() {
     },
     {
       dataField: 'email',
-      caption: 'อีเมล',
+      caption: t('vendors.grid.columns.email'),
       width: 200,
       hideOnMobile: true,
       cellRender: (cellInfo) => {
@@ -269,7 +265,7 @@ export default function VendorsPage() {
     },
     {
       dataField: 'leadTimeDays',
-      caption: 'Lead Time',
+      caption: t('vendors.grid.columns.leadTime'),
       width: 110,
       dataType: 'number',
       hideOnMobile: true,
@@ -283,7 +279,7 @@ export default function VendorsPage() {
               'text-sm font-medium',
               days <= 7 ? 'text-green-600' : days <= 14 ? 'text-yellow-600' : 'text-red-600'
             )}>
-              {days} วัน
+              {t('vendors.grid.days', { days })}
             </span>
           </div>
         );
@@ -291,7 +287,7 @@ export default function VendorsPage() {
     },
     {
       dataField: 'paymentTerms',
-      caption: 'เงื่อนไขชำระ',
+      caption: t('vendors.grid.columns.paymentTerms'),
       width: 120,
       hideOnMobile: true,
       cellRender: (cellInfo) => {
@@ -301,7 +297,7 @@ export default function VendorsPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('vendors.grid.columns.status'),
       width: 180,
       cellRender: (cellInfo) => {
         const isApproved = cellInfo.data.isApproved;
@@ -311,37 +307,37 @@ export default function VendorsPage() {
         return (
           <div className="flex gap-1 flex-wrap">
             {!isActive ? (
-              <Badge variant="danger" dot>ไม่ใช้งาน</Badge>
+              <Badge variant="danger" dot>{t('vendors.status.inactive')}</Badge>
             ) : (
               <>
                 <Badge variant={isApproved ? 'success' : 'warning'} dot>
-                  {isApproved ? 'อนุมัติแล้ว' : 'รอดำเนินการ'}
+                  {isApproved ? t('vendors.status.approved') : t('vendors.status.pending')}
                 </Badge>
-                {isVMI && <Badge variant="info">VMI</Badge>}
+                {isVMI && <Badge variant="info">{t('vendors.status.vmi')}</Badge>}
               </>
             )}
           </div>
         );
       },
     },
-  ];
+  ], [t]);
 
   return (
       <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
-          title="ผู้ขาย"
-          description="จัดการข้อมูลผู้ขายและคู่ค้า"
+          title={t('vendors.pageTitle')}
+          description={t('vendors.description')}
           actions={
             <div className="flex items-center gap-2">
               <DxButton
                 icon="refresh"
                 type="normal"
                 stylingMode="outlined"
-                hint="รีเฟรช"
+                hint={t('vendors.actions.refresh')}
                 onClick={() => fetchVendors()}
               />
               <DxButton
-                text="เพิ่มผู้ขาย"
+                text={t('vendors.actions.addVendor')}
                 icon="plus"
                 type="success"
                 onClick={() => router.push('/purchasing/vendors/new')}
@@ -373,7 +369,7 @@ export default function VendorsPage() {
                       )}
                     >
                       {config.icon}
-                      <span>{config.labelTh}</span>
+                      <span>{t(`vendors.status.${config.translationKey}`)}</span>
                       <span
                         className={cn(
                           'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
@@ -392,17 +388,17 @@ export default function VendorsPage() {
                 <div className="flex items-center gap-1.5 text-green-600">
                   <UserCheck className="h-4 w-4" />
                   <span className="font-semibold">{statusCounts.approved}</span>
-                  <span className="text-gray-400">approved</span>
+                  <span className="text-gray-400">{t('vendors.stats.approved')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-blue-600">
                   <Link2 className="h-4 w-4" />
                   <span className="font-semibold">{statusCounts.vmi}</span>
-                  <span className="text-gray-400">VMI</span>
+                  <span className="text-gray-400">{t('vendors.stats.vmi')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-purple-600">
                   <Truck className="h-4 w-4" />
                   <span className="font-semibold">{avgLeadTime.toFixed(0)}</span>
-                  <span className="text-gray-400">avg days</span>
+                  <span className="text-gray-400">{t('vendors.stats.avgDays')}</span>
                 </div>
               </div>
             </div>
@@ -411,7 +407,7 @@ export default function VendorsPage() {
             <div className="flex items-center gap-3">
               <div className="flex-1 max-w-md">
                 <DxTextBox
-                  placeholder="ค้นหาด้วยรหัส ชื่อ หรือผู้ติดต่อ..."
+                  placeholder={t('vendors.searchPlaceholder')}
                   value={search}
                   onValueChange={setSearch}
                   showClearButton
@@ -419,7 +415,7 @@ export default function VendorsPage() {
                 />
               </div>
               <div className="text-sm text-gray-500">
-                แสดง <span className="font-semibold text-gray-700">{filteredVendors.length}</span> รายการ
+                {t('vendors.grid.showing', { count: filteredVendors.length })}
               </div>
             </div>
           </CardHeader>
@@ -439,7 +435,7 @@ export default function VendorsPage() {
               virtualScrolling={filteredVendors.length > 100}
               fillHeight
               onRowClick={handleRowClick}
-              noDataText="ไม่พบผู้ขาย"
+              noDataText={t('vendors.grid.noData')}
             />
           </CardContent>
         </Card>

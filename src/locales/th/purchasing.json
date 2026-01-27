@@ -5,7 +5,40 @@
   },
   "orders": {
     "title": "ใบสั่งซื้อ",
-    "description": "จัดการใบสั่งซื้อทั้งหมด",
+    "pageTitle": "ใบสั่งซื้อ",
+    "description": "จัดการใบสั่งซื้อวัตถุดิบและวัสดุ",
+    "status": {
+      "all": "ทั้งหมด",
+      "draft": "ร่าง",
+      "pendingApproval": "รออนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "sent": "ส่งให้ผู้ขาย",
+      "partial": "รับบางส่วน",
+      "received": "รับครบแล้ว",
+      "cancelled": "ยกเลิก"
+    },
+    "stats": {
+      "total": "รวม",
+      "pending": "รอดำเนินการ",
+      "awaiting": "รอรับ"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "createPO": "สร้าง PO"
+    },
+    "grid": {
+      "columns": {
+        "poNumber": "เลขที่ PO",
+        "vendor": "ผู้ขาย",
+        "orderDate": "วันที่สั่ง",
+        "expectedDate": "คาดว่าจะได้รับ",
+        "totalAmount": "ยอดรวม",
+        "status": "สถานะ"
+      },
+      "showing": "แสดง {count} รายการ",
+      "noData": "ไม่พบใบสั่งซื้อ"
+    },
+    "searchPlaceholder": "ค้นหาด้วยเลขที่ PO หรือชื่อผู้ขาย...",
     "table": {
       "columns": {
         "orderNumber": "เลขที่ใบสั่งซื้อ",
@@ -68,9 +101,108 @@
       }
     }
   },
+  "vendors": {
+    "pageTitle": "ผู้ขาย",
+    "description": "จัดการข้อมูลผู้ขายและคู่ค้า",
+    "status": {
+      "all": "ทั้งหมด",
+      "approved": "อนุมัติแล้ว",
+      "pending": "รอดำเนินการ",
+      "vmi": "VMI",
+      "inactive": "ไม่ใช้งาน"
+    },
+    "stats": {
+      "approved": "อนุมัติแล้ว",
+      "vmi": "VMI",
+      "avgDays": "วันเฉลี่ย"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "addVendor": "เพิ่มผู้ขาย"
+    },
+    "grid": {
+      "columns": {
+        "code": "รหัส",
+        "name": "ชื่อผู้ขาย",
+        "phone": "โทรศัพท์",
+        "email": "อีเมล",
+        "leadTime": "Lead Time",
+        "paymentTerms": "เงื่อนไขชำระ",
+        "status": "สถานะ"
+      },
+      "showing": "แสดง {count} รายการ",
+      "noData": "ไม่พบผู้ขาย",
+      "days": "{days} วัน"
+    },
+    "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ หรือผู้ติดต่อ..."
+  },
+  "requisitions": {
+    "pageTitle": "ใบขอซื้อ",
+    "description": "สร้างและจัดการใบขอซื้อพร้อมระบบอนุมัติ",
+    "status": {
+      "all": "ทั้งหมด",
+      "draft": "ร่าง",
+      "submitted": "ส่งแล้ว",
+      "pendingApproval": "รออนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "rejected": "ไม่อนุมัติ",
+      "cancelled": "ยกเลิก",
+      "converted": "แปลงเป็น PO"
+    },
+    "priority": {
+      "low": "ต่ำ",
+      "normal": "ปกติ",
+      "high": "สูง",
+      "urgent": "เร่งด่วน"
+    },
+    "stats": {
+      "total": "รวม",
+      "pending": "รอดำเนินการ",
+      "urgent": "เร่งด่วน"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "createPR": "สร้าง PR"
+    },
+    "grid": {
+      "columns": {
+        "prNumber": "เลขที่ PR",
+        "description": "รายละเอียด",
+        "priority": "ความสำคัญ",
+        "totalAmount": "ยอดประมาณ",
+        "requiredDate": "ต้องการภายใน",
+        "createdAt": "วันที่สร้าง",
+        "status": "สถานะ"
+      },
+      "showing": "แสดง {count} รายการ",
+      "noData": "ไม่พบใบขอซื้อ"
+    },
+    "searchPlaceholder": "ค้นหาด้วยเลขที่ PR หรือรายละเอียด..."
+  },
   "receiving": {
     "title": "การรับสินค้า",
     "description": "บันทึกการรับสินค้าจากใบสั่งซื้อ"
+  },
+  "vmi": {
+    "pageTitle": "ใบสั่งซื้อ VMI",
+    "description": "จัดการใบสั่งซื้อจากโรงพยาบาลผ่านระบบ VMI Portal",
+    "actions": {
+      "pollAll": "ดึงข้อมูลทุกผู้ขาย",
+      "polling": "กำลังดึงข้อมูล...",
+      "pollOrders": "ดึงใบสั่งซื้อ"
+    },
+    "stats": {
+      "total": "ใบสั่งทั้งหมด",
+      "submitted": "ส่งแล้ว",
+      "confirmed": "ยืนยันแล้ว",
+      "shipped": "จัดส่งแล้ว",
+      "received": "รับแล้ว"
+    },
+    "loading": "กำลังโหลดรายละเอียดใบสั่งซื้อ...",
+    "empty": {
+      "title": "ไม่มีใบสั่งซื้อ VMI",
+      "description": "คลิก 'ดึงข้อมูลทุกผู้ขาย' เพื่อดึงใบสั่งซื้อใหม่จาก VMI Portal"
+    }
   },
   "toast": {
     "createOrder": {

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -41,8 +42,7 @@ type POStatusFilter = '' | 'draft' | 'pending_approval' | 'approved' | 'sent' | 
 
 // Status configuration for tabs and styling
 const STATUS_CONFIG: Record<POStatusFilter, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   bgColor: string;
   textColor: string;
   hoverBg: string;
@@ -50,8 +50,7 @@ const STATUS_CONFIG: Record<POStatusFilter, {
   badgeVariant: 'success' | 'warning' | 'danger' | 'info' | 'default' | 'primary' | 'secondary';
 }> = {
   '': {
-    label: 'All',
-    labelTh: 'ทั้งหมด',
+    translationKey: 'all',
     bgColor: 'bg-gray-100',
     textColor: 'text-gray-700',
     hoverBg: 'hover:bg-gray-200',
@@ -59,8 +58,7 @@ const STATUS_CONFIG: Record<POStatusFilter, {
     badgeVariant: 'default',
   },
   draft: {
-    label: 'Draft',
-    labelTh: 'ร่าง',
+    translationKey: 'draft',
     bgColor: 'bg-slate-100',
     textColor: 'text-slate-700',
     hoverBg: 'hover:bg-slate-200',
@@ -68,8 +66,7 @@ const STATUS_CONFIG: Record<POStatusFilter, {
     badgeVariant: 'default',
   },
   pending_approval: {
-    label: 'Pending',
-    labelTh: 'รออนุมัติ',
+    translationKey: 'pendingApproval',
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-700',
     hoverBg: 'hover:bg-yellow-200',
@@ -77,8 +74,7 @@ const STATUS_CONFIG: Record<POStatusFilter, {
     badgeVariant: 'warning',
   },
   approved: {
-    label: 'Approved',
-    labelTh: 'อนุมัติแล้ว',
+    translationKey: 'approved',
     bgColor: 'bg-green-100',
     textColor: 'text-green-700',
     hoverBg: 'hover:bg-green-200',
@@ -86,8 +82,7 @@ const STATUS_CONFIG: Record<POStatusFilter, {
     badgeVariant: 'success',
   },
   sent: {
-    label: 'Sent',
-    labelTh: 'ส่งให้ผู้ขาย',
+    translationKey: 'sent',
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-700',
     hoverBg: 'hover:bg-blue-200',
@@ -95,8 +90,7 @@ const STATUS_CONFIG: Record<POStatusFilter, {
     badgeVariant: 'info',
   },
   partial: {
-    label: 'Partial',
-    labelTh: 'รับบางส่วน',
+    translationKey: 'partial',
     bgColor: 'bg-purple-100',
     textColor: 'text-purple-700',
     hoverBg: 'hover:bg-purple-200',
@@ -104,8 +98,7 @@ const STATUS_CONFIG: Record<POStatusFilter, {
     badgeVariant: 'primary',
   },
   received: {
-    label: 'Received',
-    labelTh: 'รับครบแล้ว',
+    translationKey: 'received',
     bgColor: 'bg-emerald-100',
     textColor: 'text-emerald-700',
     hoverBg: 'hover:bg-emerald-200',
@@ -113,8 +106,7 @@ const STATUS_CONFIG: Record<POStatusFilter, {
     badgeVariant: 'success',
   },
   cancelled: {
-    label: 'Cancelled',
-    labelTh: 'ยกเลิก',
+    translationKey: 'cancelled',
     bgColor: 'bg-red-100',
     textColor: 'text-red-700',
     hoverBg: 'hover:bg-red-200',
@@ -157,6 +149,8 @@ const formatCompactCurrency = (amount: number) => {
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
+  const t = useTranslations('purchasing');
+  const tCommon = useTranslations('common');
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -221,10 +215,10 @@ export default function PurchaseOrdersPage() {
   };
 
   // Define columns for DevExtreme DataGrid
-  const columns: DxDataGridColumn[] = [
+  const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'poNumber',
-      caption: 'เลขที่ PO',
+      caption: t('orders.grid.columns.poNumber'),
       width: 150,
       cellRender: (cellInfo) => {
         const status = normalizeStatus(cellInfo.data.status) as POStatusFilter;
@@ -243,7 +237,7 @@ export default function PurchaseOrdersPage() {
     },
     {
       dataField: 'vendorName',
-      caption: 'ผู้ขาย',
+      caption: t('orders.grid.columns.vendor'),
       minWidth: 180,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
@@ -256,7 +250,7 @@ export default function PurchaseOrdersPage() {
     },
     {
       dataField: 'orderDate',
-      caption: 'วันที่สั่ง',
+      caption: t('orders.grid.columns.orderDate'),
       width: 120,
       dataType: 'date',
       hideOnMobile: true,
@@ -266,7 +260,7 @@ export default function PurchaseOrdersPage() {
     },
     {
       dataField: 'expectedDate',
-      caption: 'คาดว่าจะได้รับ',
+      caption: t('orders.grid.columns.expectedDate'),
       width: 130,
       dataType: 'date',
       hideOnMobile: true,
@@ -288,7 +282,7 @@ export default function PurchaseOrdersPage() {
     },
     {
       dataField: 'totalAmount',
-      caption: 'ยอดรวม',
+      caption: t('orders.grid.columns.totalAmount'),
       width: 140,
       dataType: 'number',
       cellRender: (cellInfo) => (
@@ -301,36 +295,36 @@ export default function PurchaseOrdersPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('orders.grid.columns.status'),
       width: 140,
       cellRender: (cellInfo) => {
         const status = normalizeStatus(cellInfo.data.status) as POStatusFilter;
         const config = STATUS_CONFIG[status] || STATUS_CONFIG[''];
         return (
           <Badge variant={config.badgeVariant} dot>
-            {config.labelTh}
+            {t(`orders.status.${config.translationKey}`)}
           </Badge>
         );
       },
     },
-  ];
+  ], [t]);
 
   return (
       <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <PageHeader
-          title="ใบสั่งซื้อ"
-          description="จัดการใบสั่งซื้อวัตถุดิบและวัสดุ"
+          title={t('orders.pageTitle')}
+          description={t('orders.description')}
           actions={
             <div className="flex items-center gap-2">
               <DxButton
                 icon="refresh"
                 type="normal"
                 stylingMode="outlined"
-                hint="รีเฟรช"
+                hint={t('orders.actions.refresh')}
                 onClick={() => fetchOrders()}
               />
               <DxButton
-                text="สร้าง PO"
+                text={t('orders.actions.createPO')}
                 icon="plus"
                 type="success"
                 onClick={() => router.push('/purchasing/orders/new')}
@@ -362,7 +356,7 @@ export default function PurchaseOrdersPage() {
                       )}
                     >
                       {config.icon}
-                      <span>{config.labelTh}</span>
+                      <span>{t(`orders.status.${config.translationKey}`)}</span>
                       <span
                         className={cn(
                           'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
@@ -381,17 +375,17 @@ export default function PurchaseOrdersPage() {
                 <div className="flex items-center gap-1.5 text-blue-600">
                   <TrendingUp className="h-4 w-4" />
                   <span className="font-semibold">{formatCompactCurrency(totalAmount)}</span>
-                  <span className="text-gray-400">total</span>
+                  <span className="text-gray-400">{t('orders.stats.total')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-yellow-600">
                   <Clock className="h-4 w-4" />
                   <span className="font-semibold">{pendingCount}</span>
-                  <span className="text-gray-400">pending</span>
+                  <span className="text-gray-400">{t('orders.stats.pending')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-purple-600">
                   <Truck className="h-4 w-4" />
                   <span className="font-semibold">{awaitingDelivery}</span>
-                  <span className="text-gray-400">awaiting</span>
+                  <span className="text-gray-400">{t('orders.stats.awaiting')}</span>
                 </div>
               </div>
             </div>
@@ -400,7 +394,7 @@ export default function PurchaseOrdersPage() {
             <div className="flex items-center gap-3">
               <div className="flex-1 max-w-md">
                 <DxTextBox
-                  placeholder="ค้นหาด้วยเลขที่ PO หรือชื่อผู้ขาย..."
+                  placeholder={t('orders.searchPlaceholder')}
                   value={search}
                   onValueChange={setSearch}
                   showClearButton
@@ -408,7 +402,7 @@ export default function PurchaseOrdersPage() {
                 />
               </div>
               <div className="text-sm text-gray-500">
-                แสดง <span className="font-semibold text-gray-700">{filteredOrders.length}</span> รายการ
+                {t('orders.grid.showing', { count: filteredOrders.length })}
               </div>
             </div>
           </CardHeader>
@@ -428,7 +422,7 @@ export default function PurchaseOrdersPage() {
               virtualScrolling={filteredOrders.length > 100}
               fillHeight
               onRowClick={handleRowClick}
-              noDataText="ไม่พบใบสั่งซื้อ"
+              noDataText={t('orders.grid.noData')}
             />
           </CardContent>
         </Card>
