@@ -3,6 +3,123 @@
     "title": "บัญชี",
     "description": "จัดการบัญชีแยกประเภท รายรับ รายจ่าย และรายงานทางการเงิน"
   },
+  "dashboard": {
+    "title": "แดชบอร์ดบัญชีระดับผู้บริหาร",
+    "description": "ข้อมูลเชิงลึกทางการเงินและตัวชี้วัดที่ใช้ดำเนินการได้",
+    "refresh": "รีเฟรช",
+    "periods": {
+      "mtd": "เดือนนี้",
+      "qtd": "ไตรมาสนี้",
+      "ytd": "ปีนี้"
+    },
+    "sections": {
+      "financialHealth": "สุขภาพทางการเงิน",
+      "businessPerformance": "ผลประกอบการ",
+      "quickAccess": "เข้าถึงด่วน"
+    },
+    "quickLinks": {
+      "financialStatements": "งบการเงิน",
+      "trialBalance": "งบทดลอง",
+      "balanceSheet": "งบดุล",
+      "incomeStatement": "งบกำไรขาดทุน",
+      "cashFlow": "งบกระแสเงินสด",
+      "receivables": "ลูกหนี้",
+      "arInvoices": "ใบแจ้งหนี้ลูกหนี้",
+      "arAging": "อายุลูกหนี้",
+      "receipts": "ใบเสร็จรับเงิน",
+      "payables": "เจ้าหนี้",
+      "apInvoices": "ใบแจ้งหนี้เจ้าหนี้",
+      "apAging": "อายุเจ้าหนี้",
+      "payments": "การชำระเงิน",
+      "assetsOperations": "สินทรัพย์และการดำเนินงาน",
+      "fixedAssets": "สินทรัพย์ถาวร",
+      "equipment": "อุปกรณ์",
+      "periodClose": "ปิดงวดบัญชี"
+    }
+  },
+  "chartOfAccounts": {
+    "title": "ผังบัญชี",
+    "subtitle": "Chart of Accounts",
+    "export": "ส่งออก",
+    "exportSuccess": "ส่งออกสำเร็จ",
+    "exportFailed": "ส่งออกไม่สำเร็จ",
+    "stats": {
+      "total": "บัญชีทั้งหมด",
+      "active": "ใช้งาน",
+      "postable": "ลงบัญชีได้",
+      "bankAccounts": "บัญชีธนาคาร"
+    },
+    "actions": {
+      "label": "การดำเนินการ",
+      "add": "เพิ่มบัญชี"
+    },
+    "search": {
+      "placeholder": "ค้นหารหัสหรือชื่อบัญชี..."
+    },
+    "columns": {
+      "code": "รหัสบัญชี",
+      "nameTh": "ชื่อบัญชี (ไทย)",
+      "nameEn": "ชื่อบัญชี (อังกฤษ)",
+      "type": "ประเภท",
+      "level": "ระดับ",
+      "postable": "ลงบัญชี",
+      "postableYes": "ลงบัญชีได้",
+      "status": "สถานะ",
+      "bankAccount": "บัญชีธนาคาร"
+    },
+    "form": {
+      "addTitle": "เพิ่มบัญชีใหม่",
+      "editTitle": "แก้ไขบัญชี: {code}",
+      "sections": {
+        "basic": "ข้อมูลพื้นฐาน",
+        "options": "ตัวเลือก",
+        "bank": "ข้อมูลธนาคาร"
+      },
+      "fields": {
+        "code": "รหัสบัญชี",
+        "codePlaceholder": "เช่น 1-1100-01",
+        "codeRequired": "กรุณาระบุรหัสบัญชี",
+        "codePattern": "รหัสบัญชีต้องเป็นตัวเลข ขีด หรือจุดเท่านั้น",
+        "codeMaxLength": "รหัสบัญชีต้องไม่เกิน 20 ตัวอักษร",
+        "accountType": "ประเภทบัญชี",
+        "accountTypePlaceholder": "เลือกประเภทบัญชี",
+        "accountTypeRequired": "กรุณาเลือกประเภทบัญชี",
+        "nameTh": "ชื่อบัญชี (ภาษาไทย)",
+        "nameThPlaceholder": "ชื่อบัญชีภาษาไทย",
+        "nameThRequired": "กรุณาระบุชื่อบัญชีภาษาไทย",
+        "nameMaxLength": "ชื่อบัญชีต้องไม่เกิน 200 ตัวอักษร",
+        "nameEn": "ชื่อบัญชี (ภาษาอังกฤษ)",
+        "nameEnPlaceholder": "Account Name in English",
+        "nameEnRequired": "กรุณาระบุชื่อบัญชีภาษาอังกฤษ",
+        "parent": "บัญชีแม่",
+        "parentPlaceholder": "เลือกบัญชีแม่ (ถ้ามี)",
+        "noParent": "(ไม่มีบัญชีแม่)",
+        "description": "คำอธิบาย",
+        "descriptionPlaceholder": "คำอธิบายบัญชี (ถ้ามี)",
+        "isPostable": "ลงบัญชีได้",
+        "isPostableText": "สามารถลงบัญชีได้",
+        "isBankAccount": "บัญชีธนาคาร",
+        "isBankAccountText": "เป็นบัญชีธนาคาร",
+        "isActive": "สถานะ",
+        "isActiveText": "ใช้งาน",
+        "bankName": "ชื่อธนาคาร",
+        "bankNamePlaceholder": "เช่น ธนาคารกรุงเทพ",
+        "bankNameMaxLength": "ชื่อธนาคารต้องไม่เกิน 100 ตัวอักษร",
+        "bankAccountNumber": "เลขที่บัญชี",
+        "bankAccountNumberPlaceholder": "เลขที่บัญชีธนาคาร",
+        "bankAccountNumberMaxLength": "เลขที่บัญชีต้องไม่เกิน 50 ตัวอักษร"
+      },
+      "toast": {
+        "createSuccess": "บันทึกบัญชีสำเร็จ",
+        "updateSuccess": "แก้ไขบัญชีสำเร็จ"
+      }
+    },
+    "actions": {
+      "cancel": "ยกเลิก",
+      "save": "บันทึก",
+      "saving": "กำลังบันทึก..."
+    }
+  },
   "generalLedger": {
     "title": "บัญชีแยกประเภท",
     "description": "จัดการผังบัญชีและรายการบันทึกบัญชี",

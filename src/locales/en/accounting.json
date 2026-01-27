@@ -3,6 +3,123 @@
     "title": "Accounting",
     "description": "Manage general ledger, receivables, payables, and financial reports"
   },
+  "dashboard": {
+    "title": "Executive Accounting Dashboard",
+    "description": "Financial insights and actionable metrics",
+    "refresh": "Refresh",
+    "periods": {
+      "mtd": "MTD",
+      "qtd": "QTD",
+      "ytd": "YTD"
+    },
+    "sections": {
+      "financialHealth": "Financial Health",
+      "businessPerformance": "Business Performance",
+      "quickAccess": "Quick Access"
+    },
+    "quickLinks": {
+      "financialStatements": "Financial Statements",
+      "trialBalance": "Trial Balance",
+      "balanceSheet": "Balance Sheet",
+      "incomeStatement": "Income Statement",
+      "cashFlow": "Cash Flow",
+      "receivables": "Receivables",
+      "arInvoices": "AR Invoices",
+      "arAging": "AR Aging",
+      "receipts": "Receipts",
+      "payables": "Payables",
+      "apInvoices": "AP Invoices",
+      "apAging": "AP Aging",
+      "payments": "Payments",
+      "assetsOperations": "Assets & Operations",
+      "fixedAssets": "Fixed Assets",
+      "equipment": "Equipment",
+      "periodClose": "Period Close"
+    }
+  },
+  "chartOfAccounts": {
+    "title": "Chart of Accounts",
+    "subtitle": "Chart of Accounts",
+    "export": "Export",
+    "exportSuccess": "Export successful",
+    "exportFailed": "Export failed",
+    "stats": {
+      "total": "Total Accounts",
+      "active": "Active",
+      "postable": "Postable",
+      "bankAccounts": "Bank Accounts"
+    },
+    "actions": {
+      "label": "Actions",
+      "add": "Add Account"
+    },
+    "search": {
+      "placeholder": "Search by code or name..."
+    },
+    "columns": {
+      "code": "Account Code",
+      "nameTh": "Account Name (Thai)",
+      "nameEn": "Account Name (English)",
+      "type": "Type",
+      "level": "Level",
+      "postable": "Postable",
+      "postableYes": "Postable",
+      "status": "Status",
+      "bankAccount": "Bank Account"
+    },
+    "form": {
+      "addTitle": "Add New Account",
+      "editTitle": "Edit Account: {code}",
+      "sections": {
+        "basic": "Basic Information",
+        "options": "Options",
+        "bank": "Bank Information"
+      },
+      "fields": {
+        "code": "Account Code",
+        "codePlaceholder": "e.g. 1-1100-01",
+        "codeRequired": "Account code is required",
+        "codePattern": "Account code must be numbers, dashes, or dots only",
+        "codeMaxLength": "Account code must not exceed 20 characters",
+        "accountType": "Account Type",
+        "accountTypePlaceholder": "Select account type",
+        "accountTypeRequired": "Account type is required",
+        "nameTh": "Account Name (Thai)",
+        "nameThPlaceholder": "Thai account name",
+        "nameThRequired": "Thai account name is required",
+        "nameMaxLength": "Account name must not exceed 200 characters",
+        "nameEn": "Account Name (English)",
+        "nameEnPlaceholder": "English account name",
+        "nameEnRequired": "English account name is required",
+        "parent": "Parent Account",
+        "parentPlaceholder": "Select parent account (if any)",
+        "noParent": "(No parent)",
+        "description": "Description",
+        "descriptionPlaceholder": "Account description (optional)",
+        "isPostable": "Postable",
+        "isPostableText": "Can be posted to",
+        "isBankAccount": "Bank Account",
+        "isBankAccountText": "Is a bank account",
+        "isActive": "Status",
+        "isActiveText": "Active",
+        "bankName": "Bank Name",
+        "bankNamePlaceholder": "e.g. Bangkok Bank",
+        "bankNameMaxLength": "Bank name must not exceed 100 characters",
+        "bankAccountNumber": "Account Number",
+        "bankAccountNumberPlaceholder": "Bank account number",
+        "bankAccountNumberMaxLength": "Account number must not exceed 50 characters"
+      },
+      "toast": {
+        "createSuccess": "Account created successfully",
+        "updateSuccess": "Account updated successfully"
+      }
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    }
+  },
   "generalLedger": {
     "title": "General Ledger",
     "description": "Manage chart of accounts and journal entries",

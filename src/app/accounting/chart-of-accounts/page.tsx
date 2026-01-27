@@ -6,6 +6,7 @@
 
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import TreeList, {
   Column,
   SearchPanel,
@@ -130,6 +131,7 @@ const accountToFormData = (account: GLAccount): GLAccountFormData => ({
 
 export default function ChartOfAccountsPage() {
   const queryClient = useQueryClient();
+  const t = useTranslations('accounting');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formRef = useRef<any>(null);
   const [showDialog, setShowDialog] = useState(false);
@@ -153,7 +155,7 @@ export default function ChartOfAccountsPage() {
     mutationFn: createGLAccount,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gl-accounts'] });
-      notify('บันทึกบัญชีสำเร็จ', 'success', 3000);
+      notify(t('chartOfAccounts.form.toast.createSuccess'), 'success', 3000);
       handleCloseDialog();
     },
     onError: (error: Error) => {
@@ -166,7 +168,7 @@ export default function ChartOfAccountsPage() {
     mutationFn: ({ id, data }: { id: number; data: GLAccountUpdate }) => updateGLAccount(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gl-accounts'] });
-      notify('แก้ไขบัญชีสำเร็จ', 'success', 3000);
+      notify(t('chartOfAccounts.form.toast.updateSuccess'), 'success', 3000);
       handleCloseDialog();
     },
     onError: (error: Error) => {
@@ -198,12 +200,12 @@ export default function ChartOfAccountsPage() {
   const handleExport = useCallback(async () => {
     try {
       await exportCOA(false);
-      notify('ส่งออกสำเร็จ', 'success', 3000);
+      notify(t('chartOfAccounts.exportSuccess'), 'success', 3000);
     } catch (error) {
       console.error('Export failed:', error);
-      notify('ส่งออกไม่สำเร็จ', 'error', 3000);
+      notify(t('chartOfAccounts.exportFailed'), 'error', 3000);
     }
-  }, []);
+  }, [t]);
 
   // Handle refresh
   const handleRefresh = useCallback(() => {
@@ -292,14 +294,14 @@ export default function ChartOfAccountsPage() {
 
   // Parent account lookup data (only non-postable accounts)
   const parentLookup = useMemo(() => [
-    { id: null, displayValue: '(ไม่มีบัญชีแม่)' },
+    { id: null, displayValue: t('chartOfAccounts.form.fields.noParent') },
     ...accounts
       .filter(a => !a.isPostable && a.isActive)
       .map(a => ({
         id: a.id,
         displayValue: `${a.code} - ${a.nameTh}`,
       })),
-  ], [accounts]);
+  ], [accounts, t]);
 
   // Render type badge
   const renderTypeBadge = useCallback((cellInfo: { value: string }) => {
@@ -318,11 +320,11 @@ export default function ChartOfAccountsPage() {
   // Render postable
   const renderPostable = useCallback((cellInfo: { value: boolean }) => {
     return cellInfo.value ? (
-      <span className="text-green-600">ลงบัญชีได้</span>
+      <span className="text-green-600">{t('chartOfAccounts.columns.postableYes')}</span>
     ) : (
       <span className="text-gray-400">-</span>
     );
-  }, []);
+  }, [t]);
 
   if (accountsLoading) {
     return (
@@ -335,13 +337,13 @@ export default function ChartOfAccountsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900" data-testid="coa-page">
       <AccountingPageHeader
-        title="ผังบัญชี"
-        subtitle="Chart of Accounts"
+        title={t('chartOfAccounts.title')}
+        subtitle={t('chartOfAccounts.subtitle')}
         icon="book"
         onRefresh={handleRefresh}
         actions={
           <Button
-            text="ส่งออก"
+            text={t('chartOfAccounts.export')}
             icon="export"
             onClick={handleExport}
             stylingMode="outlined"
@@ -354,25 +356,25 @@ export default function ChartOfAccountsPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="coa-stats">
           <AccountingKPICard
-            label="บัญชีทั้งหมด"
+            label={t('chartOfAccounts.stats.total')}
             value={stats.total}
             icon="file-text"
             variant="info"
           />
           <AccountingKPICard
-            label="ใช้งาน"
+            label={t('chartOfAccounts.stats.active')}
             value={stats.active}
             icon="check-circle"
             variant="success"
           />
           <AccountingKPICard
-            label="ลงบัญชีได้"
+            label={t('chartOfAccounts.stats.postable')}
             value={stats.postable}
             icon="wallet"
             variant="default"
           />
           <AccountingKPICard
-            label="บัญชีธนาคาร"
+            label={t('chartOfAccounts.stats.bankAccounts')}
             value={stats.bankAccounts}
             icon="credit-card"
             variant="info"
@@ -384,11 +386,11 @@ export default function ChartOfAccountsPage() {
           <div className="flex-1" />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              การดำเนินการ
+              {t('chartOfAccounts.actions.label')}
             </label>
             <Button
               icon="add"
-              text="เพิ่มบัญชี"
+              text={t('chartOfAccounts.actions.add')}
               type="default"
               stylingMode="contained"
               onClick={() => handleOpenAddDialog()}
@@ -412,35 +414,35 @@ export default function ChartOfAccountsPage() {
             height={600}
             onRowDblClick={handleRowDblClick}
           >
-            <SearchPanel visible={true} width={240} placeholder="ค้นหารหัสหรือชื่อบัญชี..." />
+            <SearchPanel visible={true} width={240} placeholder={t('chartOfAccounts.search.placeholder')} />
             <HeaderFilter visible={true} />
             <Selection mode="single" />
 
-            <Column dataField="code" caption="รหัสบัญชี" width={120} />
-            <Column dataField="nameTh" caption="ชื่อบัญชี (ไทย)" width={250} />
-            <Column dataField="nameEn" caption="ชื่อบัญชี (อังกฤษ)" width={200} />
+            <Column dataField="code" caption={t('chartOfAccounts.columns.code')} width={120} />
+            <Column dataField="nameTh" caption={t('chartOfAccounts.columns.nameTh')} width={250} />
+            <Column dataField="nameEn" caption={t('chartOfAccounts.columns.nameEn')} width={200} />
             <Column
               dataField="typeName"
-              caption="ประเภท"
+              caption={t('chartOfAccounts.columns.type')}
               width={120}
               cellRender={renderTypeBadge}
             />
-            <Column dataField="level" caption="ระดับ" width={80} alignment="center" />
+            <Column dataField="level" caption={t('chartOfAccounts.columns.level')} width={80} alignment="center" />
             <Column
               dataField="isPostable"
-              caption="ลงบัญชี"
+              caption={t('chartOfAccounts.columns.postable')}
               width={100}
               cellRender={renderPostable}
             />
             <Column
               dataField="isActive"
-              caption="สถานะ"
+              caption={t('chartOfAccounts.columns.status')}
               width={100}
               cellRender={renderStatus}
             />
             <Column
               dataField="isBankAccount"
-              caption="บัญชีธนาคาร"
+              caption={t('chartOfAccounts.columns.bankAccount')}
               width={120}
               dataType="boolean"
             />
@@ -451,7 +453,7 @@ export default function ChartOfAccountsPage() {
         <Popup
           visible={showDialog}
           onHiding={handleCloseDialog}
-          title={editingAccount ? `แก้ไขบัญชี: ${editingAccount.code}` : 'เพิ่มบัญชีใหม่'}
+          title={editingAccount ? t('chartOfAccounts.form.editTitle', { code: editingAccount.code }) : t('chartOfAccounts.form.addTitle')}
           width={700}
           height="auto"
           maxHeight={650}
@@ -469,130 +471,130 @@ export default function ChartOfAccountsPage() {
                 setFormData(prev => ({ ...prev, [e.dataField as string]: e.value }));
               }}
             >
-              <GroupItem caption="ข้อมูลพื้นฐาน" colSpan={2} colCount={2}>
+              <GroupItem caption={t('chartOfAccounts.form.sections.basic')} colSpan={2} colCount={2}>
                 <SimpleItem
                   dataField="code"
-                  label={{ text: 'รหัสบัญชี' }}
+                  label={{ text: t('chartOfAccounts.form.fields.code') }}
                   editorType="dxTextBox"
                   editorOptions={{
-                    placeholder: 'เช่น 1-1100-01',
+                    placeholder: t('chartOfAccounts.form.fields.codePlaceholder'),
                     disabled: !!editingAccount, // Code cannot be edited
                   }}
                 >
-                  <RequiredRule message="กรุณาระบุรหัสบัญชี" />
-                  <PatternRule pattern={/^[0-9\-.]+$/} message="รหัสบัญชีต้องเป็นตัวเลข ขีด หรือจุดเท่านั้น" />
-                  <StringLengthRule max={20} message="รหัสบัญชีต้องไม่เกิน 20 ตัวอักษร" />
+                  <RequiredRule message={t('chartOfAccounts.form.fields.codeRequired')} />
+                  <PatternRule pattern={/^[0-9\-.]+$/} message={t('chartOfAccounts.form.fields.codePattern')} />
+                  <StringLengthRule max={20} message={t('chartOfAccounts.form.fields.codeMaxLength')} />
                 </SimpleItem>
                 <SimpleItem
                   dataField="accountTypeId"
-                  label={{ text: 'ประเภทบัญชี' }}
+                  label={{ text: t('chartOfAccounts.form.fields.accountType') }}
                   editorType="dxSelectBox"
                   editorOptions={{
                     items: accountTypeLookup,
                     valueExpr: 'id',
                     displayExpr: 'displayValue',
-                    placeholder: 'เลือกประเภทบัญชี',
+                    placeholder: t('chartOfAccounts.form.fields.accountTypePlaceholder'),
                     searchEnabled: true,
                   }}
                 >
-                  <RequiredRule message="กรุณาเลือกประเภทบัญชี" />
+                  <RequiredRule message={t('chartOfAccounts.form.fields.accountTypeRequired')} />
                 </SimpleItem>
                 <SimpleItem
                   dataField="nameTh"
-                  label={{ text: 'ชื่อบัญชี (ภาษาไทย)' }}
+                  label={{ text: t('chartOfAccounts.form.fields.nameTh') }}
                   editorType="dxTextBox"
                   editorOptions={{
-                    placeholder: 'ชื่อบัญชีภาษาไทย',
+                    placeholder: t('chartOfAccounts.form.fields.nameThPlaceholder'),
                   }}
                 >
-                  <RequiredRule message="กรุณาระบุชื่อบัญชีภาษาไทย" />
-                  <StringLengthRule max={200} message="ชื่อบัญชีต้องไม่เกิน 200 ตัวอักษร" />
+                  <RequiredRule message={t('chartOfAccounts.form.fields.nameThRequired')} />
+                  <StringLengthRule max={200} message={t('chartOfAccounts.form.fields.nameMaxLength')} />
                 </SimpleItem>
                 <SimpleItem
                   dataField="nameEn"
-                  label={{ text: 'ชื่อบัญชี (ภาษาอังกฤษ)' }}
+                  label={{ text: t('chartOfAccounts.form.fields.nameEn') }}
                   editorType="dxTextBox"
                   editorOptions={{
-                    placeholder: 'Account Name in English',
+                    placeholder: t('chartOfAccounts.form.fields.nameEnPlaceholder'),
                   }}
                 >
-                  <RequiredRule message="กรุณาระบุชื่อบัญชีภาษาอังกฤษ" />
-                  <StringLengthRule max={200} message="ชื่อบัญชีต้องไม่เกิน 200 ตัวอักษร" />
+                  <RequiredRule message={t('chartOfAccounts.form.fields.nameEnRequired')} />
+                  <StringLengthRule max={200} message={t('chartOfAccounts.form.fields.nameMaxLength')} />
                 </SimpleItem>
                 <SimpleItem
                   dataField="parentId"
-                  label={{ text: 'บัญชีแม่' }}
+                  label={{ text: t('chartOfAccounts.form.fields.parent') }}
                   editorType="dxSelectBox"
                   editorOptions={{
                     items: parentLookup,
                     valueExpr: 'id',
                     displayExpr: 'displayValue',
-                    placeholder: 'เลือกบัญชีแม่ (ถ้ามี)',
+                    placeholder: t('chartOfAccounts.form.fields.parentPlaceholder'),
                     searchEnabled: true,
                     showClearButton: true,
                   }}
                 />
                 <SimpleItem
                   dataField="description"
-                  label={{ text: 'คำอธิบาย' }}
+                  label={{ text: t('chartOfAccounts.form.fields.description') }}
                   editorType="dxTextArea"
                   editorOptions={{
-                    placeholder: 'คำอธิบายบัญชี (ถ้ามี)',
+                    placeholder: t('chartOfAccounts.form.fields.descriptionPlaceholder'),
                     height: 60,
                   }}
                 />
               </GroupItem>
 
-              <GroupItem caption="ตัวเลือก" colSpan={2} colCount={3}>
+              <GroupItem caption={t('chartOfAccounts.form.sections.options')} colSpan={2} colCount={3}>
                 <SimpleItem
                   dataField="isPostable"
-                  label={{ text: 'ลงบัญชีได้' }}
+                  label={{ text: t('chartOfAccounts.form.fields.isPostable') }}
                   editorType="dxCheckBox"
                   editorOptions={{
-                    text: 'สามารถลงบัญชีได้',
+                    text: t('chartOfAccounts.form.fields.isPostableText'),
                   }}
                 />
                 <SimpleItem
                   dataField="isBankAccount"
-                  label={{ text: 'บัญชีธนาคาร' }}
+                  label={{ text: t('chartOfAccounts.form.fields.isBankAccount') }}
                   editorType="dxCheckBox"
                   editorOptions={{
-                    text: 'เป็นบัญชีธนาคาร',
+                    text: t('chartOfAccounts.form.fields.isBankAccountText'),
                   }}
                 />
                 {editingAccount && (
                   <SimpleItem
                     dataField="isActive"
-                    label={{ text: 'สถานะ' }}
+                    label={{ text: t('chartOfAccounts.form.fields.isActive') }}
                     editorType="dxCheckBox"
                     editorOptions={{
-                      text: 'ใช้งาน',
+                      text: t('chartOfAccounts.form.fields.isActiveText'),
                     }}
                   />
                 )}
               </GroupItem>
 
               {formData.isBankAccount && (
-                <GroupItem caption="ข้อมูลธนาคาร" colSpan={2} colCount={2}>
+                <GroupItem caption={t('chartOfAccounts.form.sections.bank')} colSpan={2} colCount={2}>
                   <SimpleItem
                     dataField="bankName"
-                    label={{ text: 'ชื่อธนาคาร' }}
+                    label={{ text: t('chartOfAccounts.form.fields.bankName') }}
                     editorType="dxTextBox"
                     editorOptions={{
-                      placeholder: 'เช่น ธนาคารกรุงเทพ',
+                      placeholder: t('chartOfAccounts.form.fields.bankNamePlaceholder'),
                     }}
                   >
-                    <StringLengthRule max={100} message="ชื่อธนาคารต้องไม่เกิน 100 ตัวอักษร" />
+                    <StringLengthRule max={100} message={t('chartOfAccounts.form.fields.bankNameMaxLength')} />
                   </SimpleItem>
                   <SimpleItem
                     dataField="bankAccountNumber"
-                    label={{ text: 'เลขที่บัญชี' }}
+                    label={{ text: t('chartOfAccounts.form.fields.bankAccountNumber') }}
                     editorType="dxTextBox"
                     editorOptions={{
-                      placeholder: 'เลขที่บัญชีธนาคาร',
+                      placeholder: t('chartOfAccounts.form.fields.bankAccountNumberPlaceholder'),
                     }}
                   >
-                    <StringLengthRule max={50} message="เลขที่บัญชีต้องไม่เกิน 50 ตัวอักษร" />
+                    <StringLengthRule max={50} message={t('chartOfAccounts.form.fields.bankAccountNumberMaxLength')} />
                   </SimpleItem>
                 </GroupItem>
               )}
@@ -600,13 +602,13 @@ export default function ChartOfAccountsPage() {
 
             <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
               <Button
-                text="ยกเลิก"
+                text={t('chartOfAccounts.actions.cancel')}
                 onClick={handleCloseDialog}
                 stylingMode="outlined"
                 elementAttr={{ 'data-testid': 'coa-cancel-btn' }}
               />
               <Button
-                text={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+                text={isSaving ? t('chartOfAccounts.actions.saving') : t('chartOfAccounts.actions.save')}
                 type="default"
                 stylingMode="contained"
                 onClick={handleSave}
