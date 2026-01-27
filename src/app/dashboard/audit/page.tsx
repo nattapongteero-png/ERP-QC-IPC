@@ -15,7 +15,7 @@
  * - FR-054: FG Approved YTD
  */
 
-import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import {
   KpiGrid,
@@ -39,6 +39,7 @@ async function fetchAuditKpis(): Promise<AuditKpis> {
 }
 
 export default function AuditDashboardPage() {
+  const t = useTranslations('dashboard.audit');
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['audit-kpis'],
     queryFn: fetchAuditKpis,
@@ -48,10 +49,10 @@ export default function AuditDashboardPage() {
   if (isLoading) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Audit Dashboard</h1>
+        <h1 className="text-2xl font-bold mb-6">{t('title')}</h1>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600">Loading KPIs...</span>
+          <span className="ml-2 text-gray-600">{t('loading')}</span>
         </div>
       </div>
     );
@@ -60,14 +61,14 @@ export default function AuditDashboardPage() {
   if (error) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Audit Dashboard</h1>
+        <h1 className="text-2xl font-bold mb-6">{t('title')}</h1>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700">Error loading dashboard data. Please try again.</p>
+          <p className="text-red-700">{t('error')}</p>
           <button
             onClick={() => refetch()}
             className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
-            Retry
+            {t('retry')}
           </button>
         </div>
       </div>
@@ -83,19 +84,19 @@ export default function AuditDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Audit Dashboard</h1>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
           <p className="text-sm text-gray-500">
-            GMP Compliance Overview for External Auditors
+            {t('description')}
           </p>
         </div>
         <div className="text-sm text-gray-500">
-          Last updated: {new Date(data.generatedAt).toLocaleString()}
+          {t('lastUpdated')}: {new Date(data.generatedAt).toLocaleString()}
         </div>
       </div>
 
       {/* KPI Grid - Row 1: Raw Materials */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-3 text-gray-700">Raw Materials</h2>
+        <h2 className="text-lg font-semibold mb-3 text-gray-700">{t('sections.rawMaterials')}</h2>
         <KpiGrid columns={4}>
           <RmSummaryCard data={data.rmReceivedYtd} />
           <RmStatusCard data={data.rmStatusBreakdown} />
@@ -106,7 +107,7 @@ export default function AuditDashboardPage() {
 
       {/* KPI Grid - Row 2: Quality & Production */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-3 text-gray-700">Quality & Production</h2>
+        <h2 className="text-lg font-semibold mb-3 text-gray-700">{t('sections.qualityProduction')}</h2>
         <KpiGrid columns={4}>
           <QcSummaryCard data={data.qcSummary} />
           <ProductionStatusCard data={data.productionStatus} />
@@ -122,15 +123,15 @@ export default function AuditDashboardPage() {
           {data.expiryAlerts.items.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm p-4">
               <h3 className="font-semibold mb-3 text-gray-700">
-                Upcoming Expirations (Next 30 Days)
+                {t('tables.expiryAlerts.title')}
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2">Lot Number</th>
-                      <th className="text-left py-2">Item</th>
-                      <th className="text-left py-2">Days Left</th>
+                      <th className="text-left py-2">{t('tables.expiryAlerts.lotNumber')}</th>
+                      <th className="text-left py-2">{t('tables.expiryAlerts.item')}</th>
+                      <th className="text-left py-2">{t('tables.expiryAlerts.daysLeft')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -149,8 +150,8 @@ export default function AuditDashboardPage() {
                             }`}
                           >
                             {item.daysUntilExpiry < 0
-                              ? `Expired ${Math.abs(item.daysUntilExpiry)}d ago`
-                              : `${item.daysUntilExpiry}d`}
+                              ? t('tables.expiryAlerts.expired', { days: Math.abs(item.daysUntilExpiry) })
+                              : t('tables.expiryAlerts.daysRemaining', { days: item.daysUntilExpiry })}
                           </span>
                         </td>
                       </tr>
@@ -164,15 +165,15 @@ export default function AuditDashboardPage() {
           {/* Min Stock Alerts Table */}
           {data.minStockAlerts.items.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm p-4">
-              <h3 className="font-semibold mb-3 text-gray-700">Low Stock Items</h3>
+              <h3 className="font-semibold mb-3 text-gray-700">{t('tables.lowStock.title')}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2">Code</th>
-                      <th className="text-left py-2">Item</th>
-                      <th className="text-right py-2">On Hand</th>
-                      <th className="text-right py-2">Min Stock</th>
+                      <th className="text-left py-2">{t('tables.lowStock.code')}</th>
+                      <th className="text-left py-2">{t('tables.lowStock.item')}</th>
+                      <th className="text-right py-2">{t('tables.lowStock.onHand')}</th>
+                      <th className="text-right py-2">{t('tables.lowStock.minStock')}</th>
                     </tr>
                   </thead>
                   <tbody>

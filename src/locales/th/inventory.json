@@ -3,9 +3,36 @@
     "title": "คลังสินค้า",
     "description": "จัดการสินค้าคงคลัง ล็อต และคลังสินค้า"
   },
+  "common": {
+    "all": "ทั้งหมด",
+    "refresh": "รีเฟรช",
+    "search": "ค้นหา",
+    "itemsShown": "{count} รายการที่แสดง",
+    "lotsShown": "{count} ล็อตที่แสดง",
+    "warehousesShown": "{count} คลังที่แสดง",
+    "total": "รวม",
+    "days": "วัน",
+    "units": "หน่วย",
+    "confirmDelete": "ยืนยันการลบ",
+    "deleteMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบ \"{name}\"?",
+    "delete": "ลบ"
+  },
+  "stats": {
+    "lowStock": "สต็อกต่ำ",
+    "inQuarantine": "กักกัน",
+    "nearExpiry": "ใกล้หมดอายุ",
+    "expired": "หมดอายุ",
+    "active": "ใช้งาน",
+    "inactive": "ไม่ใช้งาน",
+    "coldStorage": "ห้องเย็น"
+  },
   "items": {
     "title": "รายการสินค้า",
-    "description": "จัดการรายการสินค้าคงคลังทั้งหมด",
+    "description": "รายการสินค้าและวัตถุดิบ",
+    "pageTitle": "รายการสินค้าคงคลัง",
+    "viewLots": "ดูล็อต",
+    "addItem": "เพิ่มสินค้า",
+    "searchPlaceholder": "ค้นหาสินค้า...",
     "table": {
       "columns": {
         "itemCode": "รหัสสินค้า",
@@ -71,7 +98,33 @@
       "rawMaterial": "วัตถุดิบ",
       "wip": "งานระหว่างทำ",
       "finishedGoods": "สินค้าสำเร็จรูป",
-      "packaging": "บรรจุภัณฑ์"
+      "packaging": "บรรจุภัณฑ์",
+      "consumable": "วัสดุสิ้นเปลือง"
+    },
+    "grid": {
+      "columns": {
+        "rowNum": "#",
+        "code": "รหัส",
+        "name": "ชื่อ",
+        "type": "ประเภท",
+        "category": "หมวดหมู่",
+        "onHand": "คงเหลือ",
+        "quarantine": "กักกัน",
+        "unit": "หน่วย",
+        "shelfLife": "อายุการเก็บ",
+        "status": "สถานะ",
+        "vmi": "VMI",
+        "actions": "จัดการ"
+      },
+      "lowStock": "ต่ำ",
+      "vmiReady": "พร้อม",
+      "shelfLifeDays": "{days} วัน",
+      "totalCount": "รวม: {count}"
+    },
+    "buttons": {
+      "viewDetails": "ดูรายละเอียด",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
     },
     "toast": {
       "create": {
@@ -95,7 +148,89 @@
   },
   "lots": {
     "title": "ล็อต",
-    "description": "จัดการล็อตสินค้าและการติดตาม",
+    "pageTitle": "Inventory Lots",
+    "description": "จัดการ Lot/Batch สินค้าคงคลัง",
+    "viewItems": "ดูสินค้า",
+    "addLot": "รับ Lot ใหม่",
+    "searchPlaceholder": "ค้นหาด้วยเลขที่ Lot หรือสินค้า...",
+    "noLots": "ไม่พบ Lot",
+    "noLotsDescription": "เริ่มต้นด้วยการรับ Lot ใหม่เข้าคลัง หรือลองเปลี่ยนตัวกรอง",
+    "reserved": "จอง",
+    "daysRemaining": "เหลือ {days} วัน",
+    "expiredDays": "หมดอายุ {days} วัน",
+    "overdueRetest": "เกิน {days} วัน",
+    "grid": {
+      "columns": {
+        "lotNumber": "เลขที่ Lot",
+        "item": "สินค้า",
+        "quantity": "จำนวน",
+        "value": "มูลค่า",
+        "warehouse": "คลัง",
+        "expiryDate": "วันหมดอายุ",
+        "manufacturer": "ผู้ผลิต",
+        "retest": "Retest",
+        "status": "สถานะ"
+      }
+    },
+    "form": {
+      "title": "รับ Lot ใหม่",
+      "receiveTitle": "รับสินค้าเข้าคลัง",
+      "initialStatus": "สถานะเริ่มต้น: กักกัน (รอ QC)",
+      "lotNumber": "เลขที่ Lot",
+      "vendorLotNumber": "Vendor Lot Number",
+      "vendorLotPlaceholder": "เลขที่ Lot ผู้ขาย",
+      "item": "สินค้า",
+      "selectItem": "คลิกเพื่อเลือกสินค้า...",
+      "changeItem": "เปลี่ยน",
+      "warehouse": "คลัง",
+      "selectWarehouse": "เลือกคลัง",
+      "quantity": "จำนวน",
+      "unit": "หน่วย",
+      "costPerUnit": "ราคาต่อหน่วย",
+      "manufacturingDate": "วันผลิต",
+      "expiryDate": "วันหมดอายุ",
+      "receivedDate": "วันรับสินค้า",
+      "vendor": "Vendor",
+      "selectVendor": "เลือก Vendor (ไม่บังคับ)",
+      "notes": "หมายเหตุ",
+      "notesPlaceholder": "หมายเหตุเพิ่มเติม...",
+      "generate": "สร้าง",
+      "cancel": "ยกเลิก",
+      "submit": "รับ Lot",
+      "gmpSection": "ข้อมูล GMP Compliance",
+      "manufacturerName": "ชื่อผู้ผลิต (Manufacturer)",
+      "manufacturerPlaceholder": "ชื่อผู้ผลิต...",
+      "importerName": "ชื่อผู้นำเข้า (Importer)",
+      "importerPlaceholder": "ชื่อผู้นำเข้า...",
+      "countryOfOrigin": "ประเทศต้นกำเนิด",
+      "countryPlaceholder": "ประเทศ...",
+      "retestDate": "วันที่ต้อง Retest",
+      "retestInterval": "ระยะเวลา Retest (เดือน)"
+    },
+    "qc": {
+      "title": "ตัดสินใจ QC",
+      "awaitingDecision": "รอการตัดสินใจ QC",
+      "item": "สินค้า",
+      "quantity": "จำนวน",
+      "expiryDate": "วันหมดอายุ",
+      "value": "มูลค่า",
+      "warning": "กรุณาตรวจสอบให้แน่ใจว่าได้ทำการทดสอบ QC เสร็จสิ้นแล้วก่อนตัดสินใจ",
+      "cancel": "ยกเลิก",
+      "reject": "ปฏิเสธ",
+      "release": "ปล่อย"
+    },
+    "trace": {
+      "title": "Lot Traceability",
+      "currentLot": "Lot ปัจจุบัน",
+      "item": "สินค้า",
+      "quantity": "จำนวน",
+      "status": "สถานะ",
+      "expiryDate": "หมดอายุ",
+      "sourceLots": "Source Lots (วัตถุดิบที่ใช้)",
+      "destinationLots": "Destination Lots (ผลิตภัณฑ์ที่ผลิต)",
+      "noTraceData": "ไม่พบข้อมูล traceability สำหรับ Lot นี้",
+      "close": "ปิด"
+    },
     "table": {
       "columns": {
         "lotNumber": "เลขที่ล็อต",
@@ -115,29 +250,49 @@
       "quarantine": "กักกัน",
       "expired": "หมดอายุ",
       "released": "ปล่อย",
-      "rejected": "ถูกปฏิเสธ"
+      "rejected": "ถูกปฏิเสธ",
+      "blocked": "ล็อค"
     }
   },
   "warehouses": {
     "title": "คลังสินค้า",
+    "pageTitle": "Warehouses",
     "description": "จัดการคลังสินค้าและสถานที่จัดเก็บ",
+    "viewLots": "ดูล็อต",
+    "addWarehouse": "เพิ่มคลัง",
+    "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ หรือที่ตั้ง...",
+    "noWarehouses": "ไม่พบคลังสินค้า",
+    "viewDetails": "ดูรายละเอียด",
     "table": {
       "columns": {
-        "code": "รหัสคลังสินค้า",
-        "name": "ชื่อคลังสินค้า",
+        "code": "รหัส",
+        "name": "ชื่อคลัง",
         "type": "ประเภท",
         "location": "สถานที่",
+        "temperature": "อุณหภูมิ",
+        "humidity": "ความชื้น",
         "capacity": "ความจุ",
         "currentUsage": "การใช้งานปัจจุบัน",
         "status": "สถานะ"
       }
     },
     "types": {
+      "all": "ทั้งหมด",
       "rawMaterial": "วัตถุดิบ",
       "wip": "งานระหว่างทำ",
       "finishedGoods": "สินค้าสำเร็จรูป",
       "quarantine": "กักกัน",
+      "rejected": "ตีกลับ",
       "coldStorage": "ห้องเย็น"
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ปิดใช้งาน"
+    },
+    "confirmDelete": {
+      "title": "ยืนยันการลบ",
+      "message": "คุณต้องการลบคลังสินค้า \"{name}\" หรือไม่?",
+      "confirm": "ลบ"
     }
   },
   "stockMovements": {

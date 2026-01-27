@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -34,7 +35,7 @@ import { cn } from '@/lib/utils/cn';
 type WarehouseTypeFilter = '' | 'raw_material' | 'wip' | 'finished_goods' | 'quarantine' | 'rejected' | 'cold_storage';
 
 const TYPE_CONFIG: Record<WarehouseTypeFilter, {
-  label: string;
+  translationKey: string;
   bgColor: string;
   textColor: string;
   hoverBg: string;
@@ -42,7 +43,7 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
   badgeVariant: 'success' | 'warning' | 'danger' | 'info' | 'default';
 }> = {
   '': {
-    label: 'All',
+    translationKey: 'all',
     bgColor: 'bg-gray-900',
     textColor: 'text-white',
     hoverBg: 'hover:bg-gray-800',
@@ -50,7 +51,7 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
     badgeVariant: 'default',
   },
   raw_material: {
-    label: 'วัตถุดิบ',
+    translationKey: 'rawMaterial',
     bgColor: 'bg-blue-600',
     textColor: 'text-white',
     hoverBg: 'hover:bg-blue-700',
@@ -58,7 +59,7 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
     badgeVariant: 'info',
   },
   wip: {
-    label: 'งานระหว่างทำ',
+    translationKey: 'wip',
     bgColor: 'bg-amber-500',
     textColor: 'text-white',
     hoverBg: 'hover:bg-amber-600',
@@ -66,7 +67,7 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
     badgeVariant: 'warning',
   },
   finished_goods: {
-    label: 'สินค้าสำเร็จรูป',
+    translationKey: 'finishedGoods',
     bgColor: 'bg-emerald-600',
     textColor: 'text-white',
     hoverBg: 'hover:bg-emerald-700',
@@ -74,7 +75,7 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
     badgeVariant: 'success',
   },
   quarantine: {
-    label: 'กักกัน',
+    translationKey: 'quarantine',
     bgColor: 'bg-yellow-500',
     textColor: 'text-white',
     hoverBg: 'hover:bg-yellow-600',
@@ -82,7 +83,7 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
     badgeVariant: 'warning',
   },
   rejected: {
-    label: 'ตีกลับ',
+    translationKey: 'rejected',
     bgColor: 'bg-red-600',
     textColor: 'text-white',
     hoverBg: 'hover:bg-red-700',
@@ -90,7 +91,7 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
     badgeVariant: 'danger',
   },
   cold_storage: {
-    label: 'ห้องเย็น',
+    translationKey: 'coldStorage',
     bgColor: 'bg-cyan-600',
     textColor: 'text-white',
     hoverBg: 'hover:bg-cyan-700',
@@ -99,16 +100,13 @@ const TYPE_CONFIG: Record<WarehouseTypeFilter, {
   },
 };
 
-const getTypeLabel = (type: string): string => {
-  return TYPE_CONFIG[type as WarehouseTypeFilter]?.label || type.replace('_', ' ');
-};
-
 const getTypeVariant = (type: string): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
   return TYPE_CONFIG[type as WarehouseTypeFilter]?.badgeVariant || 'default';
 };
 
 export default function WarehousesPage() {
   const router = useRouter();
+  const t = useTranslations('inventory');
   const [warehouses, setWarehouses] = useState<WarehouseType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -226,7 +224,7 @@ export default function WarehousesPage() {
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'code',
-      caption: 'รหัส',
+      caption: t('warehouses.table.columns.code'),
       width: 120,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
@@ -255,7 +253,7 @@ export default function WarehousesPage() {
     },
     {
       dataField: 'name',
-      caption: 'ชื่อคลัง',
+      caption: t('warehouses.table.columns.name'),
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium text-gray-900">{cellInfo.data.name}</p>
@@ -270,21 +268,21 @@ export default function WarehousesPage() {
     },
     {
       dataField: 'type',
-      caption: 'ประเภท',
+      caption: t('warehouses.table.columns.type'),
       width: 160,
       hideOnMobile: true,
       cellRender: (cellInfo) => {
         const config = TYPE_CONFIG[cellInfo.data.type as WarehouseTypeFilter];
         return (
           <Badge variant={getTypeVariant(cellInfo.data.type)} dot>
-            {getTypeLabel(cellInfo.data.type)}
+            {t(`warehouses.types.${config?.translationKey || cellInfo.data.type}`)}
           </Badge>
         );
       },
     },
     {
       dataField: 'temperatureMin',
-      caption: 'อุณหภูมิ',
+      caption: t('warehouses.table.columns.temperature'),
       width: 150,
       hideOnMobile: true,
       cellRender: (cellInfo) => {
@@ -306,7 +304,7 @@ export default function WarehousesPage() {
     },
     {
       dataField: 'humidityMin',
-      caption: 'ความชื้น',
+      caption: t('warehouses.table.columns.humidity'),
       width: 140,
       hideOnMobile: true,
       cellRender: (cellInfo) => {
@@ -328,7 +326,7 @@ export default function WarehousesPage() {
     },
     {
       dataField: 'capacity',
-      caption: 'ความจุ',
+      caption: t('warehouses.table.columns.capacity'),
       width: 100,
       hideOnMobile: true,
       cellRender: (cellInfo) => (
@@ -339,11 +337,11 @@ export default function WarehousesPage() {
     },
     {
       dataField: 'isActive',
-      caption: 'สถานะ',
+      caption: t('warehouses.table.columns.status'),
       width: 110,
       cellRender: (cellInfo) => (
         <Badge variant={cellInfo.data.isActive ? 'success' : 'danger'} dot>
-          {cellInfo.data.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+          {cellInfo.data.isActive ? t('warehouses.status.active') : t('warehouses.status.inactive')}
         </Badge>
       ),
     },
@@ -357,7 +355,7 @@ export default function WarehousesPage() {
         <DxButton
           icon="search"
           stylingMode="text"
-          hint="ดูรายละเอียด"
+          hint={t('warehouses.viewDetails')}
           onClick={(e) => {
             e.event?.stopPropagation();
             router.push(`/inventory/warehouses/${cellInfo.data.id}`);
@@ -372,24 +370,24 @@ export default function WarehousesPage() {
       <div className="space-y-4">
         {/* Page Header */}
         <PageHeader
-          title="Warehouses"
-          description="จัดการคลังสินค้าและสถานที่จัดเก็บ"
+          title={t('warehouses.pageTitle')}
+          description={t('warehouses.description')}
           actions={
             <div className="flex items-center gap-2">
               <DxButton
                 icon="refresh"
-                text="Refresh"
+                text={t('common.refresh')}
                 stylingMode="outlined"
                 onClick={fetchWarehouses}
               />
               <DxButton
                 icon="box"
-                text="View Lots"
+                text={t('warehouses.viewLots')}
                 stylingMode="outlined"
                 onClick={() => router.push('/inventory/lots')}
               />
               <DxButton
-                text="เพิ่มคลัง"
+                text={t('warehouses.addWarehouse')}
                 icon="plus"
                 type="success"
                 onClick={handleCreate}
@@ -422,7 +420,7 @@ export default function WarehousesPage() {
                       )}
                     >
                       {config.icon}
-                      <span>{config.label}</span>
+                      <span>{t(`warehouses.types.${config.translationKey}`)}</span>
                       <span className={cn(
                         'ml-1 px-1.5 py-0.5 text-xs rounded-full',
                         isActive
@@ -440,18 +438,18 @@ export default function WarehousesPage() {
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  <span className="text-emerald-600 font-medium">{activeCount} Active</span>
+                  <span className="text-emerald-600 font-medium">{activeCount} {t('stats.active')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <XCircle className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-500">{inactiveCount} Inactive</span>
+                  <span className="text-gray-500">{inactiveCount} {t('stats.inactive')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Snowflake className="h-4 w-4 text-cyan-500" />
-                  <span className="text-cyan-600">{coldStorageCount} Cold Storage</span>
+                  <span className="text-cyan-600">{coldStorageCount} {t('stats.coldStorage')}</span>
                 </div>
                 <span className="text-gray-300">|</span>
-                <span className="text-gray-500">{filteredWarehouses.length} warehouses shown</span>
+                <span className="text-gray-500">{t('common.warehousesShown', { count: filteredWarehouses.length })}</span>
               </div>
             </div>
           </div>
@@ -460,7 +458,7 @@ export default function WarehousesPage() {
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="max-w-md">
               <DxTextBox
-                placeholder="ค้นหาด้วยรหัส ชื่อ หรือที่ตั้ง..."
+                placeholder={t('warehouses.searchPlaceholder')}
                 value={search}
                 onValueChange={setSearch}
                 showClearButton
@@ -483,7 +481,7 @@ export default function WarehousesPage() {
             columnChooser
             virtualScrolling={filteredWarehouses.length > 100}
             height={600}
-            noDataText="ไม่พบคลังสินค้า"
+            noDataText={t('warehouses.noWarehouses')}
             onRowClick={(e) => {
               if (e.data) {
                 router.push(`/inventory/warehouses/${e.data.id}`);
@@ -513,9 +511,9 @@ export default function WarehousesPage() {
         visible={deleteConfirm.open}
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm({ open: false, warehouse: null })}
-        title="ยืนยันการลบ"
-        message={`คุณต้องการลบคลังสินค้า "${deleteConfirm.warehouse?.name}" หรือไม่?`}
-        confirmText="ลบ"
+        title={t('warehouses.confirmDelete.title')}
+        message={t('warehouses.confirmDelete.message', { name: deleteConfirm.warehouse?.name || '' })}
+        confirmText={t('warehouses.confirmDelete.confirm')}
         confirmType="danger"
       />
     </MainLayout>

@@ -3,9 +3,70 @@
     "title": "Production",
     "description": "Manage work orders, recipes, and production lines"
   },
+  "breadcrumbs": {
+    "production": "Production"
+  },
   "workOrders": {
     "title": "Work Orders",
     "description": "Manage production work orders and track progress",
+    "pageTitle": "Work Orders",
+    "stats": {
+      "totalOrders": "Total Orders",
+      "planned": "Planned",
+      "released": "Released",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "highPriority": "High Priority",
+      "today": "Today",
+      "avgYield": "Avg Yield"
+    },
+    "tabs": {
+      "all": "All"
+    },
+    "charts": {
+      "byStatus": "By Status",
+      "byPriority": "Active Orders by Priority",
+      "performance": "Performance",
+      "completionRate": "Completion Rate",
+      "activeOrders": "Active Orders",
+      "averageYield": "Average Yield",
+      "cancelled": "Cancelled",
+      "noData": "No data",
+      "noActiveOrders": "No active orders"
+    },
+    "grid": {
+      "columns": {
+        "woBatch": "WO / Batch",
+        "product": "Product",
+        "quantity": "Quantity",
+        "priority": "Priority",
+        "schedule": "Schedule",
+        "yield": "Yield",
+        "status": "Status"
+      },
+      "orders": "{count} orders",
+      "searchPlaceholder": "Search work orders..."
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "analytics": "Analytics",
+      "newWorkOrder": "New Work Order",
+      "viewDetails": "View Details",
+      "createWO": "Create Work Order",
+      "editWO": "Edit Work Order",
+      "viewWO": "View Details",
+      "startWO": "Start Production",
+      "completeWO": "Complete Production",
+      "cancelWO": "Cancel Work Order",
+      "holdWO": "Hold Work Order",
+      "releaseWO": "Release Work Order",
+      "printLabel": "Print Label",
+      "viewBOM": "View BOM"
+    },
+    "breadcrumbs": {
+      "production": "Production",
+      "workOrders": "Work Orders"
+    },
     "table": {
       "columns": {
         "woNumber": "WO Number",
@@ -56,18 +117,6 @@
         "placeholder": "Enter remarks"
       }
     },
-    "actions": {
-      "createWO": "Create Work Order",
-      "editWO": "Edit Work Order",
-      "viewWO": "View Details",
-      "startWO": "Start Production",
-      "completeWO": "Complete Production",
-      "cancelWO": "Cancel Work Order",
-      "holdWO": "Hold Work Order",
-      "releaseWO": "Release Work Order",
-      "printLabel": "Print Label",
-      "viewBOM": "View BOM"
-    },
     "status": {
       "draft": "Draft",
       "planned": "Planned",
@@ -109,15 +158,63 @@
   },
   "bom": {
     "title": "Bill of Materials (BOM)",
+    "pageTitle": "Bill of Materials (BOM)",
     "description": "Manage production recipes and ingredients",
+    "subtitle": "Manufacturing recipes and component management",
+    "breadcrumbs": {
+      "bomManagement": "BOM Management"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "approved": "Approved",
+      "obsolete": "Obsolete"
+    },
+    "filters": {
+      "allStatuses": "All Statuses"
+    },
+    "stats": {
+      "totalBOMs": "Total BOMs",
+      "activeBOMs": "Active BOMs",
+      "draftBOMs": "Draft BOMs",
+      "workOrders": "Work Orders",
+      "materials": "Materials",
+      "avgPerBOM": "Avg/BOM",
+      "obsolete": "Obsolete"
+    },
+    "charts": {
+      "statusDistribution": "Status Distribution",
+      "topProducts": "Top Products",
+      "recentBOMs": "Recent BOMs",
+      "noBOMsFound": "No BOMs found",
+      "noData": "No data"
+    },
+    "tabs": {
+      "all": "All",
+      "approved": "Approved",
+      "draft": "Draft",
+      "obsolete": "Obsolete"
+    },
+    "alerts": {
+      "pendingReview": "Pending Review",
+      "draftBOMsPending": "You have {count} draft BOM(s) pending approval.",
+      "viewDraftBOMs": "View draft BOMs"
+    },
+    "registry": {
+      "title": "BOM Registry"
+    },
     "table": {
       "columns": {
-        "bomCode": "BOM Code",
+        "code": "Code",
+        "name": "Name",
         "product": "Product",
+        "batch": "Batch",
         "version": "Version",
+        "status": "Status",
+        "created": "Created",
+        "bomCode": "BOM Code",
         "batchSize": "Batch Size",
         "unit": "Unit",
-        "status": "Status",
         "effectiveDate": "Effective Date",
         "expiryDate": "Expiry Date"
       }
@@ -133,6 +230,7 @@
       }
     },
     "actions": {
+      "createNewBOM": "Create New BOM",
       "createBOM": "Create BOM",
       "editBOM": "Edit BOM",
       "copyBOM": "Copy BOM",

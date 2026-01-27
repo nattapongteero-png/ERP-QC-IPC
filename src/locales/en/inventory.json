@@ -3,9 +3,36 @@
     "title": "Inventory",
     "description": "Manage inventory items, lots, and warehouses"
   },
+  "common": {
+    "all": "All",
+    "refresh": "Refresh",
+    "search": "Search",
+    "itemsShown": "{count} items shown",
+    "lotsShown": "{count} lots shown",
+    "warehousesShown": "{count} warehouses shown",
+    "total": "Total",
+    "days": "days",
+    "units": "units",
+    "confirmDelete": "Confirm Delete",
+    "deleteMessage": "Are you sure you want to delete \"{name}\"?",
+    "delete": "Delete"
+  },
+  "stats": {
+    "lowStock": "Low Stock",
+    "inQuarantine": "In Quarantine",
+    "nearExpiry": "Near Expiry",
+    "expired": "Expired",
+    "active": "Active",
+    "inactive": "Inactive",
+    "coldStorage": "Cold Storage"
+  },
   "items": {
     "title": "Items",
-    "description": "Manage all inventory items",
+    "description": "Inventory items and materials",
+    "pageTitle": "Inventory Items",
+    "viewLots": "View Lots",
+    "addItem": "Add Item",
+    "searchPlaceholder": "Search items...",
     "table": {
       "columns": {
         "itemCode": "Item Code",
@@ -71,7 +98,33 @@
       "rawMaterial": "Raw Material",
       "wip": "Work in Progress",
       "finishedGoods": "Finished Goods",
-      "packaging": "Packaging"
+      "packaging": "Packaging",
+      "consumable": "Consumable"
+    },
+    "grid": {
+      "columns": {
+        "rowNum": "#",
+        "code": "Code",
+        "name": "Name",
+        "type": "Type",
+        "category": "Category",
+        "onHand": "On Hand",
+        "quarantine": "Quarantine",
+        "unit": "Unit",
+        "shelfLife": "Shelf Life",
+        "status": "Status",
+        "vmi": "VMI",
+        "actions": "Actions"
+      },
+      "lowStock": "Low",
+      "vmiReady": "Ready",
+      "shelfLifeDays": "{days} days",
+      "totalCount": "Total: {count}"
+    },
+    "buttons": {
+      "viewDetails": "View Details",
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "toast": {
       "create": {
@@ -95,7 +148,89 @@
   },
   "lots": {
     "title": "Lots",
-    "description": "Manage lot tracking and traceability",
+    "pageTitle": "Inventory Lots",
+    "description": "Manage Lot/Batch inventory",
+    "viewItems": "View Items",
+    "addLot": "Add New Lot",
+    "searchPlaceholder": "Search by lot number or item...",
+    "noLots": "No lots found",
+    "noLotsDescription": "Start by receiving a new lot or try changing the filter",
+    "reserved": "Reserved",
+    "daysRemaining": "{days}d remaining",
+    "expiredDays": "Expired {days}d ago",
+    "overdueRetest": "Overdue {days}d",
+    "grid": {
+      "columns": {
+        "lotNumber": "Lot Number",
+        "item": "Item",
+        "quantity": "Quantity",
+        "value": "Value",
+        "warehouse": "Warehouse",
+        "expiryDate": "Expiry Date",
+        "manufacturer": "Manufacturer",
+        "retest": "Retest",
+        "status": "Status"
+      }
+    },
+    "form": {
+      "title": "Receive New Lot",
+      "receiveTitle": "Receive goods into warehouse",
+      "initialStatus": "Initial status: Quarantine (awaiting QC)",
+      "lotNumber": "Lot Number",
+      "vendorLotNumber": "Vendor Lot Number",
+      "vendorLotPlaceholder": "Vendor lot number",
+      "item": "Item",
+      "selectItem": "Click to select item...",
+      "changeItem": "Change",
+      "warehouse": "Warehouse",
+      "selectWarehouse": "Select warehouse",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "costPerUnit": "Cost per Unit",
+      "manufacturingDate": "Manufacturing Date",
+      "expiryDate": "Expiry Date",
+      "receivedDate": "Received Date",
+      "vendor": "Vendor",
+      "selectVendor": "Select Vendor (optional)",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes...",
+      "generate": "Generate",
+      "cancel": "Cancel",
+      "submit": "Receive Lot",
+      "gmpSection": "GMP Compliance Information",
+      "manufacturerName": "Manufacturer Name",
+      "manufacturerPlaceholder": "Manufacturer name...",
+      "importerName": "Importer Name",
+      "importerPlaceholder": "Importer name...",
+      "countryOfOrigin": "Country of Origin",
+      "countryPlaceholder": "Country...",
+      "retestDate": "Retest Date",
+      "retestInterval": "Retest Interval (months)"
+    },
+    "qc": {
+      "title": "QC Decision",
+      "awaitingDecision": "Awaiting QC decision",
+      "item": "Item",
+      "quantity": "Quantity",
+      "expiryDate": "Expiry Date",
+      "value": "Value",
+      "warning": "Please ensure QC testing is complete before making a decision",
+      "cancel": "Cancel",
+      "reject": "Reject",
+      "release": "Release"
+    },
+    "trace": {
+      "title": "Lot Traceability",
+      "currentLot": "Current Lot",
+      "item": "Item",
+      "quantity": "Quantity",
+      "status": "Status",
+      "expiryDate": "Expiry",
+      "sourceLots": "Source Lots (materials used)",
+      "destinationLots": "Destination Lots (products made)",
+      "noTraceData": "No traceability data found for this lot",
+      "close": "Close"
+    },
     "table": {
       "columns": {
         "lotNumber": "Lot Number",
@@ -115,29 +250,49 @@
       "quarantine": "Quarantine",
       "expired": "Expired",
       "released": "Released",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "blocked": "Blocked"
     }
   },
   "warehouses": {
     "title": "Warehouses",
+    "pageTitle": "Warehouses",
     "description": "Manage warehouses and storage locations",
+    "viewLots": "View Lots",
+    "addWarehouse": "Add Warehouse",
+    "searchPlaceholder": "Search by code, name, or location...",
+    "noWarehouses": "No warehouses found",
+    "viewDetails": "View Details",
     "table": {
       "columns": {
-        "code": "Warehouse Code",
-        "name": "Warehouse Name",
+        "code": "Code",
+        "name": "Name",
         "type": "Type",
         "location": "Location",
+        "temperature": "Temperature",
+        "humidity": "Humidity",
         "capacity": "Capacity",
         "currentUsage": "Current Usage",
         "status": "Status"
       }
     },
     "types": {
+      "all": "All",
       "rawMaterial": "Raw Material",
       "wip": "Work in Progress",
       "finishedGoods": "Finished Goods",
       "quarantine": "Quarantine",
+      "rejected": "Rejected",
       "coldStorage": "Cold Storage"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "confirmDelete": {
+      "title": "Confirm Delete",
+      "message": "Are you sure you want to delete warehouse \"{name}\"?",
+      "confirm": "Delete"
     }
   },
   "stockMovements": {

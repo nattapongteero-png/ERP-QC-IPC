@@ -52,6 +52,7 @@ export const namespaces = [
   'hr',
   'inventory',
   'issues',
+  'login',
   'master-data',
   'production',
   'purchasing',

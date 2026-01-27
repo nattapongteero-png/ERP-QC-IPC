@@ -8,9 +8,10 @@
  * Redesigned with responsive layout that properly constrains width.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -40,27 +41,29 @@ import type { BOMDashboard } from '@/app/api/bom/dashboard/route';
 
 // Status configuration - Simplified workflow: draft → approved → obsolete
 const statusConfig = {
-  draft: { label: 'Draft', color: 'bg-amber-100 text-amber-800', borderColor: 'border-amber-500' },
-  active: { label: 'Active', color: 'bg-teal-100 text-teal-800', borderColor: 'border-teal-500' },
-  approved: { label: 'Approved', color: 'bg-green-100 text-green-800', borderColor: 'border-green-500' },
-  obsolete: { label: 'Obsolete', color: 'bg-gray-100 text-gray-600', borderColor: 'border-gray-400' },
+  draft: { translationKey: 'draft', color: 'bg-amber-100 text-amber-800', borderColor: 'border-amber-500' },
+  active: { translationKey: 'active', color: 'bg-teal-100 text-teal-800', borderColor: 'border-teal-500' },
+  approved: { translationKey: 'approved', color: 'bg-green-100 text-green-800', borderColor: 'border-green-500' },
+  obsolete: { translationKey: 'obsolete', color: 'bg-gray-100 text-gray-600', borderColor: 'border-gray-400' },
 };
-
-const statusFilters = [
-  { value: '', label: 'All Statuses' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'active', label: 'Active' },
-  { value: 'obsolete', label: 'Obsolete' },
-];
 
 // Chart color palette
 const chartColors = ['#059669', '#3B82F6', '#F59E0B', '#6B7280'];
 
 export default function BOMDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('production');
   const [statusFilter, setStatusFilter] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+
+  // Status filters with translations
+  const statusFilters = useMemo(() => [
+    { value: '', label: t('bom.filters.allStatuses') },
+    { value: 'approved', label: t('bom.status.approved') },
+    { value: 'draft', label: t('bom.status.draft') },
+    { value: 'active', label: t('bom.status.active') },
+    { value: 'obsolete', label: t('bom.status.obsolete') },
+  ], [t]);
 
   // Fetch dashboard data
   const { data: dashboard, isLoading: dashboardLoading } = useQuery<BOMDashboard>({
@@ -88,14 +91,14 @@ export default function BOMDashboardPage() {
   });
 
   // Prepare chart data
-  const statusChartData = dashboard
+  const statusChartData = useMemo(() => dashboard
     ? Object.entries(dashboard.byStatus)
         .filter(([, value]) => value > 0)
         .map(([status, count]) => ({
-          status: statusConfig[status as keyof typeof statusConfig]?.label || status,
+          status: t(`bom.status.${statusConfig[status as keyof typeof statusConfig]?.translationKey || status}`),
           count,
         }))
-    : [];
+    : [], [dashboard, t]);
 
   const renderStatusBadge = (status: string) => {
     const config = statusConfig[status as keyof typeof statusConfig];
@@ -106,7 +109,7 @@ export default function BOMDashboardPage() {
         {status === 'draft' && <FileEdit className="h-3.5 w-3.5" />}
         {status === 'approved' && <CheckCircle className="h-3.5 w-3.5" />}
         {status === 'obsolete' && <Archive className="h-3.5 w-3.5" />}
-        {config.label}
+        {t(`bom.status.${config.translationKey}`)}
       </span>
     );
   };
@@ -122,18 +125,18 @@ export default function BOMDashboardPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="Bill of Materials (BOM)"
-        subtitle="Manufacturing recipes and component management"
+        title={t('bom.pageTitle')}
+        subtitle={t('bom.subtitle')}
         icon={ClipboardList}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
         breadcrumbs={[
-          { label: 'Production', href: '/production' },
-          { label: 'BOM Management' },
+          { label: t('breadcrumbs.production'), href: '/production' },
+          { label: t('bom.breadcrumbs.bomManagement') },
         ]}
         actions={
           <DxButton
-            text="Create New BOM"
+            text={t('bom.actions.createNewBOM')}
             icon="plus"
             type="success"
             onClick={() => router.push('/production/bom/new')}
@@ -144,7 +147,7 @@ export default function BOMDashboardPage() {
       {/* Stats Row - 4 columns on desktop, 2 on mobile */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label="Total BOMs"
+          label={t('bom.stats.totalBOMs')}
           value={dashboard?.totalBOMs ?? 0}
           icon={ClipboardList}
           iconColor="text-emerald-500"
@@ -152,7 +155,7 @@ export default function BOMDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Active BOMs"
+          label={t('bom.stats.activeBOMs')}
           value={dashboard?.activeBOMs ?? 0}
           icon={CheckCircle}
           iconColor="text-green-500"
@@ -160,7 +163,7 @@ export default function BOMDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Draft BOMs"
+          label={t('bom.stats.draftBOMs')}
           value={dashboard?.draftBOMs ?? 0}
           icon={FileEdit}
           iconColor="text-amber-500"
@@ -168,7 +171,7 @@ export default function BOMDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Work Orders"
+          label={t('bom.stats.workOrders')}
           value={dashboard?.activeWorkOrders ?? 0}
           icon={Factory}
           iconColor="text-blue-500"
@@ -181,7 +184,7 @@ export default function BOMDashboardPage() {
       {/* Secondary Stats - 3 columns */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard
-          label="Materials"
+          label={t('bom.stats.materials')}
           value={dashboard?.totalMaterials ?? 0}
           icon={Package}
           iconColor="text-purple-500"
@@ -189,7 +192,7 @@ export default function BOMDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Avg/BOM"
+          label={t('bom.stats.avgPerBOM')}
           value={dashboard?.avgMaterialsPerBOM?.toFixed(1) ?? '0'}
           icon={Layers}
           iconColor="text-indigo-500"
@@ -197,7 +200,7 @@ export default function BOMDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Obsolete"
+          label={t('bom.stats.obsolete')}
           value={dashboard?.obsoleteBOMs ?? 0}
           icon={Archive}
           iconColor="text-gray-500"
@@ -214,7 +217,7 @@ export default function BOMDashboardPage() {
             <div className="p-2 bg-emerald-50 rounded-lg">
               <Boxes className="h-5 w-5 text-emerald-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-base">Status Distribution</h3>
+            <h3 className="font-semibold text-gray-900 text-base">{t('bom.charts.statusDistribution')}</h3>
           </div>
           {statusChartData.length > 0 ? (
             <PieChart
@@ -241,7 +244,7 @@ export default function BOMDashboardPage() {
             <div className="flex items-center justify-center h-[200px] text-gray-400">
               <div className="text-center">
                 <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No BOMs found</p>
+                <p className="text-sm">{t('bom.charts.noBOMsFound')}</p>
               </div>
             </div>
           )}
@@ -253,7 +256,7 @@ export default function BOMDashboardPage() {
             <div className="p-2 bg-purple-50 rounded-lg">
               <Package className="h-5 w-5 text-purple-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-base">Top Products</h3>
+            <h3 className="font-semibold text-gray-900 text-base">{t('bom.charts.topProducts')}</h3>
           </div>
           <div className="space-y-2.5">
             {dashboard?.topProducts?.slice(0, 4).map((product, index) => (
@@ -278,7 +281,7 @@ export default function BOMDashboardPage() {
             )) || (
               <div className="text-center py-6 text-gray-400">
                 <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No data</p>
+                <p className="text-sm">{t('bom.charts.noData')}</p>
               </div>
             )}
           </div>
@@ -290,7 +293,7 @@ export default function BOMDashboardPage() {
             <div className="p-2 bg-amber-50 rounded-lg">
               <ClipboardList className="h-5 w-5 text-amber-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 text-base">Recent BOMs</h3>
+            <h3 className="font-semibold text-gray-900 text-base">{t('bom.charts.recentBOMs')}</h3>
           </div>
           <div className="space-y-2.5">
             {dashboard?.recentBOMs?.slice(0, 4).map((bom) => (
@@ -317,7 +320,7 @@ export default function BOMDashboardPage() {
             )) || (
               <div className="text-center py-6 text-gray-400">
                 <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No recent BOMs</p>
+                <p className="text-sm">{t('bom.charts.noData')}</p>
               </div>
             )}
           </div>
@@ -330,9 +333,9 @@ export default function BOMDashboardPage() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
-              <h4 className="font-semibold text-amber-800 text-base">Pending Review</h4>
+              <h4 className="font-semibold text-amber-800 text-base">{t('bom.alerts.pendingReview')}</h4>
               <p className="text-sm text-amber-700 mt-0.5">
-                You have <strong>{dashboard.draftBOMs}</strong> draft BOM{dashboard.draftBOMs > 1 ? 's' : ''} pending approval.
+                {t('bom.alerts.draftBOMsPending', { count: dashboard.draftBOMs })}
               </p>
               <button
                 onClick={() => {
@@ -341,7 +344,7 @@ export default function BOMDashboardPage() {
                 }}
                 className="mt-2 text-sm font-medium text-amber-800 hover:text-amber-900 flex items-center gap-1"
               >
-                View draft BOMs <ChevronRight className="h-4 w-4" />
+                {t('bom.alerts.viewDraftBOMs')} <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -357,7 +360,7 @@ export default function BOMDashboardPage() {
               <div className="p-1.5 bg-emerald-50 rounded-lg">
                 <Settings className="h-4 w-4 text-emerald-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 text-base">BOM Registry</h3>
+              <h3 className="font-semibold text-gray-900 text-base">{t('bom.registry.title')}</h3>
             </div>
             <DxSelectBox
               dataSource={statusFilters}

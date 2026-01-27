@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -94,46 +95,41 @@ interface TraceData {
 type StatusType = '' | 'quarantine' | 'released' | 'rejected' | 'blocked';
 
 const STATUS_CONFIG: Record<StatusType, {
-  label: string;
+  translationKey: string;
   bgColor: string;
   textColor: string;
   icon: React.ReactNode;
 }> = {
   '': {
-    label: 'All',
+    translationKey: 'all',
     bgColor: 'bg-gray-900',
     textColor: 'text-white',
     icon: <Boxes className="h-4 w-4" />,
   },
   quarantine: {
-    label: 'กักกัน',
+    translationKey: 'quarantine',
     bgColor: 'bg-yellow-50',
     textColor: 'text-yellow-700',
     icon: <Clock className="h-4 w-4" />,
   },
   released: {
-    label: 'ปล่อยแล้ว',
+    translationKey: 'released',
     bgColor: 'bg-green-50',
     textColor: 'text-green-700',
     icon: <CheckCircle className="h-4 w-4" />,
   },
   rejected: {
-    label: 'ปฏิเสธ',
+    translationKey: 'rejected',
     bgColor: 'bg-red-50',
     textColor: 'text-red-700',
     icon: <XCircle className="h-4 w-4" />,
   },
   blocked: {
-    label: 'ล็อค',
+    translationKey: 'blocked',
     bgColor: 'bg-gray-100',
     textColor: 'text-gray-700',
     icon: <AlertTriangle className="h-4 w-4" />,
   },
-};
-
-const getStatusLabel = (status: string): string => {
-  const config = STATUS_CONFIG[status as StatusType];
-  return config ? config.label : status;
 };
 
 const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
@@ -180,6 +176,7 @@ const formatCurrency = (value: number) => {
 
 export default function LotsPage() {
   const router = useRouter();
+  const t = useTranslations('inventory');
   const [lots, setLots] = useState<Lot[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -499,7 +496,7 @@ export default function LotsPage() {
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'lotNumber',
-      caption: 'เลขที่ Lot',
+      caption: t('lots.grid.columns.lotNumber'),
       width: 160,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
@@ -512,7 +509,7 @@ export default function LotsPage() {
     },
     {
       dataField: 'itemCode',
-      caption: 'สินค้า',
+      caption: t('lots.grid.columns.item'),
       minWidth: 200,
       cellRender: (cellInfo) => (
         <div>
@@ -523,7 +520,7 @@ export default function LotsPage() {
     },
     {
       dataField: 'quantity',
-      caption: 'จำนวน',
+      caption: t('lots.grid.columns.quantity'),
       width: 140,
       dataType: 'number',
       cellRender: (cellInfo) => (
@@ -531,7 +528,7 @@ export default function LotsPage() {
           <p className="font-medium text-gray-900">{Number(cellInfo.data.quantity).toLocaleString()} <span className="text-xs text-gray-500 font-normal">{cellInfo.data.unit}</span></p>
           {cellInfo.data.reservedQuantity > 0 && (
             <p className="text-xs text-orange-600 flex items-center gap-1">
-              <Clock className="h-3 w-3" /> จอง: {Number(cellInfo.data.reservedQuantity).toLocaleString()}
+              <Clock className="h-3 w-3" /> {t('lots.reserved')}: {Number(cellInfo.data.reservedQuantity).toLocaleString()}
             </p>
           )}
         </div>
@@ -539,7 +536,7 @@ export default function LotsPage() {
     },
     {
       dataField: 'cost',
-      caption: 'มูลค่า',
+      caption: t('lots.grid.columns.value'),
       width: 160,
       dataType: 'number',
       hideOnMobile: true,
@@ -557,7 +554,7 @@ export default function LotsPage() {
     },
     {
       dataField: 'warehouseName',
-      caption: 'คลัง',
+      caption: t('lots.grid.columns.warehouse'),
       width: 130,
       hideOnMobile: true,
       cellRender: (cellInfo) => (
@@ -569,7 +566,7 @@ export default function LotsPage() {
     },
     {
       dataField: 'expiryDate',
-      caption: 'วันหมดอายุ',
+      caption: t('lots.grid.columns.expiryDate'),
       width: 150,
       dataType: 'date',
       hideOnMobile: true,
@@ -584,10 +581,10 @@ export default function LotsPage() {
                 {days < 0 ? (
                   <span className="flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
-                    หมดอายุ {Math.abs(days)} วัน
+                    {t('lots.expiredDays', { days: Math.abs(days) })}
                   </span>
                 ) : (
-                  <span>เหลือ {days} วัน</span>
+                  <span>{t('lots.daysRemaining', { days })}</span>
                 )}
               </Badge>
             )}
@@ -597,7 +594,7 @@ export default function LotsPage() {
     },
     {
       dataField: 'manufacturerName',
-      caption: 'ผู้ผลิต',
+      caption: t('lots.grid.columns.manufacturer'),
       width: 150,
       hideOnMobile: true,
       cellRender: (cellInfo) => (
@@ -611,7 +608,7 @@ export default function LotsPage() {
     },
     {
       dataField: 'retestDate',
-      caption: 'Retest',
+      caption: t('lots.grid.columns.retest'),
       width: 130,
       hideOnMobile: true,
       cellRender: (cellInfo) => {
@@ -625,7 +622,7 @@ export default function LotsPage() {
           <div>
             <p className="text-gray-700">{formatDate(cellInfo.data.retestDate)}</p>
             <Badge variant={isOverdue ? 'danger' : isUpcoming ? 'warning' : 'default'} size="sm">
-              {isOverdue ? `เกิน ${Math.abs(daysUntilRetest)} วัน` : `${daysUntilRetest} วัน`}
+              {isOverdue ? t('lots.overdueRetest', { days: Math.abs(daysUntilRetest) }) : t('lots.daysRemaining', { days: daysUntilRetest })}
             </Badge>
           </div>
         );
@@ -633,7 +630,7 @@ export default function LotsPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('lots.grid.columns.status'),
       width: 120,
       cellRender: (cellInfo) => {
         const status = cellInfo.data.status;
@@ -642,7 +639,7 @@ export default function LotsPage() {
         return (
           <Badge variant={variant} className="inline-flex items-center gap-1">
             {config?.icon}
-            {getStatusLabel(status)}
+            {t(`lots.status.${config?.translationKey || status}`)}
           </Badge>
         );
       },
@@ -683,12 +680,12 @@ export default function LotsPage() {
   ];
 
   const warehouseOptions = [
-    { value: '', label: 'เลือกคลัง' },
+    { value: '', label: t('lots.form.selectWarehouse') },
     ...warehouses.map(w => ({ value: w.id.toString(), label: w.name }))
   ];
 
   const vendorOptions = [
-    { value: '', label: 'เลือก Vendor (ไม่บังคับ)' },
+    { value: '', label: t('lots.form.selectVendor') },
     ...vendors.map(v => ({ value: v.id.toString(), label: v.name }))
   ];
 
@@ -697,8 +694,8 @@ export default function LotsPage() {
       <div className="space-y-4">
         {/* Page Header */}
         <PageHeader
-          title="Inventory Lots"
-          description="จัดการ Lot/Batch สินค้าคงคลัง"
+          title={t('lots.pageTitle')}
+          description={t('lots.description')}
           actions={
             <div className="flex items-center gap-2">
               <button
@@ -706,21 +703,21 @@ export default function LotsPage() {
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                Refresh
+                {t('common.refresh')}
               </button>
               <button
                 onClick={() => router.push('/inventory/items')}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Package className="h-4 w-4" />
-                View Items
+                {t('lots.viewItems')}
               </button>
               <button
                 onClick={() => { resetForm(); setShowModal(true); }}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
               >
                 <Plus className="h-4 w-4" />
-                รับ Lot ใหม่
+                {t('lots.addLot')}
               </button>
             </div>
           }
@@ -748,7 +745,7 @@ export default function LotsPage() {
                       )}
                     >
                       {config.icon}
-                      {config.label}
+                      {status === '' ? t('common.all') : t(`lots.status.${config.translationKey}`)}
                       <span className={cn(
                         'text-xs px-1.5 py-0.5 rounded-full',
                         statusFilter === status ? (status === '' ? 'bg-gray-700' : 'bg-white/50') : 'bg-gray-200'
@@ -765,25 +762,25 @@ export default function LotsPage() {
                 {stats.nearExpiryCount > 0 && (
                   <div className="flex items-center gap-1.5 text-amber-600">
                     <AlertTriangle className="h-4 w-4" />
-                    <span className="font-medium">{stats.nearExpiryCount} Near Expiry</span>
+                    <span className="font-medium">{stats.nearExpiryCount} {t('stats.nearExpiry')}</span>
                   </div>
                 )}
                 {stats.expiredCount > 0 && (
                   <div className="flex items-center gap-1.5 text-red-600">
                     <XCircle className="h-4 w-4" />
-                    <span className="font-medium">{stats.expiredCount} Expired</span>
+                    <span className="font-medium">{stats.expiredCount} {t('stats.expired')}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-gray-500">
                   <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <span>{stats.totalQuantity.toLocaleString()} units</span>
+                  <span>{stats.totalQuantity.toLocaleString()} {t('common.units')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-gray-500">
                   <DollarSign className="h-4 w-4 text-emerald-500" />
                   <span>{formatCurrency(stats.totalValue)}</span>
                 </div>
                 <div className="text-gray-400">|</div>
-                <span className="text-gray-500">{lots.length} lots shown</span>
+                <span className="text-gray-500">{t('common.lotsShown', { count: lots.length })}</span>
               </div>
             </div>
           </div>
@@ -792,7 +789,7 @@ export default function LotsPage() {
           <div className="px-4 py-2 border-b border-gray-100">
             <div className="w-full md:w-72">
               <DxTextBox
-                placeholder="ค้นหาด้วยเลขที่ Lot หรือสินค้า..."
+                placeholder={t('lots.searchPlaceholder')}
                 value={search}
                 onValueChange={setSearch}
                 showClearButton
@@ -819,15 +816,15 @@ export default function LotsPage() {
                 virtualScrolling={lots.length > 100}
                 height={600}
                 onRowClick={handleRowClick}
-                noDataText="ไม่พบ Lot"
+                noDataText={t('lots.noLots')}
               />
             ) : (
               <EmptyState
                 icon={<Inbox className="h-12 w-12" />}
-                title="ไม่พบ Lot"
-                description="เริ่มต้นด้วยการรับ Lot ใหม่เข้าคลัง หรือลองเปลี่ยนตัวกรอง"
+                title={t('lots.noLots')}
+                description={t('lots.noLotsDescription')}
                 action={{
-                  label: 'รับ Lot ใหม่',
+                  label: t('lots.addLot'),
                   onClick: () => { resetForm(); setShowModal(true); },
                 }}
               />
@@ -848,7 +845,7 @@ export default function LotsPage() {
             setTimeout(() => fetchLots(), 0);
           }
         }}
-        title="รับ Lot ใหม่"
+        title={t('lots.form.title')}
         width={800}
         height="auto"
         maxHeight="90vh"
@@ -859,15 +856,15 @@ export default function LotsPage() {
               <Package className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="font-medium text-emerald-800">รับสินค้าเข้าคลัง</p>
-              <p className="text-sm text-emerald-600">สถานะเริ่มต้น: กักกัน (รอ QC)</p>
+              <p className="font-medium text-emerald-800">{t('lots.form.receiveTitle')}</p>
+              <p className="text-sm text-emerald-600">{t('lots.form.initialStatus')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                เลขที่ Lot <span className="text-red-500">*</span>
+                {t('lots.form.lotNumber')} <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <DxTextBox
@@ -878,7 +875,7 @@ export default function LotsPage() {
                   }}
                   placeholder="LOT-YYYYMMDD-XXX"
                 />
-                <DxButton text="สร้าง" type="default" onClick={generateLotNumber} />
+                <DxButton text={t('lots.form.generate')} type="default" onClick={generateLotNumber} />
               </div>
               {formErrors.lotNumber && (
                 <p className="text-sm text-red-500 mt-1">{formErrors.lotNumber}</p>
@@ -886,12 +883,12 @@ export default function LotsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vendor Lot Number
+                {t('lots.form.vendorLotNumber')}
               </label>
               <DxTextBox
                 value={formData.vendorLotNumber}
                 onValueChange={(v) => setFormData(prev => ({ ...prev, vendorLotNumber: v }))}
-                placeholder="เลขที่ Lot ผู้ขาย"
+                placeholder={t('lots.form.vendorLotPlaceholder')}
               />
             </div>
           </div>
@@ -899,7 +896,7 @@ export default function LotsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                สินค้า <span className="text-red-500">*</span>
+                {t('lots.form.item')} <span className="text-red-500">*</span>
               </label>
               {selectedItem ? (
                 <div className={`flex items-center justify-between p-3 rounded-lg border ${formErrors.itemId ? 'border-red-500 bg-red-50' : 'bg-green-50 border-green-200'}`}>
@@ -912,7 +909,7 @@ export default function LotsPage() {
                       <p className="text-xs text-green-600">{selectedItem.nameTh}</p>
                     </div>
                   </div>
-                  <DxButton text="เปลี่ยน" type="default" stylingMode="text" onClick={() => setItemDialogOpen(true)} />
+                  <DxButton text={t('lots.form.changeItem')} type="default" stylingMode="text" onClick={() => setItemDialogOpen(true)} />
                 </div>
               ) : (
                 <button
@@ -922,7 +919,7 @@ export default function LotsPage() {
                 >
                   <div className="flex items-center gap-2 text-gray-500 group-hover:text-green-600">
                     <BoxSelect className="h-4 w-4" />
-                    <span className="text-sm">คลิกเพื่อเลือกสินค้า...</span>
+                    <span className="text-sm">{t('lots.form.selectItem')}</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-green-500" />
                 </button>
@@ -933,7 +930,7 @@ export default function LotsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                คลัง <span className="text-red-500">*</span>
+                {t('lots.form.warehouse')} <span className="text-red-500">*</span>
               </label>
               <DxSelectBox
                 items={warehouseOptions}
@@ -952,7 +949,7 @@ export default function LotsPage() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                จำนวน <span className="text-red-500">*</span>
+                {t('lots.form.quantity')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -971,13 +968,13 @@ export default function LotsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                หน่วย
+                {t('lots.form.unit')}
               </label>
               <DxTextBox value={formData.unit} disabled />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ราคาต่อหน่วย <span className="text-red-500">*</span>
+                {t('lots.form.costPerUnit')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -1000,7 +997,7 @@ export default function LotsPage() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                วันผลิต
+                {t('lots.form.manufacturingDate')}
               </label>
               <DxDateBox
                 value={formData.manufacturingDate || ''}
@@ -1016,7 +1013,7 @@ export default function LotsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                วันหมดอายุ <span className="text-red-500">*</span>
+                {t('lots.form.expiryDate')} <span className="text-red-500">*</span>
               </label>
               <DxDateBox
                 value={formData.expiryDate || ''}
@@ -1032,7 +1029,7 @@ export default function LotsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                วันรับสินค้า
+                {t('lots.form.receivedDate')}
               </label>
               <DxDateBox
                 value={formData.receivedDate || ''}
@@ -1045,7 +1042,7 @@ export default function LotsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Vendor
+              {t('lots.form.vendor')}
             </label>
             <DxSelectBox
               items={vendorOptions}
@@ -1058,28 +1055,28 @@ export default function LotsPage() {
           <div className="border-t pt-4 mt-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <Package className="h-4 w-4 text-blue-500" />
-              ข้อมูล GMP Compliance
+              {t('lots.form.gmpSection')}
             </h3>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ชื่อผู้ผลิต (Manufacturer)
+                  {t('lots.form.manufacturerName')}
                 </label>
                 <DxTextBox
                   value={formData.manufacturerName}
                   onValueChange={(v) => setFormData(prev => ({ ...prev, manufacturerName: v }))}
-                  placeholder="ชื่อผู้ผลิต..."
+                  placeholder={t('lots.form.manufacturerPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ชื่อผู้นำเข้า (Importer)
+                  {t('lots.form.importerName')}
                 </label>
                 <DxTextBox
                   value={formData.importerName}
                   onValueChange={(v) => setFormData(prev => ({ ...prev, importerName: v }))}
-                  placeholder="ชื่อผู้นำเข้า..."
+                  placeholder={t('lots.form.importerPlaceholder')}
                 />
               </div>
             </div>
@@ -1087,17 +1084,17 @@ export default function LotsPage() {
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ประเทศต้นกำเนิด
+                  {t('lots.form.countryOfOrigin')}
                 </label>
                 <DxTextBox
                   value={formData.countryOfOrigin}
                   onValueChange={(v) => setFormData(prev => ({ ...prev, countryOfOrigin: v }))}
-                  placeholder="ประเทศ..."
+                  placeholder={t('lots.form.countryPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  วันที่ต้อง Retest
+                  {t('lots.form.retestDate')}
                 </label>
                 <DxDateBox
                   value={formData.retestDate || ''}
@@ -1107,7 +1104,7 @@ export default function LotsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ระยะเวลา Retest (เดือน)
+                  {t('lots.form.retestInterval')}
                 </label>
                 <input
                   type="number"
@@ -1127,20 +1124,20 @@ export default function LotsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              หมายเหตุ
+              {t('lots.form.notes')}
             </label>
             <textarea
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               rows={2}
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="หมายเหตุเพิ่มเติม..."
+              placeholder={t('lots.form.notesPlaceholder')}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="ยกเลิก" type="default" stylingMode="outlined" onClick={() => setShowModal(false)} />
-            <DxButton text="รับ Lot" icon="check" type="success" onClick={handleCreateLot} />
+            <DxButton text={t('lots.form.cancel')} type="default" stylingMode="outlined" onClick={() => setShowModal(false)} />
+            <DxButton text={t('lots.form.submit')} icon="check" type="success" onClick={handleCreateLot} />
           </div>
         </div>
       </DxPopup>
@@ -1155,7 +1152,7 @@ export default function LotsPage() {
               setQcLot(null);
             }
           }}
-          title="ตัดสินใจ QC"
+          title={t('lots.qc.title')}
           width={500}
           height="auto"
         >
@@ -1166,25 +1163,25 @@ export default function LotsPage() {
               </div>
               <div>
                 <p className="font-bold text-yellow-800">{qcLot.lotNumber}</p>
-                <p className="text-sm text-yellow-600">รอการตัดสินใจ QC</p>
+                <p className="text-sm text-yellow-600">{t('lots.qc.awaitingDecision')}</p>
               </div>
             </div>
 
             <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between">
-                <span className="text-gray-600">สินค้า:</span>
+                <span className="text-gray-600">{t('lots.qc.item')}:</span>
                 <span className="font-medium">{qcLot.itemCode} - {qcLot.itemName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">จำนวน:</span>
+                <span className="text-gray-600">{t('lots.qc.quantity')}:</span>
                 <span className="font-medium">{Number(qcLot.quantity)?.toLocaleString()} {qcLot.unit}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">วันหมดอายุ:</span>
+                <span className="text-gray-600">{t('lots.qc.expiryDate')}:</span>
                 <span className="font-medium">{formatDate(qcLot.expiryDate)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">มูลค่า:</span>
+                <span className="text-gray-600">{t('lots.qc.value')}:</span>
                 <span className="font-medium text-emerald-600">{formatCurrency((Number(qcLot.quantity) || 0) * (Number(qcLot.cost) || 0))}</span>
               </div>
             </div>
@@ -1192,14 +1189,14 @@ export default function LotsPage() {
             <div className="p-4 bg-amber-50 rounded-lg mb-6 border border-amber-200">
               <p className="text-sm text-amber-800 flex items-start gap-2">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                กรุณาตรวจสอบให้แน่ใจว่าได้ทำการทดสอบ QC เสร็จสิ้นแล้วก่อนตัดสินใจ
+                {t('lots.qc.warning')}
               </p>
             </div>
 
             <div className="flex justify-end gap-3">
-              <DxButton text="ยกเลิก" type="default" stylingMode="outlined" onClick={() => setShowQCModal(false)} />
-              <DxButton text="ปฏิเสธ" icon="close" type="danger" onClick={() => handleQCAction('reject')} />
-              <DxButton text="ปล่อย" icon="check" type="success" onClick={() => handleQCAction('release')} />
+              <DxButton text={t('lots.qc.cancel')} type="default" stylingMode="outlined" onClick={() => setShowQCModal(false)} />
+              <DxButton text={t('lots.qc.reject')} icon="close" type="danger" onClick={() => handleQCAction('reject')} />
+              <DxButton text={t('lots.qc.release')} icon="check" type="success" onClick={() => handleQCAction('release')} />
             </div>
           </div>
         </DxPopup>
@@ -1210,7 +1207,7 @@ export default function LotsPage() {
         visible={showTraceModal}
         onVisibleChange={(v) => { if (!v) setShowTraceModal(false); }}
         onHidden={() => { setTimeout(() => { setTraceLot(null); setTraceData(null); }, 0); }}
-        title="Lot Traceability"
+        title={t('lots.trace.title')}
         width={700}
         height="auto"
         maxHeight="90vh"
@@ -1225,28 +1222,28 @@ export default function LotsPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-emerald-800">{traceLot.lotNumber}</h3>
-                  <p className="text-sm text-emerald-600">Lot ปัจจุบัน</p>
+                  <p className="text-sm text-emerald-600">{t('lots.trace.currentLot')}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">สินค้า:</span>
+                  <span className="text-gray-600">{t('lots.trace.item')}:</span>
                   <span className="font-medium">{traceLot.itemCode}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">จำนวน:</span>
+                  <span className="text-gray-600">{t('lots.trace.quantity')}:</span>
                   <span className="font-medium">{Number(traceLot.quantity)?.toLocaleString()} {traceLot.unit}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">สถานะ:</span>
-                  <Badge variant={getStatusVariant(traceLot.status)} size="sm">{getStatusLabel(traceLot.status)}</Badge>
+                  <span className="text-gray-600">{t('lots.trace.status')}:</span>
+                  <Badge variant={getStatusVariant(traceLot.status)} size="sm">{t(`lots.status.${traceLot.status}`)}</Badge>
                 </div>
                 <div className="flex items-center gap-2">
                   <CalendarClock className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">หมดอายุ:</span>
+                  <span className="text-gray-600">{t('lots.trace.expiryDate')}:</span>
                   <span className="font-medium">{formatDate(traceLot.expiryDate)}</span>
                 </div>
               </div>
@@ -1257,14 +1254,14 @@ export default function LotsPage() {
               <div className="mb-6">
                 <h3 className="font-semibold mb-3 flex items-center gap-2 text-blue-800">
                   <ArrowRight className="h-4 w-4 rotate-180" />
-                  Source Lots (วัตถุดิบที่ใช้)
+                  {t('lots.trace.sourceLots')}
                 </h3>
                 <div className="space-y-2">
                   {traceData.backward.map((lot: TraceLot, idx: number) => (
                     <div key={idx} className="p-3 bg-blue-50 rounded-lg text-sm border border-blue-200">
                       <div className="flex justify-between items-center">
                         <span className="font-medium text-blue-800">{lot.lotNumber}</span>
-                        <Badge variant={getStatusVariant(lot.status)} size="sm">{getStatusLabel(lot.status)}</Badge>
+                        <Badge variant={getStatusVariant(lot.status)} size="sm">{t(`lots.status.${lot.status}`)}</Badge>
                       </div>
                       <div className="text-blue-600 mt-1">
                         {lot.itemCode} - {lot.quantity?.toLocaleString()} {lot.unit}
@@ -1280,14 +1277,14 @@ export default function LotsPage() {
               <div>
                 <h3 className="font-semibold mb-3 flex items-center gap-2 text-purple-800">
                   <ArrowRight className="h-4 w-4" />
-                  Destination Lots (ผลิตภัณฑ์ที่ผลิต)
+                  {t('lots.trace.destinationLots')}
                 </h3>
                 <div className="space-y-2">
                   {traceData.forward.map((lot: TraceLot, idx: number) => (
                     <div key={idx} className="p-3 bg-purple-50 rounded-lg text-sm border border-purple-200">
                       <div className="flex justify-between items-center">
                         <span className="font-medium text-purple-800">{lot.lotNumber}</span>
-                        <Badge variant={getStatusVariant(lot.status)} size="sm">{getStatusLabel(lot.status)}</Badge>
+                        <Badge variant={getStatusVariant(lot.status)} size="sm">{t(`lots.status.${lot.status}`)}</Badge>
                       </div>
                       <div className="text-purple-600 mt-1">
                         {lot.itemCode} - {lot.quantity?.toLocaleString()} {lot.unit}
@@ -1302,12 +1299,12 @@ export default function LotsPage() {
              (!traceData.forward || traceData.forward.length === 0) && (
               <div className="text-center text-gray-500 py-8">
                 <RefreshCcw className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                <p>ไม่พบข้อมูล traceability สำหรับ Lot นี้</p>
+                <p>{t('lots.trace.noTraceData')}</p>
               </div>
             )}
 
             <div className="flex justify-end mt-6 pt-4 border-t">
-              <DxButton text="ปิด" type="default" stylingMode="outlined" onClick={() => setShowTraceModal(false)} />
+              <DxButton text={t('lots.trace.close')} type="default" stylingMode="outlined" onClick={() => setShowTraceModal(false)} />
             </div>
           </div>
         )}
@@ -1318,7 +1315,7 @@ export default function LotsPage() {
         open={itemDialogOpen}
         onOpenChange={setItemDialogOpen}
         onSelect={handleSelectItem}
-        title="เลือกสินค้าที่จะรับ"
+        title={t('lots.form.selectItem')}
         showPrice="cost"
         showStock={true}
       />

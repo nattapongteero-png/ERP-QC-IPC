@@ -10,6 +10,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import DataGrid, {
@@ -91,48 +92,42 @@ function formatCompactNumber(value: number): string {
 type ItemType = 'raw_material' | 'packaging' | 'wip' | 'finished_goods' | 'consumable';
 
 const ITEM_TYPE_CONFIG: Record<ItemType, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   bgColor: string;
   textColor: string;
   borderColor: string;
   icon: React.ReactNode;
 }> = {
   raw_material: {
-    label: 'Raw Material',
-    labelTh: 'วัตถุดิบ',
+    translationKey: 'rawMaterial',
     bgColor: 'bg-green-50',
     textColor: 'text-green-700',
     borderColor: 'border-green-200',
     icon: <Leaf className="h-4 w-4" />,
   },
   packaging: {
-    label: 'Packaging',
-    labelTh: 'บรรจุภัณฑ์',
+    translationKey: 'packaging',
     bgColor: 'bg-blue-50',
     textColor: 'text-blue-700',
     borderColor: 'border-blue-200',
     icon: <Box className="h-4 w-4" />,
   },
   wip: {
-    label: 'Work in Progress',
-    labelTh: 'งานระหว่างทำ',
+    translationKey: 'wip',
     bgColor: 'bg-orange-50',
     textColor: 'text-orange-700',
     borderColor: 'border-orange-200',
     icon: <FlaskConical className="h-4 w-4" />,
   },
   finished_goods: {
-    label: 'Finished Goods',
-    labelTh: 'สินค้าสำเร็จรูป',
+    translationKey: 'finishedGoods',
     bgColor: 'bg-purple-50',
     textColor: 'text-purple-700',
     borderColor: 'border-purple-200',
     icon: <Pill className="h-4 w-4" />,
   },
   consumable: {
-    label: 'Consumable',
-    labelTh: 'วัสดุสิ้นเปลือง',
+    translationKey: 'consumable',
     bgColor: 'bg-gray-50',
     textColor: 'text-gray-700',
     borderColor: 'border-gray-200',
@@ -157,6 +152,7 @@ async function fetchItems(): Promise<Item[]> {
 
 export default function ItemsPage() {
   const router = useRouter();
+  const t = useTranslations('inventory');
   const [activeTab, setActiveTab] = useState<'all' | ItemType>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -273,10 +269,11 @@ export default function ItemsPage() {
         if (gridCell?.rowType === 'data') {
           if (gridCell.column?.dataField === 'type') {
             const type = gridCell.value as ItemType;
-            excelCell.value = ITEM_TYPE_CONFIG[type]?.labelTh || type;
+            const config = ITEM_TYPE_CONFIG[type];
+            excelCell.value = config ? t(`items.types.${config.translationKey}`) : type;
           }
           if (gridCell.column?.dataField === 'isActive') {
-            excelCell.value = gridCell.value ? 'Active' : 'Inactive';
+            excelCell.value = gridCell.value ? t('items.status.active') : t('items.status.inactive');
           }
         }
       },
@@ -285,7 +282,7 @@ export default function ItemsPage() {
         saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'inventory-items.xlsx');
       });
     });
-  }, []);
+  }, [t]);
 
   // Custom cell renderers
   const renderCodeCell = useCallback((data: { data: Item }) => {
@@ -322,10 +319,10 @@ export default function ItemsPage() {
     return (
       <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', config.bgColor, config.textColor)}>
         {config.icon}
-        {config.labelTh}
+        {t(`items.types.${config.translationKey}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderStockCell = useCallback((data: { data: Item }) => {
     const onHand = data.data.onHand ?? 0;
@@ -338,7 +335,7 @@ export default function ItemsPage() {
         <div className={cn('font-medium', isLow ? 'text-red-600' : 'text-gray-900')}>
           {formatCompactNumber(onHand)} {data.data.primaryUnit}
           {isLow && (
-            <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">Low</span>
+            <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">{t('items.grid.lowStock')}</span>
           )}
         </div>
         {onHandCost > 0 && (
@@ -348,7 +345,7 @@ export default function ItemsPage() {
         )}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderQuarantineCell = useCallback((data: { data: Item }) => {
     const quarantineQty = data.data.quarantineQty ?? 0;
@@ -374,22 +371,22 @@ export default function ItemsPage() {
     return data.value ? (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
         <CheckCircle className="h-3 w-3" />
-        Active
+        {t('items.status.active')}
       </span>
     ) : (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
         <XCircle className="h-3 w-3" />
-        Inactive
+        {t('items.status.inactive')}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderVmiCell = useCallback((data: { data: Item }) => {
     const hasVmi = data.data.tppCode || data.data.ttmtCode;
     return hasVmi ? (
       <div className="flex items-center gap-1 text-emerald-600" title={`TPP: ${data.data.tppCode || '-'}, TTMT: ${data.data.ttmtCode || '-'}`}>
         <CheckCircle className="h-4 w-4" />
-        <span className="text-xs font-medium">Ready</span>
+        <span className="text-xs font-medium">{t('items.grid.vmiReady')}</span>
       </div>
     ) : (
       <div className="flex items-center gap-1 text-gray-400">
@@ -397,7 +394,7 @@ export default function ItemsPage() {
         <span className="text-xs">-</span>
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderActionsCell = useCallback((data: { data: Item }) => {
     return (
@@ -408,7 +405,7 @@ export default function ItemsPage() {
             router.push(`/inventory/items/${data.data.id}`);
           }}
           className="p-1 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded"
-          title="View Details"
+          title={t('items.buttons.viewDetails')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -418,7 +415,7 @@ export default function ItemsPage() {
             handleEdit(data.data);
           }}
           className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
-          title="Edit"
+          title={t('items.buttons.edit')}
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -428,13 +425,13 @@ export default function ItemsPage() {
             setDeleteConfirm({ open: true, item: data.data });
           }}
           className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
-          title="Delete"
+          title={t('items.buttons.delete')}
         >
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
     );
-  }, [router]);
+  }, [router, t]);
 
   const totalItems = items.length;
 
@@ -443,8 +440,8 @@ export default function ItemsPage() {
       <div className="space-y-4">
         {/* Page Header */}
         <PageHeader
-          title="Inventory Items"
-          description="รายการสินค้าและวัตถุดิบ"
+          title={t('items.pageTitle')}
+          description={t('items.description')}
           actions={
             <div className="flex items-center gap-2">
               <button
@@ -452,21 +449,21 @@ export default function ItemsPage() {
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                Refresh
+                {t('common.refresh')}
               </button>
               <button
                 onClick={() => router.push('/inventory/lots')}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Warehouse className="h-4 w-4" />
-                View Lots
+                {t('items.viewLots')}
               </button>
               <button
                 onClick={() => router.push('/inventory/items/new')}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 <Plus className="h-4 w-4" />
-                Add Item
+                {t('items.addItem')}
               </button>
             </div>
           }
@@ -488,7 +485,7 @@ export default function ItemsPage() {
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   )}
                 >
-                  All
+                  {t('common.all')}
                   <span className={cn(
                     'ml-1.5 text-xs px-1.5 py-0.5 rounded-full',
                     activeTab === 'all' ? 'bg-gray-700' : 'bg-gray-200'
@@ -508,7 +505,7 @@ export default function ItemsPage() {
                       )}
                     >
                       {config.icon}
-                      {config.label}
+                      {t(`items.types.${config.translationKey}`)}
                       <span className={cn(
                         'text-xs px-1.5 py-0.5 rounded-full',
                         activeTab === type ? 'bg-white/50' : 'bg-gray-200'
@@ -525,21 +522,21 @@ export default function ItemsPage() {
                 {statistics.lowStockItems > 0 && (
                   <div className="flex items-center gap-1.5 text-red-600">
                     <AlertTriangle className="h-4 w-4" />
-                    <span className="font-medium">{statistics.lowStockItems} Low Stock</span>
+                    <span className="font-medium">{statistics.lowStockItems} {t('stats.lowStock')}</span>
                   </div>
                 )}
                 {statistics.itemsInQuarantine > 0 && (
                   <div className="flex items-center gap-1.5 text-amber-600">
                     <Clock className="h-4 w-4" />
-                    <span className="font-medium">{statistics.itemsInQuarantine} In Quarantine</span>
+                    <span className="font-medium">{statistics.itemsInQuarantine} {t('stats.inQuarantine')}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-gray-500">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>{statistics.activeItems} Active</span>
+                  <span>{statistics.activeItems} {t('stats.active')}</span>
                 </div>
                 <div className="text-gray-400">|</div>
-                <span className="text-gray-500">{filteredItems.length} items shown</span>
+                <span className="text-gray-500">{t('common.itemsShown', { count: filteredItems.length })}</span>
               </div>
             </div>
           </div>
@@ -565,7 +562,7 @@ export default function ItemsPage() {
             className="items-professional-grid"
           >
             <Scrolling mode="virtual" />
-            <SearchPanel visible={true} placeholder="Search items..." width={250} />
+            <SearchPanel visible={true} placeholder={t('items.searchPlaceholder')} width={250} />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
             <GroupPanel visible={true} />
@@ -574,7 +571,7 @@ export default function ItemsPage() {
             <Export enabled={true} />
 
             <Column
-              caption="#"
+              caption={t('items.grid.columns.rowNum')}
               width={60}
               alignment="center"
               allowFiltering={false}
@@ -588,64 +585,64 @@ export default function ItemsPage() {
             />
             <Column
               dataField="code"
-              caption="Code"
+              caption={t('items.grid.columns.code')}
               width={150}
               cellRender={renderCodeCell}
             />
             <Column
               dataField="nameTh"
-              caption="Name"
+              caption={t('items.grid.columns.name')}
               minWidth={200}
               cellRender={renderNameCell}
             />
             <Column
               dataField="type"
-              caption="Type"
+              caption={t('items.grid.columns.type')}
               width={150}
               cellRender={renderTypeCell}
             />
             <Column
               dataField="category"
-              caption="Category"
+              caption={t('items.grid.columns.category')}
               width={120}
             />
             <Column
               dataField="onHand"
-              caption="On Hand"
+              caption={t('items.grid.columns.onHand')}
               width={150}
               cellRender={renderStockCell}
             />
             <Column
               dataField="quarantineQty"
-              caption="Quarantine"
+              caption={t('items.grid.columns.quarantine')}
               width={120}
               cellRender={renderQuarantineCell}
             />
             <Column
               dataField="primaryUnit"
-              caption="Unit"
+              caption={t('items.grid.columns.unit')}
               width={80}
             />
             <Column
               dataField="shelfLifeDays"
-              caption="Shelf Life"
+              caption={t('items.grid.columns.shelfLife')}
               width={100}
-              cellRender={(data) => data.value ? `${data.value} days` : '-'}
+              cellRender={(data) => data.value ? t('items.grid.shelfLifeDays', { days: data.value }) : '-'}
             />
             <Column
               dataField="isActive"
-              caption="Status"
+              caption={t('items.grid.columns.status')}
               width={100}
               cellRender={renderStatusCell}
             />
             <Column
-              caption="VMI"
+              caption={t('items.grid.columns.vmi')}
               width={90}
               cellRender={renderVmiCell}
               allowFiltering={false}
             />
             <Column
-              caption="Actions"
+              caption={t('items.grid.columns.actions')}
               width={110}
               cellRender={renderActionsCell}
               allowFiltering={false}
@@ -653,7 +650,7 @@ export default function ItemsPage() {
             />
 
             <Summary>
-              <TotalItem column="code" summaryType="count" displayFormat="Total: {0}" />
+              <TotalItem column="code" summaryType="count" displayFormat={`${t('common.total')}: {0}`} />
             </Summary>
 
             <Paging defaultPageSize={20} />
@@ -691,9 +688,9 @@ export default function ItemsPage() {
         visible={deleteConfirm.open}
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm({ open: false, item: null })}
-        title="Confirm Delete"
-        message={`Are you sure you want to delete "${deleteConfirm.item?.nameTh}"?`}
-        confirmText="Delete"
+        title={t('common.confirmDelete')}
+        message={t('common.deleteMessage', { name: deleteConfirm.item?.nameTh || '' })}
+        confirmText={t('common.delete')}
         confirmType="danger"
       />
 

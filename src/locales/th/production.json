@@ -3,9 +3,70 @@
     "title": "การผลิต",
     "description": "จัดการใบสั่งผลิต สูตรการผลิต และสายการผลิต"
   },
+  "breadcrumbs": {
+    "production": "การผลิต"
+  },
   "workOrders": {
     "title": "ใบสั่งผลิต",
     "description": "จัดการใบสั่งผลิตและติดตามความคืบหน้า",
+    "pageTitle": "ใบสั่งผลิต",
+    "stats": {
+      "totalOrders": "ใบสั่งผลิตทั้งหมด",
+      "planned": "วางแผน",
+      "released": "ปล่อยงาน",
+      "inProgress": "กำลังผลิต",
+      "completed": "เสร็จสิ้น",
+      "highPriority": "ความสำคัญสูง",
+      "today": "วันนี้",
+      "avgYield": "ผลผลิตเฉลี่ย"
+    },
+    "tabs": {
+      "all": "ทั้งหมด"
+    },
+    "charts": {
+      "byStatus": "ตามสถานะ",
+      "byPriority": "ใบสั่งที่กำลังดำเนินการตามความสำคัญ",
+      "performance": "ผลการดำเนินงาน",
+      "completionRate": "อัตราการเสร็จสิ้น",
+      "activeOrders": "ใบสั่งที่กำลังดำเนินการ",
+      "averageYield": "ผลผลิตเฉลี่ย",
+      "cancelled": "ยกเลิก",
+      "noData": "ไม่มีข้อมูล",
+      "noActiveOrders": "ไม่มีใบสั่งที่กำลังดำเนินการ"
+    },
+    "grid": {
+      "columns": {
+        "woBatch": "ใบสั่ง / แบตช์",
+        "product": "ผลิตภัณฑ์",
+        "quantity": "ปริมาณ",
+        "priority": "ความสำคัญ",
+        "schedule": "กำหนดการ",
+        "yield": "ผลผลิต",
+        "status": "สถานะ"
+      },
+      "orders": "{count} รายการ",
+      "searchPlaceholder": "ค้นหาใบสั่งผลิต..."
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "analytics": "วิเคราะห์",
+      "newWorkOrder": "ใบสั่งผลิตใหม่",
+      "viewDetails": "ดูรายละเอียด",
+      "createWO": "สร้างใบสั่งผลิต",
+      "editWO": "แก้ไขใบสั่งผลิต",
+      "viewWO": "ดูรายละเอียด",
+      "startWO": "เริ่มการผลิต",
+      "completeWO": "เสร็จสิ้นการผลิต",
+      "cancelWO": "ยกเลิกใบสั่งผลิต",
+      "holdWO": "พักใบสั่งผลิต",
+      "releaseWO": "ปล่อยใบสั่งผลิต",
+      "printLabel": "พิมพ์ฉลาก",
+      "viewBOM": "ดูสูตรการผลิต"
+    },
+    "breadcrumbs": {
+      "production": "การผลิต",
+      "workOrders": "ใบสั่งผลิต"
+    },
     "table": {
       "columns": {
         "woNumber": "เลขที่ใบสั่งผลิต",
@@ -56,18 +117,6 @@
         "placeholder": "ป้อนหมายเหตุ"
       }
     },
-    "actions": {
-      "createWO": "สร้างใบสั่งผลิต",
-      "editWO": "แก้ไขใบสั่งผลิต",
-      "viewWO": "ดูรายละเอียด",
-      "startWO": "เริ่มการผลิต",
-      "completeWO": "เสร็จสิ้นการผลิต",
-      "cancelWO": "ยกเลิกใบสั่งผลิต",
-      "holdWO": "พักใบสั่งผลิต",
-      "releaseWO": "ปล่อยใบสั่งผลิต",
-      "printLabel": "พิมพ์ฉลาก",
-      "viewBOM": "ดูสูตรการผลิต"
-    },
     "status": {
       "draft": "แบบร่าง",
       "planned": "วางแผนแล้ว",
@@ -109,15 +158,63 @@
   },
   "bom": {
     "title": "สูตรการผลิต (BOM)",
+    "pageTitle": "สูตรการผลิต (BOM)",
     "description": "จัดการสูตรการผลิตและส่วนผสม",
+    "subtitle": "จัดการสูตรการผลิตและส่วนประกอบ",
+    "breadcrumbs": {
+      "bomManagement": "จัดการ BOM"
+    },
+    "status": {
+      "draft": "แบบร่าง",
+      "active": "ใช้งาน",
+      "approved": "อนุมัติ",
+      "obsolete": "ล้าสมัย"
+    },
+    "filters": {
+      "allStatuses": "ทุกสถานะ"
+    },
+    "stats": {
+      "totalBOMs": "BOM ทั้งหมด",
+      "activeBOMs": "BOM ที่ใช้งาน",
+      "draftBOMs": "BOM ร่าง",
+      "workOrders": "ใบสั่งผลิต",
+      "materials": "วัสดุ",
+      "avgPerBOM": "เฉลี่ย/BOM",
+      "obsolete": "ล้าสมัย"
+    },
+    "charts": {
+      "statusDistribution": "การกระจายสถานะ",
+      "topProducts": "ผลิตภัณฑ์ยอดนิยม",
+      "recentBOMs": "BOM ล่าสุด",
+      "noBOMsFound": "ไม่พบ BOM",
+      "noData": "ไม่มีข้อมูล"
+    },
+    "tabs": {
+      "all": "ทั้งหมด",
+      "approved": "อนุมัติ",
+      "draft": "ร่าง",
+      "obsolete": "ล้าสมัย"
+    },
+    "alerts": {
+      "pendingReview": "รอการตรวจสอบ",
+      "draftBOMsPending": "คุณมี {count} BOM ร่างรอการอนุมัติ",
+      "viewDraftBOMs": "ดู BOM ร่าง"
+    },
+    "registry": {
+      "title": "ทะเบียน BOM"
+    },
     "table": {
       "columns": {
-        "bomCode": "รหัส BOM",
+        "code": "รหัส",
+        "name": "ชื่อ",
         "product": "ผลิตภัณฑ์",
+        "batch": "แบตช์",
         "version": "เวอร์ชัน",
+        "status": "สถานะ",
+        "created": "วันที่สร้าง",
+        "bomCode": "รหัส BOM",
         "batchSize": "ขนาดแบตช์",
         "unit": "หน่วย",
-        "status": "สถานะ",
         "effectiveDate": "วันที่มีผล",
         "expiryDate": "วันหมดอายุ"
       }
@@ -133,6 +230,7 @@
       }
     },
     "actions": {
+      "createNewBOM": "สร้าง BOM ใหม่",
       "createBOM": "สร้างสูตรการผลิต",
       "editBOM": "แก้ไขสูตรการผลิต",
       "copyBOM": "คัดลอกสูตรการผลิต",

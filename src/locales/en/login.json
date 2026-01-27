@@ -1,0 +1,31 @@
+{
+  "title": "Herbal Medicine",
+  "subtitle": "ERP System",
+  "appName": "Herbal Medicine ERP",
+  "tagline": "Complete herbal medicine production management system from raw materials to finished goods",
+  "taglineShort": "Herbal medicine production management system",
+  "features": {
+    "gmpCompliance": "GMP-compliant quality control",
+    "realTimeTracking": "Real-time lot tracking",
+    "autoReports": "Automated reports and analytics"
+  },
+  "form": {
+    "welcome": "Welcome",
+    "welcomeSubtitle": "Sign in to continue",
+    "email": "Email",
+    "emailPlaceholder": "your@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "submit": "Sign In"
+  },
+  "demo": {
+    "title": "Demo Accounts"
+  },
+  "errors": {
+    "loginFailed": "Login failed",
+    "genericError": "An error occurred. Please try again."
+  },
+  "footer": {
+    "copyright": "© 2025 Herbal Medicine ERP. All rights reserved."
+  }
+}

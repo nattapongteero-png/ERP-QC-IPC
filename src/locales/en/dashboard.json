@@ -90,5 +90,34 @@
       "purchasing": "Purchasing",
       "sales": "Sales"
     }
+  },
+  "audit": {
+    "title": "Audit Dashboard",
+    "description": "GMP Compliance Overview for External Auditors",
+    "loading": "Loading KPIs...",
+    "error": "Error loading dashboard data. Please try again.",
+    "retry": "Retry",
+    "lastUpdated": "Last updated",
+    "sections": {
+      "rawMaterials": "Raw Materials",
+      "qualityProduction": "Quality & Production"
+    },
+    "tables": {
+      "expiryAlerts": {
+        "title": "Upcoming Expirations (Next 30 Days)",
+        "lotNumber": "Lot Number",
+        "item": "Item",
+        "daysLeft": "Days Left",
+        "expired": "Expired {days}d ago",
+        "daysRemaining": "{days}d"
+      },
+      "lowStock": {
+        "title": "Low Stock Items",
+        "code": "Code",
+        "item": "Item",
+        "onHand": "On Hand",
+        "minStock": "Min Stock"
+      }
+    }
   }
 }

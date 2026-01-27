@@ -10,6 +10,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -94,36 +95,31 @@ interface WorkOrder {
 
 const STATUS_CONFIG = {
   planned: {
-    label: 'Planned',
-    labelTh: 'วางแผน',
+    translationKey: 'planned',
     color: '#3b82f6',
     bgClass: 'bg-blue-100 text-blue-700 border-blue-200',
     icon: ClipboardList,
   },
   released: {
-    label: 'Released',
-    labelTh: 'ปล่อยงาน',
+    translationKey: 'released',
     color: '#8b5cf6',
     bgClass: 'bg-violet-100 text-violet-700 border-violet-200',
     icon: Rocket,
   },
   in_progress: {
-    label: 'In Progress',
-    labelTh: 'กำลังผลิต',
+    translationKey: 'inProgress',
     color: '#f59e0b',
     bgClass: 'bg-amber-100 text-amber-700 border-amber-200',
     icon: PlayCircle,
   },
   completed: {
-    label: 'Completed',
-    labelTh: 'เสร็จสิ้น',
+    translationKey: 'completed',
     color: '#22c55e',
     bgClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     icon: CheckCircle,
   },
   cancelled: {
-    label: 'Cancelled',
-    labelTh: 'ยกเลิก',
+    translationKey: 'cancelled',
     color: '#ef4444',
     bgClass: 'bg-red-100 text-red-700 border-red-200',
     icon: XCircle,
@@ -132,22 +128,19 @@ const STATUS_CONFIG = {
 
 const PRIORITY_CONFIG = {
   high: {
-    label: 'High',
-    labelTh: 'สูง',
+    translationKey: 'high',
     color: '#ef4444',
     bgClass: 'bg-red-100 text-red-700 border-red-200',
     range: [1, 3],
   },
   medium: {
-    label: 'Medium',
-    labelTh: 'กลาง',
+    translationKey: 'normal',
     color: '#f59e0b',
     bgClass: 'bg-amber-100 text-amber-700 border-amber-200',
     range: [4, 6],
   },
   low: {
-    label: 'Low',
-    labelTh: 'ต่ำ',
+    translationKey: 'low',
     color: '#22c55e',
     bgClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     range: [7, 10],
@@ -189,6 +182,8 @@ function formatDate(dateStr: string): string {
 
 export default function WorkOrdersPage() {
   const router = useRouter();
+  const t = useTranslations('production');
+  const tCommon = useTranslations('common');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
 
   // Fetch work orders
@@ -268,14 +263,14 @@ export default function WorkOrdersPage() {
   }, [workOrders]);
 
   // Status tabs
-  const statusTabs = [
-    { id: 0, text: 'All', icon: 'selectall' },
-    { id: 1, text: 'Planned', icon: 'event' },
-    { id: 2, text: 'Released', icon: 'share' },
-    { id: 3, text: 'In Progress', icon: 'runner' },
-    { id: 4, text: 'Completed', icon: 'check' },
-    { id: 5, text: 'Cancelled', icon: 'close' },
-  ];
+  const statusTabs = useMemo(() => [
+    { id: 0, text: t('workOrders.tabs.all'), icon: 'selectall' },
+    { id: 1, text: t('workOrders.status.planned'), icon: 'event' },
+    { id: 2, text: t('workOrders.status.released'), icon: 'share' },
+    { id: 3, text: t('workOrders.status.inProgress'), icon: 'runner' },
+    { id: 4, text: t('workOrders.status.completed'), icon: 'check' },
+    { id: 5, text: t('workOrders.status.cancelled'), icon: 'close' },
+  ], [t]);
 
   const handleTabChange = (index: number) => {
     const statusMap: (string | undefined)[] = [undefined, 'planned', 'released', 'in_progress', 'completed', 'cancelled'];
@@ -343,10 +338,10 @@ export default function WorkOrdersPage() {
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgClass}`}>
         <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: config.color }} />
-        {config.labelTh}
+        {t(`workOrders.priority.${config.translationKey}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderDateCell = useCallback((data: { data: WorkOrder }) => {
     const wo = data.data;
@@ -374,10 +369,10 @@ export default function WorkOrdersPage() {
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgClass}`}>
         <IconComponent className="h-3 w-3" />
-        {config.labelTh}
+        {t(`workOrders.status.${config.translationKey}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderActionsCell = useCallback((data: { data: WorkOrder }) => (
     <button
@@ -396,14 +391,14 @@ export default function WorkOrdersPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Work Orders"
-        subtitle="Production Management - ใบสั่งผลิต"
+        title={t('workOrders.pageTitle')}
+        subtitle={t('workOrders.description')}
         icon={Factory}
         iconBgColor="bg-indigo-100"
         iconColor="text-indigo-600"
         breadcrumbs={[
-          { label: 'Production', href: '/production' },
-          { label: 'Work Orders' },
+          { label: t('breadcrumbs.production'), href: '/production' },
+          { label: t('workOrders.breadcrumbs.workOrders') },
         ]}
         actions={
           <div className="flex items-center gap-2">
@@ -411,19 +406,19 @@ export default function WorkOrdersPage() {
               icon="refresh"
               type="default"
               stylingMode="outlined"
-              hint="Refresh"
+              hint={tCommon('actions.refresh')}
               onClick={() => refetch()}
             />
             <DxButton
               icon="chart"
-              text="Analytics"
+              text={t('workOrders.actions.analytics')}
               type="default"
               stylingMode="outlined"
               onClick={() => router.push('/production/analytics')}
             />
             <DxButton
               icon="plus"
-              text="New Work Order"
+              text={t('workOrders.actions.newWorkOrder')}
               type="success"
               onClick={() => router.push('/production/work-orders/new')}
             />
@@ -434,7 +429,7 @@ export default function WorkOrdersPage() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
         <StatCard
-          label="Total Orders"
+          label={t('workOrders.stats.totalOrders')}
           value={stats.total}
           icon={ClipboardList}
           iconColor="text-indigo-500"
@@ -442,7 +437,7 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Planned"
+          label={t('workOrders.stats.planned')}
           value={stats.planned}
           icon={Clock}
           iconColor="text-blue-500"
@@ -450,7 +445,7 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Released"
+          label={t('workOrders.stats.released')}
           value={stats.released}
           icon={Rocket}
           iconColor="text-violet-500"
@@ -458,7 +453,7 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="In Progress"
+          label={t('workOrders.stats.inProgress')}
           value={stats.inProgress}
           icon={PlayCircle}
           iconColor="text-amber-500"
@@ -466,7 +461,7 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Completed"
+          label={t('workOrders.stats.completed')}
           value={stats.completed}
           icon={CheckCircle}
           iconColor="text-emerald-500"
@@ -474,7 +469,7 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="High Priority"
+          label={t('workOrders.stats.highPriority')}
           value={stats.highPriority}
           icon={AlertTriangle}
           iconColor="text-red-500"
@@ -482,7 +477,7 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Today"
+          label={t('workOrders.stats.today')}
           value={stats.todayPlanned}
           icon={Calendar}
           iconColor="text-purple-500"
@@ -490,7 +485,7 @@ export default function WorkOrdersPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Avg Yield"
+          label={t('workOrders.stats.avgYield')}
           value={stats.avgYield > 0 ? `${Number(stats.avgYield).toFixed(1)}%` : '-'}
           icon={Percent}
           iconColor="text-cyan-500"
@@ -506,7 +501,7 @@ export default function WorkOrdersPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-indigo-500" />
-              By Status
+              {t('workOrders.charts.byStatus')}
             </h3>
           </div>
           {statusChartData.length > 0 ? (
@@ -540,7 +535,7 @@ export default function WorkOrdersPage() {
             <div className="h-[200px] flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <TrendingUp className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No data</p>
+                <p className="text-sm">{t('workOrders.charts.noData')}</p>
               </div>
             </div>
           )}
@@ -551,7 +546,7 @@ export default function WorkOrdersPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-amber-500" />
-              Active Orders by Priority
+              {t('workOrders.charts.byPriority')}
             </h3>
           </div>
           {priorityChartData.some(d => d.count > 0) ? (
@@ -574,7 +569,7 @@ export default function WorkOrdersPage() {
             <div className="h-[200px] flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No active orders</p>
+                <p className="text-sm">{t('workOrders.charts.noActiveOrders')}</p>
               </div>
             </div>
           )}
@@ -585,7 +580,7 @@ export default function WorkOrdersPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-500" />
-              Performance
+              {t('workOrders.charts.performance')}
             </h3>
           </div>
           <div className="space-y-3">
@@ -594,7 +589,7 @@ export default function WorkOrdersPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Target className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm font-medium text-emerald-700">Completion Rate</span>
+                  <span className="text-sm font-medium text-emerald-700">{t('workOrders.charts.completionRate')}</span>
                 </div>
                 <span className="text-lg font-bold text-emerald-600">
                   {Number(stats.completionRate).toFixed(1)}%
@@ -608,7 +603,7 @@ export default function WorkOrdersPage() {
                 <div className="p-1.5 bg-gradient-to-r from-amber-500 to-amber-600 rounded text-white">
                   <PlayCircle className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">Active Orders</span>
+                <span className="text-sm font-medium text-gray-700">{t('workOrders.charts.activeOrders')}</span>
               </div>
               <span className="text-sm font-bold text-amber-600">{stats.active}</span>
             </div>
@@ -619,7 +614,7 @@ export default function WorkOrdersPage() {
                 <div className="p-1.5 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded text-white">
                   <Percent className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">Average Yield</span>
+                <span className="text-sm font-medium text-gray-700">{t('workOrders.charts.averageYield')}</span>
               </div>
               <span className={`text-sm font-bold ${
                 stats.avgYield >= 95 ? 'text-emerald-600' :
@@ -635,7 +630,7 @@ export default function WorkOrdersPage() {
                 <div className="p-1.5 bg-gradient-to-r from-red-500 to-red-600 rounded text-white">
                   <XCircle className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">Cancelled</span>
+                <span className="text-sm font-medium text-gray-700">{t('workOrders.charts.cancelled')}</span>
               </div>
               <span className="text-sm font-bold text-red-600">{stats.cancelled}</span>
             </div>
@@ -663,8 +658,7 @@ export default function WorkOrdersPage() {
                     <IconComponent className="h-5 w-5" style={{ color: config.color }} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">{config.label}</p>
-                    <p className="text-xs text-gray-400">{config.labelTh}</p>
+                    <p className="text-sm font-medium text-gray-600">{t(`workOrders.status.${config.translationKey}`)}</p>
                   </div>
                 </div>
                 <span className="text-2xl font-bold" style={{ color: config.color }}>{count}</span>
@@ -694,7 +688,7 @@ export default function WorkOrdersPage() {
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <Factory className="w-4 h-4" />
-                {filteredWorkOrders.length} orders
+                {t('workOrders.grid.orders', { count: filteredWorkOrders.length })}
               </span>
             </div>
           </div>
@@ -727,47 +721,47 @@ export default function WorkOrdersPage() {
             showNavigationButtons={true}
           />
           <FilterRow visible={true} />
-          <SearchPanel visible={true} placeholder="Search work orders..." width={250} />
+          <SearchPanel visible={true} placeholder={t('workOrders.grid.searchPlaceholder')} width={250} />
           <HeaderFilter visible={true} />
           <Export enabled={true} formats={['xlsx']} />
 
           <Column
             dataField="woNumber"
-            caption="WO / Batch"
+            caption={t('workOrders.grid.columns.woBatch')}
             width={150}
             cellRender={renderWOCell}
           />
           <Column
-            caption="Product"
+            caption={t('workOrders.grid.columns.product')}
             minWidth={200}
             cellRender={renderProductCell}
             calculateCellValue={(data: WorkOrder) => data.productName}
           />
           <Column
-            caption="Quantity"
+            caption={t('workOrders.grid.columns.quantity')}
             width={180}
             cellRender={renderQuantityCell}
           />
           <Column
             dataField="priority"
-            caption="Priority"
+            caption={t('workOrders.grid.columns.priority')}
             width={100}
             cellRender={renderPriorityCell}
           />
           <Column
-            caption="Schedule"
+            caption={t('workOrders.grid.columns.schedule')}
             width={130}
             cellRender={renderDateCell}
           />
           <Column
             dataField="yieldPercentage"
-            caption="Yield"
+            caption={t('workOrders.grid.columns.yield')}
             width={80}
             cellRender={renderYieldCell}
           />
           <Column
             dataField="status"
-            caption="Status"
+            caption={t('workOrders.grid.columns.status')}
             width={130}
             cellRender={renderStatusCell}
           />
