@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -39,8 +40,7 @@ import {
 // ============================================================================
 
 const CUSTOMER_TYPE_CONFIG: Record<string, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   color: string;
   bgClass: string;
   textClass: string;
@@ -48,8 +48,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
   gradient: string;
 }> = {
   hospital: {
-    label: 'Hospital',
-    labelTh: 'โรงพยาบาล',
+    translationKey: 'hospital',
     color: '#ef4444',
     bgClass: 'bg-red-100',
     textClass: 'text-red-700',
@@ -57,8 +56,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-red-500 to-rose-600',
   },
   clinic: {
-    label: 'Clinic',
-    labelTh: 'คลินิก',
+    translationKey: 'clinic',
     color: '#f97316',
     bgClass: 'bg-orange-100',
     textClass: 'text-orange-700',
@@ -66,8 +64,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-orange-500 to-amber-600',
   },
   pharmacy: {
-    label: 'Pharmacy',
-    labelTh: 'ร้านขายยา',
+    translationKey: 'pharmacy',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
@@ -75,8 +72,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-green-500 to-emerald-600',
   },
   distributor: {
-    label: 'Distributor',
-    labelTh: 'ตัวแทนจำหน่าย',
+    translationKey: 'distributor',
     color: '#3b82f6',
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
@@ -84,8 +80,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-blue-500 to-indigo-600',
   },
   traditional_medicine: {
-    label: 'Traditional Medicine',
-    labelTh: 'แพทย์แผนไทย',
+    translationKey: 'traditional_medicine',
     color: '#a855f7',
     bgClass: 'bg-purple-100',
     textClass: 'text-purple-700',
@@ -93,8 +88,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-purple-500 to-violet-600',
   },
   spa_wellness: {
-    label: 'Spa & Wellness',
-    labelTh: 'สปา & เวลเนส',
+    translationKey: 'spa_wellness',
     color: '#ec4899',
     bgClass: 'bg-pink-100',
     textClass: 'text-pink-700',
@@ -102,8 +96,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-pink-500 to-rose-600',
   },
   government: {
-    label: 'Government',
-    labelTh: 'หน่วยงานรัฐ',
+    translationKey: 'government',
     color: '#6366f1',
     bgClass: 'bg-indigo-100',
     textClass: 'text-indigo-700',
@@ -111,8 +104,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-indigo-500 to-purple-600',
   },
   export: {
-    label: 'Export',
-    labelTh: 'ส่งออก',
+    translationKey: 'export',
     color: '#06b6d4',
     bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
@@ -120,8 +112,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-cyan-500 to-teal-600',
   },
   other: {
-    label: 'Other',
-    labelTh: 'อื่นๆ',
+    translationKey: 'other',
     color: '#64748b',
     bgClass: 'bg-slate-100',
     textClass: 'text-slate-700',
@@ -130,37 +121,25 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
   },
 };
 
-const customerTypeOptions = [
-  { value: 'hospital', label: 'โรงพยาบาล (Hospital)' },
-  { value: 'clinic', label: 'คลินิก (Clinic)' },
-  { value: 'pharmacy', label: 'ร้านขายยา (Pharmacy)' },
-  { value: 'distributor', label: 'ตัวแทนจำหน่าย (Distributor)' },
-  { value: 'traditional_medicine', label: 'แพทย์แผนไทย (Traditional Medicine)' },
-  { value: 'spa_wellness', label: 'สปา & เวลเนส (Spa & Wellness)' },
-  { value: 'government', label: 'หน่วยงานรัฐ (Government)' },
-  { value: 'export', label: 'ส่งออก (Export)' },
-  { value: 'other', label: 'อื่นๆ (Other)' },
-];
+const CUSTOMER_TYPE_KEYS = [
+  'hospital', 'clinic', 'pharmacy', 'distributor',
+  'traditional_medicine', 'spa_wellness', 'government', 'export', 'other'
+] as const;
 
-const creditTermOptions = [
-  { value: 7, label: '7 วัน' },
-  { value: 15, label: '15 วัน' },
-  { value: 30, label: '30 วัน' },
-  { value: 45, label: '45 วัน' },
-  { value: 60, label: '60 วัน' },
-  { value: 90, label: '90 วัน' },
-];
+const CREDIT_TERM_KEYS = [7, 15, 30, 45, 60, 90] as const;
 
-const paymentTermOptions = [
-  { value: 'Cash', label: 'เงินสด (Cash)' },
-  { value: 'Net 7', label: 'Net 7' },
-  { value: 'Net 15', label: 'Net 15' },
-  { value: 'Net 30', label: 'Net 30' },
-  { value: 'Net 45', label: 'Net 45' },
-  { value: 'Net 60', label: 'Net 60' },
-  { value: 'Net 90', label: 'Net 90' },
-  { value: 'COD', label: 'ชำระเมื่อส่งมอบ (COD)' },
-];
+const PAYMENT_TERM_KEYS = ['cash', 'net7', 'net15', 'net30', 'net45', 'net60', 'net90', 'cod'] as const;
+
+const PAYMENT_TERM_VALUES: Record<string, string> = {
+  cash: 'Cash',
+  net7: 'Net 7',
+  net15: 'Net 15',
+  net30: 'Net 30',
+  net45: 'Net 45',
+  net60: 'Net 60',
+  net90: 'Net 90',
+  cod: 'COD',
+};
 
 // ============================================================================
 // Main Component
@@ -169,6 +148,7 @@ const paymentTermOptions = [
 export default function NewCustomerPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('sales');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [generatedCode, setGeneratedCode] = useState<string>('');
@@ -185,6 +165,25 @@ export default function NewCustomerPage() {
     paymentTerms: 'Net 30',
     notes: '',
   });
+
+  // Memoized translated options
+  const customerTypeOptions = useMemo(() =>
+    CUSTOMER_TYPE_KEYS.map(key => ({
+      value: key,
+      label: t(`customers.type.${key}` as const),
+    })), [t]);
+
+  const creditTermOptions = useMemo(() =>
+    CREDIT_TERM_KEYS.map(days => ({
+      value: days,
+      label: t(`customers.new.creditTermOptions.${days}` as const),
+    })), [t]);
+
+  const paymentTermOptions = useMemo(() =>
+    PAYMENT_TERM_KEYS.map(key => ({
+      value: PAYMENT_TERM_VALUES[key],
+      label: t(`customers.new.paymentOptions.${key}` as const),
+    })), [t]);
 
   // Auto-generate customer code on page load
   const fetchNextCode = useCallback(async () => {
@@ -210,11 +209,11 @@ export default function NewCustomerPage() {
 
   const handleSave = async () => {
     if (!generatedCode) {
-      alert('กรุณารอให้ระบบสร้างรหัสลูกค้า');
+      alert(t('customers.new.validation.waitForCode'));
       return;
     }
     if (!form.name.trim()) {
-      alert('กรุณากรอกชื่อลูกค้า');
+      alert(t('customers.new.validation.nameRequired'));
       return;
     }
 
@@ -237,11 +236,11 @@ export default function NewCustomerPage() {
         queryClient.invalidateQueries({ queryKey: ['customers'] });
         router.push(`/sales/customers/${result.data.id}`);
       } else {
-        alert(result.error || 'ไม่สามารถสร้างลูกค้าได้');
+        alert(result.error || t('customers.new.toast.createError'));
       }
     } catch (error) {
       console.error('Failed to create customer:', error);
-      alert('ไม่สามารถสร้างลูกค้าได้');
+      alert(t('customers.new.toast.createError'));
     } finally {
       setIsSaving(false);
     }
@@ -267,9 +266,9 @@ export default function NewCustomerPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-2xl font-bold text-white">สร้างลูกค้าใหม่</h1>
+                    <h1 className="text-2xl font-bold text-white">{t('customers.new.title')}</h1>
                     <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm">
-                      {typeConfig.labelTh}
+                      {t(`customers.type.${typeConfig.translationKey}` as const)}
                     </span>
                   </div>
                   <div className="flex items-center gap-4 text-white/80 text-sm">
@@ -278,7 +277,7 @@ export default function NewCustomerPage() {
                       {isLoadingCode ? (
                         <span className="flex items-center gap-1">
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          กำลังสร้างรหัส...
+                          {t('customers.new.generatingCode')}
                         </span>
                       ) : (
                         <span className="font-mono font-semibold">{generatedCode}</span>
@@ -286,7 +285,7 @@ export default function NewCustomerPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <TypeIcon className="h-4 w-4" />
-                      <span>{typeConfig.label}</span>
+                      <span>{t(`customers.type.${typeConfig.translationKey}` as const)}</span>
                     </div>
                   </div>
                 </div>
@@ -294,7 +293,7 @@ export default function NewCustomerPage() {
 
               <div className="flex items-center gap-2">
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('customers.new.actions.cancel')}
                   icon="back"
                   type="normal"
                   stylingMode="text"
@@ -305,12 +304,12 @@ export default function NewCustomerPage() {
                   onClick={fetchNextCode}
                   disabled={isLoadingCode}
                   className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg flex items-center justify-center text-white transition-colors disabled:opacity-50"
-                  title="สร้างรหัสใหม่"
+                  title={t('customers.new.actions.regenerateCode')}
                 >
                   <RefreshCw className={cn('h-5 w-5', isLoadingCode && 'animate-spin')} />
                 </button>
                 <DxButton
-                  text={isSaving ? 'กำลังบันทึก...' : 'บันทึกลูกค้า'}
+                  text={isSaving ? t('customers.new.actions.saving') : t('customers.new.actions.save')}
                   icon="save"
                   type="success"
                   onClick={handleSave}
@@ -333,11 +332,11 @@ export default function NewCustomerPage() {
                       <Hash className={cn('h-6 w-6', typeConfig.textClass)} />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">รหัสลูกค้า (สร้างอัตโนมัติ)</p>
+                      <p className="text-sm text-gray-500">{t('customers.new.codeLabel')}</p>
                       {isLoadingCode ? (
                         <div className="flex items-center gap-2 text-gray-400">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>กำลังสร้างรหัส...</span>
+                          <span>{t('customers.new.generatingCode')}</span>
                         </div>
                       ) : (
                         <p className="text-2xl font-mono font-bold text-gray-900">{generatedCode}</p>
@@ -348,7 +347,7 @@ export default function NewCustomerPage() {
                     {!isLoadingCode && (
                       <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                         <CheckCircle className="h-4 w-4" />
-                        พร้อมใช้งาน
+                        {t('customers.new.codeReady')}
                       </span>
                     )}
                   </div>
@@ -365,24 +364,24 @@ export default function NewCustomerPage() {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Building2 className="h-5 w-5 text-indigo-500" />
-                ข้อมูลพื้นฐาน
+                {t('customers.new.sections.basic')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ชื่อลูกค้า <span className="text-red-500">*</span>
+                    {t('customers.new.fields.name')} <span className="text-red-500">*</span>
                   </label>
                   <DxTextBox
                     value={form.name}
                     onValueChange={(value) => setForm({ ...form, name: value })}
-                    placeholder="เช่น บริษัท ABC จำกัด"
+                    placeholder={t('customers.new.fields.namePlaceholder')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ประเภทลูกค้า
+                    {t('customers.new.fields.type')}
                   </label>
                   <DxSelectBox
                     items={customerTypeOptions}
@@ -394,12 +393,12 @@ export default function NewCustomerPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    เลขประจำตัวผู้เสียภาษี
+                    {t('customers.new.fields.taxId')}
                   </label>
                   <DxTextBox
                     value={form.taxId}
                     onValueChange={(value) => setForm({ ...form, taxId: value })}
-                    placeholder="เช่น 0-1234-56789-01-2"
+                    placeholder={t('customers.new.fields.taxIdPlaceholder')}
                   />
                 </div>
               </div>
@@ -411,7 +410,7 @@ export default function NewCustomerPage() {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <TypeIcon className="h-5 w-5" style={{ color: typeConfig.color }} />
-                ประเภทลูกค้า
+                {t('customers.new.sections.type')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -419,19 +418,18 @@ export default function NewCustomerPage() {
                 <div className={cn('h-16 w-16 mx-auto rounded-full flex items-center justify-center mb-3 bg-white/50')}>
                   <TypeIcon className="h-8 w-8" style={{ color: typeConfig.color }} />
                 </div>
-                <p className={cn('text-lg font-bold', typeConfig.textClass)}>{typeConfig.labelTh}</p>
-                <p className="text-sm text-gray-600">{typeConfig.label}</p>
+                <p className={cn('text-lg font-bold', typeConfig.textClass)}>{t(`customers.type.${typeConfig.translationKey}` as const)}</p>
               </div>
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">สถานะ</span>
+                  <span className="text-gray-500">{t('customers.new.status')}</span>
                   <span className="flex items-center gap-1.5 text-green-600 font-medium">
                     <CheckCircle className="h-4 w-4" />
-                    ใช้งาน
+                    {t('customers.status.active')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">รหัสลูกค้า</span>
+                  <span className="text-gray-500">{t('customers.detail.fields.code')}</span>
                   <span className="font-mono font-medium text-gray-900">{generatedCode || '...'}</span>
                 </div>
               </div>
@@ -443,31 +441,31 @@ export default function NewCustomerPage() {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <User className="h-5 w-5 text-blue-500" />
-                ข้อมูลติดต่อ
+                {t('customers.new.sections.contact')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ผู้ติดต่อ
+                  {t('customers.new.fields.contactPerson')}
                 </label>
                 <DxTextBox
                   value={form.contactPerson}
                   onValueChange={(value) => setForm({ ...form, contactPerson: value })}
-                  placeholder="ชื่อผู้ติดต่อหลัก"
+                  placeholder={t('customers.new.fields.contactPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <span className="flex items-center gap-1.5">
                     <Phone className="h-4 w-4 text-gray-400" />
-                    โทรศัพท์
+                    {t('customers.new.fields.phone')}
                   </span>
                 </label>
                 <DxTextBox
                   value={form.phone}
                   onValueChange={(value) => setForm({ ...form, phone: value })}
-                  placeholder="02-xxx-xxxx"
+                  placeholder={t('customers.new.fields.phonePlaceholder')}
                   mode="tel"
                 />
               </div>
@@ -475,13 +473,13 @@ export default function NewCustomerPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <span className="flex items-center gap-1.5">
                     <Mail className="h-4 w-4 text-gray-400" />
-                    อีเมล
+                    {t('customers.new.fields.email')}
                   </span>
                 </label>
                 <DxTextBox
                   value={form.email}
                   onValueChange={(value) => setForm({ ...form, email: value })}
-                  placeholder="email@example.com"
+                  placeholder={t('customers.new.fields.emailPlaceholder')}
                   mode="email"
                 />
               </div>
@@ -489,13 +487,13 @@ export default function NewCustomerPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <span className="flex items-center gap-1.5">
                     <MapPin className="h-4 w-4 text-gray-400" />
-                    ที่อยู่
+                    {t('customers.new.fields.address')}
                   </span>
                 </label>
                 <DxTextBox
                   value={form.address}
                   onValueChange={(value) => setForm({ ...form, address: value })}
-                  placeholder="ที่อยู่สำหรับจัดส่ง"
+                  placeholder={t('customers.new.fields.addressPlaceholder')}
                 />
               </div>
             </CardContent>
@@ -506,14 +504,14 @@ export default function NewCustomerPage() {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <CreditCard className="h-5 w-5 text-green-500" />
-                ข้อมูลเครดิตและการชำระ
+                {t('customers.new.sections.credit')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วงเงินเครดิต (บาท)
+                    {t('customers.new.fields.creditLimit')}
                   </label>
                   <DxNumberBox
                     value={form.creditLimit}
@@ -526,7 +524,7 @@ export default function NewCustomerPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    เครดิตเทอม
+                    {t('customers.new.fields.creditTerm')}
                   </label>
                   <DxSelectBox
                     items={creditTermOptions}
@@ -538,7 +536,7 @@ export default function NewCustomerPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    เงื่อนไขการชำระ
+                    {t('customers.new.fields.paymentTerms')}
                   </label>
                   <DxSelectBox
                     items={paymentTermOptions}
@@ -557,14 +555,14 @@ export default function NewCustomerPage() {
                     <CreditCard className="h-6 w-6 text-green-600" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-gray-600">วงเงินเครดิตที่กำหนด</p>
+                    <p className="text-sm text-gray-600">{t('customers.new.creditPreview.title')}</p>
                     <p className="text-2xl font-bold text-green-600">
                       {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 }).format(form.creditLimit || 0)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-500">เครดิตเทอม</p>
-                    <p className="text-lg font-semibold text-gray-900">{form.creditTermDays} วัน</p>
+                    <p className="text-sm text-gray-500">{t('customers.new.creditPreview.creditTerm')}</p>
+                    <p className="text-lg font-semibold text-gray-900">{form.creditTermDays} {t('customers.detail.summary.days')}</p>
                   </div>
                 </div>
               </div>
@@ -576,14 +574,14 @@ export default function NewCustomerPage() {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="h-5 w-5 text-amber-500" />
-                หมายเหตุ
+                {t('customers.new.sections.notes')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <DxTextBox
                 value={form.notes}
                 onValueChange={(value) => setForm({ ...form, notes: value })}
-                placeholder="หมายเหตุเพิ่มเติมเกี่ยวกับลูกค้า..."
+                placeholder={t('customers.new.fields.notesPlaceholder')}
               />
             </CardContent>
           </Card>
@@ -597,24 +595,24 @@ export default function NewCustomerPage() {
                 {isLoadingCode ? (
                   <span className="flex items-center gap-2 text-gray-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    กำลังสร้างรหัสลูกค้า...
+                    {t('customers.new.generatingCode')}
                   </span>
                 ) : (
                   <span className="flex items-center gap-2 text-green-600">
                     <CheckCircle className="h-4 w-4" />
-                    รหัสลูกค้า: <span className="font-mono font-bold">{generatedCode}</span>
+                    {t('customers.detail.fields.code')}: <span className="font-mono font-bold">{generatedCode}</span>
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('customers.new.actions.cancel')}
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => router.push('/sales/customers')}
                 />
                 <DxButton
-                  text={isSaving ? 'กำลังบันทึก...' : 'บันทึกลูกค้า'}
+                  text={isSaving ? t('customers.new.actions.saving') : t('customers.new.actions.save')}
                   icon="save"
                   type="success"
                   onClick={handleSave}

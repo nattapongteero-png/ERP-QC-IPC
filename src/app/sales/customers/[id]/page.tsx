@@ -3,6 +3,7 @@
 import { useEffect, useState, use, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -99,8 +100,7 @@ type TabKey = 'overview' | 'orders' | 'contact' | 'credit';
 // ============================================================================
 
 const CUSTOMER_TYPE_CONFIG: Record<string, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   color: string;
   bgClass: string;
   textClass: string;
@@ -108,8 +108,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
   gradient: string;
 }> = {
   hospital: {
-    label: 'Hospital',
-    labelTh: 'โรงพยาบาล',
+    translationKey: 'hospital',
     color: '#ef4444',
     bgClass: 'bg-red-100',
     textClass: 'text-red-700',
@@ -117,8 +116,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-red-500 to-rose-600',
   },
   clinic: {
-    label: 'Clinic',
-    labelTh: 'คลินิก',
+    translationKey: 'clinic',
     color: '#f97316',
     bgClass: 'bg-orange-100',
     textClass: 'text-orange-700',
@@ -126,8 +124,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-orange-500 to-amber-600',
   },
   pharmacy: {
-    label: 'Pharmacy',
-    labelTh: 'ร้านขายยา',
+    translationKey: 'pharmacy',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
@@ -135,8 +132,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-green-500 to-emerald-600',
   },
   distributor: {
-    label: 'Distributor',
-    labelTh: 'ตัวแทนจำหน่าย',
+    translationKey: 'distributor',
     color: '#3b82f6',
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
@@ -144,8 +140,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-blue-500 to-indigo-600',
   },
   traditional_medicine: {
-    label: 'Traditional Medicine',
-    labelTh: 'แพทย์แผนไทย',
+    translationKey: 'traditional_medicine',
     color: '#a855f7',
     bgClass: 'bg-purple-100',
     textClass: 'text-purple-700',
@@ -153,8 +148,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-purple-500 to-violet-600',
   },
   spa_wellness: {
-    label: 'Spa & Wellness',
-    labelTh: 'สปา & เวลเนส',
+    translationKey: 'spa_wellness',
     color: '#ec4899',
     bgClass: 'bg-pink-100',
     textClass: 'text-pink-700',
@@ -162,8 +156,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-pink-500 to-rose-600',
   },
   government: {
-    label: 'Government',
-    labelTh: 'หน่วยงานรัฐ',
+    translationKey: 'government',
     color: '#6366f1',
     bgClass: 'bg-indigo-100',
     textClass: 'text-indigo-700',
@@ -171,8 +164,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-indigo-500 to-purple-600',
   },
   export: {
-    label: 'Export',
-    labelTh: 'ส่งออก',
+    translationKey: 'export',
     color: '#06b6d4',
     bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
@@ -180,8 +172,7 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
     gradient: 'from-cyan-500 to-teal-600',
   },
   other: {
-    label: 'Other',
-    labelTh: 'อื่นๆ',
+    translationKey: 'other',
     color: '#64748b',
     bgClass: 'bg-slate-100',
     textClass: 'text-slate-700',
@@ -191,31 +182,23 @@ const CUSTOMER_TYPE_CONFIG: Record<string, {
 };
 
 const STATUS_CONFIG: Record<string, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   bgClass: string;
   textClass: string;
 }> = {
-  draft: { label: 'Draft', labelTh: 'ร่าง', bgClass: 'bg-slate-100', textClass: 'text-slate-700' },
-  confirmed: { label: 'Confirmed', labelTh: 'ยืนยัน', bgClass: 'bg-blue-100', textClass: 'text-blue-700' },
-  processing: { label: 'Processing', labelTh: 'กำลังดำเนินการ', bgClass: 'bg-amber-100', textClass: 'text-amber-700' },
-  ready: { label: 'Ready', labelTh: 'พร้อมส่ง', bgClass: 'bg-violet-100', textClass: 'text-violet-700' },
-  shipped: { label: 'Shipped', labelTh: 'จัดส่งแล้ว', bgClass: 'bg-cyan-100', textClass: 'text-cyan-700' },
-  delivered: { label: 'Delivered', labelTh: 'ส่งมอบแล้ว', bgClass: 'bg-green-100', textClass: 'text-green-700' },
-  cancelled: { label: 'Cancelled', labelTh: 'ยกเลิก', bgClass: 'bg-red-100', textClass: 'text-red-700' },
+  draft: { translationKey: 'draft', bgClass: 'bg-slate-100', textClass: 'text-slate-700' },
+  confirmed: { translationKey: 'confirmed', bgClass: 'bg-blue-100', textClass: 'text-blue-700' },
+  processing: { translationKey: 'processing', bgClass: 'bg-amber-100', textClass: 'text-amber-700' },
+  ready: { translationKey: 'ready', bgClass: 'bg-violet-100', textClass: 'text-violet-700' },
+  shipped: { translationKey: 'shipped', bgClass: 'bg-cyan-100', textClass: 'text-cyan-700' },
+  delivered: { translationKey: 'delivered', bgClass: 'bg-green-100', textClass: 'text-green-700' },
+  cancelled: { translationKey: 'cancelled', bgClass: 'bg-red-100', textClass: 'text-red-700' },
 };
 
-const customerTypeOptions = [
-  { value: 'hospital', label: 'Hospital (โรงพยาบาล)' },
-  { value: 'clinic', label: 'Clinic (คลินิก)' },
-  { value: 'pharmacy', label: 'Pharmacy (ร้านขายยา)' },
-  { value: 'distributor', label: 'Distributor (ตัวแทนจำหน่าย)' },
-  { value: 'traditional_medicine', label: 'Traditional Medicine Center (ศูนย์การแพทย์แผนไทย)' },
-  { value: 'spa_wellness', label: 'Spa & Wellness (สปาและเวลเนส)' },
-  { value: 'government', label: 'Government Agency (หน่วยงานราชการ)' },
-  { value: 'export', label: 'Export (ส่งออก)' },
-  { value: 'other', label: 'Other (อื่นๆ)' },
-];
+const CUSTOMER_TYPE_KEYS = [
+  'hospital', 'clinic', 'pharmacy', 'distributor',
+  'traditional_medicine', 'spa_wellness', 'government', 'export', 'other'
+] as const;
 
 // ============================================================================
 // Helper Functions
@@ -260,6 +243,7 @@ export default function CustomerDetailPage({
   const resolvedParams = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('sales');
   const [data, setData] = useState<CustomerDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -376,6 +360,13 @@ export default function CustomerDetailPage({
     router.push(`/sales/orders/${orderId}`);
   }, [router]);
 
+  // Customer type options for edit dialog
+  const customerTypeOptions = useMemo(() =>
+    CUSTOMER_TYPE_KEYS.map(key => ({
+      value: key,
+      label: t(`customers.type.${key}` as const),
+    })), [t]);
+
   // Calculate stats
   const stats = useMemo(() => {
     if (!data) return null;
@@ -395,16 +386,19 @@ export default function CustomerDetailPage({
   // Pie chart data for order status
   const orderStatusChartData = useMemo(() => {
     if (!data) return [];
-    return Object.entries(data.summary.statusBreakdown).map(([status, count]) => ({
-      status: STATUS_CONFIG[status]?.labelTh || status,
-      count,
-      color: status === 'delivered' ? '#22c55e' :
-             status === 'cancelled' ? '#ef4444' :
-             status === 'shipped' ? '#06b6d4' :
-             status === 'processing' ? '#f59e0b' :
-             status === 'confirmed' ? '#3b82f6' : '#94a3b8',
-    }));
-  }, [data]);
+    return Object.entries(data.summary.statusBreakdown).map(([status, count]) => {
+      const config = STATUS_CONFIG[status];
+      return {
+        status: config ? t(`orders.status.${config.translationKey}` as const) : status,
+        count,
+        color: status === 'delivered' ? '#22c55e' :
+               status === 'cancelled' ? '#ef4444' :
+               status === 'shipped' ? '#06b6d4' :
+               status === 'processing' ? '#f59e0b' :
+               status === 'confirmed' ? '#3b82f6' : '#94a3b8',
+      };
+    });
+  }, [data, t]);
 
   // ============================================================================
   // Loading State
@@ -437,10 +431,10 @@ export default function CustomerDetailPage({
           <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <AlertTriangle className="h-10 w-10 text-gray-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">ไม่พบข้อมูลลูกค้า</h2>
-          <p className="text-gray-500 mb-6">ไม่พบข้อมูลลูกค้าที่ร้องขอ</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('customers.detail.notFound')}</h2>
+          <p className="text-gray-500 mb-6">{t('customers.detail.notFoundDescription')}</p>
           <DxButton
-            text="กลับไปหน้ารายการ"
+            text={t('customers.detail.backToList')}
             icon="back"
             type="default"
             onClick={() => router.push('/sales/customers')}
@@ -459,20 +453,20 @@ export default function CustomerDetailPage({
   // ============================================================================
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = [
-    { key: 'overview', label: 'ภาพรวม', icon: Eye },
-    { key: 'orders', label: 'ใบสั่งขาย', icon: ShoppingBag, count: recentSalesOrders.length },
-    { key: 'contact', label: 'ข้อมูลติดต่อ', icon: User },
-    { key: 'credit', label: 'เครดิต & การชำระ', icon: CreditCard },
+    { key: 'overview', label: t('customers.detail.tabs.overview'), icon: Eye },
+    { key: 'orders', label: t('customers.detail.tabs.orders'), icon: ShoppingBag, count: recentSalesOrders.length },
+    { key: 'contact', label: t('customers.detail.tabs.contact'), icon: User },
+    { key: 'credit', label: t('customers.detail.tabs.credit'), icon: CreditCard },
   ];
 
   // ============================================================================
   // DataGrid Columns
   // ============================================================================
 
-  const orderColumns: DxDataGridColumn[] = [
+  const orderColumns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'soNumber',
-      caption: 'เลขที่ SO',
+      caption: t('orders.grid.columns.soNumber'),
       width: 150,
       cellRender: (cellInfo) => (
         <button
@@ -485,7 +479,7 @@ export default function CustomerDetailPage({
     },
     {
       dataField: 'orderDate',
-      caption: 'วันที่สั่ง',
+      caption: t('orders.grid.columns.orderDate'),
       width: 130,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2 text-gray-600">
@@ -496,7 +490,7 @@ export default function CustomerDetailPage({
     },
     {
       dataField: 'requiredDate',
-      caption: 'กำหนดส่ง',
+      caption: t('orders.grid.columns.requiredDate'),
       width: 130,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2 text-gray-600">
@@ -507,7 +501,7 @@ export default function CustomerDetailPage({
     },
     {
       dataField: 'totalAmount',
-      caption: 'มูลค่า',
+      caption: t('orders.grid.columns.totalAmount'),
       width: 140,
       cellRender: (cellInfo) => (
         <span className="font-semibold text-green-600">
@@ -517,13 +511,13 @@ export default function CustomerDetailPage({
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('orders.grid.columns.status'),
       width: 130,
       cellRender: (cellInfo) => {
         const config = STATUS_CONFIG[cellInfo.data.status] || STATUS_CONFIG.draft;
         return (
           <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
-            {config.labelTh}
+            {t(`orders.status.${config.translationKey}` as const)}
           </span>
         );
       },
@@ -534,7 +528,7 @@ export default function CustomerDetailPage({
       width: 100,
       cellRender: (cellInfo) => (
         <DxButton
-          text="ดู"
+          text={t('customers.detail.orders.view')}
           type="normal"
           stylingMode="text"
           icon="arrowright"
@@ -542,7 +536,7 @@ export default function CustomerDetailPage({
         />
       ),
     },
-  ];
+  ], [t, handleViewOrder]);
 
   // ============================================================================
   // Tab Content Renderers
@@ -555,7 +549,7 @@ export default function CustomerDetailPage({
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="h-5 w-5 text-indigo-500" />
-            สรุปการขาย
+            {t('customers.detail.sections.salesSummary')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -563,15 +557,15 @@ export default function CustomerDetailPage({
             <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
               <div className="flex items-center gap-2 mb-2">
                 <ShoppingBag className="h-4 w-4 text-blue-500" />
-                <p className="text-xs text-gray-500">ยอดสั่งซื้อทั้งหมด</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.summary.totalOrders')}</p>
               </div>
               <p className="text-2xl font-bold text-blue-600">{summary.totalOrders}</p>
-              <p className="text-xs text-gray-500 mt-1">รายการ</p>
+              <p className="text-xs text-gray-500 mt-1">{t('customers.detail.summary.items')}</p>
             </div>
             <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="h-4 w-4 text-green-500" />
-                <p className="text-xs text-gray-500">ยอดขายรวม</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.summary.totalSales')}</p>
               </div>
               <p className="text-2xl font-bold text-green-600">{formatCurrencyShort(summary.totalAmount)}</p>
               <p className="text-xs text-gray-500 mt-1">{formatCurrency(summary.totalAmount)}</p>
@@ -579,7 +573,7 @@ export default function CustomerDetailPage({
             <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl border border-purple-200">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="h-4 w-4 text-purple-500" />
-                <p className="text-xs text-gray-500">ค่าเฉลี่ยต่อรายการ</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.summary.avgOrderValue')}</p>
               </div>
               <p className="text-2xl font-bold text-purple-600">{formatCurrencyShort(stats?.avgOrderValue || 0)}</p>
               <p className="text-xs text-gray-500 mt-1">{formatCurrency(stats?.avgOrderValue || 0)}</p>
@@ -587,26 +581,26 @@ export default function CustomerDetailPage({
             <div className="p-4 bg-gray-50 rounded-xl border">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <p className="text-xs text-gray-500">ส่งมอบแล้ว</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.summary.delivered')}</p>
               </div>
               <p className="text-2xl font-bold text-gray-900">{stats?.completedOrders || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">รายการ</p>
+              <p className="text-xs text-gray-500 mt-1">{t('customers.detail.summary.items')}</p>
             </div>
             <div className="p-4 bg-gray-50 rounded-xl border">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="h-4 w-4 text-amber-500" />
-                <p className="text-xs text-gray-500">กำลังดำเนินการ</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.summary.inProgress')}</p>
               </div>
               <p className="text-2xl font-bold text-gray-900">{stats?.pendingOrders || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">รายการ</p>
+              <p className="text-xs text-gray-500 mt-1">{t('customers.detail.summary.items')}</p>
             </div>
             <div className="p-4 bg-gray-50 rounded-xl border">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="h-4 w-4 text-indigo-500" />
-                <p className="text-xs text-gray-500">เครดิตเทอม</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.summary.creditTerm')}</p>
               </div>
               <p className="text-2xl font-bold text-gray-900">{customer.creditTermDays || '-'}</p>
-              <p className="text-xs text-gray-500 mt-1">วัน</p>
+              <p className="text-xs text-gray-500 mt-1">{t('customers.detail.summary.days')}</p>
             </div>
           </div>
         </CardContent>
@@ -617,7 +611,7 @@ export default function CustomerDetailPage({
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <BarChart3 className="h-5 w-5 text-purple-500" />
-            สถานะคำสั่งซื้อ
+            {t('customers.detail.sections.orderStatus')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -640,13 +634,13 @@ export default function CustomerDetailPage({
                 verticalAlignment="top"
               />
               <Tooltip enabled customizeTooltip={(arg) => ({
-                text: `${arg.argument}: ${arg.value} รายการ`,
+                text: `${arg.argument}: ${arg.value} ${t('customers.detail.summary.items')}`,
               })} />
             </PieChart>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-gray-500">
               <ShoppingBag className="h-12 w-12 text-gray-300 mb-3" />
-              <p>ยังไม่มีคำสั่งซื้อ</p>
+              <p>{t('customers.detail.noOrderData')}</p>
             </div>
           )}
         </CardContent>
@@ -657,7 +651,7 @@ export default function CustomerDetailPage({
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base">
             <FileText className="h-5 w-5 text-gray-500" />
-            ข้อมูลทั่วไป
+            {t('customers.detail.sections.generalInfo')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -665,30 +659,30 @@ export default function CustomerDetailPage({
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <Hash className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">รหัสลูกค้า</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.fields.code')}</p>
                 <p className="font-mono font-semibold text-indigo-600">{customer.code}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <TypeIcon className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">ประเภท</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.fields.type')}</p>
                 <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', typeConfig.bgClass, typeConfig.textClass)}>
-                  {typeConfig.labelTh}
+                  {t(`customers.type.${typeConfig.translationKey}` as const)}
                 </span>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <Receipt className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">เลขประจำตัวผู้เสียภาษี</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.fields.taxId')}</p>
                 <p className="font-medium">{customer.taxId || '-'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <Calendar className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">สร้างเมื่อ</p>
+                <p className="text-xs text-gray-500">{t('customers.detail.fields.createdAt')}</p>
                 <p className="font-medium">{formatDate(customer.createdAt)}</p>
               </div>
             </div>
@@ -696,7 +690,7 @@ export default function CustomerDetailPage({
 
           {customer.notes && (
             <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm font-medium text-amber-800 mb-1">หมายเหตุ</p>
+              <p className="text-sm font-medium text-amber-800 mb-1">{t('customers.edit.fields.notes')}</p>
               <p className="text-sm text-amber-700">{customer.notes}</p>
             </div>
           )}
@@ -710,9 +704,9 @@ export default function CustomerDetailPage({
       {recentSalesOrders.length > 0 ? (
         <>
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-gray-500">แสดง {recentSalesOrders.length} รายการล่าสุด</p>
+            <p className="text-sm text-gray-500">{t('customers.detail.orders.showingRecent', { count: recentSalesOrders.length })}</p>
             <DxButton
-              text="สร้างใบสั่งขายใหม่"
+              text={t('customers.detail.orders.createNew')}
               icon="plus"
               type="success"
               onClick={() => router.push('/sales/orders/new')}
@@ -725,7 +719,7 @@ export default function CustomerDetailPage({
             showBorders={false}
             rowAlternationEnabled
             height={450}
-            noDataText="ไม่มีใบสั่งขาย"
+            noDataText={t('customers.grid.noData')}
           />
         </>
       ) : (
@@ -733,10 +727,10 @@ export default function CustomerDetailPage({
           <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <ShoppingBag className="h-10 w-10 text-gray-400" />
           </div>
-          <p className="text-gray-500 font-medium mb-2">ยังไม่มีใบสั่งขาย</p>
-          <p className="text-sm text-gray-400 mb-4">สร้างใบสั่งขายแรกสำหรับลูกค้านี้</p>
+          <p className="text-gray-500 font-medium mb-2">{t('customers.detail.orders.noOrders')}</p>
+          <p className="text-sm text-gray-400 mb-4">{t('customers.detail.orders.noOrdersDesc')}</p>
           <DxButton
-            text="สร้างใบสั่งขาย"
+            text={t('customers.detail.orders.create')}
             icon="plus"
             type="success"
             onClick={() => router.push('/sales/orders/new')}
@@ -754,7 +748,7 @@ export default function CustomerDetailPage({
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <Users className="h-5 w-5 text-indigo-500" />
-              ผู้ติดต่อ
+              {t('customers.detail.sections.contact')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 space-y-4">
@@ -766,7 +760,7 @@ export default function CustomerDetailPage({
                 <p className="font-semibold text-gray-900 text-lg truncate">
                   {customer.contactPerson || customer.name}
                 </p>
-                <p className="text-sm text-gray-500">ผู้ติดต่อหลัก</p>
+                <p className="text-sm text-gray-500">{t('customers.detail.fields.mainContact')}</p>
               </div>
             </div>
 
@@ -776,7 +770,7 @@ export default function CustomerDetailPage({
                   <Phone className="h-5 w-5 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-500">โทรศัพท์</p>
+                  <p className="text-xs text-gray-500">{t('customers.detail.fields.phone')}</p>
                   {customer.phone ? (
                     <a href={`tel:${customer.phone}`} className="font-medium text-blue-600 hover:underline">
                       {customer.phone}
@@ -792,7 +786,7 @@ export default function CustomerDetailPage({
                   <Mail className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-500">อีเมล</p>
+                  <p className="text-xs text-gray-500">{t('customers.detail.fields.email')}</p>
                   {customer.email ? (
                     <a href={`mailto:${customer.email}`} className="font-medium text-green-600 hover:underline">
                       {customer.email}
@@ -811,7 +805,7 @@ export default function CustomerDetailPage({
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <MapPin className="h-5 w-5 text-red-500" />
-              ที่อยู่
+              {t('customers.detail.sections.address')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -822,14 +816,14 @@ export default function CustomerDetailPage({
                     <MapPin className="h-5 w-5 text-red-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">ที่อยู่จัดส่ง</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('customers.detail.fields.shippingAddress')}</p>
                     <p className="text-gray-900 leading-relaxed">{customer.address}</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-400">
                   <MapPin className="h-12 w-12 mb-2" />
-                  <p>ยังไม่มีข้อมูลที่อยู่</p>
+                  <p>{t('customers.detail.contact.noAddress')}</p>
                 </div>
               )}
             </div>
@@ -847,7 +841,7 @@ export default function CustomerDetailPage({
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCard className="h-5 w-5 text-green-500" />
-              วงเงินเครดิต
+              {t('customers.detail.sections.creditLimit')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -857,7 +851,7 @@ export default function CustomerDetailPage({
                   <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
                     <CreditCard className="h-5 w-5 text-green-600" />
                   </div>
-                  <p className="text-sm text-gray-600">วงเงินเครดิต</p>
+                  <p className="text-sm text-gray-600">{t('customers.detail.fields.creditLimit')}</p>
                 </div>
                 <p className="text-3xl font-bold text-green-600">{formatCurrency(customer.creditLimit)}</p>
               </div>
@@ -867,10 +861,10 @@ export default function CustomerDetailPage({
                   <div className="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
                     <Clock className="h-5 w-5 text-indigo-600" />
                   </div>
-                  <p className="text-sm text-gray-600">เครดิตเทอม</p>
+                  <p className="text-sm text-gray-600">{t('customers.detail.fields.creditTerm')}</p>
                 </div>
                 <p className="text-3xl font-bold text-gray-900">
-                  {customer.creditTermDays ? `${customer.creditTermDays} วัน` : '-'}
+                  {customer.creditTermDays ? `${customer.creditTermDays} ${t('customers.detail.summary.days')}` : '-'}
                 </p>
               </div>
 
@@ -879,7 +873,7 @@ export default function CustomerDetailPage({
                   <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
                     <FileText className="h-5 w-5 text-purple-600" />
                   </div>
-                  <p className="text-sm text-gray-600">เงื่อนไขการชำระ</p>
+                  <p className="text-sm text-gray-600">{t('customers.detail.fields.paymentTerms')}</p>
                 </div>
                 <p className="text-xl font-semibold text-gray-900">{customer.paymentTerms || '-'}</p>
               </div>
@@ -892,7 +886,7 @@ export default function CustomerDetailPage({
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <Percent className="h-5 w-5 text-blue-500" />
-              การใช้เครดิต
+              {t('customers.detail.sections.creditUsage')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -920,12 +914,12 @@ export default function CustomerDetailPage({
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-2xl font-bold text-gray-900">75%</span>
-                  <span className="text-xs text-gray-500">ว่าง</span>
+                  <span className="text-xs text-gray-500">{t('customers.detail.fields.available')}</span>
                 </div>
               </div>
               <div className="mt-4 text-center">
-                <p className="text-sm text-gray-500">ใช้ไป: <span className="font-semibold text-gray-900">{formatCurrencyShort((Number(customer.creditLimit) || 0) * 0.25)}</span></p>
-                <p className="text-sm text-gray-500">คงเหลือ: <span className="font-semibold text-green-600">{formatCurrencyShort((Number(customer.creditLimit) || 0) * 0.75)}</span></p>
+                <p className="text-sm text-gray-500">{t('customers.detail.fields.used')}: <span className="font-semibold text-gray-900">{formatCurrencyShort((Number(customer.creditLimit) || 0) * 0.25)}</span></p>
+                <p className="text-sm text-gray-500">{t('customers.detail.fields.remaining')}: <span className="font-semibold text-green-600">{formatCurrencyShort((Number(customer.creditLimit) || 0) * 0.75)}</span></p>
               </div>
             </div>
           </CardContent>
@@ -936,14 +930,14 @@ export default function CustomerDetailPage({
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <Receipt className="h-5 w-5 text-amber-500" />
-              ประวัติการชำระล่าสุด
+              {t('customers.detail.sections.paymentHistory')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex flex-col items-center justify-center py-8 text-gray-400">
               <Receipt className="h-12 w-12 mb-3" />
-              <p className="font-medium">ยังไม่มีข้อมูลการชำระ</p>
-              <p className="text-sm">ประวัติการชำระจะแสดงที่นี่</p>
+              <p className="font-medium">{t('customers.detail.credit.noPaymentHistory')}</p>
+              <p className="text-sm">{t('customers.detail.credit.paymentHistoryDesc')}</p>
             </div>
           </CardContent>
         </Card>
@@ -960,67 +954,67 @@ export default function CustomerDetailPage({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            รหัสลูกค้า <span className="text-red-500">*</span>
+            {t('customers.edit.fields.code')} <span className="text-red-500">*</span>
           </label>
           <DxTextBox
             value={editForm.code}
             onValueChange={(value) => setEditForm({ ...editForm, code: value })}
-            placeholder="กรอกรหัสลูกค้า"
+            placeholder={t('customers.edit.placeholders.code')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            ชื่อลูกค้า <span className="text-red-500">*</span>
+            {t('customers.edit.fields.name')} <span className="text-red-500">*</span>
           </label>
           <DxTextBox
             value={editForm.name}
             onValueChange={(value) => setEditForm({ ...editForm, name: value })}
-            placeholder="กรอกชื่อลูกค้า"
+            placeholder={t('customers.edit.placeholders.name')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            ผู้ติดต่อ
+            {t('customers.edit.fields.contactPerson')}
           </label>
           <DxTextBox
             value={editForm.contactPerson}
             onValueChange={(value) => setEditForm({ ...editForm, contactPerson: value })}
-            placeholder="กรอกชื่อผู้ติดต่อ"
+            placeholder={t('customers.edit.placeholders.contactPerson')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            โทรศัพท์
+            {t('customers.edit.fields.phone')}
           </label>
           <DxTextBox
             value={editForm.phone}
             onValueChange={(value) => setEditForm({ ...editForm, phone: value })}
-            placeholder="กรอกเบอร์โทรศัพท์"
+            placeholder={t('customers.edit.placeholders.phone')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            อีเมล
+            {t('customers.edit.fields.email')}
           </label>
           <DxTextBox
             value={editForm.email}
             onValueChange={(value) => setEditForm({ ...editForm, email: value })}
-            placeholder="กรอกอีเมล"
+            placeholder={t('customers.edit.placeholders.email')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            เลขประจำตัวผู้เสียภาษี
+            {t('customers.edit.fields.taxId')}
           </label>
           <DxTextBox
             value={editForm.taxId}
             onValueChange={(value) => setEditForm({ ...editForm, taxId: value })}
-            placeholder="กรอก Tax ID"
+            placeholder={t('customers.edit.placeholders.taxId')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            ประเภทลูกค้า
+            {t('customers.edit.fields.type')}
           </label>
           <DxSelectBox
             items={customerTypeOptions}
@@ -1028,76 +1022,76 @@ export default function CustomerDetailPage({
             onValueChange={(value) => setEditForm({ ...editForm, customerType: value })}
             valueExpr="value"
             displayExpr="label"
-            placeholder="เลือกประเภท"
+            placeholder={t('customers.edit.placeholders.type')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            วงเงินเครดิต
+            {t('customers.edit.fields.creditLimit')}
           </label>
           <DxTextBox
             value={editForm.creditLimit}
             onValueChange={(value) => setEditForm({ ...editForm, creditLimit: value })}
-            placeholder="กรอกวงเงินเครดิต"
+            placeholder={t('customers.edit.placeholders.creditLimit')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            เครดิตเทอม (วัน)
+            {t('customers.edit.fields.creditTermDays')}
           </label>
           <DxTextBox
             value={editForm.creditTermDays}
             onValueChange={(value) => setEditForm({ ...editForm, creditTermDays: value })}
-            placeholder="กรอกจำนวนวัน"
+            placeholder={t('customers.edit.placeholders.creditTermDays')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            เงื่อนไขการชำระ
+            {t('customers.edit.fields.paymentTerms')}
           </label>
           <DxTextBox
             value={editForm.paymentTerms}
             onValueChange={(value) => setEditForm({ ...editForm, paymentTerms: value })}
-            placeholder="เช่น Net 30"
+            placeholder={t('customers.edit.placeholders.paymentTerms')}
           />
         </div>
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            ที่อยู่
+            {t('customers.edit.fields.address')}
           </label>
           <DxTextBox
             value={editForm.address}
             onValueChange={(value) => setEditForm({ ...editForm, address: value })}
-            placeholder="กรอกที่อยู่"
+            placeholder={t('customers.edit.placeholders.address')}
           />
         </div>
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            หมายเหตุ
+            {t('customers.edit.fields.notes')}
           </label>
           <DxTextBox
             value={editForm.notes}
             onValueChange={(value) => setEditForm({ ...editForm, notes: value })}
-            placeholder="กรอกหมายเหตุ"
+            placeholder={t('customers.edit.placeholders.notes')}
           />
         </div>
         <div className="md:col-span-2">
           <DxCheckBox
             value={editForm.isActive}
             onValueChange={(value) => setEditForm({ ...editForm, isActive: value })}
-            text="ใช้งาน"
+            text={t('customers.edit.fields.isActive')}
           />
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-4 border-t">
         <DxButton
-          text="ยกเลิก"
+          text={t('customers.edit.actions.cancel')}
           type="normal"
           stylingMode="outlined"
           onClick={() => setIsEditDialogOpen(false)}
         />
         <DxButton
-          text={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+          text={isSaving ? t('customers.edit.actions.saving') : t('customers.edit.actions.save')}
           type="success"
           onClick={handleSave}
           disabled={isSaving}
@@ -1117,21 +1111,21 @@ export default function CustomerDetailPage({
           <AlertTriangle className="h-6 w-6 text-red-500" />
         </div>
         <div>
-          <p className="font-semibold text-red-800">ยืนยันการลบลูกค้า</p>
+          <p className="font-semibold text-red-800">{t('customers.delete.confirmTitle')}</p>
           <p className="text-sm text-red-600">
-            หากลูกค้ามีใบสั่งขายที่เกี่ยวข้อง จะถูกปิดใช้งานแทนการลบ
+            {t('customers.delete.confirmMessage')}
           </p>
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-4 border-t">
         <DxButton
-          text="ยกเลิก"
+          text={t('customers.delete.actions.cancel')}
           type="normal"
           stylingMode="outlined"
           onClick={() => setIsDeleteDialogOpen(false)}
         />
         <DxButton
-          text={isSaving ? 'กำลังลบ...' : 'ลบ'}
+          text={isSaving ? t('customers.delete.actions.deleting') : t('customers.delete.actions.delete')}
           type="danger"
           onClick={handleDelete}
           disabled={isSaving}
@@ -1163,12 +1157,12 @@ export default function CustomerDetailPage({
                   <div className="flex items-center gap-3 mb-1">
                     <h1 className="text-2xl font-bold text-white">{customer.name}</h1>
                     <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm">
-                      {typeConfig.labelTh}
+                      {t(`customers.type.${typeConfig.translationKey}` as const)}
                     </span>
                     {!customer.isActive && (
                       <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/80 text-white flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
-                        ปิดใช้งาน
+                        {t('customers.detail.actions.disabled')}
                       </span>
                     )}
                   </div>
@@ -1195,7 +1189,7 @@ export default function CustomerDetailPage({
 
               <div className="flex items-center gap-2">
                 <DxButton
-                  text="กลับ"
+                  text={t('customers.detail.actions.back')}
                   icon="back"
                   type="normal"
                   stylingMode="text"
@@ -1215,7 +1209,7 @@ export default function CustomerDetailPage({
                   <Printer className="h-5 w-5" />
                 </button>
                 <DxButton
-                  text="แก้ไข"
+                  text={t('customers.detail.actions.edit')}
                   icon="edit"
                   type="default"
                   onClick={() => setIsEditDialogOpen(true)}
@@ -1224,7 +1218,7 @@ export default function CustomerDetailPage({
                   icon="trash"
                   type="danger"
                   onClick={() => setIsDeleteDialogOpen(true)}
-                  hint="ลบลูกค้า"
+                  hint={t('customers.detail.actions.delete')}
                 />
               </div>
             </div>
@@ -1243,7 +1237,7 @@ export default function CustomerDetailPage({
                       <ShoppingBag className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ยอดสั่งซื้อ</p>
+                      <p className="text-xs text-gray-500">{t('customers.detail.stats.totalOrders')}</p>
                       <p className="text-lg font-bold text-blue-600">{summary.totalOrders}</p>
                     </div>
                   </div>
@@ -1262,7 +1256,7 @@ export default function CustomerDetailPage({
                       <DollarSign className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ยอดขายรวม</p>
+                      <p className="text-xs text-gray-500">{t('customers.detail.stats.totalSales')}</p>
                       <p className="text-lg font-bold text-green-600">{formatCurrencyShort(summary.totalAmount)}</p>
                     </div>
                   </div>
@@ -1281,7 +1275,7 @@ export default function CustomerDetailPage({
                       <CreditCard className="h-5 w-5 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">วงเงินเครดิต</p>
+                      <p className="text-xs text-gray-500">{t('customers.detail.stats.creditLimit')}</p>
                       <p className="text-lg font-bold text-purple-600">{formatCurrencyShort(customer.creditLimit)}</p>
                     </div>
                   </div>
@@ -1300,9 +1294,9 @@ export default function CustomerDetailPage({
                       <CheckCircle className={cn('h-5 w-5', customer.isActive ? 'text-emerald-600' : 'text-amber-600')} />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">สถานะ</p>
+                      <p className="text-xs text-gray-500">{t('customers.detail.stats.status')}</p>
                       <p className={cn('text-lg font-bold', customer.isActive ? 'text-emerald-600' : 'text-amber-600')}>
-                        {customer.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                        {customer.isActive ? t('customers.detail.statusActive') : t('customers.detail.statusInactive')}
                       </p>
                     </div>
                   </div>
@@ -1361,7 +1355,7 @@ export default function CustomerDetailPage({
       <DxPopup
         visible={isEditDialogOpen}
         onHiding={() => setIsEditDialogOpen(false)}
-        title="แก้ไขข้อมูลลูกค้า"
+        title={t('customers.edit.title')}
         width={700}
         height="auto"
         showCloseButton
@@ -1373,7 +1367,7 @@ export default function CustomerDetailPage({
       <DxPopup
         visible={isDeleteDialogOpen}
         onHiding={() => setIsDeleteDialogOpen(false)}
-        title="ลบลูกค้า"
+        title={t('customers.delete.title')}
         width={450}
         height="auto"
         showCloseButton
