@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,8 +65,7 @@ type StatusFilter = '' | 'draft' | 'confirmed' | 'processing' | 'ready' | 'shipp
 // ============================================================================
 
 const STATUS_CONFIG: Record<string, {
-  label: string;
-  labelTh: string;
+  translationKey: string;
   color: string;
   bgClass: string;
   textClass: string;
@@ -74,8 +74,7 @@ const STATUS_CONFIG: Record<string, {
   badgeVariant: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'secondary';
 }> = {
   draft: {
-    label: 'Draft',
-    labelTh: 'ร่าง',
+    translationKey: 'draft',
     color: '#94a3b8',
     bgClass: 'bg-slate-100',
     textClass: 'text-slate-700',
@@ -84,8 +83,7 @@ const STATUS_CONFIG: Record<string, {
     badgeVariant: 'default',
   },
   confirmed: {
-    label: 'Confirmed',
-    labelTh: 'ยืนยันแล้ว',
+    translationKey: 'confirmed',
     color: '#3b82f6',
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
@@ -94,8 +92,7 @@ const STATUS_CONFIG: Record<string, {
     badgeVariant: 'info',
   },
   processing: {
-    label: 'Processing',
-    labelTh: 'กำลังดำเนินการ',
+    translationKey: 'processing',
     color: '#f59e0b',
     bgClass: 'bg-amber-100',
     textClass: 'text-amber-700',
@@ -104,8 +101,7 @@ const STATUS_CONFIG: Record<string, {
     badgeVariant: 'warning',
   },
   ready: {
-    label: 'Ready',
-    labelTh: 'พร้อมส่ง',
+    translationKey: 'ready',
     color: '#8b5cf6',
     bgClass: 'bg-violet-100',
     textClass: 'text-violet-700',
@@ -114,8 +110,7 @@ const STATUS_CONFIG: Record<string, {
     badgeVariant: 'info',
   },
   shipped: {
-    label: 'Shipped',
-    labelTh: 'จัดส่งแล้ว',
+    translationKey: 'shipped',
     color: '#06b6d4',
     bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
@@ -124,8 +119,7 @@ const STATUS_CONFIG: Record<string, {
     badgeVariant: 'info',
   },
   delivered: {
-    label: 'Delivered',
-    labelTh: 'ส่งมอบแล้ว',
+    translationKey: 'delivered',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
@@ -134,8 +128,7 @@ const STATUS_CONFIG: Record<string, {
     badgeVariant: 'success',
   },
   cancelled: {
-    label: 'Cancelled',
-    labelTh: 'ยกเลิก',
+    translationKey: 'cancelled',
     color: '#ef4444',
     bgClass: 'bg-red-100',
     textClass: 'text-red-700',
@@ -225,6 +218,7 @@ async function fetchOrders() {
 
 export default function SalesOrdersPage() {
   const router = useRouter();
+  const t = useTranslations('sales');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
@@ -303,23 +297,23 @@ export default function SalesOrdersPage() {
   const statusChartData = useMemo(() => {
     return Object.entries(STATUS_CONFIG)
       .map(([key, config]) => ({
-        status: config.labelTh,
+        status: t(`orders.status.${config.translationKey}`),
         count: orders.filter(o => o.status === key).length,
         color: config.color,
       }))
       .filter(item => item.count > 0);
-  }, [orders]);
+  }, [orders, t]);
 
   // Chart data for value by status
   const valueChartData = useMemo(() => {
     return Object.entries(STATUS_CONFIG)
       .map(([key, config]) => ({
-        status: config.labelTh,
+        status: t(`orders.status.${config.translationKey}`),
         value: orders.filter(o => o.status === key).reduce((sum, o) => sum + (o.totalAmount || 0), 0),
         color: config.color,
       }))
       .filter(item => item.value > 0);
-  }, [orders]);
+  }, [orders, t]);
 
   // Recent orders
   const recentOrders = useMemo(() => {
@@ -375,7 +369,7 @@ export default function SalesOrdersPage() {
   const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'soNumber',
-      caption: 'เลขที่ SO',
+      caption: t('orders.grid.columns.soNumber'),
       width: 150,
       cellRender: (data: { data?: SalesOrder }) => {
         if (!data.data) return null;
@@ -394,7 +388,7 @@ export default function SalesOrdersPage() {
               {overdue && (
                 <div className="flex items-center gap-1 text-red-600 text-xs">
                   <AlertTriangle className="h-3 w-3" />
-                  <span>เกินกำหนด</span>
+                  <span>{t('orders.grid.overdue')}</span>
                 </div>
               )}
             </div>
@@ -404,7 +398,7 @@ export default function SalesOrdersPage() {
     },
     {
       dataField: 'customerName',
-      caption: 'ลูกค้า',
+      caption: t('orders.grid.columns.customer'),
       minWidth: 200,
       cellRender: (data: { data?: SalesOrder }) => {
         if (!data.data) return null;
@@ -426,7 +420,7 @@ export default function SalesOrdersPage() {
     },
     {
       dataField: 'orderDate',
-      caption: 'วันที่สั่ง',
+      caption: t('orders.grid.columns.orderDate'),
       width: 130,
       dataType: 'date',
       hideOnMobile: true,
@@ -442,7 +436,7 @@ export default function SalesOrdersPage() {
     },
     {
       dataField: 'requiredDate',
-      caption: 'กำหนดส่ง',
+      caption: t('orders.grid.columns.requiredDate'),
       width: 150,
       dataType: 'date',
       hideOnMobile: true,
@@ -467,7 +461,7 @@ export default function SalesOrdersPage() {
                 'text-xs ml-6',
                 daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : 'text-gray-500'
               )}>
-                {daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)} วัน` : daysUntil === 0 ? 'วันนี้' : `อีก ${daysUntil} วัน`}
+                {daysUntil < 0 ? t('orders.dates.overdue', { days: Math.abs(daysUntil) }) : daysUntil === 0 ? t('orders.dates.today') : t('orders.dates.daysRemaining', { days: daysUntil })}
               </span>
             )}
           </div>
@@ -476,7 +470,7 @@ export default function SalesOrdersPage() {
     },
     {
       dataField: 'totalAmount',
-      caption: 'ยอดรวม',
+      caption: t('orders.grid.columns.totalAmount'),
       width: 140,
       dataType: 'number',
       cellRender: (data: { data?: SalesOrder }) => {
@@ -490,7 +484,7 @@ export default function SalesOrdersPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('orders.grid.columns.status'),
       width: 140,
       cellRender: (data: { data?: SalesOrder }) => {
         if (!data.data) return null;
@@ -498,12 +492,12 @@ export default function SalesOrdersPage() {
         if (!config) return <Badge>-</Badge>;
         return (
           <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgClass, config.textClass)}>
-            {config.labelTh}
+            {t(`orders.status.${config.translationKey}`)}
           </span>
         );
       },
     },
-  ], []);
+  ], [t]);
 
   // ============================================================================
   // Render Functions
@@ -536,7 +530,7 @@ export default function SalesOrdersPage() {
                   </p>
                   {statusConfig && (
                     <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium mt-1 inline-block', statusConfig.bgClass, statusConfig.textClass)}>
-                      {statusConfig.labelTh}
+                      {t(`orders.status.${statusConfig.translationKey}`)}
                     </span>
                   )}
                 </div>
@@ -553,7 +547,7 @@ export default function SalesOrdersPage() {
                     <span>{formatDateShort(order.requiredDate)}</span>
                     {daysUntil !== null && (
                       <span className={cn(daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : '')}>
-                        ({daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)}d` : daysUntil === 0 ? 'วันนี้' : `${daysUntil}d`})
+                        ({daysUntil < 0 ? t('orders.dates.overdue', { days: Math.abs(daysUntil) }).replace(' วัน', 'd') : daysUntil === 0 ? t('orders.dates.today') : `${daysUntil}d`})
                       </span>
                     )}
                   </div>
@@ -563,7 +557,7 @@ export default function SalesOrdersPage() {
               {overdue && (
                 <div className="mt-2 p-2 bg-red-50 rounded-md flex items-center gap-2 text-red-600 text-xs">
                   <AlertTriangle className="h-3.5 w-3.5" />
-                  <span>เกินกำหนดส่งแล้ว</span>
+                  <span>{t('orders.grid.overdue')}</span>
                 </div>
               )}
             </div>
@@ -580,7 +574,7 @@ export default function SalesOrdersPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            การกระจายตามสถานะ
+            {t('orders.charts.statusDistribution')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -602,12 +596,12 @@ export default function SalesOrdersPage() {
                 verticalAlignment="bottom"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${arg.valueText} รายการ`
+                text: `${arg.argumentText}: ${arg.valueText} ${t('orders.cards.orders', { count: '' }).trim()}`
               })} />
             </PieChart>
           ) : (
             <div className="h-[220px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('orders.charts.noData')}
             </div>
           )}
         </CardContent>
@@ -618,7 +612,7 @@ export default function SalesOrdersPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            มูลค่าตามสถานะ
+            {t('orders.charts.valueByStatus')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -645,7 +639,7 @@ export default function SalesOrdersPage() {
             </PieChart>
           ) : (
             <div className="h-[220px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('orders.charts.noData')}
             </div>
           )}
         </CardContent>
@@ -670,7 +664,7 @@ export default function SalesOrdersPage() {
           virtualScrolling={filteredOrders.length > 100}
           fillHeight
           onRowClick={handleRowClick}
-          noDataText="ไม่พบใบสั่งขาย"
+          noDataText={t('orders.grid.noData')}
           rowAlternationEnabled
           elementAttr={{ 'data-testid': 'so-data-grid' }}
         />
@@ -689,7 +683,7 @@ export default function SalesOrdersPage() {
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-500" />
-                ต้องส่งเร็วๆ นี้
+                {t('orders.cards.urgentOrders')}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -704,7 +698,7 @@ export default function SalesOrdersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5 text-blue-500" />
-              ใบสั่งขายที่กรองแล้ว ({filteredOrders.length})
+              {t('orders.cards.filteredOrders')} ({filteredOrders.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -714,13 +708,13 @@ export default function SalesOrdersPage() {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-400">
-                ไม่พบใบสั่งขายที่ตรงกับเงื่อนไข
+                {t('orders.cards.noMatchingOrders')}
               </div>
             )}
             {filteredOrders.length > 10 && (
               <div className="mt-4 text-center">
                 <DxButton
-                  text={`ดูเพิ่มเติมอีก ${filteredOrders.length - 10} รายการ`}
+                  text={t('orders.actions.viewList', { count: filteredOrders.length - 10 })}
                   type="normal"
                   onClick={() => setViewMode('grid')}
                 />
@@ -737,24 +731,24 @@ export default function SalesOrdersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-500" />
-              สรุปรวม
+              {t('orders.cards.summary')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 space-y-3">
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">มูลค่ารวม</span>
+              <span className="text-sm text-gray-500">{t('orders.cards.totalValue')}</span>
               <span className="font-semibold text-green-600">{formatCurrencyShort(stats.totalValue)}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">ส่งมอบแล้ว</span>
+              <span className="text-sm text-gray-500">{t('orders.cards.deliveredValue')}</span>
               <span className="font-semibold text-green-600">{formatCurrencyShort(stats.deliveredValue)}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">ลูกค้า</span>
+              <span className="text-sm text-gray-500">{t('orders.cards.customers')}</span>
               <span className="font-semibold">{stats.uniqueCustomers}</span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-gray-500">อัตราส่งมอบ</span>
+              <span className="text-sm text-gray-500">{t('orders.cards.fulfillmentRate')}</span>
               <span className="font-semibold text-blue-600">{stats.fulfillmentRate}%</span>
             </div>
           </CardContent>
@@ -765,7 +759,7 @@ export default function SalesOrdersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Users className="h-4 w-4 text-purple-500" />
-              ลูกค้าหลัก
+              {t('orders.cards.topCustomers')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -774,13 +768,13 @@ export default function SalesOrdersPage() {
                 <div key={customer.name} className="p-2 rounded-lg bg-gray-50">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium truncate">{customer.name}</span>
-                    <span className="text-xs text-gray-500">{customer.count} รายการ</span>
+                    <span className="text-xs text-gray-500">{t('orders.cards.orders', { count: customer.count })}</span>
                   </div>
                   <p className="text-xs text-green-600 font-semibold">{formatCurrencyShort(customer.value)}</p>
                 </div>
               ))}
               {topCustomers.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">ไม่มีข้อมูล</p>
+                <p className="text-sm text-gray-400 text-center py-4">{t('orders.charts.noData')}</p>
               )}
             </div>
           </CardContent>
@@ -791,7 +785,7 @@ export default function SalesOrdersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Clock className="h-4 w-4 text-gray-500" />
-              ล่าสุด
+              {t('orders.cards.recent')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -815,7 +809,7 @@ export default function SalesOrdersPage() {
                 );
               })}
               {recentOrders.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">ไม่มีข้อมูล</p>
+                <p className="text-sm text-gray-400 text-center py-4">{t('orders.charts.noData')}</p>
               )}
             </div>
           </CardContent>
@@ -836,7 +830,7 @@ export default function SalesOrdersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-indigo-500" />
-              สรุปตามสถานะ
+              {t('orders.analytics.statusBreakdown')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -852,7 +846,7 @@ export default function SalesOrdersPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">{config.labelTh}</span>
+                        <span className="text-sm font-medium">{t(`orders.status.${config.translationKey}`)}</span>
                         <span className="text-sm text-gray-500">{count} ({percentage.toFixed(0)}%)</span>
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -874,28 +868,28 @@ export default function SalesOrdersPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-green-500" />
-              สรุปมูลค่า
+              {t('orders.analytics.valueSummary')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <p className="text-sm text-gray-600">มูลค่ารวมทั้งหมด</p>
+                <p className="text-sm text-gray-600">{t('orders.analytics.totalValue')}</p>
                 <p className="text-3xl font-bold text-green-600">{formatCurrency(stats.totalValue)}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-gray-500">รอดำเนินการ</p>
+                  <p className="text-xs text-gray-500">{t('orders.analytics.pending')}</p>
                   <p className="text-lg font-bold text-blue-600">{formatCurrencyShort(stats.pendingValue)}</p>
                 </div>
                 <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-xs text-gray-500">ส่งมอบแล้ว</p>
+                  <p className="text-xs text-gray-500">{t('orders.analytics.delivered')}</p>
                   <p className="text-lg font-bold text-green-600">{formatCurrencyShort(stats.deliveredValue)}</p>
                 </div>
               </div>
               <div className="pt-3 border-t">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">อัตราส่งมอบ</span>
+                  <span className="text-sm text-gray-600">{t('orders.analytics.fulfillmentRate')}</span>
                   <span className="text-sm font-semibold">{stats.fulfillmentRate}%</span>
                 </div>
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -915,7 +909,7 @@ export default function SalesOrdersPage() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-purple-500" />
-            ลูกค้าหลัก
+            {t('orders.analytics.topCustomers')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -936,11 +930,11 @@ export default function SalesOrdersPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="p-2 bg-gray-50 rounded">
-                          <span className="text-gray-500">จำนวน</span>
-                          <p className="font-semibold">{customer.count} รายการ</p>
+                          <span className="text-gray-500">{t('orders.cards.amount')}</span>
+                          <p className="font-semibold">{t('orders.cards.orders', { count: customer.count })}</p>
                         </div>
                         <div className="p-2 bg-gray-50 rounded">
-                          <span className="text-gray-500">มูลค่า</span>
+                          <span className="text-gray-500">{t('orders.cards.value')}</span>
                           <p className="font-semibold text-green-600">{formatCurrencyShort(customer.value)}</p>
                         </div>
                       </div>
@@ -951,7 +945,7 @@ export default function SalesOrdersPage() {
             ))}
             {topCustomers.length === 0 && (
               <div className="col-span-5 text-center py-8 text-gray-400">
-                ไม่มีข้อมูลลูกค้า
+                {t('orders.analytics.noCustomers')}
               </div>
             )}
           </div>
@@ -980,8 +974,8 @@ export default function SalesOrdersPage() {
                   <ShoppingCart className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">ใบสั่งขาย</h1>
-                  <p className="text-white/80 text-sm">จัดการใบสั่งขายและติดตามสถานะการส่งมอบ</p>
+                  <h1 className="text-2xl font-bold text-white">{t('orders.pageTitle')}</h1>
+                  <p className="text-white/80 text-sm">{t('orders.description')}</p>
                 </div>
               </div>
 
@@ -1028,7 +1022,7 @@ export default function SalesOrdersPage() {
                   <RefreshCw className="h-5 w-5" />
                 </button>
                 <DxButton
-                  text="สร้างใบสั่งขาย"
+                  text={t('orders.actions.createOrder')}
                   icon="plus"
                   type="success"
                   onClick={() => router.push('/sales/orders/new')}
@@ -1051,7 +1045,7 @@ export default function SalesOrdersPage() {
                       <ShoppingCart className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ทั้งหมด</p>
+                      <p className="text-xs text-gray-500">{t('orders.stats.total')}</p>
                       <p className="text-lg font-bold text-gray-900">{stats.total}</p>
                     </div>
                   </div>
@@ -1070,7 +1064,7 @@ export default function SalesOrdersPage() {
                       <Clock className="h-5 w-5 text-amber-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">กำลังดำเนินการ</p>
+                      <p className="text-xs text-gray-500">{t('orders.stats.active')}</p>
                       <p className="text-lg font-bold text-gray-900">{stats.activeCount}</p>
                     </div>
                   </div>
@@ -1089,7 +1083,7 @@ export default function SalesOrdersPage() {
                       <Package className="h-5 w-5 text-violet-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">พร้อมส่ง</p>
+                      <p className="text-xs text-gray-500">{t('orders.stats.ready')}</p>
                       <p className="text-lg font-bold text-gray-900">{stats.ready}</p>
                     </div>
                   </div>
@@ -1108,7 +1102,7 @@ export default function SalesOrdersPage() {
                       <CheckCircle2 className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">ส่งมอบแล้ว</p>
+                      <p className="text-xs text-gray-500">{t('orders.stats.delivered')}</p>
                       <p className="text-lg font-bold text-gray-900">{stats.delivered}</p>
                     </div>
                   </div>
@@ -1127,7 +1121,7 @@ export default function SalesOrdersPage() {
                       <AlertTriangle className="h-5 w-5 text-red-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">เกินกำหนด</p>
+                      <p className="text-xs text-gray-500">{t('orders.stats.overdue')}</p>
                       <p className={cn('text-lg font-bold', stats.overdue > 0 ? 'text-red-600' : 'text-gray-900')}>
                         {stats.overdue}
                       </p>
@@ -1148,7 +1142,7 @@ export default function SalesOrdersPage() {
                       <DollarSign className="h-5 w-5 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">รอดำเนินการ</p>
+                      <p className="text-xs text-gray-500">{t('orders.stats.pendingValue')}</p>
                       <p className="text-lg font-bold text-gray-900">{formatCurrencyShort(stats.pendingValue)}</p>
                     </div>
                   </div>
@@ -1168,14 +1162,14 @@ export default function SalesOrdersPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-red-800">
-                    {stats.overdue} ใบสั่งขายเกินกำหนดส่ง
+                    {t('orders.dates.overdueAlert', { count: stats.overdue })}
                   </p>
                   <p className="text-sm text-red-600">
-                    กรุณาตรวจสอบและดำเนินการโดยเร็ว
+                    {t('orders.dates.urgentAction')}
                   </p>
                 </div>
                 <DxButton
-                  text="ดูรายการ"
+                  text={t('orders.actions.viewOrder')}
                   type="danger"
                   onClick={() => {
                     setStatusFilter('');
@@ -1194,7 +1188,7 @@ export default function SalesOrdersPage() {
             <div className="flex items-center gap-1 overflow-x-auto pb-0 scrollbar-thin">
               {STATUS_ORDER.map((status) => {
                 const config = status === ''
-                  ? { labelTh: 'ทั้งหมด', bgClass: 'bg-gray-100', textClass: 'text-gray-700', hoverBg: 'hover:bg-gray-200', icon: Building2 }
+                  ? { translationKey: 'all', bgClass: 'bg-gray-100', textClass: 'text-gray-700', hoverBg: 'hover:bg-gray-200', icon: Building2 }
                   : STATUS_CONFIG[status];
                 const count = statusCounts[status];
                 const isActive = statusFilter === status;
@@ -1213,7 +1207,7 @@ export default function SalesOrdersPage() {
                     )}
                   >
                     <Icon className="h-4 w-4" />
-                    <span>{config.labelTh}</span>
+                    <span>{t(`orders.status.${config.translationKey}`)}</span>
                     <span
                       className={cn(
                         'ml-1 px-1.5 py-0.5 rounded text-xs font-semibold',
@@ -1231,7 +1225,7 @@ export default function SalesOrdersPage() {
             <div className="flex items-center gap-3 pb-3">
               <div className="flex-1 max-w-md" data-testid="so-search-container">
                 <DxTextBox
-                  placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
+                  placeholder={t('orders.searchPlaceholder')}
                   value={search}
                   onValueChange={setSearch}
                   showClearButton
@@ -1240,7 +1234,7 @@ export default function SalesOrdersPage() {
                 />
               </div>
               <div className="text-sm text-gray-500">
-                แสดง <span className="font-semibold text-gray-700">{filteredOrders.length}</span> รายการ
+                {t('orders.grid.showing', { count: filteredOrders.length })}
               </div>
             </div>
           </CardHeader>

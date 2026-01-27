@@ -5,7 +5,8 @@
   },
   "orders": {
     "title": "Sales Orders",
-    "description": "Manage all sales orders",
+    "pageTitle": "Sales Orders",
+    "description": "Manage sales orders and track delivery status",
     "table": {
       "columns": {
         "orderNumber": "Order Number",
@@ -16,6 +17,19 @@
         "status": "Status",
         "createdBy": "Created By"
       }
+    },
+    "grid": {
+      "columns": {
+        "soNumber": "SO Number",
+        "customer": "Customer",
+        "orderDate": "Order Date",
+        "requiredDate": "Required Date",
+        "totalAmount": "Total",
+        "status": "Status"
+      },
+      "showing": "Showing {count} items",
+      "noData": "No sales orders found",
+      "overdue": "Overdue"
     },
     "form": {
       "orderNumber": {
@@ -34,25 +48,76 @@
       }
     },
     "actions": {
-      "createOrder": "Create Order",
+      "createOrder": "Create Sales Order",
       "editOrder": "Edit Order",
       "viewOrder": "View Order",
       "cancelOrder": "Cancel Order",
       "confirmOrder": "Confirm Order",
-      "shipOrder": "Ship Order"
+      "shipOrder": "Ship Order",
+      "refresh": "Refresh",
+      "viewList": "View {count} more"
     },
     "status": {
+      "all": "All",
       "draft": "Draft",
       "confirmed": "Confirmed",
       "processing": "Processing",
+      "ready": "Ready",
       "shipped": "Shipped",
       "delivered": "Delivered",
       "cancelled": "Cancelled"
-    }
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "ready": "Ready to Ship",
+      "delivered": "Delivered",
+      "overdue": "Overdue",
+      "pendingValue": "Pending Value"
+    },
+    "charts": {
+      "statusDistribution": "Status Distribution",
+      "valueByStatus": "Value by Status",
+      "noData": "No data"
+    },
+    "cards": {
+      "urgentOrders": "Due Soon",
+      "filteredOrders": "Filtered Orders",
+      "noMatchingOrders": "No orders match criteria",
+      "summary": "Summary",
+      "totalValue": "Total Value",
+      "deliveredValue": "Delivered",
+      "customers": "Customers",
+      "fulfillmentRate": "Fulfillment Rate",
+      "topCustomers": "Top Customers",
+      "recent": "Recent",
+      "orders": "{count} orders",
+      "amount": "Amount",
+      "value": "Value"
+    },
+    "analytics": {
+      "statusBreakdown": "Status Breakdown",
+      "valueSummary": "Value Summary",
+      "totalValue": "Total Value",
+      "pending": "Pending",
+      "delivered": "Delivered",
+      "fulfillmentRate": "Fulfillment Rate",
+      "topCustomers": "Top Customers",
+      "noCustomers": "No customer data"
+    },
+    "dates": {
+      "overdue": "Overdue by {days} days",
+      "today": "Today",
+      "daysRemaining": "{days} days remaining",
+      "overdueAlert": "{count} sales orders are overdue",
+      "urgentAction": "Please review and take action"
+    },
+    "searchPlaceholder": "Search by SO number or customer name..."
   },
   "customers": {
     "title": "Customers",
-    "description": "Manage customer information",
+    "pageTitle": "Customers",
+    "description": "Manage customer information and sales analytics",
     "table": {
       "columns": {
         "code": "Customer Code",
@@ -62,6 +127,80 @@
         "email": "Email",
         "status": "Status"
       }
+    },
+    "grid": {
+      "columns": {
+        "code": "Code",
+        "name": "Customer Name",
+        "phone": "Phone",
+        "email": "Email",
+        "creditLimit": "Credit Limit",
+        "type": "Type",
+        "status": "Status"
+      },
+      "showing": "Showing {count} customers",
+      "noData": "No customers found"
+    },
+    "type": {
+      "all": "All Types",
+      "hospital": "Hospital",
+      "clinic": "Clinic",
+      "pharmacy": "Pharmacy",
+      "distributor": "Distributor",
+      "traditional_medicine": "Traditional Medicine",
+      "spa_wellness": "Spa & Wellness",
+      "government": "Government",
+      "export": "Export",
+      "other": "Other"
+    },
+    "status": {
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "addCustomer": "Add Customer",
+      "viewMore": "View {count} more"
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "totalCreditLimit": "Total Credit",
+      "mainType": "Main Type"
+    },
+    "cards": {
+      "summary": "Summary",
+      "totalCreditLimit": "Total Credit Limit",
+      "avgCreditLimit": "Average Credit",
+      "highCredit": "High Credit (≥1M)",
+      "recentCustomers": "New (30 days)",
+      "topCreditLimit": "Top Credit Limit",
+      "recent": "Recent",
+      "filteredCustomers": "Filtered Customers",
+      "noMatchingCustomers": "No customers match criteria",
+      "count": "{count} customers"
+    },
+    "charts": {
+      "typeDistribution": "Type Distribution",
+      "creditByType": "Credit by Type",
+      "noData": "No data"
+    },
+    "analytics": {
+      "typeBreakdown": "Type Breakdown",
+      "creditSummary": "Credit Summary",
+      "totalCreditLimit": "Total Credit Limit",
+      "avgCreditLimit": "Average Credit",
+      "highCredit": "High Credit (≥1M)",
+      "activeRate": "Active Customer Rate",
+      "topCustomers": "Top 5 Customers by Credit",
+      "noCustomers": "No customer data",
+      "creditLimit": "Credit Limit"
+    },
+    "searchPlaceholder": "Search by code, name, email or phone...",
+    "typePlaceholder": "Type",
+    "empty": {
+      "title": "No customers found",
+      "description": "Get started by adding a new customer"
     }
   },
   "shipping": {

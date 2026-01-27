@@ -5,7 +5,8 @@
   },
   "orders": {
     "title": "ใบสั่งขาย",
-    "description": "จัดการใบสั่งขายทั้งหมด",
+    "pageTitle": "ใบสั่งขาย",
+    "description": "จัดการใบสั่งขายและติดตามสถานะการส่งมอบ",
     "table": {
       "columns": {
         "orderNumber": "เลขที่ใบสั่งขาย",
@@ -16,6 +17,19 @@
         "status": "สถานะ",
         "createdBy": "สร้างโดย"
       }
+    },
+    "grid": {
+      "columns": {
+        "soNumber": "เลขที่ SO",
+        "customer": "ลูกค้า",
+        "orderDate": "วันที่สั่ง",
+        "requiredDate": "กำหนดส่ง",
+        "totalAmount": "ยอดรวม",
+        "status": "สถานะ"
+      },
+      "showing": "แสดง {count} รายการ",
+      "noData": "ไม่พบใบสั่งขาย",
+      "overdue": "เกินกำหนด"
     },
     "form": {
       "orderNumber": {
@@ -39,20 +53,71 @@
       "viewOrder": "ดูใบสั่งขาย",
       "cancelOrder": "ยกเลิกใบสั่งขาย",
       "confirmOrder": "ยืนยันใบสั่งขาย",
-      "shipOrder": "จัดส่งสินค้า"
+      "shipOrder": "จัดส่งสินค้า",
+      "refresh": "รีเฟรช",
+      "viewList": "ดูเพิ่มเติมอีก {count} รายการ"
     },
     "status": {
-      "draft": "แบบร่าง",
+      "all": "ทั้งหมด",
+      "draft": "ร่าง",
       "confirmed": "ยืนยันแล้ว",
       "processing": "กำลังดำเนินการ",
+      "ready": "พร้อมส่ง",
       "shipped": "จัดส่งแล้ว",
       "delivered": "ส่งมอบแล้ว",
       "cancelled": "ยกเลิก"
-    }
+    },
+    "stats": {
+      "total": "ทั้งหมด",
+      "active": "กำลังดำเนินการ",
+      "ready": "พร้อมส่ง",
+      "delivered": "ส่งมอบแล้ว",
+      "overdue": "เกินกำหนด",
+      "pendingValue": "รอดำเนินการ"
+    },
+    "charts": {
+      "statusDistribution": "การกระจายตามสถานะ",
+      "valueByStatus": "มูลค่าตามสถานะ",
+      "noData": "ไม่มีข้อมูล"
+    },
+    "cards": {
+      "urgentOrders": "ต้องส่งเร็วๆ นี้",
+      "filteredOrders": "ใบสั่งขายที่กรองแล้ว",
+      "noMatchingOrders": "ไม่พบใบสั่งขายที่ตรงกับเงื่อนไข",
+      "summary": "สรุปรวม",
+      "totalValue": "มูลค่ารวม",
+      "deliveredValue": "ส่งมอบแล้ว",
+      "customers": "ลูกค้า",
+      "fulfillmentRate": "อัตราส่งมอบ",
+      "topCustomers": "ลูกค้าหลัก",
+      "recent": "ล่าสุด",
+      "orders": "{count} รายการ",
+      "amount": "จำนวน",
+      "value": "มูลค่า"
+    },
+    "analytics": {
+      "statusBreakdown": "สรุปตามสถานะ",
+      "valueSummary": "สรุปมูลค่า",
+      "totalValue": "มูลค่ารวมทั้งหมด",
+      "pending": "รอดำเนินการ",
+      "delivered": "ส่งมอบแล้ว",
+      "fulfillmentRate": "อัตราส่งมอบ",
+      "topCustomers": "ลูกค้าหลัก",
+      "noCustomers": "ไม่มีข้อมูลลูกค้า"
+    },
+    "dates": {
+      "overdue": "เกิน {days} วัน",
+      "today": "วันนี้",
+      "daysRemaining": "อีก {days} วัน",
+      "overdueAlert": "{count} ใบสั่งขายเกินกำหนดส่ง",
+      "urgentAction": "กรุณาตรวจสอบและดำเนินการโดยเร็ว"
+    },
+    "searchPlaceholder": "ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
   },
   "customers": {
     "title": "ลูกค้า",
-    "description": "จัดการข้อมูลลูกค้า",
+    "pageTitle": "ลูกค้า",
+    "description": "จัดการข้อมูลลูกค้าและวิเคราะห์การขาย",
     "table": {
       "columns": {
         "code": "รหัสลูกค้า",
@@ -62,6 +127,80 @@
         "email": "อีเมล",
         "status": "สถานะ"
       }
+    },
+    "grid": {
+      "columns": {
+        "code": "รหัส",
+        "name": "ชื่อลูกค้า",
+        "phone": "โทรศัพท์",
+        "email": "อีเมล",
+        "creditLimit": "วงเงินเครดิต",
+        "type": "ประเภท",
+        "status": "สถานะ"
+      },
+      "showing": "แสดง {count} ราย",
+      "noData": "ไม่พบลูกค้า"
+    },
+    "type": {
+      "all": "ทุกประเภท",
+      "hospital": "โรงพยาบาล",
+      "clinic": "คลินิก",
+      "pharmacy": "ร้านขายยา",
+      "distributor": "ตัวแทนจำหน่าย",
+      "traditional_medicine": "แพทย์แผนไทย",
+      "spa_wellness": "สปา & เวลเนส",
+      "government": "หน่วยงานรัฐ",
+      "export": "ส่งออก",
+      "other": "อื่นๆ"
+    },
+    "status": {
+      "all": "ทั้งหมด",
+      "active": "ใช้งาน",
+      "inactive": "ปิดใช้งาน"
+    },
+    "actions": {
+      "addCustomer": "เพิ่มลูกค้า",
+      "viewMore": "ดูเพิ่มเติมอีก {count} ราย"
+    },
+    "stats": {
+      "total": "ทั้งหมด",
+      "active": "ใช้งาน",
+      "totalCreditLimit": "วงเงินรวม",
+      "mainType": "ประเภทหลัก"
+    },
+    "cards": {
+      "summary": "สรุปรวม",
+      "totalCreditLimit": "วงเงินเครดิตรวม",
+      "avgCreditLimit": "เครดิตเฉลี่ย",
+      "highCredit": "วงเงินสูง (≥1M)",
+      "recentCustomers": "ลูกค้าใหม่ (30 วัน)",
+      "topCreditLimit": "วงเงินเครดิตสูงสุด",
+      "recent": "ล่าสุด",
+      "filteredCustomers": "ลูกค้าที่กรองแล้ว",
+      "noMatchingCustomers": "ไม่พบลูกค้าที่ตรงกับเงื่อนไข",
+      "count": "{count} ราย"
+    },
+    "charts": {
+      "typeDistribution": "การกระจายตามประเภท",
+      "creditByType": "วงเงินเครดิตตามประเภท",
+      "noData": "ไม่มีข้อมูล"
+    },
+    "analytics": {
+      "typeBreakdown": "สรุปตามประเภท",
+      "creditSummary": "สรุปวงเงินเครดิต",
+      "totalCreditLimit": "วงเงินเครดิตรวม",
+      "avgCreditLimit": "เครดิตเฉลี่ย",
+      "highCredit": "วงเงินสูง (≥1M)",
+      "activeRate": "อัตราลูกค้าใช้งาน",
+      "topCustomers": "ลูกค้าวงเงินสูงสุด 5 อันดับ",
+      "noCustomers": "ไม่มีข้อมูลลูกค้า",
+      "creditLimit": "วงเงินเครดิต"
+    },
+    "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ อีเมล หรือโทรศัพท์...",
+    "typePlaceholder": "ประเภท",
+    "empty": {
+      "title": "ไม่พบลูกค้า",
+      "description": "เริ่มต้นด้วยการเพิ่มลูกค้าใหม่"
     }
   },
   "shipping": {
