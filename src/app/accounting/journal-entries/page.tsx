@@ -9,6 +9,7 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   useQuery,
   useMutation,
@@ -118,6 +119,7 @@ async function reverseJournalEntry(id: number): Promise<JournalEntry> {
 export default function JournalEntriesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('accounting');
   const [statusFilter, setStatusFilter] = React.useState<string>('');
   const [sourceTypeFilter, setSourceTypeFilter] = React.useState<string>('');
 
@@ -151,10 +153,10 @@ export default function JournalEntriesPage() {
     mutationFn: postJournalEntry,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      notify('ผ่านรายการบันทึกบัญชีแล้ว', 'success', 3000);
+      notify(t('journalEntries.toast.postSuccess'), 'success', 3000);
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถผ่านรายการได้', 'error', 4000);
+      notify(error.message || t('journalEntries.toast.postError'), 'error', 4000);
     },
   });
 
@@ -162,10 +164,10 @@ export default function JournalEntriesPage() {
     mutationFn: reverseJournalEntry,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      notify('กลับรายการบันทึกบัญชีแล้ว', 'success', 3000);
+      notify(t('journalEntries.toast.reverseSuccess'), 'success', 3000);
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถกลับรายการได้', 'error', 4000);
+      notify(error.message || t('journalEntries.toast.reverseError'), 'error', 4000);
     },
   });
 
@@ -182,8 +184,8 @@ export default function JournalEntriesPage() {
       e.stopPropagation();
       setConfirmDialog({
         visible: true,
-        title: 'ยืนยันการผ่านรายการ',
-        message: `คุณต้องการผ่านรายการบันทึก ${entry.entryNumber} หรือไม่?`,
+        title: t('journalEntries.dialogs.postTitle'),
+        message: t('journalEntries.dialogs.postMessage', { entryNumber: entry.entryNumber }),
         testIdPrefix: 'je-post',
         onConfirm: () => {
           postMutation.mutate(entry.id);
@@ -191,7 +193,7 @@ export default function JournalEntriesPage() {
         },
       });
     },
-    [postMutation]
+    [postMutation, t]
   );
 
   const handleReverse = useCallback(
@@ -199,8 +201,8 @@ export default function JournalEntriesPage() {
       e.stopPropagation();
       setConfirmDialog({
         visible: true,
-        title: 'ยืนยันการกลับรายการ',
-        message: `คุณต้องการกลับรายการ ${entry.entryNumber} หรือไม่?<br/>ระบบจะสร้างรายการกลับอัตโนมัติ`,
+        title: t('journalEntries.dialogs.reverseTitle'),
+        message: `${t('journalEntries.dialogs.reverseMessage', { entryNumber: entry.entryNumber })}<br/>${t('journalEntries.dialogs.reverseNote')}`,
         testIdPrefix: 'je-reverse',
         onConfirm: () => {
           reverseMutation.mutate(entry.id);
@@ -208,7 +210,7 @@ export default function JournalEntriesPage() {
         },
       });
     },
-    [reverseMutation]
+    [reverseMutation, t]
   );
 
   const handleConfirmDialogCancel = useCallback(() => {
@@ -230,20 +232,11 @@ export default function JournalEntriesPage() {
 
   // Source type label
   const sourceTypeCellRender = useCallback((cellData: { value: string | null }) => {
-    const typeMap: Record<string, string> = {
-      MANUAL: 'บันทึกมือ',
-      PO_RECEIPT: 'รับสินค้า',
-      SO_SHIPMENT: 'ส่งสินค้า',
-      AP_PAYMENT: 'จ่ายเงิน',
-      AR_RECEIPT: 'รับเงิน',
-      DEPRECIATION: 'ค่าเสื่อม',
-      PAYROLL: 'เงินเดือน',
-      COST_ALLOCATION: 'จัดสรรต้นทุน',
-      PERIOD_CLOSE: 'ปิดงวด',
-    };
     const value = cellData.value;
-    return value ? (typeMap[value] || value) : '-';
-  }, []);
+    if (!value) return '-';
+    // Use translation key dynamically
+    return t(`journalEntries.sourceTypes.${value}` as const) || value;
+  }, [t]);
 
   // Action buttons render with Lucide icons
   const actionsCellRender = useCallback(
@@ -255,7 +248,7 @@ export default function JournalEntriesPage() {
           <button
             onClick={(e) => handleView(entry, e)}
             className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-            title="ดูรายละเอียด"
+            title={t('journalEntries.actions.view')}
             data-testid={`je-view-btn-${entry.id}`}
           >
             <Eye className="h-4 w-4" />
@@ -266,7 +259,7 @@ export default function JournalEntriesPage() {
             <button
               onClick={(e) => handlePost(entry, e)}
               className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-              title="ผ่านรายการ"
+              title={t('journalEntries.actions.post')}
               data-testid={`je-post-btn-${entry.id}`}
             >
               <Check className="h-4 w-4" />
@@ -278,7 +271,7 @@ export default function JournalEntriesPage() {
             <button
               onClick={(e) => handleReverse(entry, e)}
               className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-              title="กลับรายการ"
+              title={t('journalEntries.actions.reverse')}
               data-testid={`je-reverse-btn-${entry.id}`}
             >
               <RotateCcw className="h-4 w-4" />
@@ -287,7 +280,7 @@ export default function JournalEntriesPage() {
         </div>
       );
     },
-    [handleView, handlePost, handleReverse]
+    [handleView, handlePost, handleReverse, t]
   );
 
   // Master-detail for journal lines
@@ -315,14 +308,14 @@ export default function JournalEntriesPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <AccountingPageHeader
-        title="รายการบันทึกบัญชี"
-        subtitle="Journal Entries"
+        title={t('journalEntries.title')}
+        subtitle={t('journalEntries.subtitle')}
         icon="file-text"
         onRefresh={handleRefresh}
         actions={
           <span data-testid="add-entry-button">
             <Button
-              text="เพิ่มรายการ"
+              text={t('journalEntries.addEntry')}
               icon="plus"
               type="success"
               onClick={() => router.push('/accounting/journal-entries/new')}
@@ -335,25 +328,25 @@ export default function JournalEntriesPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="kpi-cards">
           <AccountingKPICard
-            label="รายการทั้งหมด"
+            label={t('journalEntries.stats.total')}
             value={stats.total}
             icon="file-text"
             variant="info"
           />
           <AccountingKPICard
-            label="ร่าง"
+            label={t('journalEntries.stats.draft')}
             value={stats.draft}
             icon="clock"
             variant="default"
           />
           <AccountingKPICard
-            label="ผ่านแล้ว"
+            label={t('journalEntries.stats.posted')}
             value={stats.posted}
             icon="check-circle"
             variant="success"
           />
           <AccountingKPICard
-            label="กลับรายการ"
+            label={t('journalEntries.stats.reversed')}
             value={stats.reversed}
             icon="arrow-down"
             variant="danger"
@@ -364,41 +357,41 @@ export default function JournalEntriesPage() {
         <AccountingFilterPanel>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              สถานะ
+              {t('journalEntries.filters.status')}
             </label>
             <SelectBox
               dataSource={[
-                { value: '', label: 'ทั้งหมด' },
-                { value: 'draft', label: 'ร่าง' },
-                { value: 'posted', label: 'ผ่านแล้ว' },
-                { value: 'reversed', label: 'กลับรายการ' },
+                { value: '', label: t('journalEntries.filters.all') },
+                { value: 'draft', label: t('journalEntries.stats.draft') },
+                { value: 'posted', label: t('journalEntries.stats.posted') },
+                { value: 'reversed', label: t('journalEntries.stats.reversed') },
               ]}
               displayExpr="label"
               valueExpr="value"
               value={statusFilter}
               onValueChanged={(e) => setStatusFilter(e.value)}
-              placeholder="กรองสถานะ"
+              placeholder={t('journalEntries.filters.statusPlaceholder')}
               width={150}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              ประเภท
+              {t('journalEntries.filters.type')}
             </label>
             <SelectBox
               dataSource={[
-                { value: '', label: 'ทุกประเภท' },
-                { value: 'MANUAL', label: 'บันทึกมือ' },
-                { value: 'PO_RECEIPT', label: 'รับสินค้า' },
-                { value: 'SO_SHIPMENT', label: 'ส่งสินค้า' },
-                { value: 'AP_PAYMENT', label: 'จ่ายเงิน' },
-                { value: 'AR_RECEIPT', label: 'รับเงิน' },
+                { value: '', label: t('journalEntries.filters.allTypes') },
+                { value: 'MANUAL', label: t('journalEntries.sourceTypes.MANUAL') },
+                { value: 'PO_RECEIPT', label: t('journalEntries.sourceTypes.PO_RECEIPT') },
+                { value: 'SO_SHIPMENT', label: t('journalEntries.sourceTypes.SO_SHIPMENT') },
+                { value: 'AP_PAYMENT', label: t('journalEntries.sourceTypes.AP_PAYMENT') },
+                { value: 'AR_RECEIPT', label: t('journalEntries.sourceTypes.AR_RECEIPT') },
               ]}
               displayExpr="label"
               valueExpr="value"
               value={sourceTypeFilter}
               onValueChanged={(e) => setSourceTypeFilter(e.value)}
-              placeholder="กรองประเภท"
+              placeholder={t('journalEntries.filters.typePlaceholder')}
               width={180}
             />
           </div>
@@ -431,7 +424,7 @@ export default function JournalEntriesPage() {
             />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
-            <SearchPanel visible={true} placeholder="ค้นหา..." />
+            <SearchPanel visible={true} placeholder={t('journalEntries.search')} />
             <Sorting mode="multiple" />
             <Selection mode="single" />
             <ColumnChooser enabled={true} />
@@ -445,18 +438,18 @@ export default function JournalEntriesPage() {
               <Item name="columnChooserButton" location="after" />
             </Toolbar>
 
-            <Column dataField="entryNumber" caption="เลขที่รายการ" width={160} />
-            <Column dataField="entryDate" caption="วันที่" dataType="date" width={110} />
+            <Column dataField="entryNumber" caption={t('journalEntries.columns.entryNumber')} width={160} />
+            <Column dataField="entryDate" caption={t('journalEntries.columns.date')} dataType="date" width={110} />
             <Column
               dataField="sourceType"
-              caption="ประเภท"
+              caption={t('journalEntries.columns.type')}
               width={110}
               cellRender={sourceTypeCellRender}
             />
-            <Column dataField="description" caption="รายละเอียด" minWidth={200} />
+            <Column dataField="description" caption={t('journalEntries.columns.description')} minWidth={200} />
             <Column
               dataField="totalDebit"
-              caption="เดบิต"
+              caption={t('journalEntries.columns.debit')}
               dataType="number"
               width={120}
               alignment="right"
@@ -465,7 +458,7 @@ export default function JournalEntriesPage() {
             </Column>
             <Column
               dataField="totalCredit"
-              caption="เครดิต"
+              caption={t('journalEntries.columns.credit')}
               dataType="number"
               width={120}
               alignment="right"
@@ -474,12 +467,12 @@ export default function JournalEntriesPage() {
             </Column>
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('journalEntries.columns.status')}
               width={100}
               cellRender={statusCellRender}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('journalEntries.columns.actions')}
               width={120}
               cellRender={actionsCellRender}
               allowFiltering={false}
@@ -488,10 +481,10 @@ export default function JournalEntriesPage() {
             />
 
             <Summary>
-              <TotalItem column="totalDebit" summaryType="sum" displayFormat="รวม: {0}">
+              <TotalItem column="totalDebit" summaryType="sum" displayFormat={t('journalEntries.summary.total')}>
                 <Format type="fixedPoint" precision={2} />
               </TotalItem>
-              <TotalItem column="totalCredit" summaryType="sum" displayFormat="รวม: {0}">
+              <TotalItem column="totalCredit" summaryType="sum" displayFormat={t('journalEntries.summary.total')}>
                 <Format type="fixedPoint" precision={2} />
               </TotalItem>
             </Summary>
@@ -515,17 +508,18 @@ export default function JournalEntriesPage() {
 
 // Journal Lines Detail Component
 function JournalLinesDetail({ entryId }: { entryId: number }) {
+  const t = useTranslations('accounting');
   const { data: entry, isLoading } = useQuery({
     queryKey: ['journal-entry', entryId],
     queryFn: () => fetchJournalEntryById(entryId),
   });
 
   if (isLoading) {
-    return <div className="p-4">Loading...</div>;
+    return <div className="p-4">{t('journalEntries.detail.loading')}</div>;
   }
 
   if (!entry || !entry.lines) {
-    return <div className="p-4">No lines found</div>;
+    return <div className="p-4">{t('journalEntries.detail.noLines')}</div>;
   }
 
   return (
@@ -533,13 +527,13 @@ function JournalLinesDetail({ entryId }: { entryId: number }) {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-gray-200">
-            <th className="border p-2 text-left">บัญชี</th>
-            <th className="border p-2 text-left">รายละเอียด</th>
+            <th className="border p-2 text-left">{t('journalEntries.columns.account')}</th>
+            <th className="border p-2 text-left">{t('journalEntries.columns.description')}</th>
             <th className="border p-2 text-right" style={{ width: 120 }}>
-              เดบิต
+              {t('journalEntries.columns.debit')}
             </th>
             <th className="border p-2 text-right" style={{ width: 120 }}>
-              เครดิต
+              {t('journalEntries.columns.credit')}
             </th>
           </tr>
         </thead>

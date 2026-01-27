@@ -4,8 +4,9 @@
 // Feature: 014-unit-cost (Executive Dashboard Redesign)
 // Executive-level insights with actionable metrics and priority-based alerts
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
   FileText,
@@ -83,45 +84,46 @@ function generateExpenseData(): ExpenseCategory[] {
   ];
 }
 
-// Quick links organized by category
-const quickLinkGroups = [
-  {
-    title: 'Financial Statements',
-    links: [
-      { name: 'Trial Balance', href: '/accounting/reports/trial-balance', icon: Landmark },
-      { name: 'Balance Sheet', href: '/accounting/reports/balance-sheet', icon: BarChart3 },
-      { name: 'Income Statement', href: '/accounting/reports/income-statement', icon: BarChart3 },
-      { name: 'Cash Flow', href: '/accounting/reports/cash-flow', icon: DollarSign },
-    ],
-  },
-  {
-    title: 'Receivables',
-    links: [
-      { name: 'AR Invoices', href: '/accounting/ar/invoices', icon: FileText },
-      { name: 'AR Aging', href: '/accounting/reports/aging?type=AR', icon: BarChart3 },
-      { name: 'Receipts', href: '/accounting/ar/receipts', icon: Receipt },
-    ],
-  },
-  {
-    title: 'Payables',
-    links: [
-      { name: 'AP Invoices', href: '/accounting/ap/invoices', icon: FileText },
-      { name: 'AP Aging', href: '/accounting/reports/aging?type=AP', icon: BarChart3 },
-      { name: 'Payments', href: '/accounting/ap/payments', icon: DollarSign },
-    ],
-  },
-  {
-    title: 'Assets & Operations',
-    links: [
-      { name: 'Fixed Assets', href: '/accounting/fixed-assets', icon: Building2 },
-      { name: 'Equipment', href: '/accounting/equipment', icon: Wrench },
-      { name: 'Period Close', href: '/accounting/period-close', icon: CalendarCheck },
-    ],
-  },
-];
-
 export default function AccountingDashboardPage() {
+  const t = useTranslations('accounting');
   const [period, setPeriod] = useState<Period>('YTD');
+
+  // Quick links organized by category - needs to be inside component for translations
+  const quickLinkGroups = useMemo(() => [
+    {
+      title: t('dashboard.quickLinks.financialStatements'),
+      links: [
+        { name: t('dashboard.quickLinks.trialBalance'), href: '/accounting/reports/trial-balance', icon: Landmark },
+        { name: t('dashboard.quickLinks.balanceSheet'), href: '/accounting/reports/balance-sheet', icon: BarChart3 },
+        { name: t('dashboard.quickLinks.incomeStatement'), href: '/accounting/reports/income-statement', icon: BarChart3 },
+        { name: t('dashboard.quickLinks.cashFlow'), href: '/accounting/reports/cash-flow', icon: DollarSign },
+      ],
+    },
+    {
+      title: t('dashboard.quickLinks.receivables'),
+      links: [
+        { name: t('dashboard.quickLinks.arInvoices'), href: '/accounting/ar/invoices', icon: FileText },
+        { name: t('dashboard.quickLinks.arAging'), href: '/accounting/reports/aging?type=AR', icon: BarChart3 },
+        { name: t('dashboard.quickLinks.receipts'), href: '/accounting/ar/receipts', icon: Receipt },
+      ],
+    },
+    {
+      title: t('dashboard.quickLinks.payables'),
+      links: [
+        { name: t('dashboard.quickLinks.apInvoices'), href: '/accounting/ap/invoices', icon: FileText },
+        { name: t('dashboard.quickLinks.apAging'), href: '/accounting/reports/aging?type=AP', icon: BarChart3 },
+        { name: t('dashboard.quickLinks.payments'), href: '/accounting/ap/payments', icon: DollarSign },
+      ],
+    },
+    {
+      title: t('dashboard.quickLinks.assetsOperations'),
+      links: [
+        { name: t('dashboard.quickLinks.fixedAssets'), href: '/accounting/fixed-assets', icon: Building2 },
+        { name: t('dashboard.quickLinks.equipment'), href: '/accounting/equipment', icon: Wrench },
+        { name: t('dashboard.quickLinks.periodClose'), href: '/accounting/period-close', icon: CalendarCheck },
+      ],
+    },
+  ], [t]);
 
   const {
     data: metrics,
@@ -166,9 +168,9 @@ export default function AccountingDashboardPage() {
       {/* Header with Period Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Executive Accounting Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Financial insights and actionable metrics
+            {t('dashboard.description')}
           </p>
         </div>
 
@@ -186,7 +188,7 @@ export default function AccountingDashboardPage() {
                 }`}
                 data-testid={`period-${p.toLowerCase()}`}
               >
-                {p}
+                {t(`dashboard.periods.${p.toLowerCase()}` as const)}
               </button>
             ))}
           </div>
@@ -200,7 +202,7 @@ export default function AccountingDashboardPage() {
             data-testid="refresh-button"
           >
             <RefreshCw className="h-4 w-4" />
-            Refresh
+            {t('dashboard.refresh')}
           </Button>
         </div>
       </div>
@@ -215,7 +217,7 @@ export default function AccountingDashboardPage() {
       {/* KPI Row 1: Financial Health */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Financial Health
+          {t('dashboard.sections.financialHealth')}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {metricsLoading ? (
@@ -236,7 +238,7 @@ export default function AccountingDashboardPage() {
       {/* KPI Row 2: Business Performance */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Business Performance
+          {t('dashboard.sections.businessPerformance')}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {metricsLoading ? (
@@ -270,7 +272,7 @@ export default function AccountingDashboardPage() {
 
       {/* Quick Links by Category */}
       <div data-testid="quick-links">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Access</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.sections.quickAccess')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {quickLinkGroups.map((group) => (
             <Card key={group.title}>

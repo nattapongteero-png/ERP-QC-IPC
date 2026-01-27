@@ -120,6 +120,73 @@
       "saving": "Saving..."
     }
   },
+  "journalEntries": {
+    "title": "Journal Entries",
+    "subtitle": "Journal Entries",
+    "addEntry": "Add Entry",
+    "search": "Search...",
+    "stats": {
+      "total": "Total Entries",
+      "draft": "Draft",
+      "posted": "Posted",
+      "reversed": "Reversed"
+    },
+    "filters": {
+      "status": "Status",
+      "statusPlaceholder": "Filter status",
+      "type": "Type",
+      "typePlaceholder": "Filter type",
+      "all": "All",
+      "allTypes": "All Types"
+    },
+    "sourceTypes": {
+      "MANUAL": "Manual",
+      "PO_RECEIPT": "PO Receipt",
+      "SO_SHIPMENT": "SO Shipment",
+      "AP_PAYMENT": "AP Payment",
+      "AR_RECEIPT": "AR Receipt",
+      "DEPRECIATION": "Depreciation",
+      "PAYROLL": "Payroll",
+      "COST_ALLOCATION": "Cost Allocation",
+      "PERIOD_CLOSE": "Period Close"
+    },
+    "columns": {
+      "entryNumber": "Entry Number",
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "debit": "Debit",
+      "credit": "Credit",
+      "status": "Status",
+      "actions": "Actions",
+      "account": "Account"
+    },
+    "summary": {
+      "total": "Total: {0}"
+    },
+    "actions": {
+      "view": "View Details",
+      "post": "Post Entry",
+      "reverse": "Reverse Entry"
+    },
+    "dialogs": {
+      "postTitle": "Confirm Post Entry",
+      "postMessage": "Do you want to post entry {entryNumber}?",
+      "reverseTitle": "Confirm Reverse Entry",
+      "reverseMessage": "Do you want to reverse entry {entryNumber}?",
+      "reverseNote": "System will create a reversing entry automatically"
+    },
+    "toast": {
+      "postSuccess": "Journal entry posted successfully",
+      "postError": "Failed to post entry",
+      "reverseSuccess": "Journal entry reversed successfully",
+      "reverseError": "Failed to reverse entry"
+    },
+    "detail": {
+      "loading": "Loading...",
+      "noLines": "No lines found"
+    }
+  },
   "generalLedger": {
     "title": "General Ledger",
     "description": "Manage chart of accounts and journal entries",

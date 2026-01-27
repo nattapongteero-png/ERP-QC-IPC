@@ -120,6 +120,73 @@
       "saving": "กำลังบันทึก..."
     }
   },
+  "journalEntries": {
+    "title": "รายการบันทึกบัญชี",
+    "subtitle": "Journal Entries",
+    "addEntry": "เพิ่มรายการ",
+    "search": "ค้นหา...",
+    "stats": {
+      "total": "รายการทั้งหมด",
+      "draft": "ร่าง",
+      "posted": "ผ่านแล้ว",
+      "reversed": "กลับรายการ"
+    },
+    "filters": {
+      "status": "สถานะ",
+      "statusPlaceholder": "กรองสถานะ",
+      "type": "ประเภท",
+      "typePlaceholder": "กรองประเภท",
+      "all": "ทั้งหมด",
+      "allTypes": "ทุกประเภท"
+    },
+    "sourceTypes": {
+      "MANUAL": "บันทึกมือ",
+      "PO_RECEIPT": "รับสินค้า",
+      "SO_SHIPMENT": "ส่งสินค้า",
+      "AP_PAYMENT": "จ่ายเงิน",
+      "AR_RECEIPT": "รับเงิน",
+      "DEPRECIATION": "ค่าเสื่อม",
+      "PAYROLL": "เงินเดือน",
+      "COST_ALLOCATION": "จัดสรรต้นทุน",
+      "PERIOD_CLOSE": "ปิดงวด"
+    },
+    "columns": {
+      "entryNumber": "เลขที่รายการ",
+      "date": "วันที่",
+      "type": "ประเภท",
+      "description": "รายละเอียด",
+      "debit": "เดบิต",
+      "credit": "เครดิต",
+      "status": "สถานะ",
+      "actions": "การดำเนินการ",
+      "account": "บัญชี"
+    },
+    "summary": {
+      "total": "รวม: {0}"
+    },
+    "actions": {
+      "view": "ดูรายละเอียด",
+      "post": "ผ่านรายการ",
+      "reverse": "กลับรายการ"
+    },
+    "dialogs": {
+      "postTitle": "ยืนยันการผ่านรายการ",
+      "postMessage": "คุณต้องการผ่านรายการบันทึก {entryNumber} หรือไม่?",
+      "reverseTitle": "ยืนยันการกลับรายการ",
+      "reverseMessage": "คุณต้องการกลับรายการ {entryNumber} หรือไม่?",
+      "reverseNote": "ระบบจะสร้างรายการกลับอัตโนมัติ"
+    },
+    "toast": {
+      "postSuccess": "ผ่านรายการบันทึกบัญชีแล้ว",
+      "postError": "ไม่สามารถผ่านรายการได้",
+      "reverseSuccess": "กลับรายการบันทึกบัญชีแล้ว",
+      "reverseError": "ไม่สามารถกลับรายการได้"
+    },
+    "detail": {
+      "loading": "กำลังโหลด...",
+      "noLines": "ไม่พบรายการ"
+    }
+  },
   "generalLedger": {
     "title": "บัญชีแยกประเภท",
     "description": "จัดการผังบัญชีและรายการบันทึกบัญชี",
