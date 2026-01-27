@@ -112,7 +112,235 @@
       "overdueAlert": "{count} ใบสั่งขายเกินกำหนดส่ง",
       "urgentAction": "กรุณาตรวจสอบและดำเนินการโดยเร็ว"
     },
-    "searchPlaceholder": "ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
+    "searchPlaceholder": "ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า...",
+    "detail": {
+      "notFound": "ไม่พบใบสั่งขาย",
+      "notFoundDescription": "ไม่พบข้อมูลใบสั่งขายที่ร้องขอ",
+      "backToList": "กลับไปหน้ารายการ",
+      "tabs": {
+        "overview": "ภาพรวม",
+        "lines": "รายการสินค้า",
+        "fulfillment": "จัดเตรียมสินค้า",
+        "shipping": "การจัดส่ง"
+      },
+      "sections": {
+        "orderInfo": "ข้อมูลใบสั่งขาย",
+        "customerInfo": "ข้อมูลลูกค้า",
+        "fulfillmentProgress": "ความคืบหน้าการจัดส่ง"
+      },
+      "fields": {
+        "soNumber": "เลขที่ SO",
+        "status": "สถานะ",
+        "lineCount": "จำนวนรายการ",
+        "orderDate": "วันที่สั่ง",
+        "requiredDate": "กำหนดส่ง",
+        "paymentTerms": "เงื่อนไขการชำระ",
+        "notes": "หมายเหตุ",
+        "customer": "ลูกค้า"
+      },
+      "summary": {
+        "progress": "ความคืบหน้า",
+        "totalOrdered": "ยอดสั่งทั้งหมด",
+        "shipped": "จัดส่งแล้ว",
+        "pending": "รอจัดส่ง",
+        "total": "ยอดรวม",
+        "units": "หน่วย"
+      },
+      "alerts": {
+        "stockInsufficient": "สต็อกไม่เพียงพอ",
+        "stockInsufficientDesc": "บางรายการไม่มีสต็อกเพียงพอสำหรับการจัดส่ง ตรวจสอบรายละเอียดในแท็บ \"จัดเตรียมสินค้า\"",
+        "readyToShip": "พร้อมจัดส่ง",
+        "readyToShipDesc": "สินค้าทุกรายการมีสต็อกเพียงพอ สามารถดำเนินการจัดส่งได้ทันที",
+        "overdue": "เกินกำหนด"
+      },
+      "actions": {
+        "back": "กลับ",
+        "processAll": "ดำเนินการทั้งหมด",
+        "goToFulfillment": "ไปที่การจัดเตรียม",
+        "goToPrep": "ไปจัดเตรียมสินค้า"
+      },
+      "columns": {
+        "item": "สินค้า",
+        "quantity": "จำนวนสั่ง",
+        "unitPrice": "ราคาต่อหน่วย",
+        "lineTotal": "รวม",
+        "shipped": "จัดส่งแล้ว",
+        "status": "สถานะ",
+        "ordered": "สั่งซื้อ",
+        "pendingShip": "รอจัดส่ง",
+        "availableStock": "สต็อกพร้อมใช้",
+        "suggestedLots": "Lot แนะนำ (FEFO)",
+        "deliveryNumber": "เลขที่จัดส่ง",
+        "lot": "Lot",
+        "deliveryDate": "วันที่จัดส่ง",
+        "journalEntries": "รายการบัญชี",
+        "arInvoices": "ใบแจ้งหนี้ AR"
+      },
+      "lineStatus": {
+        "pending": "รอดำเนินการ",
+        "partial": "บางส่วน",
+        "shipped": "จัดส่งแล้ว"
+      },
+      "fulfillment": {
+        "title": "จัดเตรียมสินค้า (FEFO)",
+        "description": "แนะนำ Lot ตามนโยบาย First Expiry, First Out",
+        "selectAndShip": "เลือก & ส่ง",
+        "insufficient": "ไม่เพียงพอ",
+        "noLot": "ไม่มี Lot พร้อมใช้"
+      },
+      "shipping": {
+        "title": "ประวัติการจัดส่ง",
+        "totalItems": "ทั้งหมด {count} รายการ",
+        "totalShipped": "จัดส่งแล้ว {count} หน่วย",
+        "noDeliveries": "ยังไม่มีการจัดส่ง",
+        "noDeliveriesDesc": "รายการจัดส่งจะแสดงที่นี่เมื่อมีการดำเนินการ",
+        "deliveryStatus": {
+          "shipped": "จัดส่งแล้ว",
+          "delivered": "ส่งมอบแล้ว",
+          "returned": "ส่งคืน"
+        }
+      },
+      "modal": {
+        "selectLotTitle": "เลือก Lot และจัดส่ง",
+        "selectLotDesc": "เลือก Lot สำหรับการจัดส่งสินค้า",
+        "selectLot": "เลือก Lot (FEFO)",
+        "selectLotPlaceholder": "เลือก Lot...",
+        "quantity": "จำนวนที่จะจัดส่ง",
+        "pendingQty": "รอจัดส่ง",
+        "cancel": "ยกเลิก",
+        "confirm": "ยืนยันการจัดส่ง",
+        "processing": "กำลังดำเนินการ..."
+      },
+      "error": {
+        "lotStatus": {
+          "title": "ไม่สามารถใช้ Lot นี้ได้",
+          "message": "ยังไม่ได้รับการปล่อย (Release) เพื่อใช้งาน",
+          "quarantine": "กักกัน (Quarantine)",
+          "blocked": "ถูกบล็อก (Blocked)",
+          "rejected": "ถูกปฏิเสธ (Rejected)",
+          "under_test": "กำลังทดสอบ (Under Test)",
+          "suggestion1": "กรุณาติดต่อฝ่ายควบคุมคุณภาพ (QC) เพื่อตรวจสอบและปล่อย Lot",
+          "suggestion2": "หรือเลือก Lot อื่นที่มีสถานะ \"Released\" แล้ว"
+        },
+        "insufficientQty": {
+          "title": "สต็อกไม่เพียงพอ",
+          "message": "Lot นี้มีจำนวนสินค้าไม่เพียงพอสำหรับการจัดส่ง",
+          "available": "มีสินค้าพร้อมใช้",
+          "requested": "ต้องการ",
+          "suggestion1": "ลดจำนวนที่จะจัดส่งให้ไม่เกินจำนวนที่มี",
+          "suggestion2": "หรือเลือก Lot เพิ่มเติมเพื่อให้ครบจำนวน"
+        },
+        "exceedsPending": {
+          "title": "จำนวนเกินยอดค้างส่ง",
+          "message": "จำนวนที่ต้องการจัดส่งมากกว่ายอดที่ยังค้างอยู่",
+          "pending": "ยอดค้างส่ง",
+          "suggestion": "ลดจำนวนที่จะจัดส่งให้ไม่เกินยอดค้าง"
+        },
+        "invalidLine": {
+          "title": "ไม่พบรายการสินค้า",
+          "message": "ไม่พบรายการสินค้าที่ระบุในใบสั่งขายนี้",
+          "suggestion1": "รีเฟรชหน้าและลองใหม่อีกครั้ง",
+          "suggestion2": "ตรวจสอบว่าใบสั่งขายยังมีรายการนี้อยู่หรือไม่"
+        },
+        "invalidLot": {
+          "title": "ไม่พบ Lot",
+          "message": "ไม่พบ Lot ที่ระบุในระบบ",
+          "suggestion1": "Lot อาจถูกลบหรือใช้หมดแล้ว",
+          "suggestion2": "รีเฟรชหน้าและเลือก Lot ใหม่"
+        },
+        "unknown": {
+          "title": "เกิดข้อผิดพลาด",
+          "message": "ไม่สามารถดำเนินการได้",
+          "suggestion1": "ลองใหม่อีกครั้ง",
+          "suggestion2": "หากปัญหายังคงอยู่ กรุณาติดต่อผู้ดูแลระบบ"
+        },
+        "connection": "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        "details": "รายละเอียด",
+        "solutions": "วิธีแก้ไข",
+        "lotNumber": "Lot Number",
+        "lotStatus": "สถานะ Lot",
+        "availableQty": "จำนวนพร้อมใช้",
+        "requestedQty": "จำนวนที่ต้องการ",
+        "pendingQty": "ยอดค้างส่ง",
+        "goToQc": "ไปหน้าควบคุมคุณภาพ",
+        "selectNewLot": "เลือก Lot ใหม่",
+        "close": "ปิด"
+      }
+    },
+    "new": {
+      "title": "สร้างใบสั่งขายใหม่",
+      "description": "กรอกข้อมูลลูกค้าและรายการสินค้า",
+      "customerSection": "ข้อมูลลูกค้า",
+      "customerRequired": "ลูกค้า",
+      "selectCustomerPlaceholder": "คลิกเพื่อค้นหาและเลือกลูกค้า...",
+      "shippingAddress": "ที่อยู่จัดส่ง",
+      "shippingAddressPlaceholder": "ระบุที่อยู่สำหรับจัดส่ง...",
+      "itemsSection": "รายการสินค้า",
+      "items": "รายการ",
+      "addItem": "เพิ่มสินค้า",
+      "noItems": "ยังไม่มีรายการสินค้า",
+      "noItemsDesc": "คลิกปุ่ม \"เพิ่มสินค้า\" เพื่อเริ่มต้น",
+      "addFirstItem": "เพิ่มสินค้ารายการแรก",
+      "totalAmount": "ยอดรวมทั้งหมด",
+      "notesSection": "หมายเหตุ",
+      "notesPlaceholder": "หมายเหตุหรือคำแนะนำเพิ่มเติม...",
+      "statusSection": "สถานะใบสั่งขาย",
+      "status": "สถานะ",
+      "orderDetails": "รายละเอียดคำสั่งซื้อ",
+      "requiredDate": "วันที่ต้องการส่ง",
+      "selectDate": "เลือกวันที่...",
+      "paymentTerms": "เงื่อนไขการชำระเงิน",
+      "selectPaymentTerms": "เลือกเงื่อนไข...",
+      "orderSummary": "สรุปคำสั่งซื้อ",
+      "lineCount": "จำนวนรายการ",
+      "customer": "ลูกค้า",
+      "total": "ยอดรวม",
+      "statusOptions": {
+        "draft": "ร่าง (Draft)",
+        "confirmed": "ยืนยันแล้ว (Confirmed)"
+      },
+      "paymentOptions": {
+        "cash": "เงินสด (Cash)",
+        "net15": "Net 15 วัน",
+        "net30": "Net 30 วัน",
+        "net45": "Net 45 วัน",
+        "net60": "Net 60 วัน"
+      },
+      "columns": {
+        "item": "สินค้า",
+        "unit": "หน่วย",
+        "quantity": "จำนวน",
+        "unitPrice": "ราคา/หน่วย",
+        "total": "รวม"
+      },
+      "deleteConfirm": {
+        "title": "ยืนยันการลบ",
+        "message": "คุณต้องการลบรายการสินค้านี้หรือไม่?",
+        "cancel": "ยกเลิก",
+        "delete": "ลบ"
+      },
+      "validation": {
+        "selectCustomer": "กรุณาเลือกลูกค้า",
+        "addItem": "กรุณาเพิ่มอย่างน้อย 1 รายการสินค้า"
+      },
+      "toast": {
+        "deleteSuccess": "ลบรายการสำเร็จ",
+        "createSuccess": "สร้างใบสั่งขายสำเร็จ",
+        "createError": "ไม่สามารถสร้างใบสั่งขายได้"
+      },
+      "dialog": {
+        "searchCustomer": "ค้นหาลูกค้า",
+        "searchItem": "ค้นหาสินค้า"
+      },
+      "actions": {
+        "back": "กลับ",
+        "cancel": "ยกเลิก",
+        "save": "บันทึก",
+        "saving": "กำลังบันทึก...",
+        "change": "เปลี่ยน",
+        "clear": "ล้างข้อมูลลูกค้า"
+      }
+    }
   },
   "customers": {
     "title": "ลูกค้า",
@@ -201,6 +429,200 @@
     "empty": {
       "title": "ไม่พบลูกค้า",
       "description": "เริ่มต้นด้วยการเพิ่มลูกค้าใหม่"
+    },
+    "detail": {
+      "notFound": "ไม่พบข้อมูลลูกค้า",
+      "notFoundDescription": "ไม่พบข้อมูลลูกค้าที่ร้องขอ",
+      "backToList": "กลับไปหน้ารายการ",
+      "tabs": {
+        "overview": "ภาพรวม",
+        "orders": "ใบสั่งขาย",
+        "contact": "ข้อมูลติดต่อ",
+        "credit": "เครดิต & การชำระ"
+      },
+      "sections": {
+        "salesSummary": "สรุปการขาย",
+        "orderStatus": "สถานะคำสั่งซื้อ",
+        "generalInfo": "ข้อมูลทั่วไป",
+        "contact": "ผู้ติดต่อ",
+        "address": "ที่อยู่",
+        "creditLimit": "วงเงินเครดิต",
+        "creditUsage": "การใช้เครดิต",
+        "paymentHistory": "ประวัติการชำระล่าสุด"
+      },
+      "fields": {
+        "code": "รหัสลูกค้า",
+        "type": "ประเภท",
+        "taxId": "เลขประจำตัวผู้เสียภาษี",
+        "createdAt": "สร้างเมื่อ",
+        "mainContact": "ผู้ติดต่อหลัก",
+        "phone": "โทรศัพท์",
+        "email": "อีเมล",
+        "shippingAddress": "ที่อยู่จัดส่ง",
+        "creditLimit": "วงเงินเครดิต",
+        "creditTerm": "เครดิตเทอม",
+        "paymentTerms": "เงื่อนไขการชำระ",
+        "available": "ว่าง",
+        "used": "ใช้ไป",
+        "remaining": "คงเหลือ"
+      },
+      "summary": {
+        "totalOrders": "ยอดสั่งซื้อทั้งหมด",
+        "totalSales": "ยอดขายรวม",
+        "avgOrderValue": "ค่าเฉลี่ยต่อรายการ",
+        "delivered": "ส่งมอบแล้ว",
+        "inProgress": "กำลังดำเนินการ",
+        "creditTerm": "เครดิตเทอม",
+        "items": "รายการ",
+        "days": "วัน"
+      },
+      "orders": {
+        "showingRecent": "แสดง {count} รายการล่าสุด",
+        "createNew": "สร้างใบสั่งขายใหม่",
+        "noOrders": "ยังไม่มีใบสั่งขาย",
+        "noOrdersDesc": "สร้างใบสั่งขายแรกสำหรับลูกค้านี้",
+        "create": "สร้างใบสั่งขาย",
+        "view": "ดู"
+      },
+      "contact": {
+        "noAddress": "ยังไม่มีข้อมูลที่อยู่"
+      },
+      "credit": {
+        "noPaymentHistory": "ยังไม่มีข้อมูลการชำระ",
+        "paymentHistoryDesc": "ประวัติการชำระจะแสดงที่นี่"
+      },
+      "actions": {
+        "back": "กลับ",
+        "edit": "แก้ไข",
+        "delete": "ลบลูกค้า",
+        "disabled": "ปิดใช้งาน"
+      },
+      "stats": {
+        "totalOrders": "ยอดสั่งซื้อ",
+        "totalSales": "ยอดขายรวม",
+        "creditLimit": "วงเงินเครดิต",
+        "status": "สถานะ"
+      },
+      "statusActive": "ใช้งาน",
+      "statusInactive": "ปิดใช้งาน",
+      "noOrderData": "ยังไม่มีคำสั่งซื้อ"
+    },
+    "new": {
+      "title": "สร้างลูกค้าใหม่",
+      "generatingCode": "กำลังสร้างรหัส...",
+      "codeReady": "พร้อมใช้งาน",
+      "codeLabel": "รหัสลูกค้า (สร้างอัตโนมัติ)",
+      "sections": {
+        "basic": "ข้อมูลพื้นฐาน",
+        "type": "ประเภทลูกค้า",
+        "contact": "ข้อมูลติดต่อ",
+        "credit": "ข้อมูลเครดิตและการชำระ",
+        "notes": "หมายเหตุ"
+      },
+      "fields": {
+        "name": "ชื่อลูกค้า",
+        "namePlaceholder": "เช่น บริษัท ABC จำกัด",
+        "type": "ประเภทลูกค้า",
+        "taxId": "เลขประจำตัวผู้เสียภาษี",
+        "taxIdPlaceholder": "เช่น 0-1234-56789-01-2",
+        "contactPerson": "ผู้ติดต่อ",
+        "contactPlaceholder": "ชื่อผู้ติดต่อหลัก",
+        "phone": "โทรศัพท์",
+        "phonePlaceholder": "02-xxx-xxxx",
+        "email": "อีเมล",
+        "emailPlaceholder": "email@example.com",
+        "address": "ที่อยู่",
+        "addressPlaceholder": "ที่อยู่สำหรับจัดส่ง",
+        "creditLimit": "วงเงินเครดิต (บาท)",
+        "creditTerm": "เครดิตเทอม",
+        "paymentTerms": "เงื่อนไขการชำระ",
+        "notes": "หมายเหตุ",
+        "notesPlaceholder": "หมายเหตุเพิ่มเติมเกี่ยวกับลูกค้า...",
+        "isActive": "ใช้งาน"
+      },
+      "creditPreview": {
+        "title": "วงเงินเครดิตที่กำหนด",
+        "creditTerm": "เครดิตเทอม"
+      },
+      "creditTermOptions": {
+        "7": "7 วัน",
+        "15": "15 วัน",
+        "30": "30 วัน",
+        "45": "45 วัน",
+        "60": "60 วัน",
+        "90": "90 วัน"
+      },
+      "paymentOptions": {
+        "cash": "เงินสด (Cash)",
+        "net7": "Net 7",
+        "net15": "Net 15",
+        "net30": "Net 30",
+        "net45": "Net 45",
+        "net60": "Net 60",
+        "net90": "Net 90",
+        "cod": "ชำระเมื่อส่งมอบ (COD)"
+      },
+      "validation": {
+        "waitForCode": "กรุณารอให้ระบบสร้างรหัสลูกค้า",
+        "nameRequired": "กรุณากรอกชื่อลูกค้า"
+      },
+      "toast": {
+        "createError": "ไม่สามารถสร้างลูกค้าได้"
+      },
+      "actions": {
+        "cancel": "ยกเลิก",
+        "save": "บันทึกลูกค้า",
+        "saving": "กำลังบันทึก...",
+        "regenerateCode": "สร้างรหัสใหม่"
+      },
+      "status": "สถานะ"
+    },
+    "edit": {
+      "title": "แก้ไขข้อมูลลูกค้า",
+      "fields": {
+        "code": "รหัสลูกค้า",
+        "name": "ชื่อลูกค้า",
+        "contactPerson": "ผู้ติดต่อ",
+        "phone": "โทรศัพท์",
+        "email": "อีเมล",
+        "taxId": "เลขประจำตัวผู้เสียภาษี",
+        "type": "ประเภทลูกค้า",
+        "creditLimit": "วงเงินเครดิต",
+        "creditTermDays": "เครดิตเทอม (วัน)",
+        "paymentTerms": "เงื่อนไขการชำระ",
+        "address": "ที่อยู่",
+        "notes": "หมายเหตุ",
+        "isActive": "ใช้งาน"
+      },
+      "placeholders": {
+        "code": "กรอกรหัสลูกค้า",
+        "name": "กรอกชื่อลูกค้า",
+        "contactPerson": "กรอกชื่อผู้ติดต่อ",
+        "phone": "กรอกเบอร์โทรศัพท์",
+        "email": "กรอกอีเมล",
+        "taxId": "กรอก Tax ID",
+        "type": "เลือกประเภท",
+        "creditLimit": "กรอกวงเงินเครดิต",
+        "creditTermDays": "กรอกจำนวนวัน",
+        "paymentTerms": "เช่น Net 30",
+        "address": "กรอกที่อยู่",
+        "notes": "กรอกหมายเหตุ"
+      },
+      "actions": {
+        "cancel": "ยกเลิก",
+        "save": "บันทึก",
+        "saving": "กำลังบันทึก..."
+      }
+    },
+    "delete": {
+      "title": "ลบลูกค้า",
+      "confirmTitle": "ยืนยันการลบลูกค้า",
+      "confirmMessage": "หากลูกค้ามีใบสั่งขายที่เกี่ยวข้อง จะถูกปิดใช้งานแทนการลบ",
+      "actions": {
+        "cancel": "ยกเลิก",
+        "delete": "ลบ",
+        "deleting": "กำลังลบ..."
+      }
     }
   },
   "shipping": {
