@@ -28,7 +28,6 @@ import DataGrid, {
   TotalItem,
   Toolbar,
   Item as ToolbarItem,
-  Scrolling,
 } from 'devextreme-react/data-grid';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -562,7 +561,6 @@ export default function ItemsPage() {
             }}
             className="items-professional-grid"
           >
-            <Scrolling rowRenderingMode="virtual" />
             <SearchPanel visible={true} placeholder={t('items.searchPlaceholder')} width={250} />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
@@ -655,7 +653,7 @@ export default function ItemsPage() {
               <TotalItem column="code" summaryType="count" displayFormat={`${t('common.total')}: {0}`} />
             </Summary>
 
-            <Paging defaultPageSize={20} />
+            <Paging enabled={true} defaultPageSize={20} />
             <Pager
               visible={true}
               showPageSizeSelector={true}
