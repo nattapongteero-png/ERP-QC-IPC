@@ -212,10 +212,11 @@ export default function ItemsPage() {
     };
   }, [items]);
 
-  // Filter items by tab
+  // Filter items by tab and add row numbers
   const filteredItems = useMemo(() => {
-    if (activeTab === 'all') return items;
-    return items.filter((item) => item.type === activeTab);
+    const filtered = activeTab === 'all' ? items : items.filter((item) => item.type === activeTab);
+    // Add _rowNumber for stable display with virtual scrolling
+    return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [items, activeTab]);
 
   // Handlers
@@ -571,6 +572,7 @@ export default function ItemsPage() {
             <Export enabled={true} />
 
             <Column
+              dataField="_rowNumber"
               caption={t('items.grid.columns.rowNum')}
               width={60}
               alignment="center"
@@ -579,7 +581,7 @@ export default function ItemsPage() {
               allowGrouping={false}
               cellRender={(cellInfo) => (
                 <span className="text-gray-500 text-sm font-medium">
-                  {cellInfo.rowIndex + 1}
+                  {cellInfo.data._rowNumber}
                 </span>
               )}
             />
