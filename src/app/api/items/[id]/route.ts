@@ -84,7 +84,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         'secondaryUnit', 'conversionRate', 'shelfLifeDays', 'storageCondition',
         'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
         'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'vmiSyncEnabled',
-        'confidentialityLevel', 'defaultConfidential'
+        'confidentialityLevel', 'defaultConfidential', 'strength'
       ];
 
       for (const field of allowedFields) {
