@@ -562,7 +562,7 @@ export default function ItemsPage() {
             }}
             className="items-professional-grid"
           >
-            <Scrolling mode="virtual" />
+            <Scrolling rowRenderingMode="virtual" />
             <SearchPanel visible={true} placeholder={t('items.searchPlaceholder')} width={250} />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
