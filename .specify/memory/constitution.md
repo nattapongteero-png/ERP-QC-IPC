@@ -38,7 +38,7 @@ All code in this project MUST adhere to the following non-negotiable quality sta
 - **Single Responsibility**: Each module, component, and function MUST have a single, clearly defined purpose. Functions exceeding 50 lines SHOULD be refactored unless complexity justifies otherwise.
 - **No Hardcoded Values**: Configuration values, API endpoints, and business logic conditions MUST NOT be hardcoded. Use environment variables, configuration files, or database-driven settings.
 - **Error Handling**: All async operations MUST have explicit error handling. API endpoints MUST return appropriate HTTP status codes and structured error responses.
-- **Error Verification**: After completing any code modification, developers MUST check for coding errors by running type checking (`pnpm tsc --noEmit`) and linting (`pnpm lint`). Code with errors MUST NOT be left in the codebase.
+- **Error Verification**: After completing any code modification, developers MUST check for coding errors by running type checking (`bunx tsc --noEmit`) and linting (`bun run lint`). Code with errors MUST NOT be left in the codebase.
 - **Frequent Commits**: Code MUST be committed frequently after each completed task or logical unit of work to prevent loss of progress and enable easy rollback. Uncommitted code is at risk of being lost and makes debugging harder.
 - **Reusable Components**: Common UI patterns MUST be extracted into reusable components rather than inlined in pages. This includes:
   - **Search dialogs**: Item lookup, vendor search, customer search MUST use shared search dialog components.
@@ -115,10 +115,10 @@ All code changes MUST pass the following gates before merge:
 
 | Gate | Requirement | Enforcement |
 |------|-------------|-------------|
-| Type Check | `pnpm tsc --noEmit` passes | CI pipeline |
-| Lint | `pnpm lint` passes with no errors | CI pipeline |
-| Unit Tests | `pnpm test:run` passes | CI pipeline |
-| Build | `pnpm build` succeeds | CI pipeline |
+| Type Check | `bunx tsc --noEmit` passes | CI pipeline |
+| Lint | `bun run lint` passes with no errors | CI pipeline |
+| Unit Tests | `bun run test:run` passes | CI pipeline |
+| Build | `bun run build` succeeds | CI pipeline |
 | Code Review | At least one approval | GitHub branch protection |
 
 ## Development Workflow
@@ -137,9 +137,9 @@ The following workflow MUST be followed for all changes:
    - Clean up implementation while keeping tests green
    - Extract common patterns, improve naming, reduce duplication
 5. **Verify**: After EACH code modification, MUST run error checks:
-   - Run `pnpm tsc --noEmit` to check for TypeScript errors
-   - Run `pnpm lint` to check for linting errors
-   - Run `pnpm test:run` to ensure all tests pass
+   - Run `bunx tsc --noEmit` to check for TypeScript errors
+   - Run `bun run lint` to check for linting errors
+   - Run `bun run test:run` to ensure all tests pass
    - Fix all errors before proceeding
 6. **Commit**: MUST commit code immediately after completing each task or logical unit of work. Create atomic commits with clear messages. Include issue references where applicable.
 7. **Push**: Push to remote and create pull request.
