@@ -12,6 +12,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -194,6 +195,7 @@ async function receivePayment(
 }
 
 export default function ARInvoicesPage() {
+  const t = useTranslations('accounting');
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -481,8 +483,8 @@ export default function ARInvoicesPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" data-testid="ar-invoices-page">
       {/* Professional Header */}
       <AccountingPageHeader
-        title="ใบแจ้งหนี้ขาย"
-        subtitle="AR Invoices / Tax Invoices"
+        title={t('accountsReceivable.invoices.title')}
+        subtitle={t('accountsReceivable.title')}
         icon="dollar-sign"
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ar-invoices'] })}
         actions={

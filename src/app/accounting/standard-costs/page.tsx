@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
@@ -47,6 +48,7 @@ const defaultFormData: CreateFormData = {
 };
 
 export default function StandardCostsPage() {
+  const t = useTranslations('accounting');
   const [loading, setLoading] = useState(true);
   const [costs, setCosts] = useState<StandardCost[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -173,7 +175,7 @@ export default function StandardCostsPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            Standard Costs
+            {t('page.title')}
           </h1>
           <p className="text-gray-600">
             Manage standard costs for manufacturing variance analysis

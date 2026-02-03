@@ -7,6 +7,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
   Receipt,
@@ -191,6 +192,7 @@ const quickNavCards = [
 ];
 
 export default function APDashboardPage() {
+  const t = useTranslations('accounting');
   const { data: metrics, isLoading, refetch } = useQuery({
     queryKey: ['ap-dashboard-metrics'],
     queryFn: fetchAPDashboardMetrics,
@@ -212,8 +214,8 @@ export default function APDashboardPage() {
     <div className="space-y-6 p-1" data-testid="ap-dashboard">
       {/* Header */}
       <AccountingPageHeader
-        title="Accounts Payable Dashboard"
-        subtitle="Manage vendor invoices and payments"
+        title={t('accountsPayable.title')}
+        subtitle={t('accountsPayable.description')}
         icon="receipt"
         onRefresh={() => refetch()}
       />

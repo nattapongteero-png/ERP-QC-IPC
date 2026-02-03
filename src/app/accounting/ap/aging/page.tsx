@@ -8,6 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button } from 'devextreme-react/button';
 import DataGrid, { Column, Export, Summary, TotalItem } from 'devextreme-react/data-grid';
@@ -62,6 +63,7 @@ function formatCompactCurrency(amount: number): string {
 }
 
 export default function APAgingReportPage() {
+  const t = useTranslations('accounting');
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [generateReport, setGenerateReport] = useState(false);
 
@@ -95,8 +97,8 @@ export default function APAgingReportPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30" data-testid="ap-aging-page">
       <AccountingPageHeader
-        title="AP Aging Report"
-        subtitle="Accounts payable aging analysis by vendor"
+        title={t('reports.agingReport')}
+        subtitle={t('accountsPayable.description')}
         icon="clock"
       />
 

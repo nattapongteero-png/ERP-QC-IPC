@@ -6,6 +6,7 @@
 // Following Template Module UI Patterns
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -179,6 +180,7 @@ const getWorkflowData = (validation: PeriodValidation | null | undefined) => {
 };
 
 export default function PeriodClosePage() {
+  const t = useTranslations('accounting');
   const queryClient = useQueryClient();
   const [selectedYearId, setSelectedYearId] = useState<number | undefined>();
   const [selectedPeriodId, setSelectedPeriodId] = useState<number | null>(null);
@@ -278,7 +280,7 @@ export default function PeriodClosePage() {
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Period Close</h1>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('page.title')}</h1>
               <p className="text-sm text-gray-500 mt-0.5">Month-end and year-end closing procedures</p>
             </div>
           </div>

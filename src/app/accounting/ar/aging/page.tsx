@@ -8,6 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -116,6 +117,7 @@ function formatCompactCurrency(amount: number): string {
 }
 
 export default function ARAgingPage() {
+  const t = useTranslations('accounting');
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
 
   const { data: report, isLoading, refetch } = useQuery({
@@ -160,8 +162,8 @@ export default function ARAgingPage() {
     <div className="space-y-6 p-1" data-testid="ar-aging-page">
       {/* Header */}
       <AccountingPageHeader
-        title="AR Aging Report"
-        subtitle="Accounts receivable aging analysis by customer"
+        title={t('reports.agingReport')}
+        subtitle={t('accountsReceivable.description')}
         icon="clock"
         onRefresh={handleRefresh}
         actions={

@@ -446,89 +446,92 @@
 
 ---
 
-### Phase 10D: Accounting Module (42 pages, 2 migrated)
+### Phase 10D: Accounting Module (44 pages, 44 migrated)
 
 **Translation file**: `src/locales/th/accounting.json`, `src/locales/en/accounting.json`
 
 #### TDD Red Phase
 
-- [ ] T139 [TDD-R] Create i18n tests for Accounting module in `tests/app/accounting/i18n.test.tsx` covering all 40 remaining pages. Tests MUST fail initially.
+- [x] T139 [TDD-R] Create i18n tests for Accounting module in `tests/app/accounting/i18n.test.tsx` covering all 44 pages. Tests MUST fail initially.
 
 #### TDD Green Phase
 
 ##### AP Sub-module (4 pages)
 
-- [ ] T140 [P] [TDD-G] Migrate `src/app/accounting/ap/page.tsx` to use i18n
-- [ ] T141 [P] [TDD-G] Migrate `src/app/accounting/ap/aging/page.tsx` to use i18n
-- [ ] T142 [P] [TDD-G] Migrate `src/app/accounting/ap/invoices/page.tsx` to use i18n
-- [ ] T143 [P] [TDD-G] Migrate `src/app/accounting/ap/payments/page.tsx` to use i18n
+- [x] T140 [P] [TDD-G] Migrate `src/app/accounting/ap/page.tsx` to use i18n
+- [x] T141 [P] [TDD-G] Migrate `src/app/accounting/ap/aging/page.tsx` to use i18n
+- [x] T142 [P] [TDD-G] Migrate `src/app/accounting/ap/invoices/page.tsx` to use i18n
+- [x] T143 [P] [TDD-G] Migrate `src/app/accounting/ap/payments/page.tsx` to use i18n
 
 ##### AR Sub-module (4 pages)
 
-- [ ] T144 [P] [TDD-G] Migrate `src/app/accounting/ar/page.tsx` to use i18n
-- [ ] T145 [P] [TDD-G] Migrate `src/app/accounting/ar/aging/page.tsx` to use i18n
-- [ ] T146 [P] [TDD-G] Migrate `src/app/accounting/ar/invoices/page.tsx` to use i18n
-- [ ] T147 [P] [TDD-G] Migrate `src/app/accounting/ar/receipts/page.tsx` to use i18n
+- [x] T144 [P] [TDD-G] Migrate `src/app/accounting/ar/page.tsx` to use i18n
+- [x] T145 [P] [TDD-G] Migrate `src/app/accounting/ar/aging/page.tsx` to use i18n
+- [x] T146 [P] [TDD-G] Migrate `src/app/accounting/ar/invoices/page.tsx` to use i18n
+- [x] T147 [P] [TDD-G] Migrate `src/app/accounting/ar/receipts/page.tsx` to use i18n
 
 ##### Equipment Sub-module (3 pages)
 
-- [ ] T148 [P] [TDD-G] Migrate `src/app/accounting/equipment/page.tsx` to use i18n
-- [ ] T149 [P] [TDD-G] Migrate `src/app/accounting/equipment/new/page.tsx` to use i18n
-- [ ] T150 [P] [TDD-G] Migrate `src/app/accounting/equipment/[id]/page.tsx` to use i18n
+- [x] T148 [P] [TDD-G] Migrate `src/app/accounting/equipment/page.tsx` to use i18n
+- [x] T149 [P] [TDD-G] Migrate `src/app/accounting/equipment/new/page.tsx` to use i18n
+- [x] T150 [P] [TDD-G] Migrate `src/app/accounting/equipment/[id]/page.tsx` to use i18n
 
 ##### Fixed Assets Sub-module (3 pages)
 
-- [ ] T151 [P] [TDD-G] Migrate `src/app/accounting/fixed-assets/page.tsx` to use i18n
-- [ ] T152 [P] [TDD-G] Migrate `src/app/accounting/fixed-assets/new/page.tsx` to use i18n
-- [ ] T153 [P] [TDD-G] Migrate `src/app/accounting/fixed-assets/[id]/page.tsx` to use i18n
+- [x] T151 [P] [TDD-G] Migrate `src/app/accounting/fixed-assets/page.tsx` to use i18n
+- [x] T152 [P] [TDD-G] Migrate `src/app/accounting/fixed-assets/new/page.tsx` to use i18n
+- [x] T153 [P] [TDD-G] Migrate `src/app/accounting/fixed-assets/[id]/page.tsx` to use i18n
 
-##### Journal Entries Sub-module (2 pages)
+##### Journal Entries Sub-module (3 pages)
 
-- [ ] T154 [P] [TDD-G] Migrate `src/app/accounting/journal-entries/new/page.tsx` to use i18n
-- [ ] T155 [P] [TDD-G] Migrate `src/app/accounting/journal-entries/[id]/page.tsx` to use i18n
+- [x] T154 [P] [TDD-G] Migrate `src/app/accounting/journal-entries/page.tsx` to use i18n
+- [x] T155 [P] [TDD-G] Migrate `src/app/accounting/journal-entries/new/page.tsx` to use i18n
+- [x] T155b [P] [TDD-G] Migrate `src/app/accounting/journal-entries/[id]/page.tsx` to use i18n
 
 ##### Reports Sub-module (7 pages)
 
-- [ ] T156 [P] [TDD-G] Migrate `src/app/accounting/reports/page.tsx` to use i18n
-- [ ] T157 [P] [TDD-G] Migrate `src/app/accounting/reports/balance-sheet/page.tsx` to use i18n
-- [ ] T158 [P] [TDD-G] Migrate `src/app/accounting/reports/cash-flow/page.tsx` to use i18n
-- [ ] T159 [P] [TDD-G] Migrate `src/app/accounting/reports/income-statement/page.tsx` to use i18n
-- [ ] T160 [P] [TDD-G] Migrate `src/app/accounting/reports/trial-balance/page.tsx` to use i18n
-- [ ] T161 [P] [TDD-G] Migrate `src/app/accounting/reports/vat/page.tsx` to use i18n
-- [ ] T162 [P] [TDD-G] Migrate `src/app/accounting/reports/wht/page.tsx` to use i18n
+- [x] T156 [P] [TDD-G] Migrate `src/app/accounting/reports/page.tsx` to use i18n
+- [x] T157 [P] [TDD-G] Migrate `src/app/accounting/reports/balance-sheet/page.tsx` to use i18n
+- [x] T158 [P] [TDD-G] Migrate `src/app/accounting/reports/cash-flow/page.tsx` to use i18n
+- [x] T159 [P] [TDD-G] Migrate `src/app/accounting/reports/income-statement/page.tsx` to use i18n
+- [x] T160 [P] [TDD-G] Migrate `src/app/accounting/reports/trial-balance/page.tsx` to use i18n
+- [x] T161 [P] [TDD-G] Migrate `src/app/accounting/reports/vat/page.tsx` to use i18n
+- [x] T162 [P] [TDD-G] Migrate `src/app/accounting/reports/wht/page.tsx` to use i18n
 
 ##### Bank Reconciliation Sub-module (4 pages)
 
-- [ ] T163 [P] [TDD-G] Migrate `src/app/accounting/bank-reconciliation/page.tsx` to use i18n
-- [ ] T164 [P] [TDD-G] Migrate `src/app/accounting/bank-reconciliation/reconcile/[id]/page.tsx` to use i18n
-- [ ] T165 [P] [TDD-G] Migrate `src/app/accounting/bank-reconciliation/statements/new/page.tsx` to use i18n
-- [ ] T166 [P] [TDD-G] Migrate `src/app/accounting/bank-reconciliation/statements/[id]/page.tsx` to use i18n
+- [x] T163 [P] [TDD-G] Migrate `src/app/accounting/bank-reconciliation/page.tsx` to use i18n
+- [x] T164 [P] [TDD-G] Migrate `src/app/accounting/bank-reconciliation/reconcile/[id]/page.tsx` to use i18n
+- [x] T165 [P] [TDD-G] Migrate `src/app/accounting/bank-reconciliation/statements/new/page.tsx` to use i18n
+- [x] T166 [P] [TDD-G] Migrate `src/app/accounting/bank-reconciliation/statements/[id]/page.tsx` to use i18n
 
 ##### Credit/Debit Notes Sub-module (9 pages)
 
-- [ ] T167 [P] [TDD-G] Migrate `src/app/accounting/credit-debit-notes/page.tsx` to use i18n
-- [ ] T168 [P] [TDD-G] Migrate `src/app/accounting/credit-debit-notes/new/page.tsx` to use i18n
-- [ ] T169 [P] [TDD-G] Migrate `src/app/accounting/credit-debit-notes/[id]/page.tsx` to use i18n
-- [ ] T170 [P] [TDD-G] Migrate `src/app/accounting/credit-notes/page.tsx` to use i18n
-- [ ] T171 [P] [TDD-G] Migrate `src/app/accounting/credit-notes/new/page.tsx` to use i18n
-- [ ] T172 [P] [TDD-G] Migrate `src/app/accounting/credit-notes/[id]/page.tsx` to use i18n
-- [ ] T173 [P] [TDD-G] Migrate `src/app/accounting/debit-notes/page.tsx` to use i18n
-- [ ] T174 [P] [TDD-G] Migrate `src/app/accounting/debit-notes/new/page.tsx` to use i18n
-- [ ] T175 [P] [TDD-G] Migrate `src/app/accounting/debit-notes/[id]/page.tsx` to use i18n
+- [x] T167 [P] [TDD-G] Migrate `src/app/accounting/credit-debit-notes/page.tsx` to use i18n
+- [x] T168 [P] [TDD-G] Migrate `src/app/accounting/credit-debit-notes/new/page.tsx` to use i18n
+- [x] T169 [P] [TDD-G] Migrate `src/app/accounting/credit-debit-notes/[id]/page.tsx` to use i18n
+- [x] T170 [P] [TDD-G] Migrate `src/app/accounting/credit-notes/page.tsx` to use i18n
+- [x] T171 [P] [TDD-G] Migrate `src/app/accounting/credit-notes/new/page.tsx` to use i18n
+- [x] T172 [P] [TDD-G] Migrate `src/app/accounting/credit-notes/[id]/page.tsx` to use i18n
+- [x] T173 [P] [TDD-G] Migrate `src/app/accounting/debit-notes/page.tsx` to use i18n
+- [x] T174 [P] [TDD-G] Migrate `src/app/accounting/debit-notes/new/page.tsx` to use i18n
+- [x] T175 [P] [TDD-G] Migrate `src/app/accounting/debit-notes/[id]/page.tsx` to use i18n
 
-##### Other Accounting Pages (5 pages)
+##### Other Accounting Pages (6 pages)
 
-- [ ] T176 [P] [TDD-G] Migrate `src/app/accounting/approvals/page.tsx` to use i18n
-- [ ] T177 [P] [TDD-G] Migrate `src/app/accounting/matching/page.tsx` to use i18n
-- [ ] T178 [P] [TDD-G] Migrate `src/app/accounting/period-close/page.tsx` to use i18n
-- [ ] T179 [P] [TDD-G] Migrate `src/app/accounting/standard-costs/page.tsx` to use i18n
-- [ ] T180 [P] [TDD-G] Migrate `src/app/accounting/variance-reports/page.tsx` to use i18n
+- [x] T176 [P] [TDD-G] Migrate `src/app/accounting/page.tsx` to use i18n
+- [x] T177 [P] [TDD-G] Migrate `src/app/accounting/approvals/page.tsx` to use i18n
+- [x] T178 [P] [TDD-G] Migrate `src/app/accounting/chart-of-accounts/page.tsx` to use i18n
+- [x] T179 [P] [TDD-G] Migrate `src/app/accounting/matching/page.tsx` to use i18n
+- [x] T180 [P] [TDD-G] Migrate `src/app/accounting/period-close/page.tsx` to use i18n
+- [x] T180b [P] [TDD-G] Migrate `src/app/accounting/standard-costs/page.tsx` to use i18n
+- [x] T180c [P] [TDD-G] Migrate `src/app/accounting/variance-reports/page.tsx` to use i18n
 
 #### TDD Verify Phase
 
-- [ ] T181 [TDD-V] Accounting Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
+- [x] T181 [TDD-V] Accounting Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
 
-**Checkpoint**: Accounting module complete (42 pages) ⬜
+**Checkpoint**: Accounting module complete (44 pages) ✅
 
 ---
 

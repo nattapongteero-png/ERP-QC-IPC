@@ -8,6 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -160,6 +161,7 @@ function getPaymentMethodLabel(method: string): string {
 }
 
 export default function ARReceiptsPage() {
+  const t = useTranslations('accounting');
   const queryClient = useQueryClient();
   const [paymentMethod, setPaymentMethod] = useState('');
   const [status, setStatus] = useState('');
@@ -222,8 +224,8 @@ export default function ARReceiptsPage() {
     <div className="space-y-6 p-1">
       {/* Header */}
       <AccountingPageHeader
-        title="Customer Receipts"
-        subtitle="Track and manage customer payment receipts"
+        title={t('accountsReceivable.receipts.title')}
+        subtitle={t('accountsReceivable.description')}
         icon="file-text"
         onRefresh={handleRefresh}
         actions={

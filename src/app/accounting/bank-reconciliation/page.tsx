@@ -7,6 +7,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import DataGrid, {
@@ -64,6 +65,7 @@ async function deleteStatement(id: number): Promise<void> {
 }
 
 export default function BankReconciliationPage() {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -190,8 +192,8 @@ export default function BankReconciliationPage() {
     <div className="space-y-6 p-1">
       {/* Header */}
       <AccountingPageHeader
-        title="Bank Reconciliation"
-        subtitle="Import bank statements and reconcile transactions with payments and receipts"
+        title={t('page.title')}
+        subtitle={t('page.description')}
         icon="banknote"
         onRefresh={() => refetch()}
         actions={

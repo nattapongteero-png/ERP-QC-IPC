@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -83,6 +84,7 @@ async function deleteAsset(id: number): Promise<void> {
 }
 
 export default function FixedAssetsPage() {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -173,7 +175,7 @@ export default function FixedAssetsPage() {
     <div className="space-y-6 p-1" data-testid="fixed-assets-page">
       {/* Header */}
       <ResponsivePageHeader
-        title="Fixed Assets"
+        title={t('page.title')}
         subtitle="Manage fixed assets and depreciation"
         icon={Building}
         iconBgColor="bg-blue-100"

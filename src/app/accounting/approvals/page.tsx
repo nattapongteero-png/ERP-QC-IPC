@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
@@ -71,6 +72,7 @@ const statusColors = {
 };
 
 export default function ApprovalDashboardPage() {
+  const t = useTranslations('accounting');
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<ApprovalDashboard | null>(null);
   const [showActionDialog, setShowActionDialog] = useState(false);
@@ -188,10 +190,10 @@ export default function ApprovalDashboardPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            Approval Dashboard
+            {t('page.title')}
           </h1>
           <p className="text-gray-600">
-            Review and action pending approval requests
+            {t('page.description')}
           </p>
         </div>
 

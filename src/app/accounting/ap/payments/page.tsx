@@ -12,6 +12,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -155,6 +156,7 @@ async function recordPayment(
 }
 
 export default function APPaymentsPage() {
+  const t = useTranslations('accounting');
   const queryClient = useQueryClient();
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('');
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
@@ -342,8 +344,8 @@ export default function APPaymentsPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Professional Header */}
       <AccountingPageHeader
-        title="AP Payments"
-        subtitle="Vendor Payment Records"
+        title={t('accountsPayable.payments.title')}
+        subtitle={t('accountsPayable.description')}
         icon="credit-card"
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['payments'] })}
         actions={

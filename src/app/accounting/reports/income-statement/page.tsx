@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -52,7 +53,8 @@ function SectionTable({ section, title, isSubtraction = false }: { section: Inco
 }
 
 function IncomeStatementContent() {
-  const { language, t, formatCurrency } = useReportLanguage();
+  const t = useTranslations('accounting');
+  const { language, t: reportT, formatCurrency } = useReportLanguage();
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 1);
@@ -146,7 +148,7 @@ function IncomeStatementContent() {
   }, []);
 
   return (
-    <div className="p-6" data-testid="income-statement-page">
+    <div className="p-6" data-testid="income-statement-page" data-title={t('page.title')}>
       <ReportHeader
         titleKey="incomeStatement"
         subtitle={`${t('period')}: ${startDate} - ${endDate}`}

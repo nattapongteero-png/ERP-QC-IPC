@@ -5,6 +5,7 @@
 // User Story 6: Manage VAT and Withholding Tax
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button as DxButton } from 'devextreme-react/button';
@@ -43,6 +44,7 @@ async function fetchVATReport(taxPeriod: string): Promise<VATReport> {
 }
 
 export default function VATReportPage() {
+  const t = useTranslations('accounting');
   const [taxPeriod, setTaxPeriod] = useState<Date>(new Date());
   const [reportGenerated, setReportGenerated] = useState(false);
 
@@ -70,7 +72,7 @@ export default function VATReportPage() {
   }, [report, taxPeriod]);
 
   return (
-    <div className="flex flex-col gap-6 pb-8" data-testid="vat-report-page">
+    <div className="flex flex-col gap-6 pb-8" data-testid="vat-report-page" data-title={t('page.title')}>
       {/* Professional Page Header */}
       <AccountingPageHeader
         title="รายงานภาษีมูลค่าเพิ่ม"

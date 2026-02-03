@@ -7,6 +7,7 @@
  */
 
 import { use } from 'react';
+import { useTranslations } from 'next-intl';
 import { JournalEntryForm } from '@/components/accounting';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function JournalEntryDetailPage({ params }: Props) {
+  const t = useTranslations('accounting');
   const { id } = use(params);
   const entryId = Number(id);
 
@@ -28,7 +30,7 @@ export default function JournalEntryDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6" data-title={t('page.title')}>
       <JournalEntryForm mode="edit" entryId={entryId} />
     </div>
   );

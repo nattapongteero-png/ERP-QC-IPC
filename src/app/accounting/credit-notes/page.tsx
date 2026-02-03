@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -43,6 +44,7 @@ const noteTypeLabels: Record<string, string> = {
 };
 
 export default function CreditNotesPage() {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const [notes, setNotes] = useState<CreditDebitNote[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -140,7 +142,7 @@ export default function CreditNotesPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            Credit Notes
+            {t('page.title')}
           </h1>
           <p className="text-gray-600">
             Manage credit notes for customers and vendors

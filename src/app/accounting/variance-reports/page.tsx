@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import DataGrid, {
   Column,
@@ -24,6 +25,7 @@ import type { VarianceSummaryReport, MaterialVarianceReport, LaborVarianceReport
 type ReportTab = 'summary' | 'material' | 'labor';
 
 export default function VarianceReportsPage() {
+  const t = useTranslations('accounting');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ReportTab>('summary');
   const [dateFrom, setDateFrom] = useState<Date | null>(() => {
@@ -149,7 +151,7 @@ export default function VarianceReportsPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            Variance Reports
+            {t('page.title')}
           </h1>
           <p className="text-gray-600">
             Manufacturing variance analysis and cost control reports

@@ -7,6 +7,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
   FileText,
@@ -190,6 +191,7 @@ const quickNavCards = [
 ];
 
 export default function ARDashboardPage() {
+  const t = useTranslations('accounting');
   const { data: metrics, isLoading, refetch } = useQuery({
     queryKey: ['ar-dashboard-metrics'],
     queryFn: fetchARDashboardMetrics,
@@ -211,8 +213,8 @@ export default function ARDashboardPage() {
     <div className="space-y-6 p-1" data-testid="ar-dashboard">
       {/* Header */}
       <AccountingPageHeader
-        title="Accounts Receivable Dashboard"
-        subtitle="Manage customer invoices and collections"
+        title={t('accountsReceivable.title')}
+        subtitle={t('accountsReceivable.description')}
         icon="file-text"
         onRefresh={() => refetch()}
       />

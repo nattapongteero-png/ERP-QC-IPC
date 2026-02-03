@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -51,7 +52,8 @@ function SectionTable({ section, title }: { section: CashFlowSection; title: str
 }
 
 function CashFlowContent() {
-  const { language, t, formatCurrency } = useReportLanguage();
+  const t = useTranslations('accounting');
+  const { language, t: reportT, formatCurrency } = useReportLanguage();
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 1);
@@ -137,7 +139,7 @@ function CashFlowContent() {
   }, []);
 
   return (
-    <div className="p-6" data-testid="cash-flow-page">
+    <div className="p-6" data-testid="cash-flow-page" data-title={t('page.title')}>
       <ReportHeader
         titleKey="cashFlowStatement"
         subtitle={`${t('period')}: ${startDate} - ${endDate}`}

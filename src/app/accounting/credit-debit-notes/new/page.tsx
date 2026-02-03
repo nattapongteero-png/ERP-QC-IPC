@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -27,6 +28,7 @@ interface LineItem {
 }
 
 export default function NewCreditDebitNotePage() {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -212,7 +214,7 @@ export default function NewCreditDebitNotePage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            New Credit/Debit Note
+            {t('page.title')}
           </h1>
           <p className="text-gray-600">Create a new credit or debit note</p>
         </div>

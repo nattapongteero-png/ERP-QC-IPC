@@ -7,6 +7,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Popup } from 'devextreme-react/popup';
@@ -28,6 +29,7 @@ const chargeTypes = [
 ];
 
 export default function ReconciliationPage({ params }: PageProps) {
+  const t = useTranslations('accounting');
   const { id } = use(params);
   const router = useRouter();
   const [statement, setStatement] = useState<BankStatementWithLines | null>(null);
@@ -276,7 +278,7 @@ export default function ReconciliationPage({ params }: PageProps) {
         <div className="mb-4 flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-              Reconcile Statement: {statement.statementNumber}
+              {t('page.title')}: {statement.statementNumber}
             </h1>
             <p className="text-gray-600">
               {statement.bankAccountName} | {statement.bankAccountNumber}
