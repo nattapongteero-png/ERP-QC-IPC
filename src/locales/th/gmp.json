@@ -7,6 +7,277 @@
     "title": "การปฏิบัติตามข้อกำหนด",
     "description": "ติดตามสถานะการปฏิบัติตามข้อกำหนด GMP"
   },
+  "stability": {
+    "title": "ความเสถียร",
+    "pageTitle": "โปรแกรมความเสถียร",
+    "description": "จัดการการศึกษาความเสถียรของผลิตภัณฑ์",
+    "dashboard": {
+      "title": "แดชบอร์ดความเสถียร",
+      "activeStudies": "การศึกษาที่กำลังดำเนินการ",
+      "completedStudies": "การศึกษาที่เสร็จสิ้น",
+      "onHoldStudies": "การศึกษาที่หยุดชั่วคราว",
+      "overdueSamples": "ตัวอย่างที่เกินกำหนด",
+      "upcomingSamples": "ตัวอย่างที่กำลังจะมาถึง",
+      "oosThisMonth": "OOS เดือนนี้",
+      "completedThisMonth": "เสร็จสิ้นเดือนนี้"
+    },
+    "status": {
+      "active": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "onHold": "หยุดชั่วคราว",
+      "cancelled": "ยกเลิก"
+    },
+    "studyType": {
+      "longTerm": "ระยะยาว",
+      "accelerated": "เร่งรัด",
+      "intermediate": "ระยะกลาง"
+    },
+    "actions": {
+      "newStudy": "สร้างการศึกษาใหม่",
+      "viewStudy": "ดูการศึกษา",
+      "refresh": "รีเฟรช"
+    },
+    "studies": {
+      "title": "การศึกษาความเสถียร",
+      "description": "รายการการศึกษาความเสถียรทั้งหมด"
+    },
+    "trends": {
+      "title": "แนวโน้มความเสถียร",
+      "description": "วิเคราะห์แนวโน้มข้อมูลความเสถียร"
+    },
+    "protocols": {
+      "title": "โปรโตคอลความเสถียร",
+      "description": "จัดการโปรโตคอลการทดสอบความเสถียร"
+    }
+  },
+  "capa": {
+    "title": "CAPA",
+    "pageTitle": "การจัดการ CAPA",
+    "description": "การแก้ไขและป้องกัน",
+    "status": {
+      "open": "เปิด",
+      "inProgress": "กำลังดำเนินการ",
+      "pendingApproval": "รอการอนุมัติ",
+      "closed": "ปิด",
+      "overdue": "เกินกำหนด"
+    },
+    "priority": {
+      "critical": "วิกฤต",
+      "high": "สูง",
+      "medium": "ปานกลาง",
+      "low": "ต่ำ"
+    },
+    "actions": {
+      "newCapa": "สร้าง CAPA ใหม่",
+      "viewCapa": "ดู CAPA",
+      "editCapa": "แก้ไข CAPA",
+      "refresh": "รีเฟรช"
+    },
+    "dashboard": {
+      "totalOpen": "CAPA ที่เปิดอยู่",
+      "overdue": "เกินกำหนด",
+      "dueThisWeek": "กำหนดสัปดาห์นี้",
+      "completedThisMonth": "เสร็จสิ้นเดือนนี้"
+    }
+  },
+  "complaints": {
+    "title": "ข้อร้องเรียน",
+    "pageTitle": "การจัดการข้อร้องเรียน",
+    "description": "จัดการข้อร้องเรียนจากลูกค้า",
+    "status": {
+      "new": "ใหม่",
+      "underInvestigation": "กำลังสอบสวน",
+      "resolved": "แก้ไขแล้ว",
+      "closed": "ปิด"
+    },
+    "severity": {
+      "critical": "วิกฤต",
+      "major": "ร้ายแรง",
+      "minor": "เล็กน้อย"
+    },
+    "actions": {
+      "newComplaint": "บันทึกข้อร้องเรียนใหม่",
+      "viewComplaint": "ดูข้อร้องเรียน",
+      "investigate": "สอบสวน",
+      "refresh": "รีเฟรช"
+    },
+    "trends": {
+      "title": "แนวโน้มข้อร้องเรียน",
+      "description": "วิเคราะห์แนวโน้มข้อร้องเรียน"
+    }
+  },
+  "documents": {
+    "title": "เอกสาร",
+    "pageTitle": "การจัดการเอกสาร GMP",
+    "description": "จัดการเอกสาร GMP",
+    "status": {
+      "draft": "ร่าง",
+      "pendingReview": "รอตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "obsolete": "ล้าสมัย"
+    },
+    "type": {
+      "sop": "SOP",
+      "form": "แบบฟอร์ม",
+      "specification": "ข้อกำหนด",
+      "protocol": "โปรโตคอล"
+    },
+    "actions": {
+      "newDocument": "สร้างเอกสารใหม่",
+      "viewDocument": "ดูเอกสาร",
+      "editDocument": "แก้ไขเอกสาร",
+      "refresh": "รีเฟรช"
+    }
+  },
+  "internalAudit": {
+    "title": "การตรวจสอบภายใน",
+    "pageTitle": "การตรวจสอบภายใน GMP",
+    "description": "จัดการการตรวจสอบภายในตามมาตรฐาน GMP",
+    "status": {
+      "planned": "วางแผนแล้ว",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิก"
+    },
+    "actions": {
+      "scheduleAudit": "กำหนดการตรวจสอบ",
+      "viewAudit": "ดูการตรวจสอบ",
+      "conductAudit": "ดำเนินการตรวจสอบ",
+      "refresh": "รีเฟรช"
+    },
+    "audits": {
+      "title": "รายการตรวจสอบ",
+      "description": "รายการการตรวจสอบภายในทั้งหมด"
+    },
+    "findings": {
+      "title": "ข้อค้นพบ",
+      "description": "รายการข้อค้นพบจากการตรวจสอบ"
+    },
+    "plans": {
+      "title": "แผนการตรวจสอบ",
+      "description": "แผนการตรวจสอบประจำปี"
+    }
+  },
+  "recalls": {
+    "title": "การเรียกคืน",
+    "pageTitle": "การจัดการการเรียกคืน",
+    "description": "จัดการกระบวนการเรียกคืนผลิตภัณฑ์",
+    "status": {
+      "initiated": "เริ่มต้น",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "closed": "ปิด"
+    },
+    "class": {
+      "classI": "ระดับ I (ร้ายแรงมาก)",
+      "classII": "ระดับ II (ร้ายแรง)",
+      "classIII": "ระดับ III (เล็กน้อย)"
+    },
+    "actions": {
+      "initiateRecall": "เริ่มการเรียกคืน",
+      "viewRecall": "ดูการเรียกคืน",
+      "updateStatus": "อัปเดตสถานะ",
+      "refresh": "รีเฟรช"
+    }
+  },
+  "sanitation": {
+    "title": "สุขาภิบาล",
+    "pageTitle": "การจัดการสุขาภิบาล",
+    "description": "จัดการกิจกรรมสุขาภิบาลและความสะอาด",
+    "status": {
+      "scheduled": "กำหนดแล้ว",
+      "inProgress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "overdue": "เกินกำหนด"
+    },
+    "actions": {
+      "scheduleCleaning": "กำหนดการทำความสะอาด",
+      "logCleaning": "บันทึกการทำความสะอาด",
+      "refresh": "รีเฟรช"
+    },
+    "logs": {
+      "title": "บันทึกสุขาภิบาล",
+      "description": "บันทึกกิจกรรมสุขาภิบาลประจำวัน"
+    },
+    "pestControl": {
+      "title": "การควบคุมสัตว์พาหะ",
+      "description": "บันทึกและติดตามกิจกรรมควบคุมสัตว์พาหะ"
+    },
+    "schedules": {
+      "title": "ตารางเวลา",
+      "description": "ตารางเวลาทำความสะอาดและสุขาภิบาล"
+    },
+    "trends": {
+      "title": "แนวโน้มสุขาภิบาล",
+      "description": "วิเคราะห์แนวโน้มข้อมูลสุขาภิบาล"
+    }
+  },
+  "changes": {
+    "title": "การเปลี่ยนแปลง",
+    "pageTitle": "การควบคุมการเปลี่ยนแปลง",
+    "description": "จัดการคำขอเปลี่ยนแปลงและกระบวนการอนุมัติ",
+    "status": {
+      "draft": "ร่าง",
+      "submitted": "ส่งแล้ว",
+      "underReview": "กำลังตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "rejected": "ปฏิเสธ",
+      "implemented": "นำไปใช้แล้ว"
+    },
+    "impact": {
+      "major": "ร้ายแรง",
+      "minor": "เล็กน้อย"
+    },
+    "actions": {
+      "newChange": "สร้างคำขอเปลี่ยนแปลง",
+      "viewChange": "ดูคำขอ",
+      "approveChange": "อนุมัติ",
+      "rejectChange": "ปฏิเสธ",
+      "refresh": "รีเฟรช"
+    }
+  },
+  "contracts": {
+    "title": "สัญญา",
+    "pageTitle": "การจัดการสัญญา",
+    "description": "จัดการสัญญาผู้ผลิตและห้องปฏิบัติการภายนอก",
+    "status": {
+      "active": "มีผล",
+      "expired": "หมดอายุ",
+      "pendingRenewal": "รอต่ออายุ"
+    },
+    "type": {
+      "manufacturer": "ผู้ผลิต",
+      "laboratory": "ห้องปฏิบัติการ",
+      "distributor": "ผู้จัดจำหน่าย"
+    },
+    "actions": {
+      "newContract": "สร้างสัญญาใหม่",
+      "viewContract": "ดูสัญญา",
+      "renewContract": "ต่ออายุสัญญา",
+      "refresh": "รีเฟรช"
+    }
+  },
+  "pqr": {
+    "title": "PQR",
+    "pageTitle": "Product Quality Review",
+    "description": "จัดการรายงานทบทวนคุณภาพผลิตภัณฑ์ประจำปี",
+    "status": {
+      "draft": "ร่าง",
+      "underReview": "กำลังตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "published": "เผยแพร่แล้ว"
+    },
+    "actions": {
+      "generatePqr": "สร้าง PQR",
+      "viewPqr": "ดู PQR",
+      "approvePqr": "อนุมัติ PQR",
+      "refresh": "รีเฟรช"
+    },
+    "generate": {
+      "title": "สร้างรายงาน PQR",
+      "description": "สร้างรายงานทบทวนคุณภาพผลิตภัณฑ์"
+    }
+  },
   "audits": {
     "title": "การตรวจสอบ",
     "description": "จัดการการตรวจสอบ GMP",
@@ -26,14 +297,6 @@
       "viewAudit": "ดูการตรวจสอบ"
     }
   },
-  "capa": {
-    "title": "CAPA",
-    "description": "การแก้ไขและป้องกัน"
-  },
-  "documents": {
-    "title": "เอกสาร",
-    "description": "จัดการเอกสาร GMP"
-  },
   "training": {
     "title": "การฝึกอบรม",
     "description": "จัดการการฝึกอบรม GMP"
@@ -42,6 +305,24 @@
     "createAudit": {
       "success": "สร้างการตรวจสอบสำเร็จ",
       "error": "ไม่สามารถสร้างการตรวจสอบได้"
+    },
+    "createStudy": {
+      "success": "สร้างการศึกษาสำเร็จ",
+      "error": "ไม่สามารถสร้างการศึกษาได้"
+    },
+    "createCapa": {
+      "success": "สร้าง CAPA สำเร็จ",
+      "error": "ไม่สามารถสร้าง CAPA ได้"
+    },
+    "save": {
+      "success": "บันทึกสำเร็จ",
+      "error": "ไม่สามารถบันทึกได้"
     }
+  },
+  "common": {
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "noData": "ไม่พบข้อมูล",
+    "retry": "ลองอีกครั้ง"
   }
 }

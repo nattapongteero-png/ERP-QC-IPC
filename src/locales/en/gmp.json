@@ -7,6 +7,277 @@
     "title": "Compliance",
     "description": "Track GMP compliance status"
   },
+  "stability": {
+    "title": "Stability",
+    "pageTitle": "Stability Program",
+    "description": "Manage product stability studies",
+    "dashboard": {
+      "title": "Stability Dashboard",
+      "activeStudies": "Active Studies",
+      "completedStudies": "Completed Studies",
+      "onHoldStudies": "On Hold Studies",
+      "overdueSamples": "Overdue Samples",
+      "upcomingSamples": "Upcoming Samples",
+      "oosThisMonth": "OOS This Month",
+      "completedThisMonth": "Completed This Month"
+    },
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "onHold": "On Hold",
+      "cancelled": "Cancelled"
+    },
+    "studyType": {
+      "longTerm": "Long Term",
+      "accelerated": "Accelerated",
+      "intermediate": "Intermediate"
+    },
+    "actions": {
+      "newStudy": "New Study",
+      "viewStudy": "View Study",
+      "refresh": "Refresh"
+    },
+    "studies": {
+      "title": "Stability Studies",
+      "description": "List of all stability studies"
+    },
+    "trends": {
+      "title": "Stability Trends",
+      "description": "Analyze stability data trends"
+    },
+    "protocols": {
+      "title": "Stability Protocols",
+      "description": "Manage stability testing protocols"
+    }
+  },
+  "capa": {
+    "title": "CAPA",
+    "pageTitle": "CAPA Management",
+    "description": "Corrective and Preventive Actions",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "pendingApproval": "Pending Approval",
+      "closed": "Closed",
+      "overdue": "Overdue"
+    },
+    "priority": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "actions": {
+      "newCapa": "New CAPA",
+      "viewCapa": "View CAPA",
+      "editCapa": "Edit CAPA",
+      "refresh": "Refresh"
+    },
+    "dashboard": {
+      "totalOpen": "Open CAPAs",
+      "overdue": "Overdue",
+      "dueThisWeek": "Due This Week",
+      "completedThisMonth": "Completed This Month"
+    }
+  },
+  "complaints": {
+    "title": "Complaints",
+    "pageTitle": "Complaint Management",
+    "description": "Manage customer complaints",
+    "status": {
+      "new": "New",
+      "underInvestigation": "Under Investigation",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "severity": {
+      "critical": "Critical",
+      "major": "Major",
+      "minor": "Minor"
+    },
+    "actions": {
+      "newComplaint": "New Complaint",
+      "viewComplaint": "View Complaint",
+      "investigate": "Investigate",
+      "refresh": "Refresh"
+    },
+    "trends": {
+      "title": "Complaint Trends",
+      "description": "Analyze complaint trends"
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "pageTitle": "GMP Document Management",
+    "description": "Manage GMP documents",
+    "status": {
+      "draft": "Draft",
+      "pendingReview": "Pending Review",
+      "approved": "Approved",
+      "obsolete": "Obsolete"
+    },
+    "type": {
+      "sop": "SOP",
+      "form": "Form",
+      "specification": "Specification",
+      "protocol": "Protocol"
+    },
+    "actions": {
+      "newDocument": "New Document",
+      "viewDocument": "View Document",
+      "editDocument": "Edit Document",
+      "refresh": "Refresh"
+    }
+  },
+  "internalAudit": {
+    "title": "Internal Audit",
+    "pageTitle": "GMP Internal Audit",
+    "description": "Manage internal audits according to GMP standards",
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "actions": {
+      "scheduleAudit": "Schedule Audit",
+      "viewAudit": "View Audit",
+      "conductAudit": "Conduct Audit",
+      "refresh": "Refresh"
+    },
+    "audits": {
+      "title": "Audit List",
+      "description": "List of all internal audits"
+    },
+    "findings": {
+      "title": "Findings",
+      "description": "List of audit findings"
+    },
+    "plans": {
+      "title": "Audit Plans",
+      "description": "Annual audit plans"
+    }
+  },
+  "recalls": {
+    "title": "Recalls",
+    "pageTitle": "Recall Management",
+    "description": "Manage product recall processes",
+    "status": {
+      "initiated": "Initiated",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed"
+    },
+    "class": {
+      "classI": "Class I (Most Serious)",
+      "classII": "Class II (Serious)",
+      "classIII": "Class III (Minor)"
+    },
+    "actions": {
+      "initiateRecall": "Initiate Recall",
+      "viewRecall": "View Recall",
+      "updateStatus": "Update Status",
+      "refresh": "Refresh"
+    }
+  },
+  "sanitation": {
+    "title": "Sanitation",
+    "pageTitle": "Sanitation Management",
+    "description": "Manage sanitation and cleaning activities",
+    "status": {
+      "scheduled": "Scheduled",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "overdue": "Overdue"
+    },
+    "actions": {
+      "scheduleCleaning": "Schedule Cleaning",
+      "logCleaning": "Log Cleaning",
+      "refresh": "Refresh"
+    },
+    "logs": {
+      "title": "Sanitation Logs",
+      "description": "Daily sanitation activity logs"
+    },
+    "pestControl": {
+      "title": "Pest Control",
+      "description": "Record and track pest control activities"
+    },
+    "schedules": {
+      "title": "Schedules",
+      "description": "Cleaning and sanitation schedules"
+    },
+    "trends": {
+      "title": "Sanitation Trends",
+      "description": "Analyze sanitation data trends"
+    }
+  },
+  "changes": {
+    "title": "Changes",
+    "pageTitle": "Change Control",
+    "description": "Manage change requests and approval processes",
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "implemented": "Implemented"
+    },
+    "impact": {
+      "major": "Major",
+      "minor": "Minor"
+    },
+    "actions": {
+      "newChange": "New Change Request",
+      "viewChange": "View Request",
+      "approveChange": "Approve",
+      "rejectChange": "Reject",
+      "refresh": "Refresh"
+    }
+  },
+  "contracts": {
+    "title": "Contracts",
+    "pageTitle": "Contract Management",
+    "description": "Manage contracts with manufacturers and external laboratories",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "pendingRenewal": "Pending Renewal"
+    },
+    "type": {
+      "manufacturer": "Manufacturer",
+      "laboratory": "Laboratory",
+      "distributor": "Distributor"
+    },
+    "actions": {
+      "newContract": "New Contract",
+      "viewContract": "View Contract",
+      "renewContract": "Renew Contract",
+      "refresh": "Refresh"
+    }
+  },
+  "pqr": {
+    "title": "PQR",
+    "pageTitle": "Product Quality Review",
+    "description": "Manage annual product quality review reports",
+    "status": {
+      "draft": "Draft",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "published": "Published"
+    },
+    "actions": {
+      "generatePqr": "Generate PQR",
+      "viewPqr": "View PQR",
+      "approvePqr": "Approve PQR",
+      "refresh": "Refresh"
+    },
+    "generate": {
+      "title": "Generate PQR Report",
+      "description": "Generate product quality review report"
+    }
+  },
   "audits": {
     "title": "Audits",
     "description": "Manage GMP audits",
@@ -26,14 +297,6 @@
       "viewAudit": "View Audit"
     }
   },
-  "capa": {
-    "title": "CAPA",
-    "description": "Corrective and Preventive Actions"
-  },
-  "documents": {
-    "title": "Documents",
-    "description": "Manage GMP documents"
-  },
   "training": {
     "title": "Training",
     "description": "Manage GMP training"
@@ -42,6 +305,24 @@
     "createAudit": {
       "success": "Audit created successfully",
       "error": "Failed to create audit"
+    },
+    "createStudy": {
+      "success": "Study created successfully",
+      "error": "Failed to create study"
+    },
+    "createCapa": {
+      "success": "CAPA created successfully",
+      "error": "Failed to create CAPA"
+    },
+    "save": {
+      "success": "Saved successfully",
+      "error": "Failed to save"
     }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "noData": "No data found",
+    "retry": "Retry"
   }
 }
