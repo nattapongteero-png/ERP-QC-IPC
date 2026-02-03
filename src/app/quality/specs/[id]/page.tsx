@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -64,6 +65,7 @@ interface QualitySpecDetail {
 export default function QualitySpecDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('quality');
   const id = params.id as string;
 
   const [spec, setSpec] = useState<QualitySpecDetail | null>(null);
@@ -269,7 +271,7 @@ export default function QualitySpecDetailPage() {
     
       <div className="space-y-6">
         <PageHeader
-          title={spec.testName}
+          title={`${t('specifications.title')}: ${spec.testName}`}
           description={`${spec.itemCode} - ${spec.itemName}`}
           backButton={
             <DxButton

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -19,6 +20,7 @@ import {
 
 export default function NewQualitySpecPage() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const [isSaving, setIsSaving] = useState(false);
 
   // Item dialog state
@@ -86,8 +88,8 @@ export default function NewQualitySpecPage() {
     <>
       <div className="space-y-6">
         <PageHeader
-          title="New Quality Specification"
-          description="Define test criteria for quality control"
+          title={t('specifications.title')}
+          description={t('specifications.description')}
           backButton={
             <DxButton
               text="Back"

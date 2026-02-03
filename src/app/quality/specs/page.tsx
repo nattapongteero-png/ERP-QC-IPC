@@ -9,6 +9,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -146,6 +147,7 @@ async function fetchSpecs(): Promise<QualitySpec[]> {
 
 export default function QualitySpecsPage() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [criticalFilter, setCriticalFilter] = useState<string>('');
@@ -328,8 +330,8 @@ export default function QualitySpecsPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Quality Specifications"
-        subtitle="ข้อกำหนดคุณภาพ - Specification Management"
+        title={t('specifications.title')}
+        subtitle={t('specifications.description')}
         icon={FileCheck}
         iconBgColor="bg-indigo-100"
         iconColor="text-indigo-600"

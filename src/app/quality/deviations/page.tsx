@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -228,6 +229,7 @@ async function fetchDeviations() {
 
 export default function DeviationsPage() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -1090,8 +1092,8 @@ export default function DeviationsPage() {
   return (
     <div className="flex flex-col h-full gap-4 max-w-[1800px] mx-auto w-full">
       <ResponsivePageHeader
-        title="ความเบี่ยงเบน"
-        subtitle="ติดตามและจัดการความเบี่ยงเบนและ CAPA"
+        title={t('nonConformance.title')}
+        subtitle={t('nonConformance.description')}
         actions={
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -82,6 +83,7 @@ const statusOptions = [
 export default function DeviationDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('quality');
   const [data, setData] = useState<DeviationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -192,7 +194,7 @@ export default function DeviationDetailPage() {
         <div className="text-center py-12">
           <p className="text-gray-500">Deviation not found</p>
           <DxButton
-            text="Back to List"
+            text={t('page.title')}
             type="normal"
             stylingMode="outlined"
             className="mt-4"

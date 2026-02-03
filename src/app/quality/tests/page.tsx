@@ -9,6 +9,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -194,6 +195,7 @@ async function fetchTests(): Promise<QualityTest[]> {
 
 export default function QualityTestsPage() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
 
   // Fetch quality tests
@@ -415,8 +417,8 @@ export default function QualityTestsPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Quality Control Tests"
-        subtitle="QC Testing Dashboard - การทดสอบคุณภาพ"
+        title={t('inspections.title')}
+        subtitle={t('inspections.description')}
         icon={FlaskConical}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"

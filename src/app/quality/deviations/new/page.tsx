@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -30,6 +31,7 @@ const severityOptions = [
 
 export default function NewDeviationPage() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -118,8 +120,8 @@ export default function NewDeviationPage() {
     
       <div className="space-y-6">
         <PageHeader
-          title="Report Deviation"
-          description="Document a quality deviation for investigation"
+          title={t('nonConformance.title')}
+          description={t('nonConformance.description')}
           backButton={
             <DxButton
               text="Back"

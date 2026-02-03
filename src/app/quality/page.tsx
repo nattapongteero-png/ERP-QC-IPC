@@ -6,6 +6,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   SearchPanel,
@@ -145,6 +146,7 @@ async function fetchDeviations(): Promise<Deviation[]> {
 
 export default function QualityDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -354,8 +356,8 @@ export default function QualityDashboardPage() {
     <div className="p-4 md:p-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="ควบคุมคุณภาพ"
-        subtitle="Quality Control Dashboard"
+        title={t('page.title')}
+        subtitle={t('page.description')}
         actions={
           <div className="flex items-center gap-2">
             <DxButton

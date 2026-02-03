@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -43,6 +44,7 @@ const testTypeOptions = [
 
 function NewQualityTestContent() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const searchParams = useSearchParams();
   const lotIdParam = searchParams.get('lotId');
   const [isLoading, setIsLoading] = useState(false);
@@ -178,8 +180,8 @@ function NewQualityTestContent() {
     <>
       <div className="space-y-6">
         <PageHeader
-          title="New Quality Test"
-          description="Create a new quality control test"
+          title={t('inspections.actions.createInspection')}
+          description={t('inspections.description')}
           backButton={
             <DxButton
               text="Back"
