@@ -213,15 +213,15 @@
 
 ### TDD Red Phase - Write Failing Tests
 
-- [ ] T053 [TDD-R] Create test in `tests/lib/i18n/missing-keys.test.ts` that verifies all required translation keys exist in both Thai and English JSON files. Test MUST fail initially (confirming 56 keys are missing).
+- [x] T053 [TDD-R] Create test in `tests/lib/i18n/missing-keys.test.ts` that verifies all required translation keys exist in both Thai and English JSON files. Test MUST fail initially (confirming 56 keys are missing). **NOTE: Keys were already added in prior work - 100% coverage verified**
 
 ### TDD Green Phase - Add Missing Keys
 
-- [ ] T054 [TDD-G] Add missing keys to `src/locales/th/accounting.json` and `src/locales/en/accounting.json`:
+- [x] T054 [TDD-G] Add missing keys to `src/locales/th/accounting.json` and `src/locales/en/accounting.json`:
   - `chartOfAccounts.actions.label`
   - `chartOfAccounts.actions.add`
 
-- [ ] T055 [TDD-G] Add missing keys to `src/locales/th/dashboard.json` and `src/locales/en/dashboard.json`:
+- [x] T055 [TDD-G] Add missing keys to `src/locales/th/dashboard.json` and `src/locales/en/dashboard.json`:
   - `error`, `retry`, `lastUpdated`
   - `sections.rawMaterials`, `sections.qualityProduction`
   - `tables.expiryAlerts.title`, `tables.expiryAlerts.lotNumber`, `tables.expiryAlerts.item`
@@ -229,19 +229,19 @@
   - `tables.lowStock.title`, `tables.lowStock.code`, `tables.lowStock.item`
   - `tables.lowStock.onHand`, `tables.lowStock.minStock`
 
-- [ ] T056 [TDD-G] Add missing keys to `src/locales/th/purchasing.json` and `src/locales/en/purchasing.json`:
+- [x] T056 [TDD-G] Add missing keys to `src/locales/th/purchasing.json` and `src/locales/en/purchasing.json`:
   - `orders.grid.columns.poNumber`, `orders.grid.columns.vendor`, `orders.grid.columns.expectedDate`
   - `orders.actions.createPO`
   - `orders.stats.pending`, `orders.stats.awaiting`
 
-- [ ] T057 [TDD-G] Add missing keys to `src/locales/th/sales.json` and `src/locales/en/sales.json`:
+- [x] T057 [TDD-G] Add missing keys to `src/locales/th/sales.json` and `src/locales/en/sales.json`:
   - `orders.detail.error.lotStatus.title`
 
 ### TDD Verify Phase
 
-- [ ] T058 [TDD-V] Run `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check` - all checks MUST pass
+- [x] T058 [TDD-V] Run `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check` - all checks MUST pass
 
-**Checkpoint**: Phase 9 complete - Build passes, no missing translation keys ⬜
+**Checkpoint**: Phase 9 complete - Build passes, no missing translation keys ✅
 
 ---
 
@@ -265,119 +265,119 @@
 
 #### TDD Red Phase - Write Tests First
 
-- [ ] T059 [TDD-R] Create i18n tests for GMP module in `tests/app/gmp/i18n.test.tsx` covering all 36 pages. Tests verify pages use `useTranslations('gmp')` and render translated content. Tests MUST fail initially.
+- [x] T059 [TDD-R] Create i18n tests for GMP module in `tests/app/gmp/i18n.test.tsx` covering all 36 pages. Tests verify pages use `useTranslations('gmp')` and render translated content. Tests MUST fail initially.
 
 #### TDD Green Phase - Migrate Pages
 
 ##### Stability Sub-module (6 pages)
 
-- [ ] T060 [P] [TDD-G] Migrate `src/app/gmp/stability/page.tsx` to use i18n
-- [ ] T061 [P] [TDD-G] Migrate `src/app/gmp/stability/studies/page.tsx` to use i18n
-- [ ] T062 [P] [TDD-G] Migrate `src/app/gmp/stability/studies/[id]/page.tsx` to use i18n
-- [ ] T063 [P] [TDD-G] Migrate `src/app/gmp/stability/trends/page.tsx` to use i18n
-- [ ] T064 [P] [TDD-G] Migrate `src/app/gmp/stability/protocols/page.tsx` to use i18n
-- [ ] T065 [P] [TDD-G] Migrate `src/app/gmp/stability/protocols/new/page.tsx` to use i18n
+- [x] T060 [P] [TDD-G] Migrate `src/app/gmp/stability/page.tsx` to use i18n
+- [x] T061 [P] [TDD-G] Migrate `src/app/gmp/stability/studies/page.tsx` to use i18n
+- [x] T062 [P] [TDD-G] Migrate `src/app/gmp/stability/studies/[id]/page.tsx` to use i18n
+- [x] T063 [P] [TDD-G] Migrate `src/app/gmp/stability/trends/page.tsx` to use i18n
+- [x] T064 [P] [TDD-G] Migrate `src/app/gmp/stability/protocols/page.tsx` to use i18n
+- [x] T065 [P] [TDD-G] Migrate `src/app/gmp/stability/protocols/new/page.tsx` to use i18n
 
 ##### CAPA Sub-module (3 pages)
 
-- [ ] T066 [P] [TDD-G] Migrate `src/app/gmp/capa/page.tsx` to use i18n
-- [ ] T067 [P] [TDD-G] Migrate `src/app/gmp/capa/new/page.tsx` to use i18n
-- [ ] T068 [P] [TDD-G] Migrate `src/app/gmp/capa/[id]/page.tsx` to use i18n
+- [x] T066 [P] [TDD-G] Migrate `src/app/gmp/capa/page.tsx` to use i18n
+- [x] T067 [P] [TDD-G] Migrate `src/app/gmp/capa/new/page.tsx` to use i18n
+- [x] T068 [P] [TDD-G] Migrate `src/app/gmp/capa/[id]/page.tsx` to use i18n
 
 ##### Complaints Sub-module (4 pages)
 
-- [ ] T069 [P] [TDD-G] Migrate `src/app/gmp/complaints/page.tsx` to use i18n
-- [ ] T070 [P] [TDD-G] Migrate `src/app/gmp/complaints/new/page.tsx` to use i18n
-- [ ] T071 [P] [TDD-G] Migrate `src/app/gmp/complaints/[id]/page.tsx` to use i18n
-- [ ] T072 [P] [TDD-G] Migrate `src/app/gmp/complaints/trends/page.tsx` to use i18n
+- [x] T069 [P] [TDD-G] Migrate `src/app/gmp/complaints/page.tsx` to use i18n
+- [x] T070 [P] [TDD-G] Migrate `src/app/gmp/complaints/new/page.tsx` to use i18n
+- [x] T071 [P] [TDD-G] Migrate `src/app/gmp/complaints/[id]/page.tsx` to use i18n
+- [x] T072 [P] [TDD-G] Migrate `src/app/gmp/complaints/trends/page.tsx` to use i18n
 
 ##### Documents Sub-module (3 pages)
 
-- [ ] T073 [P] [TDD-G] Migrate `src/app/gmp/documents/page.tsx` to use i18n
-- [ ] T074 [P] [TDD-G] Migrate `src/app/gmp/documents/new/page.tsx` to use i18n
-- [ ] T075 [P] [TDD-G] Migrate `src/app/gmp/documents/[id]/page.tsx` to use i18n
+- [x] T073 [P] [TDD-G] Migrate `src/app/gmp/documents/page.tsx` to use i18n
+- [x] T074 [P] [TDD-G] Migrate `src/app/gmp/documents/new/page.tsx` to use i18n
+- [x] T075 [P] [TDD-G] Migrate `src/app/gmp/documents/[id]/page.tsx` to use i18n
 
 ##### Internal Audit Sub-module (5 pages)
 
-- [ ] T076 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/page.tsx` to use i18n
-- [ ] T077 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/audits/page.tsx` to use i18n
-- [ ] T078 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/audits/[id]/page.tsx` to use i18n
-- [ ] T079 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/findings/page.tsx` to use i18n
-- [ ] T080 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/plans/page.tsx` to use i18n
+- [x] T076 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/page.tsx` to use i18n
+- [x] T077 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/audits/page.tsx` to use i18n
+- [x] T078 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/audits/[id]/page.tsx` to use i18n
+- [x] T079 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/findings/page.tsx` to use i18n
+- [x] T080 [P] [TDD-G] Migrate `src/app/gmp/internal-audit/plans/page.tsx` to use i18n
 
 ##### Recalls Sub-module (3 pages)
 
-- [ ] T081 [P] [TDD-G] Migrate `src/app/gmp/recalls/page.tsx` to use i18n
-- [ ] T082 [P] [TDD-G] Migrate `src/app/gmp/recalls/new/page.tsx` to use i18n
-- [ ] T083 [P] [TDD-G] Migrate `src/app/gmp/recalls/[id]/page.tsx` to use i18n
+- [x] T081 [P] [TDD-G] Migrate `src/app/gmp/recalls/page.tsx` to use i18n
+- [x] T082 [P] [TDD-G] Migrate `src/app/gmp/recalls/new/page.tsx` to use i18n
+- [x] T083 [P] [TDD-G] Migrate `src/app/gmp/recalls/[id]/page.tsx` to use i18n
 
 ##### Sanitation Sub-module (5 pages)
 
-- [ ] T084 [P] [TDD-G] Migrate `src/app/gmp/sanitation/page.tsx` to use i18n
-- [ ] T085 [P] [TDD-G] Migrate `src/app/gmp/sanitation/logs/page.tsx` to use i18n
-- [ ] T086 [P] [TDD-G] Migrate `src/app/gmp/sanitation/pest-control/page.tsx` to use i18n
-- [ ] T087 [P] [TDD-G] Migrate `src/app/gmp/sanitation/schedules/page.tsx` to use i18n
-- [ ] T088 [P] [TDD-G] Migrate `src/app/gmp/sanitation/trends/page.tsx` to use i18n
+- [x] T084 [P] [TDD-G] Migrate `src/app/gmp/sanitation/page.tsx` to use i18n
+- [x] T085 [P] [TDD-G] Migrate `src/app/gmp/sanitation/logs/page.tsx` to use i18n
+- [x] T086 [P] [TDD-G] Migrate `src/app/gmp/sanitation/pest-control/page.tsx` to use i18n
+- [x] T087 [P] [TDD-G] Migrate `src/app/gmp/sanitation/schedules/page.tsx` to use i18n
+- [x] T088 [P] [TDD-G] Migrate `src/app/gmp/sanitation/trends/page.tsx` to use i18n
 
 ##### Changes Sub-module (3 pages)
 
-- [ ] T089 [P] [TDD-G] Migrate `src/app/gmp/changes/page.tsx` to use i18n
-- [ ] T090 [P] [TDD-G] Migrate `src/app/gmp/changes/new/page.tsx` to use i18n
-- [ ] T091 [P] [TDD-G] Migrate `src/app/gmp/changes/[id]/page.tsx` to use i18n
+- [x] T089 [P] [TDD-G] Migrate `src/app/gmp/changes/page.tsx` to use i18n
+- [x] T090 [P] [TDD-G] Migrate `src/app/gmp/changes/new/page.tsx` to use i18n
+- [x] T091 [P] [TDD-G] Migrate `src/app/gmp/changes/[id]/page.tsx` to use i18n
 
 ##### Contracts Sub-module (1 page)
 
-- [ ] T092 [P] [TDD-G] Migrate `src/app/gmp/contracts/page.tsx` to use i18n
+- [x] T092 [P] [TDD-G] Migrate `src/app/gmp/contracts/page.tsx` to use i18n
 
 ##### PQR Sub-module (3 pages)
 
-- [ ] T093 [P] [TDD-G] Migrate `src/app/gmp/pqr/page.tsx` to use i18n
-- [ ] T094 [P] [TDD-G] Migrate `src/app/gmp/pqr/generate/page.tsx` to use i18n
-- [ ] T095 [P] [TDD-G] Migrate `src/app/gmp/pqr/[id]/page.tsx` to use i18n
+- [x] T093 [P] [TDD-G] Migrate `src/app/gmp/pqr/page.tsx` to use i18n
+- [x] T094 [P] [TDD-G] Migrate `src/app/gmp/pqr/generate/page.tsx` to use i18n
+- [x] T095 [P] [TDD-G] Migrate `src/app/gmp/pqr/[id]/page.tsx` to use i18n
 
 #### TDD Verify Phase
 
-- [ ] T096 [TDD-V] GMP Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
+- [x] T096 [TDD-V] GMP Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
 
-**Checkpoint**: GMP module complete (36 pages) ⬜
+**Checkpoint**: GMP module complete (36 pages) ✅
 
 ---
 
-### Phase 10B: Quality Module (10 pages, 0 migrated)
+### Phase 10B: Quality Module (10 pages, 10 migrated)
 
 **Translation file**: `src/locales/th/quality.json`, `src/locales/en/quality.json`
 
 #### TDD Red Phase
 
-- [ ] T097 [TDD-R] Create i18n tests for Quality module in `tests/app/quality/i18n.test.tsx` covering all 10 pages. Tests MUST fail initially.
+- [x] T097 [TDD-R] Create i18n tests for Quality module in `tests/app/quality/i18n.test.tsx` covering all 10 pages. Tests MUST fail initially.
 
 #### TDD Green Phase
 
-- [ ] T098 [P] [TDD-G] Migrate `src/app/quality/page.tsx` to use i18n
+- [x] T098 [P] [TDD-G] Migrate `src/app/quality/page.tsx` to use i18n
 
 ##### Deviations Sub-module (3 pages)
 
-- [ ] T099 [P] [TDD-G] Migrate `src/app/quality/deviations/page.tsx` to use i18n
-- [ ] T100 [P] [TDD-G] Migrate `src/app/quality/deviations/new/page.tsx` to use i18n
-- [ ] T101 [P] [TDD-G] Migrate `src/app/quality/deviations/[id]/page.tsx` to use i18n
+- [x] T099 [P] [TDD-G] Migrate `src/app/quality/deviations/page.tsx` to use i18n
+- [x] T100 [P] [TDD-G] Migrate `src/app/quality/deviations/new/page.tsx` to use i18n
+- [x] T101 [P] [TDD-G] Migrate `src/app/quality/deviations/[id]/page.tsx` to use i18n
 
 ##### Tests Sub-module (3 pages)
 
-- [ ] T102 [P] [TDD-G] Migrate `src/app/quality/tests/page.tsx` to use i18n
-- [ ] T103 [P] [TDD-G] Migrate `src/app/quality/tests/new/page.tsx` to use i18n
-- [ ] T104 [P] [TDD-G] Migrate `src/app/quality/tests/[id]/page.tsx` to use i18n
+- [x] T102 [P] [TDD-G] Migrate `src/app/quality/tests/page.tsx` to use i18n
+- [x] T103 [P] [TDD-G] Migrate `src/app/quality/tests/new/page.tsx` to use i18n
+- [x] T104 [P] [TDD-G] Migrate `src/app/quality/tests/[id]/page.tsx` to use i18n
 
 ##### Specs Sub-module (3 pages)
 
-- [ ] T105 [P] [TDD-G] Migrate `src/app/quality/specs/page.tsx` to use i18n
-- [ ] T106 [P] [TDD-G] Migrate `src/app/quality/specs/new/page.tsx` to use i18n
-- [ ] T107 [P] [TDD-G] Migrate `src/app/quality/specs/[id]/page.tsx` to use i18n
+- [x] T105 [P] [TDD-G] Migrate `src/app/quality/specs/page.tsx` to use i18n
+- [x] T106 [P] [TDD-G] Migrate `src/app/quality/specs/new/page.tsx` to use i18n
+- [x] T107 [P] [TDD-G] Migrate `src/app/quality/specs/[id]/page.tsx` to use i18n
 
 #### TDD Verify Phase
 
-- [ ] T108 [TDD-V] Quality Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
+- [x] T108 [TDD-V] Quality Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
 
-**Checkpoint**: Quality module complete (10 pages) ⬜
+**Checkpoint**: Quality module complete (10 pages) ✅
 
 ---
 
@@ -920,8 +920,8 @@
 | US4 - Fallback (6) | 4 | ✅ Complete | 1 | 3 | - |
 | US5 - Developer Workflow (7) | 3 | ✅ Complete | - | 3 | - |
 | US6 - Extensibility (8) | 4 | ✅ Complete | 1 | 3 | - |
-| Fix Missing Keys (9) | 6 | ⬜ Pending | 1 | 4 | 1 |
-| GMP Module (10A) | 38 | ⬜ Pending | 1 | 36 | 1 |
+| Fix Missing Keys (9) | 6 | ✅ Complete | 1 | 4 | 1 |
+| GMP Module (10A) | 38 | ✅ Complete | 1 | 36 | 1 |
 | Quality Module (10B) | 12 | ⬜ Pending | 1 | 10 | 1 |
 | HR Module (10C) | 30 | ⬜ Pending | 1 | 28 | 1 |
 | Accounting Module (10D) | 43 | ⬜ Pending | 1 | 41 | 1 |
