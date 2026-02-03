@@ -5,6 +5,7 @@
 // Pattern: Aligned with Template module design
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -83,6 +84,7 @@ async function deleteHealthRecord(id: number): Promise<void> {
 }
 
 export default function HealthRecordsPage() {
+  const t = useTranslations('hr');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'records' | 'due' | 'overdue'>('records');
@@ -212,8 +214,8 @@ export default function HealthRecordsPage() {
     <div className="space-y-6 p-1" data-testid="hr-health-records-page">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
-        title="บันทึกสุขภาพพนักงาน"
-        subtitle="จัดการข้อมูลการตรวจสุขภาพและสถานะความพร้อมปฏิบัติงาน"
+        title={t('healthRecords.title')}
+        subtitle={t('healthRecords.description')}
         icon={Heart}
         iconBgColor="bg-red-100"
         iconColor="text-red-600"

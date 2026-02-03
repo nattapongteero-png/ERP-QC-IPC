@@ -4,6 +4,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
@@ -228,6 +229,7 @@ function InfoItem({
 }
 
 export default function EmployeeProfilePage() {
+  const t = useTranslations('hr');
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -350,8 +352,8 @@ export default function EmployeeProfilePage() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <XCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">ไม่พบข้อมูลพนักงาน</h2>
-          <p className="text-gray-500 text-sm mb-6">ข้อมูลพนักงานที่คุณค้นหาไม่มีในระบบ</p>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">{t('employees.notFound')}</h2>
+          <p className="text-gray-500 text-sm mb-6">{t('employees.notFoundDescription')}</p>
           <button
             onClick={handleBack}
             className="w-full py-3 px-4 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"

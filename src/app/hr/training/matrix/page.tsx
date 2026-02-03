@@ -4,6 +4,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   HeaderFilter,
@@ -54,6 +55,7 @@ interface MatrixRow {
 }
 
 export default function CompetencyMatrixPage() {
+  const t = useTranslations('hr');
   const [selectedOrgUnit, setSelectedOrgUnit] = useState<number | null>(null);
   const [showMandatoryOnly, setShowMandatoryOnly] = useState(false);
   const [gridHeight, setGridHeight] = useState(600);
@@ -174,11 +176,11 @@ export default function CompetencyMatrixPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-full mx-auto">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-full mx-auto" data-title={t('training.matrix.title')}>
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
-        title="Competency Matrix"
-        subtitle={`ตารางทักษะ • ${matrices.length} คน × ${displayCourses.length} หลักสูตร`}
+        title={t('training.matrix.title')}
+        subtitle={t('training.matrix.description')}
         icon={Grid3X3}
         iconBgColor="bg-purple-100"
         iconColor="text-purple-600"

@@ -5,6 +5,7 @@
 // Redesigned with DevExtreme UI components
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTabs } from '@/components/ui/dx-tabs';
@@ -122,6 +123,7 @@ async function fetchEmployeeCount(orgUnitId: number): Promise<number> {
 }
 
 export default function OrgChartPage() {
+  const t = useTranslations('hr');
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
   const [selectedOrgUnit, setSelectedOrgUnit] = useState<OrgUnit | null>(null);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
@@ -223,8 +225,8 @@ export default function OrgChartPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="โครงสร้างองค์กร"
-        subtitle="Organization Structure Management"
+        title={t('orgChart.title')}
+        subtitle={t('orgChart.description')}
         icon={Building2}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"

@@ -4,6 +4,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -120,6 +121,7 @@ async function fetchEmployees(filters: {
 type ViewMode = 'grid' | 'cards' | 'analytics';
 
 export default function EmployeesPage() {
+  const t = useTranslations('hr');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -385,8 +387,8 @@ export default function EmployeesPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1600px] mx-auto" data-testid="hr-employees-page">
       {/* Header Section */}
       <ResponsivePageHeader
-        title="ทะเบียนพนักงาน"
-        subtitle={`Employee Directory • ${analytics.total} รายการ`}
+        title={t('employees.title')}
+        subtitle={t('employees.description')}
         icon={Users}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"

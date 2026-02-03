@@ -5,6 +5,7 @@
 // Redesigned with KPIs, DataGrid, Cards, and Analytics views
 
 import React, { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -176,6 +177,7 @@ function formatTime(timeStr: string | null | undefined): string {
 }
 
 export default function TrainingDashboardPage() {
+  const t = useTranslations('hr');
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -349,11 +351,11 @@ export default function TrainingDashboardPage() {
   }, [courses]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6" data-title={t('training.title')}>
       {/* Page Header */}
       <ResponsivePageHeader
-        title="ระบบจัดการการอบรม"
-        subtitle="Training Management Dashboard"
+        title={t('training.title')}
+        subtitle={t('training.description')}
         icon={GraduationCap}
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"

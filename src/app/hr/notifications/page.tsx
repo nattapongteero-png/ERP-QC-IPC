@@ -5,6 +5,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   HeaderFilter,
@@ -115,6 +116,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
 };
 
 export default function NotificationsPage() {
+  const t = useTranslations('hr');
   const queryClient = useQueryClient();
   const toast = useToast();
   const [typeFilter, setTypeFilter] = useState<string>('');
@@ -295,8 +297,8 @@ export default function NotificationsPage() {
     <div className="space-y-6 p-1">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
-        title="การแจ้งเตือน HR"
-        subtitle="จัดการการแจ้งเตือนการอบรมและการตรวจสุขภาพ"
+        title={t('notifications.title')}
+        subtitle={t('notifications.description')}
         icon={Bell}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"

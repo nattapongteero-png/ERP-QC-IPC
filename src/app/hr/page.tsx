@@ -5,6 +5,7 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import {
   Network,
   Users,
@@ -138,6 +139,7 @@ const quickActions = [
 ];
 
 export default function HRDashboardPage() {
+  const t = useTranslations('hr');
   const { data: stats, isLoading } = useQuery({
     queryKey: ['hr-dashboard-stats'],
     queryFn: fetchHRStats,
@@ -147,8 +149,8 @@ export default function HRDashboardPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 md:space-y-8" data-testid="hr-dashboard">
       <ResponsivePageHeader
-        title="ระบบบริหารงานบุคคล"
-        subtitle="HR/Personnel Management Module"
+        title={t('page.title')}
+        subtitle={t('page.description')}
         icon={Users}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"

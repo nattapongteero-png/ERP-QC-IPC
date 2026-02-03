@@ -5,6 +5,7 @@
 // Redesigned with KPIs, DataGrid, Cards, and Analytics views
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -196,6 +197,7 @@ function getGradientForType(authType: AuthorizationType): string {
 }
 
 export default function AuthorizationsPage() {
+  const t = useTranslations('hr');
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -463,8 +465,8 @@ export default function AuthorizationsPage() {
     <div className="p-4 md:p-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="สิทธิ์อนุมัติ"
-        subtitle="Authorization Management Dashboard"
+        title={t('authorizations.title')}
+        subtitle={t('authorizations.description')}
         icon={ShieldCheck}
         iconBgColor="bg-indigo-100"
         iconColor="text-indigo-600"

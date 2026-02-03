@@ -6,6 +6,7 @@
 // Updated Task 4: Template Pattern Alignment - Page-based navigation
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -175,6 +176,7 @@ async function createJobDescription(positionId: number, data: Partial<JobDescrip
 }
 
 export default function PositionsPage() {
+  const t = useTranslations('hr');
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -604,8 +606,8 @@ export default function PositionsPage() {
     <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="hr-positions-page">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="ตำแหน่งงาน"
-        subtitle={`Position Management • ${filteredPositions.length} รายการ`}
+        title={t('positions.title')}
+        subtitle={t('positions.description')}
         icon={Briefcase}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"

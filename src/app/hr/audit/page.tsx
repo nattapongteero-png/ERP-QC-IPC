@@ -5,6 +5,7 @@
 // Pattern: Aligned with Template module design
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   HeaderFilter,
@@ -80,6 +81,7 @@ const ACTION_COLORS: Record<string, string> = {
 };
 
 export default function AuditLogPage() {
+  const t = useTranslations('hr');
   const [activeTab, setActiveTab] = useState<'logs' | 'summary' | 'access-review'>('logs');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
@@ -153,8 +155,8 @@ export default function AuditLogPage() {
     <div className="space-y-6 p-1">
       {/* Header */}
       <ResponsivePageHeader
-        title="บันทึกการตรวจสอบ"
-        subtitle="ประวัติการเปลี่ยนแปลงข้อมูล HR และการตรวจสอบสิทธิ์"
+        title={t('audit.title')}
+        subtitle={t('audit.description')}
         icon={FileText}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"

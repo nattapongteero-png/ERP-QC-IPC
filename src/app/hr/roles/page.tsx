@@ -5,6 +5,7 @@
 // Feature: 007-hr-personnel-management
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
   Column,
@@ -62,6 +63,7 @@ async function deactivateRole(id: number): Promise<void> {
 }
 
 export default function RolesPage() {
+  const t = useTranslations('hr');
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -251,8 +253,8 @@ export default function RolesPage() {
     <div className="space-y-6 p-1" data-testid="hr-roles-page">
       {/* ResponsivePageHeader */}
       <ResponsivePageHeader
-        title="จัดการบทบาทและสิทธิ์"
-        subtitle="กำหนดบทบาทและสิทธิ์การเข้าถึงในระบบ"
+        title={t('roles.title')}
+        subtitle={t('roles.description')}
         icon={Shield}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
