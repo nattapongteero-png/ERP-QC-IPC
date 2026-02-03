@@ -272,5 +272,41 @@
         "qcStatus": "สถานะ QC"
       }
     }
+  },
+  "labelVerification": {
+    "title": "การตรวจสอบฉลาก",
+    "description": "ตรวจสอบและรับรองเนื้อหาฉลากด้วยลายเซ็นอิเล็กทรอนิกส์คู่ (FR-064, FR-065)"
+  },
+  "lineClearance": {
+    "title": "การอนุมัติสายการผลิต",
+    "description": "ดำเนินการตรวจสอบการอนุมัติสายการผลิตก่อนเริ่มการผลิต (FR-062)"
+  },
+  "batchRecords": {
+    "title": "บันทึกการผลิตอิเล็กทรอนิกส์ (eBMR)",
+    "subtitle": "เอกสารกระบวนการผลิตและการติดตามความสอดคล้อง"
+  },
+  "execution": {
+    "title": "การดำเนินการใบสั่งผลิต",
+    "materialWeighing": "การชั่งวัตถุดิบ",
+    "cleaning": "รายการตรวจสอบการทำความสะอาด",
+    "environmentalMonitoring": "การตรวจสอบสภาพแวดล้อม",
+    "sopExecution": "การดำเนินการ SOP",
+    "packagingQC": "QC บรรจุภัณฑ์",
+    "finishedInspection": "การตรวจสอบผลิตภัณฑ์สำเร็จรูป"
+  },
+  "newWorkOrder": {
+    "title": "สร้างใบสั่งผลิต"
+  },
+  "newBOM": {
+    "title": "สร้าง BOM ใหม่"
+  },
+  "bomDetail": {
+    "title": "รายละเอียด BOM"
+  },
+  "bomConfiguration": {
+    "title": "การตั้งค่า BOM"
+  },
+  "workOrderDetail": {
+    "title": "รายละเอียดใบสั่งผลิต"
   }
 }

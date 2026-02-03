@@ -3,6 +3,7 @@
 import React, { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { LabelVerificationForm, type LabelType } from '@/components/production/label-verification-form';
@@ -48,6 +49,7 @@ function LabelVerificationContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const t = useTranslations('production');
 
   const workOrderIdParam = searchParams.get('workOrderId');
   const labelIdParam = searchParams.get('labelId');
@@ -251,8 +253,8 @@ function LabelVerificationContent() {
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Label Verification"
-          description="Verify and witness label content with dual electronic signatures (FR-064, FR-065)"
+          title={t('labelVerification.title')}
+          description={t('labelVerification.description')}
           actions={
             <DxButton
               text="Back to Work Orders"

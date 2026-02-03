@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -58,6 +59,10 @@ const priorityOptions = [
 function NewWorkOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('newWorkOrder.title');
   const bomIdParam = searchParams.get('bomId');
   const [isLoading, setIsLoading] = useState(false);
   const [initialBomLoaded, setInitialBomLoaded] = useState(false);

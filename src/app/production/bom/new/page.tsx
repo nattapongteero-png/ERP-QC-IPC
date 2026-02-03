@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -29,6 +30,10 @@ interface BOMLine {
 
 export default function NewBOMPage() {
   const router = useRouter();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('newBOM.title');
   const [saving, setSaving] = useState(false);
 
   // Form state

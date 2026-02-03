@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -81,6 +82,10 @@ export default function BOMDetailPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('bomDetail.title');
   const [bom, setBom] = useState<BOMDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showActionsMenu, setShowActionsMenu] = useState(false);

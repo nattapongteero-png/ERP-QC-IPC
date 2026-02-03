@@ -272,5 +272,41 @@
         "qcStatus": "QC Status"
       }
     }
+  },
+  "labelVerification": {
+    "title": "Label Verification",
+    "description": "Verify and witness label content with dual electronic signatures (FR-064, FR-065)"
+  },
+  "lineClearance": {
+    "title": "Line Clearance",
+    "description": "Complete line clearance verification before production start (FR-062)"
+  },
+  "batchRecords": {
+    "title": "Electronic Batch Records (eBMR)",
+    "subtitle": "Manufacturing process documentation and compliance tracking"
+  },
+  "execution": {
+    "title": "Work Order Execution",
+    "materialWeighing": "Material Weighing",
+    "cleaning": "Cleaning Checklist",
+    "environmentalMonitoring": "Environmental Monitoring",
+    "sopExecution": "SOP Execution",
+    "packagingQC": "Packaging QC",
+    "finishedInspection": "Finished Product Inspection"
+  },
+  "newWorkOrder": {
+    "title": "Create Work Order"
+  },
+  "newBOM": {
+    "title": "Create New BOM"
+  },
+  "bomDetail": {
+    "title": "BOM Detail"
+  },
+  "bomConfiguration": {
+    "title": "BOM Configuration"
+  },
+  "workOrderDetail": {
+    "title": "Work Order Detail"
   }
 }

@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
@@ -65,6 +66,7 @@ const chartColors = ['#6B7280', '#3B82F6', '#10B981', '#EF4444'];
 
 export default function BatchRecordsDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('production');
   const [statusFilter, setStatusFilter] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
@@ -136,8 +138,8 @@ export default function BatchRecordsDashboardPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       {/* Header */}
       <ResponsivePageHeader
-        title="Electronic Batch Records (eBMR)"
-        subtitle="Manufacturing process documentation and compliance tracking"
+        title={t('batchRecords.title')}
+        subtitle={t('batchRecords.subtitle')}
         icon={ClipboardCheck}
         iconBgColor="bg-indigo-100"
         iconColor="text-indigo-600"

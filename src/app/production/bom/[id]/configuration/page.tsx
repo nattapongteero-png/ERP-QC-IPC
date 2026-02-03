@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -163,6 +164,10 @@ export default function BOMConfigurationPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('bomConfiguration.title');
   const bomId = Number(params.id);
 
   const [activeTab, setActiveTab] = useState(0);

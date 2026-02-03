@@ -8,6 +8,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ResponsivePageHeader } from '@/components/shared';
 import { Card, CardContent } from '@/components/ui/card';
@@ -118,6 +119,10 @@ export default function WorkOrderExecutionPage() {
   const params = useParams();
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('production');
+
+  // Use translation for page title
+  const pageTitle = t('execution.title');
   const workOrderId = Number(params.id);
 
   // Fetch Work Order basic info

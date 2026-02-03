@@ -535,48 +535,50 @@
 
 ---
 
-### Phase 10E: Production Module (17 pages, 2 migrated)
+### Phase 10E: Production Module (19 pages, 19 migrated)
 
 **Translation file**: `src/locales/th/production.json`, `src/locales/en/production.json`
 
 #### TDD Red Phase
 
-- [ ] T182 [TDD-R] Create i18n tests for Production module in `tests/app/production/i18n.test.tsx` covering all 15 remaining pages. Tests MUST fail initially.
+- [x] T182 [TDD-R] Create i18n tests for Production module in `tests/app/production/i18n.test.tsx` covering all 19 pages. Tests MUST fail initially.
 
 #### TDD Green Phase
 
-- [ ] T183 [P] [TDD-G] Migrate `src/app/production/page.tsx` to use i18n
-- [ ] T184 [P] [TDD-G] Migrate `src/app/production/label-verification/page.tsx` to use i18n
-- [ ] T185 [P] [TDD-G] Migrate `src/app/production/line-clearance/page.tsx` to use i18n
+- [x] T183 [P] [TDD-G] Migrate `src/app/production/page.tsx` to use i18n
+- [x] T184 [P] [TDD-G] Migrate `src/app/production/label-verification/page.tsx` to use i18n
+- [x] T185 [P] [TDD-G] Migrate `src/app/production/line-clearance/page.tsx` to use i18n
 
 ##### Batch Records Sub-module (2 pages)
 
-- [ ] T186 [P] [TDD-G] Migrate `src/app/production/batch-records/page.tsx` to use i18n
-- [ ] T187 [P] [TDD-G] Migrate `src/app/production/batch-records/[id]/page.tsx` to use i18n
+- [x] T186 [P] [TDD-G] Migrate `src/app/production/batch-records/page.tsx` to use i18n
+- [x] T187 [P] [TDD-G] Migrate `src/app/production/batch-records/[id]/page.tsx` to use i18n
 
-##### BOM Sub-module (3 pages)
+##### BOM Sub-module (4 pages)
 
-- [ ] T188 [P] [TDD-G] Migrate `src/app/production/bom/[id]/page.tsx` to use i18n
-- [ ] T189 [P] [TDD-G] Migrate `src/app/production/bom/[id]/configuration/page.tsx` to use i18n
-- [ ] T190 [P] [TDD-G] Migrate `src/app/production/bom/new/page.tsx` to use i18n
+- [x] T188 [P] [TDD-G] Migrate `src/app/production/bom/page.tsx` to use i18n
+- [x] T188b [P] [TDD-G] Migrate `src/app/production/bom/[id]/page.tsx` to use i18n
+- [x] T189 [P] [TDD-G] Migrate `src/app/production/bom/[id]/configuration/page.tsx` to use i18n
+- [x] T190 [P] [TDD-G] Migrate `src/app/production/bom/new/page.tsx` to use i18n
 
-##### Work Orders Sub-module (9 pages)
+##### Work Orders Sub-module (10 pages)
 
-- [ ] T191 [P] [TDD-G] Migrate `src/app/production/work-orders/new/page.tsx` to use i18n
-- [ ] T192 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/page.tsx` to use i18n
-- [ ] T193 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/cleaning/page.tsx` to use i18n
-- [ ] T194 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/environmental-monitoring/page.tsx` to use i18n
-- [ ] T195 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/execution/page.tsx` to use i18n
-- [ ] T196 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/finished-inspection/page.tsx` to use i18n
-- [ ] T197 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/material-weighing/page.tsx` to use i18n
-- [ ] T198 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/packaging-qc/page.tsx` to use i18n
-- [ ] T199 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/sop-execution/page.tsx` to use i18n
+- [x] T191 [P] [TDD-G] Migrate `src/app/production/work-orders/page.tsx` to use i18n
+- [x] T191b [P] [TDD-G] Migrate `src/app/production/work-orders/new/page.tsx` to use i18n
+- [x] T192 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/page.tsx` to use i18n
+- [x] T193 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/cleaning/page.tsx` to use i18n
+- [x] T194 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/environmental-monitoring/page.tsx` to use i18n
+- [x] T195 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/execution/page.tsx` to use i18n
+- [x] T196 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/finished-inspection/page.tsx` to use i18n
+- [x] T197 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/material-weighing/page.tsx` to use i18n
+- [x] T198 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/packaging-qc/page.tsx` to use i18n
+- [x] T199 [P] [TDD-G] Migrate `src/app/production/work-orders/[id]/sop-execution/page.tsx` to use i18n
 
 #### TDD Verify Phase
 
-- [ ] T200 [TDD-V] Production Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
+- [x] T200 [TDD-V] Production Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
 
-**Checkpoint**: Production module complete (17 pages) ⬜
+**Checkpoint**: Production module complete (19 pages) ✅
 
 ---
 
