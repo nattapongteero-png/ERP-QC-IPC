@@ -6,6 +6,8 @@
   "employees": {
     "title": "Employees",
     "description": "Manage employee information",
+    "notFound": "Employee Not Found",
+    "notFoundDescription": "The requested employee could not be found",
     "table": {
       "columns": {
         "employeeId": "Employee ID",
@@ -49,7 +51,76 @@
   },
   "positions": {
     "title": "Positions",
-    "description": "Manage job positions"
+    "description": "Manage job positions",
+    "actions": {
+      "addPosition": "Add Position",
+      "viewPosition": "View Position"
+    }
+  },
+  "roles": {
+    "title": "Roles",
+    "description": "Manage roles and permissions",
+    "invalidId": "Invalid role ID",
+    "actions": {
+      "addRole": "Add Role",
+      "viewRole": "View Role"
+    }
+  },
+  "authorizations": {
+    "title": "Authorizations",
+    "description": "Manage authorizations and access rights",
+    "actions": {
+      "addAuthorization": "Add Authorization",
+      "viewAuthorization": "View Authorization"
+    }
+  },
+  "healthRecords": {
+    "title": "Health Records",
+    "description": "Manage employee health records",
+    "actions": {
+      "addRecord": "Add Record",
+      "viewRecord": "View Record"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Manage notifications"
+  },
+  "orgChart": {
+    "title": "Organization Chart",
+    "description": "View organization structure"
+  },
+  "org": {
+    "title": "Organization",
+    "description": "Manage organization structure"
+  },
+  "audit": {
+    "title": "Audit",
+    "description": "Audit history"
+  },
+  "training": {
+    "title": "Training",
+    "description": "Manage training programs",
+    "matrix": {
+      "title": "Training Matrix",
+      "description": "View employee training matrix"
+    },
+    "sessions": {
+      "title": "Training Sessions",
+      "description": "Manage training sessions",
+      "actions": {
+        "addSession": "Add Session"
+      }
+    },
+    "courses": {
+      "title": "Courses",
+      "description": "Manage training courses",
+      "invalidId": "Invalid course ID",
+      "actions": {
+        "addCourse": "Add Course",
+        "viewCourse": "View Course"
+      }
+    }
   },
   "attendance": {
     "title": "Attendance",

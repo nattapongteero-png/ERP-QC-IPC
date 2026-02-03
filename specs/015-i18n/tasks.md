@@ -381,68 +381,68 @@
 
 ---
 
-### Phase 10C: HR Module (28 pages, 0 migrated)
+### Phase 10C: HR Module (27 pages, 27 migrated)
 
 **Translation file**: `src/locales/th/hr.json`, `src/locales/en/hr.json`
 
 #### TDD Red Phase
 
-- [ ] T109 [TDD-R] Create i18n tests for HR module in `tests/app/hr/i18n.test.tsx` covering all 28 pages. Tests MUST fail initially.
+- [x] T109 [TDD-R] Create i18n tests for HR module in `tests/app/hr/i18n.test.tsx` covering all 27 pages. Tests MUST fail initially.
 
 #### TDD Green Phase
 
-- [ ] T110 [P] [TDD-G] Migrate `src/app/hr/page.tsx` to use i18n
-- [ ] T111 [P] [TDD-G] Migrate `src/app/hr/audit/page.tsx` to use i18n
-- [ ] T112 [P] [TDD-G] Migrate `src/app/hr/notifications/page.tsx` to use i18n
-- [ ] T113 [P] [TDD-G] Migrate `src/app/hr/org-chart/page.tsx` to use i18n
-- [ ] T114 [P] [TDD-G] Migrate `src/app/hr/org/page.tsx` to use i18n
+- [x] T110 [P] [TDD-G] Migrate `src/app/hr/page.tsx` to use i18n
+- [x] T111 [P] [TDD-G] Migrate `src/app/hr/audit/page.tsx` to use i18n
+- [x] T112 [P] [TDD-G] Migrate `src/app/hr/notifications/page.tsx` to use i18n
+- [x] T113 [P] [TDD-G] Migrate `src/app/hr/org-chart/page.tsx` to use i18n
+- [x] T114 [P] [TDD-G] Migrate `src/app/hr/org/page.tsx` to use i18n
 
 ##### Authorizations Sub-module (3 pages)
 
-- [ ] T115 [P] [TDD-G] Migrate `src/app/hr/authorizations/page.tsx` to use i18n
-- [ ] T116 [P] [TDD-G] Migrate `src/app/hr/authorizations/new/page.tsx` to use i18n
-- [ ] T117 [P] [TDD-G] Migrate `src/app/hr/authorizations/[id]/page.tsx` to use i18n
+- [x] T115 [P] [TDD-G] Migrate `src/app/hr/authorizations/page.tsx` to use i18n
+- [x] T116 [P] [TDD-G] Migrate `src/app/hr/authorizations/new/page.tsx` to use i18n
+- [x] T117 [P] [TDD-G] Migrate `src/app/hr/authorizations/[id]/page.tsx` to use i18n
 
 ##### Employees Sub-module (4 pages)
 
-- [ ] T118 [P] [TDD-G] Migrate `src/app/hr/employees/page.tsx` to use i18n
-- [ ] T119 [P] [TDD-G] Migrate `src/app/hr/employees/new/page.tsx` to use i18n
-- [ ] T120 [P] [TDD-G] Migrate `src/app/hr/employees/[id]/page.tsx` to use i18n
-- [ ] T121 [P] [TDD-G] Migrate `src/app/hr/employees/[id]/edit/page.tsx` to use i18n
+- [x] T118 [P] [TDD-G] Migrate `src/app/hr/employees/page.tsx` to use i18n
+- [x] T119 [P] [TDD-G] Migrate `src/app/hr/employees/new/page.tsx` to use i18n
+- [x] T120 [P] [TDD-G] Migrate `src/app/hr/employees/[id]/page.tsx` to use i18n
+- [x] T121 [P] [TDD-G] Migrate `src/app/hr/employees/[id]/edit/page.tsx` to use i18n
 
 ##### Health Records Sub-module (3 pages)
 
-- [ ] T122 [P] [TDD-G] Migrate `src/app/hr/health-records/page.tsx` to use i18n
-- [ ] T123 [P] [TDD-G] Migrate `src/app/hr/health-records/new/page.tsx` to use i18n
-- [ ] T124 [P] [TDD-G] Migrate `src/app/hr/health-records/[id]/page.tsx` to use i18n
+- [x] T122 [P] [TDD-G] Migrate `src/app/hr/health-records/page.tsx` to use i18n
+- [x] T123 [P] [TDD-G] Migrate `src/app/hr/health-records/new/page.tsx` to use i18n
+- [x] T124 [P] [TDD-G] Migrate `src/app/hr/health-records/[id]/page.tsx` to use i18n
 
 ##### Positions Sub-module (3 pages)
 
-- [ ] T125 [P] [TDD-G] Migrate `src/app/hr/positions/page.tsx` to use i18n
-- [ ] T126 [P] [TDD-G] Migrate `src/app/hr/positions/new/page.tsx` to use i18n
-- [ ] T127 [P] [TDD-G] Migrate `src/app/hr/positions/[id]/page.tsx` to use i18n
+- [x] T125 [P] [TDD-G] Migrate `src/app/hr/positions/page.tsx` to use i18n
+- [x] T126 [P] [TDD-G] Migrate `src/app/hr/positions/new/page.tsx` to use i18n
+- [x] T127 [P] [TDD-G] Migrate `src/app/hr/positions/[id]/page.tsx` to use i18n
 
 ##### Roles Sub-module (3 pages)
 
-- [ ] T128 [P] [TDD-G] Migrate `src/app/hr/roles/page.tsx` to use i18n
-- [ ] T129 [P] [TDD-G] Migrate `src/app/hr/roles/new/page.tsx` to use i18n
-- [ ] T130 [P] [TDD-G] Migrate `src/app/hr/roles/[id]/page.tsx` to use i18n
+- [x] T128 [P] [TDD-G] Migrate `src/app/hr/roles/page.tsx` to use i18n
+- [x] T129 [P] [TDD-G] Migrate `src/app/hr/roles/new/page.tsx` to use i18n
+- [x] T130 [P] [TDD-G] Migrate `src/app/hr/roles/[id]/page.tsx` to use i18n
 
 ##### Training Sub-module (7 pages)
 
-- [ ] T131 [P] [TDD-G] Migrate `src/app/hr/training/page.tsx` to use i18n
-- [ ] T132 [P] [TDD-G] Migrate `src/app/hr/training/matrix/page.tsx` to use i18n
-- [ ] T133 [P] [TDD-G] Migrate `src/app/hr/training/sessions/page.tsx` to use i18n
-- [ ] T134 [P] [TDD-G] Migrate `src/app/hr/training/sessions/new/page.tsx` to use i18n
-- [ ] T135 [P] [TDD-G] Migrate `src/app/hr/training/courses/page.tsx` to use i18n
-- [ ] T136 [P] [TDD-G] Migrate `src/app/hr/training/courses/new/page.tsx` to use i18n
-- [ ] T137 [P] [TDD-G] Migrate `src/app/hr/training/courses/[id]/page.tsx` to use i18n
+- [x] T131 [P] [TDD-G] Migrate `src/app/hr/training/page.tsx` to use i18n
+- [x] T132 [P] [TDD-G] Migrate `src/app/hr/training/matrix/page.tsx` to use i18n
+- [x] T133 [P] [TDD-G] Migrate `src/app/hr/training/sessions/page.tsx` to use i18n
+- [x] T134 [P] [TDD-G] Migrate `src/app/hr/training/sessions/new/page.tsx` to use i18n
+- [x] T135 [P] [TDD-G] Migrate `src/app/hr/training/courses/page.tsx` to use i18n
+- [x] T136 [P] [TDD-G] Migrate `src/app/hr/training/courses/new/page.tsx` to use i18n
+- [x] T137 [P] [TDD-G] Migrate `src/app/hr/training/courses/[id]/page.tsx` to use i18n
 
 #### TDD Verify Phase
 
-- [ ] T138 [TDD-V] HR Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
+- [x] T138 [TDD-V] HR Module verification: `bunx tsc --noEmit && bun run lint && bun run test:run && bun run i18n:check`
 
-**Checkpoint**: HR module complete (28 pages) ⬜
+**Checkpoint**: HR module complete (27 pages) ✅
 
 ---
 

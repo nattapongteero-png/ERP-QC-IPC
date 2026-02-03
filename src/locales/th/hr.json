@@ -6,6 +6,8 @@
   "employees": {
     "title": "พนักงาน",
     "description": "จัดการข้อมูลพนักงาน",
+    "notFound": "ไม่พบพนักงาน",
+    "notFoundDescription": "ไม่พบข้อมูลพนักงานที่ต้องการ",
     "table": {
       "columns": {
         "employeeId": "รหัสพนักงาน",
@@ -49,7 +51,76 @@
   },
   "positions": {
     "title": "ตำแหน่ง",
-    "description": "จัดการตำแหน่งงาน"
+    "description": "จัดการตำแหน่งงาน",
+    "actions": {
+      "addPosition": "เพิ่มตำแหน่ง",
+      "viewPosition": "ดูตำแหน่ง"
+    }
+  },
+  "roles": {
+    "title": "บทบาท",
+    "description": "จัดการบทบาทและสิทธิ์",
+    "invalidId": "รหัสบทบาทไม่ถูกต้อง",
+    "actions": {
+      "addRole": "เพิ่มบทบาท",
+      "viewRole": "ดูบทบาท"
+    }
+  },
+  "authorizations": {
+    "title": "การอนุมัติ",
+    "description": "จัดการการอนุมัติและสิทธิ์การเข้าถึง",
+    "actions": {
+      "addAuthorization": "เพิ่มการอนุมัติ",
+      "viewAuthorization": "ดูการอนุมัติ"
+    }
+  },
+  "healthRecords": {
+    "title": "บันทึกสุขภาพ",
+    "description": "จัดการบันทึกสุขภาพพนักงาน",
+    "actions": {
+      "addRecord": "เพิ่มบันทึก",
+      "viewRecord": "ดูบันทึก"
+    }
+  },
+  "notifications": {
+    "title": "การแจ้งเตือน",
+    "description": "จัดการการแจ้งเตือน"
+  },
+  "orgChart": {
+    "title": "แผนผังองค์กร",
+    "description": "ดูโครงสร้างองค์กร"
+  },
+  "org": {
+    "title": "องค์กร",
+    "description": "จัดการโครงสร้างองค์กร"
+  },
+  "audit": {
+    "title": "ตรวจสอบ",
+    "description": "ประวัติการตรวจสอบ"
+  },
+  "training": {
+    "title": "การฝึกอบรม",
+    "description": "จัดการการฝึกอบรม",
+    "matrix": {
+      "title": "ตารางการฝึกอบรม",
+      "description": "ดูตารางการฝึกอบรมของพนักงาน"
+    },
+    "sessions": {
+      "title": "รอบการอบรม",
+      "description": "จัดการรอบการอบรม",
+      "actions": {
+        "addSession": "เพิ่มรอบการอบรม"
+      }
+    },
+    "courses": {
+      "title": "หลักสูตร",
+      "description": "จัดการหลักสูตรการอบรม",
+      "invalidId": "รหัสหลักสูตรไม่ถูกต้อง",
+      "actions": {
+        "addCourse": "เพิ่มหลักสูตร",
+        "viewCourse": "ดูหลักสูตร"
+      }
+    }
   },
   "attendance": {
     "title": "การลงเวลา",
