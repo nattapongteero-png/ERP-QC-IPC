@@ -9,6 +9,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CapaActionList, CapaEffectivenessForm, CapaDataEntryDialog } from '@/components/capa';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
@@ -288,6 +289,7 @@ const getRiskLevel = (score: number | null | undefined): string => {
 
 export default function CapaDetailPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const params = useParams();
   const queryClient = useQueryClient();
   const capaId = Number(params.id);
@@ -362,7 +364,7 @@ export default function CapaDetailPage() {
         <Card className="max-w-md">
           <CardContent className="p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Failed to Load CAPA</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('capa.title')} - {t('common.error')}</h2>
             <p className="text-gray-500 mb-6">{error?.message || 'CAPA not found'}</p>
             <div className="flex gap-3 justify-center">
               <DxButton

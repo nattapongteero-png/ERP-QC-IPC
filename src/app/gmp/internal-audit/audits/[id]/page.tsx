@@ -9,6 +9,7 @@
 
 import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { AuditFindingList } from '@/components/internal-audit';
@@ -92,6 +93,7 @@ export default function AuditDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const auditId = parseInt(id);
   const router = useRouter();
+  const t = useTranslations('gmp');
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -245,7 +247,7 @@ export default function AuditDetailPage({ params }: PageProps) {
           <div className="flex gap-2">
             {canStart && (
               <DxButton
-                text="Start Audit"
+                text={t('internalAudit.actions.conductAudit')}
                 icon="runner"
                 onClick={() => startMutation.mutate(auditId)}
                 type="default"

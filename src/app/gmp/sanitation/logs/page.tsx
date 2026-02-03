@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { SanitationLogList } from '@/components/sanitation';
@@ -78,6 +79,7 @@ const statusOptions = [
 
 export default function SanitationLogsPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -143,8 +145,8 @@ export default function SanitationLogsPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Sanitation Logs"
-        subtitle="Record and track sanitation activities"
+        title={t('sanitation.logs.title')}
+        subtitle={t('sanitation.logs.description')}
         onBack={() => router.push('/gmp/sanitation')}
         actions={
           <DxButton

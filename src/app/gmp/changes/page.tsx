@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -135,6 +136,7 @@ function KpiCard({ title, value, subtitle, icon: Icon, iconBg, iconColor, onClic
 
 export default function ChangeControlListPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const [statusFilter, setStatusFilter] = useState<ChangeStatus | undefined>();
 
   // Fetch all change requests
@@ -253,10 +255,10 @@ export default function ChangeControlListPage() {
                 <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
                   <FileEdit className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                Change Control
+                {t('changes.pageTitle')}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Manage change requests and approval workflows • GMP Chapter 8 Compliance
+                {t('changes.description')}
               </p>
             </div>
             <div className="flex items-center gap-3">

@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
@@ -350,6 +351,7 @@ function NoContentPlaceholder() {
 
 export default function DocumentDetailPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const params = useParams();
   const documentId = Number(params.id);
 
@@ -513,7 +515,7 @@ export default function DocumentDetailPage() {
             <button
               onClick={() => router.push('/gmp/documents')}
               className="p-2 rounded-md hover:bg-muted transition-colors"
-              title="Back to Documents"
+              title={t('documents.title')}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>

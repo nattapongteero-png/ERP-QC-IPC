@@ -10,6 +10,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -269,6 +270,7 @@ async function createPqrReport(data: PqrCreate): Promise<PqrReport> {
 
 export default function PqrDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>('all');
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -494,8 +496,8 @@ export default function PqrDashboardPage() {
                 <FileBarChart className="h-8 w-8" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Product Quality Review</h1>
-                <p className="text-indigo-100 text-sm">PQR - Annual Quality Review Reports (GMP หมวด 1)</p>
+                <h1 className="text-2xl font-bold">{t('pqr.pageTitle')}</h1>
+                <p className="text-indigo-100 text-sm">{t('pqr.description')}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">

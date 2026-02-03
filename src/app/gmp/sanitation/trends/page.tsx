@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { SanitationTrendChart } from '@/components/sanitation';
@@ -48,6 +49,7 @@ const areaTypeOptions = [
 
 export default function SanitationTrendsPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
 
   const [period, setPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   const [areaType, setAreaType] = useState<AreaType | ''>('');
@@ -64,8 +66,8 @@ export default function SanitationTrendsPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Sanitation Trends"
-        subtitle="Compliance trends and analytics"
+        title={t('sanitation.trends.title')}
+        subtitle={t('sanitation.trends.description')}
         onBack={() => router.push('/gmp/sanitation')}
       />
 

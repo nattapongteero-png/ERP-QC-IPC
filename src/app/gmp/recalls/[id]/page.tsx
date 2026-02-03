@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   RecallDistributionTable,
@@ -97,6 +98,7 @@ const classLabels: Record<RecallClass, { label: string; color: string; descripti
 
 export default function RecallDetailPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const params = useParams();
   const queryClient = useQueryClient();
   const recallId = Number(params.id);
@@ -205,7 +207,7 @@ export default function RecallDetailPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title={`Recall ${recall.recallNumber}`}
+        title={`${t('recalls.title')} ${recall.recallNumber}`}
         subtitle={recall.productName || 'Unknown Product'}
         onBack={() => router.push('/gmp/recalls')}
         actions={

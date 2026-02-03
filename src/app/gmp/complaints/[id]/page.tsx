@@ -9,6 +9,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ComplaintDataEntryDialog, ComplaintInvestigationForm } from '@/components/complaints';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
@@ -216,6 +217,7 @@ const formatDateTime = (dateStr: string | null | undefined) => {
 
 export default function ComplaintDetailPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const params = useParams();
   const queryClient = useQueryClient();
   const complaintId = Number(params.id);
@@ -284,7 +286,7 @@ export default function ComplaintDetailPage() {
         <Card className="max-w-md">
           <CardContent className="p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Failed to Load Complaint</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('complaints.title')} - {t('common.error')}</h2>
             <p className="text-gray-500 mb-6">{error?.message || 'Complaint not found'}</p>
             <div className="flex gap-3 justify-center">
               <DxButton

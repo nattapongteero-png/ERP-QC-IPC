@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { SanitationScheduleList } from '@/components/sanitation';
@@ -66,6 +67,7 @@ const frequencyOptions = [
 
 export default function SanitationSchedulesPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const queryClient = useQueryClient();
 
   const [areaTypeFilter, setAreaTypeFilter] = useState('');
@@ -104,8 +106,8 @@ export default function SanitationSchedulesPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Sanitation Schedules"
-        subtitle="Manage cleaning schedules and frequencies"
+        title={t('sanitation.schedules.title')}
+        subtitle={t('sanitation.schedules.description')}
         onBack={() => router.push('/gmp/sanitation')}
         actions={
           <DxButton

@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { AuditPlanList } from '@/components/internal-audit';
@@ -66,6 +67,7 @@ async function approvePlan(planId: number): Promise<void> {
 
 export default function AuditPlansPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const queryClient = useQueryClient();
   const toast = useToast();
   const currentYear = new Date().getFullYear();
@@ -147,8 +149,8 @@ export default function AuditPlansPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Audit Plans"
-        subtitle="Manage annual internal audit plans"
+        title={t('internalAudit.plans.title')}
+        subtitle={t('internalAudit.plans.description')}
         onBack={() => router.push('/gmp/internal-audit')}
         actions={
           <DxButton

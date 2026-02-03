@@ -11,6 +11,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -170,6 +171,7 @@ function MetricCard({ label, value, status, target, icon, iconColor }: MetricCar
 
 export default function PqrDetailPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const params = useParams();
   const queryClient = useQueryClient();
   const pqrId = Number(params.id);
@@ -254,7 +256,7 @@ export default function PqrDetailPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
-        title={report.reportNumber}
+        title={`${t('pqr.title')} - ${report.reportNumber}`}
         description={`${report.productCode} - ${report.productName} | Review Year: ${report.reviewYear}`}
         backButton={
           <DxButton

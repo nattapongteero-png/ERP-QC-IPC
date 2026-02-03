@@ -10,6 +10,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -100,6 +101,7 @@ async function fetchTrends(): Promise<SanitationTrends> {
 
 export default function SanitationDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
 
   const { data: pendingTasks, isLoading: tasksLoading } = useQuery({
     queryKey: ['sanitation-pending'],
@@ -234,8 +236,8 @@ export default function SanitationDashboardPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Sanitation Management"
-        subtitle="Thai FDA GMP หมวด 4 - Sanitation & Pest Control"
+        title={t('sanitation.pageTitle')}
+        subtitle={t('sanitation.description')}
         icon={Sparkles}
         iconBgColor="bg-cyan-100"
         iconColor="text-cyan-600"

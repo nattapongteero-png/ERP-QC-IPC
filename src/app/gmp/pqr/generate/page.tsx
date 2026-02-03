@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -62,6 +63,7 @@ async function createPqrReport(data: PqrCreate) {
 
 export default function GeneratePqrPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const currentYear = new Date().getFullYear();
 
   // Form state
@@ -126,8 +128,8 @@ export default function GeneratePqrPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Generate PQR Report"
-        description="Create a new Product Quality Review report for annual assessment"
+        title={t('pqr.generate.title')}
+        description={t('pqr.generate.description')}
         backButton={
           <DxButton
             text="Back to PQR Dashboard"

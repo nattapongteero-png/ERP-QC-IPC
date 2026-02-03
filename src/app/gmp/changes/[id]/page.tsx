@@ -16,6 +16,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -217,6 +218,7 @@ function ApprovalCard({ approval, onApprove, onReject, canApprove }: ApprovalCar
 
 export default function ChangeDetailPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const params = useParams();
   const queryClient = useQueryClient();
   const changeId = Number(params.id);
@@ -361,7 +363,7 @@ export default function ChangeDetailPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title={change.title}
+        title={`${t('changes.title')} - ${change.title}`}
         subtitle={change.changeNumber}
         onBack={() => router.push('/gmp/changes')}
         actions={

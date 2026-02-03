@@ -10,6 +10,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -316,6 +317,7 @@ async function fetchAudits(): Promise<Audit[]> {
 
 export default function InternalAuditDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const currentYear = new Date().getFullYear();
   const [activeTab, setActiveTab] = useState<'all' | AuditStatus>('all');
 
@@ -501,8 +503,8 @@ export default function InternalAuditDashboardPage() {
                 <Shield className="h-8 w-8" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Internal Audit Program</h1>
-                <p className="text-teal-100 text-sm">Self-Inspection & Internal Audits (GMP หมวด 10)</p>
+                <h1 className="text-2xl font-bold">{t('internalAudit.pageTitle')}</h1>
+                <p className="text-teal-100 text-sm">{t('internalAudit.description')}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
