@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -65,6 +66,7 @@ interface WarehouseDetail {
 export default function WarehouseDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('inventory');
   const [data, setData] = useState<WarehouseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'inventory' | 'transactions' | 'settings'>('overview');
@@ -294,7 +296,7 @@ export default function WarehouseDetailPage() {
                 stylingMode="outlined"
                 onClick={() => router.push('/inventory/warehouses')}
               />
-              <h1 className="text-2xl font-bold text-gray-900">Warehouse: {warehouse.code}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('warehouses.detail.pageTitle')}: {warehouse.code}</h1>
               <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
                 {warehouse.isActive ? 'Active' : 'Inactive'}
               </Badge>

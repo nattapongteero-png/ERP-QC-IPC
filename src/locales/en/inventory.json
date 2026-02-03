@@ -7,6 +7,7 @@
     "all": "All",
     "refresh": "Refresh",
     "search": "Search",
+    "loading": "Loading...",
     "itemsShown": "{count} items shown",
     "lotsShown": "{count} lots shown",
     "warehousesShown": "{count} warehouses shown",
@@ -26,6 +27,14 @@
     "inactive": "Inactive",
     "coldStorage": "Cold Storage"
   },
+  "expiryAlerts": {
+    "pageTitle": "Expiry Alerts",
+    "description": "Monitor expired and near-expiry inventory"
+  },
+  "transactions": {
+    "pageTitle": "Inventory Transactions",
+    "description": "Track inventory movements"
+  },
   "items": {
     "title": "Items",
     "description": "Inventory items and materials",
@@ -33,6 +42,7 @@
     "viewLots": "View Lots",
     "addItem": "Add Item",
     "searchPlaceholder": "Search items...",
+    "confirmDelete": "Are you sure you want to delete this item?",
     "table": {
       "columns": {
         "itemCode": "Item Code",
@@ -150,6 +160,9 @@
     "title": "Lots",
     "pageTitle": "Inventory Lots",
     "description": "Manage Lot/Batch inventory",
+    "detail": {
+      "pageTitle": "Lot"
+    },
     "viewItems": "View Items",
     "addLot": "Add New Lot",
     "searchPlaceholder": "Search by lot number or item...",
@@ -258,6 +271,9 @@
     "title": "Warehouses",
     "pageTitle": "Warehouses",
     "description": "Manage warehouses and storage locations",
+    "detail": {
+      "pageTitle": "Warehouse"
+    },
     "viewLots": "View Lots",
     "addWarehouse": "Add Warehouse",
     "searchPlaceholder": "Search by code, name, or location...",

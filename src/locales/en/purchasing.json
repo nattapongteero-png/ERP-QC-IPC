@@ -1,4 +1,5 @@
 {
+  "loading": "Loading...",
   "page": {
     "title": "Purchasing",
     "description": "Manage purchase orders and suppliers"
@@ -7,6 +8,13 @@
     "title": "Purchase Orders",
     "pageTitle": "Purchase Orders",
     "description": "Manage purchase orders for raw materials and supplies",
+    "newTitle": "Create New Purchase Order",
+    "newDescription": "Create a new purchase order for suppliers",
+    "detail": {
+      "title": "PO",
+      "vendor": "Vendor",
+      "status": "Status"
+    },
     "status": {
       "all": "All",
       "draft": "Draft",
@@ -102,6 +110,12 @@
   "vendors": {
     "pageTitle": "Vendors",
     "description": "Manage vendors and partners",
+    "newTitle": "New Vendor",
+    "newDescription": "Create a new vendor",
+    "notFound": {
+      "title": "Vendor Not Found",
+      "description": "The specified vendor could not be found in the system"
+    },
     "status": {
       "all": "All",
       "approved": "Approved",
@@ -137,6 +151,8 @@
   "requisitions": {
     "pageTitle": "Purchase Requisitions",
     "description": "Create and manage purchase requisitions with approval workflow",
+    "newPageTitle": "Create New Purchase Requisition",
+    "detailTitle": "Purchase Requisition",
     "status": {
       "all": "All",
       "draft": "Draft",

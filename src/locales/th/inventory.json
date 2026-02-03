@@ -7,6 +7,7 @@
     "all": "ทั้งหมด",
     "refresh": "รีเฟรช",
     "search": "ค้นหา",
+    "loading": "กำลังโหลด...",
     "itemsShown": "{count} รายการที่แสดง",
     "lotsShown": "{count} ล็อตที่แสดง",
     "warehousesShown": "{count} คลังที่แสดง",
@@ -26,6 +27,14 @@
     "inactive": "ไม่ใช้งาน",
     "coldStorage": "ห้องเย็น"
   },
+  "expiryAlerts": {
+    "pageTitle": "แจ้งเตือนหมดอายุ",
+    "description": "ตรวจสอบสินค้าที่หมดอายุและใกล้หมดอายุ"
+  },
+  "transactions": {
+    "pageTitle": "รายการเคลื่อนไหว",
+    "description": "รายการเคลื่อนไหวสินค้าคงคลัง"
+  },
   "items": {
     "title": "รายการสินค้า",
     "description": "รายการสินค้าและวัตถุดิบ",
@@ -33,6 +42,7 @@
     "viewLots": "ดูล็อต",
     "addItem": "เพิ่มสินค้า",
     "searchPlaceholder": "ค้นหาสินค้า...",
+    "confirmDelete": "คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้?",
     "table": {
       "columns": {
         "itemCode": "รหัสสินค้า",
@@ -150,6 +160,9 @@
     "title": "ล็อต",
     "pageTitle": "Inventory Lots",
     "description": "จัดการ Lot/Batch สินค้าคงคลัง",
+    "detail": {
+      "pageTitle": "Lot"
+    },
     "viewItems": "ดูสินค้า",
     "addLot": "รับ Lot ใหม่",
     "searchPlaceholder": "ค้นหาด้วยเลขที่ Lot หรือสินค้า...",
@@ -258,6 +271,9 @@
     "title": "คลังสินค้า",
     "pageTitle": "Warehouses",
     "description": "จัดการคลังสินค้าและสถานที่จัดเก็บ",
+    "detail": {
+      "pageTitle": "คลังสินค้า"
+    },
     "viewLots": "ดูล็อต",
     "addWarehouse": "เพิ่มคลัง",
     "searchPlaceholder": "ค้นหาด้วยรหัส ชื่อ หรือที่ตั้ง...",

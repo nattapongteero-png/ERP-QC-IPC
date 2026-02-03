@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -153,6 +154,7 @@ const referenceTypes = [
 
 export default function TransactionsPage() {
   const router = useRouter();
+  const t = useTranslations('inventory');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
@@ -506,8 +508,8 @@ export default function TransactionsPage() {
       <div className="space-y-4">
         {/* Page Header */}
         <PageHeader
-          title="Inventory Transactions"
-          description="รายการเคลื่อนไหวสินค้าคงคลัง"
+          title={t('transactions.pageTitle')}
+          description={t('transactions.description')}
           actions={
             <div className="flex items-center gap-2">
               <DxButton

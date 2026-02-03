@@ -1,4 +1,5 @@
 {
+  "loading": "กำลังโหลด...",
   "page": {
     "title": "การจัดซื้อ",
     "description": "จัดการใบสั่งซื้อและผู้ขาย"
@@ -7,6 +8,13 @@
     "title": "ใบสั่งซื้อ",
     "pageTitle": "ใบสั่งซื้อ",
     "description": "จัดการใบสั่งซื้อวัตถุดิบและวัสดุ",
+    "newTitle": "สร้างใบสั่งซื้อใหม่",
+    "newDescription": "Create New Purchase Order",
+    "detail": {
+      "title": "PO",
+      "vendor": "ผู้ขาย",
+      "status": "สถานะ"
+    },
     "status": {
       "all": "ทั้งหมด",
       "draft": "ร่าง",
@@ -102,6 +110,12 @@
   "vendors": {
     "pageTitle": "ผู้ขาย",
     "description": "จัดการข้อมูลผู้ขายและคู่ค้า",
+    "newTitle": "เพิ่มผู้ขายใหม่",
+    "newDescription": "สร้างผู้ขายใหม่",
+    "notFound": {
+      "title": "ไม่พบข้อมูลผู้ขาย",
+      "description": "ไม่พบข้อมูลผู้ขายที่ระบุในระบบ"
+    },
     "status": {
       "all": "ทั้งหมด",
       "approved": "อนุมัติแล้ว",
@@ -137,6 +151,8 @@
   "requisitions": {
     "pageTitle": "ใบขอซื้อ",
     "description": "สร้างและจัดการใบขอซื้อพร้อมระบบอนุมัติ",
+    "newPageTitle": "สร้างใบขอซื้อใหม่",
+    "detailTitle": "Purchase Requisition",
     "status": {
       "all": "ทั้งหมด",
       "draft": "ร่าง",

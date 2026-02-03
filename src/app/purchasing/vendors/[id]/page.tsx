@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -116,6 +117,7 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; l
 export default function VendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const t = useTranslations('purchasing');
   const [data, setData] = useState<VendorDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
@@ -269,8 +271,8 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
           <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <AlertCircle className="h-10 w-10 text-gray-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">ไม่พบข้อมูลผู้ขาย</h2>
-          <p className="text-gray-500 mb-6">ไม่พบข้อมูลผู้ขายที่ระบุในระบบ</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('vendors.notFound.title')}</h2>
+          <p className="text-gray-500 mb-6">{t('vendors.notFound.description')}</p>
           <DxButton
             text="กลับหน้ารายการผู้ขาย"
             icon="back"

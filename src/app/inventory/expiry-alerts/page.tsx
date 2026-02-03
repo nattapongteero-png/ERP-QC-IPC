@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -53,6 +54,7 @@ const daysOptions = [
 ];
 
 export default function ExpiryAlertsPage() {
+  const t = useTranslations('inventory');
   const [report, setReport] = useState<ExpiryReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<ApiErrorState | null>(null);
@@ -141,7 +143,7 @@ export default function ExpiryAlertsPage() {
       <div className="flex flex-col h-full gap-3 md:gap-2 lg:gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Expiry Alerts</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('expiryAlerts.pageTitle')}</h1>
             <p className="text-gray-600">Monitor expired and near-expiry inventory</p>
           </div>
           <div className="flex items-center gap-3">

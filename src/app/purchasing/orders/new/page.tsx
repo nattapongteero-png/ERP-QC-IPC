@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
@@ -76,6 +77,7 @@ const formatDate = (dateStr: string) => {
 
 export default function NewPurchaseOrderPage() {
   const router = useRouter();
+  const t = useTranslations('purchasing');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loadingVendors, setLoadingVendors] = useState(true);
@@ -295,8 +297,8 @@ export default function NewPurchaseOrderPage() {
     <>
       <div className="flex flex-col h-full gap-4">
         <PageHeader
-          title="สร้างใบสั่งซื้อใหม่"
-          description="Create New Purchase Order"
+          title={t('orders.newTitle')}
+          description={t('orders.newDescription')}
           actions={
             <DxButton
               text="ยกเลิก"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
@@ -199,6 +200,7 @@ const STATUS_OPTIONS = [
 export default function PurchaseOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('purchasing');
   const [data, setData] = useState<PODetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'lines' | 'receiving' | 'lots'>('overview');
@@ -803,8 +805,8 @@ export default function PurchaseOrderDetailPage() {
       <div className="space-y-4">
         {/* Header */}
         <PageHeader
-          title={`PO: ${po.poNumber}`}
-          description={`ผู้ขาย: ${po.vendorName} • สถานะ: ${statusConfig.labelTh}`}
+          title={`${t('orders.detail.title')}: ${po.poNumber}`}
+          description={`${t('orders.detail.vendor')}: ${po.vendorName} • ${t('orders.detail.status')}: ${statusConfig.labelTh}`}
           backButton={
             <DxButton
               icon="back"

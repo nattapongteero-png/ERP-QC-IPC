@@ -7,6 +7,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PRForm } from '@/components/purchasing/PRForm';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
@@ -22,6 +23,7 @@ interface PageProps {
 export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
+  const t = useTranslations('purchasing');
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
 
@@ -175,7 +177,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         <div className="mb-4 flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-              {pr?.prNumber || 'Purchase Requisition'}
+              {pr?.prNumber || t('requisitions.detailTitle')}
             </h1>
             <p className="text-gray-600">
               {pr?.status === 'draft' ? 'Edit and submit for approval' : `Status: ${pr?.status}`}

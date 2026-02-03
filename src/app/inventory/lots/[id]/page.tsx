@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -89,6 +90,7 @@ interface LotDetail {
 export default function LotDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('inventory');
   const [lot, setLot] = useState<LotDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -348,7 +350,7 @@ export default function LotDetailPage() {
                 stylingMode="outlined"
                 onClick={() => router.push('/inventory/lots')}
               />
-              <h1 className="text-2xl font-bold text-gray-900">Lot: {lot.lotNumber}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('lots.detail.pageTitle')}: {lot.lotNumber}</h1>
               <Badge variant={getStatusVariant(lot.status)}>{lot.status}</Badge>
             </div>
             <p className="text-gray-500 mt-1">Lot/Batch inventory details</p>

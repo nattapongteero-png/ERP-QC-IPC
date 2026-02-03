@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { ItemEditForm, type Item, type ItemFormData } from '@/components/ui/item-edit-form';
 import { AlertTriangle } from 'lucide-react';
@@ -11,6 +12,7 @@ export default function ItemDetailPage() {
   const router = useRouter();
   const params = useParams();
   const queryClient = useQueryClient();
+  const t = useTranslations('inventory');
   const isNew = params.id === 'new';
 
   const [item, setItem] = useState<Item | null>(null);
@@ -71,7 +73,7 @@ export default function ItemDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    if (!confirm(t('items.confirmDelete'))) return;
 
     try {
       const res = await fetch(`/api/items/${params.id}`, { method: 'DELETE' });
