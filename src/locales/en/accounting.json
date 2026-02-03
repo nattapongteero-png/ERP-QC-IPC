@@ -49,10 +49,6 @@
       "postable": "Postable",
       "bankAccounts": "Bank Accounts"
     },
-    "actions": {
-      "label": "Actions",
-      "add": "Add Account"
-    },
     "search": {
       "placeholder": "Search by code or name..."
     },
@@ -115,6 +111,8 @@
       }
     },
     "actions": {
+      "label": "Actions",
+      "add": "Add Account",
       "cancel": "Cancel",
       "save": "Save",
       "saving": "Saving..."

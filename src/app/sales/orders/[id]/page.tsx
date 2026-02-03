@@ -1477,7 +1477,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                     )}
                     {fulfillError.details.lotStatus && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">{t('orders.detail.error.lotStatus')}:</span>
+                        <span className="text-gray-500">{t('orders.detail.error.lotStatusLabel')}:</span>
                         <span className={cn(
                           'px-2 py-0.5 rounded-full text-xs font-medium',
                           fulfillError.details.lotStatus === 'quarantine' ? 'bg-amber-100 text-amber-700' :

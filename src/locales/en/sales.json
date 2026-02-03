@@ -258,7 +258,7 @@
         "details": "Details",
         "solutions": "Solutions",
         "lotNumber": "Lot Number",
-        "lotStatus": "Lot Status",
+        "lotStatusLabel": "Lot Status",
         "availableQty": "Available Quantity",
         "requestedQty": "Requested Quantity",
         "pendingQty": "Pending Quantity",

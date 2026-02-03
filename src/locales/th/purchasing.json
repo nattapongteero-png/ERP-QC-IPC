@@ -22,10 +22,6 @@
       "pending": "รอดำเนินการ",
       "awaiting": "รอรับ"
     },
-    "actions": {
-      "refresh": "รีเฟรช",
-      "createPO": "สร้าง PO"
-    },
     "grid": {
       "columns": {
         "poNumber": "เลขที่ PO",
@@ -71,6 +67,8 @@
       }
     },
     "actions": {
+      "refresh": "รีเฟรช",
+      "createPO": "สร้าง PO",
       "createOrder": "สร้างใบสั่งซื้อ",
       "editOrder": "แก้ไขใบสั่งซื้อ",
       "viewOrder": "ดูใบสั่งซื้อ",

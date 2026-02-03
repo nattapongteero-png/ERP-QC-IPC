@@ -258,7 +258,7 @@
         "details": "รายละเอียด",
         "solutions": "วิธีแก้ไข",
         "lotNumber": "Lot Number",
-        "lotStatus": "สถานะ Lot",
+        "lotStatusLabel": "สถานะ Lot",
         "availableQty": "จำนวนพร้อมใช้",
         "requestedQty": "จำนวนที่ต้องการ",
         "pendingQty": "ยอดค้างส่ง",

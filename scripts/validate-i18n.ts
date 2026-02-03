@@ -64,6 +64,8 @@ interface UsedKey {
   key: string;
   file: string;
   line: number;
+  /** The namespace from useTranslations(), e.g., 'purchasing' or 'dashboard.audit' */
+  namespace: string | null;
 }
 
 interface ValidationError {
@@ -101,11 +103,41 @@ const colors = {
 };
 
 /**
+ * Extract the namespace from useTranslations() call in a file
+ * Supports both simple namespaces like 'common' and nested like 'dashboard.audit'
+ */
+function extractNamespace(content: string): string | null {
+  // Match useTranslations('namespace') or useTranslations("namespace")
+  const namespaceRegex = /useTranslations\s*\(\s*['"]([^'"]+)['"]\s*\)/;
+  const match = content.match(namespaceRegex);
+  return match ? match[1] : null;
+}
+
+/**
+ * Convert a namespace like 'dashboard.audit' to a key prefix
+ * Returns the part after the first dot if it's a nested namespace within a file
+ * e.g., 'dashboard.audit' -> 'audit' (because 'dashboard' is the file name)
+ *       'common' -> null (no prefix needed)
+ */
+function getKeyPrefixFromNamespace(namespace: string): string | null {
+  const parts = namespace.split('.');
+  if (parts.length > 1) {
+    // Return everything after the first part (which is the file name)
+    return parts.slice(1).join('.');
+  }
+  return null;
+}
+
+/**
  * Extract translation keys from source code content
  */
 function extractTranslationKeys(content: string, filePath: string): UsedKey[] {
   const keys: UsedKey[] = [];
   const lines = content.split('\n');
+
+  // Detect the namespace used in this file
+  const namespace = extractNamespace(content);
+  const keyPrefix = namespace ? getKeyPrefixFromNamespace(namespace) : null;
 
   // Match various t() function call patterns:
   // - t('key')
@@ -117,15 +149,23 @@ function extractTranslationKeys(content: string, filePath: string): UsedKey[] {
   lines.forEach((line, index) => {
     let match;
     while ((match = tFunctionRegex.exec(line)) !== null) {
-      const key = match[1];
+      let key = match[1];
       // Skip dynamic keys with template literals (${...})
       if (key.includes('${')) {
         continue;
       }
+
+      // Prepend the key prefix from useTranslations namespace if present
+      // e.g., useTranslations('dashboard.audit') + t('error') -> 'audit.error'
+      if (keyPrefix) {
+        key = `${keyPrefix}.${key}`;
+      }
+
       keys.push({
         key,
         file: filePath,
         line: index + 1,
+        namespace,
       });
     }
     // Reset lastIndex for each line
@@ -168,7 +208,7 @@ function getSourceFiles(dir: string): string[] {
 }
 
 /**
- * Load translation file for a locale
+ * Load translation file for a locale (merged - for backward compatibility and key counting)
  */
 function loadTranslations(locale: Locale): Record<string, unknown> {
   const localeDir = path.join(CONFIG.localesDir, locale);
@@ -194,6 +234,37 @@ function loadTranslations(locale: Locale): Record<string, unknown> {
   }
 
   return translations;
+}
+
+/**
+ * Load translation files per namespace for a locale
+ * Returns a map: namespace (file basename without .json) -> content
+ */
+function loadTranslationsPerNamespace(locale: Locale): Map<string, Record<string, unknown>> {
+  const localeDir = path.join(CONFIG.localesDir, locale);
+  const result = new Map<string, Record<string, unknown>>();
+
+  if (!fs.existsSync(localeDir)) {
+    return result;
+  }
+
+  const files = fs.readdirSync(localeDir).filter((f) => f.endsWith('.json'));
+
+  for (const file of files) {
+    const filePath = path.join(localeDir, file);
+    const namespace = file.replace('.json', '');
+    try {
+      const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      result.set(namespace, content);
+    } catch (error) {
+      console.error(
+        `${colors.red}Error loading ${filePath}:${colors.reset}`,
+        error
+      );
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -279,6 +350,10 @@ function validateTranslations(verbose: boolean = false): ValidationResult {
     Locale,
     Record<string, unknown>
   >;
+  const translationsPerNs: Record<Locale, Map<string, Record<string, unknown>>> = {} as Record<
+    Locale,
+    Map<string, Record<string, unknown>>
+  >;
   const definedKeysPerLocale: Record<Locale, Set<string>> = {} as Record<
     Locale,
     Set<string>
@@ -286,6 +361,7 @@ function validateTranslations(verbose: boolean = false): ValidationResult {
 
   for (const locale of CONFIG.locales) {
     translations[locale] = loadTranslations(locale);
+    translationsPerNs[locale] = loadTranslationsPerNamespace(locale);
     const flatKeys = flattenObject(translations[locale]);
     definedKeysPerLocale[locale] = new Set(Object.keys(flatKeys));
 
@@ -302,9 +378,25 @@ function validateTranslations(verbose: boolean = false): ValidationResult {
   const warnings: ValidationError[] = [];
 
   // Check for missing keys in used translations
-  for (const { key, file, line } of uniqueKeys) {
+  for (const { key, file, line, namespace } of uniqueKeys) {
     for (const locale of CONFIG.locales) {
-      const value = getNestedValue(translations[locale], key);
+      let value: unknown;
+
+      if (namespace) {
+        // Namespace-aware lookup: useTranslations('purchasing') -> look in purchasing.json
+        // useTranslations('dashboard.audit') -> look in dashboard.json under 'audit' prefix
+        const namespaceParts = namespace.split('.');
+        const jsonFileName = namespaceParts[0]; // e.g., 'purchasing' or 'dashboard'
+        const nsTranslations = translationsPerNs[locale].get(jsonFileName);
+
+        if (nsTranslations) {
+          value = getNestedValue(nsTranslations, key);
+        }
+      } else {
+        // Fallback to merged lookup for files without useTranslations
+        value = getNestedValue(translations[locale], key);
+      }
+
       if (value === undefined) {
         errors.push({
           key,
@@ -349,9 +441,15 @@ function validateTranslations(verbose: boolean = false): ValidationResult {
   for (const locale of CONFIG.locales) {
     totalKeysDefined[locale] = definedKeysPerLocale[locale].size;
     const usedKeysCount = uniqueKeys.length;
-    const matchingKeys = uniqueKeys.filter(
-      ({ key }) => getNestedValue(translations[locale], key) !== undefined
-    ).length;
+    const matchingKeys = uniqueKeys.filter(({ key, namespace }) => {
+      if (namespace) {
+        const namespaceParts = namespace.split('.');
+        const jsonFileName = namespaceParts[0];
+        const nsTranslations = translationsPerNs[locale].get(jsonFileName);
+        return nsTranslations && getNestedValue(nsTranslations, key) !== undefined;
+      }
+      return getNestedValue(translations[locale], key) !== undefined;
+    }).length;
     coveragePercent[locale] =
       usedKeysCount > 0 ? Math.round((matchingKeys / usedKeysCount) * 100) : 100;
   }

@@ -22,10 +22,6 @@
       "pending": "pending",
       "awaiting": "awaiting"
     },
-    "actions": {
-      "refresh": "Refresh",
-      "createPO": "Create PO"
-    },
     "grid": {
       "columns": {
         "poNumber": "PO Number",
@@ -71,6 +67,8 @@
       }
     },
     "actions": {
+      "refresh": "Refresh",
+      "createPO": "Create PO",
       "createOrder": "Create Order",
       "editOrder": "Edit Order",
       "viewOrder": "View Order",

@@ -57,23 +57,25 @@ describe('Missing Translation Keys (T053)', () => {
   });
 
   describe('dashboard.json - Audit page keys', () => {
+    // These keys are accessed via useTranslations('dashboard.audit')
+    // The page calls t('error') which maps to dashboard.audit.error in the JSON
     const requiredKeys = [
-      'error',
-      'retry',
-      'lastUpdated',
-      'sections.rawMaterials',
-      'sections.qualityProduction',
-      'tables.expiryAlerts.title',
-      'tables.expiryAlerts.lotNumber',
-      'tables.expiryAlerts.item',
-      'tables.expiryAlerts.daysLeft',
-      'tables.expiryAlerts.expired',
-      'tables.expiryAlerts.daysRemaining',
-      'tables.lowStock.title',
-      'tables.lowStock.code',
-      'tables.lowStock.item',
-      'tables.lowStock.onHand',
-      'tables.lowStock.minStock',
+      'audit.error',
+      'audit.retry',
+      'audit.lastUpdated',
+      'audit.sections.rawMaterials',
+      'audit.sections.qualityProduction',
+      'audit.tables.expiryAlerts.title',
+      'audit.tables.expiryAlerts.lotNumber',
+      'audit.tables.expiryAlerts.item',
+      'audit.tables.expiryAlerts.daysLeft',
+      'audit.tables.expiryAlerts.expired',
+      'audit.tables.expiryAlerts.daysRemaining',
+      'audit.tables.lowStock.title',
+      'audit.tables.lowStock.code',
+      'audit.tables.lowStock.item',
+      'audit.tables.lowStock.onHand',
+      'audit.tables.lowStock.minStock',
     ];
 
     it.each(requiredKeys)('should have key "%s" in Thai', (key) => {
