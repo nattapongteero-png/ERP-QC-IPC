@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { RecallDataEntryDialog } from '@/components/recalls';
 import { ResponsivePageHeader } from '@/components/shared';
 import { AlertTriangle } from 'lucide-react';
@@ -26,6 +27,7 @@ async function fetchComplaint(id: number) {
 export default function NewRecallPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('gmp');
   const complaintId = searchParams.get('complaintId');
   const [dialogVisible, setDialogVisible] = useState(true);
 
@@ -51,8 +53,8 @@ export default function NewRecallPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Initiate Product Recall"
-        subtitle="Thai FDA GMP หมวด 9 - Recall Initiation"
+        title={t('recalls.new.title')}
+        subtitle={t('recalls.new.subtitle')}
         onBack={() => router.push('/gmp/recalls')}
       />
 
@@ -62,12 +64,10 @@ export default function NewRecallPage() {
           <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
           <div>
             <p className="font-medium text-red-800 dark:text-red-200">
-              Product Recall Initiation
+              {t('recalls.new.warningTitle')}
             </p>
             <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-              A product recall is a serious action that will notify all affected customers
-              and may require regulatory reporting. Ensure you have verified the need for
-              a recall before proceeding.
+              {t('recalls.new.warningDescription')}
             </p>
           </div>
         </div>

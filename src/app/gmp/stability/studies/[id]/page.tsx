@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import {
   StabilitySampleSchedule,
   StabilityTrendChart,
@@ -65,6 +66,7 @@ export default function StabilityStudyDetailPage() {
   const router = useRouter();
   const params = useParams();
   const queryClient = useQueryClient();
+  const t = useTranslations('gmp');
   const studyId = Number(params.id);
 
   const [activeTab, setActiveTab] = useState(0);
@@ -111,8 +113,8 @@ export default function StabilityStudyDetailPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
-          <p className="text-destructive">Failed to load study</p>
-          <DxButton text="Go Back" onClick={() => router.back()} stylingMode="outlined" />
+          <p className="text-destructive">{t('stability.studies.failedToLoad')}</p>
+          <DxButton text={t('common.goBack')} onClick={() => router.back()} stylingMode="outlined" />
         </div>
       </div>
     );
@@ -131,13 +133,13 @@ export default function StabilityStudyDetailPage() {
       {/* Page Header */}
       <ResponsivePageHeader
         title={`Study ${study.studyNumber}`}
-        subtitle={study.productName || 'Unknown Product'}
+        subtitle={study.productName || t('stability.studyDetail.unknownProduct')}
         onBack={() => router.push('/gmp/stability/studies')}
         actions={
           <div className="flex items-center gap-2">
             {study.status === 'active' && (
               <DxButton
-                text="Put On Hold"
+                text={t('stability.actions.putOnHold')}
                 onClick={() => updateStatusMutation.mutate('on_hold')}
                 stylingMode="outlined"
                 disabled={updateStatusMutation.isPending}
@@ -145,7 +147,7 @@ export default function StabilityStudyDetailPage() {
             )}
             {study.status === 'on_hold' && (
               <DxButton
-                text="Resume"
+                text={t('stability.actions.resume')}
                 onClick={() => updateStatusMutation.mutate('active')}
                 type="default"
                 disabled={updateStatusMutation.isPending}
@@ -153,7 +155,7 @@ export default function StabilityStudyDetailPage() {
             )}
             {canComplete && (
               <DxButton
-                text="Complete Study"
+                text={t('stability.actions.completeStudy')}
                 icon="check"
                 onClick={() => updateStatusMutation.mutate('completed')}
                 type="success"
@@ -184,19 +186,19 @@ export default function StabilityStudyDetailPage() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Package className="h-4 w-4" />
-              <span>Lot: {study.lotNumber || 'Unknown'}</span>
+              <span>{t('stability.studyDetail.lot')}: {study.lotNumber || t('stability.studyDetail.unknown')}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              <span>Start: {study.startDate}</span>
+              <span>{t('stability.studyDetail.start')}: {study.startDate}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
-              <span>Chamber: {study.chamberLocation || 'Not assigned'}</span>
+              <span>{t('stability.studyDetail.chamber')}: {study.chamberLocation || t('stability.studyDetail.notAssigned')}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <User className="h-4 w-4" />
-              <span>Created by: {study.createdByName || 'Unknown'}</span>
+              <span>{t('stability.studyDetail.createdBy')}: {study.createdByName || t('stability.studyDetail.unknown')}</span>
             </div>
           </div>
 
@@ -207,7 +209,7 @@ export default function StabilityStudyDetailPage() {
               className="flex items-center gap-2 text-primary hover:underline"
             >
               <FileText className="h-4 w-4" />
-              <span>View Protocol: {study.protocol?.name}</span>
+              <span>{t('stability.studyDetail.viewProtocol')}: {study.protocol?.name}</span>
             </button>
             <p className="text-sm text-muted-foreground mt-1">
               {study.protocol?.studyType.replace('_', ' ')} - {study.protocol?.storageCondition}
@@ -217,7 +219,7 @@ export default function StabilityStudyDetailPage() {
 
         {/* Progress */}
         <div className="bg-card border rounded-lg p-6">
-          <h3 className="font-semibold mb-4">Study Progress</h3>
+          <h3 className="font-semibold mb-4">{t('stability.studies.studyProgress')}</h3>
 
           <div className="flex items-center justify-center mb-4">
             <div className="text-5xl font-bold text-blue-600">
@@ -235,18 +237,18 @@ export default function StabilityStudyDetailPage() {
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="p-3 bg-muted rounded-lg">
               <div className="text-xl font-bold">{testedCount}</div>
-              <div className="text-xs text-muted-foreground">Tested</div>
+              <div className="text-xs text-muted-foreground">{t('stability.studies.tested')}</div>
             </div>
             <div className="p-3 bg-muted rounded-lg">
               <div className="text-xl font-bold">{totalSamples - testedCount}</div>
-              <div className="text-xs text-muted-foreground">Remaining</div>
+              <div className="text-xs text-muted-foreground">{t('stability.studies.remaining')}</div>
             </div>
           </div>
 
           {study.oosCount > 0 && (
             <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
               <div className="text-xl font-bold text-red-600">{study.oosCount}</div>
-              <div className="text-xs text-red-600 mb-2">OOS Detected</div>
+              <div className="text-xs text-red-600 mb-2">{t('stability.dashboard.oosDetected')}</div>
               <button
                 onClick={() => {
                   // Filter to samples with OOS that have investigation IDs
@@ -261,7 +263,7 @@ export default function StabilityStudyDetailPage() {
                 className="text-xs text-red-600 hover:underline"
                 disabled={!study.samples.some((s) => s.oosDetected && s.oosInvestigationId)}
               >
-                View Investigations
+                {t('stability.actions.viewInvestigations')}
               </button>
             </div>
           )}
@@ -272,8 +274,8 @@ export default function StabilityStudyDetailPage() {
       <div className="bg-card border rounded-lg shadow-sm">
         <DxTabs
           items={[
-            { id: 0, text: 'Sample Schedule', icon: 'clock' },
-            { id: 1, text: 'Trends', icon: 'chart' },
+            { id: 0, text: t('stability.tabs.sampleSchedule'), icon: 'clock' },
+            { id: 1, text: t('stability.tabs.trends'), icon: 'chart' },
           ] as DxTabItem[]}
           selectedIndex={activeTab}
           onSelectedIndexChange={setActiveTab}

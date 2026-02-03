@@ -9,11 +9,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { DocumentFormDialog } from '@/components/documents';
 import type { Document } from '@/types/documents';
 
 export default function NewDocumentPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   // Start with dialog open
   const [open, setOpen] = useState(true);
 
@@ -33,7 +35,7 @@ export default function NewDocumentPage() {
   return (
     <div className="container mx-auto py-6">
       {/* Background content - shows document list page briefly */}
-      <div className="animate-pulse space-y-4">
+      <div className="animate-pulse space-y-4" aria-label={t('common.loading')}>
         <div className="h-8 bg-muted rounded w-1/4" />
         <div className="h-64 bg-muted rounded" />
       </div>

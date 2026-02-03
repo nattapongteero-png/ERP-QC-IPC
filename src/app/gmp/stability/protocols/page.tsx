@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { DxButton } from '@/components/ui/dx-button';
@@ -37,16 +38,18 @@ async function fetchProtocols(status?: StabilityProtocolStatus): Promise<Stabili
 // Component
 // ============================================
 
-const statusOptions = [
-  { value: '', label: 'All Status' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'obsolete', label: 'Obsolete' },
-];
-
 export default function StabilityProtocolsPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const [statusFilter, setStatusFilter] = useState<StabilityProtocolStatus | ''>('');
+
+  // Status options with translations
+  const statusOptions = [
+    { value: '', label: t('common.allStatus') },
+    { value: 'draft', label: t('documents.status.draft') },
+    { value: 'approved', label: t('documents.status.approved') },
+    { value: 'obsolete', label: t('documents.status.obsolete') },
+  ];
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['stability-protocols', statusFilter],
@@ -57,7 +60,7 @@ export default function StabilityProtocolsPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
-          <p className="text-destructive">Failed to load protocols</p>
+          <p className="text-destructive">{t('stability.protocols.failedToLoad')}</p>
         </div>
       </div>
     );
@@ -67,7 +70,7 @@ export default function StabilityProtocolsPage() {
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'protocolNumber',
-      caption: 'Protocol Number',
+      caption: t('stability.columns.protocolNumber'),
       width: 150,
       cellRender: (cellData) => {
         const row = cellData.data as StabilityProtocol;
@@ -83,7 +86,7 @@ export default function StabilityProtocolsPage() {
     },
     {
       dataField: 'name',
-      caption: 'Protocol Name',
+      caption: t('stability.columns.protocolName'),
       cellRender: (cellData) => (
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
@@ -93,7 +96,7 @@ export default function StabilityProtocolsPage() {
     },
     {
       dataField: 'productName',
-      caption: 'Product',
+      caption: t('stability.columns.product'),
       width: 200,
       cellRender: (cellData) => (
         <div className="flex items-center gap-2">
@@ -104,7 +107,7 @@ export default function StabilityProtocolsPage() {
     },
     {
       dataField: 'storageCondition',
-      caption: 'Storage Condition',
+      caption: t('stability.columns.storageCondition'),
       width: 150,
       cellRender: (cellData) => (
         <div className="flex items-center gap-2">
@@ -115,7 +118,7 @@ export default function StabilityProtocolsPage() {
     },
     {
       dataField: 'studyType',
-      caption: 'Study Type',
+      caption: t('stability.columns.studyType'),
       width: 120,
       cellRender: (cellData) => (
         <span className="text-sm">
@@ -125,7 +128,7 @@ export default function StabilityProtocolsPage() {
     },
     {
       dataField: 'timepoints',
-      caption: 'Duration (months)',
+      caption: t('stability.columns.duration'),
       width: 150,
       cellRender: (cellData) => {
         const timepoints = (cellData.value ?? []) as number[];
@@ -142,13 +145,13 @@ export default function StabilityProtocolsPage() {
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: t('stability.columns.status'),
       width: 120,
       cellRender: (cellData) => <WorkflowStatusBadge status={String(cellData.value ?? '')} />,
     },
     {
       dataField: 'approvedByName',
-      caption: 'Approved By',
+      caption: t('stability.columns.approvedBy'),
       width: 150,
       cellRender: (cellData) => (
         <span className="text-sm text-muted-foreground">
@@ -158,7 +161,7 @@ export default function StabilityProtocolsPage() {
     },
     {
       dataField: 'createdAt',
-      caption: 'Created',
+      caption: t('stability.columns.created'),
       width: 110,
       dataType: 'date',
       format: 'yyyy-MM-dd',
@@ -169,12 +172,12 @@ export default function StabilityProtocolsPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Stability Protocols"
-        subtitle="Standardized protocols for stability testing programs"
+        title={t('stability.protocols.title')}
+        subtitle={t('stability.protocols.description')}
         onBack={() => router.push('/gmp/stability')}
         actions={
           <DxButton
-            text="New Protocol"
+            text={t('stability.actions.newProtocol')}
             icon="add"
             onClick={() => router.push('/gmp/stability/protocols/new')}
             type="default"
@@ -191,7 +194,7 @@ export default function StabilityProtocolsPage() {
             displayExpr="label"
             value={statusFilter}
             onValueChanged={(e) => setStatusFilter(e.value)}
-            placeholder="Filter by status..."
+            placeholder={t('stability.protocols.filterByStatus')}
           />
         </div>
       </div>
@@ -216,14 +219,14 @@ export default function StabilityProtocolsPage() {
       {!isLoading && (!data || data.length === 0) && (
         <div className="text-center py-12 bg-card border rounded-lg">
           <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No protocols found</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('stability.protocols.noProtocols')}</h3>
           <p className="text-muted-foreground mb-4">
             {statusFilter
-              ? `No protocols with status "${statusFilter}"`
-              : 'Create your first stability protocol to get started'}
+              ? t('stability.protocols.noProtocolsFiltered', { status: statusFilter })
+              : t('stability.protocols.createFirst')}
           </p>
           <DxButton
-            text="Create Protocol"
+            text={t('stability.protocols.createProtocol')}
             icon="add"
             onClick={() => router.push('/gmp/stability/protocols/new')}
             type="default"

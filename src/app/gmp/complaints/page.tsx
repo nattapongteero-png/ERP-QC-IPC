@@ -10,6 +10,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { ComplaintList, ComplaintDataEntryDialog } from '@/components/complaints';
 import { DxButton } from '@/components/ui/dx-button';
@@ -138,6 +139,7 @@ async function fetchTrends(): Promise<ComplaintTrends> {
 
 export default function ComplaintsListPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const [statusFilter, setStatusFilter] = useState<ComplaintStatus | undefined>(undefined);
   const [showNewDialog, setShowNewDialog] = useState(false);
 
@@ -241,14 +243,14 @@ export default function ComplaintsListPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Customer Complaints"
-        subtitle="Complaint Management System (GMP หมวด 9)"
+        title={t('complaints.pageTitle')}
+        subtitle={t('complaints.description')}
         icon={MessageSquareWarning}
         iconBgColor="bg-orange-100"
         iconColor="text-orange-600"
         breadcrumbs={[
           { label: 'GMP', href: '/gmp' },
-          { label: 'Complaints' },
+          { label: t('complaints.title') },
         ]}
         actions={
           <div className="flex items-center gap-2">
@@ -256,12 +258,12 @@ export default function ComplaintsListPage() {
               icon="refresh"
               type="default"
               stylingMode="outlined"
-              hint="Refresh"
+              hint={t('complaints.actions.refresh')}
               onClick={() => window.location.reload()}
             />
             <DxButton
               icon="plus"
-              text="New Complaint"
+              text={t('complaints.actions.newComplaint')}
               type="success"
               onClick={handleNewComplaint}
             />

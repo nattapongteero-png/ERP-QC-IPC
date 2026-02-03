@@ -11,6 +11,7 @@
     "title": "Stability",
     "pageTitle": "Stability Program",
     "description": "Manage product stability studies",
+    "subtitle": "GMP Chapter 7.4 - Stability Testing Management Dashboard",
     "dashboard": {
       "title": "Stability Dashboard",
       "activeStudies": "Active Studies",
@@ -19,7 +20,19 @@
       "overdueSamples": "Overdue Samples",
       "upcomingSamples": "Upcoming Samples",
       "oosThisMonth": "OOS This Month",
-      "completedThisMonth": "Completed This Month"
+      "completedThisMonth": "Completed This Month",
+      "dueIn30Days": "Due in 30 Days",
+      "testsThisMonth": "Tests This Month",
+      "productsTracked": "Products Tracked",
+      "activeByType": "Active Studies by Type",
+      "byStatus": "Studies by Status",
+      "programSummary": "Program Summary",
+      "topProducts": "Top Products",
+      "samplesTested": "Samples Tested (Last 6 Months)",
+      "totalStudies": "Total Studies",
+      "oosDetected": "OOS Detected",
+      "noStudyData": "No study data",
+      "noActivityData": "No activity data"
     },
     "status": {
       "active": "Active",
@@ -32,22 +45,116 @@
       "accelerated": "Accelerated",
       "intermediate": "Intermediate"
     },
+    "storage": {
+      "longTerm": "25°C / 60%RH",
+      "accelerated": "40°C / 75%RH",
+      "intermediate": "30°C / 65%RH"
+    },
     "actions": {
       "newStudy": "New Study",
       "viewStudy": "View Study",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "enrollBatch": "Enroll Batch",
+      "viewAll": "View All",
+      "newProtocol": "New Protocol",
+      "addTimepoint": "Add Timepoint",
+      "saveProtocol": "Save Protocol",
+      "cancel": "Cancel",
+      "putOnHold": "Put On Hold",
+      "resume": "Resume",
+      "completeStudy": "Complete Study",
+      "viewInvestigations": "View Investigations"
+    },
+    "tabs": {
+      "allStudies": "All Studies",
+      "active": "Active",
+      "completed": "Completed",
+      "onHold": "On Hold",
+      "sampleSchedule": "Sample Schedule",
+      "trends": "Trends"
+    },
+    "alerts": {
+      "overdueTitle": "Overdue Samples",
+      "overdueDescription": "{count} samples require immediate attention",
+      "upcomingTitle": "Upcoming Samples",
+      "upcomingDescription": "{count} samples due within 30 days",
+      "oosTitle": "OOS Alert",
+      "oosDescription": "{count} out-of-specification result(s) detected this month. Review affected studies and initiate investigations as needed.",
+      "overdue": "overdue",
+      "daysOverdue": "{days}d overdue",
+      "daysRemaining": "{days}d"
     },
     "studies": {
       "title": "Stability Studies",
-      "description": "List of all stability studies"
+      "description": "Enrolled batch studies and sample schedules",
+      "filterByStatus": "Filter by status...",
+      "noStudies": "No stability studies found",
+      "enrollFirst": "Enroll a batch to start tracking stability",
+      "studyProgress": "Study Progress",
+      "tested": "Tested",
+      "remaining": "Remaining",
+      "failedToLoad": "Failed to load studies",
+      "studies": "studies"
     },
     "trends": {
       "title": "Stability Trends",
-      "description": "Analyze stability data trends"
+      "description": "Overview of stability program metrics and trends",
+      "studiesByProduct": "Studies by Product",
+      "complete": "Complete",
+      "activeCount": "{count} active",
+      "completedCount": "{count} completed",
+      "failedToLoad": "Failed to load trends"
     },
     "protocols": {
       "title": "Stability Protocols",
-      "description": "Manage stability testing protocols"
+      "description": "Standardized protocols for stability testing programs",
+      "filterByStatus": "Filter by status...",
+      "noProtocols": "No protocols found",
+      "noProtocolsFiltered": "No protocols with status \"{status}\"",
+      "createFirst": "Create your first stability protocol to get started",
+      "createProtocol": "Create Protocol",
+      "failedToLoad": "Failed to load protocols"
+    },
+    "newProtocol": {
+      "title": "Create Stability Protocol",
+      "description": "Define a new standardized protocol for stability testing",
+      "basicInfo": "Basic Information",
+      "protocolName": "Protocol Name",
+      "protocolNamePlaceholder": "e.g., Herbal Tablet Long-term Stability",
+      "product": "Product",
+      "selectProduct": "Select product...",
+      "studyType": "Study Type",
+      "storageCondition": "Storage Condition",
+      "selectCondition": "Select condition...",
+      "samplingTimepoints": "Sampling Timepoints",
+      "selectProductFirst": "Select a product first to configure timepoints and tests",
+      "timepointsHelp": "Define sampling timepoints in months from study start (e.g., 0, 1, 3, 6, 12, 18, 24). Select which tests to perform at each timepoint.",
+      "timepointMonths": "Timepoint (Months)",
+      "testsRequired": "Tests Required",
+      "selectTests": "Select tests...",
+      "durationMonths": "Duration (months)",
+      "validationMessage": "Please complete all required fields and add at least one timepoint."
+    },
+    "studyDetail": {
+      "lot": "Lot",
+      "start": "Start",
+      "chamber": "Chamber",
+      "createdBy": "Created by",
+      "notAssigned": "Not assigned",
+      "unknown": "Unknown",
+      "unknownProduct": "Unknown Product",
+      "viewProtocol": "View Protocol"
+    },
+    "columns": {
+      "protocolNumber": "Protocol Number",
+      "protocolName": "Protocol Name",
+      "product": "Product",
+      "storageCondition": "Storage Condition",
+      "studyType": "Study Type",
+      "duration": "Duration (months)",
+      "status": "Status",
+      "approvedBy": "Approved By",
+      "created": "Created"
     }
   },
   "capa": {
@@ -78,6 +185,15 @@
       "overdue": "Overdue",
       "dueThisWeek": "Due This Week",
       "completedThisMonth": "Completed This Month"
+    },
+    "new": {
+      "title": "Create New CAPA",
+      "subtitle": "Create a new Corrective/Preventive Action",
+      "fromDeviation": "Create CAPA from Deviation",
+      "fromComplaint": "Create CAPA from Complaint",
+      "fromAuditFinding": "Create CAPA from Audit Finding",
+      "linkedTo": "Linked to {number}",
+      "placeholder": "Use the dialog to create a new CAPA..."
     }
   },
   "complaints": {
@@ -99,11 +215,20 @@
       "newComplaint": "New Complaint",
       "viewComplaint": "View Complaint",
       "investigate": "Investigate",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "backToList": "Back to List",
+      "openForm": "Open Form"
     },
     "trends": {
       "title": "Complaint Trends",
       "description": "Analyze complaint trends"
+    },
+    "new": {
+      "title": "Register New Complaint",
+      "subtitle": "Create a new customer complaint record",
+      "breadcrumb": "New Complaint",
+      "heading": "Create a New Complaint",
+      "description": "Register a new customer complaint to track and investigate quality issues."
     }
   },
   "documents": {
@@ -178,6 +303,12 @@
       "viewRecall": "View Recall",
       "updateStatus": "Update Status",
       "refresh": "Refresh"
+    },
+    "new": {
+      "title": "Initiate Product Recall",
+      "subtitle": "Thai FDA GMP Chapter 9 - Recall Initiation",
+      "warningTitle": "Product Recall Initiation",
+      "warningDescription": "A product recall is a serious action that will notify all affected customers and may require regulatory reporting. Ensure you have verified the need for a recall before proceeding."
     }
   },
   "sanitation": {
@@ -238,16 +369,19 @@
   },
   "contracts": {
     "title": "Contracts",
-    "pageTitle": "Contract Management",
-    "description": "Manage contracts with manufacturers and external laboratories",
+    "pageTitle": "Manufacturing Contracts",
+    "description": "GMP Chapter 8 - Contract Manufacturing & Laboratory Services",
     "status": {
       "active": "Active",
       "expired": "Expired",
+      "terminated": "Terminated",
+      "pending": "Pending",
       "pendingRenewal": "Pending Renewal"
     },
     "type": {
       "manufacturer": "Manufacturer",
       "laboratory": "Laboratory",
+      "both": "Both",
       "distributor": "Distributor"
     },
     "actions": {
@@ -255,6 +389,53 @@
       "viewContract": "View Contract",
       "renewContract": "Renew Contract",
       "refresh": "Refresh"
+    },
+    "stats": {
+      "totalContracts": "Total Contracts",
+      "active": "Active",
+      "expiringSoon": "Expiring Soon",
+      "auditsOverdue": "Audits Overdue",
+      "totalBatches": "Total Batches",
+      "thisMonth": "This Month"
+    },
+    "tabs": {
+      "all": "All Contracts",
+      "active": "Active",
+      "expired": "Expired",
+      "pending": "Pending"
+    },
+    "sections": {
+      "expiringSoon": "Expiring Soon (90 days)",
+      "overdueAudits": "Overdue Audits",
+      "byStatus": "By Status",
+      "byType": "By Type",
+      "activeByType": "Active by Type",
+      "activitySummary": "Activity Summary",
+      "contractActivity": "Contract Activity (Last 6 Months)",
+      "topContractors": "Top Contractors by Activity"
+    },
+    "labels": {
+      "manufacturers": "Manufacturers",
+      "laboratories": "Laboratories",
+      "bothServices": "Both Services",
+      "production": "Production",
+      "testing": "Testing",
+      "fullService": "Full Service",
+      "needsRenewal": "Needs Renewal",
+      "allTime": "All Time",
+      "manufacturing": "Manufacturing",
+      "qcQa": "QC/QA",
+      "packaging": "Packaging",
+      "packOut": "Pack Out",
+      "contracts": "contracts",
+      "batches": "batches",
+      "batchesProcessed": "Batches Processed",
+      "overdue": "Overdue",
+      "due": "Due"
+    },
+    "empty": {
+      "noContracts": "No contracts",
+      "noData": "No data"
     }
   },
   "pqr": {
@@ -323,6 +504,8 @@
     "loading": "Loading...",
     "error": "An error occurred",
     "noData": "No data found",
-    "retry": "Retry"
+    "retry": "Retry",
+    "goBack": "Go Back",
+    "allStatus": "All Status"
   }
 }

@@ -9,6 +9,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import {
@@ -37,6 +38,7 @@ async function fetchTrends(): Promise<StabilityTrends> {
 
 export default function StabilityTrendsPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
 
   const { data: trends, isLoading, error } = useQuery({
     queryKey: ['stability-trends-all'],
@@ -58,7 +60,7 @@ export default function StabilityTrendsPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
-          <p className="text-destructive">Failed to load trends</p>
+          <p className="text-destructive">{t('stability.trends.failedToLoad')}</p>
         </div>
       </div>
     );
@@ -68,8 +70,8 @@ export default function StabilityTrendsPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Stability Trends"
-        subtitle="Overview of stability program metrics and trends"
+        title={t('stability.trends.title')}
+        subtitle={t('stability.trends.description')}
         onBack={() => router.push('/gmp/stability')}
       />
 
@@ -82,7 +84,7 @@ export default function StabilityTrendsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">{trends?.totalActiveStudies || 0}</p>
-              <p className="text-sm text-muted-foreground">Active Studies</p>
+              <p className="text-sm text-muted-foreground">{t('stability.dashboard.activeStudies')}</p>
             </div>
           </div>
         </div>
@@ -94,7 +96,7 @@ export default function StabilityTrendsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">{trends?.overduesamples || 0}</p>
-              <p className="text-sm text-muted-foreground">Overdue Samples</p>
+              <p className="text-sm text-muted-foreground">{t('stability.dashboard.overdueSamples')}</p>
             </div>
           </div>
         </div>
@@ -106,7 +108,7 @@ export default function StabilityTrendsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">{trends?.oosThisMonth || 0}</p>
-              <p className="text-sm text-muted-foreground">OOS This Month</p>
+              <p className="text-sm text-muted-foreground">{t('stability.dashboard.oosThisMonth')}</p>
             </div>
           </div>
         </div>
@@ -118,7 +120,7 @@ export default function StabilityTrendsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">{trends?.studiesByProduct.length || 0}</p>
-              <p className="text-sm text-muted-foreground">Products Tracked</p>
+              <p className="text-sm text-muted-foreground">{t('stability.dashboard.productsTracked')}</p>
             </div>
           </div>
         </div>
@@ -126,7 +128,7 @@ export default function StabilityTrendsPage() {
 
       {/* Studies by Product */}
       <div className="bg-card border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">Studies by Product</h2>
+        <h2 className="text-lg font-semibold mb-4">{t('stability.trends.studiesByProduct')}</h2>
 
         {trends?.studiesByProduct && trends.studiesByProduct.length > 0 ? (
           <div className="space-y-4">
@@ -150,7 +152,7 @@ export default function StabilityTrendsPage() {
                     <div>
                       <h3 className="font-medium">{product.productName}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {product.activeStudies} active, {product.completedStudies} completed
+                        {t('stability.trends.activeCount', { count: product.activeStudies })}, {t('stability.trends.completedCount', { count: product.completedStudies })}
                       </p>
                     </div>
                   </div>
@@ -158,7 +160,7 @@ export default function StabilityTrendsPage() {
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <div className="text-lg font-bold">{completionRate.toFixed(0)}%</div>
-                      <div className="text-xs text-muted-foreground">Complete</div>
+                      <div className="text-xs text-muted-foreground">{t('stability.trends.complete')}</div>
                     </div>
                     <div className="w-24 bg-muted rounded-full h-2">
                       <div
@@ -174,10 +176,10 @@ export default function StabilityTrendsPage() {
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>No stability studies found</p>
-            <p className="text-sm">Enroll a batch to start tracking stability</p>
+            <p>{t('stability.studies.noStudies')}</p>
+            <p className="text-sm">{t('stability.studies.enrollFirst')}</p>
             <DxButton
-              text="Enroll Batch"
+              text={t('stability.actions.enrollBatch')}
               onClick={() => router.push('/gmp/stability/studies/new')}
               type="default"
               stylingMode="outlined"
@@ -194,11 +196,10 @@ export default function StabilityTrendsPage() {
             <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
             <div>
               <h3 className="font-medium text-yellow-800 dark:text-yellow-200">
-                OOS Alert
+                {t('stability.alerts.oosTitle')}
               </h3>
               <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                {trends.oosThisMonth} out-of-specification result(s) detected this month.
-                Review affected studies and initiate investigations as needed.
+                {t('stability.alerts.oosDescription', { count: trends.oosThisMonth })}
               </p>
             </div>
           </div>

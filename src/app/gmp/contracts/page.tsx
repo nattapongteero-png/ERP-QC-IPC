@@ -10,6 +10,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { ContractList, ContractDataEntryDialog } from '@/components/contracts';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
@@ -106,6 +107,7 @@ async function fetchContracts(status?: ContractStatus): Promise<ContractListResp
 
 export default function ContractsDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const [statusFilter, setStatusFilter] = useState<ContractStatus | undefined>(undefined);
   const [showNewDialog, setShowNewDialog] = useState(false);
 
@@ -123,10 +125,10 @@ export default function ContractsDashboardPage() {
 
   // Status tabs
   const statusTabs: DxTabItem[] = [
-    { id: 0, text: 'All Contracts', icon: 'selectall' },
-    { id: 1, text: 'Active', icon: 'check' },
-    { id: 2, text: 'Expired', icon: 'close' },
-    { id: 3, text: 'Pending', icon: 'clock' },
+    { id: 0, text: t('contracts.tabs.all'), icon: 'selectall' },
+    { id: 1, text: t('contracts.tabs.active'), icon: 'check' },
+    { id: 2, text: t('contracts.tabs.expired'), icon: 'close' },
+    { id: 3, text: t('contracts.tabs.pending'), icon: 'clock' },
   ];
 
   const handleTabChange = (index: number) => {
@@ -196,14 +198,14 @@ export default function ContractsDashboardPage() {
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="Manufacturing Contracts"
-        subtitle="GMP หมวด 8 - Contract Manufacturing & Laboratory Services"
+        title={t('contracts.pageTitle')}
+        subtitle={t('contracts.description')}
         icon={Briefcase}
         iconBgColor="bg-indigo-100"
         iconColor="text-indigo-600"
         breadcrumbs={[
           { label: 'GMP', href: '/gmp' },
-          { label: 'Contracts' },
+          { label: t('contracts.title') },
         ]}
         actions={
           <div className="flex items-center gap-2">
@@ -211,12 +213,12 @@ export default function ContractsDashboardPage() {
               icon="refresh"
               type="default"
               stylingMode="outlined"
-              hint="Refresh"
+              hint={t('contracts.actions.refresh')}
               onClick={() => window.location.reload()}
             />
             <DxButton
               icon="plus"
-              text="New Contract"
+              text={t('contracts.actions.newContract')}
               type="success"
               onClick={handleNewContract}
             />
@@ -227,7 +229,7 @@ export default function ContractsDashboardPage() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <StatCard
-          label="Total Contracts"
+          label={t('contracts.stats.totalContracts')}
           value={dashboard?.totalContracts ?? 0}
           icon={Briefcase}
           iconColor="text-indigo-500"
@@ -235,7 +237,7 @@ export default function ContractsDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Active"
+          label={t('contracts.stats.active')}
           value={dashboard?.activeContracts ?? 0}
           icon={CheckCircle}
           iconColor="text-green-500"
@@ -243,7 +245,7 @@ export default function ContractsDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Expiring Soon"
+          label={t('contracts.stats.expiringSoon')}
           value={dashboard?.expiringSoon ?? 0}
           icon={Calendar}
           iconColor="text-amber-500"
@@ -251,7 +253,7 @@ export default function ContractsDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Audits Overdue"
+          label={t('contracts.stats.auditsOverdue')}
           value={dashboard?.auditsOverdue ?? 0}
           icon={AlertTriangle}
           iconColor="text-red-500"
@@ -259,7 +261,7 @@ export default function ContractsDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Total Batches"
+          label={t('contracts.stats.totalBatches')}
           value={dashboard?.totalBatches ?? 0}
           icon={Package}
           iconColor="text-blue-500"
@@ -267,13 +269,13 @@ export default function ContractsDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="This Month"
+          label={t('contracts.stats.thisMonth')}
           value={dashboard?.batchesThisMonth ?? 0}
           icon={TrendingUp}
           iconColor="text-teal-500"
           accentColor="border-teal-500"
           isLoading={dashboardLoading}
-          trend={dashboard?.batchesThisMonth ? { direction: 'up', value: 'batches' } : undefined}
+          trend={dashboard?.batchesThisMonth ? { direction: 'up', value: t('contracts.labels.batches') } : undefined}
         />
       </div>
 
@@ -286,7 +288,7 @@ export default function ContractsDashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-amber-500" />
-                  Expiring Soon (90 days)
+                  {t('contracts.sections.expiringSoon')}
                   <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
                     {dashboard.expiringContracts.length}
                   </span>
@@ -322,7 +324,7 @@ export default function ContractsDashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                   <ClipboardCheck className="w-5 h-5 text-red-500" />
-                  Overdue Audits
+                  {t('contracts.sections.overdueAudits')}
                   <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
                     {dashboard.overdueAudits.length}
                   </span>
@@ -344,7 +346,7 @@ export default function ContractsDashboardPage() {
                       </p>
                     </div>
                     <span className="ml-3 px-2 py-1 bg-red-200 text-red-800 text-xs font-medium rounded">
-                      Overdue
+                      {t('contracts.labels.overdue')}
                     </span>
                   </div>
                 ))}
@@ -361,7 +363,7 @@ export default function ContractsDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <FileWarning className="w-4 h-4 text-blue-500" />
-              By Status
+              {t('contracts.sections.byStatus')}
             </h3>
           </div>
           {statusChartData.length > 0 ? (
@@ -395,7 +397,7 @@ export default function ContractsDashboardPage() {
             <div className="h-[200px] flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <FileWarning className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No contracts</p>
+                <p className="text-sm">{t('contracts.empty.noContracts')}</p>
               </div>
             </div>
           )}
@@ -406,7 +408,7 @@ export default function ContractsDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Building2 className="w-4 h-4 text-purple-500" />
-              By Type
+              {t('contracts.sections.byType')}
             </h3>
           </div>
           {typeChartData.length > 0 ? (
@@ -440,7 +442,7 @@ export default function ContractsDashboardPage() {
             <div className="h-[200px] flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <Building2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No data</p>
+                <p className="text-sm">{t('contracts.empty.noData')}</p>
               </div>
             </div>
           )}
@@ -451,7 +453,7 @@ export default function ContractsDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-green-500" />
-              Active by Type
+              {t('contracts.sections.activeByType')}
             </h3>
           </div>
           <div className="space-y-3">
@@ -526,7 +528,7 @@ export default function ContractsDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-indigo-500" />
-              Activity Summary
+              {t('contracts.sections.activitySummary')}
             </h3>
           </div>
           <div className="space-y-3">
@@ -603,7 +605,7 @@ export default function ContractsDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-indigo-500" />
-              Contract Activity (Last 6 Months)
+              {t('contracts.sections.contractActivity')}
             </h3>
           </div>
           <Chart
@@ -650,7 +652,7 @@ export default function ContractsDashboardPage() {
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <Briefcase className="w-4 h-4" />
-                {contractsData?.total ?? 0} contracts
+                {contractsData?.total ?? 0} {t('contracts.labels.contracts')}
               </span>
             </div>
           </div>
@@ -672,7 +674,7 @@ export default function ContractsDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Building2 className="w-4 h-4 text-indigo-500" />
-              Top Contractors by Activity
+              {t('contracts.sections.topContractors')}
             </h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -700,7 +702,7 @@ export default function ContractsDashboardPage() {
                     {contractor.contractorName}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {contractor.batchCount} batches
+                    {contractor.batchCount} {t('contracts.labels.batches')}
                     <span className={`ml-2 ${contractor.status === 'active' ? 'text-green-600' : 'text-gray-400'}`}>
                       ({contractor.status})
                     </span>

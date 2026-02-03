@@ -11,6 +11,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { StabilityStudyList } from '@/components/stability';
 import { DxButton } from '@/components/ui/dx-button';
 import {
@@ -309,6 +310,7 @@ function AlertCard({
 
 export default function StabilityDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed' | 'on_hold'>('all');
 
   // Fetch dashboard data
@@ -390,16 +392,16 @@ export default function StabilityDashboardPage() {
                   <FlaskConical className="h-8 w-8" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">Stability Program</h1>
+                  <h1 className="text-2xl font-bold">{t('stability.pageTitle')}</h1>
                   <p className="text-emerald-100 text-sm">
-                    GMP หมวด 7.4 - Stability Testing Management Dashboard
+                    {t('stability.subtitle')}
                   </p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <DxButton
                   icon="refresh"
-                  text="Refresh"
+                  text={t('stability.actions.refresh')}
                   stylingMode="outlined"
                   type="normal"
                   onClick={() => refetchDashboard()}
@@ -407,7 +409,7 @@ export default function StabilityDashboardPage() {
                 />
                 <DxButton
                   icon="doc"
-                  text="Protocols"
+                  text={t('stability.protocols.title')}
                   stylingMode="outlined"
                   type="normal"
                   onClick={() => router.push('/gmp/stability/protocols')}
@@ -415,7 +417,7 @@ export default function StabilityDashboardPage() {
                 />
                 <DxButton
                   icon="chart"
-                  text="Trends"
+                  text={t('stability.trends.title')}
                   stylingMode="outlined"
                   type="normal"
                   onClick={() => router.push('/gmp/stability/trends')}
@@ -423,7 +425,7 @@ export default function StabilityDashboardPage() {
                 />
                 <DxButton
                   icon="plus"
-                  text="Enroll Batch"
+                  text={t('stability.actions.enrollBatch')}
                   type="success"
                   onClick={() => router.push('/gmp/stability/studies/new')}
                 />

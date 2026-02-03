@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { CapaDataEntryDialog } from '@/components/capa/CapaDataEntryDialog';
 import { ResponsivePageHeader } from '@/components/shared';
 import type { Capa } from '@/types/capa';
@@ -16,6 +17,7 @@ import type { Capa } from '@/types/capa';
 export default function NewCapaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('gmp');
   const [dialogVisible, setDialogVisible] = useState(true);
 
   // Check if creating from deviation
@@ -43,17 +45,17 @@ export default function NewCapaPage() {
 
   // Determine page title based on source
   const getTitle = () => {
-    if (deviationId) return 'Create CAPA from Deviation';
-    if (complaintId) return 'Create CAPA from Complaint';
-    if (auditFindingId) return 'Create CAPA from Audit Finding';
-    return 'Create New CAPA';
+    if (deviationId) return t('capa.new.fromDeviation');
+    if (complaintId) return t('capa.new.fromComplaint');
+    if (auditFindingId) return t('capa.new.fromAuditFinding');
+    return t('capa.new.title');
   };
 
   const getSubtitle = () => {
-    if (deviationNumber) return `Linked to ${deviationNumber}`;
-    if (complaintNumber) return `Linked to ${complaintNumber}`;
-    if (auditFindingNumber) return `Linked to ${auditFindingNumber}`;
-    return 'Create a new Corrective/Preventive Action';
+    if (deviationNumber) return t('capa.new.linkedTo', { number: deviationNumber });
+    if (complaintNumber) return t('capa.new.linkedTo', { number: complaintNumber });
+    if (auditFindingNumber) return t('capa.new.linkedTo', { number: auditFindingNumber });
+    return t('capa.new.subtitle');
   };
 
   return (
@@ -69,7 +71,7 @@ export default function NewCapaPage() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-card border rounded-lg shadow-sm p-8 text-center">
           <p className="text-muted-foreground">
-            Use the dialog to create a new CAPA...
+            {t('capa.new.placeholder')}
           </p>
         </div>
       </div>

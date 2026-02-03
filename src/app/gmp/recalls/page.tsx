@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -310,6 +311,7 @@ function RecallEffectivenessMatrix({ recalls }: RecallEffectivenessMatrixProps) 
 export default function RecallsDashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('gmp');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [showNewRecallDialog, setShowNewRecallDialog] = useState(false);
   const [showMockDrill, setShowMockDrill] = useState(false);
@@ -613,16 +615,16 @@ export default function RecallsDashboardPage() {
                 <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
                   <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
                 </div>
-                Product Recalls
+                {t('recalls.pageTitle')}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Thai FDA GMP หมวด 9 • Recall Management Dashboard
+                {t('recalls.description')}
               </p>
             </div>
             <div className="flex items-center gap-3">
               <Button
                 icon="refresh"
-                text="Refresh"
+                text={t('recalls.actions.refresh')}
                 stylingMode="outlined"
                 onClick={handleRefresh}
               />
@@ -634,7 +636,7 @@ export default function RecallsDashboardPage() {
               />
               <Button
                 icon="plus"
-                text="Initiate Recall"
+                text={t('recalls.actions.initiateRecall')}
                 type="danger"
                 onClick={handleNewRecall}
               />

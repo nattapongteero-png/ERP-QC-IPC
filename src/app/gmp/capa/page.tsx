@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DataGrid, {
   Column,
@@ -284,6 +285,7 @@ function RiskMatrix({ capas }: RiskMatrixProps) {
 export default function CapaDashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations('gmp');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [showNewCapaDialog, setShowNewCapaDialog] = useState(false);
   const [selectedCapaId, setSelectedCapaId] = useState<number | null>(null);
@@ -543,22 +545,22 @@ export default function CapaDashboardPage() {
                 <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
                   <Target className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                CAPA Management
+                {t('capa.pageTitle')}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Corrective and Preventive Actions • GMP Chapter 1 Compliance
+                {t('capa.description')} • GMP Chapter 1 Compliance
               </p>
             </div>
             <div className="flex items-center gap-3">
               <Button
                 icon="refresh"
-                text="Refresh"
+                text={t('capa.actions.refresh')}
                 stylingMode="outlined"
                 onClick={handleRefresh}
               />
               <Button
                 icon="plus"
-                text="New CAPA"
+                text={t('capa.actions.newCapa')}
                 type="success"
                 onClick={handleNewCapa}
               />
