@@ -11,6 +11,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -274,6 +275,7 @@ async function pollOrders(): Promise<{
 
 export default function VmiOrdersPage() {
   const queryClient = useQueryClient();
+  const t = useTranslations('sales');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -1255,15 +1257,15 @@ export default function VmiOrdersPage() {
             virtualScrolling={filteredOrders.length > 100}
             fillHeight
             onRowClick={handleRowClick}
-            noDataText="ไม่พบคำสั่งซื้อ VMI"
+            noDataText={t('vmiOrders.noData')}
           />
         ) : (
           <EmptyState
             icon={<ShoppingCart className="h-8 w-8" />}
-            title="ไม่พบคำสั่งซื้อ VMI"
-            description="ลองดึงคำสั่งซื้อใหม่จาก VMI Portals"
+            title={t('vmiOrders.noData')}
+            description={t('vmiOrders.pollDescription')}
             action={{
-              label: 'Poll for Orders',
+              label: t('vmiOrders.pollOrders'),
               onClick: () => pollMutation.mutate(),
             }}
           />

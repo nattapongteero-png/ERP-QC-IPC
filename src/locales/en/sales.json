@@ -1,7 +1,18 @@
 {
+  "common": {
+    "loading": "Loading..."
+  },
   "page": {
     "title": "Sales",
     "description": "Manage sales orders and customers"
+  },
+  "vmiOrders": {
+    "noData": "No VMI orders found",
+    "pollDescription": "Poll for new orders from VMI Portal",
+    "pollOrders": "Poll Orders"
+  },
+  "webhooks": {
+    "totalWebhooks": "Total Webhooks"
   },
   "orders": {
     "title": "Sales Orders",

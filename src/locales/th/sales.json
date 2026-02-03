@@ -1,7 +1,18 @@
 {
+  "common": {
+    "loading": "กำลังโหลด..."
+  },
   "page": {
     "title": "การขาย",
     "description": "จัดการใบสั่งขายและลูกค้า"
+  },
+  "vmiOrders": {
+    "noData": "ไม่พบคำสั่งซื้อ VMI",
+    "pollDescription": "สำรวจคำสั่งซื้อใหม่จาก VMI Portal",
+    "pollOrders": "สำรวจคำสั่งซื้อ"
+  },
+  "webhooks": {
+    "totalWebhooks": "Webhook ทั้งหมด"
   },
   "orders": {
     "title": "ใบสั่งขาย",
