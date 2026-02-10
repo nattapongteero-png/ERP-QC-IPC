@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Reports",
-    "description": "Reports and data analytics"
+    "description": "View, create, and manage report templates"
   },
   "inventory": {
     "title": "Inventory Reports",
@@ -32,7 +32,19 @@
     "generate": "Generate Report",
     "export": "Export",
     "print": "Print",
-    "schedule": "Schedule"
+    "schedule": "Schedule",
+    "newReport": "New Report",
+    "dismiss": "Dismiss"
+  },
+  "overview": {
+    "title": "Overview",
+    "totalTemplates": "Total Templates",
+    "published": "Published",
+    "drafts": "Drafts",
+    "categories": "Categories"
+  },
+  "mobile": {
+    "filterByCategory": "Filter by Category"
   },
   "filters": {
     "dateRange": "Date Range",

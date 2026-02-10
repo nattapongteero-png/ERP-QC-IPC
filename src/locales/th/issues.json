@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "ระบบติดตามปัญหา",
+    "description": "ตรวจสอบ ติดตาม และแก้ไขปัญหาในองค์กร"
+  },
+  "actions": {
+    "viewAll": "ดูปัญหาทั้งหมด",
+    "reportIssue": "รายงานปัญหา"
+  },
+  "kpi": {
+    "openIssues": "ปัญหาที่เปิดอยู่",
+    "criticalIssues": "ปัญหาวิกฤต",
+    "resolvedThisWeek": "แก้ไขสัปดาห์นี้",
+    "avgResolutionTime": "เวลาแก้ไขเฉลี่ย",
+    "issuesRequiringAttention": "ปัญหาที่ต้องดำเนินการ",
+    "actionRequired": "ต้องดำเนินการ",
+    "allClear": "ปกติ",
+    "issuesClosedThisWeek": "ปัญหาที่ปิดสัปดาห์นี้",
+    "averageTimeToResolve": "เวลาเฉลี่ยในการแก้ไข",
+    "days": "วัน"
+  },
+  "charts": {
+    "byStatus": "ปัญหาตามสถานะ",
+    "bySeverity": "ปัญหาตามความรุนแรง",
+    "byCategory": "ปัญหาตามหมวดหมู่"
+  },
+  "recent": {
+    "title": "ปัญหาล่าสุด",
+    "viewAll": "ดูทั้งหมด",
+    "noIssues": "ยังไม่มีปัญหาที่รายงาน",
+    "reportFirst": "รายงานปัญหาแรกของคุณ",
+    "uncategorized": "ไม่มีหมวดหมู่"
+  },
+  "quickActions": {
+    "title": "การดำเนินการด่วน",
+    "reportNew": "รายงานปัญหาใหม่",
+    "reportNewDescription": "ส่งปัญหาใหม่พร้อมการตรวจสอบโดย AI",
+    "viewAll": "ดูปัญหาทั้งหมด",
+    "viewAllDescription": "เรียกดูและกรองปัญหาที่รายงานทั้งหมด",
+    "criticalIssues": "ปัญหาวิกฤต",
+    "criticalDescription": "ดูปัญหาที่ต้องดำเนินการทันที",
+    "myAssigned": "งานที่มอบหมาย",
+    "myAssignedDescription": "ดูปัญหาที่มอบหมายให้คุณ"
+  },
+  "error": {
+    "loadFailed": "ไม่สามารถโหลดแดชบอร์ดได้",
+    "genericError": "เกิดข้อผิดพลาดขณะโหลดแดชบอร์ด"
+  }
+}

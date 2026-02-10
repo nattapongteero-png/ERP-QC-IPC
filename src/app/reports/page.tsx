@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { DxButton } from '@/components/ui/dx-button';
@@ -23,6 +24,7 @@ interface CategoriesResponse {
 
 export default function ReportsPage() {
   const router = useRouter();
+  const t = useTranslations('reports');
   const [templates, setTemplates] = useState<ReportTemplate[]>([]);
   const [categories, setCategories] = useState<ReportCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -133,12 +135,12 @@ export default function ReportsPage() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <PageHeader
-            title="Reports"
-            description="View, create, and manage report templates"
+            title={t('page.title')}
+            description={t('page.description')}
           />
           <div className="flex items-center gap-3">
             <DxButton
-              text="New Report"
+              text={t('actions.newReport')}
               icon="add"
               type="default"
               onClick={handleCreateReport}
@@ -155,7 +157,7 @@ export default function ReportsPage() {
               onClick={() => setError(null)}
               className="ml-auto text-red-500 hover:text-red-700"
             >
-              Dismiss
+              {t('actions.dismiss')}
             </button>
           </div>
         )}
@@ -178,26 +180,26 @@ export default function ReportsPage() {
 
             {/* Quick Stats */}
             <div className="mt-4 bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Overview</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('overview.title')}</h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Total Templates</span>
+                  <span className="text-gray-600">{t('overview.totalTemplates')}</span>
                   <span className="font-medium text-gray-900">{templates.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Published</span>
+                  <span className="text-gray-600">{t('overview.published')}</span>
                   <span className="font-medium text-green-600">
-                    {templates.filter(t => t.isPublished).length}
+                    {templates.filter(tmpl => tmpl.isPublished).length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Drafts</span>
+                  <span className="text-gray-600">{t('overview.drafts')}</span>
                   <span className="font-medium text-yellow-600">
-                    {templates.filter(t => !t.isPublished).length}
+                    {templates.filter(tmpl => !tmpl.isPublished).length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Categories</span>
+                  <span className="text-gray-600">{t('overview.categories')}</span>
                   <span className="font-medium text-gray-900">{categories.length}</span>
                 </div>
               </div>
@@ -225,7 +227,7 @@ export default function ReportsPage() {
           <details className="bg-white border border-gray-200 rounded-lg">
             <summary className="px-4 py-3 cursor-pointer flex items-center gap-2 text-sm font-medium text-gray-700">
               <Settings className="h-4 w-4" />
-              Filter by Category
+              {t('mobile.filterByCategory')}
               {selectedCategoryId && (
                 <span className="ml-auto text-blue-600">
                   {categories.find(c => c.id === selectedCategoryId)?.name || 'Selected'}

@@ -4,6 +4,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { NextIntlClientProvider } from 'next-intl';
+import enIssues from '@/locales/en/issues.json';
 
 // Mock Next.js navigation
 vi.mock('next/navigation', () => ({
@@ -32,12 +34,25 @@ function createTestQueryClient() {
   });
 }
 
+// i18n messages for tests
+const testMessages = {
+  issues: enIssues,
+};
+
 // Wrapper component for tests
 function TestWrapper({ children }: { children: React.ReactNode }) {
   const queryClient = createTestQueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <NextIntlClientProvider
+        locale="en"
+        messages={testMessages}
+        timeZone="Asia/Bangkok"
+        onError={() => {}}
+        getMessageFallback={({ namespace, key }) => namespace ? `${namespace}.${key}` : key}
+      >
+        {children}
+      </NextIntlClientProvider>
     </QueryClientProvider>
   );
 }

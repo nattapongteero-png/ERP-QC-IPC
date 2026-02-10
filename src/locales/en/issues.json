@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "Issue Tracker",
+    "description": "Monitor, track, and resolve issues across your organization"
+  },
+  "actions": {
+    "viewAll": "View All Issues",
+    "reportIssue": "Report Issue"
+  },
+  "kpi": {
+    "openIssues": "Open Issues",
+    "criticalIssues": "Critical Issues",
+    "resolvedThisWeek": "Resolved This Week",
+    "avgResolutionTime": "Avg Resolution Time",
+    "issuesRequiringAttention": "Issues requiring attention",
+    "actionRequired": "Action Required",
+    "allClear": "All Clear",
+    "issuesClosedThisWeek": "Issues closed this week",
+    "averageTimeToResolve": "Average time to resolve",
+    "days": "days"
+  },
+  "charts": {
+    "byStatus": "Issues by Status",
+    "bySeverity": "Issues by Severity",
+    "byCategory": "Issues by Category"
+  },
+  "recent": {
+    "title": "Recent Issues",
+    "viewAll": "View All",
+    "noIssues": "No issues reported yet",
+    "reportFirst": "Report your first issue",
+    "uncategorized": "Uncategorized"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "reportNew": "Report New Issue",
+    "reportNewDescription": "Submit a new issue with AI-assisted validation",
+    "viewAll": "View All Issues",
+    "viewAllDescription": "Browse and filter all reported issues",
+    "criticalIssues": "Critical Issues",
+    "criticalDescription": "View issues requiring immediate attention",
+    "myAssigned": "My Assigned",
+    "myAssignedDescription": "View issues assigned to you"
+  },
+  "error": {
+    "loadFailed": "Failed to Load Dashboard",
+    "genericError": "An error occurred while loading the dashboard"
+  }
+}
