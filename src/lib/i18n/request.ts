@@ -46,6 +46,50 @@ function deepMerge(
   return result;
 }
 
+/**
+ * All namespace-to-filename mappings.
+ * Key = namespace used in useTranslations(), Value = JSON filename (without .json)
+ */
+const NAMESPACE_FILES: Record<string, string> = {
+  common: 'common',
+  navigation: 'navigation',
+  devextreme: 'devextreme',
+  dashboard: 'dashboard',
+  accounting: 'accounting',
+  admin: 'admin',
+  cost: 'cost',
+  gmp: 'gmp',
+  hr: 'hr',
+  inventory: 'inventory',
+  issues: 'issues',
+  login: 'login',
+  masterData: 'masterData',
+  production: 'production',
+  purchasing: 'purchasing',
+  quality: 'quality',
+  reports: 'reports',
+  sales: 'sales',
+  settings: 'settings',
+  vmi: 'vmi',
+};
+
+/**
+ * Load all namespace files for a given locale
+ */
+async function loadAllNamespaces(locale: string): Promise<Record<string, unknown>> {
+  const entries = Object.entries(NAMESPACE_FILES);
+  const results = await Promise.all(
+    entries.map(([, fileName]) =>
+      import(`@/locales/${locale}/${fileName}.json`).then((m) => m.default).catch(() => ({}))
+    )
+  );
+  const messages: Record<string, unknown> = {};
+  entries.forEach(([ns], i) => {
+    messages[ns] = results[i];
+  });
+  return messages;
+}
+
 export default getRequestConfig(async () => {
   // Get locale from cookie
   const cookieStore = await cookies();
@@ -56,37 +100,15 @@ export default getRequestConfig(async () => {
     ? (localeCookie as Locale)
     : defaultLocale;
 
-  // Load messages for the locale
-  // We load common, navigation, and dashboard by default, other namespaces loaded on demand
-  const [commonMessages, navigationMessages, dashboardMessages] = await Promise.all([
-    import(`@/locales/${locale}/common.json`).then((m) => m.default).catch(() => ({})),
-    import(`@/locales/${locale}/navigation.json`).then((m) => m.default).catch(() => ({})),
-    import(`@/locales/${locale}/dashboard.json`).then((m) => m.default).catch(() => ({})),
-  ]);
+  // Load ALL namespace messages for the current locale
+  const currentMessages = await loadAllNamespaces(locale);
 
   // For fallback support, load Thai messages if locale is not Thai
   // This ensures that when an English translation is missing, Thai text appears
   let fallbackMessages: Record<string, unknown> = {};
   if (locale !== fallbackLocale) {
-    const [thCommon, thNavigation, thDashboard] = await Promise.all([
-      import('@/locales/th/common.json').then((m) => m.default).catch(() => ({})),
-      import('@/locales/th/navigation.json').then((m) => m.default).catch(() => ({})),
-      import('@/locales/th/dashboard.json').then((m) => m.default).catch(() => ({})),
-    ]);
-    // Combine all Thai fallback messages
-    fallbackMessages = {
-      common: thCommon,
-      navigation: thNavigation,
-      dashboard: thDashboard,
-    };
+    fallbackMessages = await loadAllNamespaces(fallbackLocale);
   }
-
-  // Build current locale messages with proper namespace structure
-  const currentMessages: Record<string, unknown> = {
-    common: commonMessages,
-    navigation: navigationMessages,
-    dashboard: dashboardMessages,
-  };
 
   // Deep merge: fallback first (Thai), then current locale (takes precedence)
   // This ensures missing English keys fallback to Thai text
