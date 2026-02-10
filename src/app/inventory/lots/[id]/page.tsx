@@ -25,6 +25,7 @@ interface LotDetail {
   unit: string;
   status: string;
   cost: number | null;
+  vendorLotNumber: string | null;
   manufacturingDate: string | null;
   expiryDate: string | null;
   receivedDate: string | null;
@@ -98,6 +99,9 @@ export default function LotDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     batchNumber: '',
+    vendorLotNumber: '',
+    quantity: 0,
+    cost: 0,
     manufacturingDate: '',
     expiryDate: '',
     coaNumber: '',
@@ -117,6 +121,9 @@ export default function LotDetailPage() {
         setLot(data.data);
         setEditForm({
           batchNumber: data.data.batchNumber || '',
+          vendorLotNumber: data.data.vendorLotNumber || '',
+          quantity: Number(data.data.quantity) || 0,
+          cost: Number(data.data.cost) || 0,
           manufacturingDate: data.data.manufacturingDate || '',
           expiryDate: data.data.expiryDate || '',
           coaNumber: data.data.coaNumber || '',
@@ -602,6 +609,19 @@ export default function LotDetailPage() {
                       <p className="font-medium">{lot.lotNumber}</p>
                     </div>
                     <div>
+                      <label className="text-sm text-gray-500">Vendor Lot Number</label>
+                      {isEditing ? (
+                        <DxTextBox
+                          value={editForm.vendorLotNumber}
+                          onValueChange={(value) => setEditForm({ ...editForm, vendorLotNumber: value })}
+                        />
+                      ) : (
+                        <p className="font-medium">{lot.vendorLotNumber || '-'}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                       <label className="text-sm text-gray-500">Batch Number</label>
                       {isEditing ? (
                         <DxTextBox
@@ -610,6 +630,58 @@ export default function LotDetailPage() {
                         />
                       ) : (
                         <p className="font-medium">{lot.batchNumber || '-'}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-500">COA Number</label>
+                      {isEditing ? (
+                        <DxTextBox
+                          value={editForm.coaNumber}
+                          onValueChange={(value) => setEditForm({ ...editForm, coaNumber: value })}
+                        />
+                      ) : (
+                        <p className="font-medium">{lot.coaNumber || '-'}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-500">Quantity</label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          value={editForm.quantity || ''}
+                          onChange={(e) => setEditForm({ ...editForm, quantity: parseFloat(e.target.value) || 0 })}
+                          min="0"
+                          step="0.001"
+                        />
+                      ) : (
+                        <p className="font-medium">{Number(lot.quantity).toLocaleString()} {lot.unit}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-500">Unit</label>
+                      <p className="font-medium">{lot.unit}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-500">Cost Per Unit</label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          value={editForm.cost || ''}
+                          onChange={(e) => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })}
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                        />
+                      ) : (
+                        <p className="font-medium">
+                          {lot.cost && Number(lot.cost) > 0
+                            ? `฿${Number(lot.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                            : '-'}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -645,20 +717,9 @@ export default function LotDetailPage() {
                       <p className="font-medium">{formatDate(lot.receivedDate)}</p>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">COA Number</label>
-                      {isEditing ? (
-                        <DxTextBox
-                          value={editForm.coaNumber}
-                          onValueChange={(value) => setEditForm({ ...editForm, coaNumber: value })}
-                        />
-                      ) : (
-                        <p className="font-medium">{lot.coaNumber || '-'}</p>
-                      )}
+                      <label className="text-sm text-gray-500">PO Number</label>
+                      <p className="font-medium">{lot.poNumber || '-'}</p>
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-500">PO Number</label>
-                    <p className="font-medium">{lot.poNumber || '-'}</p>
                   </div>
                 </div>
               </CardContent>

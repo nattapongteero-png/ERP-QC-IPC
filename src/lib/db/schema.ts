@@ -228,6 +228,8 @@ export const sqliteInventoryLots = sqliteTable('inventory_lots', {
   expiryDate: text('expiry_date'),
   receivedDate: text('received_date'),
   vendorId: integer('vendor_id').references(() => sqliteVendors.id),
+  vendorLotNumber: text('vendor_lot_number'),
+  cost: real('cost'),
   poNumber: text('po_number'),
   coaNumber: text('coa_number'),
   // Phase 2: Manufacturer/Importer fields (FR-055)
@@ -1545,6 +1547,8 @@ export const mysqlInventoryLots = mysqlTable('inventory_lots', {
   expiryDate: datetime('expiry_date'),
   receivedDate: datetime('received_date'),
   vendorId: int('vendor_id').references(() => mysqlVendors.id),
+  vendorLotNumber: varchar('vendor_lot_number', { length: 100 }),
+  cost: decimal('cost', { precision: 15, scale: 4 }),
   poNumber: varchar('po_number', { length: 50 }),
   coaNumber: varchar('coa_number', { length: 100 }),
   // Phase 2: Manufacturer/Importer fields (FR-055)

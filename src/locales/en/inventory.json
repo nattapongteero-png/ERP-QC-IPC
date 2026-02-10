@@ -175,6 +175,7 @@
     "grid": {
       "columns": {
         "lotNumber": "Lot Number",
+        "vendorLotNumber": "Vendor Lot No.",
         "item": "Item",
         "quantity": "Quantity",
         "value": "Value",

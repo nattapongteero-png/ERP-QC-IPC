@@ -175,6 +175,7 @@
     "grid": {
       "columns": {
         "lotNumber": "เลขที่ Lot",
+        "vendorLotNumber": "Vendor Lot No.",
         "item": "สินค้า",
         "quantity": "จำนวน",
         "value": "มูลค่า",

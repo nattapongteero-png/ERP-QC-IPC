@@ -508,6 +508,15 @@ export default function LotsPage() {
       ),
     },
     {
+      dataField: 'vendorLotNumber',
+      caption: t('lots.grid.columns.vendorLotNumber'),
+      width: 140,
+      hideOnMobile: true,
+      cellRender: (cellInfo) => (
+        <span className="text-gray-700">{cellInfo.data.vendorLotNumber || '-'}</span>
+      ),
+    },
+    {
       dataField: 'itemCode',
       caption: t('lots.grid.columns.item'),
       minWidth: 200,

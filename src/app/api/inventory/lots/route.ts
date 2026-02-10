@@ -79,6 +79,8 @@ export async function GET(request: NextRequest) {
             itemName: itemsTable.nameTh,
             warehouseId: lotsTable.warehouseId,
             warehouseName: warehousesTable.name,
+            vendorLotNumber: lotsTable.vendorLotNumber,
+            cost: lotsTable.cost,
             createdAt: lotsTable.createdAt,
             // Phase 4: GMP Compliance fields
             manufacturerName: lotsTable.manufacturerName,
@@ -121,6 +123,8 @@ export async function POST(request: NextRequest) {
         manufacturingDate,
         expiryDate,
         vendorId,
+        vendorLotNumber,
+        cost,
         poNumber,
         coaNumber,
         // Phase 4: GMP Compliance fields (FR-055, FR-056)
@@ -161,6 +165,8 @@ export async function POST(request: NextRequest) {
           expiryDate: parsedExpDate,
           receivedDate: dbDate(),
           vendorId: vendorId || null,
+          vendorLotNumber: vendorLotNumber || null,
+          cost: cost ? parseFloat(cost) : null,
           poNumber: poNumber || null,
           coaNumber: coaNumber || null,
           // Phase 4: GMP Compliance fields

@@ -39,6 +39,8 @@ export async function GET(
             expiryDate: lots.expiryDate,
             receivedDate: lots.receivedDate,
             vendorId: lots.vendorId,
+            vendorLotNumber: lots.vendorLotNumber,
+            cost: lots.cost,
             poNumber: lots.poNumber,
             coaNumber: lots.coaNumber,
             createdAt: lots.createdAt,
@@ -244,6 +246,9 @@ export async function PUT(
       if (body.manufacturingDate !== undefined) updateData.manufacturingDate = parseDbDate(body.manufacturingDate);
       if (body.expiryDate !== undefined) updateData.expiryDate = parseDbDate(body.expiryDate);
       if (body.coaNumber !== undefined) updateData.coaNumber = body.coaNumber || null;
+      if (body.vendorLotNumber !== undefined) updateData.vendorLotNumber = body.vendorLotNumber || null;
+      if (body.quantity !== undefined) updateData.quantity = parseFloat(body.quantity) || 0;
+      if (body.cost !== undefined) updateData.cost = body.cost ? parseFloat(body.cost) : null;
 
       await executeDbOperation(async (db) => {
         return db.update(lots).set(updateData).where(eq(lots.id, parseInt(id)));
