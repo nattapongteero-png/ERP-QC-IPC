@@ -1,0 +1,128 @@
+{
+  "page": {
+    "title": "Master Data",
+    "description": "Manage master data for GMP-compliant production"
+  },
+  "modules": {
+    "productionRooms": {
+      "title": "Production Rooms",
+      "description": "Manage production rooms and areas for GMP compliance"
+    },
+    "productionEquipment": {
+      "title": "Production Equipment",
+      "description": "Manage production equipment like scales, mixers, and tools"
+    },
+    "environmentalConditions": {
+      "title": "Environmental Conditions",
+      "description": "Define temperature and humidity monitoring profiles"
+    },
+    "sopTemplates": {
+      "title": "SOP Templates",
+      "description": "Create reusable SOP step templates for production processes"
+    },
+    "packagingQCCriteria": {
+      "title": "Packaging QC Criteria",
+      "description": "Define packaging weight and quality control criteria"
+    }
+  },
+  "about": {
+    "title": "About Master Data",
+    "description": "Master Data defines the lookup lists and configuration profiles used across the production system.",
+    "items": {
+      "productionRooms": "Define areas where production activities occur",
+      "productionEquipment": "Register equipment used in production",
+      "environmentalConditions": "Set temperature/humidity monitoring profiles",
+      "sopTemplates": "Create reusable production step templates",
+      "packagingQCCriteria": "Define weight and quality control standards"
+    }
+  },
+  "productionRooms": {
+    "page": {
+      "title": "Production Rooms",
+      "description": "Manage production rooms and areas"
+    },
+    "actions": {
+      "new": "New Production Room",
+      "edit": "Edit Production Room",
+      "delete": "Delete Production Room"
+    },
+    "form": {
+      "code": "Room Code",
+      "name": "Room Name",
+      "description": "Description",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    }
+  },
+  "productionEquipment": {
+    "page": {
+      "title": "Production Equipment",
+      "description": "Manage production equipment"
+    },
+    "actions": {
+      "new": "New Equipment",
+      "edit": "Edit Equipment",
+      "delete": "Delete Equipment"
+    },
+    "form": {
+      "code": "Equipment Code",
+      "name": "Equipment Name",
+      "type": "Type",
+      "status": "Status"
+    }
+  },
+  "environmentalConditions": {
+    "page": {
+      "title": "Environmental Conditions",
+      "description": "Define environmental monitoring profiles"
+    },
+    "actions": {
+      "new": "New Profile",
+      "edit": "Edit Profile",
+      "delete": "Delete Profile"
+    },
+    "form": {
+      "name": "Profile Name",
+      "temperature": "Temperature",
+      "humidity": "Humidity",
+      "status": "Status"
+    }
+  },
+  "sopTemplates": {
+    "page": {
+      "title": "SOP Templates",
+      "description": "Create SOP step templates"
+    },
+    "actions": {
+      "new": "New Template",
+      "edit": "Edit Template",
+      "delete": "Delete Template"
+    },
+    "form": {
+      "code": "Template Code",
+      "name": "Template Name",
+      "description": "Description",
+      "status": "Status"
+    }
+  },
+  "packagingQCCriteria": {
+    "page": {
+      "title": "Packaging QC Criteria",
+      "description": "Define packaging quality control criteria"
+    },
+    "actions": {
+      "new": "New Criteria",
+      "edit": "Edit Criteria",
+      "delete": "Delete Criteria"
+    },
+    "form": {
+      "name": "Criteria Name",
+      "weight": "Weight",
+      "tolerance": "Tolerance",
+      "status": "Status"
+    }
+  }
+}
