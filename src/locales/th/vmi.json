@@ -3,6 +3,72 @@
     "title": "VMI",
     "description": "Vendor Managed Inventory - การจัดการสินค้าคงคลังโดยผู้ขาย"
   },
+  "dashboard": {
+    "title": "VMI Integration",
+    "subtitle": "Vendor Managed Inventory - เชื่อมต่อกับระบบโรงพยาบาล",
+    "manageSync": "จัดการ Sync",
+    "viewOrders": "ดูคำสั่งซื้อ",
+    "connectedPortals": "Portal ที่เชื่อมต่อ",
+    "pendingOrders": "คำสั่งซื้อรอดำเนินการ",
+    "shippedToday": "ส่งวันนี้",
+    "urgentOrders": "คำสั่งซื้อเร่งด่วน"
+  },
+  "orderStatus": {
+    "pending": "รอยืนยัน",
+    "confirmed": "ยืนยันแล้ว",
+    "processing": "กำลังจัดเตรียม",
+    "shippedToday": "ส่งวันนี้",
+    "delivered": "ส่งมอบแล้ว",
+    "unmatched": "รอจับคู่สินค้า"
+  },
+  "syncStatus": {
+    "title": "สถานะการ Sync",
+    "inventory": "สต็อกสินค้า",
+    "items": "รายการสินค้า",
+    "prices": "ราคาสินค้า",
+    "unknown": "ไม่ทราบ",
+    "completed": "สำเร็จ",
+    "running": "กำลังทำงาน",
+    "failed": "ล้มเหลว",
+    "hasIssues": "มีปัญหา",
+    "never": "ไม่เคย",
+    "justNow": "เมื่อสักครู่",
+    "minutesAgo": "{count} นาทีที่แล้ว",
+    "hoursAgo": "{count} ชั่วโมงที่แล้ว",
+    "daysAgo": "{count} วันที่แล้ว"
+  },
+  "portals": {
+    "title": "VMI Portals",
+    "subtitle": "เชื่อมต่อโรงพยาบาล",
+    "activePortals": "พอร์ทัลที่ใช้งาน"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "manageOrders": "จัดการคำสั่งซื้อ",
+    "manageOrdersDescription": "ดูและจัดการ VMI Orders",
+    "viewList": "ดูรายการ",
+    "syncManagement": "Sync Management",
+    "syncDescription": "จัดการการ Sync ข้อมูล",
+    "goToSync": "ไปที่หน้า Sync",
+    "portalSettings": "Portal Settings",
+    "portalSettingsDescription": "ตั้งค่าการเชื่อมต่อ Portal",
+    "settings": "ตั้งค่า",
+    "itemMapping": "Item Mapping",
+    "itemMappingDescription": "จับคู่รหัสสินค้า",
+    "manageItems": "จัดการสินค้า",
+    "inventoryLots": "Inventory Lots",
+    "lotsDescription": "จัดการ Lot สินค้า",
+    "viewLots": "ดู Lots",
+    "hospitalPartners": "Hospital Partners",
+    "partnersDescription": "จัดการคู่ค้าโรงพยาบาล"
+  },
+  "alerts": {
+    "unmatchedTitle": "รายการรอจับคู่สินค้า",
+    "unmatchedDescription": "มี {count} รายการที่ต้องจับคู่รหัสสินค้าก่อนดำเนินการ",
+    "urgentTitle": "คำสั่งซื้อเร่งด่วน",
+    "urgentDescription": "มี {count} คำสั่งซื้อที่ต้องดำเนินการเร่งด่วน",
+    "viewItems": "ดูรายการ"
+  },
   "agreements": {
     "title": "ข้อตกลง VMI",
     "description": "จัดการข้อตกลง VMI กับผู้ขาย",

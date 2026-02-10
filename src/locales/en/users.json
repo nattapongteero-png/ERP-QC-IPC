@@ -1,0 +1,62 @@
+{
+  "page": {
+    "title": "User Management",
+    "description": "Manage user accounts and access permissions"
+  },
+  "actions": {
+    "addUser": "Add User",
+    "refresh": "Refresh"
+  },
+  "summary": {
+    "totalUsers": "Total Users",
+    "activeUsers": "Active",
+    "inactiveUsers": "Inactive",
+    "recentUsers": "New (30 days)",
+    "thisWeek": "{count} this week"
+  },
+  "tabs": {
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "grid": {
+    "user": "User",
+    "role": "Role",
+    "department": "Department",
+    "status": "Status",
+    "createdAt": "Created",
+    "edit": "Edit",
+    "active": "Active",
+    "inactive": "Inactive",
+    "noData": "No users found",
+    "count": "{count} people"
+  },
+  "roles": {
+    "all": "All Roles",
+    "admin": "Administrator",
+    "manager": "Manager",
+    "production": "Production",
+    "qc": "QC",
+    "warehouse": "Warehouse",
+    "purchasing": "Purchasing",
+    "sales": "Sales",
+    "accounting": "Accounting",
+    "hr": "HR",
+    "user": "User"
+  },
+  "distribution": {
+    "title": "Role Distribution",
+    "noData": "No data"
+  },
+  "search": {
+    "placeholder": "Search name, email, department...",
+    "role": "Role"
+  },
+  "empty": {
+    "title": "No users found",
+    "inactive": "No inactive users",
+    "changeFilter": "Try changing the search criteria",
+    "addFirst": "Get started by adding a new user",
+    "addUser": "Add User"
+  }
+}

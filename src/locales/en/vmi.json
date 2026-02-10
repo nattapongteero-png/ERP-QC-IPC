@@ -3,6 +3,72 @@
     "title": "VMI",
     "description": "Vendor Managed Inventory"
   },
+  "dashboard": {
+    "title": "VMI Integration",
+    "subtitle": "Vendor Managed Inventory - Hospital System Integration",
+    "manageSync": "Manage Sync",
+    "viewOrders": "View Orders",
+    "connectedPortals": "Connected Portals",
+    "pendingOrders": "Pending Orders",
+    "shippedToday": "Shipped Today",
+    "urgentOrders": "Urgent Orders"
+  },
+  "orderStatus": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "processing": "Processing",
+    "shippedToday": "Shipped Today",
+    "delivered": "Delivered",
+    "unmatched": "Unmatched Items"
+  },
+  "syncStatus": {
+    "title": "Sync Status",
+    "inventory": "Stock Level",
+    "items": "Item Catalog",
+    "prices": "Pricing",
+    "unknown": "Unknown",
+    "completed": "Completed",
+    "running": "Running",
+    "failed": "Failed",
+    "hasIssues": "Has Issues",
+    "never": "Never",
+    "justNow": "Just now",
+    "minutesAgo": "{count} minutes ago",
+    "hoursAgo": "{count} hours ago",
+    "daysAgo": "{count} days ago"
+  },
+  "portals": {
+    "title": "VMI Portals",
+    "subtitle": "Hospital Connections",
+    "activePortals": "Active Portals"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "manageOrders": "Manage Orders",
+    "manageOrdersDescription": "View and manage VMI Orders",
+    "viewList": "View List",
+    "syncManagement": "Sync Management",
+    "syncDescription": "Manage data synchronization",
+    "goToSync": "Go to Sync",
+    "portalSettings": "Portal Settings",
+    "portalSettingsDescription": "Configure portal connections",
+    "settings": "Settings",
+    "itemMapping": "Item Mapping",
+    "itemMappingDescription": "Map item codes",
+    "manageItems": "Manage Items",
+    "inventoryLots": "Inventory Lots",
+    "lotsDescription": "Manage inventory lots",
+    "viewLots": "View Lots",
+    "hospitalPartners": "Hospital Partners",
+    "partnersDescription": "Manage hospital partners"
+  },
+  "alerts": {
+    "unmatchedTitle": "Items Pending Matching",
+    "unmatchedDescription": "{count} items need code matching before processing",
+    "urgentTitle": "Urgent Orders",
+    "urgentDescription": "{count} orders require urgent action",
+    "viewItems": "View Items"
+  },
   "agreements": {
     "title": "VMI Agreements",
     "description": "Manage VMI agreements with suppliers",
