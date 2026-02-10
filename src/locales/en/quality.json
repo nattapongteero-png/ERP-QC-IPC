@@ -42,5 +42,349 @@
       "success": "Inspection result approved successfully",
       "error": "Failed to approve inspection result"
     }
+  },
+  "common": {
+    "items": "items",
+    "noData": "No data",
+    "all": "All",
+    "refresh": "Refresh data",
+    "view": "View",
+    "viewGrid": "Grid view",
+    "viewCards": "Cards view",
+    "viewAnalytics": "Analytics view",
+    "search": "Search",
+    "filters": "Data filters",
+    "clearFilters": "Clear filters",
+    "today": "Today",
+    "daysRemaining": "{days} days remaining",
+    "daysOver": "{days} days overdue",
+    "passed": "Passed",
+    "failed": "Failed",
+    "pending": "Pending",
+    "active": "Active",
+    "inactive": "Inactive",
+    "open": "Open",
+    "closed": "Closed",
+    "critical": "Critical",
+    "overdue": "Overdue",
+    "stillOpen": "still open"
+  },
+  "dashboard": {
+    "hints": {
+      "refresh": "Refresh data",
+      "filter": "Filters"
+    },
+    "stats": {
+      "totalTests": "Total Tests",
+      "pending": "Pending",
+      "passed": "Passed",
+      "failed": "Failed",
+      "totalSpecs": "Quality Specs",
+      "openDeviations": "Open Deviations"
+    },
+    "filter": {
+      "title": "Data Filters",
+      "clear": "Clear filters",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search by Lot or test name...",
+      "testTypeLabel": "Test Type",
+      "testTypePlaceholder": "Select type...",
+      "statusLabel": "Status",
+      "statusPlaceholder": "Select status...",
+      "allTypes": "All Types",
+      "allStatuses": "All Statuses"
+    },
+    "testStatus": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "passed": "Passed",
+      "failed": "Failed"
+    },
+    "testType": {
+      "incoming": "Incoming",
+      "in_process": "In-Process",
+      "finished": "Finished Product",
+      "stability": "Stability"
+    },
+    "actions": {
+      "newTest": "New Test"
+    },
+    "grid": {
+      "lotNumber": "Lot Number",
+      "testName": "Test Name",
+      "type": "Type",
+      "testMethod": "Test Method",
+      "specification": "Specification",
+      "result": "Result",
+      "status": "Status",
+      "testDate": "Test Date",
+      "searchPlaceholder": "Search..."
+    },
+    "moduleCards": {
+      "qualityTests": {
+        "title": "Quality Tests",
+        "description": "Manage quality tests for raw materials and products",
+        "statsTotal": "Total",
+        "statsPending": "Pending",
+        "statsPassRate": "Pass Rate"
+      },
+      "qualitySpecs": {
+        "title": "Quality Specifications",
+        "description": "Define standards and test specifications",
+        "statsTotal": "Total",
+        "statsActive": "Active",
+        "statsCritical": "Critical"
+      },
+      "deviationsCard": {
+        "title": "Deviations",
+        "description": "Record and track process deviations",
+        "statsOpen": "Open",
+        "statsCritical": "Critical"
+      }
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "newTest": "Create New Test",
+      "newSpec": "Add New Specification",
+      "reportDeviation": "Report Deviation"
+    },
+    "passRate": {
+      "title": "Test Pass Rate"
+    },
+    "testTypeSummary": {
+      "title": "Summary by Test Type"
+    },
+    "analytics": {
+      "statusDistribution": "Distribution by Status",
+      "typeDistribution": "Distribution by Type",
+      "tooltipItems": "{argument}: {value} items",
+      "noTestData": "No test data",
+      "testStatusSummary": "Test Status Summary",
+      "specsSummary": "Quality Specs Summary",
+      "specsTotal": "Total Specs",
+      "specsActive": "Active",
+      "specsCritical": "Critical",
+      "deviationsSummary": "Deviations Summary",
+      "quickActionsTitle": "Quick Actions",
+      "addSpec": "Add Specification",
+      "typeBreakdown": "Details by Test Type"
+    }
+  },
+  "deviations": {
+    "status": {
+      "open": "Open",
+      "investigating": "Investigating",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "severity": {
+      "minor": "Minor",
+      "major": "Major",
+      "critical": "Critical"
+    },
+    "source": {
+      "production": "Production",
+      "quality": "Quality",
+      "warehouse": "Warehouse"
+    },
+    "filter": {
+      "allStatuses": "All Statuses",
+      "allSeverities": "All Severities",
+      "allSources": "All Sources",
+      "searchPlaceholder": "Search by number or title...",
+      "statusPlaceholder": "Status",
+      "severityPlaceholder": "Severity",
+      "sourcePlaceholder": "Source"
+    },
+    "stats": {
+      "total": "Total Deviations",
+      "active": "In Progress",
+      "investigating": "Investigating",
+      "critical": "Critical",
+      "overdue": "Overdue",
+      "resolutionRate": "Resolution Rate"
+    },
+    "alert": {
+      "criticalCount": "{count} critical deviations require action",
+      "criticalDescription": "Critical deviations may impact product safety or efficacy",
+      "viewAll": "View All"
+    },
+    "grid": {
+      "columns": {
+        "number": "Number",
+        "title": "Title",
+        "source": "Source",
+        "severity": "Severity",
+        "dueDate": "Due Date",
+        "status": "Status"
+      },
+      "noData": "No deviations found",
+      "overdueBadge": "Overdue"
+    },
+    "emptyState": {
+      "title": "No deviations found",
+      "description": "Report a new deviation when quality issues are found",
+      "action": "Report Deviation"
+    },
+    "cards": {
+      "urgentTitle": "Requires Urgent Action",
+      "noUrgent": "No deviations requiring urgent action",
+      "filteredTitle": "Filtered Deviations ({count})",
+      "noMatch": "No deviations matching criteria",
+      "viewMore": "View {count} more items",
+      "overdueWarning": "Overdue - please take urgent action"
+    },
+    "sidebar": {
+      "summary": "Summary",
+      "recent": "Recent"
+    },
+    "analytics": {
+      "statusDistribution": "Distribution by Status",
+      "severityDistribution": "Distribution by Severity (Open Only)",
+      "sourceDistribution": "Distribution by Source",
+      "statusBreakdown": "Breakdown by Status",
+      "severityBreakdown": "Breakdown by Severity",
+      "sourceBreakdown": "Breakdown by Source",
+      "inProgress": "In Progress"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "report": "Report Deviation"
+    },
+    "overdue": {
+      "daysOver": "{days} days overdue",
+      "daysRemaining": "{days} days remaining"
+    }
+  },
+  "tests": {
+    "stats": {
+      "totalTests": "Total Tests",
+      "pending": "Pending",
+      "passed": "Passed",
+      "failed": "Failed",
+      "retest": "Retest",
+      "passRate": "Pass Rate",
+      "today": "Today",
+      "incomingQC": "Incoming QC"
+    },
+    "status": {
+      "pending": "Pending",
+      "pass": "Pass",
+      "fail": "Fail",
+      "retest": "Retest"
+    },
+    "type": {
+      "incoming": "Incoming QC",
+      "in_process": "In-Process QC",
+      "final": "Final QC"
+    },
+    "typeDescription": {
+      "incoming": "Raw Material Inspection",
+      "in_process": "Production Monitoring",
+      "final": "Finished Product Release"
+    },
+    "disposition": {
+      "pending_disposition": "Needs Disposition",
+      "pending_approval": "Needs Approval",
+      "approved": "Approved"
+    },
+    "charts": {
+      "byStatus": "By Status",
+      "byCategory": "Tests by Category",
+      "passRateByType": "Pass Rate by Type",
+      "overall": "Overall",
+      "noData": "No data"
+    },
+    "grid": {
+      "lotItem": "Lot / Item",
+      "testName": "Test Name",
+      "type": "Type",
+      "specification": "Specification",
+      "result": "Result",
+      "testDate": "Test Date",
+      "status": "Status",
+      "disposition": "Disposition",
+      "searchPlaceholder": "Search tests..."
+    },
+    "tabs": {
+      "all": "All",
+      "pending": "Pending",
+      "passed": "Passed",
+      "failed": "Failed",
+      "retest": "Retest"
+    },
+    "sample": "Sample: {number}",
+    "testsCount": "{count} tests",
+    "passText": "{rate}% pass",
+    "actions": {
+      "refresh": "Refresh",
+      "specifications": "Specifications",
+      "newTest": "New Test",
+      "viewDetails": "View Details"
+    },
+    "breadcrumbs": {
+      "quality": "Quality",
+      "tests": "Tests"
+    }
+  },
+  "specs": {
+    "stats": {
+      "total": "Total Specs",
+      "active": "Active",
+      "critical": "Critical",
+      "nonCritical": "Non-Critical",
+      "inactive": "Inactive",
+      "itemsWithSpec": "Items with Specs"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "filter": {
+      "allStatuses": "All Statuses",
+      "active": "Active",
+      "inactive": "Inactive",
+      "allTypes": "All Types",
+      "criticalOnly": "Critical Only",
+      "nonCritical": "Non-Critical",
+      "searchPlaceholder": "Search by item code, item name, or test name...",
+      "statusPlaceholder": "Status",
+      "typePlaceholder": "Type"
+    },
+    "grid": {
+      "item": "Item",
+      "test": "Test",
+      "specification": "Specification",
+      "status": "Status",
+      "searchPlaceholder": "Search specs...",
+      "specsCount": "{count} specifications"
+    },
+    "cards": {
+      "topItemsTitle": "Items with Most Specifications",
+      "viewAllInGrid": "View all {count} specs in Grid view",
+      "noMethod": "No method specified"
+    },
+    "analytics": {
+      "statusDistribution": "Distribution by Status",
+      "criticalDistribution": "Distribution by Criticality",
+      "statusSummary": "Status Summary",
+      "criticalSummary": "Criticality Summary",
+      "quickActions": "Quick Actions",
+      "addNewSpec": "Add New Specification",
+      "createNewTest": "Create New Test",
+      "refreshData": "Refresh Data",
+      "topItemsTitle": "Items with Most Specifications",
+      "tableItem": "Item",
+      "tableSpecCount": "Spec Count",
+      "noData": "No data"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "newSpec": "New Spec"
+    },
+    "breadcrumbs": {
+      "quality": "Quality",
+      "specifications": "Specifications"
+    }
   }
 }

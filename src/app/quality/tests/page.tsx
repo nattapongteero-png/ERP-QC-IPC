@@ -101,29 +101,21 @@ interface QualityTest {
 
 const STATUS_CONFIG = {
   pending: {
-    label: 'Pending',
-    labelTh: 'รอทดสอบ',
     color: '#64748b',
     bgClass: 'bg-slate-100 text-slate-700 border-slate-200',
     icon: Clock,
   },
   pass: {
-    label: 'Pass',
-    labelTh: 'ผ่าน',
     color: '#22c55e',
     bgClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     icon: CheckCircle,
   },
   fail: {
-    label: 'Fail',
-    labelTh: 'ไม่ผ่าน',
     color: '#ef4444',
     bgClass: 'bg-red-100 text-red-700 border-red-200',
     icon: XCircle,
   },
   retest: {
-    label: 'Retest',
-    labelTh: 'ทดสอบซ้ำ',
     color: '#f59e0b',
     bgClass: 'bg-amber-100 text-amber-700 border-amber-200',
     icon: AlertTriangle,
@@ -133,20 +125,14 @@ const STATUS_CONFIG = {
 // Disposition status config for FR-067 to FR-070
 const DISPOSITION_CONFIG = {
   pending_disposition: {
-    label: 'Needs Disposition',
-    labelTh: 'รอตัดสินใจ',
     bgClass: 'bg-orange-100 text-orange-700 border-orange-200',
     icon: AlertTriangle,
   },
   pending_approval: {
-    label: 'Needs Approval',
-    labelTh: 'รออนุมัติ',
     bgClass: 'bg-blue-100 text-blue-700 border-blue-200',
     icon: Clock,
   },
   approved: {
-    label: 'Approved',
-    labelTh: 'อนุมัติแล้ว',
     bgClass: 'bg-green-100 text-green-700 border-green-200',
     icon: CheckCircle,
   },
@@ -154,23 +140,14 @@ const DISPOSITION_CONFIG = {
 
 const TYPE_CONFIG = {
   incoming: {
-    label: 'Incoming QC',
-    labelTh: 'QC รับเข้า',
-    description: 'Raw Material Inspection',
     gradient: 'from-blue-500 to-blue-600',
     icon: Package,
   },
   in_process: {
-    label: 'In-Process QC',
-    labelTh: 'QC ระหว่างผลิต',
-    description: 'Production Monitoring',
     gradient: 'from-amber-500 to-amber-600',
     icon: Beaker,
   },
   final: {
-    label: 'Final QC',
-    labelTh: 'QC สุดท้าย',
-    description: 'Finished Product Release',
     gradient: 'from-emerald-500 to-emerald-600',
     icon: ClipboardCheck,
   },
@@ -256,29 +233,29 @@ export default function QualityTestsPage() {
   // Chart data
   const statusChartData = useMemo(() => {
     return [
-      { status: 'Pass', count: stats.pass, color: STATUS_CONFIG.pass.color },
-      { status: 'Fail', count: stats.fail, color: STATUS_CONFIG.fail.color },
-      { status: 'Pending', count: stats.pending, color: STATUS_CONFIG.pending.color },
-      { status: 'Retest', count: stats.retest, color: STATUS_CONFIG.retest.color },
+      { status: t('tests.status.pass'), count: stats.pass, color: STATUS_CONFIG.pass.color },
+      { status: t('tests.status.fail'), count: stats.fail, color: STATUS_CONFIG.fail.color },
+      { status: t('tests.status.pending'), count: stats.pending, color: STATUS_CONFIG.pending.color },
+      { status: t('tests.status.retest'), count: stats.retest, color: STATUS_CONFIG.retest.color },
     ].filter(d => d.count > 0);
-  }, [stats]);
+  }, [stats, t]);
 
   const typeChartData = useMemo(() => {
     return [
-      { type: 'Incoming', count: stats.typeStats.incoming?.count || 0 },
-      { type: 'In-Process', count: stats.typeStats.in_process?.count || 0 },
-      { type: 'Final', count: stats.typeStats.final?.count || 0 },
+      { type: t('tests.type.incoming'), count: stats.typeStats.incoming?.count || 0 },
+      { type: t('tests.type.in_process'), count: stats.typeStats.in_process?.count || 0 },
+      { type: t('tests.type.final'), count: stats.typeStats.final?.count || 0 },
     ];
-  }, [stats]);
+  }, [stats, t]);
 
   // Status tabs
-  const statusTabs = [
-    { id: 0, text: 'All', icon: 'selectall' },
-    { id: 1, text: 'Pending', icon: 'clock' },
-    { id: 2, text: 'Passed', icon: 'check' },
-    { id: 3, text: 'Failed', icon: 'close' },
-    { id: 4, text: 'Retest', icon: 'warning' },
-  ];
+  const statusTabs = useMemo(() => [
+    { id: 0, text: t('tests.tabs.all'), icon: 'selectall' },
+    { id: 1, text: t('tests.tabs.pending'), icon: 'clock' },
+    { id: 2, text: t('tests.tabs.passed'), icon: 'check' },
+    { id: 3, text: t('tests.tabs.failed'), icon: 'close' },
+    { id: 4, text: t('tests.tabs.retest'), icon: 'warning' },
+  ], [t]);
 
   const handleTabChange = (index: number) => {
     const statusMap: (string | undefined)[] = [undefined, 'pending', 'pass', 'fail', 'retest'];
@@ -313,10 +290,10 @@ export default function QualityTestsPage() {
         <p className="text-xs text-gray-700 truncate">{data.data.itemName}</p>
       )}
       {data.data.sampleNumber && (
-        <p className="text-xs text-gray-500">Sample: {data.data.sampleNumber}</p>
+        <p className="text-xs text-gray-500">{t('tests.sample', { number: data.data.sampleNumber })}</p>
       )}
     </div>
-  ), []);
+  ), [t]);
 
   const renderTestCell = useCallback((data: { data: QualityTest }) => (
     <div className="min-w-0">
@@ -334,10 +311,10 @@ export default function QualityTestsPage() {
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${config.gradient} text-white`}>
         <IconComponent className="h-3 w-3" />
-        {config.labelTh}
+        {t(`tests.type.${data.data.testType}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderSpecCell = useCallback((data: { data: QualityTest }) => {
     const test = data.data;
@@ -368,10 +345,10 @@ export default function QualityTestsPage() {
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgClass}`}>
         <IconComponent className="h-3 w-3" />
-        {config.labelTh}
+        {t(`tests.status.${data.data.status}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   // Disposition status cell renderer (FR-067 to FR-070)
   const renderDispositionCell = useCallback((data: { data: QualityTest }) => {
@@ -395,10 +372,10 @@ export default function QualityTestsPage() {
     return (
       <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${config.bgClass}`}>
         <IconComponent className="h-3 w-3" />
-        {config.labelTh}
+        {t(`tests.disposition.${configKey}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderActionsCell = useCallback((data: { data: QualityTest }) => (
     <button
@@ -407,11 +384,11 @@ export default function QualityTestsPage() {
         router.push(`/quality/tests/${data.data.id}`);
       }}
       className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-      title="View Details"
+      title={t('tests.actions.viewDetails')}
     >
       <Eye className="h-4 w-4" />
     </button>
-  ), [router]);
+  ), [router, t]);
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
@@ -423,8 +400,8 @@ export default function QualityTestsPage() {
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         breadcrumbs={[
-          { label: 'Quality', href: '/quality' },
-          { label: 'Tests' },
+          { label: t('tests.breadcrumbs.quality'), href: '/quality' },
+          { label: t('tests.breadcrumbs.tests') },
         ]}
         actions={
           <div className="flex items-center gap-2">
@@ -432,19 +409,19 @@ export default function QualityTestsPage() {
               icon="refresh"
               type="default"
               stylingMode="outlined"
-              hint="Refresh"
+              hint={t('tests.actions.refresh')}
               onClick={() => refetch()}
             />
             <DxButton
               icon="doc"
-              text="Specifications"
+              text={t('tests.actions.specifications')}
               type="default"
               stylingMode="outlined"
               onClick={() => router.push('/quality/specs')}
             />
             <DxButton
               icon="plus"
-              text="New Test"
+              text={t('tests.actions.newTest')}
               type="success"
               onClick={() => router.push('/quality/tests/new')}
             />
@@ -455,7 +432,7 @@ export default function QualityTestsPage() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
         <StatCard
-          label="Total Tests"
+          label={t('tests.stats.totalTests')}
           value={stats.total}
           icon={FlaskConical}
           iconColor="text-blue-500"
@@ -463,7 +440,7 @@ export default function QualityTestsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Pending"
+          label={t('tests.stats.pending')}
           value={stats.pending}
           icon={Clock}
           iconColor="text-slate-500"
@@ -471,7 +448,7 @@ export default function QualityTestsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Passed"
+          label={t('tests.stats.passed')}
           value={stats.pass}
           icon={CheckCircle}
           iconColor="text-emerald-500"
@@ -479,7 +456,7 @@ export default function QualityTestsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Failed"
+          label={t('tests.stats.failed')}
           value={stats.fail}
           icon={XCircle}
           iconColor="text-red-500"
@@ -487,7 +464,7 @@ export default function QualityTestsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Retest"
+          label={t('tests.stats.retest')}
           value={stats.retest}
           icon={AlertTriangle}
           iconColor="text-amber-500"
@@ -495,7 +472,7 @@ export default function QualityTestsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Pass Rate"
+          label={t('tests.stats.passRate')}
           value={`${stats.passRate.toFixed(1)}%`}
           icon={Percent}
           iconColor="text-indigo-500"
@@ -503,7 +480,7 @@ export default function QualityTestsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Today"
+          label={t('tests.stats.today')}
           value={stats.todayTests}
           icon={Calendar}
           iconColor="text-purple-500"
@@ -511,7 +488,7 @@ export default function QualityTestsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Incoming QC"
+          label={t('tests.stats.incomingQC')}
           value={stats.typeStats.incoming?.count || 0}
           icon={Package}
           iconColor="text-cyan-500"
@@ -527,7 +504,7 @@ export default function QualityTestsPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-blue-500" />
-              By Status
+              {t('tests.charts.byStatus')}
             </h3>
           </div>
           {statusChartData.length > 0 ? (
@@ -561,7 +538,7 @@ export default function QualityTestsPage() {
             <div className="h-[200px] flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <TrendingUp className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No data</p>
+                <p className="text-sm">{t('tests.charts.noData')}</p>
               </div>
             </div>
           )}
@@ -572,7 +549,7 @@ export default function QualityTestsPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-indigo-500" />
-              Tests by Category
+              {t('tests.charts.byCategory')}
             </h3>
           </div>
           {typeChartData.some(d => d.count > 0) ? (
@@ -595,7 +572,7 @@ export default function QualityTestsPage() {
             <div className="h-[200px] flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No data</p>
+                <p className="text-sm">{t('tests.charts.noData')}</p>
               </div>
             </div>
           )}
@@ -606,7 +583,7 @@ export default function QualityTestsPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-500" />
-              Pass Rate by Type
+              {t('tests.charts.passRateByType')}
             </h3>
           </div>
           <div className="space-y-3">
@@ -615,7 +592,7 @@ export default function QualityTestsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm font-medium text-emerald-700">Overall</span>
+                  <span className="text-sm font-medium text-emerald-700">{t('tests.charts.overall')}</span>
                 </div>
                 <span className="text-lg font-bold text-emerald-600">
                   {stats.passRate.toFixed(1)}%
@@ -634,7 +611,7 @@ export default function QualityTestsPage() {
                     <div className={`p-1.5 bg-gradient-to-r ${config.gradient} rounded text-white`}>
                       <IconComponent className="h-3.5 w-3.5" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">{config.labelTh}</span>
+                    <span className="text-sm font-medium text-gray-700">{t(`tests.type.${type}`)}</span>
                   </div>
                   <span className={`text-sm font-bold ${
                     (typeStats?.passRate || 0) >= 90 ? 'text-emerald-600' :
@@ -663,14 +640,14 @@ export default function QualityTestsPage() {
                     <IconComponent className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="font-semibold text-lg">{config.label}</p>
-                    <p className="text-sm text-white/70">{config.description}</p>
+                    <p className="font-semibold text-lg">{t(`tests.type.${type}`)}</p>
+                    <p className="text-sm text-white/70">{t(`tests.typeDescription.${type}`)}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-3xl font-bold">{typeStats?.count || 0}</p>
                   <p className="text-sm text-white/70">
-                    {(typeStats?.passRate || 0) > 0 ? `${typeStats.passRate.toFixed(0)}% pass` : 'No data'}
+                    {(typeStats?.passRate || 0) > 0 ? t('tests.passText', { rate: typeStats.passRate.toFixed(0) }) : t('tests.charts.noData')}
                   </p>
                 </div>
               </div>
@@ -698,7 +675,7 @@ export default function QualityTestsPage() {
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <FlaskConical className="w-4 h-4" />
-                {filteredTests.length} tests
+                {t('tests.testsCount', { count: filteredTests.length })}
               </span>
             </div>
           </div>
@@ -731,53 +708,53 @@ export default function QualityTestsPage() {
             showNavigationButtons={true}
           />
           <FilterRow visible={true} />
-          <SearchPanel visible={true} placeholder="Search tests..." width={250} />
+          <SearchPanel visible={true} placeholder={t('tests.grid.searchPlaceholder')} width={250} />
           <HeaderFilter visible={true} />
           <Export enabled={true} formats={['xlsx']} />
 
           <Column
             dataField="lotNumber"
-            caption="Lot / Item"
+            caption={t('tests.grid.lotItem')}
             width={220}
             cellRender={renderLotCell}
           />
           <Column
-            caption="Test Name"
+            caption={t('tests.grid.testName')}
             minWidth={200}
             cellRender={renderTestCell}
             calculateCellValue={(data: QualityTest) => data.testName}
           />
           <Column
             dataField="testType"
-            caption="Type"
+            caption={t('tests.grid.type')}
             width={140}
             cellRender={renderTypeCell}
           />
           <Column
-            caption="Specification"
+            caption={t('tests.grid.specification')}
             width={150}
             cellRender={renderSpecCell}
           />
           <Column
-            caption="Result"
+            caption={t('tests.grid.result')}
             width={100}
             cellRender={renderResultCell}
           />
           <Column
             dataField="testDate"
-            caption="Test Date"
+            caption={t('tests.grid.testDate')}
             dataType="date"
             format="dd MMM yyyy"
             width={120}
           />
           <Column
             dataField="status"
-            caption="Status"
+            caption={t('tests.grid.status')}
             width={120}
             cellRender={renderStatusCell}
           />
           <Column
-            caption="Disposition"
+            caption={t('tests.grid.disposition')}
             width={130}
             cellRender={renderDispositionCell}
             allowFiltering={false}

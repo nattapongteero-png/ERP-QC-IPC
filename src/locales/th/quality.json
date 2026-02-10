@@ -42,5 +42,349 @@
       "success": "อนุมัติผลตรวจสอบสำเร็จ",
       "error": "ไม่สามารถอนุมัติผลตรวจสอบได้"
     }
+  },
+  "common": {
+    "items": "รายการ",
+    "noData": "ไม่มีข้อมูล",
+    "all": "ทั้งหมด",
+    "refresh": "รีเฟรชข้อมูล",
+    "view": "มุมมอง",
+    "viewGrid": "มุมมองตาราง",
+    "viewCards": "มุมมองการ์ด",
+    "viewAnalytics": "มุมมองวิเคราะห์",
+    "search": "ค้นหา",
+    "filters": "ตัวกรองข้อมูล",
+    "clearFilters": "ล้างตัวกรอง",
+    "today": "วันนี้",
+    "daysRemaining": "อีก {days} วัน",
+    "daysOver": "เกิน {days} วัน",
+    "passed": "ผ่าน",
+    "failed": "ไม่ผ่าน",
+    "pending": "รอ",
+    "active": "ใช้งาน",
+    "inactive": "ไม่ใช้งาน",
+    "open": "เปิด",
+    "closed": "ปิด",
+    "critical": "วิกฤต",
+    "overdue": "เกินกำหนด",
+    "stillOpen": "ยังเปิด"
+  },
+  "dashboard": {
+    "hints": {
+      "refresh": "รีเฟรชข้อมูล",
+      "filter": "ตัวกรอง"
+    },
+    "stats": {
+      "totalTests": "การทดสอบทั้งหมด",
+      "pending": "รอทดสอบ",
+      "passed": "ผ่านการทดสอบ",
+      "failed": "ไม่ผ่านการทดสอบ",
+      "totalSpecs": "ข้อกำหนดคุณภาพ",
+      "openDeviations": "ความเบี่ยงเบนเปิด"
+    },
+    "filter": {
+      "title": "ตัวกรองข้อมูล",
+      "clear": "ล้างตัวกรอง",
+      "searchLabel": "ค้นหา",
+      "searchPlaceholder": "ค้นหาตาม Lot หรือชื่อการทดสอบ...",
+      "testTypeLabel": "ประเภทการทดสอบ",
+      "testTypePlaceholder": "เลือกประเภท...",
+      "statusLabel": "สถานะ",
+      "statusPlaceholder": "เลือกสถานะ...",
+      "allTypes": "ทุกประเภท",
+      "allStatuses": "ทุกสถานะ"
+    },
+    "testStatus": {
+      "pending": "รอทดสอบ",
+      "in_progress": "กำลังทดสอบ",
+      "passed": "ผ่าน",
+      "failed": "ไม่ผ่าน"
+    },
+    "testType": {
+      "incoming": "วัตถุดิบ",
+      "in_process": "ระหว่างผลิต",
+      "finished": "ผลิตภัณฑ์สำเร็จ",
+      "stability": "ความคงตัว"
+    },
+    "actions": {
+      "newTest": "ทดสอบใหม่"
+    },
+    "grid": {
+      "lotNumber": "เลขที่ Lot",
+      "testName": "ชื่อการทดสอบ",
+      "type": "ประเภท",
+      "testMethod": "วิธีทดสอบ",
+      "specification": "ข้อกำหนด",
+      "result": "ผลทดสอบ",
+      "status": "สถานะ",
+      "testDate": "วันที่ทดสอบ",
+      "searchPlaceholder": "ค้นหา..."
+    },
+    "moduleCards": {
+      "qualityTests": {
+        "title": "การทดสอบคุณภาพ",
+        "description": "จัดการการทดสอบคุณภาพวัตถุดิบและผลิตภัณฑ์",
+        "statsTotal": "ทั้งหมด",
+        "statsPending": "รอทดสอบ",
+        "statsPassRate": "อัตราผ่าน"
+      },
+      "qualitySpecs": {
+        "title": "ข้อกำหนดคุณภาพ",
+        "description": "กำหนดมาตรฐานและข้อกำหนดการทดสอบ",
+        "statsTotal": "ทั้งหมด",
+        "statsActive": "ใช้งาน",
+        "statsCritical": "จุดวิกฤต"
+      },
+      "deviationsCard": {
+        "title": "ความเบี่ยงเบน",
+        "description": "บันทึกและติดตามความเบี่ยงเบนจากกระบวนการ",
+        "statsOpen": "เปิดอยู่",
+        "statsCritical": "วิกฤต"
+      }
+    },
+    "quickActions": {
+      "title": "การดำเนินการด่วน",
+      "newTest": "สร้างการทดสอบใหม่",
+      "newSpec": "เพิ่มข้อกำหนดใหม่",
+      "reportDeviation": "รายงานความเบี่ยงเบน"
+    },
+    "passRate": {
+      "title": "อัตราการผ่านการทดสอบ"
+    },
+    "testTypeSummary": {
+      "title": "สรุปตามประเภทการทดสอบ"
+    },
+    "analytics": {
+      "statusDistribution": "การกระจายตามสถานะ",
+      "typeDistribution": "การกระจายตามประเภท",
+      "tooltipItems": "{argument}: {value} รายการ",
+      "noTestData": "ไม่มีข้อมูลการทดสอบ",
+      "testStatusSummary": "สรุปสถานะการทดสอบ",
+      "specsSummary": "สรุปข้อกำหนดคุณภาพ",
+      "specsTotal": "ข้อกำหนดทั้งหมด",
+      "specsActive": "ใช้งานอยู่",
+      "specsCritical": "จุดวิกฤต",
+      "deviationsSummary": "สรุปความเบี่ยงเบน",
+      "quickActionsTitle": "ดำเนินการด่วน",
+      "addSpec": "เพิ่มข้อกำหนด",
+      "typeBreakdown": "รายละเอียดตามประเภทการทดสอบ"
+    }
+  },
+  "deviations": {
+    "status": {
+      "open": "เปิด",
+      "investigating": "กำลังสอบสวน",
+      "resolved": "แก้ไขแล้ว",
+      "closed": "ปิด"
+    },
+    "severity": {
+      "minor": "เล็กน้อย",
+      "major": "สำคัญ",
+      "critical": "วิกฤต"
+    },
+    "source": {
+      "production": "การผลิต",
+      "quality": "คุณภาพ",
+      "warehouse": "คลังสินค้า"
+    },
+    "filter": {
+      "allStatuses": "ทุกสถานะ",
+      "allSeverities": "ทุกระดับ",
+      "allSources": "ทุกแหล่ง",
+      "searchPlaceholder": "ค้นหาด้วยเลขที่หรือหัวข้อ...",
+      "statusPlaceholder": "สถานะ",
+      "severityPlaceholder": "ระดับ",
+      "sourcePlaceholder": "แหล่งที่มา"
+    },
+    "stats": {
+      "total": "ความเบี่ยงเบนทั้งหมด",
+      "active": "กำลังดำเนินการ",
+      "investigating": "กำลังสอบสวน",
+      "critical": "วิกฤต",
+      "overdue": "เกินกำหนด",
+      "resolutionRate": "อัตราแก้ไข"
+    },
+    "alert": {
+      "criticalCount": "{count} ความเบี่ยงเบนวิกฤตต้องการการดำเนินการ",
+      "criticalDescription": "ความเบี่ยงเบนวิกฤตอาจส่งผลกระทบต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์",
+      "viewAll": "ดูทั้งหมด"
+    },
+    "grid": {
+      "columns": {
+        "number": "เลขที่",
+        "title": "หัวข้อ",
+        "source": "แหล่งที่มา",
+        "severity": "ระดับ",
+        "dueDate": "กำหนด",
+        "status": "สถานะ"
+      },
+      "noData": "ไม่พบความเบี่ยงเบน",
+      "overdueBadge": "เกินกำหนด"
+    },
+    "emptyState": {
+      "title": "ไม่พบความเบี่ยงเบน",
+      "description": "รายงานความเบี่ยงเบนใหม่เมื่อพบปัญหาคุณภาพ",
+      "action": "รายงานความเบี่ยงเบน"
+    },
+    "cards": {
+      "urgentTitle": "ต้องดำเนินการด่วน",
+      "noUrgent": "ไม่มีความเบี่ยงเบนที่ต้องดำเนินการด่วน",
+      "filteredTitle": "ความเบี่ยงเบนที่กรองแล้ว ({count})",
+      "noMatch": "ไม่พบความเบี่ยงเบนที่ตรงกับเงื่อนไข",
+      "viewMore": "ดูเพิ่มเติมอีก {count} รายการ",
+      "overdueWarning": "เกินกำหนดแล้ว กรุณาดำเนินการด่วน"
+    },
+    "sidebar": {
+      "summary": "สรุปรวม",
+      "recent": "ล่าสุด"
+    },
+    "analytics": {
+      "statusDistribution": "การกระจายตามสถานะ",
+      "severityDistribution": "การกระจายตามระดับ (เฉพาะที่ยังเปิด)",
+      "sourceDistribution": "การกระจายตามแหล่งที่มา",
+      "statusBreakdown": "สรุปตามสถานะ",
+      "severityBreakdown": "สรุปตามระดับ",
+      "sourceBreakdown": "สรุปตามแหล่งที่มา",
+      "inProgress": "กำลังดำเนินการ"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "report": "รายงานความเบี่ยงเบน"
+    },
+    "overdue": {
+      "daysOver": "เกิน {days} วัน",
+      "daysRemaining": "อีก {days} วัน"
+    }
+  },
+  "tests": {
+    "stats": {
+      "totalTests": "การทดสอบทั้งหมด",
+      "pending": "รอทดสอบ",
+      "passed": "ผ่าน",
+      "failed": "ไม่ผ่าน",
+      "retest": "ทดสอบซ้ำ",
+      "passRate": "อัตราผ่าน",
+      "today": "วันนี้",
+      "incomingQC": "QC รับเข้า"
+    },
+    "status": {
+      "pending": "รอทดสอบ",
+      "pass": "ผ่าน",
+      "fail": "ไม่ผ่าน",
+      "retest": "ทดสอบซ้ำ"
+    },
+    "type": {
+      "incoming": "QC รับเข้า",
+      "in_process": "QC ระหว่างผลิต",
+      "final": "QC สุดท้าย"
+    },
+    "typeDescription": {
+      "incoming": "ตรวจสอบวัตถุดิบ",
+      "in_process": "ตรวจสอบระหว่างผลิต",
+      "final": "ตรวจปล่อยผลิตภัณฑ์สำเร็จ"
+    },
+    "disposition": {
+      "pending_disposition": "รอตัดสินใจ",
+      "pending_approval": "รออนุมัติ",
+      "approved": "อนุมัติแล้ว"
+    },
+    "charts": {
+      "byStatus": "ตามสถานะ",
+      "byCategory": "การทดสอบตามหมวดหมู่",
+      "passRateByType": "อัตราผ่านตามประเภท",
+      "overall": "ภาพรวม",
+      "noData": "ไม่มีข้อมูล"
+    },
+    "grid": {
+      "lotItem": "Lot / สินค้า",
+      "testName": "ชื่อการทดสอบ",
+      "type": "ประเภท",
+      "specification": "ข้อกำหนด",
+      "result": "ผลทดสอบ",
+      "testDate": "วันที่ทดสอบ",
+      "status": "สถานะ",
+      "disposition": "การตัดสินใจ",
+      "searchPlaceholder": "ค้นหาการทดสอบ..."
+    },
+    "tabs": {
+      "all": "ทั้งหมด",
+      "pending": "รอทดสอบ",
+      "passed": "ผ่าน",
+      "failed": "ไม่ผ่าน",
+      "retest": "ทดสอบซ้ำ"
+    },
+    "sample": "ตัวอย่าง: {number}",
+    "testsCount": "{count} การทดสอบ",
+    "passText": "ผ่าน {rate}%",
+    "actions": {
+      "refresh": "รีเฟรช",
+      "specifications": "ข้อกำหนด",
+      "newTest": "ทดสอบใหม่",
+      "viewDetails": "ดูรายละเอียด"
+    },
+    "breadcrumbs": {
+      "quality": "คุณภาพ",
+      "tests": "การทดสอบ"
+    }
+  },
+  "specs": {
+    "stats": {
+      "total": "ข้อกำหนดทั้งหมด",
+      "active": "ใช้งาน",
+      "critical": "จุดวิกฤต",
+      "nonCritical": "ไม่วิกฤต",
+      "inactive": "ไม่ใช้งาน",
+      "itemsWithSpec": "สินค้าที่มี Spec"
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน"
+    },
+    "filter": {
+      "allStatuses": "ทุกสถานะ",
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "allTypes": "ทุกประเภท",
+      "criticalOnly": "จุดวิกฤตเท่านั้น",
+      "nonCritical": "ไม่วิกฤต",
+      "searchPlaceholder": "ค้นหาด้วยรหัสสินค้า, ชื่อสินค้า, หรือชื่อการทดสอบ...",
+      "statusPlaceholder": "สถานะ",
+      "typePlaceholder": "ประเภท"
+    },
+    "grid": {
+      "item": "สินค้า",
+      "test": "การทดสอบ",
+      "specification": "ข้อกำหนด",
+      "status": "สถานะ",
+      "searchPlaceholder": "ค้นหาข้อกำหนด...",
+      "specsCount": "{count} ข้อกำหนด"
+    },
+    "cards": {
+      "topItemsTitle": "สินค้าที่มีข้อกำหนดมากที่สุด",
+      "viewAllInGrid": "ดู {count} ข้อกำหนดทั้งหมดในมุมมองตาราง",
+      "noMethod": "ไม่ระบุวิธีทดสอบ"
+    },
+    "analytics": {
+      "statusDistribution": "การกระจายตามสถานะ",
+      "criticalDistribution": "การกระจายตามความสำคัญ",
+      "statusSummary": "สรุปสถานะ",
+      "criticalSummary": "สรุปความสำคัญ",
+      "quickActions": "ดำเนินการด่วน",
+      "addNewSpec": "เพิ่มข้อกำหนดใหม่",
+      "createNewTest": "สร้างการทดสอบใหม่",
+      "refreshData": "รีเฟรชข้อมูล",
+      "topItemsTitle": "สินค้าที่มีข้อกำหนดมากที่สุด",
+      "tableItem": "สินค้า",
+      "tableSpecCount": "จำนวน Spec",
+      "noData": "ไม่มีข้อมูล"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "newSpec": "เพิ่มข้อกำหนด"
+    },
+    "breadcrumbs": {
+      "quality": "คุณภาพ",
+      "specifications": "ข้อกำหนด"
+    }
   }
 }

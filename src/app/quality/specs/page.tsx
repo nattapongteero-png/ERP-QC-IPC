@@ -84,15 +84,11 @@ type ViewMode = 'grid' | 'cards' | 'analytics';
 
 const STATUS_CONFIG = {
   active: {
-    label: 'Active',
-    labelTh: 'ใช้งาน',
     color: '#22c55e',
     bgClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     icon: CheckCircle,
   },
   inactive: {
-    label: 'Inactive',
-    labelTh: 'ไม่ใช้งาน',
     color: '#64748b',
     bgClass: 'bg-slate-100 text-slate-600 border-slate-200',
     icon: XCircle,
@@ -101,32 +97,16 @@ const STATUS_CONFIG = {
 
 const CRITICAL_CONFIG = {
   critical: {
-    label: 'Critical',
-    labelTh: 'Critical',
     color: '#ef4444',
     bgClass: 'bg-red-100 text-red-700 border-red-200',
     icon: AlertTriangle,
   },
   normal: {
-    label: 'Normal',
-    labelTh: 'ปกติ',
     color: '#3b82f6',
     bgClass: 'bg-blue-100 text-blue-700 border-blue-200',
     icon: Shield,
   },
 } as const;
-
-const statusOptions = [
-  { value: '', text: 'ทุกสถานะ' },
-  { value: 'true', text: 'ใช้งาน' },
-  { value: 'false', text: 'ไม่ใช้งาน' },
-];
-
-const criticalOptions = [
-  { value: '', text: 'ทุกประเภท' },
-  { value: 'true', text: 'Critical เท่านั้น' },
-  { value: 'false', text: 'Non-Critical' },
-];
 
 // ============================================
 // API Functions
@@ -152,6 +132,19 @@ export default function QualitySpecsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [criticalFilter, setCriticalFilter] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
+
+  // Filter options (translated)
+  const statusOptions = useMemo(() => [
+    { value: '', text: t('specs.filter.allStatuses') },
+    { value: 'true', text: t('specs.filter.active') },
+    { value: 'false', text: t('specs.filter.inactive') },
+  ], [t]);
+
+  const criticalOptions = useMemo(() => [
+    { value: '', text: t('specs.filter.allTypes') },
+    { value: 'true', text: t('specs.filter.criticalOnly') },
+    { value: 'false', text: t('specs.filter.nonCritical') },
+  ], [t]);
 
   // Fetch quality specs
   const { data: specs = [], isLoading, refetch } = useQuery({
@@ -225,14 +218,14 @@ export default function QualitySpecsPage() {
 
   // Chart data
   const statusChartData = useMemo(() => [
-    { status: 'ใช้งาน', count: stats.active, color: STATUS_CONFIG.active.color },
-    { status: 'ไม่ใช้งาน', count: stats.inactive, color: STATUS_CONFIG.inactive.color },
-  ].filter(d => d.count > 0), [stats]);
+    { status: t('specs.status.active'), count: stats.active, color: STATUS_CONFIG.active.color },
+    { status: t('specs.status.inactive'), count: stats.inactive, color: STATUS_CONFIG.inactive.color },
+  ].filter(d => d.count > 0), [stats, t]);
 
   const criticalChartData = useMemo(() => [
-    { type: 'Critical', count: stats.critical, color: CRITICAL_CONFIG.critical.color },
-    { type: 'Normal', count: stats.nonCritical, color: CRITICAL_CONFIG.normal.color },
-  ].filter(d => d.count > 0), [stats]);
+    { type: t('common.critical'), count: stats.critical, color: CRITICAL_CONFIG.critical.color },
+    { type: t('specs.stats.nonCritical'), count: stats.nonCritical, color: CRITICAL_CONFIG.normal.color },
+  ].filter(d => d.count > 0), [stats, t]);
 
   // Format range helper
   const formatRange = useCallback((spec: QualitySpec) => {
@@ -285,26 +278,27 @@ export default function QualitySpecsPage() {
       {data.data.isCritical && (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200 shrink-0">
           <AlertTriangle className="h-3 w-3" />
-          Critical
+          {t('specs.stats.critical')}
         </span>
       )}
     </div>
-  ), []);
+  ), [t]);
 
   const renderSpecCell = useCallback((data: { data: QualitySpec }) => (
     <span className="text-sm font-mono">{formatRange(data.data)}</span>
   ), [formatRange]);
 
   const renderStatusCell = useCallback((data: { data: QualitySpec }) => {
-    const config = data.data.isActive ? STATUS_CONFIG.active : STATUS_CONFIG.inactive;
+    const statusKey = data.data.isActive ? 'active' : 'inactive';
+    const config = STATUS_CONFIG[statusKey];
     const IconComponent = config.icon;
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgClass}`}>
         <IconComponent className="h-3 w-3" />
-        {config.labelTh}
+        {t(`specs.status.${statusKey}`)}
       </span>
     );
-  }, []);
+  }, [t]);
 
   const renderActionsCell = useCallback((data: { data: QualitySpec }) => (
     <button
@@ -313,18 +307,18 @@ export default function QualitySpecsPage() {
         router.push(`/quality/specs/${data.data.id}`);
       }}
       className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-      title="View Details"
+      title={t('tests.actions.viewDetails')}
     >
       <Eye className="h-4 w-4" />
     </button>
-  ), [router]);
+  ), [router, t]);
 
   // View mode buttons
-  const viewModeButtons = [
-    { mode: 'grid' as ViewMode, icon: LayoutList, label: 'Grid' },
-    { mode: 'cards' as ViewMode, icon: LayoutGrid, label: 'Cards' },
-    { mode: 'analytics' as ViewMode, icon: BarChart3, label: 'Analytics' },
-  ];
+  const viewModeButtons = useMemo(() => [
+    { mode: 'grid' as ViewMode, icon: LayoutList, label: t('common.viewGrid') },
+    { mode: 'cards' as ViewMode, icon: LayoutGrid, label: t('common.viewCards') },
+    { mode: 'analytics' as ViewMode, icon: BarChart3, label: t('common.viewAnalytics') },
+  ], [t]);
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
@@ -336,8 +330,8 @@ export default function QualitySpecsPage() {
         iconBgColor="bg-indigo-100"
         iconColor="text-indigo-600"
         breadcrumbs={[
-          { label: 'Quality', href: '/quality' },
-          { label: 'Specifications' },
+          { label: t('specs.breadcrumbs.quality'), href: '/quality' },
+          { label: t('specs.breadcrumbs.specifications') },
         ]}
         actions={
           <div className="flex items-center gap-2">
@@ -345,12 +339,12 @@ export default function QualitySpecsPage() {
               icon="refresh"
               type="default"
               stylingMode="outlined"
-              hint="Refresh"
+              hint={t('specs.actions.refresh')}
               onClick={() => refetch()}
             />
             <DxButton
               icon="plus"
-              text="New Spec"
+              text={t('specs.actions.newSpec')}
               type="success"
               onClick={() => router.push('/quality/specs/new')}
             />
@@ -361,7 +355,7 @@ export default function QualitySpecsPage() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <StatCard
-          label="ข้อกำหนดทั้งหมด"
+          label={t('specs.stats.total')}
           value={stats.total}
           icon={FileCheck}
           iconColor="text-indigo-500"
@@ -369,7 +363,7 @@ export default function QualitySpecsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ใช้งาน"
+          label={t('specs.stats.active')}
           value={stats.active}
           icon={CheckCircle}
           iconColor="text-emerald-500"
@@ -377,7 +371,7 @@ export default function QualitySpecsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Critical"
+          label={t('specs.stats.critical')}
           value={stats.critical}
           icon={AlertTriangle}
           iconColor="text-red-500"
@@ -385,7 +379,7 @@ export default function QualitySpecsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="Non-Critical"
+          label={t('specs.stats.nonCritical')}
           value={stats.nonCritical}
           icon={Shield}
           iconColor="text-blue-500"
@@ -393,7 +387,7 @@ export default function QualitySpecsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ไม่ใช้งาน"
+          label={t('specs.stats.inactive')}
           value={stats.inactive}
           icon={XCircle}
           iconColor="text-slate-500"
@@ -401,7 +395,7 @@ export default function QualitySpecsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="สินค้าที่มี Spec"
+          label={t('specs.stats.itemsWithSpec')}
           value={stats.uniqueItems}
           icon={Package}
           iconColor="text-purple-500"
@@ -434,7 +428,7 @@ export default function QualitySpecsPage() {
           {/* Search */}
           <div className="flex-1 min-w-0">
             <TextBox
-              placeholder="ค้นหาด้วยรหัสสินค้า, ชื่อสินค้า, หรือชื่อการทดสอบ..."
+              placeholder={t('specs.filter.searchPlaceholder')}
               value={searchText}
               onValueChanged={(e) => setSearchText(e.value || '')}
               showClearButton={true}
@@ -452,7 +446,7 @@ export default function QualitySpecsPage() {
               onValueChanged={(e) => setStatusFilter(e.value || '')}
               displayExpr="text"
               valueExpr="value"
-              placeholder="สถานะ"
+              placeholder={t('specs.filter.statusPlaceholder')}
               width={130}
             />
             <SelectBox
@@ -461,7 +455,7 @@ export default function QualitySpecsPage() {
               onValueChanged={(e) => setCriticalFilter(e.value || '')}
               displayExpr="text"
               valueExpr="value"
-              placeholder="ประเภท"
+              placeholder={t('specs.filter.typePlaceholder')}
               width={150}
             />
           </div>
@@ -474,7 +468,7 @@ export default function QualitySpecsPage() {
           <div className="border-b border-gray-200 px-4 py-3 bg-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <ListChecks className="h-4 w-4" />
-              <span>{filteredSpecs.length} ข้อกำหนด</span>
+              <span>{t('specs.grid.specsCount', { count: filteredSpecs.length })}</span>
             </div>
           </div>
           <DataGrid
@@ -503,31 +497,31 @@ export default function QualitySpecsPage() {
               showNavigationButtons={true}
             />
             <FilterRow visible={true} />
-            <SearchPanel visible={true} placeholder="Search specs..." width={250} />
+            <SearchPanel visible={true} placeholder={t('specs.grid.searchPlaceholder')} width={250} />
             <HeaderFilter visible={true} />
             <Export enabled={true} formats={['xlsx']} />
 
             <Column
               dataField="itemCode"
-              caption="สินค้า"
+              caption={t('specs.grid.item')}
               width={180}
               cellRender={renderItemCell}
             />
             <Column
               dataField="testName"
-              caption="การทดสอบ"
+              caption={t('specs.grid.test')}
               minWidth={250}
               cellRender={renderTestCell}
             />
             <Column
               dataField="specification"
-              caption="ข้อกำหนด"
+              caption={t('specs.grid.specification')}
               width={180}
               cellRender={renderSpecCell}
             />
             <Column
               dataField="isActive"
-              caption="สถานะ"
+              caption={t('specs.grid.status')}
               width={120}
               cellRender={renderStatusCell}
             />
@@ -548,7 +542,7 @@ export default function QualitySpecsPage() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Package className="h-5 w-5 text-purple-500" />
-              สินค้าที่มีข้อกำหนดมากที่สุด
+              {t('specs.cards.topItemsTitle')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {stats.topItems.map((item) => (
@@ -566,16 +560,16 @@ export default function QualitySpecsPage() {
                   <div className="flex items-center justify-between mt-3">
                     <div className="text-center">
                       <p className="text-2xl font-bold text-gray-900">{item.count}</p>
-                      <p className="text-xs text-gray-500">Specs</p>
+                      <p className="text-xs text-gray-500">{t('specs.stats.total')}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-center">
                         <p className="text-lg font-semibold text-red-600">{item.critical}</p>
-                        <p className="text-xs text-gray-500">Critical</p>
+                        <p className="text-xs text-gray-500">{t('specs.stats.critical')}</p>
                       </div>
                       <div className="text-center">
                         <p className="text-lg font-semibold text-emerald-600">{item.active}</p>
-                        <p className="text-xs text-gray-500">Active</p>
+                        <p className="text-xs text-gray-500">{t('specs.stats.active')}</p>
                       </div>
                     </div>
                   </div>
@@ -603,12 +597,12 @@ export default function QualitySpecsPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-900 truncate">{spec.testName}</p>
-                      <p className="text-xs text-gray-500 truncate">{spec.testMethod || 'No method specified'}</p>
+                      <p className="text-xs text-gray-500 truncate">{spec.testMethod || t('specs.cards.noMethod')}</p>
                     </div>
                   </div>
                   {spec.isCritical && (
                     <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
-                      Critical
+                      {t('specs.stats.critical')}
                     </span>
                   )}
                 </div>
@@ -631,7 +625,7 @@ export default function QualitySpecsPage() {
                     spec.isActive ? STATUS_CONFIG.active.bgClass : STATUS_CONFIG.inactive.bgClass
                   }`}>
                     {spec.isActive ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                    {spec.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                    {spec.isActive ? t('specs.status.active') : t('specs.status.inactive')}
                   </span>
                   <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded transition-colors">
                     <Eye className="h-4 w-4" />
@@ -648,7 +642,7 @@ export default function QualitySpecsPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
               >
                 <LayoutList className="h-4 w-4" />
-                View all {filteredSpecs.length} specs in Grid view
+                {t('specs.cards.viewAllInGrid', { count: filteredSpecs.length })}
               </button>
             </div>
           )}
@@ -663,7 +657,7 @@ export default function QualitySpecsPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-indigo-500" />
-                การกระจายตามสถานะ
+                {t('specs.analytics.statusDistribution')}
               </h3>
               {statusChartData.length > 0 ? (
                 <PieChart
@@ -697,7 +691,7 @@ export default function QualitySpecsPage() {
                 <div className="h-[280px] flex items-center justify-center text-gray-400">
                   <div className="text-center">
                     <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">ไม่มีข้อมูล</p>
+                    <p className="text-sm">{t('specs.analytics.noData')}</p>
                   </div>
                 </div>
               )}
@@ -707,7 +701,7 @@ export default function QualitySpecsPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
-                การกระจายตามความสำคัญ
+                {t('specs.analytics.criticalDistribution')}
               </h3>
               {criticalChartData.length > 0 ? (
                 <PieChart
@@ -741,7 +735,7 @@ export default function QualitySpecsPage() {
                 <div className="h-[280px] flex items-center justify-center text-gray-400">
                   <div className="text-center">
                     <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">ไม่มีข้อมูล</p>
+                    <p className="text-sm">{t('specs.analytics.noData')}</p>
                   </div>
                 </div>
               )}
@@ -754,13 +748,13 @@ export default function QualitySpecsPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-emerald-500" />
-                สรุปสถานะ
+                {t('specs.analytics.statusSummary')}
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span className="text-sm font-medium text-emerald-700">ใช้งาน</span>
+                    <span className="text-sm font-medium text-emerald-700">{t('specs.status.active')}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-lg font-bold text-emerald-600">{stats.active}</span>
@@ -772,7 +766,7 @@ export default function QualitySpecsPage() {
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
                   <div className="flex items-center gap-2">
                     <XCircle className="h-4 w-4 text-slate-600" />
-                    <span className="text-sm font-medium text-slate-700">ไม่ใช้งาน</span>
+                    <span className="text-sm font-medium text-slate-700">{t('specs.status.inactive')}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-lg font-bold text-slate-600">{stats.inactive}</span>
@@ -788,13 +782,13 @@ export default function QualitySpecsPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
-                สรุปความสำคัญ
+                {t('specs.analytics.criticalSummary')}
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <span className="text-sm font-medium text-red-700">Critical</span>
+                    <span className="text-sm font-medium text-red-700">{t('specs.stats.critical')}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-lg font-bold text-red-600">{stats.critical}</span>
@@ -806,7 +800,7 @@ export default function QualitySpecsPage() {
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">Non-Critical</span>
+                    <span className="text-sm font-medium text-blue-700">{t('specs.stats.nonCritical')}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-lg font-bold text-blue-600">{stats.nonCritical}</span>
@@ -822,7 +816,7 @@ export default function QualitySpecsPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Beaker className="h-5 w-5 text-indigo-500" />
-                Quick Actions
+                {t('specs.analytics.quickActions')}
               </h3>
               <div className="space-y-2">
                 <button
@@ -830,21 +824,21 @@ export default function QualitySpecsPage() {
                   className="w-full flex items-center gap-3 p-3 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-colors"
                 >
                   <Plus className="h-4 w-4 text-indigo-600" />
-                  <span className="text-sm font-medium text-indigo-700">เพิ่มข้อกำหนดใหม่</span>
+                  <span className="text-sm font-medium text-indigo-700">{t('specs.analytics.addNewSpec')}</span>
                 </button>
                 <button
                   onClick={() => router.push('/quality/tests/new')}
                   className="w-full flex items-center gap-3 p-3 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors"
                 >
                   <Beaker className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm font-medium text-emerald-700">สร้างการทดสอบใหม่</span>
+                  <span className="text-sm font-medium text-emerald-700">{t('specs.analytics.createNewTest')}</span>
                 </button>
                 <button
                   onClick={() => refetch()}
                   className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
                 >
                   <RefreshCw className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">รีเฟรชข้อมูล</span>
+                  <span className="text-sm font-medium text-gray-700">{t('specs.analytics.refreshData')}</span>
                 </button>
               </div>
             </div>
@@ -854,16 +848,16 @@ export default function QualitySpecsPage() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Package className="h-5 w-5 text-purple-500" />
-              สินค้าที่มีข้อกำหนดมากที่สุด
+              {t('specs.analytics.topItemsTitle')}
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">สินค้า</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">จำนวน Spec</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Critical</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Active</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('specs.analytics.tableItem')}</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('specs.analytics.tableSpecCount')}</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('specs.stats.critical')}</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('specs.stats.active')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

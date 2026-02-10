@@ -106,21 +106,16 @@ interface Deviation {
 
 type ViewMode = 'grid' | 'cards' | 'analytics';
 
-// Test status configuration
-const TEST_STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  pending: { label: 'รอทดสอบ', color: 'text-yellow-700', bgColor: 'bg-yellow-50' },
-  in_progress: { label: 'กำลังทดสอบ', color: 'text-blue-700', bgColor: 'bg-blue-50' },
-  passed: { label: 'ผ่าน', color: 'text-green-700', bgColor: 'bg-green-50' },
-  failed: { label: 'ไม่ผ่าน', color: 'text-red-700', bgColor: 'bg-red-50' },
+// Test status configuration (labels removed - use t() instead)
+const TEST_STATUS_CONFIG: Record<string, { color: string; bgColor: string }> = {
+  pending: { color: 'text-yellow-700', bgColor: 'bg-yellow-50' },
+  in_progress: { color: 'text-blue-700', bgColor: 'bg-blue-50' },
+  passed: { color: 'text-green-700', bgColor: 'bg-green-50' },
+  failed: { color: 'text-red-700', bgColor: 'bg-red-50' },
 };
 
-// Test type configuration
-const TEST_TYPE_CONFIG: Record<string, { label: string; labelEn: string }> = {
-  incoming: { label: 'วัตถุดิบ', labelEn: 'Incoming QC' },
-  in_process: { label: 'ระหว่างผลิต', labelEn: 'In-Process QC' },
-  finished: { label: 'ผลิตภัณฑ์สำเร็จ', labelEn: 'Finished Product' },
-  stability: { label: 'ความคงตัว', labelEn: 'Stability' },
-};
+// Test type configuration (labels removed - use t() instead)
+const TEST_TYPE_KEYS = ['incoming', 'in_process', 'finished', 'stability'] as const;
 
 // Fetch functions
 async function fetchTests(): Promise<QualityTest[]> {
@@ -198,15 +193,15 @@ export default function QualityDashboardPage() {
 
     // Status distribution
     const statusDistribution = [
-      { name: 'รอทดสอบ', count: pendingTests, color: '#f59e0b' },
-      { name: 'กำลังทดสอบ', count: inProgressTests, color: '#3b82f6' },
-      { name: 'ผ่าน', count: passedTests, color: '#10b981' },
-      { name: 'ไม่ผ่าน', count: failedTests, color: '#ef4444' },
+      { name: t('dashboard.testStatus.pending'), count: pendingTests, color: '#f59e0b' },
+      { name: t('dashboard.testStatus.in_progress'), count: inProgressTests, color: '#3b82f6' },
+      { name: t('dashboard.testStatus.passed'), count: passedTests, color: '#10b981' },
+      { name: t('dashboard.testStatus.failed'), count: failedTests, color: '#ef4444' },
     ].filter((s) => s.count > 0);
 
     // Type distribution
-    const typeDistribution = Object.entries(TEST_TYPE_CONFIG).map(([type, config]) => ({
-      name: config.label,
+    const typeDistribution = TEST_TYPE_KEYS.map((type) => ({
+      name: t(`dashboard.testType.${type}`),
       type,
       count: tests.filter((t) => t.testType === type).length,
     })).filter((item) => item.count > 0);
@@ -239,7 +234,25 @@ export default function QualityDashboardPage() {
       criticalDeviations,
       passRate,
     };
-  }, [tests, specs, deviations]);
+  }, [tests, specs, deviations, t]);
+
+  // Type filter options (inside component because t() is a hook)
+  const typeFilterOptions = useMemo(() => [
+    { value: null, text: t('dashboard.filter.allTypes') },
+    ...TEST_TYPE_KEYS.map((type) => ({
+      value: type,
+      text: t(`dashboard.testType.${type}`),
+    })),
+  ], [t]);
+
+  // Status filter options (inside component because t() is a hook)
+  const statusFilterOptions = useMemo(() => [
+    { value: null, text: t('dashboard.filter.allStatuses') },
+    ...Object.keys(TEST_STATUS_CONFIG).map((status) => ({
+      value: status,
+      text: t(`dashboard.testStatus.${status}`),
+    })),
+  ], [t]);
 
   // Filtered tests
   const filteredTests = useMemo(() => {
@@ -290,67 +303,46 @@ export default function QualityDashboardPage() {
   };
 
   // Module cards for quick access
-  const moduleCards = [
+  const moduleCards = useMemo(() => [
     {
-      title: 'การทดสอบคุณภาพ',
-      titleEn: 'Quality Tests',
-      description: 'จัดการการทดสอบคุณภาพวัตถุดิบและผลิตภัณฑ์',
+      title: t('dashboard.moduleCards.qualityTests.title'),
+      description: t('dashboard.moduleCards.qualityTests.description'),
       icon: FlaskConical,
       href: '/quality/tests',
       stats: [
-        { label: 'ทั้งหมด', value: analytics.totalTests },
-        { label: 'รอทดสอบ', value: analytics.pendingTests },
-        { label: 'อัตราผ่าน', value: `${analytics.passRate}%` },
+        { label: t('dashboard.moduleCards.qualityTests.statsTotal'), value: analytics.totalTests },
+        { label: t('dashboard.moduleCards.qualityTests.statsPending'), value: analytics.pendingTests },
+        { label: t('dashboard.moduleCards.qualityTests.statsPassRate'), value: `${analytics.passRate}%` },
       ],
       color: 'indigo',
       gradient: 'from-indigo-500 to-indigo-600',
     },
     {
-      title: 'ข้อกำหนดคุณภาพ',
-      titleEn: 'Quality Specifications',
-      description: 'กำหนดมาตรฐานและข้อกำหนดการทดสอบ',
+      title: t('dashboard.moduleCards.qualitySpecs.title'),
+      description: t('dashboard.moduleCards.qualitySpecs.description'),
       icon: FileText,
       href: '/quality/specs',
       stats: [
-        { label: 'ทั้งหมด', value: analytics.totalSpecs },
-        { label: 'ใช้งาน', value: analytics.activeSpecs },
-        { label: 'จุดวิกฤต', value: analytics.criticalSpecs },
+        { label: t('dashboard.moduleCards.qualitySpecs.statsTotal'), value: analytics.totalSpecs },
+        { label: t('dashboard.moduleCards.qualitySpecs.statsActive'), value: analytics.activeSpecs },
+        { label: t('dashboard.moduleCards.qualitySpecs.statsCritical'), value: analytics.criticalSpecs },
       ],
       color: 'emerald',
       gradient: 'from-emerald-500 to-emerald-600',
     },
     {
-      title: 'ความเบี่ยงเบน',
-      titleEn: 'Deviations',
-      description: 'บันทึกและติดตามความเบี่ยงเบนจากกระบวนการ',
+      title: t('dashboard.moduleCards.deviationsCard.title'),
+      description: t('dashboard.moduleCards.deviationsCard.description'),
       icon: AlertTriangle,
       href: '/quality/deviations',
       stats: [
-        { label: 'เปิดอยู่', value: analytics.openDeviations },
-        { label: 'วิกฤต', value: analytics.criticalDeviations },
+        { label: t('dashboard.moduleCards.deviationsCard.statsOpen'), value: analytics.openDeviations },
+        { label: t('dashboard.moduleCards.deviationsCard.statsCritical'), value: analytics.criticalDeviations },
       ],
       color: 'amber',
       gradient: 'from-amber-500 to-amber-600',
     },
-  ];
-
-  // Type filter options
-  const typeFilterOptions = [
-    { value: null, text: 'ทุกประเภท' },
-    ...Object.entries(TEST_TYPE_CONFIG).map(([value, config]) => ({
-      value,
-      text: config.label,
-    })),
-  ];
-
-  // Status filter options
-  const statusFilterOptions = [
-    { value: null, text: 'ทุกสถานะ' },
-    ...Object.entries(TEST_STATUS_CONFIG).map(([value, config]) => ({
-      value,
-      text: config.label,
-    })),
-  ];
+  ], [t, analytics]);
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -363,12 +355,12 @@ export default function QualityDashboardPage() {
             <DxButton
               icon="refresh"
               onClick={handleRefresh}
-              hint="รีเฟรชข้อมูล"
+              hint={t('dashboard.hints.refresh')}
             />
             <DxButton
               icon="filter"
               onClick={() => setShowFilters(!showFilters)}
-              hint="ตัวกรอง"
+              hint={t('dashboard.hints.filter')}
               type={showFilters ? 'default' : 'normal'}
             />
           </div>
@@ -378,7 +370,7 @@ export default function QualityDashboardPage() {
       {/* KPI Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
         <StatCard
-          label="การทดสอบทั้งหมด"
+          label={t('dashboard.stats.totalTests')}
           value={analytics.totalTests}
           icon={FlaskConical}
           iconColor="text-indigo-600"
@@ -387,7 +379,7 @@ export default function QualityDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="รอทดสอบ"
+          label={t('dashboard.stats.pending')}
           value={analytics.pendingTests}
           icon={Clock}
           iconColor="text-yellow-600"
@@ -395,7 +387,7 @@ export default function QualityDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ผ่านการทดสอบ"
+          label={t('dashboard.stats.passed')}
           value={analytics.passedTests}
           icon={CheckCircle}
           iconColor="text-green-600"
@@ -403,7 +395,7 @@ export default function QualityDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ไม่ผ่านการทดสอบ"
+          label={t('dashboard.stats.failed')}
           value={analytics.failedTests}
           icon={XCircle}
           iconColor="text-red-600"
@@ -411,7 +403,7 @@ export default function QualityDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ข้อกำหนดคุณภาพ"
+          label={t('dashboard.stats.totalSpecs')}
           value={analytics.totalSpecs}
           icon={FileText}
           iconColor="text-emerald-600"
@@ -420,7 +412,7 @@ export default function QualityDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ความเบี่ยงเบนเปิด"
+          label={t('dashboard.stats.openDeviations')}
           value={analytics.openDeviations}
           icon={AlertTriangle}
           iconColor="text-amber-600"
@@ -436,40 +428,40 @@ export default function QualityDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-700 flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              ตัวกรองข้อมูล
+              {t('dashboard.filter.title')}
             </h3>
-            <DxButton text="ล้างตัวกรอง" type="normal" onClick={clearFilters} />
+            <DxButton text={t('dashboard.filter.clear')} type="normal" onClick={clearFilters} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">ค้นหา</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">{t('dashboard.filter.searchLabel')}</label>
               <TextBox
                 value={searchText}
                 onValueChanged={(e) => setSearchText(e.value || '')}
-                placeholder="ค้นหาตาม Lot หรือชื่อการทดสอบ..."
+                placeholder={t('dashboard.filter.searchPlaceholder')}
                 showClearButton
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">ประเภทการทดสอบ</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">{t('dashboard.filter.testTypeLabel')}</label>
               <SelectBox
                 dataSource={typeFilterOptions}
                 value={testTypeFilter}
                 onValueChanged={(e) => setTestTypeFilter(e.value)}
                 displayExpr="text"
                 valueExpr="value"
-                placeholder="เลือกประเภท..."
+                placeholder={t('dashboard.filter.testTypePlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">สถานะ</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">{t('dashboard.filter.statusLabel')}</label>
               <SelectBox
                 dataSource={statusFilterOptions}
                 value={statusFilter}
                 onValueChanged={(e) => setStatusFilter(e.value)}
                 displayExpr="text"
                 valueExpr="value"
-                placeholder="เลือกสถานะ..."
+                placeholder={t('dashboard.filter.statusPlaceholder')}
               />
             </div>
           </div>
@@ -479,33 +471,33 @@ export default function QualityDashboardPage() {
       {/* View Mode Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-lg border border-gray-200">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500 mr-2">มุมมอง:</span>
+          <span className="text-sm text-gray-500 mr-2">{t('common.view')}:</span>
           <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 ${viewMode === 'grid' ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-              title="มุมมองตาราง"
+              title={t('common.viewGrid')}
             >
               <List className="h-5 w-5" />
             </button>
             <button
               onClick={() => setViewMode('cards')}
               className={`p-2 ${viewMode === 'cards' ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-              title="มุมมองการ์ด"
+              title={t('common.viewCards')}
             >
               <Grid3X3 className="h-5 w-5" />
             </button>
             <button
               onClick={() => setViewMode('analytics')}
               className={`p-2 ${viewMode === 'analytics' ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-              title="มุมมองวิเคราะห์"
+              title={t('common.viewAnalytics')}
             >
               <PieChartIcon className="h-5 w-5" />
             </button>
           </div>
         </div>
         <DxButton
-          text="ทดสอบใหม่"
+          text={t('dashboard.actions.newTest')}
           icon="add"
           type="default"
           onClick={() => router.push('/quality/tests/new')}
@@ -526,7 +518,7 @@ export default function QualityDashboardPage() {
             onRowClick={handleRowClick}
             hoverStateEnabled
           >
-            <SearchPanel visible placeholder="ค้นหา..." />
+            <SearchPanel visible placeholder={t('dashboard.grid.searchPlaceholder')} />
             <HeaderFilter visible />
             <FilterRow visible />
             <Grouping autoExpandAll={false} />
@@ -550,30 +542,29 @@ export default function QualityDashboardPage() {
               <Item name="exportButton" />
             </Toolbar>
 
-            <Column dataField="lotNumber" caption="เลขที่ Lot" width={130} />
+            <Column dataField="lotNumber" caption={t('dashboard.grid.lotNumber')} width={130} />
             <Column
               dataField="testName"
-              caption="ชื่อการทดสอบ"
+              caption={t('dashboard.grid.testName')}
               minWidth={200}
             />
             <Column
               dataField="testType"
-              caption="ประเภท"
+              caption={t('dashboard.grid.type')}
               width={130}
               cellRender={(cellInfo) => {
-                const config = TEST_TYPE_CONFIG[cellInfo.data.testType];
-                return config ? (
-                  <Badge variant="outline">{config.label}</Badge>
-                ) : (
-                  cellInfo.data.testType
-                );
+                const typeKey = cellInfo.data.testType;
+                const label = TEST_TYPE_KEYS.includes(typeKey as typeof TEST_TYPE_KEYS[number])
+                  ? t(`dashboard.testType.${typeKey}`)
+                  : typeKey;
+                return <Badge variant="outline">{label}</Badge>;
               }}
             />
-            <Column dataField="testMethod" caption="วิธีทดสอบ" width={150} />
-            <Column dataField="specification" caption="ข้อกำหนด" width={150} />
+            <Column dataField="testMethod" caption={t('dashboard.grid.testMethod')} width={150} />
+            <Column dataField="specification" caption={t('dashboard.grid.specification')} width={150} />
             <Column
               dataField="result"
-              caption="ผลทดสอบ"
+              caption={t('dashboard.grid.result')}
               width={120}
               cellRender={(cellInfo) => (
                 <span className="font-medium">
@@ -583,20 +574,23 @@ export default function QualityDashboardPage() {
             />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('dashboard.grid.status')}
               width={120}
               cellRender={(cellInfo) => {
-                const config = TEST_STATUS_CONFIG[cellInfo.data.status];
+                const statusKey = cellInfo.data.status;
+                const label = TEST_STATUS_CONFIG[statusKey]
+                  ? t(`dashboard.testStatus.${statusKey}`)
+                  : statusKey;
                 return (
-                  <Badge variant={getStatusVariant(cellInfo.data.status)}>
-                    {config?.label || cellInfo.data.status}
+                  <Badge variant={getStatusVariant(statusKey)}>
+                    {label}
                   </Badge>
                 );
               }}
             />
             <Column
               dataField="testDate"
-              caption="วันที่ทดสอบ"
+              caption={t('dashboard.grid.testDate')}
               width={130}
               dataType="date"
               format="dd/MM/yyyy"
@@ -621,7 +615,6 @@ export default function QualityDashboardPage() {
                   <ArrowRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <h3 className="text-lg font-semibold mt-3">{module.title}</h3>
-                <p className="text-sm opacity-90">{module.titleEn}</p>
               </div>
               {/* Content */}
               <div className="p-4">
@@ -642,7 +635,7 @@ export default function QualityDashboardPage() {
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Activity className="h-5 w-5 text-gray-600" />
-              การดำเนินการด่วน
+              {t('dashboard.quickActions.title')}
             </h3>
             <div className="space-y-3">
               <button
@@ -651,7 +644,7 @@ export default function QualityDashboardPage() {
               >
                 <span className="flex items-center gap-2">
                   <FlaskConical className="h-4 w-4 text-indigo-600" />
-                  <span className="text-sm font-medium">สร้างการทดสอบใหม่</span>
+                  <span className="text-sm font-medium">{t('dashboard.quickActions.newTest')}</span>
                 </span>
                 <ArrowRight className="h-4 w-4 text-gray-400" />
               </button>
@@ -661,7 +654,7 @@ export default function QualityDashboardPage() {
               >
                 <span className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm font-medium">เพิ่มข้อกำหนดใหม่</span>
+                  <span className="text-sm font-medium">{t('dashboard.quickActions.newSpec')}</span>
                 </span>
                 <ArrowRight className="h-4 w-4 text-gray-400" />
               </button>
@@ -671,7 +664,7 @@ export default function QualityDashboardPage() {
               >
                 <span className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-medium">รายงานความเบี่ยงเบน</span>
+                  <span className="text-sm font-medium">{t('dashboard.quickActions.reportDeviation')}</span>
                 </span>
                 <ArrowRight className="h-4 w-4 text-gray-400" />
               </button>
@@ -682,7 +675,7 @@ export default function QualityDashboardPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-green-600" />
-              อัตราการผ่านการทดสอบ
+              {t('dashboard.passRate.title')}
             </h3>
             <div className="flex items-center justify-center">
               <div className="relative">
@@ -717,28 +710,28 @@ export default function QualityDashboardPage() {
             <div className="mt-4 grid grid-cols-2 gap-4 text-center">
               <div>
                 <div className="text-lg font-semibold text-green-600">{analytics.passedTests}</div>
-                <div className="text-xs text-gray-500">ผ่าน</div>
+                <div className="text-xs text-gray-500">{t('common.passed')}</div>
               </div>
               <div>
                 <div className="text-lg font-semibold text-red-600">{analytics.failedTests}</div>
-                <div className="text-xs text-gray-500">ไม่ผ่าน</div>
+                <div className="text-xs text-gray-500">{t('common.failed')}</div>
               </div>
             </div>
           </div>
 
-          {/* Recent Activity Placeholder */}
+          {/* Test Type Summary */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Package className="h-5 w-5 text-blue-600" />
-              สรุปตามประเภทการทดสอบ
+              {t('dashboard.testTypeSummary.title')}
             </h3>
             <div className="space-y-3">
-              {Object.entries(TEST_TYPE_CONFIG).map(([type, config]) => {
+              {TEST_TYPE_KEYS.map((type) => {
                 const count = tests.filter((t) => t.testType === type).length;
                 const percentage = analytics.totalTests > 0 ? Math.round((count / analytics.totalTests) * 100) : 0;
                 return (
                   <div key={type} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">{config.label}</span>
+                    <span className="text-sm text-gray-600">{t(`dashboard.testType.${type}`)}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-24 bg-gray-200 rounded-full h-2">
                         <div
@@ -765,7 +758,7 @@ export default function QualityDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <ClipboardCheck className="h-5 w-5 text-indigo-600" />
-                การกระจายตามสถานะ
+                {t('dashboard.analytics.statusDistribution')}
               </h3>
               {analytics.statusDistribution.length > 0 ? (
                 <PieChart
@@ -790,13 +783,13 @@ export default function QualityDashboardPage() {
                     enabled
                     format="fixedPoint"
                     customizeTooltip={(pointInfo: { argumentText?: string; valueText?: string }) => ({
-                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} รายการ`,
+                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} ${t('common.items')}`,
                     })}
                   />
                 </PieChart>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-gray-400">
-                  ไม่มีข้อมูลการทดสอบ
+                  {t('dashboard.analytics.noTestData')}
                 </div>
               )}
             </div>
@@ -805,7 +798,7 @@ export default function QualityDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Beaker className="h-5 w-5 text-emerald-600" />
-                การกระจายตามประเภท
+                {t('dashboard.analytics.typeDistribution')}
               </h3>
               {analytics.typeDistribution.length > 0 ? (
                 <PieChart
@@ -830,13 +823,13 @@ export default function QualityDashboardPage() {
                     enabled
                     format="fixedPoint"
                     customizeTooltip={(pointInfo: { argumentText?: string; valueText?: string }) => ({
-                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} รายการ`,
+                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} ${t('common.items')}`,
                     })}
                   />
                 </PieChart>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-gray-400">
-                  ไม่มีข้อมูล
+                  {t('common.noData')}
                 </div>
               )}
             </div>
@@ -848,14 +841,15 @@ export default function QualityDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <ClipboardCheck className="h-4 w-4 text-indigo-600" />
-                สรุปสถานะการทดสอบ
+                {t('dashboard.analytics.testStatusSummary')}
               </h4>
               <div className="space-y-2">
-                {Object.entries(TEST_STATUS_CONFIG).map(([status, config]) => {
+                {Object.keys(TEST_STATUS_CONFIG).map((status) => {
+                  const config = TEST_STATUS_CONFIG[status];
                   const count = tests.filter((t) => t.status === status).length;
                   return (
                     <div key={status} className="flex items-center justify-between py-1">
-                      <span className={`text-sm ${config.color}`}>{config.label}</span>
+                      <span className={`text-sm ${config.color}`}>{t(`dashboard.testStatus.${status}`)}</span>
                       <span className="font-semibold">{count}</span>
                     </div>
                   );
@@ -867,19 +861,19 @@ export default function QualityDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-emerald-600" />
-                สรุปข้อกำหนดคุณภาพ
+                {t('dashboard.analytics.specsSummary')}
               </h4>
               <div className="space-y-2">
                 <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-gray-600">ข้อกำหนดทั้งหมด</span>
+                  <span className="text-sm text-gray-600">{t('dashboard.analytics.specsTotal')}</span>
                   <span className="font-semibold">{analytics.totalSpecs}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-gray-600">ใช้งานอยู่</span>
+                  <span className="text-sm text-gray-600">{t('dashboard.analytics.specsActive')}</span>
                   <span className="font-semibold text-green-600">{analytics.activeSpecs}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-gray-600">จุดวิกฤต</span>
+                  <span className="text-sm text-gray-600">{t('dashboard.analytics.specsCritical')}</span>
                   <span className="font-semibold text-red-600">{analytics.criticalSpecs}</span>
                 </div>
               </div>
@@ -889,19 +883,19 @@ export default function QualityDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
-                สรุปความเบี่ยงเบน
+                {t('dashboard.analytics.deviationsSummary')}
               </h4>
               <div className="space-y-2">
                 <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-gray-600">ทั้งหมด</span>
+                  <span className="text-sm text-gray-600">{t('common.all')}</span>
                   <span className="font-semibold">{deviations.length}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-gray-600">เปิดอยู่</span>
+                  <span className="text-sm text-gray-600">{t('common.open')}</span>
                   <span className="font-semibold text-amber-600">{analytics.openDeviations}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-gray-600">วิกฤต</span>
+                  <span className="text-sm text-gray-600">{t('common.critical')}</span>
                   <span className="font-semibold text-red-600">{analytics.criticalDeviations}</span>
                 </div>
               </div>
@@ -911,25 +905,25 @@ export default function QualityDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <Activity className="h-4 w-4 text-blue-600" />
-                ดำเนินการด่วน
+                {t('dashboard.analytics.quickActionsTitle')}
               </h4>
               <div className="space-y-2">
                 <DxButton
-                  text="ทดสอบใหม่"
+                  text={t('dashboard.actions.newTest')}
                   icon="add"
                   type="default"
                   width="100%"
                   onClick={() => router.push('/quality/tests/new')}
                 />
                 <DxButton
-                  text="เพิ่มข้อกำหนด"
+                  text={t('dashboard.analytics.addSpec')}
                   icon="add"
                   type="normal"
                   width="100%"
                   onClick={() => router.push('/quality/specs/new')}
                 />
                 <DxButton
-                  text="รายงานความเบี่ยงเบน"
+                  text={t('dashboard.quickActions.reportDeviation')}
                   icon="warning"
                   type="normal"
                   width="100%"
@@ -943,10 +937,10 @@ export default function QualityDashboardPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
               <Package className="h-5 w-5 text-blue-600" />
-              รายละเอียดตามประเภทการทดสอบ
+              {t('dashboard.analytics.typeBreakdown')}
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Object.entries(TEST_TYPE_CONFIG).map(([type, config]) => {
+              {TEST_TYPE_KEYS.map((type) => {
                 const typeTests = tests.filter((t) => t.testType === type);
                 const passed = typeTests.filter((t) => t.status === 'passed').length;
                 const failed = typeTests.filter((t) => t.status === 'failed').length;
@@ -954,12 +948,11 @@ export default function QualityDashboardPage() {
                 return (
                   <div key={type} className="bg-gray-50 rounded-lg p-4 text-center">
                     <div className="text-2xl font-bold text-gray-800">{typeTests.length}</div>
-                    <div className="text-sm font-medium text-gray-700 mb-2">{config.label}</div>
-                    <div className="text-xs text-gray-500">{config.labelEn}</div>
+                    <div className="text-sm font-medium text-gray-700 mb-2">{t(`dashboard.testType.${type}`)}</div>
                     <div className="mt-3 flex justify-center gap-3 text-xs">
-                      <span className="text-green-600">ผ่าน {passed}</span>
-                      <span className="text-red-600">ไม่ผ่าน {failed}</span>
-                      <span className="text-yellow-600">รอ {pending}</span>
+                      <span className="text-green-600">{t('common.passed')} {passed}</span>
+                      <span className="text-red-600">{t('common.failed')} {failed}</span>
+                      <span className="text-yellow-600">{t('common.pending')} {pending}</span>
                     </div>
                   </div>
                 );

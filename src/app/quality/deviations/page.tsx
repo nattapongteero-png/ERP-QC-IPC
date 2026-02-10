@@ -61,13 +61,11 @@ interface Deviation {
 type ViewMode = 'grid' | 'cards' | 'analytics';
 
 // ============================================================================
-// Configuration Constants
+// Configuration Constants (labels removed - use t() instead)
 // ============================================================================
 
 const STATUS_CONFIG = {
   open: {
-    label: 'Open',
-    labelTh: 'เปิด',
     color: '#3b82f6',
     bgClass: 'bg-blue-50 border-blue-200',
     textClass: 'text-blue-700',
@@ -75,8 +73,6 @@ const STATUS_CONFIG = {
     badgeVariant: 'default' as const,
   },
   investigating: {
-    label: 'Investigating',
-    labelTh: 'กำลังสอบสวน',
     color: '#f59e0b',
     bgClass: 'bg-amber-50 border-amber-200',
     textClass: 'text-amber-700',
@@ -84,8 +80,6 @@ const STATUS_CONFIG = {
     badgeVariant: 'warning' as const,
   },
   resolved: {
-    label: 'Resolved',
-    labelTh: 'แก้ไขแล้ว',
     color: '#06b6d4',
     bgClass: 'bg-cyan-50 border-cyan-200',
     textClass: 'text-cyan-700',
@@ -93,8 +87,6 @@ const STATUS_CONFIG = {
     badgeVariant: 'info' as const,
   },
   closed: {
-    label: 'Closed',
-    labelTh: 'ปิด',
     color: '#22c55e',
     bgClass: 'bg-green-50 border-green-200',
     textClass: 'text-green-700',
@@ -105,24 +97,18 @@ const STATUS_CONFIG = {
 
 const SEVERITY_CONFIG = {
   minor: {
-    label: 'Minor',
-    labelTh: 'เล็กน้อย',
     color: '#6b7280',
     bgClass: 'bg-gray-50 border-gray-200',
     textClass: 'text-gray-700',
     badgeVariant: 'default' as const,
   },
   major: {
-    label: 'Major',
-    labelTh: 'สำคัญ',
     color: '#f59e0b',
     bgClass: 'bg-amber-50 border-amber-200',
     textClass: 'text-amber-700',
     badgeVariant: 'warning' as const,
   },
   critical: {
-    label: 'Critical',
-    labelTh: 'วิกฤต',
     color: '#ef4444',
     bgClass: 'bg-red-50 border-red-200',
     textClass: 'text-red-700',
@@ -132,46 +118,18 @@ const SEVERITY_CONFIG = {
 
 const SOURCE_CONFIG = {
   production: {
-    label: 'Production',
-    labelTh: 'การผลิต',
     icon: Factory,
     color: '#8b5cf6',
   },
   quality: {
-    label: 'Quality',
-    labelTh: 'คุณภาพ',
     icon: Microscope,
     color: '#06b6d4',
   },
   warehouse: {
-    label: 'Warehouse',
-    labelTh: 'คลังสินค้า',
     icon: Package,
     color: '#f97316',
   },
 };
-
-const statusOptions = [
-  { value: '', label: 'ทุกสถานะ' },
-  { value: 'open', label: 'เปิด' },
-  { value: 'investigating', label: 'กำลังสอบสวน' },
-  { value: 'resolved', label: 'แก้ไขแล้ว' },
-  { value: 'closed', label: 'ปิด' },
-];
-
-const severityOptions = [
-  { value: '', label: 'ทุกระดับ' },
-  { value: 'minor', label: 'เล็กน้อย' },
-  { value: 'major', label: 'สำคัญ' },
-  { value: 'critical', label: 'วิกฤต' },
-];
-
-const sourceOptions = [
-  { value: '', label: 'ทุกแหล่ง' },
-  { value: 'production', label: 'การผลิต' },
-  { value: 'quality', label: 'คุณภาพ' },
-  { value: 'warehouse', label: 'คลังสินค้า' },
-];
 
 // ============================================================================
 // Helper Functions
@@ -236,6 +194,29 @@ export default function DeviationsPage() {
   const [severityFilter, setSeverityFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
 
+  // Filter options (inside component because t() is a hook)
+  const statusOptions = useMemo(() => [
+    { value: '', label: t('deviations.filter.allStatuses') },
+    { value: 'open', label: t('deviations.status.open') },
+    { value: 'investigating', label: t('deviations.status.investigating') },
+    { value: 'resolved', label: t('deviations.status.resolved') },
+    { value: 'closed', label: t('deviations.status.closed') },
+  ], [t]);
+
+  const severityOptions = useMemo(() => [
+    { value: '', label: t('deviations.filter.allSeverities') },
+    { value: 'minor', label: t('deviations.severity.minor') },
+    { value: 'major', label: t('deviations.severity.major') },
+    { value: 'critical', label: t('deviations.severity.critical') },
+  ], [t]);
+
+  const sourceOptions = useMemo(() => [
+    { value: '', label: t('deviations.filter.allSources') },
+    { value: 'production', label: t('deviations.source.production') },
+    { value: 'quality', label: t('deviations.source.quality') },
+    { value: 'warehouse', label: t('deviations.source.warehouse') },
+  ], [t]);
+
   // Data fetching with React Query
   const { data: deviations = [], isLoading, refetch } = useQuery<Deviation[]>({
     queryKey: ['quality-deviations'],
@@ -284,30 +265,30 @@ export default function DeviationsPage() {
 
   // Chart data for status distribution
   const statusChartData = useMemo(() => {
-    return Object.entries(STATUS_CONFIG).map(([key, config]) => ({
-      status: config.labelTh,
+    return (Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map((key) => ({
+      status: t(`deviations.status.${key}`),
       count: deviations.filter(d => d.status === key).length,
-      color: config.color,
+      color: STATUS_CONFIG[key].color,
     })).filter(item => item.count > 0);
-  }, [deviations]);
+  }, [deviations, t]);
 
   // Chart data for severity distribution
   const severityChartData = useMemo(() => {
-    return Object.entries(SEVERITY_CONFIG).map(([key, config]) => ({
-      severity: config.labelTh,
+    return (Object.keys(SEVERITY_CONFIG) as Array<keyof typeof SEVERITY_CONFIG>).map((key) => ({
+      severity: t(`deviations.severity.${key}`),
       count: deviations.filter(d => d.severity === key && d.status !== 'closed').length,
-      color: config.color,
+      color: SEVERITY_CONFIG[key].color,
     })).filter(item => item.count > 0);
-  }, [deviations]);
+  }, [deviations, t]);
 
   // Chart data for source distribution
   const sourceChartData = useMemo(() => {
-    return Object.entries(SOURCE_CONFIG).map(([key, config]) => ({
-      source: config.labelTh,
+    return (Object.keys(SOURCE_CONFIG) as Array<keyof typeof SOURCE_CONFIG>).map((key) => ({
+      source: t(`deviations.source.${key}`),
       count: deviations.filter(d => d.sourceType === key).length,
-      color: config.color,
+      color: SOURCE_CONFIG[key].color,
     })).filter(item => item.count > 0);
-  }, [deviations]);
+  }, [deviations, t]);
 
   // Recent deviations
   const recentDeviations = useMemo(() => {
@@ -351,12 +332,12 @@ export default function DeviationsPage() {
         {overdue && (
           <Badge variant="danger" size="sm" className="mt-1">
             <AlertTriangle className="h-3 w-3 mr-1" />
-            เกินกำหนด
+            {t('deviations.grid.overdueBadge')}
           </Badge>
         )}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderTitleCell = useCallback((data: { data?: Deviation }) => {
     const dev = data.data;
@@ -379,10 +360,10 @@ export default function DeviationsPage() {
     return (
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4" style={{ color: config.color }} />
-        <span>{config.labelTh}</span>
+        <span>{t(`deviations.source.${data.data.sourceType}`)}</span>
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderSeverityCell = useCallback((data: { data?: Deviation }) => {
     if (!data.data) return null;
@@ -390,10 +371,10 @@ export default function DeviationsPage() {
     if (!config) return <Badge>-</Badge>;
     return (
       <Badge variant={config.badgeVariant}>
-        {config.labelTh}
+        {t(`deviations.severity.${data.data.severity}`)}
       </Badge>
     );
-  }, []);
+  }, [t]);
 
   const renderDueDateCell = useCallback((data: { data?: Deviation }) => {
     const dev = data.data;
@@ -410,12 +391,12 @@ export default function DeviationsPage() {
         </span>
         {daysUntil !== null && (
           <p className={`text-xs ${daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : 'text-gray-500'}`}>
-            {daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)} วัน` : daysUntil === 0 ? 'วันนี้' : `อีก ${daysUntil} วัน`}
+            {daysUntil < 0 ? t('deviations.overdue.daysOver', { days: Math.abs(daysUntil) }) : daysUntil === 0 ? t('common.today') : t('deviations.overdue.daysRemaining', { days: daysUntil })}
           </p>
         )}
       </div>
     );
-  }, []);
+  }, [t]);
 
   const renderStatusCell = useCallback((data: { data?: Deviation }) => {
     if (!data.data) return null;
@@ -423,41 +404,41 @@ export default function DeviationsPage() {
     if (!config) return <Badge>-</Badge>;
     return (
       <Badge variant={config.badgeVariant} dot>
-        {config.labelTh}
+        {t(`deviations.status.${data.data.status}`)}
       </Badge>
     );
-  }, []);
+  }, [t]);
 
   // DataGrid columns
   const columns: DxDataGridColumn[] = useMemo(() => [
     {
       dataField: 'deviationNumber',
-      caption: 'เลขที่',
+      caption: t('deviations.grid.columns.number'),
       width: 150,
       cellRender: renderDeviationNumberCell,
     },
     {
       dataField: 'title',
-      caption: 'หัวข้อ',
+      caption: t('deviations.grid.columns.title'),
       minWidth: 200,
       cellRender: renderTitleCell,
     },
     {
       dataField: 'sourceType',
-      caption: 'แหล่งที่มา',
+      caption: t('deviations.grid.columns.source'),
       width: 130,
       hideOnMobile: true,
       cellRender: renderSourceCell,
     },
     {
       dataField: 'severity',
-      caption: 'ระดับ',
+      caption: t('deviations.grid.columns.severity'),
       width: 100,
       cellRender: renderSeverityCell,
     },
     {
       dataField: 'dueDate',
-      caption: 'กำหนด',
+      caption: t('deviations.grid.columns.dueDate'),
       width: 140,
       dataType: 'date',
       hideOnMobile: true,
@@ -465,11 +446,11 @@ export default function DeviationsPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('deviations.grid.columns.status'),
       width: 130,
       cellRender: renderStatusCell,
     },
-  ], [renderDeviationNumberCell, renderTitleCell, renderSourceCell, renderSeverityCell, renderDueDateCell, renderStatusCell]);
+  ], [t, renderDeviationNumberCell, renderTitleCell, renderSourceCell, renderSeverityCell, renderDueDateCell, renderStatusCell]);
 
   // ============================================================================
   // Render Functions
@@ -478,7 +459,7 @@ export default function DeviationsPage() {
   const renderStatCards = () => (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
       <StatCard
-        label="ความเบี่ยงเบนทั้งหมด"
+        label={t('deviations.stats.total')}
         value={stats.total}
         icon={FileWarning}
         iconColor="text-indigo-500"
@@ -486,7 +467,7 @@ export default function DeviationsPage() {
         isLoading={isLoading}
       />
       <StatCard
-        label="กำลังดำเนินการ"
+        label={t('deviations.stats.active')}
         value={stats.activeTotal}
         icon={Clock}
         iconColor="text-blue-500"
@@ -495,7 +476,7 @@ export default function DeviationsPage() {
         isLoading={isLoading}
       />
       <StatCard
-        label="กำลังสอบสวน"
+        label={t('deviations.stats.investigating')}
         value={stats.investigating}
         icon={Search}
         iconColor="text-amber-500"
@@ -503,7 +484,7 @@ export default function DeviationsPage() {
         isLoading={isLoading}
       />
       <StatCard
-        label="วิกฤต"
+        label={t('deviations.stats.critical')}
         value={stats.critical}
         icon={AlertOctagon}
         iconColor="text-red-500"
@@ -512,7 +493,7 @@ export default function DeviationsPage() {
         isLoading={isLoading}
       />
       <StatCard
-        label="เกินกำหนด"
+        label={t('deviations.stats.overdue')}
         value={stats.overdue}
         icon={AlertTriangle}
         iconColor="text-orange-500"
@@ -521,7 +502,7 @@ export default function DeviationsPage() {
         isLoading={isLoading}
       />
       <StatCard
-        label="อัตราแก้ไข"
+        label={t('deviations.stats.resolutionRate')}
         value={`${stats.resolutionRate}%`}
         icon={TrendingUp}
         iconColor="text-green-500"
@@ -544,14 +525,14 @@ export default function DeviationsPage() {
             </div>
             <div className="flex-1">
               <p className="font-medium text-red-800">
-                {stats.critical} ความเบี่ยงเบนวิกฤตต้องการการดำเนินการ
+                {t('deviations.alert.criticalCount', { count: stats.critical })}
               </p>
               <p className="text-sm text-red-600">
-                ความเบี่ยงเบนวิกฤตอาจส่งผลกระทบต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์
+                {t('deviations.alert.criticalDescription')}
               </p>
             </div>
             <DxButton
-              text="ดูทั้งหมด"
+              text={t('deviations.alert.viewAll')}
               type="danger"
               onClick={() => setSeverityFilter('critical')}
             />
@@ -567,7 +548,7 @@ export default function DeviationsPage() {
         <div className="flex flex-col md:flex-row gap-3 items-end">
           <div className="flex-1">
             <DxTextBox
-              placeholder="ค้นหาด้วยเลขที่หรือหัวข้อ..."
+              placeholder={t('deviations.filter.searchPlaceholder')}
               value={search}
               onValueChange={setSearch}
               showClearButton
@@ -579,7 +560,7 @@ export default function DeviationsPage() {
               items={statusOptions}
               value={statusFilter}
               onValueChange={setStatusFilter}
-              placeholder="สถานะ"
+              placeholder={t('deviations.filter.statusPlaceholder')}
               showClearButton
             />
           </div>
@@ -588,7 +569,7 @@ export default function DeviationsPage() {
               items={severityOptions}
               value={severityFilter}
               onValueChange={setSeverityFilter}
-              placeholder="ระดับ"
+              placeholder={t('deviations.filter.severityPlaceholder')}
               showClearButton
             />
           </div>
@@ -597,7 +578,7 @@ export default function DeviationsPage() {
               items={sourceOptions}
               value={sourceFilter}
               onValueChange={setSourceFilter}
-              placeholder="แหล่งที่มา"
+              placeholder={t('deviations.filter.sourcePlaceholder')}
               showClearButton
             />
           </div>
@@ -612,7 +593,7 @@ export default function DeviationsPage() {
       <Card elevation="raised">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600">
-            การกระจายตามสถานะ
+            {t('deviations.analytics.statusDistribution')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -634,12 +615,12 @@ export default function DeviationsPage() {
                 verticalAlignment="bottom"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${arg.valueText} รายการ`
+                text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
               })} />
             </PieChart>
           ) : (
             <div className="h-[200px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('common.noData')}
             </div>
           )}
         </CardContent>
@@ -649,7 +630,7 @@ export default function DeviationsPage() {
       <Card elevation="raised">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600">
-            การกระจายตามระดับ (เฉพาะที่ยังเปิด)
+            {t('deviations.analytics.severityDistribution')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -671,12 +652,12 @@ export default function DeviationsPage() {
                 verticalAlignment="bottom"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${arg.valueText} รายการ`
+                text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
               })} />
             </PieChart>
           ) : (
             <div className="h-[200px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('common.noData')}
             </div>
           )}
         </CardContent>
@@ -686,7 +667,7 @@ export default function DeviationsPage() {
       <Card elevation="raised">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600">
-            การกระจายตามแหล่งที่มา
+            {t('deviations.analytics.sourceDistribution')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -708,12 +689,12 @@ export default function DeviationsPage() {
                 verticalAlignment="bottom"
               />
               <Tooltip enabled={true} customizeTooltip={(arg) => ({
-                text: `${arg.argumentText}: ${arg.valueText} รายการ`
+                text: `${arg.argumentText}: ${arg.valueText} ${t('common.items')}`
               })} />
             </PieChart>
           ) : (
             <div className="h-[200px] flex items-center justify-center text-gray-400">
-              ไม่มีข้อมูล
+              {t('common.noData')}
             </div>
           )}
         </CardContent>
@@ -748,12 +729,12 @@ export default function DeviationsPage() {
             <div className="flex flex-col gap-1 items-end">
               {statusConfig && (
                 <Badge variant={statusConfig.badgeVariant} size="sm" dot>
-                  {statusConfig.labelTh}
+                  {t(`deviations.status.${dev.status}`)}
                 </Badge>
               )}
               {severityConfig && (
                 <Badge variant={severityConfig.badgeVariant} size="sm">
-                  {severityConfig.labelTh}
+                  {t(`deviations.severity.${dev.severity}`)}
                 </Badge>
               )}
             </div>
@@ -768,7 +749,7 @@ export default function DeviationsPage() {
               {sourceConfig && (
                 <>
                   <sourceConfig.icon className="h-3.5 w-3.5" style={{ color: sourceConfig.color }} />
-                  <span>{sourceConfig.labelTh}</span>
+                  <span>{t(`deviations.source.${dev.sourceType}`)}</span>
                 </>
               )}
             </div>
@@ -778,7 +759,7 @@ export default function DeviationsPage() {
                 <span>{formatDateShort(dev.dueDate)}</span>
                 {daysUntil !== null && (
                   <span className={`${daysUntil < 0 ? 'text-red-500' : daysUntil <= 3 ? 'text-amber-500' : ''}`}>
-                    ({daysUntil < 0 ? `เกิน ${Math.abs(daysUntil)} วัน` : daysUntil === 0 ? 'วันนี้' : `${daysUntil}d`})
+                    ({daysUntil < 0 ? t('deviations.overdue.daysOver', { days: Math.abs(daysUntil) }) : daysUntil === 0 ? t('common.today') : `${daysUntil}d`})
                   </span>
                 )}
               </div>
@@ -788,7 +769,7 @@ export default function DeviationsPage() {
           {overdue && (
             <div className="mt-2 p-2 bg-red-50 rounded-md flex items-center gap-2 text-red-600 text-xs">
               <AlertTriangle className="h-3.5 w-3.5" />
-              <span>เกินกำหนดแล้ว กรุณาดำเนินการด่วน</span>
+              <span>{t('deviations.cards.overdueWarning')}</span>
             </div>
           )}
         </CardContent>
@@ -814,15 +795,15 @@ export default function DeviationsPage() {
             virtualScrolling={filteredDeviations.length > 100}
             fillHeight
             onRowClick={handleRowClick}
-            noDataText="ไม่พบความเบี่ยงเบน"
+            noDataText={t('deviations.grid.noData')}
           />
         ) : (
           <EmptyState
             icon={<FileWarning className="h-8 w-8" />}
-            title="ไม่พบความเบี่ยงเบน"
-            description="รายงานความเบี่ยงเบนใหม่เมื่อพบปัญหาคุณภาพ"
+            title={t('deviations.emptyState.title')}
+            description={t('deviations.emptyState.description')}
             action={{
-              label: 'รายงานความเบี่ยงเบน',
+              label: t('deviations.emptyState.action'),
               onClick: () => router.push('/quality/deviations/new'),
             }}
           />
@@ -841,7 +822,7 @@ export default function DeviationsPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <AlertOctagon className="h-5 w-5 text-red-500" />
-              ต้องดำเนินการด่วน
+              {t('deviations.cards.urgentTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -851,7 +832,7 @@ export default function DeviationsPage() {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-400">
-                ไม่มีความเบี่ยงเบนที่ต้องดำเนินการด่วน
+                {t('deviations.cards.noUrgent')}
               </div>
             )}
           </CardContent>
@@ -862,7 +843,7 @@ export default function DeviationsPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <FileWarning className="h-5 w-5 text-indigo-500" />
-                ความเบี่ยงเบนที่กรองแล้ว ({filteredDeviations.length})
+                {t('deviations.cards.filteredTitle', { count: filteredDeviations.length })}
               </CardTitle>
             </div>
           </CardHeader>
@@ -873,13 +854,13 @@ export default function DeviationsPage() {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-400">
-                ไม่พบความเบี่ยงเบนที่ตรงกับเงื่อนไข
+                {t('deviations.cards.noMatch')}
               </div>
             )}
             {filteredDeviations.length > 10 && (
               <div className="mt-4 text-center">
                 <DxButton
-                  text={`ดูเพิ่มเติมอีก ${filteredDeviations.length - 10} รายการ`}
+                  text={t('deviations.cards.viewMore', { count: filteredDeviations.length - 10 })}
                   type="normal"
                   onClick={() => setViewMode('grid')}
                 />
@@ -894,27 +875,27 @@ export default function DeviationsPage() {
         {/* Quick Stats */}
         <Card elevation="raised">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">สรุปรวม</CardTitle>
+            <CardTitle className="text-sm">{t('deviations.sidebar.summary')}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0 space-y-3">
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">ทั้งหมด</span>
+              <span className="text-sm text-gray-500">{t('common.all')}</span>
               <span className="font-semibold">{stats.total}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">เปิด</span>
+              <span className="text-sm text-gray-500">{t('deviations.status.open')}</span>
               <span className="font-semibold text-blue-600">{stats.open}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">กำลังสอบสวน</span>
+              <span className="text-sm text-gray-500">{t('deviations.status.investigating')}</span>
               <span className="font-semibold text-amber-600">{stats.investigating}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-500">แก้ไขแล้ว</span>
+              <span className="text-sm text-gray-500">{t('deviations.status.resolved')}</span>
               <span className="font-semibold text-cyan-600">{stats.resolved}</span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-gray-500">ปิด</span>
+              <span className="text-sm text-gray-500">{t('deviations.status.closed')}</span>
               <span className="font-semibold text-green-600">{stats.closed}</span>
             </div>
           </CardContent>
@@ -923,7 +904,7 @@ export default function DeviationsPage() {
         {/* Recent Deviations */}
         <Card elevation="raised">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">ล่าสุด</CardTitle>
+            <CardTitle className="text-sm">{t('deviations.sidebar.recent')}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-2">
@@ -943,7 +924,7 @@ export default function DeviationsPage() {
                 );
               })}
               {recentDeviations.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">ไม่มีข้อมูล</p>
+                <p className="text-sm text-gray-400 text-center py-4">{t('common.noData')}</p>
               )}
             </div>
           </CardContent>
@@ -964,12 +945,13 @@ export default function DeviationsPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-indigo-500" />
-              สรุปตามสถานะ
+              {t('deviations.analytics.statusBreakdown')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-3">
-              {Object.entries(STATUS_CONFIG).map(([key, config]) => {
+              {(Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map((key) => {
+                const config = STATUS_CONFIG[key];
                 const count = deviations.filter(d => d.status === key).length;
                 const percentage = stats.total > 0 ? (count / stats.total) * 100 : 0;
                 const Icon = config.icon;
@@ -980,7 +962,7 @@ export default function DeviationsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">{config.labelTh}</span>
+                        <span className="text-sm font-medium">{t(`deviations.status.${key}`)}</span>
                         <span className="text-sm text-gray-500">{count} ({percentage.toFixed(0)}%)</span>
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -1002,12 +984,13 @@ export default function DeviationsPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              สรุปตามระดับ
+              {t('deviations.analytics.severityBreakdown')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-3">
-              {Object.entries(SEVERITY_CONFIG).map(([key, config]) => {
+              {(Object.keys(SEVERITY_CONFIG) as Array<keyof typeof SEVERITY_CONFIG>).map((key) => {
+                const config = SEVERITY_CONFIG[key];
                 const count = deviations.filter(d => d.severity === key).length;
                 const activeCount = deviations.filter(d => d.severity === key && d.status !== 'closed').length;
                 const percentage = stats.total > 0 ? (count / stats.total) * 100 : 0;
@@ -1016,9 +999,9 @@ export default function DeviationsPage() {
                     <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: config.color }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">{config.labelTh}</span>
+                        <span className="text-sm font-medium">{t(`deviations.severity.${key}`)}</span>
                         <span className="text-sm text-gray-500">
-                          {count} ({activeCount} ยังเปิด)
+                          {count} ({activeCount} {t('common.stillOpen')})
                         </span>
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -1041,12 +1024,13 @@ export default function DeviationsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Factory className="h-5 w-5 text-purple-500" />
-            สรุปตามแหล่งที่มา
+            {t('deviations.analytics.sourceBreakdown')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(SOURCE_CONFIG).map(([key, config]) => {
+            {(Object.keys(SOURCE_CONFIG) as Array<keyof typeof SOURCE_CONFIG>).map((key) => {
+              const config = SOURCE_CONFIG[key];
               const sourceDeviations = deviations.filter(d => d.sourceType === key);
               const count = sourceDeviations.length;
               const criticalCount = sourceDeviations.filter(d => d.severity === 'critical' && d.status !== 'closed').length;
@@ -1061,17 +1045,17 @@ export default function DeviationsPage() {
                         <Icon className="h-5 w-5" style={{ color: config.color }} />
                       </div>
                       <div>
-                        <p className="font-medium">{config.labelTh}</p>
+                        <p className="font-medium">{t(`deviations.source.${key}`)}</p>
                         <p className="text-2xl font-bold" style={{ color: config.color }}>{count}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="p-2 bg-gray-50 rounded">
-                        <span className="text-gray-500">กำลังดำเนินการ</span>
+                        <span className="text-gray-500">{t('deviations.analytics.inProgress')}</span>
                         <p className="font-semibold text-blue-600">{openCount}</p>
                       </div>
                       <div className="p-2 bg-gray-50 rounded">
-                        <span className="text-gray-500">วิกฤต</span>
+                        <span className="text-gray-500">{t('common.critical')}</span>
                         <p className="font-semibold text-red-600">{criticalCount}</p>
                       </div>
                     </div>
@@ -1101,21 +1085,21 @@ export default function DeviationsPage() {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-                title="Grid View"
+                title={t('common.viewGrid')}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('cards')}
                 className={`p-1.5 rounded ${viewMode === 'cards' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-                title="Cards View"
+                title={t('common.viewCards')}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('analytics')}
                 className={`p-1.5 rounded ${viewMode === 'analytics' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-                title="Analytics View"
+                title={t('common.viewAnalytics')}
               >
                 <BarChart3 className="h-4 w-4" />
               </button>
@@ -1123,12 +1107,12 @@ export default function DeviationsPage() {
 
             <DxButton
               icon="refresh"
-              hint="รีเฟรช"
+              hint={t('deviations.actions.refresh')}
               onClick={() => refetch()}
               data-testid="dx-button-refresh"
             />
             <DxButton
-              text="รายงานความเบี่ยงเบน"
+              text={t('deviations.actions.report')}
               icon="plus"
               type="success"
               onClick={() => router.push('/quality/deviations/new')}
