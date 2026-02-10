@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -51,6 +52,7 @@ function formatCurrency(value: number | null | undefined): string {
 
 export default function WorkCentersPage() {
   const router = useRouter();
+  const t = useTranslations('cost');
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -77,7 +79,7 @@ export default function WorkCentersPage() {
       return res.json();
     },
     onSuccess: () => {
-      notify('Work center deleted successfully', 'success', 3000);
+      notify(t('workCenters.toast.deleteSuccess'), 'success', 3000);
       queryClient.invalidateQueries({ queryKey: ['work-centers'] });
     },
     onError: (error: Error) => {
@@ -91,7 +93,7 @@ export default function WorkCentersPage() {
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this work center?')) {
+    if (window.confirm(t('workCenters.actions.deleteConfirm'))) {
       deleteMutation.mutate(id);
     }
   };
@@ -106,12 +108,12 @@ export default function WorkCentersPage() {
   return (
     <div className="p-6 space-y-6" data-testid="work-centers-page">
       <ResponsivePageHeader
-        title="Work Centers"
+        title={t('workCenters.page.title')}
         icon={Factory}
-        subtitle="Configure production work centers with labor and overhead rates"
+        subtitle={t('workCenters.page.description')}
         actions={
           <Button
-            text="New Work Center"
+            text={t('workCenters.actions.new')}
             icon="plus"
             type="default"
             onClick={() => router.push('/cost/work-centers/new')}
@@ -129,7 +131,7 @@ export default function WorkCentersPage() {
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Active</p>
+                <p className="text-sm text-gray-500">{t('workCenters.stats.active')}</p>
                 <p className="text-2xl font-bold" data-testid="active-count">
                   {activeCount}
                 </p>
@@ -144,7 +146,7 @@ export default function WorkCentersPage() {
                 <XCircle className="h-6 w-6 text-gray-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Inactive</p>
+                <p className="text-sm text-gray-500">{t('workCenters.stats.inactive')}</p>
                 <p className="text-2xl font-bold" data-testid="inactive-count">
                   {inactiveCount}
                 </p>
@@ -159,7 +161,7 @@ export default function WorkCentersPage() {
                 <DollarSign className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Avg Total Rate/hr</p>
+                <p className="text-sm text-gray-500">{t('workCenters.stats.avgTotalRate')}</p>
                 <p className="text-2xl font-bold" data-testid="avg-rate">
                   {formatCurrency(avgTotalRate)} THB
                 </p>
@@ -172,16 +174,16 @@ export default function WorkCentersPage() {
       {/* Data Grid */}
       <Card>
         <CardHeader>
-          <CardTitle>Work Center List</CardTitle>
+          <CardTitle>{t('workCenters.grid.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {error ? (
             <div className="p-4 text-red-500" data-testid="error-message">
-              Failed to load work centers
+              {t('workCenters.errors.loadFailed')}
             </div>
           ) : isLoading ? (
             <div className="p-4 text-gray-500" data-testid="loading-message">
-              Loading work centers...
+              {t('workCenters.errors.loading')}
             </div>
           ) : (
             <DataGrid
@@ -207,22 +209,22 @@ export default function WorkCentersPage() {
 
               <Column
                 dataField="code"
-                caption="Code"
+                caption={t('workCenters.grid.columns.code')}
                 width={120}
               />
               <Column
                 dataField="name"
-                caption="Name"
+                caption={t('workCenters.grid.columns.name')}
                 minWidth={200}
               />
               <Column
                 dataField="orgUnitName"
-                caption="Org Unit"
+                caption={t('workCenters.grid.columns.orgUnit')}
                 width={150}
               />
               <Column
                 dataField="laborRatePerHour"
-                caption="Labor Rate"
+                caption={t('workCenters.grid.columns.laborRate')}
                 dataType="number"
                 width={120}
                 cellRender={({ data }) => (
@@ -233,7 +235,7 @@ export default function WorkCentersPage() {
               />
               <Column
                 dataField="overheadRatePerHour"
-                caption="Overhead Rate"
+                caption={t('workCenters.grid.columns.overheadRate')}
                 dataType="number"
                 width={130}
                 cellRender={({ data }) => (
@@ -244,7 +246,7 @@ export default function WorkCentersPage() {
               />
               <Column
                 dataField="machineRatePerHour"
-                caption="Machine Rate"
+                caption={t('workCenters.grid.columns.machineRate')}
                 dataType="number"
                 width={130}
                 cellRender={({ data }) => (
@@ -254,7 +256,7 @@ export default function WorkCentersPage() {
                 )}
               />
               <Column
-                caption="Total Rate"
+                caption={t('workCenters.grid.columns.totalRate')}
                 width={130}
                 calculateCellValue={(data: WorkCenter) =>
                   data.laborRatePerHour + data.overheadRatePerHour + data.machineRatePerHour
@@ -267,7 +269,7 @@ export default function WorkCentersPage() {
               />
               <Column
                 dataField="capacityHoursPerDay"
-                caption="Capacity (hrs/day)"
+                caption={t('workCenters.grid.columns.capacity')}
                 dataType="number"
                 width={140}
                 cellRender={({ data }) => (
@@ -278,7 +280,7 @@ export default function WorkCentersPage() {
               />
               <Column
                 dataField="isActive"
-                caption="Status"
+                caption={t('workCenters.grid.columns.status')}
                 width={100}
                 cellRender={({ data }) => (
                   <span
@@ -288,19 +290,19 @@ export default function WorkCentersPage() {
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {data.isActive ? 'Active' : 'Inactive'}
+                    {data.isActive ? t('workCenters.status.active') : t('workCenters.status.inactive')}
                   </span>
                 )}
               />
               <Column
-                caption="Actions"
+                caption={t('workCenters.actions.delete')}
                 width={80}
                 cellRender={({ data }) => (
                   <Button
                     icon="trash"
                     stylingMode="text"
                     type="danger"
-                    hint="Delete"
+                    hint={t('workCenters.actions.delete')}
                     onClick={(e) => handleDelete(e.event as unknown as React.MouseEvent, data.id)}
                     data-testid={`delete-btn-${data.id}`}
                   />

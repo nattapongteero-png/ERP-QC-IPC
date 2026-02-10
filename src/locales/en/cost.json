@@ -1,7 +1,143 @@
 {
   "page": {
-    "title": "Cost",
-    "description": "Manage cost calculation and analysis"
+    "title": "Cost Management",
+    "description": "Manage costs and cost analysis"
+  },
+  "dashboard": {
+    "title": "Cost Management",
+    "subtitle": "Executive dashboard for cost control and margin analysis",
+    "periodOptions": {
+      "this_month": "This Month",
+      "last_month": "Last Month",
+      "this_quarter": "This Quarter",
+      "last_quarter": "Last Quarter",
+      "ytd": "Year to Date"
+    },
+    "quickLinks": {
+      "landedCosts": {
+        "title": "Landed Costs",
+        "description": "Allocate freight and duties"
+      },
+      "workCenters": {
+        "title": "Work Centers",
+        "description": "Configure labor rates"
+      },
+      "reports": {
+        "title": "Cost Reports",
+        "description": "View detailed reports"
+      }
+    }
+  },
+  "landedCosts": {
+    "page": {
+      "title": "Landed Costs",
+      "description": "Allocate freight, duty, and other costs to purchase receipts"
+    },
+    "stats": {
+      "draft": "Draft",
+      "allocated": "Allocated",
+      "posted": "Posted"
+    },
+    "grid": {
+      "title": "Landed Cost Documents",
+      "columns": {
+        "documentNumber": "Document No.",
+        "referenceNumber": "PO Number",
+        "invoiceNumber": "Invoice No.",
+        "status": "Status",
+        "totalAmount": "Total Amount",
+        "created": "Created",
+        "posted": "Posted"
+      }
+    },
+    "actions": {
+      "new": "New Landed Cost"
+    },
+    "status": {
+      "draft": "Draft",
+      "allocated": "Allocated",
+      "posted": "Posted"
+    },
+    "errors": {
+      "loadFailed": "Failed to load landed costs"
+    }
+  },
+  "workCenters": {
+    "page": {
+      "title": "Work Centers",
+      "description": "Configure production work centers with labor and overhead rates"
+    },
+    "stats": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "avgTotalRate": "Avg Total Rate/hr"
+    },
+    "grid": {
+      "title": "Work Center List",
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "orgUnit": "Org Unit",
+        "laborRate": "Labor Rate",
+        "overheadRate": "Overhead Rate",
+        "machineRate": "Machine Rate",
+        "totalRate": "Total Rate",
+        "capacity": "Capacity (hrs/day)",
+        "status": "Status"
+      }
+    },
+    "actions": {
+      "new": "New Work Center",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete this work center?"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "toast": {
+      "deleteSuccess": "Work center deleted successfully",
+      "deleteError": "Failed to delete work center"
+    },
+    "errors": {
+      "loadFailed": "Failed to load work centers",
+      "loading": "Loading work centers..."
+    }
+  },
+  "reports": {
+    "costSummary": {
+      "title": "Cost Summary",
+      "description": "Detailed cost summary report",
+      "filters": {
+        "title": "Filters",
+        "itemType": "Item Type",
+        "search": "Search",
+        "searchPlaceholder": "Search by code or name...",
+        "allTypes": "All Types",
+        "rawMaterial": "Raw Material",
+        "finishedGoods": "Finished Goods",
+        "packaging": "Packaging",
+        "consumable": "Consumable"
+      },
+      "grid": {
+        "title": "Item Cost Summary",
+        "columns": {
+          "code": "Code",
+          "name": "Name",
+          "type": "Type",
+          "uom": "UOM",
+          "onHand": "On Hand",
+          "wac": "WAC",
+          "value": "Value",
+          "stdCost": "Std Cost",
+          "lastPOCost": "Last PO Cost",
+          "fullCost": "Full Cost"
+        },
+        "total": "Total"
+      },
+      "loading": "Loading...",
+      "error": "Failed to load report data"
+    }
   },
   "unitCost": {
     "title": "Unit Cost",

@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -66,6 +67,7 @@ const statusColors: Record<string, string> = {
 
 export default function LandedCostsPage() {
   const router = useRouter();
+  const t = useTranslations('cost');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -85,12 +87,12 @@ export default function LandedCostsPage() {
   return (
     <div className="p-6 space-y-6" data-testid="landed-costs-page">
       <ResponsivePageHeader
-        title="Landed Costs"
+        title={t('landedCosts.page.title')}
         icon={Truck}
-        subtitle="Allocate freight, duty, and other costs to purchase receipts"
+        subtitle={t('landedCosts.page.description')}
         actions={
           <Button
-            text="New Landed Cost"
+            text={t('landedCosts.actions.new')}
             icon="plus"
             type="default"
             onClick={() => router.push('/cost/landed-costs/new')}
@@ -108,7 +110,7 @@ export default function LandedCostsPage() {
                 <AlertCircle className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Draft</p>
+                <p className="text-sm text-gray-500">{t('landedCosts.stats.draft')}</p>
                 <p className="text-2xl font-bold">
                   {landedCosts.filter((lc) => lc.status === 'draft').length}
                 </p>
@@ -123,7 +125,7 @@ export default function LandedCostsPage() {
                 <Eye className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Allocated</p>
+                <p className="text-sm text-gray-500">{t('landedCosts.stats.allocated')}</p>
                 <p className="text-2xl font-bold">
                   {landedCosts.filter((lc) => lc.status === 'allocated').length}
                 </p>
@@ -138,7 +140,7 @@ export default function LandedCostsPage() {
                 <FileCheck className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Posted</p>
+                <p className="text-sm text-gray-500">{t('landedCosts.stats.posted')}</p>
                 <p className="text-2xl font-bold">
                   {landedCosts.filter((lc) => lc.status === 'posted').length}
                 </p>
@@ -151,11 +153,11 @@ export default function LandedCostsPage() {
       {/* Data Grid */}
       <Card>
         <CardHeader>
-          <CardTitle>Landed Cost Documents</CardTitle>
+          <CardTitle>{t('landedCosts.grid.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {error ? (
-            <div className="p-4 text-red-500">Failed to load landed costs</div>
+            <div className="p-4 text-red-500">{t('landedCosts.errors.loadFailed')}</div>
           ) : (
             <DataGrid
               dataSource={landedCosts}
@@ -180,22 +182,22 @@ export default function LandedCostsPage() {
 
               <Column
                 dataField="documentNumber"
-                caption="Document No."
+                caption={t('landedCosts.grid.columns.documentNumber')}
                 width={150}
               />
               <Column
                 dataField="referenceNumber"
-                caption="PO Number"
+                caption={t('landedCosts.grid.columns.referenceNumber')}
                 width={130}
               />
               <Column
                 dataField="invoiceNumber"
-                caption="Invoice No."
+                caption={t('landedCosts.grid.columns.invoiceNumber')}
                 width={130}
               />
               <Column
                 dataField="status"
-                caption="Status"
+                caption={t('landedCosts.grid.columns.status')}
                 width={120}
                 cellRender={({ data }) => (
                   <span
@@ -203,13 +205,13 @@ export default function LandedCostsPage() {
                       statusColors[data.status] || 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {data.status.charAt(0).toUpperCase() + data.status.slice(1)}
+                    {t(`landedCosts.status.${data.status}`)}
                   </span>
                 )}
               />
               <Column
                 dataField="totalAmount"
-                caption="Total Amount"
+                caption={t('landedCosts.grid.columns.totalAmount')}
                 dataType="number"
                 width={140}
                 cellRender={({ data }) => (
@@ -220,13 +222,13 @@ export default function LandedCostsPage() {
               />
               <Column
                 dataField="createdAt"
-                caption="Created"
+                caption={t('landedCosts.grid.columns.created')}
                 width={120}
                 cellRender={({ data }) => formatDate(data.createdAt)}
               />
               <Column
                 dataField="postedAt"
-                caption="Posted"
+                caption={t('landedCosts.grid.columns.posted')}
                 width={120}
                 cellRender={({ data }) => formatDate(data.postedAt)}
               />

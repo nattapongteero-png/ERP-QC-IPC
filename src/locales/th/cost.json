@@ -1,38 +1,142 @@
 {
   "page": {
     "title": "ต้นทุน",
-    "description": "จัดการการคำนวณต้นทุนและการวิเคราะห์"
+    "description": "จัดการต้นทุนและการวิเคราะห์ต้นทุน"
   },
-  "unitCost": {
-    "title": "ต้นทุนต่อหน่วย",
-    "description": "คำนวณและจัดการต้นทุนต่อหน่วยของสินค้า"
-  },
-  "productCost": {
-    "title": "ต้นทุนผลิตภัณฑ์",
-    "description": "วิเคราะห์ต้นทุนผลิตภัณฑ์",
-    "table": {
-      "columns": {
-        "productCode": "รหัสผลิตภัณฑ์",
-        "productName": "ชื่อผลิตภัณฑ์",
-        "materialCost": "ต้นทุนวัตถุดิบ",
-        "laborCost": "ต้นทุนแรงงาน",
-        "overheadCost": "ค่าใช้จ่ายโสหุ้ย",
-        "totalCost": "ต้นทุนรวม"
+  "dashboard": {
+    "title": "ต้นทุน",
+    "subtitle": "แดชบอร์ดสำหรับการควบคุมต้นทุนและการวิเคราะห์กำไร",
+    "periodOptions": {
+      "this_month": "เดือนนี้",
+      "last_month": "เดือนที่แล้ว",
+      "this_quarter": "ไตรมาสนี้",
+      "last_quarter": "ไตรมาสที่แล้ว",
+      "ytd": "ปีนี้"
+    },
+    "quickLinks": {
+      "landedCosts": {
+        "title": "ต้นทุนนำเข้า",
+        "description": "จัดสรรค่าขนส่งและภาษี"
+      },
+      "workCenters": {
+        "title": "ศูนย์งาน",
+        "description": "กำหนดค่าแรงและค่าใช้จ่าย"
+      },
+      "reports": {
+        "title": "รายงานต้นทุน",
+        "description": "ดูรายงานโดยละเอียด"
       }
     }
   },
-  "analysis": {
-    "title": "การวิเคราะห์",
-    "description": "วิเคราะห์โครงสร้างต้นทุน"
+  "landedCosts": {
+    "page": {
+      "title": "ต้นทุนนำเข้า",
+      "description": "จัดสรรค่าขนส่ง ภาษี และต้นทุนอื่นๆ ให้กับใบรับสินค้า"
+    },
+    "stats": {
+      "draft": "ร่าง",
+      "allocated": "จัดสรรแล้ว",
+      "posted": "บันทึกแล้ว"
+    },
+    "grid": {
+      "title": "เอกสารต้นทุนนำเข้า",
+      "columns": {
+        "documentNumber": "เลขที่เอกสาร",
+        "referenceNumber": "เลขที่ใบสั่งซื้อ",
+        "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+        "status": "สถานะ",
+        "totalAmount": "จำนวนรวม",
+        "created": "วันที่สร้าง",
+        "posted": "วันที่บันทึก"
+      }
+    },
+    "actions": {
+      "new": "สร้างต้นทุนนำเข้าใหม่"
+    },
+    "status": {
+      "draft": "ร่าง",
+      "allocated": "จัดสรรแล้ว",
+      "posted": "บันทึกแล้ว"
+    },
+    "errors": {
+      "loadFailed": "ไม่สามารถโหลดข้อมูลต้นทุนนำเข้าได้"
+    }
   },
-  "variance": {
-    "title": "ผลต่างต้นทุน",
-    "description": "วิเคราะห์ผลต่างต้นทุนจริงกับมาตรฐาน"
+  "workCenters": {
+    "page": {
+      "title": "ศูนย์งาน",
+      "description": "กำหนดค่าใช้จ่ายศูนย์งานการผลิต ค่าแรง และค่าใช้จ่ายโสหุย"
+    },
+    "stats": {
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "avgTotalRate": "อัตรารวมเฉลี่ย/ชม"
+    },
+    "grid": {
+      "title": "รายการศูนย์งาน",
+      "columns": {
+        "code": "รหัส",
+        "name": "ชื่อ",
+        "orgUnit": "หน่วยงาน",
+        "laborRate": "อัตราค่าแรง",
+        "overheadRate": "อัตราค่าใช้จ่ายโสหุย",
+        "machineRate": "อัตราค่าเครื่องจักร",
+        "totalRate": "อัตรารวม",
+        "capacity": "กำลังการผลิต (ชม/วัน)",
+        "status": "สถานะ"
+      }
+    },
+    "actions": {
+      "new": "สร้างศูนย์งานใหม่",
+      "delete": "ลบ",
+      "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบศูนย์งานนี้?"
+    },
+    "status": {
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน"
+    },
+    "toast": {
+      "deleteSuccess": "ลบศูนย์งานสำเร็จ",
+      "deleteError": "ไม่สามารถลบศูนย์งานได้"
+    },
+    "errors": {
+      "loadFailed": "ไม่สามารถโหลดข้อมูลศูนย์งานได้",
+      "loading": "กำลังโหลดศูนย์งาน..."
+    }
   },
-  "toast": {
-    "calculate": {
-      "success": "คำนวณต้นทุนสำเร็จ",
-      "error": "ไม่สามารถคำนวณต้นทุนได้"
+  "reports": {
+    "costSummary": {
+      "title": "สรุปต้นทุน",
+      "description": "รายงานสรุปต้นทุนโดยละเอียด",
+      "filters": {
+        "title": "ตัวกรอง",
+        "itemType": "ประเภทสินค้า",
+        "search": "ค้นหา",
+        "searchPlaceholder": "ค้นหาด้วยรหัสหรือชื่อ...",
+        "allTypes": "ทุกประเภท",
+        "rawMaterial": "วัตถุดิบ",
+        "finishedGoods": "สินค้าสำเร็จรูป",
+        "packaging": "บรรจุภัณฑ์",
+        "consumable": "วัสดุสิ้นเปลือง"
+      },
+      "grid": {
+        "title": "สรุปต้นทุนสินค้า",
+        "columns": {
+          "code": "รหัส",
+          "name": "ชื่อ",
+          "type": "ประเภท",
+          "uom": "หน่วย",
+          "onHand": "คงเหลือ",
+          "wac": "WAC",
+          "value": "มูลค่า",
+          "stdCost": "ต้นทุนมาตรฐาน",
+          "lastPOCost": "ต้นทุน PO ล่าสุด",
+          "fullCost": "ต้นทุนรวม"
+        },
+        "total": "รวม"
+      },
+      "loading": "กำลังโหลด...",
+      "error": "ไม่สามารถโหลดข้อมูลรายงานได้"
     }
   }
 }

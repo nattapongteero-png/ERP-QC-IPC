@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -54,19 +55,20 @@ function formatCurrency(value: number | null | undefined): string {
   }).format(value);
 }
 
-const itemTypes = [
-  { value: '', label: 'All Types' },
-  { value: 'raw_material', label: 'Raw Material' },
-  { value: 'finished_goods', label: 'Finished Goods' },
-  { value: 'packaging', label: 'Packaging' },
-  { value: 'consumable', label: 'Consumable' },
-];
-
 export default function CostSummaryReportPage() {
+  const t = useTranslations('cost');
   const [itemType, setItemType] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+
+  const itemTypes = [
+    { value: '', label: t('reports.costSummary.filters.allTypes') },
+    { value: 'raw_material', label: t('reports.costSummary.filters.rawMaterial') },
+    { value: 'finished_goods', label: t('reports.costSummary.filters.finishedGoods') },
+    { value: 'packaging', label: t('reports.costSummary.filters.packaging') },
+    { value: 'consumable', label: t('reports.costSummary.filters.consumable') },
+  ];
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['cost-summary-report', itemType, search, page, pageSize],
@@ -80,22 +82,22 @@ export default function CostSummaryReportPage() {
   return (
     <div className="p-6 space-y-6" data-testid="cost-summary-report-page">
       <ResponsivePageHeader
-        title="Cost Summary Report"
+        title={t('reports.costSummary.title')}
         icon={FileText}
-        subtitle="View current costs for all inventory items"
+        subtitle={t('reports.costSummary.description')}
         onBack={() => window.history.back()}
       />
 
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
+          <CardTitle>{t('reports.costSummary.filters.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Item Type
+                {t('reports.costSummary.filters.itemType')}
               </label>
               <SelectBox
                 dataSource={itemTypes}
@@ -111,7 +113,7 @@ export default function CostSummaryReportPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Search
+                {t('reports.costSummary.filters.search')}
               </label>
               <TextBox
                 value={search}
@@ -119,7 +121,7 @@ export default function CostSummaryReportPage() {
                   setSearch(e.value || '');
                   setPage(1);
                 }}
-                placeholder="Search by code or name..."
+                placeholder={t('reports.costSummary.filters.searchPlaceholder')}
                 showClearButton
                 data-testid="search-filter"
               />
@@ -131,17 +133,17 @@ export default function CostSummaryReportPage() {
       {/* Data Grid */}
       <Card>
         <CardHeader>
-          <CardTitle>Item Cost Summary</CardTitle>
+          <CardTitle>{t('reports.costSummary.grid.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center p-8" data-testid="loading">
               <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              <span className="ml-2 text-gray-500">Loading...</span>
+              <span className="ml-2 text-gray-500">{t('reports.costSummary.loading')}</span>
             </div>
           ) : error ? (
             <div className="p-4 text-red-500" data-testid="error">
-              Failed to load report data
+              {t('reports.costSummary.error')}
             </div>
           ) : (
             <DataGrid
@@ -163,20 +165,20 @@ export default function CostSummaryReportPage() {
               <FilterRow visible />
               <Sorting mode="single" />
 
-              <Column dataField="itemCode" caption="Code" width={120} />
-              <Column dataField="itemName" caption="Name" minWidth={200} />
-              <Column dataField="itemType" caption="Type" width={120} />
-              <Column dataField="uom" caption="UOM" width={80} />
+              <Column dataField="itemCode" caption={t('reports.costSummary.grid.columns.code')} width={120} />
+              <Column dataField="itemName" caption={t('reports.costSummary.grid.columns.name')} minWidth={200} />
+              <Column dataField="itemType" caption={t('reports.costSummary.grid.columns.type')} width={120} />
+              <Column dataField="uom" caption={t('reports.costSummary.grid.columns.uom')} width={80} />
               <Column
                 dataField="onHand"
-                caption="On Hand"
+                caption={t('reports.costSummary.grid.columns.onHand')}
                 dataType="number"
                 width={100}
                 format="#,##0"
               />
               <Column
                 dataField="currentWAC"
-                caption="WAC"
+                caption={t('reports.costSummary.grid.columns.wac')}
                 dataType="number"
                 width={120}
                 cellRender={({ data }) => (
@@ -187,7 +189,7 @@ export default function CostSummaryReportPage() {
               />
               <Column
                 dataField="onHandValue"
-                caption="Value"
+                caption={t('reports.costSummary.grid.columns.value')}
                 dataType="number"
                 width={130}
                 cellRender={({ data }) => (
@@ -198,7 +200,7 @@ export default function CostSummaryReportPage() {
               />
               <Column
                 dataField="standardCost"
-                caption="Std Cost"
+                caption={t('reports.costSummary.grid.columns.stdCost')}
                 dataType="number"
                 width={110}
                 cellRender={({ data }) => (
@@ -209,7 +211,7 @@ export default function CostSummaryReportPage() {
               />
               <Column
                 dataField="lastPurchaseCost"
-                caption="Last PO Cost"
+                caption={t('reports.costSummary.grid.columns.lastPOCost')}
                 dataType="number"
                 width={120}
                 cellRender={({ data }) => (
@@ -220,7 +222,7 @@ export default function CostSummaryReportPage() {
               />
               <Column
                 dataField="fullCost"
-                caption="Full Cost"
+                caption={t('reports.costSummary.grid.columns.fullCost')}
                 dataType="number"
                 width={120}
                 cellRender={({ data }) => (
@@ -234,8 +236,8 @@ export default function CostSummaryReportPage() {
                 <TotalItem
                   column="onHandValue"
                   summaryType="sum"
-                  valueFormat="#,##0.00"
-                  displayFormat="Total: {0}"
+                  valueFormat="#,#0.00"
+                  displayFormat={t('reports.costSummary.grid.total') + ': {0}'}
                 />
               </Summary>
 
