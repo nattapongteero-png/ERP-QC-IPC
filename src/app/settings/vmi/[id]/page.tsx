@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, use } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
@@ -25,8 +26,6 @@ import {
   Wifi,
   WifiOff,
   Clock,
-  ArrowLeft,
-  Save,
 } from 'lucide-react';
 import type { VmiPortalTestResult } from '@/types/vmi';
 
@@ -80,6 +79,7 @@ interface PageProps {
 // ============================================
 
 export default function VmiPortalEditPage({ params }: PageProps) {
+  const t = useTranslations('settings');
   const router = useRouter();
   const { id } = use(params);
   const isNewMode = id === 'new';
@@ -139,17 +139,17 @@ export default function VmiPortalEditPage({ params }: PageProps) {
             orderPollingInterval: 15,
           });
         } else {
-          setLoadError(result.error || 'Failed to load portal configuration');
+          setLoadError(result.error || t('vmiPortalEdit.loadError'));
         }
       } catch (err) {
-        setLoadError(err instanceof Error ? err.message : 'Failed to load portal configuration');
+        setLoadError(err instanceof Error ? err.message : t('vmiPortalEdit.loadError'));
       } finally {
         setIsLoading(false);
       }
     };
 
     loadPortal();
-  }, [isNewMode, portalId]);
+  }, [isNewMode, portalId, t]);
 
   // Reset validation after load
   useEffect(() => {
@@ -170,7 +170,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
   // Handle test connection
   const handleTestConnection = async () => {
     if (!portalId) {
-      setError('Please save the portal configuration first before testing the connection.');
+      setError(t('vmiPortalEdit.saveThenTest'));
       return;
     }
 
@@ -194,10 +194,10 @@ export default function VmiPortalEditPage({ params }: PageProps) {
           setPortal(portalResult.data);
         }
       } else {
-        setError(result.error || 'Connection test failed');
+        setError(result.error || t('vmiPortalEdit.connectionFailed'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to test connection');
+      setError(err instanceof Error ? err.message : t('vmiPortalEdit.connectionFailed'));
     } finally {
       setIsTesting(false);
     }
@@ -259,10 +259,10 @@ export default function VmiPortalEditPage({ params }: PageProps) {
       if (result.success) {
         router.push('/settings/vmi');
       } else {
-        setError(result.error || 'Failed to save portal configuration');
+        setError(result.error || t('vmiPortalEdit.saveError'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save portal configuration');
+      setError(err instanceof Error ? err.message : t('vmiPortalEdit.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -273,9 +273,9 @@ export default function VmiPortalEditPage({ params }: PageProps) {
     if (!portal) return null;
 
     const statusConfig = {
-      connected: { icon: Wifi, color: 'text-green-500', bgColor: 'bg-green-50', label: 'Connected' },
-      disconnected: { icon: WifiOff, color: 'text-gray-400', bgColor: 'bg-gray-50', label: 'Disconnected' },
-      error: { icon: XCircle, color: 'text-red-500', bgColor: 'bg-red-50', label: 'Error' },
+      connected: { icon: Wifi, color: 'text-green-500', bgColor: 'bg-green-50', label: t('vmiPortalEdit.connected') },
+      disconnected: { icon: WifiOff, color: 'text-gray-400', bgColor: 'bg-gray-50', label: t('vmiPortalEdit.disconnected') },
+      error: { icon: XCircle, color: 'text-red-500', bgColor: 'bg-red-50', label: t('vmiPortalEdit.error') },
     };
 
     const config = statusConfig[portal.connectionStatus];
@@ -306,14 +306,14 @@ export default function VmiPortalEditPage({ params }: PageProps) {
       <MainLayout>
         <div className="space-y-6">
           <PageHeader
-            title="Portal Not Found"
+            title={t('vmiPortalEdit.portalNotFound')}
             breadcrumb={
               <nav className="flex text-sm text-gray-500">
-                <Link href="/settings" className="hover:text-gray-700">Settings</Link>
+                <Link href="/settings" className="hover:text-gray-700">{t('page.title')}</Link>
                 <span className="mx-2">/</span>
-                <Link href="/settings/vmi" className="hover:text-gray-700">VMI Portals</Link>
+                <Link href="/settings/vmi" className="hover:text-gray-700">{t('vmiSettings.vmiPortals')}</Link>
                 <span className="mx-2">/</span>
-                <span className="text-gray-900">Error</span>
+                <span className="text-gray-900">{t('vmiPortalEdit.error')}</span>
               </nav>
             }
           />
@@ -325,7 +325,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
               </div>
               <div className="mt-4">
                 <Link href="/settings/vmi">
-                  <DxButton text="Back to VMI Portals" icon="arrowleft" type="normal" />
+                  <DxButton text={t('vmiPortalEdit.backToPortals')} icon="arrowleft" type="normal" />
                 </Link>
               </div>
             </CardContent>
@@ -339,25 +339,25 @@ export default function VmiPortalEditPage({ params }: PageProps) {
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title={isNewMode ? 'New VMI Portal' : `Edit: ${portal?.name || 'VMI Portal'}`}
+          title={isNewMode ? t('vmiPortalEdit.newTitle') : t('vmiPortalEdit.editTitle', { name: portal?.name || 'VMI Portal' })}
           description={isNewMode
-            ? 'Configure a new VMI portal connection'
-            : 'Edit VMI portal configuration settings'
+            ? t('vmiPortalEdit.newDescription')
+            : t('vmiPortalEdit.editDescription')
           }
           breadcrumb={
             <nav className="flex text-sm text-gray-500">
-              <Link href="/settings" className="hover:text-gray-700">Settings</Link>
+              <Link href="/settings" className="hover:text-gray-700">{t('page.title')}</Link>
               <span className="mx-2">/</span>
-              <Link href="/settings/vmi" className="hover:text-gray-700">VMI Portals</Link>
+              <Link href="/settings/vmi" className="hover:text-gray-700">{t('vmiSettings.vmiPortals')}</Link>
               <span className="mx-2">/</span>
-              <span className="text-gray-900">{isNewMode ? 'New' : portal?.name}</span>
+              <span className="text-gray-900">{isNewMode ? t('vmiPortalEdit.newTitle') : portal?.name}</span>
             </nav>
           }
           actions={
             <div className="flex items-center gap-3">
               <ConnectionStatus />
               <Link href="/settings/vmi">
-                <DxButton text="Cancel" icon="close" type="normal" />
+                <DxButton text={t('vmiPortalEdit.cancel')} icon="close" type="normal" />
               </Link>
             </div>
           }
@@ -385,11 +385,11 @@ export default function VmiPortalEditPage({ params }: PageProps) {
               <>
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <div>
-                  <div className="font-medium">Connection Successful</div>
+                  <div className="font-medium">{t('vmiPortalEdit.connectionSuccess')}</div>
                   <div className="text-sm">
-                    Latency: {testResult.latencyMs}ms
+                    {t('vmiPortalEdit.latency', { ms: String(testResult.latencyMs) })}
                     {testResult.vendorInfo && (
-                      <span className="ml-2">| Vendor: {testResult.vendorInfo.vendorName}</span>
+                      <span className="ml-2">| {t('vmiPortalEdit.vendor', { name: testResult.vendorInfo.vendorName })}</span>
                     )}
                   </div>
                 </div>
@@ -398,7 +398,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
               <>
                 <XCircle className="h-5 w-5 text-red-600" />
                 <div>
-                  <div className="font-medium">Connection Failed</div>
+                  <div className="font-medium">{t('vmiPortalEdit.connectionFailed')}</div>
                   <div className="text-sm">{testResult.error}</div>
                 </div>
               </>
@@ -415,13 +415,13 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   {portal.lastOrdersPollAt && (
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      Last Poll: {new Date(portal.lastOrdersPollAt).toLocaleString()}
+                      {t('vmiPortalEdit.lastPoll', { time: new Date(portal.lastOrdersPollAt).toLocaleString() })}
                     </div>
                   )}
                   {portal.lastInventorySyncAt && (
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      Last Inventory Sync: {new Date(portal.lastInventorySyncAt).toLocaleString()}
+                      {t('vmiPortalEdit.lastInventorySync', { time: new Date(portal.lastInventorySyncAt).toLocaleString() })}
                     </div>
                   )}
                 </div>
@@ -438,7 +438,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
           {/* Left Column - Portal Settings */}
           <Card elevation="raised">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Portal Settings</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('vmiPortalEdit.portalSettings')}</h3>
               <DxForm
                 formData={formData as unknown as Record<string, unknown>}
                 onFormDataChange={handleFormDataChange}
@@ -448,47 +448,47 @@ export default function VmiPortalEditPage({ params }: PageProps) {
               >
                 <DxFormItem
                   dataField="name"
-                  label={{ text: 'Portal Name' }}
+                  label={{ text: t('vmiPortalEdit.portalName') }}
                   isRequired
                   editorOptions={{
                     placeholder: 'e.g., Siriraj VMI Portal',
                   }}
                   validationRules={[
-                    { type: 'required', message: 'Portal name is required' },
-                    { type: 'stringLength', max: 100, message: 'Portal name must be at most 100 characters' },
+                    { type: 'required', message: t('vmiPortalEdit.validation.nameRequired') },
+                    { type: 'stringLength', max: 100, message: t('vmiPortalEdit.validation.nameMaxLength') },
                   ]}
                 />
                 <DxFormItem
                   dataField="vendorId"
-                  label={{ text: 'Vendor ID' }}
+                  label={{ text: t('vmiPortalEdit.vendorId') }}
                   isRequired
                   editorOptions={{
                     placeholder: 'Your vendor ID in this portal',
                   }}
                   validationRules={[
-                    { type: 'required', message: 'Vendor ID is required' },
-                    { type: 'stringLength', max: 50, message: 'Vendor ID must be at most 50 characters' },
+                    { type: 'required', message: t('vmiPortalEdit.validation.vendorIdRequired') },
+                    { type: 'stringLength', max: 50, message: t('vmiPortalEdit.validation.vendorIdMaxLength') },
                   ]}
                 />
                 <DxFormItem
                   dataField="portalUrl"
-                  label={{ text: 'Portal URL' }}
+                  label={{ text: t('vmiPortalEdit.portalUrl') }}
                   isRequired
                   editorOptions={{
                     placeholder: 'https://vmi-portal.example.com',
                   }}
                   validationRules={[
-                    { type: 'required', message: 'Portal URL is required' },
+                    { type: 'required', message: t('vmiPortalEdit.validation.urlRequired') },
                     {
                       type: 'pattern',
                       pattern: /^https:\/\/.+/,
-                      message: 'Portal URL must start with https://',
+                      message: t('vmiPortalEdit.validation.urlHttps'),
                     },
                   ]}
                 />
                 <DxFormItem
                   dataField="apiKey"
-                  label={{ text: isNewMode ? 'API Key' : 'API Key (leave blank to keep existing)' }}
+                  label={{ text: isNewMode ? t('vmiPortalEdit.apiKey') : t('vmiPortalEdit.apiKeyEdit') }}
                   isRequired={isNewMode}
                   editorType="dxTextBox"
                   editorOptions={{
@@ -498,18 +498,18 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   validationRules={
                     isNewMode
                       ? [
-                          { type: 'required', message: 'API key is required' },
-                          { type: 'stringLength', max: 500, message: 'API key must be at most 500 characters' },
+                          { type: 'required', message: t('vmiPortalEdit.validation.apiKeyRequired') },
+                          { type: 'stringLength', max: 500, message: t('vmiPortalEdit.validation.apiKeyMaxLength') },
                         ]
                       : []
                   }
                 />
                 <DxFormItem
                   dataField="isEnabled"
-                  label={{ text: 'Status' }}
+                  label={{ text: t('vmiPortalEdit.status') }}
                   editorType="dxCheckBox"
                   editorOptions={{
-                    text: 'Enable this portal connection',
+                    text: t('vmiPortalEdit.enablePortal'),
                   }}
                 />
               </DxForm>
@@ -519,7 +519,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
           {/* Right Column - Sync Settings */}
           <Card elevation="raised">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Sync Settings</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('vmiPortalEdit.syncSettings')}</h3>
               <DxForm
                 formData={formData as unknown as Record<string, unknown>}
                 onFormDataChange={handleFormDataChange}
@@ -528,13 +528,13 @@ export default function VmiPortalEditPage({ params }: PageProps) {
               >
                 <DxFormItem
                   dataField="syncInventoryEnabled"
-                  label={{ text: 'Inventory Sync' }}
+                  label={{ text: t('vmiPortalEdit.inventorySyncLabel') }}
                   editorType="dxCheckBox"
-                  editorOptions={{ text: 'Enable' }}
+                  editorOptions={{ text: t('vmiPortalEdit.enable') }}
                 />
                 <DxFormItem
                   dataField="syncInventoryInterval"
-                  label={{ text: 'Interval (minutes)' }}
+                  label={{ text: t('vmiPortalEdit.intervalMinutes') }}
                   editorType="dxNumberBox"
                   editorOptions={{
                     min: 5,
@@ -545,13 +545,13 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                 />
                 <DxFormItem
                   dataField="syncItemsEnabled"
-                  label={{ text: 'Items Sync' }}
+                  label={{ text: t('vmiPortalEdit.itemsSyncLabel') }}
                   editorType="dxCheckBox"
-                  editorOptions={{ text: 'Enable' }}
+                  editorOptions={{ text: t('vmiPortalEdit.enable') }}
                 />
                 <DxFormItem
                   dataField="syncItemsInterval"
-                  label={{ text: 'Interval (minutes)' }}
+                  label={{ text: t('vmiPortalEdit.intervalMinutes') }}
                   editorType="dxNumberBox"
                   editorOptions={{
                     min: 5,
@@ -562,13 +562,13 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                 />
                 <DxFormItem
                   dataField="syncPricesEnabled"
-                  label={{ text: 'Prices Sync' }}
+                  label={{ text: t('vmiPortalEdit.pricesSyncLabel') }}
                   editorType="dxCheckBox"
-                  editorOptions={{ text: 'Enable' }}
+                  editorOptions={{ text: t('vmiPortalEdit.enable') }}
                 />
                 <DxFormItem
                   dataField="syncPricesInterval"
-                  label={{ text: 'Interval (minutes)' }}
+                  label={{ text: t('vmiPortalEdit.intervalMinutes') }}
                   editorType="dxNumberBox"
                   editorOptions={{
                     min: 5,
@@ -579,13 +579,13 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                 />
                 <DxFormItem
                   dataField="orderPollingEnabled"
-                  label={{ text: 'Order Polling' }}
+                  label={{ text: t('vmiPortalEdit.orderPollingLabel') }}
                   editorType="dxCheckBox"
-                  editorOptions={{ text: 'Enable' }}
+                  editorOptions={{ text: t('vmiPortalEdit.enable') }}
                 />
                 <DxFormItem
                   dataField="orderPollingInterval"
-                  label={{ text: 'Interval (minutes)' }}
+                  label={{ text: t('vmiPortalEdit.intervalMinutes') }}
                   editorType="dxNumberBox"
                   editorOptions={{
                     min: 5,
@@ -598,11 +598,11 @@ export default function VmiPortalEditPage({ params }: PageProps) {
 
               {/* Sync Interval Help */}
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Sync Interval Guide</h4>
+                <h4 className="text-sm font-medium text-blue-900 mb-2">{t('vmiPortalEdit.syncGuide')}</h4>
                 <ul className="text-xs text-blue-700 space-y-1">
-                  <li><strong>5-15 min:</strong> Real-time sync (high API usage)</li>
-                  <li><strong>30-60 min:</strong> Frequent updates (recommended for inventory)</li>
-                  <li><strong>1440 min (24h):</strong> Daily sync (recommended for items/prices)</li>
+                  <li><strong>{t('vmiPortalEdit.syncGuide5to15')}</strong></li>
+                  <li><strong>{t('vmiPortalEdit.syncGuide30to60')}</strong></li>
+                  <li><strong>{t('vmiPortalEdit.syncGuide1440')}</strong></li>
                 </ul>
               </div>
             </CardContent>
@@ -614,7 +614,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
           <div>
             {!isNewMode && (
               <DxButton
-                text={isTesting ? 'Testing...' : 'Test Connection'}
+                text={isTesting ? t('vmiPortalEdit.testing') : t('vmiPortalEdit.testConnection')}
                 icon={isTesting ? undefined : 'wifi'}
                 type="default"
                 onClick={handleTestConnection}
@@ -626,10 +626,10 @@ export default function VmiPortalEditPage({ params }: PageProps) {
           </div>
           <div className="flex gap-3">
             <Link href="/settings/vmi">
-              <DxButton text="Cancel" type="normal" disabled={isSaving} />
+              <DxButton text={t('vmiPortalEdit.cancel')} type="normal" disabled={isSaving} />
             </Link>
             <DxButton
-              text={isSaving ? 'Saving...' : 'Save Configuration'}
+              text={isSaving ? t('vmiPortalEdit.saving') : t('vmiPortalEdit.saveConfig')}
               icon={isSaving ? undefined : 'save'}
               type="success"
               onClick={handleSave}
