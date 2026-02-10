@@ -9,6 +9,7 @@
 import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Users,
   ArrowLeft,
@@ -186,6 +187,7 @@ export default function GroupMembersPage() {
   const params = useParams();
   const groupId = Number(params?.id);
   const queryClient = useQueryClient();
+  const t = useTranslations('admin');
 
   const [showAddDialog, setShowAddDialog] = React.useState(false);
   const [selectedUserId, setSelectedUserId] = React.useState<number | null>(null);
@@ -224,7 +226,7 @@ export default function GroupMembersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['confidential-access-group-members', groupId] });
       queryClient.invalidateQueries({ queryKey: ['confidential-access-groups'] });
-      notify('Member added successfully', 'success', 3000);
+      notify(t('confidentialGroups.members.toast.addSuccess'), 'success', 3000);
       setShowAddDialog(false);
       setSelectedUserId(null);
     },
@@ -239,7 +241,7 @@ export default function GroupMembersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['confidential-access-group-members', groupId] });
       queryClient.invalidateQueries({ queryKey: ['confidential-access-groups'] });
-      notify('Member removed successfully', 'success', 3000);
+      notify(t('confidentialGroups.members.toast.removeSuccess'), 'success', 3000);
       setShowRemoveConfirm(false);
       setMemberToRemove(null);
     },
@@ -293,7 +295,7 @@ export default function GroupMembersPage() {
     });
   };
 
-  const renderActionsCell = (cellData: { data: ConfidentialAccessGroupMember }) => {
+  const renderActionsCell = React.useCallback((cellData: { data: ConfidentialAccessGroupMember }) => {
     return (
       <div className="flex items-center justify-center gap-1">
         <button
@@ -302,14 +304,15 @@ export default function GroupMembersPage() {
             handleRemove(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Remove Member"
+          title={t('confidentialGroups.members.actions.removeMember')}
           data-testid={`remove-btn-${cellData.data.userId}`}
         >
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
     );
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   const isLoading = isLoadingGroup || isLoadingMembers;
 
@@ -317,14 +320,14 @@ export default function GroupMembersPage() {
     return (
       <div className="space-y-6 p-1">
         <PageHeader
-          title="Invalid Group"
+          title={t('confidentialGroups.members.invalidGroup')}
           icon={ShieldCheck}
           iconClassName="from-red-500 to-red-600"
           onBack={handleBack}
         />
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Invalid group ID</p>
+            <p className="text-gray-500">{t('confidentialGroups.members.invalidGroupId')}</p>
           </CardContent>
         </Card>
       </div>
@@ -336,17 +339,17 @@ export default function GroupMembersPage() {
       {/* Breadcrumb */}
       <Breadcrumb
         items={[
-          { label: 'Admin', href: '/admin' },
-          { label: 'Confidential Groups', href: '/admin/confidential-groups' },
-          { label: group?.name || 'Loading...', href: `/admin/confidential-groups/${groupId}` },
-          { label: 'Members' },
+          { label: t('confidentialGroups.members.breadcrumb.admin'), href: '/admin' },
+          { label: t('confidentialGroups.members.breadcrumb.confidentialGroups'), href: '/admin/confidential-groups' },
+          { label: group?.name || t('confidentialGroups.members.loading'), href: `/admin/confidential-groups/${groupId}` },
+          { label: t('confidentialGroups.members.breadcrumb.members') },
         ]}
       />
 
       {/* Header */}
       <PageHeader
-        title={group ? `Group Members - ${group.name}` : 'Loading...'}
-        subtitle={group ? `Manage members of ${group.code}` : undefined}
+        title={group ? t('confidentialGroups.members.titleWithName', { name: group.name }) : t('confidentialGroups.members.loading')}
+        subtitle={group ? t('confidentialGroups.members.subtitle', { code: group.code }) : undefined}
         icon={Users}
         iconClassName="from-blue-500 to-indigo-600"
         onBack={handleBack}
@@ -354,7 +357,7 @@ export default function GroupMembersPage() {
         isRefreshing={isFetching}
         actions={
           <Button
-            text="Add Member"
+            text={t('confidentialGroups.members.addMember')}
             icon="add"
             type="success"
             onClick={openAddDialog}
@@ -372,20 +375,20 @@ export default function GroupMembersPage() {
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-amber-500" />
                 <div>
-                  <span className="text-sm text-gray-500">Group Code:</span>
+                  <span className="text-sm text-gray-500">{t('confidentialGroups.members.groupInfo.groupCode')}</span>
                   <span className="ml-2 font-mono font-medium text-gray-900">{group.code}</span>
                 </div>
               </div>
               <div className="h-8 w-px bg-gray-200" />
               <div>
-                <span className="text-sm text-gray-500">Name:</span>
+                <span className="text-sm text-gray-500">{t('confidentialGroups.members.groupInfo.name')}</span>
                 <span className="ml-2 font-medium text-gray-900">{group.name}</span>
               </div>
               {group.description && (
                 <>
                   <div className="h-8 w-px bg-gray-200" />
                   <div>
-                    <span className="text-sm text-gray-500">Description:</span>
+                    <span className="text-sm text-gray-500">{t('confidentialGroups.members.groupInfo.description')}</span>
                     <span className="ml-2 text-gray-700">{group.description}</span>
                   </div>
                 </>
@@ -394,7 +397,7 @@ export default function GroupMembersPage() {
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 rounded-md">
                 <Users className="h-4 w-4 text-blue-600" />
                 <span className="text-blue-700 font-semibold">{members.length}</span>
-                <span className="text-blue-600 text-sm">members</span>
+                <span className="text-blue-600 text-sm">{t('confidentialGroups.members.membersCount')}</span>
               </div>
             </div>
           </CardContent>
@@ -427,18 +430,18 @@ export default function GroupMembersPage() {
               showNavigationButtons
             />
 
-            <Column dataField="userId" caption="User ID" width={80} />
-            <Column dataField="userName" caption="User Name" minWidth={200} />
-            <Column dataField="userEmail" caption="Email" minWidth={250} />
+            <Column dataField="userId" caption={t('confidentialGroups.members.columns.userId')} width={80} />
+            <Column dataField="userName" caption={t('confidentialGroups.members.columns.userName')} minWidth={200} />
+            <Column dataField="userEmail" caption={t('confidentialGroups.members.columns.email')} minWidth={250} />
             <Column
               dataField="addedAt"
-              caption="Added At"
+              caption={t('confidentialGroups.members.columns.addedAt')}
               width={180}
               cellRender={renderDateCell}
             />
-            <Column dataField="addedBy" caption="Added By" width={100} />
+            <Column dataField="addedBy" caption={t('confidentialGroups.members.columns.addedBy')} width={100} />
             <Column
-              caption="Actions"
+              caption={t('confidentialGroups.members.columns.actions')}
               width={80}
               cellRender={renderActionsCell}
               allowFiltering={false}
@@ -453,7 +456,7 @@ export default function GroupMembersPage() {
       <DxPopup
         visible={showAddDialog}
         onVisibleChange={setShowAddDialog}
-        title="Add Member to Group"
+        title={t('confidentialGroups.members.addDialog.title')}
         width={500}
         height="auto"
         showCloseButton
@@ -463,7 +466,7 @@ export default function GroupMembersPage() {
             toolbar: 'bottom',
             location: 'after',
             options: {
-              text: addMutation.isPending ? 'Adding...' : 'Add',
+              text: addMutation.isPending ? t('confidentialGroups.members.addDialog.adding') : t('confidentialGroups.members.addDialog.add'),
               type: 'success',
               onClick: handleAddMember,
             },
@@ -473,7 +476,7 @@ export default function GroupMembersPage() {
             toolbar: 'bottom',
             location: 'after',
             options: {
-              text: 'Cancel',
+              text: t('confidentialGroups.members.addDialog.cancel'),
               stylingMode: 'outlined',
               onClick: closeAddDialog,
             },
@@ -483,7 +486,7 @@ export default function GroupMembersPage() {
         <div className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select User <span className="text-red-500">*</span>
+              {t('confidentialGroups.members.addDialog.selectUser')} <span className="text-red-500">*</span>
             </label>
             <SelectBox
               dataSource={availableUsers}
@@ -497,14 +500,14 @@ export default function GroupMembersPage() {
               searchEnabled
               searchExpr={['name', 'email']}
               searchMode="contains"
-              placeholder="Search and select a user..."
+              placeholder={t('confidentialGroups.members.addDialog.searchPlaceholder')}
               showClearButton
-              noDataText="No users available"
+              noDataText={t('confidentialGroups.members.addDialog.noDataText')}
               data-testid="user-select"
             />
             {availableUsers.length === 0 && (
               <p className="mt-2 text-sm text-gray-500">
-                All users are already members of this group.
+                {t('confidentialGroups.members.addDialog.noUsers')}
               </p>
             )}
           </div>
@@ -512,7 +515,7 @@ export default function GroupMembersPage() {
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-700">
                 <UserPlus className="inline-block h-4 w-4 mr-1" />
-                Selected user will be added to <strong>{group?.name}</strong>
+                {t('confidentialGroups.members.addDialog.selectedInfo')} <strong>{group?.name}</strong>
               </p>
             </div>
           )}
@@ -527,9 +530,9 @@ export default function GroupMembersPage() {
           setShowRemoveConfirm(false);
           setMemberToRemove(null);
         }}
-        title="Remove Member"
-        message={`Are you sure you want to remove "${memberToRemove?.userName || memberToRemove?.userEmail}" from this group?`}
-        confirmText={removeMutation.isPending ? 'Removing...' : 'Remove'}
+        title={t('confidentialGroups.members.removeDialog.title')}
+        message={t('confidentialGroups.members.removeDialog.message', { name: memberToRemove?.userName || memberToRemove?.userEmail || '' })}
+        confirmText={removeMutation.isPending ? t('confidentialGroups.members.removeDialog.removing') : t('confidentialGroups.members.removeDialog.confirm')}
         confirmType="danger"
       />
     </div>
