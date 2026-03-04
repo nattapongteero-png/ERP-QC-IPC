@@ -76,21 +76,20 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
   const lastItemsSync = syncItems.find((s: { syncType: string }) => s.syncType === 'items');
   const lastPricesSync = syncItems.find((s: { syncType: string }) => s.syncType === 'prices');
 
-  // Process orders data
+  // Process orders data - API returns VmiSalesOrderSummary with localStatus/unmatchedLineCount
   const orders = ordersData.success ? ordersData.data?.items || [] : [];
-  const pendingOrders = orders.filter((o: { status: string }) => o.status === 'pending').length;
-  const confirmedOrders = orders.filter((o: { status: string }) => o.status === 'confirmed').length;
-  const processingOrders = orders.filter((o: { status: string }) => o.status === 'processing').length;
+  const pendingOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'pending').length;
+  const confirmedOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'confirmed').length;
+  const processingOrders = orders.filter((o: { localStatus: string }) => o.localStatus === 'processing').length;
   const today = new Date().toISOString().split('T')[0];
-  const shippedToday = orders.filter((o: { status: string; shippedAt?: string }) =>
-    o.status === 'shipped' && o.shippedAt?.startsWith(today)
+  const shippedToday = orders.filter((o: { localStatus: string; shippedAt?: string }) =>
+    o.localStatus === 'shipped' && o.shippedAt?.startsWith(today)
   ).length;
   const unmatchedItems = orders
-    .filter((o: { status: string }) => o.status === 'pending')
-    .reduce((sum: number, o: { unmatchedItems?: number }) => sum + (o.unmatchedItems || 0), 0);
-  const urgentOrders = orders.filter((o: { priority: string; status: string }) =>
-    o.priority === 'urgent' && o.status !== 'shipped' && o.status !== 'delivered' && o.status !== 'cancelled'
-  ).length;
+    .filter((o: { localStatus: string }) => o.localStatus === 'pending')
+    .reduce((sum: number, o: { unmatchedLineCount?: number }) => sum + (o.unmatchedLineCount || 0), 0);
+  // priority is not stored in DB - skip urgentOrders
+  const urgentOrders = 0;
 
   // Process portals data
   const portals = portalsData.success ? portalsData.data || [] : [];

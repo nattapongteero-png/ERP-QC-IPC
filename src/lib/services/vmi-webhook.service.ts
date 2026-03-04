@@ -136,6 +136,7 @@ export class VmiWebhookService {
       lastFailureAt: record.lastFailureAt
         ? formatDateFromDb(record.lastFailureAt)
         : null,
+      lastErrorMessage: record.lastErrorMessage ?? null,
       healthStatus: this.computeHealthStatus(
         record.isActive,
         record.isDisabledByFailures,

@@ -746,6 +746,7 @@ export interface VmiWebhookResponse {
   consecutiveFailures: number;
   lastSuccessAt: string | null;
   lastFailureAt: string | null;
+  lastErrorMessage: string | null;
   healthStatus: VmiWebhookHealthStatus;
   createdAt: string;
 }

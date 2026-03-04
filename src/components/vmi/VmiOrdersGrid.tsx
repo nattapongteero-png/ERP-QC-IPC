@@ -70,7 +70,32 @@ async function fetchVmiOrders(params: {
   if (!result.success) {
     throw new Error(result.error || 'Failed to fetch VMI orders');
   }
-  return result.data;
+  // Map API VmiSalesOrderSummary fields to frontend VmiOrder fields
+  const data = result.data;
+  return {
+    ...data,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    items: (data.items || []).map((item: any) => ({
+      id: item.id,
+      portalId: item.portalId,
+      portalName: item.portalName,
+      portalOrderId: item.vmiOrderId,
+      orderDate: item.orderDate,
+      customerId: item.customerId,
+      customerName: item.vmiCustomerName || 'Unknown',
+      hospitalCode: item.vmiCustomerId,
+      status: item.localStatus || 'pending',
+      priority: 'normal',
+      totalItems: item.lineCount || 0,
+      totalAmount: item.totalAmount,
+      matchedItems: (item.lineCount || 0) - (item.unmatchedLineCount || 0),
+      unmatchedItems: item.unmatchedLineCount || 0,
+      requestedDeliveryDate: item.requiredDate,
+      confirmedAt: item.confirmedAt,
+      shippedAt: item.shippedAt,
+      createdAt: item.polledAt || item.orderDate,
+    })),
+  };
 }
 
 async function pollOrders(portalId?: number): Promise<{ summary: { totalNewOrders: number } }> {
