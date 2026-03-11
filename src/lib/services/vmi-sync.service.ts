@@ -1326,6 +1326,47 @@ export class VmiSyncService {
       errors: data.errors,
     };
   }
+
+  /**
+   * Record order poll result to sync history
+   */
+  async recordOrderPollHistory(data: {
+    ordersReceived: number;
+    errors?: Array<{ portalId: number; error: string }>;
+    errorPortalIds: Set<number>;
+  }): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
+    const { portals, syncHistory } = this.getTables();
+
+    // Get all enabled portals with order polling
+    const records = await db
+      .select({ id: portals.id })
+      .from(portals)
+      .where(and(eq(portals.isEnabled, true), eq(portals.orderPollingEnabled, true)));
+
+    const now = this.isSqlite ? new Date().toISOString() : new Date();
+
+    for (const portal of records) {
+      const portalError = data.errors?.find((e: { portalId: number }) => e.portalId === portal.id);
+      const status = portalError ? 'failed' : 'completed';
+
+      await db
+        .insert(syncHistory)
+        .values({
+          portalId: portal.id,
+          syncType: 'orders',
+          triggerType: 'scheduled',
+          status,
+          itemsTotal: portalError ? 0 : data.ordersReceived,
+          itemsProcessed: portalError ? 0 : data.ordersReceived,
+          itemsFailed: portalError ? 1 : 0,
+          errorDetails: portalError ? JSON.stringify([{ error: portalError.error }]) : '[]',
+          startedAt: now,
+          completedAt: now,
+        } as Record<string, unknown>);
+    }
+  }
 }
 
 // Export singleton instance
