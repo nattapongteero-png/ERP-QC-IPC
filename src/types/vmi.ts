@@ -611,6 +611,7 @@ export interface VmiOrderPollResult {
 }
 
 export interface VmiOrderConfirmRequest {
+  userId?: number;
   expectedShipDate?: string;
   notes?: string;
 }

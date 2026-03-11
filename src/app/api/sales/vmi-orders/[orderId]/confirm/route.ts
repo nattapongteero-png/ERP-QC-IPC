@@ -71,7 +71,7 @@ export async function POST(
     }
 
     // Confirm the order
-    const result = await service.confirmOrder(id, { notes: data.notes });
+    const result = await service.confirmOrder(id, { userId: data.userId, notes: data.notes });
 
     return NextResponse.json({
       success: true,

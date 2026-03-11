@@ -182,6 +182,114 @@ export async function createSalesOrder(
 }
 
 /**
+ * Create Sales Order from VMI order confirmation.
+ * Skips ATP checks (VMI orders are committed by hospitals).
+ * Sets status='confirmed', source='vmi', and links vmiSalesOrderId.
+ */
+export async function createSalesOrderFromVmi(data: {
+  vmiSalesOrderId: number;
+  customerName: string;
+  orderDate: Date | string;
+  requiredDate?: Date | string | null;
+  totalAmount: number;
+  lines: Array<{
+    itemId: number;
+    quantity: number;
+    unit: string;
+    unitPrice: number;
+  }>;
+  userId: number;
+  notes?: string;
+}): Promise<{ orderId: number; soNumber: string }> {
+  const { salesOrders, salesOrderLines } = getTables();
+  const database = (await getDb()) as any;
+
+  // Generate SO number
+  const today = new Date();
+  const prefix = `SO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const lastSO = await database
+    .select({ soNumber: salesOrders.soNumber })
+    .from(salesOrders)
+    .where(sql`${salesOrders.soNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(salesOrders.soNumber))
+    .limit(1);
+
+  let sequence = 1;
+  if (lastSO.length > 0) {
+    sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
+  }
+  const soNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+
+  const now = getNow();
+  const totalAmount = data.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
+
+  let newSOId: number;
+  if (isSqlite()) {
+    const [newSO] = await database
+      .insert(salesOrders)
+      .values({
+        soNumber,
+        customerName: data.customerName,
+        status: 'confirmed',
+        orderDate: data.orderDate,
+        requiredDate: data.requiredDate || null,
+        totalAmount,
+        currency: 'THB',
+        source: 'vmi',
+        vmiSalesOrderId: data.vmiSalesOrderId,
+        notes: data.notes || null,
+        createdBy: data.userId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: salesOrders.id });
+    newSOId = newSO.id;
+  } else {
+    const result = await database
+      .insert(salesOrders)
+      .values({
+        soNumber,
+        customerName: data.customerName,
+        status: 'confirmed',
+        orderDate: data.orderDate,
+        requiredDate: data.requiredDate || null,
+        totalAmount,
+        currency: 'THB',
+        source: 'vmi',
+        vmiSalesOrderId: data.vmiSalesOrderId,
+        notes: data.notes || null,
+        createdBy: data.userId,
+        createdAt: now,
+        updatedAt: now,
+      });
+    newSOId = getInsertId(result);
+  }
+
+  // Create order lines
+  for (const line of data.lines) {
+    await database.insert(salesOrderLines).values({
+      soId: newSOId,
+      itemId: line.itemId,
+      quantity: line.quantity,
+      unit: line.unit,
+      unitPrice: line.unitPrice,
+      totalPrice: line.quantity * line.unitPrice,
+      createdAt: now,
+    });
+  }
+
+  await createAuditLog({
+    userId: data.userId,
+    action: 'CREATE',
+    tableName: 'sales_orders',
+    recordId: newSOId,
+    newValue: { soNumber, source: 'vmi', vmiSalesOrderId: data.vmiSalesOrderId, totalAmount },
+  });
+
+  return { orderId: newSOId, soNumber };
+}
+
+/**
  * Allocate Lots for Sales Order (FEFO)
  */
 export async function allocateLotsForOrder(soId: number, userId: number) {

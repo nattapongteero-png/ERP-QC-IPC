@@ -10,6 +10,7 @@
 import { eq, and, desc, inArray, or, gte, lte } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
 import { getNow, toDbDate } from '@/lib/db/date-utils';
+import { createSalesOrderFromVmi } from './sales.service';
 import {
   sqliteItems,
   mysqlItems,
@@ -782,14 +783,33 @@ export class VmiSalesOrderService {
       throw new VmiSalesOrderError('PORTAL_NOT_FOUND', 'Portal configuration not found', 404);
     }
 
-    // TODO: Create actual sales order in sales module
-    // For now, simulate sales order creation
-    const salesOrderId = Math.floor(Math.random() * 10000) + 1;
-    const soNumber = `SO-VMI-${Date.now()}`;
+    // Create actual sales order from VMI order
+    const matchedLines = order.lines
+      .filter((l: any) => l.matchStatus !== 'unmatched' && l.itemId)
+      .map((l: any) => ({
+        itemId: l.itemId,
+        quantity: l.quantity,
+        unit: l.unit || 'EA',
+        unitPrice: l.unitPrice,
+      }));
+
+    const salesResult = await createSalesOrderFromVmi({
+      vmiSalesOrderId: orderId,
+      customerName: order.vmiCustomerName || 'Unknown',
+      orderDate: toDbDate(order.orderDate instanceof Date ? order.orderDate.toISOString().split('T')[0] : String(order.orderDate)),
+      requiredDate: order.requiredDate ? toDbDate(order.requiredDate instanceof Date ? order.requiredDate.toISOString().split('T')[0] : String(order.requiredDate)) : null,
+      totalAmount: order.totalAmount,
+      lines: matchedLines,
+      userId: request.userId || 1,
+      notes: `VMI Order #${order.vmiOrderId} from ${order.portalName || 'VMI Portal'}`,
+    });
+
+    const salesOrderId = salesResult.orderId;
+    const soNumber = salesResult.soNumber;
 
     const now = getNow();
 
-    // Update VMI order
+    // Update VMI order with real sales order ID
     await db
       .update(orders)
       .set({
