@@ -9,6 +9,7 @@
 
 import { eq, and, desc, inArray, or, gte, lte } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
+import { getNow, toDbDate } from '@/lib/db/date-utils';
 import {
   sqliteItems,
   mysqlItems,
@@ -518,7 +519,7 @@ export class VmiSalesOrderService {
     const db = (await this.getDb()) as any;
     const { orders, lines } = this.getTables();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Create order (map API fields to DB fields)
     const [insertedOrder] = await db
@@ -530,8 +531,8 @@ export class VmiSalesOrderService {
         localStatus: 'pending',
         vmiCustomerId: orderDetail.hospitalCode,
         vmiCustomerName: orderDetail.hospitalName,
-        orderDate: orderDetail.orderDate,
-        requiredDate: orderDetail.expectedDeliveryDate || null,
+        orderDate: toDbDate(orderDetail.orderDate),
+        requiredDate: orderDetail.expectedDeliveryDate ? toDbDate(orderDetail.expectedDeliveryDate) : null,
         totalAmount: orderDetail.totalValue,
         currency: 'THB',
         orderDataJson: JSON.stringify(orderDetail),
@@ -720,7 +721,7 @@ export class VmiSalesOrderService {
       }
     }
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Build update data
     const updateData: Record<string, unknown> = {
@@ -786,7 +787,7 @@ export class VmiSalesOrderService {
     const salesOrderId = Math.floor(Math.random() * 10000) + 1;
     const soNumber = `SO-VMI-${Date.now()}`;
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Update VMI order
     await db
@@ -875,7 +876,7 @@ export class VmiSalesOrderService {
       throw new VmiSalesOrderError('PORTAL_NOT_FOUND', 'Portal configuration not found', 404);
     }
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Update order
     await db
