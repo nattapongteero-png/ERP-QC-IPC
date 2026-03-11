@@ -7,7 +7,7 @@
  * Feature: 008-vmi-vendor-sync
  */
 
-import { eq, and, desc, inArray, or, like, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, desc, inArray, or, gte, lte } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
 import {
   sqliteItems,
@@ -69,24 +69,42 @@ export interface VmiOrderQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
-interface PortalOrder {
-  id: string;
-  customerCode: string;
-  customerName: string;
+/** Summary from GET /api/external/vendor/orders?status=submitted */
+interface PortalOrderSummary {
+  id: number;
+  hospitalCode: string;
+  hospitalName: string;
+  poNumber: string;
+  status: string;
   orderDate: string;
-  requiredDate?: string;
-  totalAmount: number;
-  currency: string;
-  lines: Array<{
-    lineId: string;
-    tppCode?: string;
-    ttmtCode?: string;
-    localCode?: string;
-    itemName: string;
-    quantity: number;
+  expectedDeliveryDate: string | null;
+  totalValue: string;
+  itemCount: number;
+}
+
+/** Detail from GET /api/external/vendor/orders/{id} */
+interface PortalOrderDetail {
+  id: number;
+  hospitalCode: string;
+  hospitalName: string;
+  poNumber: string;
+  status: string;
+  orderDate: string;
+  expectedDeliveryDate: string | null;
+  totalValue: string;
+  itemCount: number;
+  warehouseName?: string;
+  notes?: string;
+  items: Array<{
+    id: number;
+    localCode: string;
+    name: string;
     unit: string;
-    unitPrice: number;
-    lineTotal: number;
+    tppCode: string | null;
+    ttmtCode: string | null;
+    quantityOrdered: string;
+    unitPrice: string;
+    lineTotal: string;
   }>;
 }
 
@@ -413,12 +431,10 @@ export class VmiSalesOrderService {
 
     try {
       // Fetch orders from VMI Portal
-      const response = await fetch(`${portal.portalUrl}/api/external/vendor/orders/pending`, {
+      const response = await fetch(`${portal.portalUrl}/api/external/vendor/orders?status=submitted`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'X-API-Key': apiKey,
-          'X-Vendor-Id': portal.vendorId,
         },
         signal: AbortSignal.timeout(30000),
       });
@@ -428,19 +444,37 @@ export class VmiSalesOrderService {
       }
 
       const data = await response.json();
-      const portalOrders: PortalOrder[] = data.orders || [];
+      const orderSummaries: PortalOrderSummary[] = data.orders || [];
 
       const createdOrders: VmiSalesOrderSummary[] = [];
 
-      for (const portalOrder of portalOrders) {
+      for (const summary of orderSummaries) {
         // Check if order already exists
-        const existing = await this.findOrderByVmiOrderId(portal.id, portalOrder.id);
+        const existing = await this.findOrderByVmiOrderId(portal.id, String(summary.id));
         if (existing) {
           continue; // Skip already imported orders
         }
 
+        // Fetch order detail to get line items
+        const detailResponse = await fetch(
+          `${portal.portalUrl}/api/external/vendor/orders/${summary.id}`,
+          {
+            method: 'GET',
+            headers: { 'X-API-Key': apiKey },
+            signal: AbortSignal.timeout(30000),
+          }
+        );
+
+        if (!detailResponse.ok) {
+          console.error(`[VMI Poll] Failed to fetch detail for order ${summary.id}: HTTP ${detailResponse.status}`);
+          continue;
+        }
+
+        const detailData = await detailResponse.json();
+        const orderDetail: PortalOrderDetail = detailData.order;
+
         // Create order and lines
-        const order = await this.createOrderFromPortal(portal.id, portalOrder);
+        const order = await this.createOrderFromPortal(portal.id, orderDetail);
         createdOrders.push(order);
       }
 
@@ -478,7 +512,7 @@ export class VmiSalesOrderService {
    */
   private async createOrderFromPortal(
     portalId: number,
-    portalOrder: PortalOrder
+    orderDetail: PortalOrderDetail
   ): Promise<VmiSalesOrderSummary> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = (await this.getDb()) as any;
@@ -486,21 +520,21 @@ export class VmiSalesOrderService {
 
     const now = this.isSqlite ? new Date().toISOString() : new Date();
 
-    // Create order
+    // Create order (map API fields to DB fields)
     const [insertedOrder] = await db
       .insert(orders)
       .values({
         portalId,
-        vmiOrderId: portalOrder.id,
+        vmiOrderId: String(orderDetail.id),
         vmiStatus: 'submitted',
         localStatus: 'pending',
-        vmiCustomerId: portalOrder.customerCode,
-        vmiCustomerName: portalOrder.customerName,
-        orderDate: portalOrder.orderDate,
-        requiredDate: portalOrder.requiredDate || null,
-        totalAmount: portalOrder.totalAmount.toString(),
-        currency: portalOrder.currency || 'THB',
-        orderDataJson: JSON.stringify(portalOrder),
+        vmiCustomerId: orderDetail.hospitalCode,
+        vmiCustomerName: orderDetail.hospitalName,
+        orderDate: orderDetail.orderDate,
+        requiredDate: orderDetail.expectedDeliveryDate || null,
+        totalAmount: orderDetail.totalValue,
+        currency: 'THB',
+        orderDataJson: JSON.stringify(orderDetail),
         polledAt: now,
         createdAt: now,
         updatedAt: now,
@@ -510,45 +544,46 @@ export class VmiSalesOrderService {
     const orderId = insertedOrder.id;
 
     // Create order lines with item matching
-    for (const line of portalOrder.lines) {
-      const matchResult = await this.matchItem(line.tppCode, line.ttmtCode, line.localCode);
+    let unmatchedCount = 0;
+    for (const item of orderDetail.items || []) {
+      const matchResult = await this.matchItem(
+        item.tppCode || undefined,
+        item.ttmtCode || undefined,
+        item.localCode || undefined
+      );
+
+      if (matchResult.status === 'unmatched') unmatchedCount++;
 
       await db.insert(lines).values({
         vmiSalesOrderId: orderId,
-        vmiLineId: line.lineId,
+        vmiLineId: String(item.id),
         itemId: matchResult.itemId,
-        tppCode: line.tppCode || null,
-        ttmtCode: line.ttmtCode || null,
-        localCode: line.localCode || null,
-        itemName: line.itemName,
-        quantity: line.quantity.toString(),
-        unit: line.unit,
-        unitPrice: line.unitPrice.toString(),
-        lineTotal: line.lineTotal.toString(),
+        tppCode: item.tppCode || null,
+        ttmtCode: item.ttmtCode || null,
+        localCode: item.localCode || null,
+        itemName: item.name,
+        quantity: item.quantityOrdered,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
         matchStatus: matchResult.status,
       } as Record<string, unknown>);
     }
 
-    // Return summary
-    const unmatchedCount = portalOrder.lines.filter((l: any) => {
-      const matchResult = this.matchItemSync(l.tppCode, l.ttmtCode, l.localCode);
-      return matchResult.status === 'unmatched';
-    }).length;
-
     return {
       id: orderId,
       portalId,
-      vmiOrderId: portalOrder.id,
+      vmiOrderId: String(orderDetail.id),
       vmiStatus: 'submitted',
       localStatus: 'pending',
       customerId: null,
-      vmiCustomerId: portalOrder.customerCode,
-      vmiCustomerName: portalOrder.customerName,
-      orderDate: new Date(portalOrder.orderDate),
-      requiredDate: portalOrder.requiredDate ? new Date(portalOrder.requiredDate) : null,
-      totalAmount: portalOrder.totalAmount,
-      currency: portalOrder.currency || 'THB',
-      lineCount: portalOrder.lines.length,
+      vmiCustomerId: orderDetail.hospitalCode,
+      vmiCustomerName: orderDetail.hospitalName,
+      orderDate: new Date(orderDetail.orderDate),
+      requiredDate: orderDetail.expectedDeliveryDate ? new Date(orderDetail.expectedDeliveryDate) : null,
+      totalAmount: Number(orderDetail.totalValue),
+      currency: 'THB',
+      lineCount: (orderDetail.items || []).length,
       unmatchedLineCount: unmatchedCount,
       salesOrderId: null,
       polledAt: new Date(),
@@ -602,20 +637,6 @@ export class VmiSalesOrderService {
 
     // Multiple matches - return first but flag for review
     return { itemId: matchingItems[0].id, status: 'multiple_matches' };
-  }
-
-  /**
-   * Synchronous match result for inline use
-   */
-  private matchItemSync(
-    tppCode?: string,
-    ttmtCode?: string,
-    localCode?: string
-  ): { status: VmiItemMatchStatus } {
-    if (!tppCode && !ttmtCode && !localCode) {
-      return { status: 'unmatched' };
-    }
-    return { status: 'matched' }; // Simplified for summary
   }
 
   /**
@@ -782,17 +803,14 @@ export class VmiSalesOrderService {
     // Notify VMI Portal
     try {
       const apiKey = decrypt(portal.apiKeyEncrypted);
-      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}/confirm`, {
-        method: 'POST',
+      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'X-API-Key': apiKey,
-          'X-Vendor-Id': portal.vendorId,
         },
         body: JSON.stringify({
-          confirmedAt: new Date().toISOString(),
-          expectedShipDate: request.expectedShipDate,
-          notes: request.notes,
+          action: 'confirm',
         }),
         signal: AbortSignal.timeout(10000),
       });
@@ -873,19 +891,15 @@ export class VmiSalesOrderService {
     // Notify VMI Portal
     try {
       const apiKey = decrypt(portal.apiKeyEncrypted);
-      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}/ship`, {
-        method: 'POST',
+      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'X-API-Key': apiKey,
-          'X-Vendor-Id': portal.vendorId,
         },
         body: JSON.stringify({
-          shipmentDate: request.shipmentDate,
+          action: 'ship',
           expectedDeliveryDate: request.expectedDeliveryDate,
-          trackingNumber: request.trackingNumber,
-          carrier: request.carrier,
-          notes: request.notes,
         }),
         signal: AbortSignal.timeout(10000),
       });
