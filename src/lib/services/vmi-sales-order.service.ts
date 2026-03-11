@@ -413,7 +413,7 @@ export class VmiSalesOrderService {
 
     try {
       // Fetch orders from VMI Portal
-      const response = await fetch(`${portal.portalUrl}/api/vendor/orders/pending`, {
+      const response = await fetch(`${portal.portalUrl}/api/external/vendor/orders/pending`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -782,7 +782,7 @@ export class VmiSalesOrderService {
     // Notify VMI Portal
     try {
       const apiKey = decrypt(portal.apiKeyEncrypted);
-      await fetch(`${portal.portalUrl}/api/vendor/orders/${order.vmiOrderId}/confirm`, {
+      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}/confirm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -873,7 +873,7 @@ export class VmiSalesOrderService {
     // Notify VMI Portal
     try {
       const apiKey = decrypt(portal.apiKeyEncrypted);
-      await fetch(`${portal.portalUrl}/api/vendor/orders/${order.vmiOrderId}/ship`, {
+      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}/ship`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
