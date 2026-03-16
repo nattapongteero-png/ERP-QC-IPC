@@ -9,6 +9,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Restore real next-intl (global mock in setup.ts overrides useTranslations)
+vi.unmock('next-intl');
+
 import { renderHook } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { NextIntlClientProvider, useTranslations } from 'next-intl';
