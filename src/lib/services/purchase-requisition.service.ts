@@ -69,6 +69,7 @@ export async function generatePRNumber(): Promise<string> {
 
 /**
  * Create a new Purchase Requisition
+ * PR number generation and insert are wrapped in a transaction to prevent duplicates.
  */
 export async function createPR(
   data: PRCreateInput,
@@ -76,27 +77,59 @@ export async function createPR(
 ): Promise<number> {
   return executeDbOperation(async (db) => {
     const tables = getTables();
-    const prNumber = await generatePRNumber();
     const now = getNow();
 
-    const result = await db.insert(tables.requisitions).values({
-      prNumber,
-      requesterId: data.requesterId,
-      departmentId: data.departmentId || null,
-      status: 'draft',
-      priority: data.priority || 'normal',
-      requiredDate: data.requiredDate ? toDbDate(data.requiredDate) : null,
-      description: data.description || null,
-      justification: data.justification || null,
-      costCenterId: data.costCenterId || null,
-      projectId: data.projectId || null,
-      totalAmount: 0,
-      createdBy,
-      createdAt: now,
-      updatedAt: now,
-    });
+    const MAX_RETRIES = 3;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const result = await db.transaction(async (tx: any) => {
+          const year = new Date().getFullYear();
+          const prefix = `PR${year}-`;
 
-    return getInsertId(result);
+          const existing = await tx
+            .select({ prNumber: tables.requisitions.prNumber })
+            .from(tables.requisitions)
+            .where(like(tables.requisitions.prNumber, `${prefix}%`))
+            .orderBy(desc(tables.requisitions.id))
+            .limit(1);
+
+          let prNumber: string;
+          if (existing.length === 0) {
+            prNumber = `${prefix}0001`;
+          } else {
+            const lastNumber = existing[0].prNumber;
+            const sequence = parseInt(lastNumber.replace(prefix, ''), 10);
+            prNumber = `${prefix}${(sequence + 1).toString().padStart(4, '0')}`;
+          }
+
+          const insertResult = await tx.insert(tables.requisitions).values({
+            prNumber,
+            requesterId: data.requesterId,
+            departmentId: data.departmentId || null,
+            status: 'draft',
+            priority: data.priority || 'normal',
+            requiredDate: data.requiredDate ? toDbDate(data.requiredDate) : null,
+            description: data.description || null,
+            justification: data.justification || null,
+            costCenterId: data.costCenterId || null,
+            projectId: data.projectId || null,
+            totalAmount: 0,
+            createdBy,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+          return getInsertId(insertResult);
+        });
+        return result;
+      } catch (error: any) {
+        if (attempt < MAX_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error('Failed to generate unique PR number after maximum retries');
   });
 }
 
@@ -737,24 +770,6 @@ export async function convertPRToPO(
       throw new Error('NO_LINES_TO_CONVERT');
     }
 
-    // Generate PO number
-    const year = new Date().getFullYear();
-    const poPrefix = `PO${year}-`;
-    const lastPO = await db
-      .select({ poNumber: tables.purchaseOrders.poNumber })
-      .from(tables.purchaseOrders)
-      .where(like(tables.purchaseOrders.poNumber, `${poPrefix}%`))
-      .orderBy(desc(tables.purchaseOrders.id))
-      .limit(1);
-
-    let poNumber: string;
-    if (lastPO.length === 0) {
-      poNumber = `${poPrefix}0001`;
-    } else {
-      const seq = parseInt(lastPO[0].poNumber.replace(poPrefix, ''), 10);
-      poNumber = `${poPrefix}${(seq + 1).toString().padStart(4, '0')}`;
-    }
-
     // Calculate PO total
     let poTotal = 0;
     for (const line of lines) {
@@ -763,23 +778,57 @@ export async function convertPRToPO(
 
     const now = getNow();
 
-    // Create PO
-    const poResult = await db.insert(tables.purchaseOrders).values({
-      poNumber,
-      vendorId: input.vendorId,
-      status: 'draft',
-      prId: input.prId,
-      totalAmount: poTotal,
-      deliveryDate: input.deliveryDate ? toDbDate(input.deliveryDate) : null,
-      deliveryAddress: input.deliveryAddress || null,
-      paymentTerms: input.paymentTerms || null,
-      notes: input.notes || null,
-      createdBy,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // Generate PO number and create PO header in a transaction to prevent duplicates
+    const MAX_PO_RETRIES = 3;
+    let poNumber: string = '';
+    let poId: number = 0;
+    for (let attempt = 0; attempt < MAX_PO_RETRIES; attempt++) {
+      try {
+        const poTxResult = await db.transaction(async (tx: any) => {
+          const year = new Date().getFullYear();
+          const poPrefix = `PO${year}-`;
+          const lastPO = await tx
+            .select({ poNumber: tables.purchaseOrders.poNumber })
+            .from(tables.purchaseOrders)
+            .where(like(tables.purchaseOrders.poNumber, `${poPrefix}%`))
+            .orderBy(desc(tables.purchaseOrders.id))
+            .limit(1);
 
-    const poId = getInsertId(poResult);
+          let nextPONumber: string;
+          if (lastPO.length === 0) {
+            nextPONumber = `${poPrefix}0001`;
+          } else {
+            const seq = parseInt(lastPO[0].poNumber.replace(poPrefix, ''), 10);
+            nextPONumber = `${poPrefix}${(seq + 1).toString().padStart(4, '0')}`;
+          }
+
+          const poResult = await tx.insert(tables.purchaseOrders).values({
+            poNumber: nextPONumber,
+            vendorId: input.vendorId,
+            status: 'draft',
+            prId: input.prId,
+            totalAmount: poTotal,
+            deliveryDate: input.deliveryDate ? toDbDate(input.deliveryDate) : null,
+            deliveryAddress: input.deliveryAddress || null,
+            paymentTerms: input.paymentTerms || null,
+            notes: input.notes || null,
+            createdBy,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+          return { poId: getInsertId(poResult), poNumber: nextPONumber };
+        });
+        poId = poTxResult.poId;
+        poNumber = poTxResult.poNumber;
+        break;
+      } catch (error: any) {
+        if (attempt < MAX_PO_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
+          continue;
+        }
+        throw error;
+      }
+    }
 
     // Create PO lines and update PR lines
     let poLineNumber = 0;
