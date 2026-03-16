@@ -372,30 +372,26 @@ export async function createJournalEntry(input: CreateJournalEntryInput): Promis
   let entryNumber: string = '';
   for (let attempt = 0; attempt < MAX_JE_RETRIES; attempt++) {
     try {
-      const txResult = await database.transaction(async (tx: any) => {
-        const nextEntryNumber = await generateEntryNumber(input.entryDate);
-        const entryValues = {
-          entryNumber: nextEntryNumber,
-          entryDate: toDbDate(input.entryDate),
-          fiscalPeriodId,
-          description: input.description || null,
-          sourceType: input.sourceType || null,
-          sourceId: input.sourceId || null,
-          status: 'draft' as JournalEntryStatus,
-          totalDebit: totalDebit,
-          totalCredit: totalCredit,
-          createdBy: input.createdBy,
-          createdAt: getNow(),
-          updatedAt: getNow(),
-        };
-        const insertResult = await tx.insert(journalEntries).values(entryValues as any);
-        const insertedId = isSqlite()
-          ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
-          : (insertResult as unknown as [{ insertId: number }])[0].insertId;
-        return { id: insertedId, entryNumber: nextEntryNumber };
-      });
-      journalEntryId = txResult.id;
-      entryNumber = txResult.entryNumber;
+      const nextEntryNumber = await generateEntryNumber(input.entryDate);
+      const entryValues = {
+        entryNumber: nextEntryNumber,
+        entryDate: toDbDate(input.entryDate),
+        fiscalPeriodId,
+        description: input.description || null,
+        sourceType: input.sourceType || null,
+        sourceId: input.sourceId || null,
+        status: 'draft' as JournalEntryStatus,
+        totalDebit: totalDebit,
+        totalCredit: totalCredit,
+        createdBy: input.createdBy,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      };
+      const insertResult = await database.insert(journalEntries).values(entryValues as any);
+      journalEntryId = isSqlite()
+        ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+        : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+      entryNumber = nextEntryNumber;
       break;
     } catch (error: any) {
       if (attempt < MAX_JE_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
@@ -2258,52 +2254,48 @@ export async function recordAPPayment(
   let paymentId: number = 0;
   for (let attempt = 0; attempt < MAX_PY_RETRIES; attempt++) {
     try {
-      const pyTxResult = await database.transaction(async (tx: any) => {
-        const paymentDate = new Date(input.paymentDate);
-        const year = paymentDate.getFullYear();
-        const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
-        const paymentPrefix = `PY-${year}${month}-`;
+      const paymentDate = new Date(input.paymentDate);
+      const year = paymentDate.getFullYear();
+      const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
+      const paymentPrefix = `PY-${year}${month}-`;
 
-        const [lastPayment] = await tx
-          .select({ paymentNumber: payments.paymentNumber })
-          .from(payments)
-          .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
-          .orderBy(desc(payments.paymentNumber))
-          .limit(1);
+      const [lastPayment] = await database
+        .select({ paymentNumber: payments.paymentNumber })
+        .from(payments)
+        .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
+        .orderBy(desc(payments.paymentNumber))
+        .limit(1);
 
-        let sequence = 1;
-        if (lastPayment?.paymentNumber) {
-          const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
-          if (!isNaN(lastSeq)) sequence = lastSeq + 1;
-        }
-        const nextPaymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
+      let sequence = 1;
+      if (lastPayment?.paymentNumber) {
+        const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
+        if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+      }
+      const nextPaymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
 
-        const paymentValues = {
-          paymentNumber: nextPaymentNumber,
-          paymentType: 'ap' as const,
-          paymentDate: toDbDate(input.paymentDate),
-          vendorId: invoice.vendorId,
-          customerId: null,
-          bankAccountId: input.bankAccountId,
-          paymentMethod: input.paymentMethod,
-          referenceNumber: input.referenceNumber || null,
-          amount: netPayment,
-          whtAmount,
-          description: input.description || `Payment for ${invoice.invoiceNumber}`,
-          status: 'completed' as const,
-          createdBy: recordedBy,
-          createdAt: getNow(),
-          updatedAt: getNow(),
-        };
+      const paymentValues = {
+        paymentNumber: nextPaymentNumber,
+        paymentType: 'ap' as const,
+        paymentDate: toDbDate(input.paymentDate),
+        vendorId: invoice.vendorId,
+        customerId: null,
+        bankAccountId: input.bankAccountId,
+        paymentMethod: input.paymentMethod,
+        referenceNumber: input.referenceNumber || null,
+        amount: netPayment,
+        whtAmount,
+        description: input.description || `Payment for ${invoice.invoiceNumber}`,
+        status: 'completed' as const,
+        createdBy: recordedBy,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      };
 
-        const insertResult = await tx.insert(payments).values(paymentValues as any);
-        const insertedId = isSqlite()
-          ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
-          : (insertResult as unknown as [{ insertId: number }])[0].insertId;
-        return { id: insertedId, paymentNumber: nextPaymentNumber };
-      });
-      paymentId = pyTxResult.id;
-      paymentNumber = pyTxResult.paymentNumber;
+      const insertResult = await database.insert(payments).values(paymentValues as any);
+      paymentId = isSqlite()
+        ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+        : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+      paymentNumber = nextPaymentNumber;
       break;
     } catch (error: any) {
       if (attempt < MAX_PY_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
@@ -3147,52 +3139,48 @@ export async function recordARPayment(
   let paymentId: number = 0;
   for (let attempt = 0; attempt < MAX_RC_RETRIES; attempt++) {
     try {
-      const rcTxResult = await database.transaction(async (tx: any) => {
-        const paymentDate = new Date(input.paymentDate);
-        const year = paymentDate.getFullYear();
-        const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
-        const paymentPrefix = `RC-${year}${month}-`;
+      const paymentDate = new Date(input.paymentDate);
+      const year = paymentDate.getFullYear();
+      const month = String(paymentDate.getMonth() + 1).padStart(2, '0');
+      const paymentPrefix = `RC-${year}${month}-`;
 
-        const [lastPayment] = await tx
-          .select({ paymentNumber: payments.paymentNumber })
-          .from(payments)
-          .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
-          .orderBy(desc(payments.paymentNumber))
-          .limit(1);
+      const [lastPayment] = await database
+        .select({ paymentNumber: payments.paymentNumber })
+        .from(payments)
+        .where(sql`${payments.paymentNumber} LIKE ${paymentPrefix + '%'}`)
+        .orderBy(desc(payments.paymentNumber))
+        .limit(1);
 
-        let sequence = 1;
-        if (lastPayment?.paymentNumber) {
-          const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
-          if (!isNaN(lastSeq)) sequence = lastSeq + 1;
-        }
-        const nextPaymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
+      let sequence = 1;
+      if (lastPayment?.paymentNumber) {
+        const lastSeq = parseInt(lastPayment.paymentNumber.replace(paymentPrefix, ''), 10);
+        if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+      }
+      const nextPaymentNumber = `${paymentPrefix}${String(sequence).padStart(6, '0')}`;
 
-        const paymentValues = {
-          paymentNumber: nextPaymentNumber,
-          paymentType: 'ar' as const,
-          paymentDate: toDbDate(input.paymentDate),
-          vendorId: null,
-          customerId: invoice.customerId,
-          bankAccountId: input.bankAccountId,
-          paymentMethod: input.paymentMethod,
-          referenceNumber: input.referenceNumber || null,
-          amount: input.amount,
-          whtAmount: 0,
-          description: input.description || `Receipt for ${invoice.invoiceNumber}`,
-          status: 'completed' as const,
-          createdBy: recordedBy,
-          createdAt: getNow(),
-          updatedAt: getNow(),
-        };
+      const paymentValues = {
+        paymentNumber: nextPaymentNumber,
+        paymentType: 'ar' as const,
+        paymentDate: toDbDate(input.paymentDate),
+        vendorId: null,
+        customerId: invoice.customerId,
+        bankAccountId: input.bankAccountId,
+        paymentMethod: input.paymentMethod,
+        referenceNumber: input.referenceNumber || null,
+        amount: input.amount,
+        whtAmount: 0,
+        description: input.description || `Receipt for ${invoice.invoiceNumber}`,
+        status: 'completed' as const,
+        createdBy: recordedBy,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      };
 
-        const insertResult = await tx.insert(payments).values(paymentValues as any);
-        const insertedId = isSqlite()
-          ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
-          : (insertResult as unknown as [{ insertId: number }])[0].insertId;
-        return { id: insertedId, paymentNumber: nextPaymentNumber };
-      });
-      paymentId = rcTxResult.id;
-      paymentNumber = rcTxResult.paymentNumber;
+      const insertResult = await database.insert(payments).values(paymentValues as any);
+      paymentId = isSqlite()
+        ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+        : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+      paymentNumber = nextPaymentNumber;
       break;
     } catch (error: any) {
       if (attempt < MAX_RC_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
@@ -3970,29 +3958,26 @@ export async function createWHTTransaction(
   const MAX_WHT_RETRIES = 3;
   for (let attempt = 0; attempt < MAX_WHT_RETRIES; attempt++) {
     try {
-      const txResult = await database.transaction(async (tx: any) => {
-        const certNumber = await generateWHTCertificateNumber(input.certificateType, input.paymentDate);
+      const certNumber = await generateWHTCertificateNumber(input.certificateType, input.paymentDate);
 
-        const values = {
-          certificateNumber: certNumber,
-          certificateType: input.certificateType,
-          paymentId: input.paymentId,
-          vendorId: input.vendorId,
-          paymentDate: toDbDate(input.paymentDate),
-          taxPeriod,
-          whtType: input.whtType,
-          whtDescription: input.whtDescription,
-          paymentAmount: input.paymentAmount,
-          whtRate: input.whtRate,
-          whtAmount,
-          netAmount,
-          createdAt: getNow(),
-        };
+      const values = {
+        certificateNumber: certNumber,
+        certificateType: input.certificateType,
+        paymentId: input.paymentId,
+        vendorId: input.vendorId,
+        paymentDate: toDbDate(input.paymentDate),
+        taxPeriod,
+        whtType: input.whtType,
+        whtDescription: input.whtDescription,
+        paymentAmount: input.paymentAmount,
+        whtRate: input.whtRate,
+        whtAmount,
+        netAmount,
+        createdAt: getNow(),
+      };
 
-        const [inserted] = await tx.insert(whtTransactions).values(values).$returningId();
-        return { id: inserted.id, certificateNumber: certNumber };
-      });
-      return txResult;
+      const [inserted] = await database.insert(whtTransactions).values(values).$returningId();
+      return { id: inserted.id, certificateNumber: certNumber };
     } catch (error: any) {
       if (attempt < MAX_WHT_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
         continue;

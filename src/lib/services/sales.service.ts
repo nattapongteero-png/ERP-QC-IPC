@@ -434,65 +434,62 @@ export async function fulfillSalesOrderLine(
   let deliveryNumber: string = '';
   for (let attempt = 0; attempt < MAX_DL_RETRIES; attempt++) {
     try {
-      const result = await database.transaction(async (tx: any) => {
-        const today = new Date();
-        const prefix = `DL-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-        const lastDL = await tx
-          .select({ deliveryNumber: salesDeliveries.deliveryNumber })
-          .from(salesDeliveries)
-          .where(sql`${salesDeliveries.deliveryNumber} LIKE ${prefix + '%'}`)
-          .orderBy(desc(salesDeliveries.deliveryNumber))
-          .limit(1);
+      const today = new Date();
+      const prefix = `DL-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const lastDL = await database
+        .select({ deliveryNumber: salesDeliveries.deliveryNumber })
+        .from(salesDeliveries)
+        .where(sql`${salesDeliveries.deliveryNumber} LIKE ${prefix + '%'}`)
+        .orderBy(desc(salesDeliveries.deliveryNumber))
+        .limit(1);
 
-        let sequence = 1;
-        if (lastDL.length > 0) {
-          sequence = parseInt(lastDL[0].deliveryNumber.split('-').pop() || '0') + 1;
-        }
-        const nextDeliveryNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+      let sequence = 1;
+      if (lastDL.length > 0) {
+        sequence = parseInt(lastDL[0].deliveryNumber.split('-').pop() || '0') + 1;
+      }
+      const nextDeliveryNumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
 
-        let insertedId: number;
-        if (isSqlite()) {
-          const [newDelivery] = await tx
-            .insert(salesDeliveries)
-            .values({
-              soId: input.soId,
-              soLineId: input.soLineId,
-              itemId: input.itemId,
-              lotId: input.lotId,
-              lotNumber: lot.lotNumber,
-              quantity: input.quantity,
-              unit: soLine.unit,
-              deliveryDate: getNow(),
-              deliveryNumber: nextDeliveryNumber,
-              status: 'shipped',
-              notes: input.notes,
-              createdBy: userId,
-            })
-            .returning({ id: salesDeliveries.id });
-          insertedId = newDelivery.id;
-        } else {
-          const insertResult = await tx
-            .insert(salesDeliveries)
-            .values({
-              soId: input.soId,
-              soLineId: input.soLineId,
-              itemId: input.itemId,
-              lotId: input.lotId,
-              lotNumber: lot.lotNumber,
-              quantity: input.quantity,
-              unit: soLine.unit,
-              deliveryDate: getNow(),
-              deliveryNumber: nextDeliveryNumber,
-              status: 'shipped',
-              notes: input.notes,
-              createdBy: userId,
-            });
-          insertedId = getInsertId(insertResult);
-        }
-        return { id: insertedId, deliveryNumber: nextDeliveryNumber };
-      });
-      newDeliveryId = result.id;
-      deliveryNumber = result.deliveryNumber;
+      let insertedId: number;
+      if (isSqlite()) {
+        const [newDelivery] = await database
+          .insert(salesDeliveries)
+          .values({
+            soId: input.soId,
+            soLineId: input.soLineId,
+            itemId: input.itemId,
+            lotId: input.lotId,
+            lotNumber: lot.lotNumber,
+            quantity: input.quantity,
+            unit: soLine.unit,
+            deliveryDate: getNow(),
+            deliveryNumber: nextDeliveryNumber,
+            status: 'shipped',
+            notes: input.notes,
+            createdBy: userId,
+          })
+          .returning({ id: salesDeliveries.id });
+        insertedId = newDelivery.id;
+      } else {
+        const insertResult = await database
+          .insert(salesDeliveries)
+          .values({
+            soId: input.soId,
+            soLineId: input.soLineId,
+            itemId: input.itemId,
+            lotId: input.lotId,
+            lotNumber: lot.lotNumber,
+            quantity: input.quantity,
+            unit: soLine.unit,
+            deliveryDate: getNow(),
+            deliveryNumber: nextDeliveryNumber,
+            status: 'shipped',
+            notes: input.notes,
+            createdBy: userId,
+          });
+        insertedId = getInsertId(insertResult);
+      }
+      newDeliveryId = insertedId;
+      deliveryNumber = nextDeliveryNumber;
       break;
     } catch (error: any) {
       if (attempt < MAX_DL_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {

@@ -268,55 +268,52 @@ export async function createPurchaseOrder(
   let poNumber: string = '';
   for (let attempt = 0; attempt < MAX_PO_RETRIES; attempt++) {
     try {
-      const txResult = await database.transaction(async (tx: any) => {
-        const today = new Date();
-        const prefix = `PO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const today = new Date();
+      const prefix = `PO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
 
-        const lastPO = await tx
-          .select({ poNumber: purchaseOrders.poNumber })
-          .from(purchaseOrders)
-          .where(sql`${purchaseOrders.poNumber} LIKE ${prefix + '%'}`)
-          .orderBy(desc(purchaseOrders.poNumber))
-          .limit(1);
+      const lastPO = await database
+        .select({ poNumber: purchaseOrders.poNumber })
+        .from(purchaseOrders)
+        .where(sql`${purchaseOrders.poNumber} LIKE ${prefix + '%'}`)
+        .orderBy(desc(purchaseOrders.poNumber))
+        .limit(1);
 
-        let sequence = 1;
-        if (lastPO.length > 0) {
-          const lastNum = parseInt(lastPO[0].poNumber.split('-').pop() || '0');
-          sequence = lastNum + 1;
-        }
-        const nextPONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+      let sequence = 1;
+      if (lastPO.length > 0) {
+        const lastNum = parseInt(lastPO[0].poNumber.split('-').pop() || '0');
+        sequence = lastNum + 1;
+      }
+      const nextPONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
 
-        let insertedId: number;
-        if (isSqlite()) {
-          const [newPO] = await tx
-            .insert(purchaseOrders)
-            .values({
-              poNumber: nextPONumber,
-              vendorId,
-              status: 'draft',
-              totalAmount,
-              currency: 'THB',
-              createdBy: userId,
-            })
-            .returning({ id: purchaseOrders.id });
-          insertedId = newPO.id;
-        } else {
-          const insertResult = await tx
-            .insert(purchaseOrders)
-            .values({
-              poNumber: nextPONumber,
-              vendorId,
-              status: 'draft',
-              totalAmount,
-              currency: 'THB',
-              createdBy: userId,
-            });
-          insertedId = getInsertId(insertResult);
-        }
-        return { id: insertedId, poNumber: nextPONumber };
-      });
-      newPOId = txResult.id;
-      poNumber = txResult.poNumber;
+      let insertedId: number;
+      if (isSqlite()) {
+        const [newPO] = await database
+          .insert(purchaseOrders)
+          .values({
+            poNumber: nextPONumber,
+            vendorId,
+            status: 'draft',
+            totalAmount,
+            currency: 'THB',
+            createdBy: userId,
+          })
+          .returning({ id: purchaseOrders.id });
+        insertedId = newPO.id;
+      } else {
+        const insertResult = await database
+          .insert(purchaseOrders)
+          .values({
+            poNumber: nextPONumber,
+            vendorId,
+            status: 'draft',
+            totalAmount,
+            currency: 'THB',
+            createdBy: userId,
+          });
+        insertedId = getInsertId(insertResult);
+      }
+      newPOId = insertedId;
+      poNumber = nextPONumber;
       break;
     } catch (error: any) {
       if (attempt < MAX_PO_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
