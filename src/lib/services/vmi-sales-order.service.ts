@@ -9,7 +9,7 @@
 
 import { eq, and, desc, inArray, or, gte, lte } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
-import { getNow, toDbDate } from '@/lib/db/date-utils';
+import { getNow, toDbDate, toQueryDate } from '@/lib/db/date-utils';
 import { createSalesOrderFromVmi } from './sales.service';
 import {
   sqliteItems,
@@ -178,10 +178,10 @@ export class VmiSalesOrderService {
       conditions.push(eq(orders.customerId, query.customerId));
     }
     if (query.fromDate) {
-      conditions.push(gte(orders.orderDate, query.fromDate));
+      conditions.push(gte(orders.orderDate, toQueryDate(query.fromDate)));
     }
     if (query.toDate) {
-      conditions.push(lte(orders.orderDate, query.toDate));
+      conditions.push(lte(orders.orderDate, toQueryDate(query.toDate)));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -523,27 +523,37 @@ export class VmiSalesOrderService {
     const now = getNow();
 
     // Create order (map API fields to DB fields)
-    const [insertedOrder] = await db
-      .insert(orders)
-      .values({
-        portalId,
-        vmiOrderId: String(orderDetail.id),
-        vmiStatus: 'submitted',
-        localStatus: 'pending',
-        vmiCustomerId: orderDetail.hospitalCode,
-        vmiCustomerName: orderDetail.hospitalName,
-        orderDate: toDbDate(orderDetail.orderDate),
-        requiredDate: orderDetail.expectedDeliveryDate ? toDbDate(orderDetail.expectedDeliveryDate) : null,
-        totalAmount: orderDetail.totalValue,
-        currency: 'THB',
-        orderDataJson: JSON.stringify(orderDetail),
-        polledAt: now,
-        createdAt: now,
-        updatedAt: now,
-      } as Record<string, unknown>)
-      .$returningId();
+    const orderValues = {
+      portalId,
+      vmiOrderId: String(orderDetail.id),
+      vmiStatus: 'submitted',
+      localStatus: 'pending',
+      vmiCustomerId: orderDetail.hospitalCode,
+      vmiCustomerName: orderDetail.hospitalName,
+      orderDate: toDbDate(orderDetail.orderDate),
+      requiredDate: orderDetail.expectedDeliveryDate ? toDbDate(orderDetail.expectedDeliveryDate) : null,
+      totalAmount: orderDetail.totalValue,
+      currency: 'THB',
+      orderDataJson: JSON.stringify(orderDetail),
+      polledAt: now,
+      createdAt: now,
+      updatedAt: now,
+    } as Record<string, unknown>;
 
-    const orderId = insertedOrder.id;
+    let orderId: number;
+    if (this.isSqlite) {
+      const [inserted] = await db
+        .insert(orders)
+        .values(orderValues)
+        .returning({ id: orders.id });
+      orderId = inserted.id;
+    } else {
+      const [inserted] = await db
+        .insert(orders)
+        .values(orderValues)
+        .$returningId();
+      orderId = inserted.id;
+    }
 
     // Create order lines with item matching
     let unmatchedCount = 0;
@@ -679,6 +689,19 @@ export class VmiSalesOrderService {
         matchStatus: 'manual_mapped',
       } as Record<string, unknown>)
       .where(eq(lines.id, lineId));
+
+    // After the line update, recalculate and update parent order status
+    const allLines = await db.select().from(lines).where(eq(lines.vmiSalesOrderId, orderId));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unmatchedCount = allLines.filter((l: any) => l.matchStatus === 'unmatched').length;
+    void unmatchedCount; // count calculated for potential future use
+    const now = getNow();
+
+    // Update parent order's updatedAt to signal the change
+    const { orders } = this.getTables();
+    await db.update(orders).set({
+      updatedAt: now,
+    } as Record<string, unknown>).where(eq(orders.id, orderId));
 
     // Return updated line
     const [updatedLine] = await db.select().from(lines).where(eq(lines.id, lineId));

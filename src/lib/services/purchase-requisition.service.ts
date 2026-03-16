@@ -413,7 +413,7 @@ export async function updatePRLine(
 
     const currentLine = lineResult[0];
     const newQuantity = data.quantity ?? currentLine.quantity;
-    const newUnitPrice = data.estimatedUnitPrice ?? currentLine.estimatedUnitPrice;
+    const newUnitPrice = data.estimatedUnitPrice ?? currentLine.estimatedPrice;
     const estimatedAmount = newQuantity * newUnitPrice;
 
     await db
@@ -423,8 +423,8 @@ export async function updatePRLine(
         ...(data.itemCode !== undefined && { itemCode: data.itemCode }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.quantity !== undefined && { quantity: data.quantity }),
-        ...(data.unitOfMeasure !== undefined && { unitOfMeasure: data.unitOfMeasure }),
-        ...(data.estimatedUnitPrice !== undefined && { estimatedUnitPrice: data.estimatedUnitPrice }),
+        ...(data.unitOfMeasure !== undefined && { unit: data.unitOfMeasure }),
+        ...(data.estimatedUnitPrice !== undefined && { estimatedPrice: data.estimatedUnitPrice }),
         estimatedAmount,
         ...(data.suggestedVendorId !== undefined && { suggestedVendorId: data.suggestedVendorId }),
         ...(data.notes !== undefined && { notes: data.notes }),
