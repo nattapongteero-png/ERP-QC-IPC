@@ -20,7 +20,7 @@ const PURCHASING_PAGES = [
   'src/app/purchasing/vendors/page.tsx',
   'src/app/purchasing/vendors/new/page.tsx',
   'src/app/purchasing/vendors/[id]/page.tsx',
-  'src/app/purchasing/vmi/orders/page.tsx',
+  // 'src/app/purchasing/vmi/orders/page.tsx', // Replaced with redirect to /sales/vmi-orders
 ];
 
 function readFileContent(filePath: string): string {

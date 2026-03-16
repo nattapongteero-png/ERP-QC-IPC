@@ -22,7 +22,7 @@ const HR_PAGES = [
   // Top-level pages
   'src/app/hr/audit/page.tsx',
   'src/app/hr/notifications/page.tsx',
-  'src/app/hr/org-chart/page.tsx',
+  // 'src/app/hr/org-chart/page.tsx', // Replaced with redirect to /hr/org
   'src/app/hr/org/page.tsx',
   // Authorizations sub-module
   'src/app/hr/authorizations/page.tsx',
