@@ -26,7 +26,7 @@ async function getAuthToken(request: NextRequest): Promise<string | null> {
   // Fall back to cookies
   try {
     const cookieStore = await cookies();
-    const tokenCookie = cookieStore.get('token') || cookieStore.get('auth_token');
+    const tokenCookie = cookieStore.get('auth-token');
     return tokenCookie?.value || null;
   } catch {
     return null;

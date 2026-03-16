@@ -24,11 +24,7 @@ export async function POST(request: NextRequest) {
     // Allow if:
     // 1. CRON_SECRET is not set (development mode)
     // 2. CRON_SECRET matches
-    // 3. Request is from localhost (internal call)
-    const isAuthorized =
-      !expectedSecret ||
-      cronSecret === expectedSecret ||
-      request.headers.get('host')?.includes('localhost');
+    const isAuthorized = !expectedSecret || cronSecret === expectedSecret;
 
     if (!isAuthorized) {
       return NextResponse.json({
