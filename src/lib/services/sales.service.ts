@@ -118,63 +118,60 @@ export async function createSalesOrder(
 
   const totalAmount = lines.reduce((sum: number, l: { quantity: number; unitPrice: number }) => sum + l.quantity * l.unitPrice, 0);
 
-  // Generate SO number and insert inside a transaction to prevent duplicate numbers
+  // Generate SO number with retry to prevent duplicate numbers under concurrency
   const MAX_RETRIES = 3;
   let newSOId: number = 0;
   let soNumber: string = '';
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const result = await database.transaction(async (tx: any) => {
-        const today = new Date();
-        const prefix = `SO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-        const lastSO = await tx
-          .select({ soNumber: salesOrders.soNumber })
-          .from(salesOrders)
-          .where(sql`${salesOrders.soNumber} LIKE ${prefix + '%'}`)
-          .orderBy(desc(salesOrders.soNumber))
-          .limit(1);
+      const today = new Date();
+      const prefix = `SO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const lastSO = await database
+        .select({ soNumber: salesOrders.soNumber })
+        .from(salesOrders)
+        .where(sql`${salesOrders.soNumber} LIKE ${prefix + '%'}`)
+        .orderBy(desc(salesOrders.soNumber))
+        .limit(1);
 
-        let sequence = 1;
-        if (lastSO.length > 0) {
-          sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
-        }
-        const nextSONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+      let sequence = 1;
+      if (lastSO.length > 0) {
+        sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
+      }
+      const nextSONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
 
-        let insertedId: number;
-        if (isSqlite()) {
-          const [newSO] = await tx
-            .insert(salesOrders)
-            .values({
-              soNumber: nextSONumber,
-              customerName: customer.name,
-              customerContact: customer.contact,
-              customerAddress: customer.address,
-              status: 'draft',
-              totalAmount,
-              currency: 'THB',
-              createdBy: userId,
-            })
-            .returning({ id: salesOrders.id });
-          insertedId = newSO.id;
-        } else {
-          const insertResult = await tx
-            .insert(salesOrders)
-            .values({
-              soNumber: nextSONumber,
-              customerName: customer.name,
-              customerContact: customer.contact,
-              customerAddress: customer.address,
-              status: 'draft',
-              totalAmount,
-              currency: 'THB',
-              createdBy: userId,
-            });
-          insertedId = getInsertId(insertResult);
-        }
-        return { id: insertedId, soNumber: nextSONumber };
-      });
-      newSOId = result.id;
-      soNumber = result.soNumber;
+      let insertedId: number;
+      if (isSqlite()) {
+        const [newSO] = await database
+          .insert(salesOrders)
+          .values({
+            soNumber: nextSONumber,
+            customerName: customer.name,
+            customerContact: customer.contact,
+            customerAddress: customer.address,
+            status: 'draft',
+            totalAmount,
+            currency: 'THB',
+            createdBy: userId,
+          })
+          .returning({ id: salesOrders.id });
+        insertedId = newSO.id;
+      } else {
+        const insertResult = await database
+          .insert(salesOrders)
+          .values({
+            soNumber: nextSONumber,
+            customerName: customer.name,
+            customerContact: customer.contact,
+            customerAddress: customer.address,
+            status: 'draft',
+            totalAmount,
+            currency: 'THB',
+            createdBy: userId,
+          });
+        insertedId = getInsertId(insertResult);
+      }
+      newSOId = insertedId;
+      soNumber = nextSONumber;
       break;
     } catch (error: any) {
       if (attempt < MAX_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
@@ -227,73 +224,70 @@ export async function createSalesOrderFromVmi(data: {
   const now = getNow();
   const totalAmount = data.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
 
-  // Generate SO number and insert inside a transaction to prevent duplicate numbers
+  // Generate SO number with retry to prevent duplicate numbers under concurrency
   const MAX_SO_RETRIES = 3;
   let newSOId: number = 0;
   let soNumber: string = '';
   for (let attempt = 0; attempt < MAX_SO_RETRIES; attempt++) {
     try {
-      const result = await database.transaction(async (tx: any) => {
-        const today = new Date();
-        const prefix = `SO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-        const lastSO = await tx
-          .select({ soNumber: salesOrders.soNumber })
-          .from(salesOrders)
-          .where(sql`${salesOrders.soNumber} LIKE ${prefix + '%'}`)
-          .orderBy(desc(salesOrders.soNumber))
-          .limit(1);
+      const today = new Date();
+      const prefix = `SO-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const lastSO = await database
+        .select({ soNumber: salesOrders.soNumber })
+        .from(salesOrders)
+        .where(sql`${salesOrders.soNumber} LIKE ${prefix + '%'}`)
+        .orderBy(desc(salesOrders.soNumber))
+        .limit(1);
 
-        let sequence = 1;
-        if (lastSO.length > 0) {
-          sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
-        }
-        const nextSONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
+      let sequence = 1;
+      if (lastSO.length > 0) {
+        sequence = parseInt(lastSO[0].soNumber.split('-').pop() || '0') + 1;
+      }
+      const nextSONumber = `${prefix}-${String(sequence).padStart(4, '0')}`;
 
-        let insertedId: number;
-        if (isSqlite()) {
-          const [newSO] = await tx
-            .insert(salesOrders)
-            .values({
-              soNumber: nextSONumber,
-              customerName: data.customerName,
-              status: 'confirmed',
-              orderDate: data.orderDate,
-              requiredDate: data.requiredDate || null,
-              totalAmount,
-              currency: 'THB',
-              source: 'vmi',
-              vmiSalesOrderId: data.vmiSalesOrderId,
-              notes: data.notes || null,
-              createdBy: data.userId,
-              createdAt: now,
-              updatedAt: now,
-            })
-            .returning({ id: salesOrders.id });
-          insertedId = newSO.id;
-        } else {
-          const insertResult = await tx
-            .insert(salesOrders)
-            .values({
-              soNumber: nextSONumber,
-              customerName: data.customerName,
-              status: 'confirmed',
-              orderDate: data.orderDate,
-              requiredDate: data.requiredDate || null,
-              totalAmount,
-              currency: 'THB',
-              source: 'vmi',
-              vmiSalesOrderId: data.vmiSalesOrderId,
-              notes: data.notes || null,
-              createdBy: data.userId,
-              createdAt: now,
-              updatedAt: now,
-            });
-          insertedId = getInsertId(insertResult);
-        }
-        return { id: insertedId, soNumber: nextSONumber };
-      });
-      newSOId = result.id;
-      soNumber = result.soNumber;
+      let insertedId: number;
+      if (isSqlite()) {
+        const [newSO] = await database
+          .insert(salesOrders)
+          .values({
+            soNumber: nextSONumber,
+            customerName: data.customerName,
+            status: 'confirmed',
+            orderDate: data.orderDate,
+            requiredDate: data.requiredDate || null,
+            totalAmount,
+            currency: 'THB',
+            source: 'vmi',
+            vmiSalesOrderId: data.vmiSalesOrderId,
+            notes: data.notes || null,
+            createdBy: data.userId,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning({ id: salesOrders.id });
+        insertedId = newSO.id;
+      } else {
+        const insertResult = await database
+          .insert(salesOrders)
+          .values({
+            soNumber: nextSONumber,
+            customerName: data.customerName,
+            status: 'confirmed',
+            orderDate: data.orderDate,
+            requiredDate: data.requiredDate || null,
+            totalAmount,
+            currency: 'THB',
+            source: 'vmi',
+            vmiSalesOrderId: data.vmiSalesOrderId,
+            notes: data.notes || null,
+            createdBy: data.userId,
+            createdAt: now,
+            updatedAt: now,
+          });
+        insertedId = getInsertId(insertResult);
+      }
+      newSOId = insertedId;
+      soNumber = nextSONumber;
       break;
     } catch (error: any) {
       if (attempt < MAX_SO_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
