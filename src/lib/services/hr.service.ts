@@ -1477,7 +1477,7 @@ export async function approveJobDescription(
     );
 
   // Approve current JD
-  const now = new Date().toISOString();
+  const now = getNow();
   await db
     .update(tables.jobDescriptions)
     .set({
@@ -2577,7 +2577,7 @@ export async function updateAuthorization(
 
   const updateData = {
     ...data,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (isSqlite()) {
@@ -3081,7 +3081,7 @@ export async function cancelDelegation(id: number): Promise<Delegation> {
 
   const updateData = {
     effectiveTo: now,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (isSqlite()) {
@@ -3357,7 +3357,7 @@ export async function updateHealthRecord(
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (data.examinationType !== undefined) updateData.examinationType = data.examinationType;
@@ -3803,7 +3803,7 @@ export async function updateAppRole(
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (data.name !== undefined) updateData.name = data.name;
@@ -4083,7 +4083,7 @@ export async function revokeEmployeeRole(id: number): Promise<EmployeeRole> {
 
   const updateData = {
     effectiveTo: now,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (isSqlite()) {
@@ -4551,7 +4551,7 @@ export async function createNotification(
     referenceId: data.referenceId || null,
     isRead: false,
     readAt: null,
-    createdAt: new Date().toISOString(),
+    createdAt: getNow(),
   });
 
    
@@ -4676,7 +4676,7 @@ export async function markNotificationRead(id: number): Promise<void> {
     .update(tables.notifications)
     .set({
       isRead: true,
-      readAt: new Date().toISOString(),
+      readAt: getNow(),
     })
     .where(eq(tables.notifications.id, id));
 }
@@ -4693,7 +4693,7 @@ export async function markAllNotificationsRead(employeeId: number): Promise<void
     .update(tables.notifications)
     .set({
       isRead: true,
-      readAt: new Date().toISOString(),
+      readAt: getNow(),
     })
     .where(
       and(

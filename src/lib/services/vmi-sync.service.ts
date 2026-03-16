@@ -21,6 +21,7 @@ import {
   type VmiSyncHistory,
 } from '@/lib/db/schema';
 import { decrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
+import { getNow } from '../db/date-utils';
 import type {
   VmiSyncType,
   VmiSyncTriggerType,
@@ -1201,7 +1202,7 @@ export class VmiSyncService {
     const { items, priceOffers } = this.getTables();
 
     // Get current date for filtering active offers
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Build conditions for items
     const itemConditions = [
@@ -1259,7 +1260,7 @@ export class VmiSyncService {
     const db = (await this.getDb()) as any;
     const { syncHistory } = this.getTables();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     const [result] = await db
       .insert(syncHistory)
@@ -1299,7 +1300,7 @@ export class VmiSyncService {
     const db = (await this.getDb()) as any;
     const { syncHistory } = this.getTables();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     await db
       .update(syncHistory)
@@ -1345,7 +1346,7 @@ export class VmiSyncService {
       .from(portals)
       .where(and(eq(portals.isEnabled, true), eq(portals.orderPollingEnabled, true)));
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     for (const portal of records) {
       const portalError = data.errors?.find((e: { portalId: number }) => e.portalId === portal.id);

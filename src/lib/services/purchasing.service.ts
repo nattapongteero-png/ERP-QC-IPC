@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toQueryDate, getTodayStr } from '../db/date-utils';
+import { toQueryDate, getTodayStr, getNow } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqlitePurchaseOrders,
@@ -381,12 +381,12 @@ export async function updatePurchaseOrderStatus(
   // Update status
   const updateData: Record<string, unknown> = {
     status: newStatus,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (newStatus === 'approved') {
     updateData.approvedBy = userId;
-    updateData.approvedAt = new Date().toISOString();
+    updateData.approvedAt = getNow();
   }
 
   await database
@@ -528,7 +528,7 @@ export async function receivePurchaseOrder(
       .update(purchaseOrderLines)
       .set({
         receivedQuantity: newReceivedQty,
-        updatedAt: new Date().toISOString(),
+        updatedAt: getNow(),
       })
       .where(eq(purchaseOrderLines.id, received.lineId));
 

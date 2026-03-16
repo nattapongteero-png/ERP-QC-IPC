@@ -16,6 +16,7 @@ import {
   type NewVmiPortalConfig,
 } from '@/lib/db/schema';
 import { encrypt, decrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
+import { getNow } from '../db/date-utils';
 import type {
   VmiPortalConfigInput,
   VmiPortalConfigUpdate,
@@ -211,7 +212,7 @@ export class VmiPortalConfigService {
       throw new VmiPortalConfigError('INVALID_URL', 'Portal URL must use HTTPS');
     }
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     // Encrypt the API key before storing
     const encryptedApiKey = input.apiKey ? encrypt(input.apiKey) : '';
@@ -267,7 +268,7 @@ export class VmiPortalConfigService {
 
     const updateData: Record<string, unknown> = {
       updatedBy: userId,
-      updatedAt: this.isSqlite ? new Date().toISOString() : new Date(),
+      updatedAt: getNow(),
     };
 
     // Copy allowed fields
@@ -408,7 +409,7 @@ export class VmiPortalConfigService {
 
     const updateData: Record<string, unknown> = {
       connectionStatus: status,
-      updatedAt: this.isSqlite ? new Date().toISOString() : new Date(),
+      updatedAt: getNow(),
     };
 
     if (status === 'error' && errorMessage) {
@@ -432,7 +433,7 @@ export class VmiPortalConfigService {
     const db = (await this.getDb()) as any;
     const table = this.getTable();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     await db
       .update(table)
@@ -451,7 +452,7 @@ export class VmiPortalConfigService {
     const db = (await this.getDb()) as any;
     const table = this.getTable();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     await db
       .update(table)
@@ -470,7 +471,7 @@ export class VmiPortalConfigService {
     const db = (await this.getDb()) as any;
     const table = this.getTable();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     await db
       .update(table)
@@ -489,7 +490,7 @@ export class VmiPortalConfigService {
     const db = (await this.getDb()) as any;
     const table = this.getTable();
 
-    const now = this.isSqlite ? new Date().toISOString() : new Date();
+    const now = getNow();
 
     await db
       .update(table)

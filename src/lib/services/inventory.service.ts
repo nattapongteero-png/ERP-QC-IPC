@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toQueryDate, getTodayStr } from '../db/date-utils';
+import { toQueryDate, getTodayStr, getNow } from '../db/date-utils';
 import { eq, and, gte, lte, desc, asc, sql, or } from 'drizzle-orm';
 import {
   sqliteInventoryLots,
@@ -524,7 +524,7 @@ export async function updateLotStatus(
   // Update status
   const updateData: Record<string, unknown> = {
     status: newStatus,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   if (coaNumber) {
@@ -885,7 +885,7 @@ export async function adjustInventory(
     .update(lots)
     .set({
       quantity: newQuantity,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(lots.id, lotId));
 
@@ -969,7 +969,7 @@ export async function transferInventory(
     .update(lots)
     .set({
       quantity: sql`${lots.quantity} - ${quantity}`,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(lots.id, lotId));
 
@@ -1215,7 +1215,7 @@ export async function updateLotManufacturerInfo(
       importerName,
       importerId,
       countryOfOrigin,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(lots.id, lotId));
 
@@ -1288,7 +1288,7 @@ export async function updateLotRetestInfo(
       retestDate,
       retestIntervalMonths,
       retestStatus,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(lots.id, lotId));
 

@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toDateSafe } from '../db/date-utils';
+import { toDateSafe, getNow } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
 import {
   sqliteWorkOrders,
@@ -390,7 +390,7 @@ export async function updateWorkOrderStatus(
   // Update status
   const updateData: Record<string, unknown> = {
     status: newStatus,
-    updatedAt: new Date().toISOString(),
+    updatedAt: getNow(),
   };
 
   // Set timestamps based on status
@@ -549,7 +549,7 @@ export async function dispenseMaterial(
     unitCost,   // WAC at time of issue
     totalCost,  // quantity × unitCost
     dispensedBy: userId,
-    dispensedAt: new Date().toISOString(),
+    dispensedAt: getNow(),
   });
 
   return { success: true, deviationRequired, message };
@@ -663,7 +663,7 @@ export async function recordProductionOutput(
     .set({
       actualQuantity,
       rejectQuantity,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getNow(),
     })
     .where(eq(workOrders.id, workOrderId));
 
@@ -855,7 +855,7 @@ export async function performLineClearance(
     recordId: workOrderId,
     newValue: {
       checklist,
-      clearedAt: new Date().toISOString(),
+      clearedAt: getNow(),
       clearedBy: userId,
     },
   });
@@ -1211,7 +1211,7 @@ export async function copyBOM(
     .where(eq(bomLines.bomId, sourceBomId))
     .orderBy(asc(bomLines.sequence));
 
-  const now = new Date().toISOString();
+  const now = getNow();
   const useSqlite = process.env.DB_TYPE === 'sqlite';
 
   // Create new BOM
@@ -1227,8 +1227,8 @@ export async function copyBOM(
     lossAllowance: sourceBom.lossAllowance,
     effectiveDate: null,
     expiryDate: null,
-    createdAt: useSqlite ? now : new Date(),
-    updatedAt: useSqlite ? now : new Date(),
+    createdAt: now,
+    updatedAt: now,
   };
 
   const result = await (database as any).insert(bom).values(newBomValues);
@@ -1244,7 +1244,7 @@ export async function copyBOM(
       sequence: line.sequence,
       isOptional: line.isOptional,
       notes: line.notes,
-      createdAt: useSqlite ? now : new Date(),
+      createdAt: now,
     });
   }
 
@@ -1329,7 +1329,7 @@ export async function addBOMLine(
   }
 
   const useSqlite = process.env.DB_TYPE === 'sqlite';
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // Insert new line
   const result = await (database as any).insert(bomLines).values({
@@ -1340,7 +1340,7 @@ export async function addBOMLine(
     sequence,
     isOptional: line.isOptional || false,
     notes: line.notes || null,
-    createdAt: useSqlite ? now : new Date(),
+    createdAt: now,
   });
 
   const newLineId = useSqlite ? result.lastInsertRowid : result[0].insertId;
@@ -1348,7 +1348,7 @@ export async function addBOMLine(
   // Update BOM timestamp
   await database
     .update(bom)
-    .set({ updatedAt: useSqlite ? now : new Date() })
+    .set({ updatedAt: now })
     .where(eq(bom.id, bomId));
 
   // Audit log
@@ -1392,7 +1392,7 @@ export async function updateBOMLine(
   }
 
   const useSqlite = process.env.DB_TYPE === 'sqlite';
-  const now = new Date().toISOString();
+  const now = getNow();
 
   // Update line
   await database
@@ -1409,7 +1409,7 @@ export async function updateBOMLine(
   // Update BOM timestamp
   await database
     .update(bom)
-    .set({ updatedAt: useSqlite ? now : new Date() })
+    .set({ updatedAt: now })
     .where(eq(bom.id, existingLine.bomId));
 
   // Audit log
@@ -1449,10 +1449,10 @@ export async function removeBOMLine(
 
   // Update BOM timestamp
   const useSqlite = process.env.DB_TYPE === 'sqlite';
-  const now = new Date().toISOString();
+  const now = getNow();
   await database
     .update(bom)
-    .set({ updatedAt: useSqlite ? now : new Date() })
+    .set({ updatedAt: now })
     .where(eq(bom.id, existingLine.bomId));
 
   // Audit log
