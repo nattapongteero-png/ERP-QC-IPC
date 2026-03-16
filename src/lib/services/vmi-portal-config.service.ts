@@ -70,10 +70,9 @@ export interface VmiPortalConfigSummary {
 // ============================================
 
 export class VmiPortalConfigService {
-  private readonly isSqlite: boolean;
-
-  constructor() {
-    this.isSqlite = isSqlite();
+  // Bug L2: use getter instead of caching isSqlite at construction time
+  private get isSqlite(): boolean {
+    return isSqlite();
   }
 
   /**

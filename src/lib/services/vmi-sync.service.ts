@@ -123,12 +123,11 @@ interface PortalConfig {
 // ============================================
 
 export class VmiSyncService {
-  private readonly isSqlite: boolean;
   private readonly BATCH_SIZE = 100;
 
-  constructor() {
-    this.isSqlite = isSqlite();
-    console.log('[VMI Sync] Service initialized, using', this.isSqlite ? 'SQLite' : 'MySQL');
+  // Bug L2: use getter instead of caching isSqlite at construction time
+  private get isSqlite(): boolean {
+    return isSqlite();
   }
 
   private log(message: string, data?: unknown) {

@@ -26,6 +26,7 @@ import {
   type VmiSalesOrderLine,
 } from '@/lib/db/schema';
 import { decrypt } from '@/lib/crypto/encrypt';
+import { createAuditLog } from '@/lib/audit';
 import { vmiPortalConfigService } from './vmi-portal-config.service';
 import type {
   VmiOrderStatus,
@@ -115,18 +116,16 @@ interface PortalOrderDetail {
 // ============================================
 
 export class VmiSalesOrderService {
-  private readonly isSqlite: boolean;
-
-  constructor() {
-     
-    this.isSqlite = isSqlite();
+  // Bug L2: use getter instead of caching isSqlite at construction time
+  private get isSqliteDb(): boolean {
+    return isSqlite();
   }
 
   /**
    * Get the appropriate database connection
    */
   private async getDb() {
-    return this.isSqlite ? getSqliteDb() : await getMysqlDb();
+    return this.isSqliteDb ? getSqliteDb() : await getMysqlDb();
   }
 
   /**
@@ -134,11 +133,11 @@ export class VmiSalesOrderService {
    */
   private getTables() {
     return {
-      items: this.isSqlite ? sqliteItems : mysqlItems,
-      customers: this.isSqlite ? sqliteCustomers : mysqlCustomers,
-      portals: this.isSqlite ? sqliteVmiPortalConfig : mysqlVmiPortalConfig,
-      orders: this.isSqlite ? sqliteVmiSalesOrders : mysqlVmiSalesOrders,
-      lines: this.isSqlite ? sqliteVmiSalesOrderLines : mysqlVmiSalesOrderLines,
+      items: this.isSqliteDb ? sqliteItems : mysqlItems,
+      customers: this.isSqliteDb ? sqliteCustomers : mysqlCustomers,
+      portals: this.isSqliteDb ? sqliteVmiPortalConfig : mysqlVmiPortalConfig,
+      orders: this.isSqliteDb ? sqliteVmiSalesOrders : mysqlVmiSalesOrders,
+      lines: this.isSqliteDb ? sqliteVmiSalesOrderLines : mysqlVmiSalesOrderLines,
     };
   }
 
@@ -541,7 +540,7 @@ export class VmiSalesOrderService {
     } as Record<string, unknown>;
 
     let orderId: number;
-    if (this.isSqlite) {
+    if (this.isSqliteDb) {
       const [inserted] = await db
         .insert(orders)
         .values(orderValues)
@@ -581,6 +580,22 @@ export class VmiSalesOrderService {
         matchStatus: matchResult.status,
       } as Record<string, unknown>);
     }
+
+    // Bug L1: Audit log for order creation
+    await createAuditLog({
+      userId: 1,
+      action: 'CREATE',
+      tableName: 'vmi_sales_orders',
+      recordId: orderId,
+      newValue: {
+        portalId,
+        vmiOrderId: String(orderDetail.id),
+        vmiStatus: 'submitted',
+        localStatus: 'pending',
+        vmiCustomerName: orderDetail.hospitalName,
+        lineCount: (orderDetail.items || []).length,
+      },
+    });
 
     return {
       id: orderId,
@@ -690,18 +705,15 @@ export class VmiSalesOrderService {
       } as Record<string, unknown>)
       .where(eq(lines.id, lineId));
 
-    // After the line update, recalculate and update parent order status
-    const allLines = await db.select().from(lines).where(eq(lines.vmiSalesOrderId, orderId));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const unmatchedCount = allLines.filter((l: any) => l.matchStatus === 'unmatched').length;
-    void unmatchedCount; // count calculated for potential future use
-    const now = getNow();
-
-    // Update parent order's updatedAt to signal the change
-    const { orders } = this.getTables();
-    await db.update(orders).set({
-      updatedAt: now,
-    } as Record<string, unknown>).where(eq(orders.id, orderId));
+    // Bug L1: Audit log for line match update
+    await createAuditLog({
+      userId: 1,
+      action: 'UPDATE',
+      tableName: 'vmi_sales_order_lines',
+      recordId: lineId,
+      oldValue: { itemId: line.itemId, matchStatus: line.matchStatus },
+      newValue: { itemId, localCode: item.code, matchStatus: 'manual_mapped' },
+    });
 
     // Return updated line
     const [updatedLine] = await db.select().from(lines).where(eq(lines.id, lineId));
@@ -756,6 +768,19 @@ export class VmiSalesOrderService {
     if (data.notes !== undefined) updateData.notes = data.notes;
 
     await db.update(orders).set(updateData).where(eq(orders.id, orderId));
+
+    // Bug L1: Audit log for order update
+    await createAuditLog({
+      userId: 1,
+      action: 'UPDATE',
+      tableName: 'vmi_sales_orders',
+      recordId: orderId,
+      oldValue: {
+        customerId: existing.customerId,
+        localStatus: existing.localStatus,
+      },
+      newValue: updateData,
+    });
 
     const updated = await this.getOrderById(orderId);
     return updated!;
@@ -931,6 +956,16 @@ export class VmiSalesOrderService {
         updatedAt: now,
       } as Record<string, unknown>)
       .where(eq(orders.id, orderId));
+
+    // Bug L1: Audit log for ship operation
+    await createAuditLog({
+      userId: 1,
+      action: 'SHIP',
+      tableName: 'vmi_sales_orders',
+      recordId: orderId,
+      oldValue: { localStatus: order.localStatus, vmiStatus: order.vmiStatus },
+      newValue: { localStatus: 'shipped', vmiStatus: 'shipped' },
+    });
 
     // Notify VMI Portal
     try {
