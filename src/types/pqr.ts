@@ -61,8 +61,8 @@ export interface PqrMetric {
   metricValue: number | null;
   target: number | null;
   status: MetricStatus;
-  details: string | null; // JSON supporting data
-  calculatedAt: string;
+  notes: string | null; // JSON supporting data
+  createdAt: string;
 }
 
 export interface PqrReportWithMetrics extends PqrReport {

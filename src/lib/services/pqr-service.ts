@@ -872,7 +872,7 @@ export async function calculatePQRMetrics(
     metricValue: number | null;
     target: number | null;
     status: MetricStatus;
-    details: string;
+    notes: string;
   }>;
   overallScore: number;
   recommendations: string[];
@@ -882,7 +882,7 @@ export async function calculatePQRMetrics(
     metricValue: number | null;
     target: number | null;
     status: MetricStatus;
-    details: string;
+    notes: string;
   }> = [];
 
   const recommendations: string[] = [];
@@ -902,7 +902,7 @@ export async function calculatePQRMetrics(
         : batchSuccessRate >= batchSuccessTarget - 5
         ? 'warning'
         : 'fail',
-    details: JSON.stringify(aggregatedData.batchMetrics.batchesByStatus),
+    notes: JSON.stringify(aggregatedData.batchMetrics.batchesByStatus),
   });
 
   if (batchSuccessRate !== null && batchSuccessRate < batchSuccessTarget) {
@@ -918,7 +918,7 @@ export async function calculatePQRMetrics(
       metricValue: aggregatedData.batchMetrics.averageYield,
       target: null,
       status: 'pass',
-      details: `Average yield: ${aggregatedData.batchMetrics.averageYield.toFixed(2)}%`,
+      notes: `Average yield: ${aggregatedData.batchMetrics.averageYield.toFixed(2)}%`,
     });
   }
 
@@ -942,7 +942,7 @@ export async function calculatePQRMetrics(
         : deviationRate <= maxDeviationRate * 1.2
         ? 'warning'
         : 'fail',
-    details: JSON.stringify(aggregatedData.deviationMetrics.bySeverity),
+    notes: JSON.stringify(aggregatedData.deviationMetrics.bySeverity),
   });
 
   if (deviationRate !== null && deviationRate > maxDeviationRate) {
@@ -974,7 +974,7 @@ export async function calculatePQRMetrics(
         : capaClosureRate >= minCapaClosureRate - 10
         ? 'warning'
         : 'fail',
-    details: JSON.stringify(aggregatedData.capaMetrics.byStatus),
+    notes: JSON.stringify(aggregatedData.capaMetrics.byStatus),
   });
 
   if (capaClosureRate !== null && capaClosureRate < minCapaClosureRate) {
@@ -999,7 +999,7 @@ export async function calculatePQRMetrics(
         : oosRate <= maxOosRate * 1.5
         ? 'warning'
         : 'fail',
-    details: JSON.stringify(aggregatedData.oosMetrics.byTestType),
+    notes: JSON.stringify(aggregatedData.oosMetrics.byTestType),
   });
 
   if (oosRate !== null && oosRate > maxOosRate) {
@@ -1027,7 +1027,7 @@ export async function calculatePQRMetrics(
         : complaintRate <= maxComplaintRate * 1.5
         ? 'warning'
         : 'fail',
-    details: JSON.stringify({
+    notes: JSON.stringify({
       byCategory: aggregatedData.complaintMetrics.byCategory,
       bySeverity: aggregatedData.complaintMetrics.bySeverity,
     }),
@@ -1065,7 +1065,7 @@ export async function calculatePQRMetrics(
         : stabilityCompliance >= 95
         ? 'warning'
         : 'fail',
-    details: aggregatedData.stabilityMetrics.summary,
+    notes: aggregatedData.stabilityMetrics.summary,
   });
 
   if (aggregatedData.stabilityMetrics.alerts > 0) {
