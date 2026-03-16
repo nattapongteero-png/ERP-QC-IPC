@@ -8,6 +8,7 @@
  */
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -138,7 +139,7 @@ function IssuesListPageHeader() {
 // Main Component
 // ============================================
 
-export default function IssuesListPage() {
+function IssuesListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -403,5 +404,13 @@ export default function IssuesListPage() {
         Showing {items.length} of {issuesData?.total || 0} issues
       </div>
     </div>
+  );
+}
+
+export default function IssuesListPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+      <IssuesListContent />
+    </Suspense>
   );
 }

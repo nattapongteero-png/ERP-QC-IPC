@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const itemsTable = getTableRef('items');
     const lotsTable = getTableRef('inventoryLots');
     const warehousesTable = getTableRef('warehouses');
+    const standardCostsTable = getTableRef('standardCosts');
 
     // Build inventory valuation query
     const conditions: (SQL | undefined)[] = [];
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Only include released lots (available for use)
     conditions.push(eq(lotsTable.status, 'released'));
 
-    // Query inventory lots with item and warehouse details
+    // Query inventory lots with item, warehouse, and current standard cost details
     const results = await executeDbOperation(async (db) => {
       return db
         .select({
@@ -47,15 +48,22 @@ export async function GET(request: NextRequest) {
           lotNumber: lotsTable.lotNumber,
           quantity: lotsTable.quantity,
           expiryDate: lotsTable.expiryDate,
+          standardUnitCost: standardCostsTable.totalCost,
         })
         .from(lotsTable)
         .innerJoin(itemsTable, eq(lotsTable.itemId, itemsTable.id))
         .innerJoin(warehousesTable, eq(lotsTable.warehouseId, warehousesTable.id))
+        .leftJoin(
+          standardCostsTable,
+          and(
+            eq(standardCostsTable.itemId, itemsTable.id),
+            eq(standardCostsTable.isCurrent, true)
+          )
+        )
         .where(conditions.length > 0 ? and(...conditions) : undefined);
     });
 
-    // Calculate total value for each row
-    // Note: unitCost is not available in the lots table, using a placeholder value
+    // Calculate total value for each row using standard cost when available
     const valuationData = results.map((row: {
       itemCode: string;
       itemName: string;
@@ -66,8 +74,13 @@ export async function GET(request: NextRequest) {
       lotNumber: string;
       quantity: number | string;
       expiryDate: string | null;
+      standardUnitCost: number | string | null;
     }) => {
-      const qty = typeof row.quantity === 'string' ? parseFloat(row.quantity) : row.quantity;
+      const qty = typeof row.quantity === 'string' ? parseFloat(row.quantity) : (row.quantity ?? 0);
+      const unitCost = row.standardUnitCost !== null && row.standardUnitCost !== undefined
+        ? (typeof row.standardUnitCost === 'string' ? parseFloat(row.standardUnitCost) : row.standardUnitCost)
+        : null;
+      const totalValue = unitCost !== null ? qty * unitCost : null;
       return {
         itemCode: row.itemCode,
         itemName: row.itemName,
@@ -77,8 +90,8 @@ export async function GET(request: NextRequest) {
         warehouseName: row.warehouseName,
         lotNumber: row.lotNumber,
         quantity: qty,
-        unitCost: 0, // Unit cost not available in lots table
-        totalValue: 0, // Total value requires unit cost
+        unitCost, // null if no standard cost defined for this item
+        totalValue, // null if no standard cost defined for this item
         expiryDate: row.expiryDate,
       };
     });
@@ -87,7 +100,10 @@ export async function GET(request: NextRequest) {
     const summary = {
       totalItems: valuationData.length,
       totalQuantity: valuationData.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0),
-      totalValue: valuationData.reduce((sum: number, item: { totalValue: number }) => sum + item.totalValue, 0),
+      totalValue: valuationData.reduce((sum: number | null, item: { totalValue: number | null }) => {
+        if (item.totalValue === null) return sum;
+        return (sum ?? 0) + item.totalValue;
+      }, null as number | null),
       asOfDate,
       generatedAt: new Date().toISOString(),
     };

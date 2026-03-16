@@ -21,7 +21,7 @@ import {
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
 import { getNow, getTodayStr } from '../db/date-utils';
-import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, THAI_VAT_RATE } from './accounting.service';
+import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, THAI_VAT_RATE, calculateVAT } from './accounting.service';
 import { calculateCOGS, updateSOLineWithCOGS } from './unit-cost.service';
 
 // Types
@@ -523,8 +523,9 @@ export async function fulfillSalesOrderLine(
     // Only create journal entries if there's a price
     if (lineTotal > 0) {
       // Calculate VAT (7%)
-      const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
-      const netAmount = lineTotal - vatAmount;
+      const vatCalc = calculateVAT(lineTotal, false);
+      const vatAmount = vatCalc.vatAmount;
+      const netAmount = vatCalc.baseAmount;
 
       // Use COGS from the calculated result
       const costOfGoodsSold = cogsResult.totalCost;

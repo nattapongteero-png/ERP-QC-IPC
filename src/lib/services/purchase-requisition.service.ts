@@ -241,30 +241,21 @@ export async function listPRs(filter: PRListFilter): Promise<PRListResponse> {
     }
 
     // Get total count
-    const countQuery = db
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const countResult = await db
       .select({ count: sql<number>`count(*)` })
-      .from(tables.requisitions);
-
-    if (conditions.length > 0) {
-      countQuery.where(and(...conditions));
-    }
-
-    const countResult = await countQuery;
+      .from(tables.requisitions)
+      .where(whereClause);
     const total = Number(countResult[0]?.count || 0);
 
     // Get data with pagination
-    const dataQuery = db
+    const data = await db
       .select()
       .from(tables.requisitions)
+      .where(whereClause)
       .orderBy(desc(tables.requisitions.createdAt))
       .limit(limit)
       .offset(offset);
-
-    if (conditions.length > 0) {
-      dataQuery.where(and(...conditions));
-    }
-
-    const data = await dataQuery;
 
     return {
       data: data as PurchaseRequisition[],
@@ -899,21 +890,17 @@ export async function getPRDashboard(userId?: number): Promise<PRDashboardSummar
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Draft count
-    const draftQuery = db
-      .select({ count: sql<number>`count(*)` })
-      .from(tables.requisitions)
-      .where(eq(tables.requisitions.status, 'draft'));
-
-    if (userId) {
-      draftQuery.where(
-        and(
+    const draftWhereClause = userId
+      ? and(
           eq(tables.requisitions.status, 'draft'),
           eq(tables.requisitions.requesterId, userId)
         )
-      );
-    }
+      : eq(tables.requisitions.status, 'draft');
 
-    const draftResult = await draftQuery;
+    const draftResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tables.requisitions)
+      .where(draftWhereClause);
     const draftCount = Number(draftResult[0]?.count || 0);
 
     // Pending approval count

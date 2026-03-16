@@ -6,7 +6,7 @@
  * and handles approval request submission, evaluation, and actions.
  */
 
-import { eq, and, desc, asc, gte, lte, isNull, or } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, isNull, or, sql } from 'drizzle-orm';
 import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
 import { getNow, toQueryDate, getTodayStr } from '../db/date-utils';
 import type {
@@ -146,7 +146,7 @@ export async function listApprovalFlows(options: {
 
     // Get total count
     const [countResult] = await db
-      .select({ count: tables.flows.id })
+      .select({ count: sql<number>`count(*)` })
       .from(tables.flows)
       .where(whereClause);
 
@@ -175,7 +175,7 @@ export async function listApprovalFlows(options: {
 
     return {
       data: flowsWithDetails,
-      total: Array.isArray(countResult) ? countResult.length : 1,
+      total: Number(countResult?.count || 0),
     };
   });
 }
@@ -1046,13 +1046,13 @@ export async function listApprovalRequests(options: {
 
     // Get total count
     const [countResult] = await db
-      .select({ count: tables.requests.id })
+      .select({ count: sql<number>`count(*)` })
       .from(tables.requests)
       .where(whereClause);
 
     return {
       data: fullRequests,
-      total: Array.isArray(countResult) ? countResult.length : 1,
+      total: Number(countResult?.count || 0),
     };
   });
 }
@@ -1122,13 +1122,13 @@ export async function listApprovalDelegations(options: {
       .offset(offset);
 
     const [countResult] = await db
-      .select({ count: tables.delegations.id })
+      .select({ count: sql<number>`count(*)` })
       .from(tables.delegations)
       .where(whereClause);
 
     return {
       data: delegations,
-      total: Array.isArray(countResult) ? countResult.length : 1,
+      total: Number(countResult?.count || 0),
     };
   });
 }

@@ -896,8 +896,9 @@ export async function evaluateVendorPerformance(
   const releasedLots = vendorLots.filter((l: any) => l.status === 'released').length;
   const rejectedLots = vendorLots.filter((l: any) => l.status === 'rejected').length;
 
-  const qualityAcceptanceRate = totalLots > 0 
-    ? (releasedLots / (releasedLots + rejectedLots)) * 100 
+  const decidedLots = releasedLots + rejectedLots;
+  const qualityAcceptanceRate = decidedLots > 0
+    ? (releasedLots / decidedLots) * 100
     : 100;
 
   const onTimeDeliveryRate = completedPOs.length > 0 
