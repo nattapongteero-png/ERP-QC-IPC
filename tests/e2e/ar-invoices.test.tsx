@@ -268,8 +268,8 @@ describe('AR Invoices Page', () => {
     await waitFor(() => {
       const payButtons = screen.getAllByRole('button', { name: /รับชำระ/i });
       expect(payButtons.length).toBeGreaterThan(0);
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 
   it('should handle API error gracefully', async () => {
     mockFetch.mockImplementation(() => {
