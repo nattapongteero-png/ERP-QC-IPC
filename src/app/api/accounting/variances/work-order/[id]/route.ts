@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { getWorkOrderVariances } from '@/lib/services/variance-analysis.service';
 
 interface RouteContext {
@@ -11,31 +12,34 @@ interface RouteContext {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
-  try {
-    const { id } = await context.params;
-    const workOrderId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await context.params;
+      const workOrderId = parseInt(id, 10);
 
-    if (isNaN(workOrderId)) {
+      if (isNaN(workOrderId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid work order ID' },
+          { status: 400 }
+        );
+      }
+
+      const variances = await getWorkOrderVariances(workOrderId);
+      if (!variances) {
+        return NextResponse.json(
+          { success: false, error: 'Work order not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({ success: true, data: variances });
+    } catch (error) {
+      console.error('Error fetching work order variances:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid work order ID' },
-        { status: 400 }
+        { success: false, error: (error as Error).message },
+        { status: 500 }
       );
     }
 
-    const variances = await getWorkOrderVariances(workOrderId);
-    if (!variances) {
-      return NextResponse.json(
-        { success: false, error: 'Work order not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: variances });
-  } catch (error) {
-    console.error('Error fetching work order variances:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  });
 }

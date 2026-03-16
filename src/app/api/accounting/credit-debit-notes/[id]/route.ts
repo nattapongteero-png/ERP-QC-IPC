@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { getNoteById, updateNote, deleteNote } from '@/lib/services/credit-debit-notes.service';
 import { noteUpdateSchema } from '@/lib/validation/credit-debit-note';
 
@@ -14,94 +15,103 @@ interface RouteContext {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
-  try {
-    const { id } = await context.params;
-    const noteId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await context.params;
+      const noteId = parseInt(id, 10);
 
-    if (isNaN(noteId)) {
+      if (isNaN(noteId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid note ID' },
+          { status: 400 }
+        );
+      }
+
+      const note = await getNoteById(noteId);
+      if (!note) {
+        return NextResponse.json(
+          { success: false, error: 'Note not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({ success: true, data: note });
+    } catch (error) {
+      console.error('Error getting credit/debit note:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid note ID' },
-        { status: 400 }
+        { success: false, error: (error as Error).message },
+        { status: 500 }
       );
     }
 
-    const note = await getNoteById(noteId);
-    if (!note) {
-      return NextResponse.json(
-        { success: false, error: 'Note not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: note });
-  } catch (error) {
-    console.error('Error getting credit/debit note:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
-  try {
-    const { id } = await context.params;
-    const noteId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await context.params;
+      const noteId = parseInt(id, 10);
 
-    if (isNaN(noteId)) {
+      if (isNaN(noteId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid note ID' },
+          { status: 400 }
+        );
+      }
+
+      const body = await request.json();
+      const data = noteUpdateSchema.parse(body);
+
+      const result = await updateNote(noteId, data);
+      if (!result.success) {
+        return NextResponse.json(
+          { success: false, error: result.error },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      console.error('Error updating credit/debit note:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid note ID' },
+        { success: false, error: (error as Error).message },
         { status: 400 }
       );
     }
 
-    const body = await request.json();
-    const data = noteUpdateSchema.parse(body);
-
-    const result = await updateNote(noteId, data);
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error updating credit/debit note:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 400 }
-    );
-  }
+  });
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
-  try {
-    const { id } = await context.params;
-    const noteId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await context.params;
+      const noteId = parseInt(id, 10);
 
-    if (isNaN(noteId)) {
+      if (isNaN(noteId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid note ID' },
+          { status: 400 }
+        );
+      }
+
+      const result = await deleteNote(noteId);
+      if (!result.success) {
+        return NextResponse.json(
+          { success: false, error: result.error },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting credit/debit note:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid note ID' },
-        { status: 400 }
+        { success: false, error: (error as Error).message },
+        { status: 500 }
       );
     }
 
-    const result = await deleteNote(noteId);
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting credit/debit note:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  });
 }

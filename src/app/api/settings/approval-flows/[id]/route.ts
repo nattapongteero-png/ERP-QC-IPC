@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import {
   getApprovalFlowById,
   updateApprovalFlow,
@@ -18,98 +19,107 @@ interface RouteParams {
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const flowId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await params;
+      const flowId = parseInt(id, 10);
 
-    if (isNaN(flowId)) {
+      if (isNaN(flowId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid flow ID' },
+          { status: 400 }
+        );
+      }
+
+      const flow = await getApprovalFlowById(flowId);
+
+      if (!flow) {
+        return NextResponse.json(
+          { success: false, error: 'Approval flow not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: flow,
+      });
+    } catch (error) {
+      console.error('Error getting approval flow:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid flow ID' },
-        { status: 400 }
+        { success: false, error: 'Failed to get approval flow' },
+        { status: 500 }
       );
     }
 
-    const flow = await getApprovalFlowById(flowId);
-
-    if (!flow) {
-      return NextResponse.json(
-        { success: false, error: 'Approval flow not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: flow,
-    });
-  } catch (error) {
-    console.error('Error getting approval flow:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to get approval flow' },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const flowId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await params;
+      const flowId = parseInt(id, 10);
 
-    if (isNaN(flowId)) {
+      if (isNaN(flowId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid flow ID' },
+          { status: 400 }
+        );
+      }
+
+      const body = await request.json();
+      const data = approvalFlowUpdateSchema.parse(body);
+
+      await updateApprovalFlow(flowId, data);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Approval flow updated successfully',
+      });
+    } catch (error) {
+      console.error('Error updating approval flow:', error);
+      if (error instanceof Error && error.name === 'ZodError') {
+        return NextResponse.json(
+          { success: false, error: 'Validation error', details: error },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
-        { success: false, error: 'Invalid flow ID' },
-        { status: 400 }
+        { success: false, error: 'Failed to update approval flow' },
+        { status: 500 }
       );
     }
 
-    const body = await request.json();
-    const data = approvalFlowUpdateSchema.parse(body);
-
-    await updateApprovalFlow(flowId, data);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Approval flow updated successfully',
-    });
-  } catch (error) {
-    console.error('Error updating approval flow:', error);
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { success: false, error: 'Validation error', details: error },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { success: false, error: 'Failed to update approval flow' },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const flowId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await params;
+      const flowId = parseInt(id, 10);
 
-    if (isNaN(flowId)) {
+      if (isNaN(flowId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid flow ID' },
+          { status: 400 }
+        );
+      }
+
+      await deleteApprovalFlow(flowId);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Approval flow deleted successfully',
+      });
+    } catch (error) {
+      console.error('Error deleting approval flow:', error);
       return NextResponse.json(
-        { success: false, error: 'Invalid flow ID' },
-        { status: 400 }
+        { success: false, error: 'Failed to delete approval flow' },
+        { status: 500 }
       );
     }
 
-    await deleteApprovalFlow(flowId);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Approval flow deleted successfully',
-    });
-  } catch (error) {
-    console.error('Error deleting approval flow:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete approval flow' },
-      { status: 500 }
-    );
-  }
+  });
 }

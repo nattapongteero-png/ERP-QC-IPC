@@ -3,17 +3,21 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { getNoteSummary } from '@/lib/services/credit-debit-notes.service';
 
 export async function GET(request: NextRequest) {
-  try {
-    const summary = await getNoteSummary();
-    return NextResponse.json({ success: true, data: summary });
-  } catch (error) {
-    console.error('Error getting notes dashboard:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  return withAuth(request, async (session) => {
+    try {
+      const summary = await getNoteSummary();
+      return NextResponse.json({ success: true, data: summary });
+    } catch (error) {
+      console.error('Error getting notes dashboard:', error);
+      return NextResponse.json(
+        { success: false, error: (error as Error).message },
+        { status: 500 }
+      );
+    }
+
+  });
 }

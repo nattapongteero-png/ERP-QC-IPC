@@ -4,17 +4,21 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { getBankReconciliationDashboard } from '@/lib/services/bank-reconciliation.service';
 
 export async function GET(request: NextRequest) {
-  try {
-    const summary = await getBankReconciliationDashboard();
-    return NextResponse.json({ success: true, data: summary });
-  } catch (error) {
-    console.error('Error getting dashboard:', error);
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  return withAuth(request, async (session) => {
+    try {
+      const summary = await getBankReconciliationDashboard();
+      return NextResponse.json({ success: true, data: summary });
+    } catch (error) {
+      console.error('Error getting dashboard:', error);
+      return NextResponse.json(
+        { success: false, error: (error as Error).message },
+        { status: 500 }
+      );
+    }
+
+  });
 }

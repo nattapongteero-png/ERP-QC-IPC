@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { getSession, hasPermission, type Role } from '@/lib/auth';
 import {
   vmiPortalConfigService,
@@ -23,60 +24,63 @@ interface RouteParams {
  * Test connection to VMI Portal
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { portalId } = await params;
-    const id = parseInt(portalId, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { portalId } = await params;
+      const id = parseInt(portalId, 10);
 
-    if (isNaN(id) || id <= 0) {
+      if (isNaN(id) || id <= 0) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid portal ID' },
+          { status: 400 }
+        );
+      }
+
+      // Check authentication
+      const session = await getSession();
+      if (!session) {
+        return NextResponse.json(
+          { success: false, error: 'Authentication required' },
+          { status: 401 }
+        );
+      }
+
+      // Check permission
+      if (!hasPermission(session.role as Role, 'vmi-settings:read')) {
+        return NextResponse.json(
+          { success: false, error: 'Permission denied' },
+          { status: 403 }
+        );
+      }
+
+      // Test connection
+      const result = await vmiPortalConfigService.testConnection(id);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          connected: result.connected,
+          latencyMs: result.latencyMs,
+          vendorInfo: result.vendorInfo,
+          testedAt: new Date().toISOString(),
+          error: result.error,
+        },
+      });
+    } catch (error) {
+      console.error('[VMI Settings API] Error testing connection:', error);
+
+      if (error instanceof VmiPortalConfigError) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: error.httpStatus }
+        );
+      }
+
       return NextResponse.json(
-        { success: false, error: 'Invalid portal ID' },
-        { status: 400 }
+        { success: false, error: 'Internal server error' },
+        { status: 500 }
       );
     }
 
-    // Check authentication
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Check permission
-    if (!hasPermission(session.role as Role, 'vmi-settings:read')) {
-      return NextResponse.json(
-        { success: false, error: 'Permission denied' },
-        { status: 403 }
-      );
-    }
-
-    // Test connection
-    const result = await vmiPortalConfigService.testConnection(id);
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        connected: result.connected,
-        latencyMs: result.latencyMs,
-        vendorInfo: result.vendorInfo,
-        testedAt: new Date().toISOString(),
-        error: result.error,
-      },
-    });
-  } catch (error) {
-    console.error('[VMI Settings API] Error testing connection:', error);
-
-    if (error instanceof VmiPortalConfigError) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: error.httpStatus }
-      );
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+  });
 }

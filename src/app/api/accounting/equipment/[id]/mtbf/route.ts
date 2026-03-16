@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 import { calculateMTBF, getEquipmentById } from '@/lib/services/accounting-equipment.service';
 
 interface RouteParams {
@@ -12,35 +13,38 @@ interface RouteParams {
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const equipmentId = parseInt(id, 10);
+  return withAuth(request, async (session) => {
+    try {
+      const { id } = await params;
+      const equipmentId = parseInt(id, 10);
 
-    if (isNaN(equipmentId)) {
-      return NextResponse.json({ error: 'Invalid equipment ID' }, { status: 400 });
+      if (isNaN(equipmentId)) {
+        return NextResponse.json({ error: 'Invalid equipment ID' }, { status: 400 });
+      }
+
+      // Check if equipment exists
+      const equipment = await getEquipmentById(equipmentId);
+      if (!equipment) {
+        return NextResponse.json({ error: 'Equipment not found' }, { status: 404 });
+      }
+
+      const { searchParams } = new URL(request.url);
+      const startDate = searchParams.get('startDate') || undefined;
+      const endDate = searchParams.get('endDate') || undefined;
+
+      const analysis = await calculateMTBF(equipmentId, startDate, endDate);
+
+      return NextResponse.json({
+        success: true,
+        data: analysis,
+      });
+    } catch (error) {
+      console.error('Error calculating MTBF:', error);
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Failed to calculate MTBF' },
+        { status: 500 }
+      );
     }
 
-    // Check if equipment exists
-    const equipment = await getEquipmentById(equipmentId);
-    if (!equipment) {
-      return NextResponse.json({ error: 'Equipment not found' }, { status: 404 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get('startDate') || undefined;
-    const endDate = searchParams.get('endDate') || undefined;
-
-    const analysis = await calculateMTBF(equipmentId, startDate, endDate);
-
-    return NextResponse.json({
-      success: true,
-      data: analysis,
-    });
-  } catch (error) {
-    console.error('Error calculating MTBF:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to calculate MTBF' },
-      { status: 500 }
-    );
-  }
+  });
 }
