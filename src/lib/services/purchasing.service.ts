@@ -44,9 +44,9 @@ export interface VMIItemSnapshot {
   minStock: number;
   maxStock: number;
   reorderPoint: number;
-  consumption30d: number;
-  forecast30d: number;
-  avgDailyUsage: number;
+  consumption30d: number | null;
+  forecast30d: number | null;
+  avgDailyUsage: number | null;
 }
 
 export interface ASNData {
@@ -739,10 +739,13 @@ export async function generateVMISnapshot(vendorId: number): Promise<VMISnapshot
       }
     }
 
-    // Calculate consumption (simplified - last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const consumption30d = 0; // Would need transaction history
+    // TODO: Query actual consumption from inventory_transactions where type='issue' or 'shipment'
+    // Requires join: inventory_transactions -> inventory_lots (by lotId) -> items (by itemId)
+    // Until consumption tracking is wired up, leave as null rather than misleading 0
+    const consumption30d: number | null = null; // No consumption tracking available yet
+
+    const avgDailyUsage = consumption30d !== null ? consumption30d / 30 : null;
+    const forecast30d = avgDailyUsage !== null ? avgDailyUsage * 30 : null;
 
     snapshot.items.push({
       itemCode: item.itemCode,
@@ -756,8 +759,8 @@ export async function generateVMISnapshot(vendorId: number): Promise<VMISnapshot
       maxStock: Number(item.maxStock) || 0,
       reorderPoint: Number(item.reorderPoint) || 0,
       consumption30d,
-      forecast30d: 0, // Would need forecast data
-      avgDailyUsage: consumption30d / 30,
+      forecast30d,
+      avgDailyUsage,
     });
   }
 
@@ -878,9 +881,15 @@ export async function evaluateVendorPerformance(
   let totalLeadTime = 0;
 
   for (const po of completedPOs) {
-    // Check on-time delivery (simplified)
-    // In real implementation, compare actual receipt date vs required date
-    onTimeCount++; // Assume on-time for now
+    // Check if PO was delivered by expected date
+    const receivedDate = po.updatedAt;
+    const expectedDate = po.expectedDate || po.orderDate;
+    if (receivedDate && expectedDate && receivedDate <= expectedDate) {
+      onTimeCount++;
+    } else if (!receivedDate || !expectedDate) {
+      // If dates missing, assume on-time to avoid penalizing incomplete data
+      onTimeCount++;
+    }
     totalLeadTime += vendor.leadTimeDays || 7;
   }
 

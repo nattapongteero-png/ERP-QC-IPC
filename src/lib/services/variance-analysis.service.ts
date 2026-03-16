@@ -326,8 +326,10 @@ export async function calculateWorkOrderVariances(
     variances.push({ ...mpvRecord, id: mpvId, varianceTypeName: VARIANCE_LABELS.mpv });
 
     // Calculate Material Usage Variance (MUV)
+    // TODO: MUV requires actual material consumption data from work_order_materials
+    // For now, use standard qty = actual qty (zero variance) rather than incorrect formula
     const standardQty = Number(workOrder.quantityPlanned) || quantityProduced;
-    const actualQty = quantityProduced;
+    const actualQty = standardQty; // Zero variance until real consumption tracking
     const unitMaterialCost = standardCost.materialCost;
     const muvAmount = (actualQty - standardQty) * unitMaterialCost;
 
