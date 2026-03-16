@@ -115,7 +115,8 @@ describe('SalesOrdersPage', () => {
       renderWithProviders(<SalesOrdersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ใบสั่งขาย')).toBeInTheDocument();
+        // Title from i18n: t('orders.pageTitle') = 'Sales Orders'
+        expect(screen.getByText('Sales Orders')).toBeInTheDocument();
       });
     });
 
@@ -125,7 +126,8 @@ describe('SalesOrdersPage', () => {
       renderWithProviders(<SalesOrdersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/จัดการใบสั่งขายและติดตามสถานะ/)).toBeInTheDocument();
+        // Subtitle from i18n: t('orders.description') = 'Manage sales orders and track delivery status'
+        expect(screen.getByText(/Manage sales orders and track delivery status/)).toBeInTheDocument();
       });
     });
 
@@ -242,7 +244,7 @@ describe('SalesOrdersPage', () => {
 
       // Text appears in both status tab and stats card
       await waitFor(() => {
-        expect(screen.getAllByText('ทั้งหมด').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Total').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -253,7 +255,7 @@ describe('SalesOrdersPage', () => {
 
       // Text appears in both status tab and stats card
       await waitFor(() => {
-        expect(screen.getAllByText('กำลังดำเนินการ').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Active').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -264,7 +266,7 @@ describe('SalesOrdersPage', () => {
 
       // Text appears in both status tab and stats card
       await waitFor(() => {
-        expect(screen.getAllByText('พร้อมส่ง').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Ready to Ship').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -275,7 +277,7 @@ describe('SalesOrdersPage', () => {
 
       // Text appears in both status tab and stats card
       await waitFor(() => {
-        expect(screen.getAllByText('ส่งมอบแล้ว').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Delivered').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -285,7 +287,7 @@ describe('SalesOrdersPage', () => {
       renderWithProviders(<SalesOrdersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('เกินกำหนด')).toBeInTheDocument();
+        expect(screen.getByText('Overdue')).toBeInTheDocument();
       });
     });
 
@@ -295,7 +297,7 @@ describe('SalesOrdersPage', () => {
       renderWithProviders(<SalesOrdersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('รอดำเนินการ')).toBeInTheDocument();
+        expect(screen.getByText('Pending Value')).toBeInTheDocument();
       });
     });
   });
@@ -347,7 +349,8 @@ describe('SalesOrdersPage', () => {
       renderWithProviders(<SalesOrdersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ใบสั่งขาย')).toBeInTheDocument();
+        // Title from i18n: t('orders.pageTitle') = 'Sales Orders'
+        expect(screen.getByText('Sales Orders')).toBeInTheDocument();
       });
     });
 
@@ -364,7 +367,8 @@ describe('SalesOrdersPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('ใบสั่งขาย')).toBeInTheDocument();
+        // Title from i18n: t('orders.pageTitle') = 'Sales Orders'
+        expect(screen.getByText('Sales Orders')).toBeInTheDocument();
       });
     });
 

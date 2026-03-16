@@ -292,7 +292,8 @@ describe('HR Positions Page', () => {
       render(<PositionsPage />);
 
       expect(screen.getByTestId('page-header')).toBeInTheDocument();
-      expect(screen.getByText('ตำแหน่งงาน')).toBeInTheDocument();
+      // Title from i18n: t('positions.title') = 'Positions'
+      expect(screen.getByText('Positions')).toBeInTheDocument();
     });
 
     it('should render KPI stat cards', () => {

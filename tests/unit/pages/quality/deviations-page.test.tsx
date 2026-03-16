@@ -116,7 +116,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ความเบี่ยงเบน')).toBeInTheDocument();
+        // Title comes from i18n: t('nonConformance.title') = 'Non-Conformance'
+        expect(screen.getByText('Non-Conformance')).toBeInTheDocument();
       });
     });
 
@@ -126,7 +127,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/CAPA/)).toBeInTheDocument();
+        // Subtitle comes from i18n: t('nonConformance.description') = 'Manage non-conformance reports'
+        expect(screen.getByText(/Manage non-conformance reports/)).toBeInTheDocument();
       });
     });
 
@@ -146,7 +148,9 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('dx-button-รายงานความเบี่ยงเบน')).toBeInTheDocument();
+        // Button text from i18n: t('deviations.actions.report') = 'Report Deviation'
+        // DxButton mock generates testid from text: 'dx-button-report-deviation'
+        expect(screen.getByTestId('dx-button-report-deviation')).toBeInTheDocument();
       });
     });
   });
@@ -158,7 +162,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-ความเบี่ยงเบนทั้งหมด')).toBeInTheDocument();
+        // Label from i18n: t('deviations.stats.total') = 'Total Deviations'
+        expect(screen.getByTestId('stat-total-deviations')).toBeInTheDocument();
       });
     });
 
@@ -168,7 +173,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-กำลังดำเนินการ')).toBeInTheDocument();
+        // Label from i18n: t('deviations.stats.active') = 'In Progress'
+        expect(screen.getByTestId('stat-in-progress')).toBeInTheDocument();
       });
     });
 
@@ -178,7 +184,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-กำลังสอบสวน')).toBeInTheDocument();
+        // Label from i18n: t('deviations.stats.investigating') = 'Investigating'
+        expect(screen.getByTestId('stat-investigating')).toBeInTheDocument();
       });
     });
 
@@ -188,7 +195,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-วิกฤต')).toBeInTheDocument();
+        // Label from i18n: t('deviations.stats.critical') = 'Critical'
+        expect(screen.getByTestId('stat-critical')).toBeInTheDocument();
       });
     });
 
@@ -198,7 +206,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-เกินกำหนด')).toBeInTheDocument();
+        // Label from i18n: t('deviations.stats.overdue') = 'Overdue'
+        expect(screen.getByTestId('stat-overdue')).toBeInTheDocument();
       });
     });
 
@@ -208,7 +217,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-อัตราแก้ไข')).toBeInTheDocument();
+        // Label from i18n: t('deviations.stats.resolutionRate') = 'Resolution Rate'
+        expect(screen.getByTestId('stat-resolution-rate')).toBeInTheDocument();
       });
     });
   });
@@ -238,7 +248,8 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ความเบี่ยงเบน')).toBeInTheDocument();
+        // Title from i18n: t('nonConformance.title') = 'Non-Conformance'
+        expect(screen.getByText('Non-Conformance')).toBeInTheDocument();
       });
     });
 
@@ -255,7 +266,8 @@ describe('DeviationsPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('ความเบี่ยงเบน')).toBeInTheDocument();
+        // Title from i18n: t('nonConformance.title') = 'Non-Conformance'
+        expect(screen.getByText('Non-Conformance')).toBeInTheDocument();
       });
     });
 
@@ -275,9 +287,10 @@ describe('DeviationsPage', () => {
       renderWithProviders(<DeviationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTitle('Grid View')).toBeInTheDocument();
-        expect(screen.getByTitle('Cards View')).toBeInTheDocument();
-        expect(screen.getByTitle('Analytics View')).toBeInTheDocument();
+        // Titles from i18n: t('common.viewGrid') = 'Grid view', etc.
+        expect(screen.getByTitle('Grid view')).toBeInTheDocument();
+        expect(screen.getByTitle('Cards view')).toBeInTheDocument();
+        expect(screen.getByTitle('Analytics view')).toBeInTheDocument();
       });
     });
   });

@@ -126,7 +126,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Quality Specifications')).toBeInTheDocument();
+        // Title from i18n: t('specifications.title') = 'Specifications'
+        expect(screen.getByText('Specifications')).toBeInTheDocument();
       });
     });
 
@@ -136,7 +137,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/ข้อกำหนดคุณภาพ/)).toBeInTheDocument();
+        // Subtitle from i18n: t('specifications.description') = 'Manage quality specifications'
+        expect(screen.getByText(/Manage quality specifications/)).toBeInTheDocument();
       });
     });
 
@@ -168,7 +170,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-ข้อกำหนดทั้งหมด')).toBeInTheDocument();
+        // Label from i18n: t('specs.stats.total') = 'Total Specs'
+        expect(screen.getByTestId('stat-total-specs')).toBeInTheDocument();
       });
     });
 
@@ -178,7 +181,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-ใช้งาน')).toBeInTheDocument();
+        // Label from i18n: t('specs.stats.active') = 'Active'
+        expect(screen.getByTestId('stat-active')).toBeInTheDocument();
       });
     });
 
@@ -188,6 +192,7 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
+        // Label from i18n: t('specs.stats.critical') = 'Critical'
         expect(screen.getByTestId('stat-critical')).toBeInTheDocument();
       });
     });
@@ -198,6 +203,7 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
+        // Label from i18n: t('specs.stats.nonCritical') = 'Non-Critical'
         expect(screen.getByTestId('stat-non-critical')).toBeInTheDocument();
       });
     });
@@ -208,7 +214,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-ไม่ใช้งาน')).toBeInTheDocument();
+        // Label from i18n: t('specs.stats.inactive') = 'Inactive'
+        expect(screen.getByTestId('stat-inactive')).toBeInTheDocument();
       });
     });
 
@@ -218,7 +225,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('stat-สินค้าที่มี-spec')).toBeInTheDocument();
+        // Label from i18n: t('specs.stats.itemsWithSpec') = 'Items with Specs'
+        expect(screen.getByTestId('stat-items-with-specs')).toBeInTheDocument();
       });
     });
   });
@@ -248,7 +256,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Quality Specifications')).toBeInTheDocument();
+        // Title from i18n: t('specifications.title') = 'Specifications'
+        expect(screen.getByText('Specifications')).toBeInTheDocument();
       });
     });
 
@@ -265,7 +274,8 @@ describe('QualitySpecsPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('Quality Specifications')).toBeInTheDocument();
+        // Title from i18n: t('specifications.title') = 'Specifications'
+        expect(screen.getByText('Specifications')).toBeInTheDocument();
       });
     });
 
@@ -285,7 +295,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Grid')).toBeInTheDocument();
+        // Label from i18n: t('common.viewGrid') = 'Grid view'
+        expect(screen.getByText('Grid view')).toBeInTheDocument();
       });
     });
 
@@ -295,7 +306,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Cards')).toBeInTheDocument();
+        // Label from i18n: t('common.viewCards') = 'Cards view'
+        expect(screen.getByText('Cards view')).toBeInTheDocument();
       });
     });
 
@@ -305,7 +317,8 @@ describe('QualitySpecsPage', () => {
       renderWithProviders(<QualitySpecsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Analytics')).toBeInTheDocument();
+        // Label from i18n: t('common.viewAnalytics') = 'Analytics view'
+        expect(screen.getByText('Analytics view')).toBeInTheDocument();
       });
     });
   });

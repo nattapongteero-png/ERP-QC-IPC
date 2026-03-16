@@ -193,7 +193,8 @@ describe('HR Employees Page', () => {
       render(<EmployeesPage />);
 
       expect(screen.getByTestId('page-header')).toBeInTheDocument();
-      expect(screen.getByText('ทะเบียนพนักงาน')).toBeInTheDocument();
+      // Title from i18n: t('employees.title') = 'Employees'
+      expect(screen.getByText('Employees')).toBeInTheDocument();
     });
 
     it('should render KPI stat cards', () => {

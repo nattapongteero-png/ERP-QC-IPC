@@ -89,7 +89,8 @@ describe('PositionsPage', () => {
       renderWithProviders(<PositionsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ตำแหน่งงาน')).toBeInTheDocument();
+        // Title comes from i18n: t('positions.title') = 'Positions'
+        expect(screen.getByText('Positions')).toBeInTheDocument();
       });
     });
 
@@ -99,7 +100,8 @@ describe('PositionsPage', () => {
       renderWithProviders(<PositionsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Position Management/)).toBeInTheDocument();
+        // Subtitle comes from i18n: t('positions.description') = 'Manage job positions'
+        expect(screen.getByText(/Manage job positions/)).toBeInTheDocument();
       });
     });
 
@@ -197,7 +199,8 @@ describe('PositionsPage', () => {
       renderWithProviders(<PositionsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ตำแหน่งงาน')).toBeInTheDocument();
+        // Title comes from i18n: t('positions.title') = 'Positions'
+        expect(screen.getByText('Positions')).toBeInTheDocument();
       });
     });
 
@@ -215,7 +218,8 @@ describe('PositionsPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('ตำแหน่งงาน')).toBeInTheDocument();
+        // Title comes from i18n: t('positions.title') = 'Positions'
+        expect(screen.getByText('Positions')).toBeInTheDocument();
       });
     });
 

@@ -18,10 +18,12 @@
     "status": {
       "all": "All",
       "draft": "Draft",
+      "pending": "Pending",
       "pendingApproval": "Pending",
       "approved": "Approved",
       "sent": "Sent",
       "partial": "Partial",
+      "partiallyReceived": "Partially Received",
       "received": "Received",
       "cancelled": "Cancelled"
     },
@@ -83,14 +85,6 @@
       "cancelOrder": "Cancel Order",
       "approveOrder": "Approve Order",
       "receiveGoods": "Receive Goods"
-    },
-    "status": {
-      "draft": "Draft",
-      "pending": "Pending",
-      "approved": "Approved",
-      "partiallyReceived": "Partially Received",
-      "received": "Received",
-      "cancelled": "Cancelled"
     }
   },
   "suppliers": {

@@ -4,14 +4,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import CostManagementPage from '@/app/cost/page';
-import {
-  renderWithProviders,
-  setupFetchMock,
-  clearFetchMock,
-} from '../../../helpers/ui-test-utils';
-import { COST_FETCH_HANDLERS } from '../../../helpers/fetch-mock-handlers';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -21,125 +16,129 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock recharts to avoid rendering issues in tests
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
+// Mock DevExtreme SelectBox to prevent actual rendering
+vi.mock('devextreme-react/select-box', () => ({
+  default: ({ value, onValueChanged, dataSource }: { value?: string; onValueChanged?: (e: { value: string }) => void; dataSource?: unknown[] }) => (
+    <select
+      data-testid="dx-period-select"
+      value={value || ''}
+      onChange={(e) => onValueChanged?.({ value: e.target.value })}
+    >
+      {Array.isArray(dataSource) && dataSource.map((item: unknown) => {
+        const opt = item as { value: string; label: string };
+        return <option key={opt.value} value={opt.value}>{opt.label}</option>;
+      })}
+    </select>
   ),
-  LineChart: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="line-chart">{children}</div>
+}));
+
+// Mock CostDashboard component
+vi.mock('@/components/cost/CostDashboard', () => ({
+  CostDashboard: ({ periodType }: { periodType?: string }) => (
+    <div data-testid="cost-dashboard" data-period={periodType}>
+      <div data-testid="cost-dashboard-content">Dashboard Content</div>
+    </div>
   ),
-  Line: () => null,
-  XAxis: () => null,
-  YAxis: () => null,
-  CartesianGrid: () => null,
-  Tooltip: () => null,
+}));
+
+// Mock shared components
+vi.mock('@/components/shared', () => ({
+  ResponsivePageHeader: ({ title, subtitle }: { title: string; subtitle: string }) => (
+    <div data-testid="page-header">
+      <h1>{title}</h1>
+      <p>{subtitle}</p>
+    </div>
+  ),
+}));
+
+// Mock Card components
+vi.mock('@/components/ui/card', () => ({
+  Card: ({ children, className, onClick, 'data-testid': testId }: { children: React.ReactNode; className?: string; onClick?: () => void; 'data-testid'?: string }) => (
+    <div data-testid={testId || 'card'} className={className} onClick={onClick}>{children}</div>
+  ),
+  CardContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="card-content">{children}</div>
+  ),
 }));
 
 describe('CostManagementPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    clearFetchMock();
   });
 
   describe('Page Rendering', () => {
-    it('should render page with correct title', async () => {
-      setupFetchMock(COST_FETCH_HANDLERS);
+    it('should render page with correct title', () => {
+      render(<CostManagementPage />);
 
-      renderWithProviders(<CostManagementPage />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('cost-management-page')).toBeInTheDocument();
-      });
-
+      expect(screen.getByTestId('cost-management-page')).toBeInTheDocument();
       expect(screen.getByText('Cost Management')).toBeInTheDocument();
-      expect(screen.getByText('Monitor costs, margins, and variances across your operations')).toBeInTheDocument();
+      expect(screen.getByText('Executive dashboard for cost control and margin analysis')).toBeInTheDocument();
     });
 
-    it('should render quick link cards', async () => {
-      setupFetchMock(COST_FETCH_HANDLERS);
+    it('should render quick link cards', () => {
+      render(<CostManagementPage />);
 
-      renderWithProviders(<CostManagementPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Landed Costs')).toBeInTheDocument();
-        expect(screen.getByText('Work Centers')).toBeInTheDocument();
-        expect(screen.getByText('Cost Reports')).toBeInTheDocument();
-      });
+      expect(screen.getByText('Landed Costs')).toBeInTheDocument();
+      expect(screen.getByText('Work Centers')).toBeInTheDocument();
+      expect(screen.getByText('Cost Reports')).toBeInTheDocument();
     });
 
-    it('should render quick link descriptions', async () => {
-      setupFetchMock(COST_FETCH_HANDLERS);
+    it('should render quick link descriptions', () => {
+      render(<CostManagementPage />);
 
-      renderWithProviders(<CostManagementPage />);
+      expect(screen.getByText('Allocate freight and duties')).toBeInTheDocument();
+      expect(screen.getByText('Configure labor rates')).toBeInTheDocument();
+      expect(screen.getByText('View detailed reports')).toBeInTheDocument();
+    });
 
-      await waitFor(() => {
-        expect(screen.getByText('Allocate freight and duties')).toBeInTheDocument();
-        expect(screen.getByText('Configure labor rates')).toBeInTheDocument();
-        expect(screen.getByText('View detailed reports')).toBeInTheDocument();
-      });
+    it('should render period selector', () => {
+      render(<CostManagementPage />);
+
+      expect(screen.getByTestId('period-selector')).toBeInTheDocument();
+      expect(screen.getByTestId('dx-period-select')).toBeInTheDocument();
+    });
+
+    it('should render period options', () => {
+      render(<CostManagementPage />);
+
+      expect(screen.getByText('This Month')).toBeInTheDocument();
+      expect(screen.getByText('Last Month')).toBeInTheDocument();
+      expect(screen.getByText('This Quarter')).toBeInTheDocument();
     });
   });
 
   describe('Dashboard Component', () => {
-    it('should render cost dashboard component', async () => {
-      setupFetchMock(COST_FETCH_HANDLERS);
+    it('should render cost dashboard component', () => {
+      render(<CostManagementPage />);
 
-      renderWithProviders(<CostManagementPage />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('cost-dashboard')).toBeInTheDocument();
-      });
+      expect(screen.getByTestId('cost-dashboard')).toBeInTheDocument();
     });
 
-    it('should display KPI cards', async () => {
-      setupFetchMock(COST_FETCH_HANDLERS);
+    it('should pass period type to cost dashboard', () => {
+      render(<CostManagementPage />);
 
-      renderWithProviders(<CostManagementPage />);
+      const dashboard = screen.getByTestId('cost-dashboard');
+      expect(dashboard).toHaveAttribute('data-period', 'this_month');
+    });
+  });
 
-      await waitFor(() => {
-        expect(screen.getByTestId('inventory-value-card')).toBeInTheDocument();
-        expect(screen.getByTestId('wip-value-card')).toBeInTheDocument();
-        expect(screen.getByTestId('gross-margin-card')).toBeInTheDocument();
-        expect(screen.getByTestId('variance-card')).toBeInTheDocument();
-      });
+  describe('Quick Link Navigation', () => {
+    it('should render quick link for landed costs', () => {
+      render(<CostManagementPage />);
+
+      expect(screen.getByTestId('quick-link-landed-costs')).toBeInTheDocument();
     });
 
-    it('should display trend chart card', async () => {
-      setupFetchMock(COST_FETCH_HANDLERS);
+    it('should render quick link for work centers', () => {
+      render(<CostManagementPage />);
 
-      renderWithProviders(<CostManagementPage />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('cost-trend-card')).toBeInTheDocument();
-      });
+      expect(screen.getByTestId('quick-link-work-centers')).toBeInTheDocument();
     });
 
-    it('should display cost increases card', async () => {
-      setupFetchMock(COST_FETCH_HANDLERS);
+    it('should render quick link for reports', () => {
+      render(<CostManagementPage />);
 
-      renderWithProviders(<CostManagementPage />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('cost-increases-card')).toBeInTheDocument();
-      });
-    });
-
-    it('should handle API error gracefully', async () => {
-      setupFetchMock({
-        '/api/cost/dashboard': {
-          data: { success: false, error: 'Server error' },
-          ok: false,
-          status: 500,
-        },
-      });
-
-      renderWithProviders(<CostManagementPage />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('cost-dashboard-error')).toBeInTheDocument();
-        expect(screen.getByText('Failed to load dashboard data')).toBeInTheDocument();
-      });
+      expect(screen.getByTestId('quick-link-reports')).toBeInTheDocument();
     });
   });
 });

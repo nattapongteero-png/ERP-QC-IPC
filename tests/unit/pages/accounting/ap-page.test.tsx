@@ -86,7 +86,7 @@ describe('APDashboardPage', () => {
       renderWithProviders(<APDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Accounts Payable Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Accounts Payable')).toBeInTheDocument();
       });
     });
 
@@ -96,7 +96,7 @@ describe('APDashboardPage', () => {
       renderWithProviders(<APDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Manage vendor invoices and payments')).toBeInTheDocument();
+        expect(screen.getByText('Manage supplier bills and payments')).toBeInTheDocument();
       });
     });
 
@@ -258,7 +258,7 @@ describe('APDashboardPage', () => {
       renderWithProviders(<APDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Accounts Payable Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Accounts Payable')).toBeInTheDocument();
       });
     });
 
@@ -280,7 +280,7 @@ describe('APDashboardPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('Accounts Payable Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Accounts Payable')).toBeInTheDocument();
       });
     });
   });

@@ -59,7 +59,7 @@ describe('MasterDataPage', () => {
       renderWithProviders(<MasterDataPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Manage production master data for GMP compliance')).toBeInTheDocument();
+        expect(screen.getByText('Manage master data for GMP-compliant production')).toBeInTheDocument();
       });
     });
 

@@ -109,7 +109,7 @@ describe('ComplaintsListPage', () => {
       renderWithProviders(<ComplaintsListPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Customer Complaints')).toBeInTheDocument();
+        expect(screen.getByText('Complaint Management')).toBeInTheDocument();
       });
     });
 
@@ -119,7 +119,7 @@ describe('ComplaintsListPage', () => {
       renderWithProviders(<ComplaintsListPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Complaint Management System/)).toBeInTheDocument();
+        expect(screen.getByText('Manage customer complaints')).toBeInTheDocument();
       });
     });
 
@@ -258,7 +258,7 @@ describe('ComplaintsListPage', () => {
       renderWithProviders(<ComplaintsListPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Customer Complaints')).toBeInTheDocument();
+        expect(screen.getByText('Complaint Management')).toBeInTheDocument();
       });
     });
 
@@ -280,7 +280,7 @@ describe('ComplaintsListPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('Customer Complaints')).toBeInTheDocument();
+        expect(screen.getByText('Complaint Management')).toBeInTheDocument();
       });
     });
 

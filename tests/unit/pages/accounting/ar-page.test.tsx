@@ -86,7 +86,7 @@ describe('ARDashboardPage', () => {
       renderWithProviders(<ARDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Accounts Receivable Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Accounts Receivable')).toBeInTheDocument();
       });
     });
 
@@ -96,7 +96,7 @@ describe('ARDashboardPage', () => {
       renderWithProviders(<ARDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Manage customer invoices and collections')).toBeInTheDocument();
+        expect(screen.getByText('Manage customer invoices and payment receipts')).toBeInTheDocument();
       });
     });
 
@@ -258,7 +258,7 @@ describe('ARDashboardPage', () => {
       renderWithProviders(<ARDashboardPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Accounts Receivable Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Accounts Receivable')).toBeInTheDocument();
       });
     });
 
@@ -280,7 +280,7 @@ describe('ARDashboardPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('Accounts Receivable Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Accounts Receivable')).toBeInTheDocument();
       });
     });
   });

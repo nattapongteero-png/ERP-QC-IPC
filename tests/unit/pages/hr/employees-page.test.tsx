@@ -76,7 +76,8 @@ describe('EmployeesPage', () => {
       renderWithProviders(<EmployeesPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ทะเบียนพนักงาน')).toBeInTheDocument();
+        // Title comes from i18n: t('employees.title') = 'Employees'
+        expect(screen.getByText('Employees')).toBeInTheDocument();
       });
     });
 
@@ -86,7 +87,8 @@ describe('EmployeesPage', () => {
       renderWithProviders(<EmployeesPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Employee Directory/)).toBeInTheDocument();
+        // Subtitle comes from i18n: t('employees.description') = 'Manage employee information'
+        expect(screen.getByText(/Manage employee information/)).toBeInTheDocument();
       });
     });
 
@@ -154,7 +156,8 @@ describe('EmployeesPage', () => {
       renderWithProviders(<EmployeesPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ทะเบียนพนักงาน')).toBeInTheDocument();
+        // Title comes from i18n: t('employees.title') = 'Employees'
+        expect(screen.getByText('Employees')).toBeInTheDocument();
       });
     });
 
@@ -171,7 +174,8 @@ describe('EmployeesPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('ทะเบียนพนักงาน')).toBeInTheDocument();
+        // Title comes from i18n: t('employees.title') = 'Employees'
+        expect(screen.getByText('Employees')).toBeInTheDocument();
       });
     });
 

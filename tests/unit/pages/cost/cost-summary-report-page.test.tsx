@@ -37,8 +37,8 @@ describe('CostSummaryReportPage', () => {
         expect(screen.getByTestId('cost-summary-report-page')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('Cost Summary Report')).toBeInTheDocument();
-      expect(screen.getByText('View current costs for all inventory items')).toBeInTheDocument();
+      expect(screen.getByText('Cost Summary')).toBeInTheDocument();
+      expect(screen.getByText('Detailed cost summary report')).toBeInTheDocument();
     });
 
     it('should render filter section', async () => {

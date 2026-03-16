@@ -337,8 +337,10 @@ describe('HR Authorizations Page', () => {
       render(<AuthorizationsPage />);
 
       expect(screen.getByTestId('page-header')).toBeInTheDocument();
-      expect(screen.getByText('สิทธิ์อนุมัติ')).toBeInTheDocument();
-      expect(screen.getByText('Authorization Management Dashboard')).toBeInTheDocument();
+      // Title from i18n: t('authorizations.title') = 'Authorizations'
+      expect(screen.getByText('Authorizations')).toBeInTheDocument();
+      // Subtitle from i18n: t('authorizations.description') = 'Manage authorizations and access rights'
+      expect(screen.getByText('Manage authorizations and access rights')).toBeInTheDocument();
     });
 
     it('should render KPI stat cards', () => {

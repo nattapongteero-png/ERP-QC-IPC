@@ -18,10 +18,12 @@
     "status": {
       "all": "ทั้งหมด",
       "draft": "ร่าง",
+      "pending": "รออนุมัติ",
       "pendingApproval": "รออนุมัติ",
       "approved": "อนุมัติแล้ว",
       "sent": "ส่งให้ผู้ขาย",
       "partial": "รับบางส่วน",
+      "partiallyReceived": "รับบางส่วน",
       "received": "รับครบแล้ว",
       "cancelled": "ยกเลิก"
     },
@@ -83,14 +85,6 @@
       "cancelOrder": "ยกเลิกใบสั่งซื้อ",
       "approveOrder": "อนุมัติใบสั่งซื้อ",
       "receiveGoods": "รับสินค้า"
-    },
-    "status": {
-      "draft": "แบบร่าง",
-      "pending": "รออนุมัติ",
-      "approved": "อนุมัติแล้ว",
-      "partiallyReceived": "รับบางส่วน",
-      "received": "รับครบแล้ว",
-      "cancelled": "ยกเลิก"
     }
   },
   "suppliers": {

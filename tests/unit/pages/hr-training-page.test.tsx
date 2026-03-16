@@ -279,8 +279,10 @@ describe('HR Training Dashboard Page', () => {
       render(<TrainingDashboardPage />);
 
       expect(screen.getByTestId('page-header')).toBeInTheDocument();
-      expect(screen.getByText('ระบบจัดการการอบรม')).toBeInTheDocument();
-      expect(screen.getByText('Training Management Dashboard')).toBeInTheDocument();
+      // Title from i18n: t('training.title') = 'Training'
+      expect(screen.getByText('Training')).toBeInTheDocument();
+      // Subtitle from i18n: t('training.description') = 'Manage training programs'
+      expect(screen.getByText('Manage training programs')).toBeInTheDocument();
     });
 
     it('should render KPI stat cards', () => {

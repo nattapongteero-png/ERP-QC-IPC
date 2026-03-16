@@ -127,7 +127,8 @@ describe('CustomersPage', () => {
       renderWithProviders(<CustomersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ลูกค้า')).toBeInTheDocument();
+        // Title from i18n: t('customers.pageTitle') = 'Customers'
+        expect(screen.getByText('Customers')).toBeInTheDocument();
       });
     });
 
@@ -137,7 +138,8 @@ describe('CustomersPage', () => {
       renderWithProviders(<CustomersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/จัดการข้อมูลลูกค้าและวิเคราะห์การขาย/)).toBeInTheDocument();
+        // Subtitle from i18n: t('customers.description') = 'Manage customer information and sales analytics'
+        expect(screen.getByText(/Manage customer information and sales analytics/)).toBeInTheDocument();
       });
     });
 
@@ -157,7 +159,8 @@ describe('CustomersPage', () => {
       renderWithProviders(<CustomersPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('dx-button-เพิ่มลูกค้า')).toBeInTheDocument();
+        // Button text from i18n: t('customers.actions.addCustomer') = 'Add Customer'
+        expect(screen.getByTestId('dx-button-add-customer')).toBeInTheDocument();
       });
     });
   });
@@ -200,9 +203,9 @@ describe('CustomersPage', () => {
 
       renderWithProviders(<CustomersPage />);
 
-      // Text appears in both status tab and header stats
+      // Status labels from i18n: t('customers.status.all') = 'All'
       await waitFor(() => {
-        expect(screen.getAllByText('ทั้งหมด').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('All').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -211,9 +214,10 @@ describe('CustomersPage', () => {
 
       renderWithProviders(<CustomersPage />);
 
-      // Text appears in both status tab and header stats
+      // Status labels from i18n
       await waitFor(() => {
-        expect(screen.getAllByText('ใช้งาน').length).toBeGreaterThanOrEqual(1);
+        // Status label from i18n: t('customers.status.active') = 'Active'
+        expect(screen.getAllByText('Active').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -223,7 +227,8 @@ describe('CustomersPage', () => {
       renderWithProviders(<CustomersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ปิดใช้งาน')).toBeInTheDocument();
+        // Status label from i18n: t('customers.status.inactive') = 'Inactive'
+        expect(screen.getByText('Inactive')).toBeInTheDocument();
       });
     });
   });
@@ -234,9 +239,9 @@ describe('CustomersPage', () => {
 
       renderWithProviders(<CustomersPage />);
 
-      // Stats in header
+      // Stats in header - from i18n: t('customers.stats.total') = 'Total'
       await waitFor(() => {
-        expect(screen.getAllByText('ทั้งหมด').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Total').length).toBeGreaterThan(0);
       });
     });
 
@@ -246,7 +251,8 @@ describe('CustomersPage', () => {
       renderWithProviders(<CustomersPage />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('ใช้งาน').length).toBeGreaterThan(0);
+        // Stat label from i18n: t('customers.stats.active') = 'Active'
+        expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
       });
     });
 
@@ -256,7 +262,8 @@ describe('CustomersPage', () => {
       renderWithProviders(<CustomersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('วงเงินรวม')).toBeInTheDocument();
+        // Stat label from i18n: t('customers.stats.totalCreditLimit') = 'Total Credit'
+        expect(screen.getByText('Total Credit')).toBeInTheDocument();
       });
     });
 
@@ -266,7 +273,8 @@ describe('CustomersPage', () => {
       renderWithProviders(<CustomersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ประเภทหลัก')).toBeInTheDocument();
+        // Stat label from i18n: t('customers.stats.mainType') = 'Main Type'
+        expect(screen.getByText('Main Type')).toBeInTheDocument();
       });
     });
   });
@@ -318,7 +326,8 @@ describe('CustomersPage', () => {
       renderWithProviders(<CustomersPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ลูกค้า')).toBeInTheDocument();
+        // Title from i18n: t('customers.pageTitle') = 'Customers'
+        expect(screen.getByText('Customers')).toBeInTheDocument();
       });
     });
 
@@ -335,7 +344,8 @@ describe('CustomersPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('ลูกค้า')).toBeInTheDocument();
+        // Title from i18n: t('customers.pageTitle') = 'Customers'
+        expect(screen.getByText('Customers')).toBeInTheDocument();
       });
     });
 

@@ -60,8 +60,8 @@ describe('ItemsPage', () => {
       renderWithProviders(<ItemsPage />);
 
       await waitFor(() => {
-        // Thai description
-        expect(screen.getByText('รายการสินค้าและวัตถุดิบ')).toBeInTheDocument();
+        // Description comes from i18n: t('items.description') = 'Inventory items and materials'
+        expect(screen.getByText('Inventory items and materials')).toBeInTheDocument();
       });
     });
 

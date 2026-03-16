@@ -40,8 +40,8 @@ describe('VendorsPage', () => {
       renderWithProviders(<VendorsPage />);
 
       await waitFor(() => {
-        // Thai text for "Vendors"
-        expect(screen.getByText('ผู้ขาย')).toBeInTheDocument();
+        // Title from i18n: t('vendors.pageTitle') = 'Vendors'
+        expect(screen.getByText('Vendors')).toBeInTheDocument();
       });
     });
 
@@ -51,8 +51,8 @@ describe('VendorsPage', () => {
       renderWithProviders(<VendorsPage />);
 
       await waitFor(() => {
-        // Thai text for "Add Vendor"
-        expect(screen.getByText('เพิ่มผู้ขาย')).toBeInTheDocument();
+        // Button text from i18n: t('vendors.actions.addVendor') = 'Add Vendor'
+        expect(screen.getByText('Add Vendor')).toBeInTheDocument();
       });
     });
 
@@ -63,11 +63,12 @@ describe('VendorsPage', () => {
 
       // Wait for data to load first
       await waitFor(() => {
-        expect(screen.getByText('ผู้ขาย')).toBeInTheDocument();
+        // Title from i18n: t('vendors.pageTitle') = 'Vendors'
+        expect(screen.getByText('Vendors')).toBeInTheDocument();
       });
 
-      // Then check for status tabs (Thai text)
-      expect(screen.getByText('ทั้งหมด')).toBeInTheDocument(); // "All"
+      // Then check for status tabs (from i18n: t('vendors.status.all') = 'All')
+      expect(screen.getByText('All')).toBeInTheDocument();
       // VMI appears in multiple places (tab and badge), so use getAllByText
       expect(screen.getAllByText('VMI').length).toBeGreaterThan(0);
     });
@@ -99,7 +100,8 @@ describe('VendorsPage', () => {
       renderWithProviders(<VendorsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ผู้ขาย')).toBeInTheDocument();
+        // Title from i18n: t('vendors.pageTitle') = 'Vendors'
+        expect(screen.getByText('Vendors')).toBeInTheDocument();
       });
     });
 
@@ -116,7 +118,8 @@ describe('VendorsPage', () => {
 
       // Page should still render even on API error
       await waitFor(() => {
-        expect(screen.getByText('ผู้ขาย')).toBeInTheDocument();
+        // Title from i18n: t('vendors.pageTitle') = 'Vendors'
+        expect(screen.getByText('Vendors')).toBeInTheDocument();
       });
     });
 
@@ -142,7 +145,8 @@ describe('VendorsPage', () => {
 
       await waitFor(() => {
         // Thai placeholder text
-        expect(screen.getByPlaceholderText('ค้นหาด้วยรหัส ชื่อ หรือผู้ติดต่อ...')).toBeInTheDocument();
+        // Placeholder from i18n: t('vendors.searchPlaceholder') = 'Search by code, name, or contact...'
+        expect(screen.getByPlaceholderText('Search by code, name, or contact...')).toBeInTheDocument();
       });
     });
   });
