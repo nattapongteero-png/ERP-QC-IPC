@@ -140,7 +140,7 @@ describe('AR Dashboard Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Accounts Receivable Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Accounts Receivable')).toBeInTheDocument();
     }, { timeout: 10000 });
   }, 15000);
 

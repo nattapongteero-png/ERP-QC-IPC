@@ -347,6 +347,19 @@
       "yearEnd": "Year-End Close"
     }
   },
+  "operatingActivities": "Operating Activities",
+  "investingActivities": "Investing Activities",
+  "financingActivities": "Financing Activities",
+  "cashReconciliation": "Cash Reconciliation",
+  "netIncome": "Net Income",
+  "adjustments": "Adjustments",
+  "workingCapitalChanges": "Working Capital Changes",
+  "netCashFromOperating": "Net Cash from Operating",
+  "investingItems": "Investing Items",
+  "netCashFromInvesting": "Net Cash from Investing",
+  "financingItems": "Financing Items",
+  "netCashFromFinancing": "Net Cash from Financing",
+  "beginningCash": "Beginning Cash",
   "common": {
     "debit": "Debit",
     "credit": "Credit",

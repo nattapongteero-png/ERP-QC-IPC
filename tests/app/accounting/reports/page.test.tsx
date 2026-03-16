@@ -27,7 +27,7 @@ describe('ReportsPage', () => {
 
   it('renders professional page header with bar-chart icon', async () => {
     render(<ReportsPage />, { wrapper: createWrapper() });
-    expect(screen.getByText('Financial Reports')).toBeInTheDocument();
+    expect(screen.getByText('Accounting')).toBeInTheDocument();
     expect(screen.getByText('Generate TFRS-compliant financial statements')).toBeInTheDocument();
   });
 

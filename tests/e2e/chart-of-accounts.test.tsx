@@ -153,9 +153,8 @@ describe('Chart of Accounts Page', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('ผังบัญชี')).toBeInTheDocument();
+      expect(screen.getAllByText('Chart of Accounts').length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('Chart of Accounts')).toBeInTheDocument();
   });
 
   it('should display loading state initially', () => {
@@ -219,7 +218,7 @@ describe('Chart of Accounts Page', () => {
     renderPage();
 
     await waitFor(() => {
-      const addButton = screen.getByRole('button', { name: /เพิ่มบัญชี/i });
+      const addButton = screen.getByRole('button', { name: /Add Account/i });
       expect(addButton).toBeInTheDocument();
     });
   });
@@ -228,7 +227,7 @@ describe('Chart of Accounts Page', () => {
     renderPage();
 
     await waitFor(() => {
-      const exportButton = screen.getByRole('button', { name: /ส่งออก/i });
+      const exportButton = screen.getByRole('button', { name: /Export/i });
       expect(exportButton).toBeInTheDocument();
     });
   });
@@ -278,7 +277,7 @@ describe('Chart of Accounts Page', () => {
 
     // Should not crash - page should still render
     await waitFor(() => {
-      expect(screen.getByText('ผังบัญชี')).toBeInTheDocument();
+      expect(screen.getAllByText('Chart of Accounts').length).toBeGreaterThan(0);
     });
   });
 

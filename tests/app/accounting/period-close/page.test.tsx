@@ -67,7 +67,7 @@ describe('PeriodClosePage', () => {
     render(<PeriodClosePage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('Period Close')).toBeInTheDocument();
+      expect(screen.getByText('Accounting')).toBeInTheDocument();
     });
     expect(screen.getByText('Month-end and year-end closing procedures')).toBeInTheDocument();
   });

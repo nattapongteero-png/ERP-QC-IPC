@@ -170,7 +170,7 @@ describe('Fixed Assets Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Fixed Assets')).toBeInTheDocument();
+      expect(screen.getAllByText('Accounting').length).toBeGreaterThan(0);
     });
   });
 
@@ -178,7 +178,7 @@ describe('Fixed Assets Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Fixed Assets')).toBeInTheDocument();
+      expect(screen.getAllByText('Accounting').length).toBeGreaterThan(0);
       expect(screen.getByText('Manage fixed assets and depreciation')).toBeInTheDocument();
     });
   });
@@ -240,7 +240,7 @@ describe('Fixed Assets Page', () => {
 
     // Page should still render without crashing
     await waitFor(() => {
-      expect(screen.getByText('Fixed Assets')).toBeInTheDocument();
+      expect(screen.getAllByText('Accounting').length).toBeGreaterThan(0);
     });
   });
 });

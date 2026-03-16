@@ -53,7 +53,8 @@ vi.mock('next-intl', async (importOriginal) => {
   const actual: any = await importOriginal();
 
   const createT = (namespace?: string) => {
-    const nsMessages = namespace ? allMessages[namespace] : allMessages;
+    // Support dot-notation namespaces like 'dashboard.audit'
+    const nsMessages = namespace ? (resolveKey(allMessages, namespace) ?? allMessages[namespace]) : allMessages;
 
     const t: any = (key: string, values?: Record<string, unknown>) => {
       const resolved = resolveKey(nsMessages, key);

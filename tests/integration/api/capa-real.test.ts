@@ -423,7 +423,7 @@ describe('CAPA Service Real Integration Tests', () => {
       const pastDate = '2024-01-01';
 
       // Create CAPAs with different statuses and priorities
-      const futureDate = '2026-02-01'; // Future date - not overdue
+      const futureDate = '2030-01-01'; // Future date - not overdue
       sqlite.prepare(`
         INSERT INTO capa (capa_number, title, source_type, type, priority, status, due_date, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)

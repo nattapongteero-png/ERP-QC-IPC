@@ -205,8 +205,8 @@ describe('APPaymentsPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('AP Payments')).toBeInTheDocument();
-      expect(screen.getByText('Vendor Payment Records')).toBeInTheDocument();
+      expect(screen.getByText('Payments')).toBeInTheDocument();
+      expect(screen.getByText('Manage supplier bills and payments')).toBeInTheDocument();
     });
   });
 

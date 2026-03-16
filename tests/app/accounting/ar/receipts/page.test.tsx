@@ -114,7 +114,7 @@ describe('AR Receipts Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Customer Receipts')).toBeInTheDocument();
+      expect(screen.getByText('Receipts')).toBeInTheDocument();
     }, { timeout: 10000 });
   }, 15000);
 

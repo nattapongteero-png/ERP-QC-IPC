@@ -124,7 +124,7 @@ describe('AR Aging Report Page', () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('AR Aging Report')).toBeInTheDocument();
+      expect(screen.getByText('Aging Report')).toBeInTheDocument();
     }, { timeout: 10000 });
   }, 15000);
 

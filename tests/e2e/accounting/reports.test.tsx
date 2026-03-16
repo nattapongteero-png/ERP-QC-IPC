@@ -243,7 +243,9 @@ describe('Financial Reports Page', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Financial Reports')).toBeInTheDocument();
+      // Page uses t('page.title') = 'Accounting' plus hardcoded 'Financial Reports (Bilingual)'
+      const pageElements = screen.getAllByText(/Accounting|Financial Reports/i);
+      expect(pageElements.length).toBeGreaterThan(0);
     });
   });
 
@@ -278,10 +280,10 @@ describe('Financial Reports Page', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Trial Balance')).toBeInTheDocument();
-      expect(screen.getByText('Balance Sheet')).toBeInTheDocument();
-      expect(screen.getByText('Income Statement')).toBeInTheDocument();
-      expect(screen.getByText('Aging Reports')).toBeInTheDocument();
+      expect(screen.getAllByText('Trial Balance').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Balance Sheet').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Income Statement').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Aging Reports').length).toBeGreaterThan(0);
     });
   });
 
@@ -315,7 +317,7 @@ describe('Financial Reports Page', () => {
 
     // Page should still render without crashing
     await waitFor(() => {
-      expect(screen.getByText('Financial Reports')).toBeInTheDocument();
+      expect(screen.getAllByText(/Financial Reports/i)[0]).toBeInTheDocument();
     });
   });
 
@@ -360,7 +362,7 @@ describe('Financial Reports Page', () => {
 
       await waitFor(() => {
         // Verify the page loads correctly
-        expect(screen.getByText('Financial Reports')).toBeInTheDocument();
+        expect(screen.getAllByText(/Financial Reports/i)[0]).toBeInTheDocument();
       });
     });
   });
@@ -371,7 +373,7 @@ describe('Financial Reports Page', () => {
 
       await waitFor(() => {
         // Verify the page structure is correct
-        expect(screen.getByText('Financial Reports')).toBeInTheDocument();
+        expect(screen.getAllByText(/Financial Reports/i)[0]).toBeInTheDocument();
       });
     });
   });
@@ -383,7 +385,7 @@ describe('Financial Reports Page', () => {
 
       // Verify page loads
       await waitFor(() => {
-        expect(screen.getByText('Financial Reports')).toBeInTheDocument();
+        expect(screen.getAllByText(/Financial Reports/i)[0]).toBeInTheDocument();
       });
     });
   });

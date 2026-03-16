@@ -102,9 +102,9 @@ describe('CostSummaryReportPage', () => {
 
     renderWithProviders(<CostSummaryReportPage />);
 
-    expect(screen.getByText('Cost Summary Report')).toBeInTheDocument();
+    expect(screen.getByText('Cost Summary')).toBeInTheDocument();
     expect(
-      screen.getByText('View current costs for all inventory items')
+      screen.getByText('Detailed cost summary report')
     ).toBeInTheDocument();
   });
 

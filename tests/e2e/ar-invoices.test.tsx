@@ -147,9 +147,9 @@ describe('AR Invoices Page', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('ใบแจ้งหนี้ขาย')).toBeInTheDocument();
+      expect(screen.getByText('Invoices')).toBeInTheDocument();
     });
-    expect(screen.getByText('AR Invoices / Tax Invoices')).toBeInTheDocument();
+    expect(screen.getByText('Accounts Receivable')).toBeInTheDocument();
   });
 
   it('should render stat cards', async () => {
@@ -283,7 +283,7 @@ describe('AR Invoices Page', () => {
 
     // Should not crash - page should still render
     await waitFor(() => {
-      expect(screen.getByText('ใบแจ้งหนี้ขาย')).toBeInTheDocument();
+      expect(screen.getByText('Invoices')).toBeInTheDocument();
     });
   });
 

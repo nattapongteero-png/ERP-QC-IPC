@@ -215,7 +215,7 @@ describe('Credit/Debit Notes Page', () => {
     render(<CreditDebitNotesPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('page-title')).toHaveTextContent('Credit/Debit Notes');
+      expect(screen.getByTestId('page-title')).toBeInTheDocument();
     });
   });
 

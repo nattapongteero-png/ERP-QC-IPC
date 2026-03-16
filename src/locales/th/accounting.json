@@ -347,6 +347,19 @@
       "yearEnd": "ปิดบัญชีประจำปี"
     }
   },
+  "operatingActivities": "กิจกรรมดำเนินงาน",
+  "investingActivities": "กิจกรรมลงทุน",
+  "financingActivities": "กิจกรรมจัดหาเงิน",
+  "cashReconciliation": "การกระทบยอดเงินสด",
+  "netIncome": "กำไรสุทธิ",
+  "adjustments": "รายการปรับ",
+  "workingCapitalChanges": "การเปลี่ยนแปลงเงินทุนหมุนเวียน",
+  "netCashFromOperating": "เงินสดสุทธิจากกิจกรรมดำเนินงาน",
+  "investingItems": "รายการลงทุน",
+  "netCashFromInvesting": "เงินสดสุทธิจากกิจกรรมลงทุน",
+  "financingItems": "รายการจัดหาเงิน",
+  "netCashFromFinancing": "เงินสดสุทธิจากกิจกรรมจัดหาเงิน",
+  "beginningCash": "ยอดเงินสดต้นงวด",
   "common": {
     "debit": "เดบิต",
     "credit": "เครดิต",

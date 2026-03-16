@@ -160,8 +160,8 @@ describe('Purchase Requisitions List Page', () => {
       expect(screen.getByTestId('page-header')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('page-title')).toHaveTextContent('ใบขอซื้อ');
-    expect(screen.getByTestId('page-description')).toHaveTextContent('สร้างและจัดการใบขอซื้อพร้อมระบบอนุมัติ');
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Purchase Requisitions');
+    expect(screen.getByTestId('page-description')).toHaveTextContent('Create and manage purchase requisitions with approval workflow');
   });
 
   it('renders the new PR button and refresh button', async () => {
@@ -172,7 +172,7 @@ describe('Purchase Requisitions List Page', () => {
       expect(screen.getByTestId('refresh-btn')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('new-pr-btn')).toHaveTextContent('สร้าง PR');
+    expect(screen.getByTestId('new-pr-btn')).toHaveTextContent('Create PR');
   });
 
   it('renders the data grid', async () => {
@@ -279,7 +279,7 @@ describe('Page with empty data', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('pr-grid')).toBeInTheDocument();
-      expect(screen.getByText('ไม่พบใบขอซื้อ')).toBeInTheDocument();
+      expect(screen.getByText('No purchase requisitions found')).toBeInTheDocument();
     });
   });
 

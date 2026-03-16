@@ -200,8 +200,8 @@ describe('AR Invoices Page', () => {
     await waitFor(() => {
       const header = screen.getByTestId('accounting-page-header');
       expect(header).toBeInTheDocument();
-      expect(screen.getByText('ใบแจ้งหนี้ขาย')).toBeInTheDocument();
-      expect(screen.getByText('AR Invoices / Tax Invoices')).toBeInTheDocument();
+      expect(screen.getByText('Invoices')).toBeInTheDocument();
+      expect(screen.getByText('Accounts Receivable')).toBeInTheDocument();
       const iconElement = header.querySelector('[data-icon="dollar-sign"]');
       expect(iconElement).toBeInTheDocument();
     });
