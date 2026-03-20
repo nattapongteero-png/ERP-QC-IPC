@@ -453,65 +453,15 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   };
 
   // ============================================================================
-  // Loading State
-  // ============================================================================
-
-  if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="space-y-6">
-          <div className="h-40 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded-xl animate-pulse" />
-            ))}
-          </div>
-          <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
-        </div>
-      </MainLayout>
-    );
-  }
-
-  // ============================================================================
-  // Not Found State
-  // ============================================================================
-
-  if (!data) {
-    return (
-      <MainLayout>
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-            <AlertTriangle className="h-10 w-10 text-gray-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('orders.detail.notFound')}</h2>
-          <p className="text-gray-500 mb-6">{t('orders.detail.notFoundDescription')}</p>
-          <DxButton
-            text={t('orders.detail.backToList')}
-            icon="back"
-            type="default"
-            onClick={() => router.push('/sales/orders')}
-          />
-        </div>
-      </MainLayout>
-    );
-  }
-
-  const { salesOrder: so, lines, summary } = data;
-  const statusConfig = STATUS_CONFIG[so.status] || STATUS_CONFIG.draft;
-  const StatusIcon = statusConfig.icon;
-  const overdue = isOverdue(so.requiredDate, so.status);
-  const daysUntil = getDaysUntilRequired(so.requiredDate);
-
-  // ============================================================================
-  // Tabs Configuration
+  // Tabs Configuration (must be before early returns to maintain hooks order)
   // ============================================================================
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = useMemo(() => [
     { key: 'overview', label: t('orders.detail.tabs.overview'), icon: Eye },
-    { key: 'lines', label: t('orders.detail.tabs.lines'), icon: ClipboardList, count: lines.length },
+    { key: 'lines', label: t('orders.detail.tabs.lines'), icon: ClipboardList, count: data?.lines?.length ?? 0 },
     { key: 'fulfillment', label: t('orders.detail.tabs.fulfillment'), icon: BoxSelect },
     { key: 'shipping', label: t('orders.detail.tabs.shipping'), icon: Truck },
-  ], [t, lines.length]);
+  ], [t, data?.lines?.length]);
 
   // ============================================================================
   // DataGrid Columns
@@ -825,6 +775,56 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
       },
     },
   ], [t, router]);
+
+  // ============================================================================
+  // Loading State
+  // ============================================================================
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="space-y-6">
+          <div className="h-40 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-xl animate-pulse" />
+            ))}
+          </div>
+          <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // ============================================================================
+  // Not Found State
+  // ============================================================================
+
+  if (!data) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+            <AlertTriangle className="h-10 w-10 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('orders.detail.notFound')}</h2>
+          <p className="text-gray-500 mb-6">{t('orders.detail.notFoundDescription')}</p>
+          <DxButton
+            text={t('orders.detail.backToList')}
+            icon="back"
+            type="default"
+            onClick={() => router.push('/sales/orders')}
+          />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const { salesOrder: so, lines, summary } = data;
+  const statusConfig = STATUS_CONFIG[so.status] || STATUS_CONFIG.draft;
+  const StatusIcon = statusConfig.icon;
+  const overdue = isOverdue(so.requiredDate, so.status);
+  const daysUntil = getDaysUntilRequired(so.requiredDate);
 
   // ============================================================================
   // Tab Content Renderers
