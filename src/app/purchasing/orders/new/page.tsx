@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
@@ -100,6 +100,8 @@ export default function NewPurchaseOrderPage() {
   const [isQuantityDialogOpen, setIsQuantityDialogOpen] = useState(false);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [itemUnitPrice, setItemUnitPrice] = useState<number>(0);
+  // Ref to distinguish explicit Cancel vs closing the dialog via X button
+  const cancelAddRef = useRef(false);
 
   // Fetch vendors
   useEffect(() => {
@@ -128,23 +130,37 @@ export default function NewPurchaseOrderPage() {
 
   const handleAddItemToOrder = () => {
     if (!selectedItem || itemQuantity <= 0 || itemUnitPrice < 0) return;
+    // Close dialog — onHiding will handle the actual item addition
+    setIsQuantityDialogOpen(false);
+  };
 
-    const line: POLine = {
-      itemId: selectedItem.id,
-      itemCode: selectedItem.code,
-      itemName: selectedItem.nameTh || selectedItem.nameEn,
-      itemUnit: selectedItem.primaryUnit || 'unit',
-      quantity: itemQuantity,
-      unitPrice: itemUnitPrice,
-      lineTotal: itemQuantity * itemUnitPrice,
-    };
+  const handleCancelAddItem = () => {
+    // Mark as explicitly cancelled so onHiding won't auto-add
+    cancelAddRef.current = true;
+    setIsQuantityDialogOpen(false);
+  };
 
-    setLines([...lines, line]);
+  const handleQuantityDialogHiding = () => {
+    // Auto-add item unless user explicitly clicked "ยกเลิก" (Cancel)
+    if (!cancelAddRef.current && selectedItem && itemQuantity > 0 && itemUnitPrice >= 0) {
+      const line: POLine = {
+        itemId: selectedItem.id,
+        itemCode: selectedItem.code,
+        itemName: selectedItem.nameTh || selectedItem.nameEn,
+        itemUnit: selectedItem.primaryUnit || 'unit',
+        quantity: itemQuantity,
+        unitPrice: itemUnitPrice,
+        lineTotal: itemQuantity * itemUnitPrice,
+      };
+      setLines((prev) => [...prev, line]);
+      setErrors((prev) => ({ ...prev, lines: '' }));
+    }
+    // Reset state
+    cancelAddRef.current = false;
     setSelectedItem(null);
     setItemQuantity(1);
     setItemUnitPrice(0);
     setIsQuantityDialogOpen(false);
-    setErrors((prev) => ({ ...prev, lines: '' }));
   };
 
   const handleRemoveLine = (itemId: number) => {
@@ -888,7 +904,7 @@ export default function NewPurchaseOrderPage() {
       {/* Quantity & Price Dialog */}
       <DxPopup
         visible={isQuantityDialogOpen}
-        onHiding={() => setIsQuantityDialogOpen(false)}
+        onHiding={handleQuantityDialogHiding}
         title="เพิ่มรายการสินค้า"
         width={500}
         height="auto"
@@ -955,7 +971,7 @@ export default function NewPurchaseOrderPage() {
                 text="ยกเลิก"
                 type="normal"
                 stylingMode="outlined"
-                onClick={() => setIsQuantityDialogOpen(false)}
+                onClick={handleCancelAddItem}
               />
               <DxButton
                 text="เพิ่มรายการ"
