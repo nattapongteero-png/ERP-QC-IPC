@@ -43,6 +43,11 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   const [approvalComments, setApprovalComments] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  // Cancel PR state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+
   useEffect(() => {
     const fetchPR = async () => {
       try {
@@ -148,6 +153,31 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
     }
   };
 
+  const handleCancelPR = async () => {
+    try {
+      setCancelling(true);
+      setError(null);
+
+      const response = await fetch(`/api/purchasing/requisitions/${id}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: cancelReason || 'Cancelled by user' }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setShowCancelModal(false);
+        router.push('/purchasing/requisitions');
+      } else {
+        setError(result.error);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to cancel PR');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -186,6 +216,16 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
 
           {/* Action buttons based on status */}
           <div className="flex gap-2">
+            {(pr?.status === 'draft' || pr?.status === 'submitted' || pr?.status === 'pending_approval') && (
+              <Button
+                text="ยกเลิกใบ PR"
+                type="danger"
+                stylingMode="outlined"
+                icon="close"
+                onClick={() => setShowCancelModal(true)}
+                data-testid="cancel-pr-btn"
+              />
+            )}
             {pr?.status === 'pending_approval' && (
               <>
                 <Button
@@ -309,6 +349,50 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 onClick={handleApprovalAction}
                 disabled={processing || (approvalAction === 'reject' && !approvalComments)}
                 data-testid="confirm-approval-btn"
+              />
+            </div>
+          </div>
+        </Popup>
+
+        {/* Cancel PR Modal */}
+        <Popup
+          visible={showCancelModal}
+          onHiding={() => setShowCancelModal(false)}
+          title="ยกเลิกใบขอซื้อ (Cancel PR)"
+          width={400}
+          height={300}
+          showCloseButton={true}
+        >
+          <div className="p-4">
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-3">
+                คุณต้องการยกเลิกใบขอซื้อ {pr?.prNumber} ใช่หรือไม่?
+              </p>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                เหตุผลในการยกเลิก (Reason)
+              </label>
+              <TextArea
+                value={cancelReason}
+                onValueChanged={(e) => setCancelReason(e.value)}
+                height={100}
+                placeholder="ระบุเหตุผลในการยกเลิก..."
+                data-testid="cancel-reason"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end mt-6">
+              <Button
+                text="ปิด"
+                type="normal"
+                onClick={() => setShowCancelModal(false)}
+              />
+              <Button
+                text={cancelling ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
+                type="danger"
+                stylingMode="contained"
+                onClick={handleCancelPR}
+                disabled={cancelling}
+                data-testid="confirm-cancel-pr-btn"
               />
             </div>
           </div>
