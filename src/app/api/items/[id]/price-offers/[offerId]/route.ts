@@ -121,13 +121,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       };
 
       if (body.unitPrice !== undefined) {
-        if (body.unitPrice <= 0) {
-          return errorResponse('Unit price must be greater than 0');
+        if (body.unitPrice < 0) {
+          return errorResponse('ราคาต่อหน่วยต้องไม่ติดลบ (Unit price cannot be negative)');
+        }
+        if (body.unitPrice === 0) {
+          return errorResponse('ราคาต่อหน่วยต้องมากกว่า 0 (Unit price must be greater than 0)');
         }
         updateData.unitPrice = body.unitPrice.toString();
       }
 
       if (body.packPrice !== undefined) {
+        if (body.packPrice !== null && body.packPrice < 0) {
+          return errorResponse('ราคาต่อแพ็คต้องไม่ติดลบ (Pack price cannot be negative)');
+        }
         updateData.packPrice = body.packPrice ? body.packPrice.toString() : null;
       }
 

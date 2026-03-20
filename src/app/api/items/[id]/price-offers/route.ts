@@ -135,11 +135,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const { unitPrice, packPrice, moq, leadTimeDays, effectiveDate, expiryDate } = body;
 
       // Validate required fields
-      if (unitPrice === undefined || unitPrice === null || unitPrice <= 0) {
-        return errorResponse('Unit price must be greater than 0');
+      if (unitPrice === undefined || unitPrice === null) {
+        return errorResponse('กรุณาระบุราคาต่อหน่วย (Unit price is required)');
+      }
+      if (unitPrice < 0) {
+        return errorResponse('ราคาต่อหน่วยต้องไม่ติดลบ (Unit price cannot be negative)');
+      }
+      if (unitPrice === 0) {
+        return errorResponse('ราคาต่อหน่วยต้องมากกว่า 0 (Unit price must be greater than 0)');
+      }
+      if (packPrice !== undefined && packPrice !== null && packPrice < 0) {
+        return errorResponse('ราคาต่อแพ็คต้องไม่ติดลบ (Pack price cannot be negative)');
       }
       if (!effectiveDate) {
-        return errorResponse('Effective date is required');
+        return errorResponse('กรุณาระบุวันที่มีผล (Effective date is required)');
       }
 
       // Verify item exists
