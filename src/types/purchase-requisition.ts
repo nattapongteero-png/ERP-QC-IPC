@@ -60,6 +60,7 @@ export interface PRUpdateInput {
  * Purchase Requisition Line Item Input
  */
 export interface PRLineInput {
+  id?: number;             // Line ID (present when editing existing lines)
   itemId?: number;         // Reference to inventory item (optional for service)
   itemCode?: string;       // Manual item code
   description: string;
