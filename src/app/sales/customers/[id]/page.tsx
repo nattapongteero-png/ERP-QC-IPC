@@ -401,66 +401,7 @@ export default function CustomerDetailPage({
   }, [data, t]);
 
   // ============================================================================
-  // Loading State
-  // ============================================================================
-
-  if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="space-y-6">
-          <div className="h-40 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded-xl animate-pulse" />
-            ))}
-          </div>
-          <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
-        </div>
-      </MainLayout>
-    );
-  }
-
-  // ============================================================================
-  // Not Found State
-  // ============================================================================
-
-  if (!data) {
-    return (
-      <MainLayout>
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-            <AlertTriangle className="h-10 w-10 text-gray-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('customers.detail.notFound')}</h2>
-          <p className="text-gray-500 mb-6">{t('customers.detail.notFoundDescription')}</p>
-          <DxButton
-            text={t('customers.detail.backToList')}
-            icon="back"
-            type="default"
-            onClick={() => router.push('/sales/customers')}
-          />
-        </div>
-      </MainLayout>
-    );
-  }
-
-  const { customer, recentSalesOrders, summary } = data;
-  const typeConfig = CUSTOMER_TYPE_CONFIG[customer.customerType] || CUSTOMER_TYPE_CONFIG.other;
-  const TypeIcon = typeConfig.icon;
-
-  // ============================================================================
-  // Tabs Configuration
-  // ============================================================================
-
-  const tabs: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = [
-    { key: 'overview', label: t('customers.detail.tabs.overview'), icon: Eye },
-    { key: 'orders', label: t('customers.detail.tabs.orders'), icon: ShoppingBag, count: recentSalesOrders.length },
-    { key: 'contact', label: t('customers.detail.tabs.contact'), icon: User },
-    { key: 'credit', label: t('customers.detail.tabs.credit'), icon: CreditCard },
-  ];
-
-  // ============================================================================
-  // DataGrid Columns
+  // DataGrid Columns (must be before early returns to maintain hooks order)
   // ============================================================================
 
   const orderColumns: DxDataGridColumn[] = useMemo(() => [
@@ -537,6 +478,65 @@ export default function CustomerDetailPage({
       ),
     },
   ], [t, handleViewOrder]);
+
+  // ============================================================================
+  // Loading State
+  // ============================================================================
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="space-y-6">
+          <div className="h-40 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-xl animate-pulse" />
+            ))}
+          </div>
+          <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // ============================================================================
+  // Not Found State
+  // ============================================================================
+
+  if (!data) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+            <AlertTriangle className="h-10 w-10 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('customers.detail.notFound')}</h2>
+          <p className="text-gray-500 mb-6">{t('customers.detail.notFoundDescription')}</p>
+          <DxButton
+            text={t('customers.detail.backToList')}
+            icon="back"
+            type="default"
+            onClick={() => router.push('/sales/customers')}
+          />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const { customer, recentSalesOrders, summary } = data;
+  const typeConfig = CUSTOMER_TYPE_CONFIG[customer.customerType] || CUSTOMER_TYPE_CONFIG.other;
+  const TypeIcon = typeConfig.icon;
+
+  // ============================================================================
+  // Tabs Configuration
+  // ============================================================================
+
+  const tabs: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = [
+    { key: 'overview', label: t('customers.detail.tabs.overview'), icon: Eye },
+    { key: 'orders', label: t('customers.detail.tabs.orders'), icon: ShoppingBag, count: recentSalesOrders.length },
+    { key: 'contact', label: t('customers.detail.tabs.contact'), icon: User },
+    { key: 'credit', label: t('customers.detail.tabs.credit'), icon: CreditCard },
+  ];
 
   // ============================================================================
   // Tab Content Renderers
