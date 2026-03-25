@@ -121,15 +121,15 @@ export async function recalculateItemOnHand(itemId: number): Promise<{ onHand: n
   const database = (await getDb()) as any;
   const usingSqlite = isSqlite();
 
-  // Sum quantities from released lots for this item (onHand)
-  const [releasedResult] = await (database as any)
+  // Sum ALL lot quantities for this item (onHand = total stock including quarantine)
+  const [totalResult] = await (database as any)
     .select({
       totalOnHand: sql`COALESCE(SUM(${lots.quantity}), 0)`,
     })
     .from(lots)
-    .where(and(eq(lots.itemId, itemId), eq(lots.status, 'released')));
+    .where(eq(lots.itemId, itemId));
 
-  // Sum quantities from quarantine/under_test lots (quarantineQty)
+  // Sum quantities from quarantine/under_test lots (quarantineQty subset)
   const [quarantineResult] = await (database as any)
     .select({
       totalQuarantine: sql`COALESCE(SUM(${lots.quantity}), 0)`,
@@ -140,7 +140,7 @@ export async function recalculateItemOnHand(itemId: number): Promise<{ onHand: n
       or(eq(lots.status, 'quarantine'), eq(lots.status, 'under_test'))
     ));
 
-  const onHand = Number(releasedResult?.totalOnHand) || 0;
+  const onHand = Number(totalResult?.totalOnHand) || 0;
   const quarantineQty = Number(quarantineResult?.totalQuarantine) || 0;
 
   // Update item's onHand and quarantineQty fields
