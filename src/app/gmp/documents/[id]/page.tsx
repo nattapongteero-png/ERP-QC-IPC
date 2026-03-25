@@ -616,6 +616,11 @@ export default function DocumentDetailPage() {
                   day: 'numeric',
                 })}
               </span>
+              {selectedVersion.effectiveDate && (
+                <span className="text-green-700 dark:text-green-400 font-medium">
+                  Effective: {new Date(selectedVersion.effectiveDate).toLocaleDateString('th-TH')}
+                </span>
+              )}
               {selectedVersion.changeDescription && (
                 <span className="text-muted-foreground truncate max-w-md">
                   — {selectedVersion.changeDescription}
@@ -632,6 +637,7 @@ export default function DocumentDetailPage() {
         <main className="flex-1 flex flex-col border-r overflow-hidden">
           {selectedVersion?.filePath ? (
             <DocumentPreview
+              key={selectedVersion.id}
               versionId={selectedVersion.id}
               filePath={selectedVersion.filePath}
               fileName={fileName}
@@ -640,7 +646,7 @@ export default function DocumentDetailPage() {
               onToggleFullscreen={() => setIsPreviewFullscreen(!isPreviewFullscreen)}
             />
           ) : selectedVersion?.content ? (
-            <TextContentPreview content={selectedVersion.content} />
+            <TextContentPreview key={selectedVersion.id} content={selectedVersion.content} />
           ) : (
             <NoContentPlaceholder />
           )}
