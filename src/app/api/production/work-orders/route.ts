@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
             productId: workOrdersTable.productId,
             productCode: itemsTable.code,
             productName: itemsTable.nameTh,
+            notes: workOrdersTable.notes,
             createdAt: workOrdersTable.createdAt,
           })
           .from(workOrdersTable)

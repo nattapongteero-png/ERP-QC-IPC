@@ -61,7 +61,11 @@
       "holdWO": "Hold Work Order",
       "releaseWO": "Release Work Order",
       "printLabel": "Print Label",
-      "viewBOM": "View BOM"
+      "viewBOM": "View BOM",
+      "deleteWO": "Delete Work Order",
+      "deleteConfirm": "Are you sure you want to delete work order {woNumber}? This will also delete all material items.",
+      "deleteSuccess": "Work order deleted successfully",
+      "editSuccess": "Work order updated successfully"
     },
     "breadcrumbs": {
       "production": "Production",
@@ -115,6 +119,9 @@
       "remarks": {
         "label": "Remarks",
         "placeholder": "Enter remarks"
+      },
+      "batchNumber": {
+        "label": "Batch Number"
       }
     },
     "status": {

@@ -9,7 +9,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
@@ -39,6 +39,13 @@ import {
   Tooltip as ChartTooltip,
   Label as ChartLabel,
 } from 'devextreme-react/chart';
+import { DxPopup, DxConfirmDialog } from '@/components/ui/dx-popup';
+import notify from 'devextreme/ui/notify';
+import DateBox from 'devextreme-react/date-box';
+import NumberBox from 'devextreme-react/number-box';
+import SelectBox from 'devextreme-react/select-box';
+import TextArea from 'devextreme-react/text-area';
+import TextBox from 'devextreme-react/text-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTabs } from '@/components/ui/dx-tabs';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
@@ -58,9 +65,10 @@ import {
   BarChart3,
   Calendar,
   Percent,
-  Package,
   AlertTriangle,
   Eye,
+  Pencil,
+  Trash2,
   Target,
   Activity,
 } from 'lucide-react';
@@ -76,7 +84,7 @@ interface WorkOrder {
   plannedQuantity: number;
   actualQuantity: number;
   unit: string;
-  status: 'planned' | 'released' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'draft' | 'planned' | 'released' | 'in_progress' | 'completed' | 'cancelled';
   priority: number;
   plannedStartDate: string;
   plannedEndDate: string;
@@ -87,6 +95,7 @@ interface WorkOrder {
   productCode: string;
   productName: string;
   createdAt: string;
+  notes: string | null;
 }
 
 // ============================================
@@ -94,6 +103,12 @@ interface WorkOrder {
 // ============================================
 
 const STATUS_CONFIG = {
+  draft: {
+    translationKey: 'draft',
+    color: '#6b7280',
+    bgClass: 'bg-gray-100 text-gray-700 border-gray-200',
+    icon: ClipboardList,
+  },
   planned: {
     translationKey: 'planned',
     color: '#3b82f6',
@@ -125,6 +140,8 @@ const STATUS_CONFIG = {
     icon: XCircle,
   },
 } as const;
+
+const EDITABLE_STATUSES = ['draft', 'planned'];
 
 const PRIORITY_CONFIG = {
   high: {
@@ -185,12 +202,107 @@ export default function WorkOrdersPage() {
   const t = useTranslations('production');
   const tCommon = useTranslations('common');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const queryClient = useQueryClient();
+  const [editDialogVisible, setEditDialogVisible] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
+  const [editForm, setEditForm] = useState({
+    batchNumber: '',
+    plannedQuantity: 0,
+    priority: 5,
+    plannedStartDate: null as Date | null,
+    plannedEndDate: null as Date | null,
+    notes: '',
+  });
 
   // Fetch work orders
   const { data: workOrders = [], isLoading, refetch } = useQuery({
     queryKey: ['work-orders'],
     queryFn: fetchWorkOrders,
   });
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async (data: { id: number; body: Record<string, unknown> }) => {
+      const res = await fetch(`/api/production/work-orders/${data.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data.body),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || 'Failed to update');
+      return result;
+    },
+    onSuccess: () => {
+      notify(t('workOrders.actions.editSuccess'), 'success', 3000);
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      setEditDialogVisible(false);
+      setSelectedWO(null);
+    },
+    onError: (error: Error) => {
+      notify(error.message, 'error', 5000);
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/production/work-orders/${id}`, { method: 'DELETE' });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || 'Failed to delete');
+      return result;
+    },
+    onSuccess: () => {
+      notify(t('workOrders.actions.deleteSuccess'), 'success', 3000);
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] });
+      setDeleteDialogVisible(false);
+      setSelectedWO(null);
+    },
+    onError: (error: Error) => {
+      notify(error.message, 'error', 5000);
+    },
+  });
+
+  // Handler functions
+  const handleEditClick = useCallback((e: React.MouseEvent, wo: WorkOrder) => {
+    e.stopPropagation();
+    setSelectedWO(wo);
+    setEditForm({
+      batchNumber: wo.batchNumber || '',
+      plannedQuantity: wo.plannedQuantity,
+      priority: wo.priority,
+      plannedStartDate: wo.plannedStartDate ? new Date(wo.plannedStartDate) : null,
+      plannedEndDate: wo.plannedEndDate ? new Date(wo.plannedEndDate) : null,
+      notes: wo.notes || '',
+    });
+    setEditDialogVisible(true);
+  }, []);
+
+  const handleDeleteClick = useCallback((e: React.MouseEvent, wo: WorkOrder) => {
+    e.stopPropagation();
+    setSelectedWO(wo);
+    setDeleteDialogVisible(true);
+  }, []);
+
+  const handleSaveEdit = useCallback(() => {
+    if (!selectedWO) return;
+    updateMutation.mutate({
+      id: selectedWO.id,
+      body: {
+        batchNumber: editForm.batchNumber,
+        plannedQuantity: editForm.plannedQuantity,
+        priority: editForm.priority,
+        plannedStartDate: editForm.plannedStartDate?.toISOString().split('T')[0] || null,
+        plannedEndDate: editForm.plannedEndDate?.toISOString().split('T')[0] || null,
+        notes: editForm.notes || null,
+      },
+    });
+  }, [selectedWO, editForm, updateMutation]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!selectedWO) return;
+    deleteMutation.mutate(selectedWO.id);
+  }, [selectedWO, deleteMutation]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -374,18 +486,45 @@ export default function WorkOrdersPage() {
     );
   }, [t]);
 
-  const renderActionsCell = useCallback((data: { data: WorkOrder }) => (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        router.push(`/production/work-orders/${data.data.id}`);
-      }}
-      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-      title="View Details"
-    >
-      <Eye className="h-4 w-4" />
-    </button>
-  ), [router]);
+  const renderActionsCell = useCallback((data: { data: WorkOrder }) => {
+    const wo = data.data;
+    const isEditable = EDITABLE_STATUSES.includes(wo.status);
+    return (
+      <div className="flex items-center gap-1">
+        {isEditable && (
+          <>
+            <button
+              onClick={(e) => handleEditClick(e, wo)}
+              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              title={t('workOrders.actions.editWO')}
+              data-testid={`edit-wo-${wo.id}`}
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={(e) => handleDeleteClick(e, wo)}
+              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+              title={t('workOrders.actions.deleteWO')}
+              data-testid={`delete-wo-${wo.id}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </>
+        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/production/work-orders/${wo.id}`);
+          }}
+          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          title={t('workOrders.actions.viewWO')}
+          data-testid={`view-wo-${wo.id}`}
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }, [router, t, handleEditClick, handleDeleteClick]);
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-[1800px] mx-auto">
@@ -767,13 +906,132 @@ export default function WorkOrdersPage() {
           />
           <Column
             caption=""
-            width={60}
+            width={120}
             cellRender={renderActionsCell}
             allowFiltering={false}
             allowSorting={false}
           />
         </DataGrid>
       </div>
+
+      {/* Edit Work Order Dialog */}
+      <DxPopup
+        visible={editDialogVisible}
+        onVisibleChange={setEditDialogVisible}
+        title={t('workOrders.actions.editWO')}
+        width={500}
+        height="auto"
+        toolbarItems={[
+          {
+            widget: 'dxButton',
+            toolbar: 'bottom',
+            location: 'after',
+            options: {
+              text: tCommon('actions.save'),
+              type: 'success',
+              icon: 'save',
+              onClick: handleSaveEdit,
+            },
+          },
+          {
+            widget: 'dxButton',
+            toolbar: 'bottom',
+            location: 'after',
+            options: {
+              text: tCommon('actions.cancel'),
+              stylingMode: 'outlined' as const,
+              onClick: () => setEditDialogVisible(false),
+            },
+          },
+        ]}
+      >
+        <div className="p-4 space-y-4">
+          {selectedWO && (
+            <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-semibold text-blue-700">{selectedWO.woNumber}</p>
+              <p className="text-xs text-blue-600">{selectedWO.productName}</p>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('workOrders.form.batchNumber.label')}
+            </label>
+            <TextBox
+              value={editForm.batchNumber}
+              onValueChanged={(e) => setEditForm(prev => ({ ...prev, batchNumber: e.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('workOrders.form.quantity.label')}
+              </label>
+              <NumberBox
+                value={editForm.plannedQuantity}
+                onValueChanged={(e) => setEditForm(prev => ({ ...prev, plannedQuantity: e.value }))}
+                min={0.01}
+                format="#,##0.##"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('workOrders.form.priority.label')}
+              </label>
+              <SelectBox
+                value={editForm.priority}
+                onValueChanged={(e) => setEditForm(prev => ({ ...prev, priority: e.value }))}
+                items={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('workOrders.form.plannedStart.label')}
+              </label>
+              <DateBox
+                value={editForm.plannedStartDate}
+                onValueChanged={(e) => setEditForm(prev => ({ ...prev, plannedStartDate: e.value }))}
+                type="date"
+                displayFormat="dd/MM/yyyy"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('workOrders.form.plannedEnd.label')}
+              </label>
+              <DateBox
+                value={editForm.plannedEndDate}
+                onValueChanged={(e) => setEditForm(prev => ({ ...prev, plannedEndDate: e.value }))}
+                type="date"
+                displayFormat="dd/MM/yyyy"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('workOrders.form.remarks.label')}
+            </label>
+            <TextArea
+              value={editForm.notes}
+              onValueChanged={(e) => setEditForm(prev => ({ ...prev, notes: e.value }))}
+              height={80}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Delete Confirmation Dialog */}
+      <DxConfirmDialog
+        visible={deleteDialogVisible}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => { setDeleteDialogVisible(false); setSelectedWO(null); }}
+        title={t('workOrders.actions.deleteWO')}
+        message={t('workOrders.actions.deleteConfirm', { woNumber: selectedWO?.woNumber || '' })}
+        confirmText={tCommon('actions.delete')}
+        cancelText={tCommon('actions.cancel')}
+        confirmType="danger"
+      />
     </div>
   );
 }
