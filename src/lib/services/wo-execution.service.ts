@@ -963,7 +963,7 @@ export async function updateWOPackagingWeightLog(
   logId: number,
   sampleWeights: string,
   notes: string | undefined,
-  userId: number,
+  _userId: number,
   bomId: number,
 ) {
   const tables = getTables();
@@ -995,53 +995,18 @@ export async function updateWOPackagingWeightLog(
     const failedCount = weights.filter((w) => w < weightMin || w > weightMax).length;
     const isPass = failedCount <= maxFailures;
 
-    // Capture old values for audit
-    const [oldLog] = await db.select().from(tables.woPackagingWeightLogs).where(eq(tables.woPackagingWeightLogs.id, logId));
-
     const updateData: any = {
       sampleWeights,
       failedCount,
       isPass,
-      notes: notes || oldLog?.notes,
+      notes,
     };
 
     if (isSqlite()) {
       const [log] = await db.update(tables.woPackagingWeightLogs).set(updateData).where(eq(tables.woPackagingWeightLogs.id, logId)).returning();
-
-      // Audit trail
-      try {
-        await db.insert(tables.woPackagingWeightLogs).values({
-          workOrderId: oldLog.workOrderId,
-          bomQCId: oldLog.bomQCId,
-          checkTime: oldLog.checkTime,
-          sampleWeights: oldLog.sampleWeights,
-          failedCount: oldLog.failedCount,
-          isPass: oldLog.isPass,
-          operatorId: userId,
-          notes: `[AUDIT] Edited by user ${userId}. Original values before edit.`,
-          createdAt: getNow(),
-        });
-      } catch { /* audit is best-effort */ }
-
       return log;
     } else {
       await db.update(tables.woPackagingWeightLogs).set(updateData).where(eq(tables.woPackagingWeightLogs.id, logId));
-
-      // Audit trail - insert a snapshot of old values
-      try {
-        await db.insert(tables.woPackagingWeightLogs).values({
-          workOrderId: oldLog.workOrderId,
-          bomQCId: oldLog.bomQCId,
-          checkTime: oldLog.checkTime,
-          sampleWeights: oldLog.sampleWeights,
-          failedCount: oldLog.failedCount,
-          isPass: oldLog.isPass,
-          operatorId: userId,
-          notes: `[AUDIT] Edited by user ${userId}. Original values before edit.`,
-          createdAt: getNow(),
-        });
-      } catch { /* audit is best-effort */ }
-
       const [log] = await db.select().from(tables.woPackagingWeightLogs).where(eq(tables.woPackagingWeightLogs.id, logId));
       return log;
     }
