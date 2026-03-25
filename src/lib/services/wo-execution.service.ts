@@ -24,6 +24,8 @@ import {
   sqliteWOPackagingIntegrityLogs,
   sqliteWOFinishedInspection,
   sqliteWOPackagingMaterials,
+  sqliteBOMRooms,
+  sqliteBOMEquipment,
   sqliteBOMEnvironmentalConditions,
   sqliteBOMSOPSteps,
   sqliteBOMPackagingQC,
@@ -44,6 +46,8 @@ import {
   mysqlWOPackagingIntegrityLogs,
   mysqlWOFinishedInspection,
   mysqlWOPackagingMaterials,
+  mysqlBOMRooms,
+  mysqlBOMEquipment,
   mysqlBOMEnvironmentalConditions,
   mysqlBOMSOPSteps,
   mysqlBOMPackagingQC,
@@ -58,7 +62,7 @@ import {
   mysqlUsers,
 } from '../db/schema';
 import { getNow } from '../db/date-utils';
-import { issueMaterial } from './inventory.service';
+import { issueMaterial, getLotsForPicking } from './inventory.service';
 
 // Get the appropriate tables based on database type
 function getTables() {
@@ -71,6 +75,8 @@ function getTables() {
       woPackagingIntegrityLogs: sqliteWOPackagingIntegrityLogs,
       woFinishedInspection: sqliteWOFinishedInspection,
       woPackagingMaterials: sqliteWOPackagingMaterials,
+      bomRooms: sqliteBOMRooms,
+      bomEquipment: sqliteBOMEquipment,
       bomEnvironmentalConditions: sqliteBOMEnvironmentalConditions,
       bomSOPSteps: sqliteBOMSOPSteps,
       bomPackagingQC: sqliteBOMPackagingQC,
@@ -93,6 +99,8 @@ function getTables() {
     woPackagingIntegrityLogs: mysqlWOPackagingIntegrityLogs,
     woFinishedInspection: mysqlWOFinishedInspection,
     woPackagingMaterials: mysqlWOPackagingMaterials,
+    bomRooms: mysqlBOMRooms,
+    bomEquipment: mysqlBOMEquipment,
     bomEnvironmentalConditions: mysqlBOMEnvironmentalConditions,
     bomSOPSteps: mysqlBOMSOPSteps,
     bomPackagingQC: mysqlBOMPackagingQC,
@@ -353,6 +361,179 @@ export async function getWOCleaningStatus(workOrderId: number, phase: string) {
   };
 }
 
+/**
+ * Get cleaning requirements by merging BOM room/equipment config with existing cleaning logs.
+ * Returns a checklist of items that need cleaning for a given phase.
+ */
+export async function getCleaningRequirements(workOrderId: number, phase: string) {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    // 1. Get the work order's BOM ID
+    const woResult = await db
+      .select({ bomId: tables.workOrders.bomId })
+      .from(tables.workOrders)
+      .where(eq(tables.workOrders.id, workOrderId))
+      .limit(1);
+
+    if (woResult.length === 0) return [];
+    const bomId = woResult[0].bomId;
+    if (!bomId) return [];
+
+    // 2. Get BOM rooms for this phase
+    const bomRooms = await db
+      .select({
+        bomRoomId: tables.bomRooms.id,
+        roomId: tables.bomRooms.roomId,
+        phase: tables.bomRooms.phase,
+        sequence: tables.bomRooms.sequence,
+        isRequired: tables.bomRooms.isRequired,
+        roomCode: tables.productionRooms.code,
+        roomName: tables.productionRooms.name,
+        roomNameTh: tables.productionRooms.nameTh,
+      })
+      .from(tables.bomRooms)
+      .leftJoin(tables.productionRooms, eq(tables.bomRooms.roomId, tables.productionRooms.id))
+      .where(and(eq(tables.bomRooms.bomId, bomId), eq(tables.bomRooms.phase, phase)))
+      .orderBy(asc(tables.bomRooms.sequence));
+
+    // 3. Get BOM equipment for this phase
+    const bomEquip = await db
+      .select({
+        bomEquipId: tables.bomEquipment.id,
+        equipmentId: tables.bomEquipment.equipmentId,
+        phase: tables.bomEquipment.phase,
+        sequence: tables.bomEquipment.sequence,
+        isRequired: tables.bomEquipment.isRequired,
+        equipmentCode: tables.productionEquipment.code,
+        equipmentName: tables.productionEquipment.name,
+        equipmentNameTh: tables.productionEquipment.nameTh,
+      })
+      .from(tables.bomEquipment)
+      .leftJoin(tables.productionEquipment, eq(tables.bomEquipment.equipmentId, tables.productionEquipment.id))
+      .where(and(eq(tables.bomEquipment.bomId, bomId), eq(tables.bomEquipment.phase, phase)))
+      .orderBy(asc(tables.bomEquipment.sequence));
+
+    // 4. Get existing cleaning logs for this WO + phase (with operator/verifier names)
+    const logs = await db
+      .select({
+        id: tables.woCleaningLogs.id,
+        workOrderId: tables.woCleaningLogs.workOrderId,
+        phase: tables.woCleaningLogs.phase,
+        itemType: tables.woCleaningLogs.itemType,
+        roomId: tables.woCleaningLogs.roomId,
+        equipmentId: tables.woCleaningLogs.equipmentId,
+        isClean: tables.woCleaningLogs.isClean,
+        operatorId: tables.woCleaningLogs.operatorId,
+        performedAt: tables.woCleaningLogs.performedAt,
+        verifierId: tables.woCleaningLogs.verifierId,
+        verifiedAt: tables.woCleaningLogs.verifiedAt,
+        notes: tables.woCleaningLogs.notes,
+      })
+      .from(tables.woCleaningLogs)
+      .where(and(
+        eq(tables.woCleaningLogs.workOrderId, workOrderId),
+        eq(tables.woCleaningLogs.phase, phase),
+      ))
+      .orderBy(desc(tables.woCleaningLogs.performedAt));
+
+    // 5. Resolve operator/verifier names
+    const userIds = new Set<number>();
+    for (const log of logs) {
+      if (log.operatorId) userIds.add(log.operatorId);
+      if (log.verifierId) userIds.add(log.verifierId);
+    }
+    const userMap = new Map<number, string>();
+    if (userIds.size > 0) {
+      const users = await db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users);
+      for (const u of users) {
+        if (userIds.has(u.id)) userMap.set(u.id, u.name);
+      }
+    }
+
+    // 6. Build room-based log lookup (roomId -> latest log)
+    const roomLogMap = new Map<number, any>();
+    for (const log of logs) {
+      if (log.itemType === 'room' && log.roomId && !roomLogMap.has(log.roomId)) {
+        roomLogMap.set(log.roomId, log);
+      }
+    }
+
+    // 7. Build equipment-based log lookup (equipmentId -> latest log)
+    const equipLogMap = new Map<number, any>();
+    for (const log of logs) {
+      if (log.itemType === 'equipment' && log.equipmentId && !equipLogMap.has(log.equipmentId)) {
+        equipLogMap.set(log.equipmentId, log);
+      }
+    }
+
+    // 8. Merge BOM rooms with logs → CleaningRequirement[]
+    const requirements: any[] = [];
+
+    for (const room of bomRooms) {
+      const log = roomLogMap.get(room.roomId);
+      requirements.push({
+        type: 'room',
+        id: room.roomId,
+        code: room.roomCode || '',
+        name: room.roomName || '',
+        nameTh: room.roomNameTh || '',
+        isRequired: Boolean(room.isRequired),
+        cleaningLog: log
+          ? {
+              id: log.id,
+              workOrderId: log.workOrderId,
+              phase: log.phase,
+              itemType: log.itemType,
+              roomId: log.roomId,
+              isClean: Boolean(log.isClean),
+              operatorId: log.operatorId,
+              operatorName: userMap.get(log.operatorId) || undefined,
+              performedAt: log.performedAt,
+              verifierId: log.verifierId || undefined,
+              verifierName: log.verifierId ? userMap.get(log.verifierId) || undefined : undefined,
+              verifiedAt: log.verifiedAt || undefined,
+              notes: log.notes || undefined,
+            }
+          : undefined,
+      });
+    }
+
+    for (const equip of bomEquip) {
+      const log = equipLogMap.get(equip.equipmentId);
+      requirements.push({
+        type: 'equipment',
+        id: equip.equipmentId,
+        code: equip.equipmentCode || '',
+        name: equip.equipmentName || '',
+        nameTh: equip.equipmentNameTh || '',
+        isRequired: Boolean(equip.isRequired),
+        cleaningLog: log
+          ? {
+              id: log.id,
+              workOrderId: log.workOrderId,
+              phase: log.phase,
+              itemType: log.itemType,
+              equipmentId: log.equipmentId,
+              isClean: Boolean(log.isClean),
+              operatorId: log.operatorId,
+              operatorName: userMap.get(log.operatorId) || undefined,
+              performedAt: log.performedAt,
+              verifierId: log.verifierId || undefined,
+              verifierName: log.verifierId ? userMap.get(log.verifierId) || undefined : undefined,
+              verifiedAt: log.verifiedAt || undefined,
+              notes: log.notes || undefined,
+            }
+          : undefined,
+      });
+    }
+
+    return requirements;
+  });
+}
+
 // ===========================
 // SOP Execution
 // ===========================
@@ -584,55 +765,72 @@ export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
     }
   });
 
-  // Step 2: Deduct inventory if material has an assigned lot and is not already issued
-  if (material.lotId && material.status !== 'issued') {
-    try {
-      // Get work order number for reference
-      const [workOrder] = await executeDbOperation(async (db: any) => {
-        return db.select({ woNumber: tables.workOrders.woNumber, batchNumber: tables.workOrders.batchNumber })
-          .from(tables.workOrders)
-          .where(eq(tables.workOrders.id, material.workOrderId));
-      });
+  // Step 2: Deduct inventory if not already issued
+  if (material.status !== 'issued') {
+    let lotId = material.lotId;
 
-      const woNumber = workOrder?.woNumber || `WO-${material.workOrderId}`;
-      const batchNumber = workOrder?.batchNumber || '';
-
-      // Issue material from inventory (deducts lot quantity + creates transaction)
-      await issueMaterial(
-        material.lotId,
-        data.weighedQty,
-        'WO',
-        material.workOrderId,
-        woNumber,
-        data.weighedBy,
-        `Material weighing for ${woNumber}`,
-        {
-          workOrderId: material.workOrderId,
-          batchNumber,
-        }
-      );
-
-      // Update material status to "issued"
-      await executeDbOperation(async (db: any) => {
-        await db.update(tables.workOrderMaterials).set({
-          status: 'issued',
-          actualQuantity: data.weighedQty,
-          issuedBy: data.weighedBy,
-          issuedAt: getNow(),
-        }).where(eq(tables.workOrderMaterials.id, data.materialId));
-      });
-
-      // Return updated material
-      return executeDbOperation(async (db: any) => {
-        const [updated] = await db.select().from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, data.materialId));
-        return updated;
-      });
-    } catch (error: any) {
-      console.error('Error issuing material from inventory:', error);
-      // Don't fail the weighing if inventory deduction fails - log and continue
-      // The weighing data is already saved
-      throw new Error(`Material weight recorded but inventory deduction failed: ${error.message}`);
+    // If no lot assigned, auto-find one using FEFO algorithm
+    if (!lotId) {
+      const { allocated } = await getLotsForPicking(material.itemId, data.weighedQty);
+      if (allocated.length > 0) {
+        lotId = allocated[0].lotId;
+        // Assign the lot to the material record
+        await executeDbOperation(async (db: any) => {
+          await db.update(tables.workOrderMaterials)
+            .set({ lotId })
+            .where(eq(tables.workOrderMaterials.id, data.materialId));
+        });
+      }
     }
+
+    if (lotId) {
+      try {
+        // Get work order number for reference
+        const [workOrder] = await executeDbOperation(async (db: any) => {
+          return db.select({ woNumber: tables.workOrders.woNumber, batchNumber: tables.workOrders.batchNumber })
+            .from(tables.workOrders)
+            .where(eq(tables.workOrders.id, material.workOrderId));
+        });
+
+        const woNumber = workOrder?.woNumber || `WO-${material.workOrderId}`;
+        const batchNumber = workOrder?.batchNumber || '';
+
+        // Issue material from inventory (deducts lot quantity + creates transaction)
+        await issueMaterial(
+          lotId,
+          data.weighedQty,
+          'WO',
+          material.workOrderId,
+          woNumber,
+          data.weighedBy,
+          `Material weighing for ${woNumber}`,
+          {
+            workOrderId: material.workOrderId,
+            batchNumber,
+          }
+        );
+
+        // Update material status to "issued"
+        await executeDbOperation(async (db: any) => {
+          await db.update(tables.workOrderMaterials).set({
+            status: 'issued',
+            actualQuantity: data.weighedQty,
+            issuedBy: data.weighedBy,
+            issuedAt: getNow(),
+          }).where(eq(tables.workOrderMaterials.id, data.materialId));
+        });
+
+        // Return updated material
+        return executeDbOperation(async (db: any) => {
+          const [updated] = await db.select().from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, data.materialId));
+          return updated;
+        });
+      } catch (error: any) {
+        console.error('Error issuing material from inventory:', error);
+        throw new Error(`Material weight recorded but inventory deduction failed: ${error.message}`);
+      }
+    }
+    // If no lot found (e.g. water, non-lot-controlled items), just return the weighing data
   }
 
   return material;

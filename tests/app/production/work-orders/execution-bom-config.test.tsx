@@ -43,12 +43,12 @@ vi.mock('next-intl', () => ({
 const fullBomConfig = {
   bomId: 1,
   rooms: [
-    { id: 1, phase: 'pre_production', roomCode: 'MFG-01', roomName: 'Manufacturing Room 1', roomNameTh: 'ห้องผลิต 1', sequence: 1 },
-    { id: 2, phase: 'production', roomCode: 'MFG-02', roomName: 'Manufacturing Room 2', roomNameTh: 'ห้องผลิต 2', sequence: 1 },
+    { id: 1, phase: 'pre_production', roomCode: 'MFG-01', roomName: 'Manufacturing Room 1', roomNameTh: 'ห้องผลิต 1', sequence: 1, isRequired: true },
+    { id: 2, phase: 'production', roomCode: 'MFG-02', roomName: 'Manufacturing Room 2', roomNameTh: 'ห้องผลิต 2', sequence: 1, isRequired: true },
   ],
   equipment: [
-    { id: 1, equipmentId: 101, phase: 'pre_production', equipmentCode: 'SCL-01', equipmentName: 'Scale', equipmentNameTh: 'เครื่องชั่ง', sequence: 1 },
-    { id: 2, equipmentId: 102, phase: 'production', equipmentCode: 'MIX-01', equipmentName: 'Mixer', equipmentNameTh: 'เครื่องผสม', sequence: 1 },
+    { id: 1, equipmentId: 101, phase: 'pre_production', equipmentCode: 'SCL-01', equipmentName: 'Scale', equipmentNameTh: 'เครื่องชั่ง', sequence: 1, isRequired: true },
+    { id: 2, equipmentId: 102, phase: 'production', equipmentCode: 'MIX-01', equipmentName: 'Mixer', equipmentNameTh: 'เครื่องผสม', sequence: 1, isRequired: true },
   ],
   environmentalConditions: [
     { id: 1, phase: 'production', conditionName: 'Room Temp', temperatureMin: 20, temperatureMax: 25, humidityMax: 60, monitoringIntervalMinutes: 30 },

@@ -299,7 +299,9 @@
     "environmentalMonitoring": "การตรวจสอบสภาพแวดล้อม",
     "sopExecution": "การดำเนินการ SOP",
     "packagingQC": "QC บรรจุภัณฑ์",
-    "finishedInspection": "การตรวจสอบผลิตภัณฑ์สำเร็จรูป"
+    "finishedInspection": "การตรวจสอบผลิตภัณฑ์สำเร็จรูป",
+    "room": "ห้อง",
+    "equipment": "อุปกรณ์"
   },
   "newWorkOrder": {
     "title": "สร้างใบสั่งผลิต"

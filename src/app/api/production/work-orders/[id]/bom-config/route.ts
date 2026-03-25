@@ -68,6 +68,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           roomName: r.room?.name || '',
           roomNameTh: r.room?.nameTh || '',
           sequence: r.bomRoom?.sequence || 0,
+          isRequired: Boolean(r.bomRoom?.isRequired ?? true),
         })),
         equipment: (rawEquipment || []).map((e: any) => ({
           id: e.bomEquipment?.id,
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           equipmentName: e.equipment?.name || '',
           equipmentNameTh: e.equipment?.nameTh || '',
           sequence: e.bomEquipment?.sequence || 0,
+          isRequired: Boolean(e.bomEquipment?.isRequired ?? true),
         })),
         environmentalConditions: (rawConditions || []).map((c: any) => ({
           id: c.bomCondition?.id,

@@ -299,7 +299,9 @@
     "environmentalMonitoring": "Environmental Monitoring",
     "sopExecution": "SOP Execution",
     "packagingQC": "Packaging QC",
-    "finishedInspection": "Finished Product Inspection"
+    "finishedInspection": "Finished Product Inspection",
+    "room": "Room",
+    "equipment": "Equipment"
   },
   "newWorkOrder": {
     "title": "Create Work Order"

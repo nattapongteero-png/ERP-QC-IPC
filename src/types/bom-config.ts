@@ -5,6 +5,7 @@ export interface BOMConfigRoom {
   roomName: string;
   roomNameTh: string;
   sequence: number;
+  isRequired: boolean;
 }
 
 export interface BOMConfigEquipment {
@@ -15,6 +16,7 @@ export interface BOMConfigEquipment {
   equipmentName: string;
   equipmentNameTh: string;
   sequence: number;
+  isRequired: boolean;
 }
 
 export interface BOMConfigEnvironmental {

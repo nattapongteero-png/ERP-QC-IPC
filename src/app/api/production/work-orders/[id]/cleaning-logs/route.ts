@@ -7,6 +7,7 @@ import {
 } from '@/lib/api-utils';
 import {
   getWOCleaningLogs,
+  getCleaningRequirements,
   createWOCleaningLog,
   verifyWOCleaningLog,
   getWOCleaningStatus,
@@ -40,13 +41,20 @@ export async function GET(
         return errorResponse(`Invalid phase. Must be one of: ${VALID_PHASES.join(', ')}`);
       }
 
-      const logs = await getWOCleaningLogs(workOrderId, phase);
+      // When phase is specified, return BOM-merged requirements (rooms + equipment + logs)
+      if (phase) {
+        const requirements = await getCleaningRequirements(workOrderId, phase);
 
-      if (includeStatus && phase) {
-        const status = await getWOCleaningStatus(workOrderId, phase);
-        return successResponse({ logs, status });
+        if (includeStatus) {
+          const status = await getWOCleaningStatus(workOrderId, phase);
+          return successResponse({ requirements, status });
+        }
+
+        return successResponse(requirements);
       }
 
+      // Without phase, return raw logs (for status/summary endpoints)
+      const logs = await getWOCleaningLogs(workOrderId);
       return successResponse(logs);
     } catch (error) {
       console.error('Error fetching WO cleaning logs:', error);

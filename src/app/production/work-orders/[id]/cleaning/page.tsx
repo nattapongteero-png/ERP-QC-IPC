@@ -9,9 +9,8 @@
 import { useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
-import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -58,6 +57,7 @@ interface CleaningRequirement {
   id: number;
   code: string;
   name: string;
+  nameTh?: string;
   isRequired: boolean;
   cleaningLog?: CleaningLog;
 }
@@ -85,9 +85,7 @@ export default function CleaningPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const t = useTranslations('production');
-
-  // Use translation for page title
-  const pageTitle = t('execution.cleaning');
+  const locale = useLocale();
   const workOrderId = Number(params.id);
 
   const phaseParam = searchParams.get('phase');
@@ -268,14 +266,6 @@ export default function CleaningPage() {
         }
       />
 
-      {/* BOM Requirements for this phase */}
-      <BOMConfigReferencePanel
-        workOrderId={workOrderId}
-        phase={phaseMap[activeTab]}
-        showOnly={['rooms', 'equipment']}
-        defaultExpanded={true}
-      />
-
       {/* Progress Card */}
       <Card className="border-amber-200 bg-amber-50">
         <CardContent className="p-4">
@@ -358,8 +348,19 @@ export default function CleaningPage() {
                             {item.isRequired && (
                               <span className="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700">Required</span>
                             )}
+                            <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                              {item.type === 'room' ? t('execution.room') : t('execution.equipment')}
+                            </span>
                           </div>
-                          <p className="font-medium text-gray-900">{item.name}</p>
+                          <p className="font-medium text-gray-900">
+                            {locale === 'th' && item.nameTh ? item.nameTh : item.name}
+                          </p>
+                          {locale === 'th' && item.name && (
+                            <p className="text-xs text-gray-400">{item.name}</p>
+                          )}
+                          {locale !== 'th' && item.nameTh && (
+                            <p className="text-xs text-gray-400">{item.nameTh}</p>
+                          )}
                           {item.cleaningLog && (
                             <div className="text-xs text-gray-500 mt-1 flex items-center gap-3">
                               <span className="flex items-center gap-1">
