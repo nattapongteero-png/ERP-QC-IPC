@@ -20,7 +20,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
 
       const body = await request.json();
-      const { batchNumber, plannedQuantity, priority, plannedStartDate, plannedEndDate, notes } = body;
+      const { batchNumber, plannedQuantity, priority, plannedStartDate, plannedEndDate, deliveryDate, notes } = body;
 
       const workOrdersTable = getTableRef('workOrders');
       const workOrderMaterialsTable = getTableRef('workOrderMaterials');
@@ -58,6 +58,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (priority !== undefined) updateData.priority = priority;
       if (plannedStartDate !== undefined) updateData.plannedStartDate = parseDbDate(plannedStartDate);
       if (plannedEndDate !== undefined) updateData.plannedEndDate = parseDbDate(plannedEndDate);
+      if (deliveryDate !== undefined) updateData.deliveryDate = parseDbDate(deliveryDate);
       if (notes !== undefined) updateData.notes = notes;
 
       // Track if quantity changed for material recalculation

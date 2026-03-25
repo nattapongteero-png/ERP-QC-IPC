@@ -42,6 +42,7 @@ interface WorkOrderDetail {
     plannedEndDate: string;
     actualStartDate: string;
     actualEndDate: string;
+    deliveryDate: string;
     notes: string;
     createdAt: string;
     updatedAt: string;
@@ -674,6 +675,12 @@ export default function WorkOrderDetailPage() {
                     <dt className="text-sm text-gray-500">Actual End</dt>
                     <dd className="font-medium">
                       {workOrder.actualEndDate ? new Date(workOrder.actualEndDate).toLocaleString('th-TH') : '-'}
+                    </dd>
+                  </div>
+                  <div className="col-span-2 border-t pt-3 mt-1">
+                    <dt className="text-sm text-gray-500">Delivery Date (วันที่ส่งมอบ)</dt>
+                    <dd className="font-medium text-lg text-orange-700">
+                      {workOrder.deliveryDate ? new Date(workOrder.deliveryDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
                     </dd>
                   </div>
                 </dl>

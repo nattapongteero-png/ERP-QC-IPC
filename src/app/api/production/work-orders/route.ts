@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
         priority,
         plannedStartDate,
         plannedEndDate,
+        deliveryDate,
         notes,
       } = body;
 
@@ -177,6 +178,7 @@ export async function POST(request: NextRequest) {
           priority: priority || 5,
           plannedStartDate: parseDbDate(plannedStartDate),
           plannedEndDate: parseDbDate(plannedEndDate),
+          deliveryDate: parseDbDate(deliveryDate),
           notes,
           createdBy: session.userId,
           createdAt: dbDate(),

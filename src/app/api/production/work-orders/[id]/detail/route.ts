@@ -38,6 +38,7 @@ export async function GET(
             plannedEndDate: workOrders.plannedEndDate,
             actualStartDate: workOrders.actualStartDate,
             actualEndDate: workOrders.actualEndDate,
+            deliveryDate: workOrders.deliveryDate,
             yieldPercentage: workOrders.yieldPercentage,
             notes: workOrders.notes,
             createdAt: workOrders.createdAt,
