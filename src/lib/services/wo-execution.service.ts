@@ -28,6 +28,7 @@ import {
   sqliteBOMSOPSteps,
   sqliteBOMPackagingQC,
   sqliteWorkOrderMaterials,
+  sqliteWorkOrders,
   sqliteProductionRooms,
   sqliteProductionEquipment,
   sqliteEnvironmentalConditions,
@@ -47,6 +48,7 @@ import {
   mysqlBOMSOPSteps,
   mysqlBOMPackagingQC,
   mysqlWorkOrderMaterials,
+  mysqlWorkOrders,
   mysqlProductionRooms,
   mysqlProductionEquipment,
   mysqlEnvironmentalConditions,
@@ -56,6 +58,7 @@ import {
   mysqlUsers,
 } from '../db/schema';
 import { getNow } from '../db/date-utils';
+import { issueMaterial } from './inventory.service';
 
 // Get the appropriate tables based on database type
 function getTables() {
@@ -72,6 +75,7 @@ function getTables() {
       bomSOPSteps: sqliteBOMSOPSteps,
       bomPackagingQC: sqliteBOMPackagingQC,
       workOrderMaterials: sqliteWorkOrderMaterials,
+      workOrders: sqliteWorkOrders,
       productionRooms: sqliteProductionRooms,
       productionEquipment: sqliteProductionEquipment,
       environmentalConditions: sqliteEnvironmentalConditions,
@@ -93,6 +97,7 @@ function getTables() {
     bomSOPSteps: mysqlBOMSOPSteps,
     bomPackagingQC: mysqlBOMPackagingQC,
     workOrderMaterials: mysqlWorkOrderMaterials,
+    workOrders: mysqlWorkOrders,
     productionRooms: mysqlProductionRooms,
     productionEquipment: mysqlProductionEquipment,
     environmentalConditions: mysqlEnvironmentalConditions,
@@ -558,7 +563,8 @@ export async function getWOMaterials(workOrderId: number) {
 export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
   const tables = getTables();
 
-  return executeDbOperation(async (db: any) => {
+  // Step 1: Record the weighing data
+  const material = await executeDbOperation(async (db: any) => {
     const updateData = {
       weighedQty: data.weighedQty,
       weighedBy: data.weighedBy,
@@ -569,14 +575,67 @@ export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
     };
 
     if (isSqlite()) {
-      const [material] = await db.update(tables.workOrderMaterials).set(updateData).where(eq(tables.workOrderMaterials.id, data.materialId)).returning();
-      return material;
+      const [mat] = await db.update(tables.workOrderMaterials).set(updateData).where(eq(tables.workOrderMaterials.id, data.materialId)).returning();
+      return mat;
     } else {
       await db.update(tables.workOrderMaterials).set(updateData).where(eq(tables.workOrderMaterials.id, data.materialId));
-      const [material] = await db.select().from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, data.materialId));
-      return material;
+      const [mat] = await db.select().from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, data.materialId));
+      return mat;
     }
   });
+
+  // Step 2: Deduct inventory if material has an assigned lot and is not already issued
+  if (material.lotId && material.status !== 'issued') {
+    try {
+      // Get work order number for reference
+      const [workOrder] = await executeDbOperation(async (db: any) => {
+        return db.select({ woNumber: tables.workOrders.woNumber, batchNumber: tables.workOrders.batchNumber })
+          .from(tables.workOrders)
+          .where(eq(tables.workOrders.id, material.workOrderId));
+      });
+
+      const woNumber = workOrder?.woNumber || `WO-${material.workOrderId}`;
+      const batchNumber = workOrder?.batchNumber || '';
+
+      // Issue material from inventory (deducts lot quantity + creates transaction)
+      await issueMaterial(
+        material.lotId,
+        data.weighedQty,
+        'WO',
+        material.workOrderId,
+        woNumber,
+        data.weighedBy,
+        `Material weighing for ${woNumber}`,
+        {
+          workOrderId: material.workOrderId,
+          batchNumber,
+        }
+      );
+
+      // Update material status to "issued"
+      await executeDbOperation(async (db: any) => {
+        await db.update(tables.workOrderMaterials).set({
+          status: 'issued',
+          actualQuantity: data.weighedQty,
+          issuedBy: data.weighedBy,
+          issuedAt: getNow(),
+        }).where(eq(tables.workOrderMaterials.id, data.materialId));
+      });
+
+      // Return updated material
+      return executeDbOperation(async (db: any) => {
+        const [updated] = await db.select().from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, data.materialId));
+        return updated;
+      });
+    } catch (error: any) {
+      console.error('Error issuing material from inventory:', error);
+      // Don't fail the weighing if inventory deduction fails - log and continue
+      // The weighing data is already saved
+      throw new Error(`Material weight recorded but inventory deduction failed: ${error.message}`);
+    }
+  }
+
+  return material;
 }
 
 export async function verifyMaterialWeight(materialId: number, verifierId: number) {
