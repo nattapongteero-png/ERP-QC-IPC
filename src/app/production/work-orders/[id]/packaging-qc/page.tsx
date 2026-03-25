@@ -324,11 +324,17 @@ export default function PackagingQCPage() {
                 >
                   <DxPaging defaultPageSize={10} />
                   <DxColumn dataField="checkTime" caption="Time" width={100} />
-                  <DxColumn dataField="sampleWeights" caption="Samples (g)" cellRender={(cell) => (
-                    <span className="text-sm">
-                      {(cell.value as number[]).join(', ')}
-                    </span>
-                  )} />
+                  <DxColumn dataField="sampleWeights" caption="Samples (g)" cellRender={(cell) => {
+                    let weights: number[] = [];
+                    try {
+                      weights = typeof cell.value === 'string' ? JSON.parse(cell.value) : cell.value || [];
+                    } catch { /* invalid JSON */ }
+                    return (
+                      <span className="text-sm">
+                        {weights.join(', ')}
+                      </span>
+                    );
+                  }} />
                   <DxColumn dataField="failedCount" caption="Failed" width={80} cellRender={(cell) => (
                     <span className={cell.value > 0 ? 'text-red-600 font-medium' : 'text-gray-600'}>
                       {cell.value}
