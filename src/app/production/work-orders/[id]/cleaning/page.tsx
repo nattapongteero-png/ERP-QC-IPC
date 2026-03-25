@@ -11,6 +11,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
+import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -265,6 +266,14 @@ export default function CleaningPage() {
             onClick={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
           />
         }
+      />
+
+      {/* BOM Requirements for this phase */}
+      <BOMConfigReferencePanel
+        workOrderId={workOrderId}
+        phase={phaseMap[activeTab]}
+        showOnly={['rooms', 'equipment']}
+        defaultExpanded={true}
       />
 
       {/* Progress Card */}

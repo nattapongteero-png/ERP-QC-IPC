@@ -11,6 +11,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
+import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDataGrid, DxColumn, DxPaging } from '@/components/ui/dx-data-grid';
@@ -280,44 +281,12 @@ export default function PackagingQCPage() {
         }
       />
 
-      {/* QC Criteria Card */}
-      {criteria && (
-        <Card className="border-indigo-200 bg-indigo-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Scale className="h-5 w-5 text-indigo-600" />
-                <span className="text-indigo-800">
-                  Weight Range: <strong>{criteria.weightMin}-{criteria.weightMax}g</strong>
-                </span>
-              </div>
-              <div className="text-indigo-800">
-                Sample Size: <strong>{criteria.sampleSize}</strong>
-              </div>
-              <div className="text-indigo-800">
-                Max Failures: <strong>{criteria.maxFailures}</strong>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-indigo-600" />
-                <span className="text-indigo-800">
-                  Check Every: <strong>{criteria.checkIntervalMinutes} min</strong>
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!criteria && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600" />
-            <p className="text-amber-800">
-              No packaging QC criteria configured for this work order&apos;s BOM.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* BOM Packaging QC Criteria */}
+      <BOMConfigReferencePanel
+        workOrderId={workOrderId}
+        showOnly={['packagingQC']}
+        defaultExpanded={true}
+      />
 
       {/* Tabs */}
       <Card>

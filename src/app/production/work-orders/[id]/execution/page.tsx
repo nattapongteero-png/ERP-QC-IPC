@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ResponsivePageHeader } from '@/components/shared';
+import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -479,6 +480,9 @@ export default function WorkOrderExecutionPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* BOM Configuration Summary */}
+      <BOMConfigReferencePanel workOrderId={workOrderId} defaultExpanded={false} />
 
       {/* Execution Sections by Phase */}
       {phases.map((phase) => {

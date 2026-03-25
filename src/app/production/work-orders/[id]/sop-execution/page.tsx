@@ -11,6 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
+import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -262,6 +263,13 @@ export default function SOPExecutionPage() {
             onClick={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
           />
         }
+      />
+
+      {/* BOM SOP Steps Reference */}
+      <BOMConfigReferencePanel
+        workOrderId={workOrderId}
+        showOnly={['sopSteps']}
+        defaultExpanded={true}
       />
 
       {/* Progress Card */}
