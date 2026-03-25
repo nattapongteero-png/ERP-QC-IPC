@@ -27,6 +27,7 @@ export const documentCreateSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255, 'Title is too long'),
   typeId: z.number().int().positive('Document type is required'),
   departmentId: z.number().int().positive().optional().nullable(),
+  trainingCourseId: z.number().int().positive().optional().nullable(),
   content: z.string().optional(),
   retentionYears: z.number().int().positive().max(99).default(5),
 });
@@ -35,6 +36,7 @@ export const documentCreateSchema = z.object({
 export const documentUpdateSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   departmentId: z.number().int().positive().optional().nullable(),
+  trainingCourseId: z.number().int().positive().optional().nullable(),
   status: documentStatusSchema.optional(),
 });
 

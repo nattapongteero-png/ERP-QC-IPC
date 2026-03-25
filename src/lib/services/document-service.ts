@@ -15,12 +15,14 @@ import {
   sqliteDocumentApprovals,
   sqliteUsers,
   sqliteHROrgUnits,
+  sqliteHRTrainingCourses,
   mysqlDocumentTypes,
   mysqlDocuments,
   mysqlDocumentVersions,
   mysqlDocumentApprovals,
   mysqlUsers,
   mysqlHROrgUnits,
+  mysqlHRTrainingCourses,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 
@@ -115,6 +117,7 @@ function getTables() {
       approvals: sqliteDocumentApprovals,
       users: sqliteUsers,
       orgUnits: sqliteHROrgUnits,
+      trainingCourses: sqliteHRTrainingCourses,
     };
   }
   return {
@@ -124,6 +127,7 @@ function getTables() {
     approvals: mysqlDocumentApprovals,
     users: mysqlUsers,
     orgUnits: mysqlHROrgUnits,
+    trainingCourses: mysqlHRTrainingCourses,
   };
 }
 
@@ -220,6 +224,7 @@ export async function createDocument(
     title: data.title,
     typeId: data.typeId,
     departmentId: data.departmentId || null,
+    trainingCourseId: data.trainingCourseId || null,
     status: 'draft',
     retentionYears,
     createdBy: userId,
@@ -264,7 +269,7 @@ export async function createDocument(
  * Get document by ID with full details
  */
 export async function getDocumentById(id: number): Promise<DocumentDetails | null> {
-  const { documents, documentTypes, versions, approvals, users, orgUnits } = getTables();
+  const { documents, documentTypes, versions, approvals, users, orgUnits, trainingCourses } = getTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
 
@@ -284,6 +289,9 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
       retentionYears: documents.retentionYears,
       createdBy: documents.createdBy,
       createdByName: users.name,
+      trainingCourseId: documents.trainingCourseId,
+      trainingCourseName: trainingCourses.name,
+      trainingCourseCode: trainingCourses.code,
       createdAt: documents.createdAt,
       updatedAt: documents.updatedAt,
     })
@@ -291,6 +299,7 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
     .leftJoin(documentTypes, eq(documents.typeId, documentTypes.id))
     .leftJoin(orgUnits, eq(documents.departmentId, orgUnits.id))
     .leftJoin(users, eq(documents.createdBy, users.id))
+    .leftJoin(trainingCourses, eq(documents.trainingCourseId, trainingCourses.id))
     .where(eq(documents.id, id));
 
   if (!doc) {
@@ -362,6 +371,9 @@ export async function getDocumentById(id: number): Promise<DocumentDetails | nul
     currentVersionId: doc.currentVersionId,
     status: doc.status as DocumentStatus,
     retentionYears: doc.retentionYears,
+    trainingCourseId: doc.trainingCourseId || null,
+    trainingCourseName: doc.trainingCourseName || undefined,
+    trainingCourseCode: doc.trainingCourseCode || undefined,
     createdBy: doc.createdBy!,
     createdByName: doc.createdByName || undefined,
     createdAt: doc.createdAt,
@@ -475,6 +487,7 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
       currentVersionNumber: d.currentVersionNumber || undefined,
       status: d.status as DocumentStatus,
       retentionYears: d.retentionYears,
+      trainingCourseId: d.trainingCourseId || null,
       createdBy: d.createdBy!,
       createdByName: d.createdByName || undefined,
       // Handle Date objects from MySQL
@@ -518,6 +531,7 @@ export async function updateDocument(
 
   if (data.title !== undefined) updateData.title = data.title;
   if (data.departmentId !== undefined) updateData.departmentId = data.departmentId;
+  if (data.trainingCourseId !== undefined) updateData.trainingCourseId = data.trainingCourseId;
 
   await database
     .update(documents)

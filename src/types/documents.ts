@@ -50,6 +50,9 @@ export interface Document {
   currentVersionNumber?: string;
   status: DocumentStatus;
   retentionYears: number;
+  trainingCourseId: number | null;
+  trainingCourseName?: string;
+  trainingCourseCode?: string;
   createdBy: number;
   createdByName?: string;
   createdAt: string;
@@ -60,6 +63,7 @@ export interface DocumentCreate {
   title: string;
   typeId: number;
   departmentId?: number | null;
+  trainingCourseId?: number | null;
   content?: string;
   retentionYears?: number;
 }
@@ -67,6 +71,7 @@ export interface DocumentCreate {
 export interface DocumentUpdate {
   title?: string;
   departmentId?: number | null;
+  trainingCourseId?: number | null;
   status?: DocumentStatus;
 }
 

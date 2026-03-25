@@ -540,6 +540,19 @@ export default function DocumentDetailPage() {
                     <span>{document.departmentName}</span>
                   </>
                 )}
+                {document.trainingCourseId && (
+                  <>
+                    <span>•</span>
+                    <a
+                      href={`/hr/training/courses/${document.trainingCourseId}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      {document.trainingCourseName
+                        ? `Training: ${document.trainingCourseCode} - ${document.trainingCourseName}`
+                        : `Training Course #${document.trainingCourseId}`}
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </div>

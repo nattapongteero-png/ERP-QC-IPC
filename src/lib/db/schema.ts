@@ -2637,6 +2637,7 @@ export const mysqlDocuments = mysqlTable('documents', {
   currentVersionId: int('current_version_id'), // Will be FK to document_versions
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, active, obsolete, archived
   retentionYears: int('retention_years').notNull().default(7),
+  trainingCourseId: int('training_course_id').references(() => mysqlHRTrainingCourses.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -3440,6 +3441,7 @@ export const sqliteDocuments = sqliteTable('documents', {
   currentVersionId: integer('current_version_id'), // Will be FK to document_versions
   status: text('status').notNull().default('draft'), // draft, active, obsolete, archived
   retentionYears: integer('retention_years').notNull().default(7),
+  trainingCourseId: integer('training_course_id').references(() => sqliteHRTrainingCourses.id),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),

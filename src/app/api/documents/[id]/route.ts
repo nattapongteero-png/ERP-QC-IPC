@@ -78,7 +78,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           await updateDocumentStatus(documentId, parseResult.data.status, session.userId);
 
           // If only status was changed, return success
-          if (!parseResult.data.title && parseResult.data.departmentId === undefined) {
+          if (!parseResult.data.title && parseResult.data.departmentId === undefined && parseResult.data.trainingCourseId === undefined) {
             return successResponse({ success: true }, 'Document status updated successfully');
           }
 
@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         }
 
         // Update other fields if any
-        if (parseResult.data.title || parseResult.data.departmentId !== undefined) {
+        if (parseResult.data.title || parseResult.data.departmentId !== undefined || parseResult.data.trainingCourseId !== undefined) {
           await updateDocument(documentId, parseResult.data, session.userId);
         }
 

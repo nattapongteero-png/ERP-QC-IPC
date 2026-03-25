@@ -41,6 +41,7 @@ interface FormData {
   title: string;
   typeId: number | null;
   departmentId: number | null;
+  trainingCourseId: number | null;
   content: string;
   retentionYears: number;
 }
@@ -121,6 +122,7 @@ export function DocumentFormDialog({
     title: document?.title || '',
     typeId: document?.typeId || null,
     departmentId: document?.departmentId || null,
+    trainingCourseId: document?.trainingCourseId || null,
     content: '',
     retentionYears: document?.retentionYears || 5,
   }), [document]);
@@ -149,6 +151,18 @@ export function DocumentFormDialog({
   const { data: departments } = useQuery({
     queryKey: ['departments'],
     queryFn: fetchDepartments,
+    enabled: open,
+  });
+
+  // Fetch training courses
+  const { data: trainingCourses } = useQuery({
+    queryKey: ['training-courses'],
+    queryFn: async () => {
+      const res = await fetch('/api/hr/training/courses');
+      const data = await res.json();
+      if (!data.success) return [];
+      return data.data;
+    },
     enabled: open,
   });
 
@@ -209,6 +223,7 @@ export function DocumentFormDialog({
       title: formData.title.trim(),
       typeId: formData.typeId!,
       departmentId: formData.departmentId,
+      trainingCourseId: formData.trainingCourseId,
       content: formData.content || undefined,
       retentionYears: formData.retentionYears,
     };
@@ -217,6 +232,7 @@ export function DocumentFormDialog({
       updateMutation.mutate({
         title: data.title,
         departmentId: data.departmentId,
+        trainingCourseId: data.trainingCourseId,
       });
     } else {
       createMutation.mutate(data);
@@ -324,6 +340,27 @@ export function DocumentFormDialog({
                 setFormData((prev) => ({ ...prev, departmentId: value }))
               }
               placeholder="Select department (optional)"
+              showClearButton
+              disabled={isSubmitting}
+              searchEnabled
+            />
+          </div>
+
+          {/* Related Training Course Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Related Training Course (หลักสูตรอบรมที่เกี่ยวข้อง)</label>
+            <DxSelectBox
+              items={(trainingCourses || []).map((c: any) => ({
+                value: c.id,
+                label: `${c.code} - ${c.name}`,
+              }))}
+              value={formData.trainingCourseId}
+              valueExpr="value"
+              displayExpr="label"
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, trainingCourseId: value }))
+              }
+              placeholder="Select training course (optional)"
               showClearButton
               disabled={isSubmitting}
               searchEnabled
