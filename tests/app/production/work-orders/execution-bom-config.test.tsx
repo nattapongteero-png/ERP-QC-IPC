@@ -47,8 +47,8 @@ const fullBomConfig = {
     { id: 2, phase: 'production', roomCode: 'MFG-02', roomName: 'Manufacturing Room 2', roomNameTh: 'ห้องผลิต 2', sequence: 1 },
   ],
   equipment: [
-    { id: 1, phase: 'pre_production', equipmentCode: 'SCL-01', equipmentName: 'Scale', equipmentNameTh: 'เครื่องชั่ง', sequence: 1 },
-    { id: 2, phase: 'production', equipmentCode: 'MIX-01', equipmentName: 'Mixer', equipmentNameTh: 'เครื่องผสม', sequence: 1 },
+    { id: 1, equipmentId: 101, phase: 'pre_production', equipmentCode: 'SCL-01', equipmentName: 'Scale', equipmentNameTh: 'เครื่องชั่ง', sequence: 1 },
+    { id: 2, equipmentId: 102, phase: 'production', equipmentCode: 'MIX-01', equipmentName: 'Mixer', equipmentNameTh: 'เครื่องผสม', sequence: 1 },
   ],
   environmentalConditions: [
     { id: 1, phase: 'production', conditionName: 'Room Temp', temperatureMin: 20, temperatureMax: 25, humidityMax: 60, monitoringIntervalMinutes: 30 },

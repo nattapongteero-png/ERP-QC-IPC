@@ -71,6 +71,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         })),
         equipment: (rawEquipment || []).map((e: any) => ({
           id: e.bomEquipment?.id,
+          equipmentId: e.equipment?.id,
           phase: e.bomEquipment?.phase || '',
           equipmentCode: e.equipment?.code || '',
           equipmentName: e.equipment?.name || '',

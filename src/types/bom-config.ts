@@ -9,6 +9,7 @@ export interface BOMConfigRoom {
 
 export interface BOMConfigEquipment {
   id: number;
+  equipmentId: number;
   phase: string;
   equipmentCode: string;
   equipmentName: string;

@@ -9,9 +9,9 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
-import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
+import type { BOMConfigResponse } from '@/types/bom-config';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -29,6 +29,7 @@ import {
   Thermometer,
   Timer,
   Gauge,
+  Wrench,
 } from 'lucide-react';
 
 interface SOPStep {
@@ -39,8 +40,9 @@ interface SOPStep {
   stepNameTh?: string;
   instructions?: string;
   instructionsTh?: string;
-  expectedParameters?: Record<string, number>;
-  actualParameters?: Record<string, number>;
+  expectedParameters?: Record<string, number> | string;
+  actualParameters?: Record<string, number> | string;
+  equipmentIds?: number[] | string;
   requiresVerification: boolean;
   status: 'pending' | 'in_progress' | 'completed' | 'verified' | 'deviation';
   operatorId?: number;
@@ -51,6 +53,15 @@ interface SOPStep {
   verifierName?: string;
   verifiedAt?: string;
   notes?: string;
+}
+
+/** Safely parse JSON that might be a string or already parsed */
+function parseJson<T>(value: T | string | null | undefined): T | null {
+  if (value == null) return null;
+  if (typeof value === 'string') {
+    try { return JSON.parse(value); } catch { return null; }
+  }
+  return value as T;
 }
 
 interface WorkOrderBasic {
@@ -67,9 +78,8 @@ export default function SOPExecutionPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const t = useTranslations('production');
+  const locale = useLocale();
 
-  // Use translation for page title
-  const pageTitle = t('execution.sopExecution');
   const workOrderId = Number(params.id);
 
   const [selectedStep, setSelectedStep] = useState<SOPStep | null>(null);
@@ -99,6 +109,31 @@ export default function SOPExecutionPage() {
       return data.data;
     },
   });
+
+  // Fetch BOM config for equipment name resolution
+  const { data: bomConfig } = useQuery<BOMConfigResponse>({
+    queryKey: ['wo-bom-config', workOrderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/bom-config`);
+      if (!res.ok) throw new Error('Failed to fetch BOM config');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed');
+      return data.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Build equipment lookup: master equipmentId → { code, name, nameTh }
+  const equipmentLookup = new Map<number, { code: string; name: string; nameTh: string }>();
+  if (bomConfig?.equipment) {
+    for (const eq of bomConfig.equipment) {
+      equipmentLookup.set(eq.equipmentId, {
+        code: eq.equipmentCode,
+        name: eq.equipmentName,
+        nameTh: eq.equipmentNameTh,
+      });
+    }
+  }
 
   // Start step mutation
   const startStepMutation = useMutation({
@@ -172,8 +207,9 @@ export default function SOPExecutionPage() {
   const handleOpenComplete = (step: SOPStep) => {
     setSelectedStep(step);
     // Initialize actual params from expected params
-    if (step.expectedParameters) {
-      setActualParams({ ...step.expectedParameters });
+    const expected = parseJson<Record<string, number>>(step.expectedParameters);
+    if (expected) {
+      setActualParams({ ...expected });
     }
     setShowCompleteDialog(true);
   };
@@ -265,13 +301,6 @@ export default function SOPExecutionPage() {
         }
       />
 
-      {/* BOM SOP Steps Reference */}
-      <BOMConfigReferencePanel
-        workOrderId={workOrderId}
-        showOnly={['sopSteps']}
-        defaultExpanded={true}
-      />
-
       {/* Progress Card */}
       <Card className="border-blue-200 bg-blue-50">
         <CardContent className="p-4">
@@ -325,6 +354,10 @@ export default function SOPExecutionPage() {
                 const canStart = step.status === 'pending' && (index === 0 || steps[index - 1].status !== 'pending');
                 const canComplete = step.status === 'in_progress';
                 const canVerify = step.status === 'completed' && step.requiresVerification;
+                const expectedParams = parseJson<Record<string, number>>(step.expectedParameters);
+                const actualParams_ = parseJson<Record<string, number>>(step.actualParameters);
+                const stepEquipmentIds = parseJson<number[]>(step.equipmentIds);
+                const stepInstructions = locale === 'th' && step.instructionsTh ? step.instructionsTh : step.instructions;
 
                 return (
                   <div
@@ -338,10 +371,10 @@ export default function SOPExecutionPage() {
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${statusInfo.color}`}>
                           <StatusIcon className="h-5 w-5" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 flex-wrap">
                             <span className="text-lg font-medium text-gray-900">
-                              Step {step.sequence}: {step.stepName}
+                              {t('bomConfiguration.step', { sequence: step.sequence })}: {locale === 'th' && step.stepNameTh ? step.stepNameTh : step.stepName}
                             </span>
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusInfo.color}`}>
                               {statusInfo.label}
@@ -352,36 +385,90 @@ export default function SOPExecutionPage() {
                               </span>
                             )}
                           </div>
-                          {step.stepNameTh && (
-                            <p className="text-gray-600">{step.stepNameTh}</p>
+                          {/* Show secondary language name */}
+                          {locale === 'th' && step.stepName && step.stepNameTh && (
+                            <p className="text-gray-500 text-sm">{step.stepName}</p>
                           )}
-                          {step.instructions && (
-                            <p className="text-sm text-gray-500 mt-2">{step.instructions}</p>
+                          {locale !== 'th' && step.stepNameTh && (
+                            <p className="text-gray-500 text-sm">{step.stepNameTh}</p>
                           )}
 
-                          {/* Expected Parameters */}
-                          {step.expectedParameters && Object.keys(step.expectedParameters).length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {Object.entries(step.expectedParameters).map(([key, value]) => (
-                                <span key={key} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
-                                  {getParamIcon(key)}
-                                  <span className="text-gray-600">{key}:</span>
-                                  <span className="font-medium">{value}</span>
-                                </span>
-                              ))}
+                          {/* BOM Instructions */}
+                          {stepInstructions && (
+                            <div className="mt-2 bg-blue-50 border border-blue-200 rounded-md p-3">
+                              <p className="text-sm font-medium text-blue-700 mb-1">{t('bomConfiguration.instructions')}</p>
+                              <p className="text-sm text-blue-800">{stepInstructions}</p>
+                              {/* Show secondary language instructions */}
+                              {locale === 'th' && step.instructions && step.instructionsTh && (
+                                <p className="text-xs text-blue-600 mt-1">{step.instructions}</p>
+                              )}
+                              {locale !== 'th' && step.instructionsTh && (
+                                <p className="text-xs text-blue-600 mt-1">{step.instructionsTh}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* BOM Equipment Requirements */}
+                          {stepEquipmentIds && stepEquipmentIds.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span className="inline-flex items-center gap-1 text-sm text-gray-600">
+                                <Wrench className="h-4 w-4" />
+                                {t('bomConfiguration.equipment')}:
+                              </span>
+                              {stepEquipmentIds.map((eqId) => {
+                                const equip = equipmentLookup.get(eqId);
+                                return equip ? (
+                                  <span key={eqId} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-200 rounded text-sm text-indigo-800">
+                                    <strong>{equip.code}</strong>
+                                    <span className="text-indigo-600">({locale === 'th' && equip.nameTh ? equip.nameTh : equip.name})</span>
+                                  </span>
+                                ) : (
+                                  <span key={eqId} className="inline-flex items-center px-2 py-1 bg-gray-100 rounded text-sm text-gray-500">
+                                    Equipment #{eqId}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Expected Parameters (from BOM) */}
+                          {expectedParams && Object.keys(expectedParams).length > 0 && (
+                            <div className="mt-3">
+                              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('bomConfiguration.parameters')}</span>
+                              <div className="mt-1 flex flex-wrap gap-2">
+                                {Object.entries(expectedParams).map(([key, value]) => (
+                                  <span key={key} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
+                                    {getParamIcon(key)}
+                                    <span className="text-gray-600">{key}:</span>
+                                    <span className="font-medium">{value}</span>
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           )}
 
                           {/* Actual Parameters (if completed) */}
-                          {step.actualParameters && Object.keys(step.actualParameters).length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {Object.entries(step.actualParameters).map(([key, value]) => (
-                                <span key={key} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 rounded text-sm">
-                                  {getParamIcon(key)}
-                                  <span className="text-green-600">{key}:</span>
-                                  <span className="font-medium text-green-800">{value}</span>
-                                </span>
-                              ))}
+                          {actualParams_ && Object.keys(actualParams_).length > 0 && (
+                            <div className="mt-2">
+                              <span className="text-xs font-medium text-green-600 uppercase tracking-wide">Actual</span>
+                              <div className="mt-1 flex flex-wrap gap-2">
+                                {Object.entries(actualParams_).map(([key, value]) => {
+                                  const expectedVal = expectedParams?.[key];
+                                  const isDeviation = expectedVal != null && value !== expectedVal;
+                                  return (
+                                    <span key={key} className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${
+                                      isDeviation ? 'bg-amber-100 border border-amber-300' : 'bg-green-100'
+                                    }`}>
+                                      {getParamIcon(key)}
+                                      <span className={isDeviation ? 'text-amber-700' : 'text-green-600'}>{key}:</span>
+                                      <span className={`font-medium ${isDeviation ? 'text-amber-800' : 'text-green-800'}`}>{value}</span>
+                                      {isDeviation && expectedVal != null && (
+                                        <span className="text-xs text-amber-600">(exp: {expectedVal})</span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </div>
                             </div>
                           )}
 
@@ -402,7 +489,7 @@ export default function SOPExecutionPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-shrink-0">
                         {canStart && (
                           <DxButton
                             text="Start"
@@ -451,26 +538,52 @@ export default function SOPExecutionPage() {
         <div className="p-4 space-y-4">
           <div className="bg-blue-50 rounded-lg p-4">
             <h4 className="font-medium text-blue-800 mb-2">
-              Step {selectedStep?.sequence}: {selectedStep?.stepName}
+              {t('bomConfiguration.step', { sequence: selectedStep?.sequence ?? 0 })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
             </h4>
-            {selectedStep?.instructions && (
-              <p className="text-sm text-blue-700">{selectedStep.instructions}</p>
-            )}
+            {(() => {
+              const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
+              return instr ? <p className="text-sm text-blue-700">{instr}</p> : null;
+            })()}
           </div>
 
-          {selectedStep?.expectedParameters && Object.keys(selectedStep.expectedParameters).length > 0 && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h5 className="text-sm font-medium text-gray-700 mb-2">Expected Parameters:</h5>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(selectedStep.expectedParameters).map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{key}:</span>
-                    <span className="font-medium">{value}</span>
-                  </div>
-                ))}
+          {(() => {
+            const expected = parseJson<Record<string, number>>(selectedStep?.expectedParameters);
+            if (!expected || Object.keys(expected).length === 0) return null;
+            return (
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h5 className="text-sm font-medium text-gray-700 mb-2">{t('bomConfiguration.parameters')}:</h5>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(expected).map(([key, value]) => (
+                    <div key={key} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{key}:</span>
+                      <span className="font-medium">{value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
+
+          {/* Show equipment needed */}
+          {(() => {
+            const eqIds = parseJson<number[]>(selectedStep?.equipmentIds);
+            if (!eqIds || eqIds.length === 0) return null;
+            return (
+              <div className="bg-indigo-50 rounded-lg p-4">
+                <h5 className="text-sm font-medium text-indigo-700 mb-2">{t('bomConfiguration.equipment')}:</h5>
+                <div className="flex flex-wrap gap-2">
+                  {eqIds.map((eqId) => {
+                    const equip = equipmentLookup.get(eqId);
+                    return equip ? (
+                      <span key={eqId} className="text-sm text-indigo-800">
+                        <strong>{equip.code}</strong> ({locale === 'th' && equip.nameTh ? equip.nameTh : equip.name})
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           <p className="text-sm text-gray-600">
             Starting this step will record the current time and operator. You can then record actual parameters when completing the step.
@@ -506,34 +619,39 @@ export default function SOPExecutionPage() {
         <div className="p-4 space-y-4">
           <div className="bg-green-50 rounded-lg p-4">
             <h4 className="font-medium text-green-800 mb-2">
-              Step {selectedStep?.sequence}: {selectedStep?.stepName}
+              {t('bomConfiguration.step', { sequence: selectedStep?.sequence ?? 0 })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
             </h4>
-            {selectedStep?.instructions && (
-              <p className="text-sm text-green-700">{selectedStep.instructions}</p>
-            )}
+            {(() => {
+              const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
+              return instr ? <p className="text-sm text-green-700">{instr}</p> : null;
+            })()}
           </div>
 
           {/* Actual Parameters Input */}
-          {selectedStep?.expectedParameters && Object.keys(selectedStep.expectedParameters).length > 0 && (
-            <div className="space-y-3">
-              <h5 className="text-sm font-medium text-gray-700">Record Actual Parameters:</h5>
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(selectedStep.expectedParameters).map(([key, expectedValue]) => (
-                  <div key={key}>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      {key} <span className="text-gray-400">(expected: {expectedValue})</span>
-                    </label>
-                    <DxNumberBox
-                      value={actualParams[key] ?? expectedValue}
-                      onValueChanged={(e) => setActualParams({ ...actualParams, [key]: e.value })}
-                      format="#0.0"
-                      showSpinButtons
-                    />
-                  </div>
-                ))}
+          {(() => {
+            const expected = parseJson<Record<string, number>>(selectedStep?.expectedParameters);
+            if (!expected || Object.keys(expected).length === 0) return null;
+            return (
+              <div className="space-y-3">
+                <h5 className="text-sm font-medium text-gray-700">Record Actual Parameters:</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.entries(expected).map(([key, expectedValue]) => (
+                    <div key={key}>
+                      <label className="block text-sm text-gray-600 mb-1">
+                        {key} <span className="text-gray-400">(expected: {expectedValue})</span>
+                      </label>
+                      <DxNumberBox
+                        value={actualParams[key] ?? expectedValue}
+                        onValueChanged={(e) => setActualParams({ ...actualParams, [key]: e.value })}
+                        format="#0.0"
+                        showSpinButtons
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
