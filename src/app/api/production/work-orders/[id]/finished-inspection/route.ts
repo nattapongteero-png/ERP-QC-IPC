@@ -130,12 +130,18 @@ export async function PUT(
         return errorResponse('Invalid checklistResults JSON format');
       }
 
-      // Auto-determine status based on checklistResults (all true = pass, any false = fail)
-      const allPassed = Object.values(checklistObj).every(v => v === true);
-      const status = data.status || (allPassed ? 'passed' : 'failed');
-
-      // Use session user as inspector if not specified
-      const inspectorId = data.inspectorId || session.userId;
+      // Draft mode: save checklist without finalizing status
+      let status: string;
+      let inspectorId: number | undefined;
+      if (data.isDraft) {
+        status = 'in_progress';
+        inspectorId = undefined;
+      } else {
+        // Auto-determine status based on checklistResults (all true = pass, any false = fail)
+        const allPassed = Object.values(checklistObj).every(v => v === true);
+        status = data.status || (allPassed ? 'passed' : 'failed');
+        inspectorId = data.inspectorId || session.userId;
+      }
 
       const checklistResultsStr = JSON.stringify(checklistObj);
 
@@ -143,7 +149,8 @@ export async function PUT(
         inspectionId,
         checklistResultsStr,
         inspectorId,
-        status
+        status,
+        data.notes
       );
 
       return successResponse(inspection, `Inspection updated - status: ${status}`);

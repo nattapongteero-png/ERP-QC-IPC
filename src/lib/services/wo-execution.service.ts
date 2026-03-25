@@ -1151,19 +1151,26 @@ export async function createWOFinishedInspection(data: CreateWOFinishedInspectio
 export async function updateWOFinishedInspection(
   inspectionId: number,
   checklistResults: string,
-  inspectorId: number,
-  status: string
+  inspectorId: number | undefined,
+  status: string,
+  notes?: string,
 ) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
-    const updateData = {
+    const updateData: any = {
       checklistResults,
-      inspectorId,
-      inspectedAt: getNow(),
       status,
       updatedAt: getNow(),
     };
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
+    // Only set inspector when confirming (not draft)
+    if (inspectorId) {
+      updateData.inspectorId = inspectorId;
+      updateData.inspectedAt = getNow();
+    }
 
     if (isSqlite()) {
       const [inspection] = await db.update(tables.woFinishedInspection).set(updateData).where(eq(tables.woFinishedInspection.id, inspectionId)).returning();
