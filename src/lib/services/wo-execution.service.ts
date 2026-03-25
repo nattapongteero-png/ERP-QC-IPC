@@ -1116,7 +1116,16 @@ export async function getWOFinishedInspection(workOrderId: number) {
       .from(tables.woFinishedInspection)
       .where(eq(tables.woFinishedInspection.workOrderId, workOrderId));
 
-    return inspections[0] || null;
+    if (!inspections[0]) return null;
+
+    // Parse checklistResults from JSON string to object
+    const inspection = { ...inspections[0] };
+    if (typeof inspection.checklistResults === 'string') {
+      try {
+        inspection.checklistResults = JSON.parse(inspection.checklistResults);
+      } catch { /* keep as-is */ }
+    }
+    return inspection;
   });
 }
 
