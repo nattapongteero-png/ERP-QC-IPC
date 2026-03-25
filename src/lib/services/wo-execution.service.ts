@@ -309,7 +309,7 @@ export async function createWOCleaningLog(data: CreateWOCleaningLogInput) {
       equipmentId: data.equipmentId,
       isClean: data.isClean,
       operatorId: data.operatorId,
-      performedAt: data.performedAt,
+      performedAt: isSqlite() ? data.performedAt : new Date(data.performedAt),
       createdAt: getNow(),
     };
 
