@@ -95,7 +95,7 @@ const mockSOPSteps = [
   },
 ];
 
-const mockBomConfig = {
+const mockBomConfigWithEquipment = {
   bomId: 1,
   rooms: [],
   equipment: [
@@ -103,9 +103,13 @@ const mockBomConfig = {
     { id: 2, equipmentId: 102, phase: 'production', equipmentCode: 'MIX-01', equipmentName: 'Industrial Mixer', equipmentNameTh: 'เครื่องผสมอุตสาหกรรม', sequence: 2 },
   ],
   environmentalConditions: [],
-  sopSteps: [],
+  sopSteps: [] as any[],
   packagingQC: [],
 };
+
+// Mutable test state
+let currentSOPSteps: any[] = mockSOPSteps;
+let currentBomConfig: any = mockBomConfigWithEquipment;
 
 // Mock TanStack Query
 vi.mock('@tanstack/react-query', () => ({
@@ -114,10 +118,10 @@ vi.mock('@tanstack/react-query', () => ({
       return { data: mockWorkOrder, isLoading: false };
     }
     if (queryKey[0] === 'wo-sop-execution') {
-      return { data: mockSOPSteps, isLoading: false };
+      return { data: currentSOPSteps, isLoading: false };
     }
     if (queryKey[0] === 'wo-bom-config') {
-      return { data: mockBomConfig, isLoading: false };
+      return { data: currentBomConfig, isLoading: false };
     }
     return { data: null, isLoading: false };
   },
@@ -136,6 +140,8 @@ import SOPExecutionPage from '@/app/production/work-orders/[id]/sop-execution/pa
 describe('SOP Execution — Inline BOM Data', () => {
   beforeEach(() => {
     mockLocale = 'en';
+    currentSOPSteps = mockSOPSteps;
+    currentBomConfig = { ...mockBomConfigWithEquipment, sopSteps: [] };
     vi.clearAllMocks();
   });
 
@@ -199,5 +205,26 @@ describe('SOP Execution — Inline BOM Data', () => {
     // 2 total, 1 completed (step 2), 0 verified
     expect(screen.getByText(/\/2 Completed/)).toBeInTheDocument();
     expect(screen.getByText(/\/2 Verified/)).toBeInTheDocument();
+  });
+
+  it('shows Initialize button when BOM has SOP steps but execution not initialized', () => {
+    currentSOPSteps = []; // No execution records
+    currentBomConfig = {
+      ...mockBomConfigWithEquipment,
+      sopSteps: [
+        { id: 1, sequence: 1, stepName: 'Weighing', stepNameTh: '', instructions: '', instructionsTh: '', parameters: null, equipmentIds: null, requiresVerification: true },
+      ],
+    };
+    render(<SOPExecutionPage />);
+    expect(screen.getByText(/BOM มีขั้นตอน SOP 1 ขั้นตอน/)).toBeInTheDocument();
+    expect(screen.getByText('Initialize SOP Execution')).toBeInTheDocument();
+  });
+
+  it('shows "No SOP steps configured" when BOM has no SOP steps at all', () => {
+    currentSOPSteps = []; // No execution records
+    currentBomConfig = { ...mockBomConfigWithEquipment, sopSteps: [] }; // No BOM steps either
+    render(<SOPExecutionPage />);
+    expect(screen.getByText(/No SOP steps configured/)).toBeInTheDocument();
+    expect(screen.queryByText('Initialize SOP Execution')).not.toBeInTheDocument();
   });
 });

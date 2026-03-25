@@ -135,6 +135,29 @@ export default function SOPExecutionPage() {
     }
   }
 
+  // Check if BOM has SOP steps but execution not yet initialized
+  const bomHasSOPSteps = (bomConfig?.sopSteps?.length ?? 0) > 0;
+  const executionNotInitialized = (!steps || steps.length === 0) && bomHasSOPSteps;
+
+  // Initialize SOP execution from BOM
+  const initializeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
+        method: 'POST',
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
+      toast.success(t('bomConfiguration.sopSteps'), 'SOP execution initialized from BOM.');
+    },
+    onError: (error: Error) => {
+      toast.error('Error', error.message);
+    },
+  });
+
   // Start step mutation
   const startStepMutation = useMutation({
     mutationFn: async (stepId: number) => {
@@ -341,11 +364,30 @@ export default function SOPExecutionPage() {
               <DxLoadIndicator />
             </div>
           ) : !steps || steps.length === 0 ? (
-            <div className="text-center py-12">
-              <AlertCircle className="h-12 w-12 text-amber-400 mx-auto mb-4" />
-              <p className="text-gray-500">No SOP steps configured for this work order&apos;s BOM.</p>
-              <p className="text-sm text-gray-400 mt-2">Configure the BOM to add production steps.</p>
-            </div>
+            executionNotInitialized ? (
+              <div className="text-center py-12">
+                <ClipboardList className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                <p className="text-gray-700 font-medium">
+                  BOM มีขั้นตอน SOP {bomConfig!.sopSteps.length} ขั้นตอน
+                </p>
+                <p className="text-sm text-gray-500 mt-1 mb-4">
+                  กดปุ่มด้านล่างเพื่อสร้างรายการ SOP Execution จาก BOM
+                </p>
+                <DxButton
+                  text="Initialize SOP Execution"
+                  icon="refresh"
+                  type="success"
+                  onClick={() => initializeMutation.mutate()}
+                  disabled={initializeMutation.isPending}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <AlertCircle className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+                <p className="text-gray-500">No SOP steps configured for this work order&apos;s BOM.</p>
+                <p className="text-sm text-gray-400 mt-2">Configure the BOM to add production steps.</p>
+              </div>
+            )
           ) : (
             <div className="space-y-4">
               {steps.map((step, index) => {
