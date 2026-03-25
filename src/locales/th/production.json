@@ -311,7 +311,27 @@
     "title": "รายละเอียด BOM"
   },
   "bomConfiguration": {
-    "title": "การตั้งค่า BOM"
+    "title": "การตั้งค่า BOM",
+    "summary": "สรุปการตั้งค่า BOM",
+    "rooms": "ห้อง",
+    "equipment": "อุปกรณ์",
+    "environmentalConditions": "เงื่อนไขสภาพแวดล้อม",
+    "sopSteps": "ขั้นตอน SOP",
+    "packagingQC": "เกณฑ์ QC บรรจุภัณฑ์",
+    "noConfig": "ไม่พบการตั้งค่า BOM",
+    "requirements": "ข้อกำหนด BOM",
+    "temperatureRange": "อุณหภูมิ",
+    "humidityMax": "ความชื้นสูงสุด",
+    "monitoringInterval": "ช่วงเวลาตรวจวัด",
+    "weightMin": "น้ำหนักต่ำสุด",
+    "weightMax": "น้ำหนักสูงสุด",
+    "sampleSize": "จำนวนตัวอย่าง",
+    "maxFailures": "จำนวนล้มเหลวสูงสุด",
+    "checkInterval": "ช่วงเวลาตรวจสอบ",
+    "parameters": "พารามิเตอร์",
+    "instructions": "คำแนะนำ",
+    "everyMinutes": "ทุก {minutes} นาที",
+    "step": "ขั้นตอนที่ {sequence}"
   },
   "workOrderDetail": {
     "title": "รายละเอียดใบสั่งผลิต"

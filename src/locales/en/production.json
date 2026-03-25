@@ -311,7 +311,27 @@
     "title": "BOM Detail"
   },
   "bomConfiguration": {
-    "title": "BOM Configuration"
+    "title": "BOM Configuration",
+    "summary": "BOM Configuration Summary",
+    "rooms": "Rooms",
+    "equipment": "Equipment",
+    "environmentalConditions": "Environmental Conditions",
+    "sopSteps": "SOP Steps",
+    "packagingQC": "Packaging QC Criteria",
+    "noConfig": "No BOM configuration found",
+    "requirements": "BOM Requirements",
+    "temperatureRange": "Temperature",
+    "humidityMax": "Max Humidity",
+    "monitoringInterval": "Monitoring Interval",
+    "weightMin": "Min Weight",
+    "weightMax": "Max Weight",
+    "sampleSize": "Sample Size",
+    "maxFailures": "Max Failures",
+    "checkInterval": "Check Interval",
+    "parameters": "Parameters",
+    "instructions": "Instructions",
+    "everyMinutes": "every {minutes} minutes",
+    "step": "Step {sequence}"
   },
   "workOrderDetail": {
     "title": "Work Order Detail"
