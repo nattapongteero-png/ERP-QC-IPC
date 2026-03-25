@@ -161,8 +161,10 @@ export default function SOPExecutionPage() {
   // Start step mutation
   const startStepMutation = useMutation({
     mutationFn: async (stepId: number) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution/${stepId}/start`, {
-        method: 'POST',
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ executionId: stepId, action: 'start' }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -181,10 +183,10 @@ export default function SOPExecutionPage() {
   // Complete step mutation
   const completeStepMutation = useMutation({
     mutationFn: async ({ stepId, data }: { stepId: number; data: { actualParameters: Record<string, number>; notes?: string } }) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution/${stepId}/complete`, {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ executionId: stepId, action: 'complete', actualParameters: data.actualParameters, notes: data.notes }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
@@ -206,8 +208,10 @@ export default function SOPExecutionPage() {
   // Verify step mutation
   const verifyStepMutation = useMutation({
     mutationFn: async (stepId: number) => {
-      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution/${stepId}/verify`, {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ executionId: stepId }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error);
