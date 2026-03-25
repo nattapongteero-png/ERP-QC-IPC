@@ -37,7 +37,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return notFoundResponse('Item not found');
       }
 
-      return successResponse(items[0]);
+      // Map DB field name to frontend field name
+      const item: any = { ...items[0] };
+      if (item.conversionRate !== undefined) {
+        item.conversionFactor = item.conversionRate;
+      }
+
+      return successResponse(item);
     } catch (error) {
       return serverErrorResponse(error);
     }
@@ -86,6 +92,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'vmiSyncEnabled',
         'confidentialityLevel', 'defaultConfidential', 'strength'
       ];
+
+      // Map frontend field names to DB column names
+      if (body.conversionFactor !== undefined) {
+        body.conversionRate = body.conversionFactor;
+      }
 
       for (const field of allowedFields) {
         if (body[field] !== undefined) {
