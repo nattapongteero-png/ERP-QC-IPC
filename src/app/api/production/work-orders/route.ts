@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
             plannedEndDate: workOrdersTable.plannedEndDate,
             actualStartDate: workOrdersTable.actualStartDate,
             actualEndDate: workOrdersTable.actualEndDate,
+            deliveryDate: workOrdersTable.deliveryDate,
             yieldPercentage: workOrdersTable.yieldPercentage,
             productId: workOrdersTable.productId,
             productCode: itemsTable.code,

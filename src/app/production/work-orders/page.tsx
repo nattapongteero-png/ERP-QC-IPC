@@ -90,6 +90,7 @@ interface WorkOrder {
   plannedEndDate: string;
   actualStartDate: string;
   actualEndDate: string;
+  deliveryDate: string;
   yieldPercentage: number;
   productId: number;
   productCode: string;
@@ -212,6 +213,7 @@ export default function WorkOrdersPage() {
     priority: 5,
     plannedStartDate: null as Date | null,
     plannedEndDate: null as Date | null,
+    deliveryDate: null as Date | null,
     notes: '',
   });
 
@@ -273,6 +275,7 @@ export default function WorkOrdersPage() {
       priority: wo.priority,
       plannedStartDate: wo.plannedStartDate ? new Date(wo.plannedStartDate) : null,
       plannedEndDate: wo.plannedEndDate ? new Date(wo.plannedEndDate) : null,
+      deliveryDate: wo.deliveryDate ? new Date(wo.deliveryDate) : null,
       notes: wo.notes || '',
     });
     setEditDialogVisible(true);
@@ -294,6 +297,7 @@ export default function WorkOrdersPage() {
         priority: editForm.priority,
         plannedStartDate: editForm.plannedStartDate?.toISOString().split('T')[0] || null,
         plannedEndDate: editForm.plannedEndDate?.toISOString().split('T')[0] || null,
+        deliveryDate: editForm.deliveryDate?.toISOString().split('T')[0] || null,
         notes: editForm.notes || null,
       },
     });
@@ -1007,6 +1011,17 @@ export default function WorkOrdersPage() {
                 displayFormat="dd/MM/yyyy"
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Delivery Date (วันที่ส่งมอบ)
+            </label>
+            <DateBox
+              value={editForm.deliveryDate}
+              onValueChanged={(e) => setEditForm(prev => ({ ...prev, deliveryDate: e.value }))}
+              type="date"
+              displayFormat="dd/MM/yyyy"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
