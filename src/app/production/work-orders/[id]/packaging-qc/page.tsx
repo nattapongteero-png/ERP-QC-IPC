@@ -30,6 +30,7 @@ import {
   CheckCircle2,
   XCircle,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 
 interface WeightLog {
@@ -103,6 +104,7 @@ export default function PackagingQCPage() {
   const [sampleWeights, setSampleWeights] = useState<number[]>([]);
   const [editingWeightLog, setEditingWeightLog] = useState<WeightLog | null>(null);
   const [weightNotes, setWeightNotes] = useState('');
+  const [deletingWeightLogId, setDeletingWeightLogId] = useState<number | null>(null);
   const [integrityForm, setIntegrityForm] = useState({
     tubeCapComplete: true,
     lotNumberCorrect: true,
@@ -202,6 +204,29 @@ export default function PackagingQCPage() {
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
+    },
+  });
+
+  // Delete weight log mutation
+  const deleteWeightMutation = useMutation({
+    mutationFn: async (logId: number) => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/packaging-weight`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-packaging-weight', workOrderId] });
+      toast.success('Weight Check Deleted', 'Weight record has been removed.');
+      setDeletingWeightLogId(null);
+    },
+    onError: (error: Error) => {
+      toast.error('Error', error.message);
+      setDeletingWeightLogId(null);
     },
   });
 
@@ -405,14 +430,23 @@ export default function PackagingQCPage() {
                   <DxColumn dataField="operatorName" caption="Operator" width={150} />
                   <DxColumn dataField="notes" caption="Notes" />
                   {workOrder.status !== 'completed' && (
-                    <DxColumn caption="" width={70} cellRender={(cell) => (
-                      <button
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-                        onClick={() => handleEditWeightLog(cell.data)}
-                      >
-                        <Pencil className="h-3 w-3" />
-                        Edit
-                      </button>
+                    <DxColumn caption="Actions" width={120} cellRender={(cell) => (
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                          onClick={() => handleEditWeightLog(cell.data)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                          onClick={() => setDeletingWeightLogId(cell.data.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </button>
+                      </div>
                     )} />
                   )}
                 </DxDataGrid>
@@ -628,6 +662,37 @@ export default function PackagingQCPage() {
               type="success"
               onClick={() => addIntegrityMutation.mutate(integrityForm)}
               disabled={addIntegrityMutation.isPending}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Delete Confirmation Dialog */}
+      <DxPopup
+        visible={deletingWeightLogId !== null}
+        onHiding={() => setDeletingWeightLogId(null)}
+        title="Confirm Delete"
+        width={400}
+        height="auto"
+        showCloseButton
+        dragEnabled={false}
+      >
+        <div className="p-4 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-red-100 rounded-full">
+              <Trash2 className="h-5 w-5 text-red-600" />
+            </div>
+            <p className="text-gray-700">
+              คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setDeletingWeightLogId(null)} />
+            <DxButton
+              text="Delete"
+              type="danger"
+              onClick={() => deletingWeightLogId && deleteWeightMutation.mutate(deletingWeightLogId)}
+              disabled={deleteWeightMutation.isPending}
             />
           </div>
         </div>

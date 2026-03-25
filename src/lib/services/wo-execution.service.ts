@@ -1014,6 +1014,19 @@ export async function updateWOPackagingWeightLog(
 }
 
 // ===========================
+export async function deleteWOPackagingWeightLog(logId: number) {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    if (isSqlite()) {
+      await db.delete(tables.woPackagingWeightLogs).where(eq(tables.woPackagingWeightLogs.id, logId));
+    } else {
+      await db.delete(tables.woPackagingWeightLogs).where(eq(tables.woPackagingWeightLogs.id, logId));
+    }
+    return { success: true };
+  });
+}
+
 // Packaging Integrity Logs
 // ===========================
 

@@ -9,6 +9,7 @@ import {
   getWOPackagingWeightLogs,
   createWOPackagingWeightLog,
   updateWOPackagingWeightLog,
+  deleteWOPackagingWeightLog,
 } from '@/lib/services/wo-execution.service';
 import { executeDbOperation } from '@/lib/db/db-helper';
 import { isSqlite } from '@/lib/db';
@@ -175,6 +176,49 @@ export async function PUT(
       );
     } catch (error) {
       console.error('Error updating WO packaging weight log:', error);
+      return serverErrorResponse(error);
+    }
+  });
+}
+
+// DELETE /api/production/work-orders/[id]/packaging-weight - Delete a weight log
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(request, async () => {
+    try {
+      const { id } = await params;
+      const workOrderId = Number(id);
+
+      if (isNaN(workOrderId)) {
+        return errorResponse('Invalid work order ID');
+      }
+
+      const data = await request.json();
+      if (!data.logId) {
+        return errorResponse('Missing required field: logId');
+      }
+
+      // Check WO is not completed
+      const workOrder = await executeDbOperation(async (db: any) => {
+        const table = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
+        const orders = await db.select().from(table).where(eq(table.id, workOrderId));
+        return orders[0];
+      });
+
+      if (!workOrder) {
+        return errorResponse('Work order not found');
+      }
+
+      if (workOrder.status === 'completed') {
+        return errorResponse('Cannot delete weight logs for completed work orders');
+      }
+
+      await deleteWOPackagingWeightLog(data.logId);
+      return successResponse(null, 'Weight check deleted');
+    } catch (error) {
+      console.error('Error deleting WO packaging weight log:', error);
       return serverErrorResponse(error);
     }
   });
