@@ -5,7 +5,6 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import React from 'react';
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
