@@ -317,6 +317,7 @@ export async function issueMaterial(
         fromWarehouseId: lot.warehouseId,
         reason,
         performedBy: userId,
+        createdAt: getNow(),
       })
       .returning({ id: transactions.id });
     txnId = txn.id;
@@ -334,6 +335,7 @@ export async function issueMaterial(
         fromWarehouseId: lot.warehouseId,
         reason,
         performedBy: userId,
+        createdAt: getNow(),
       });
     txnId = getInsertId(result);
   }
@@ -387,6 +389,9 @@ export async function issueMaterial(
       description: `Material issue: ${lot.lotNumber} for WO ${referenceNumber}`,
     }, userId);
   }
+
+  // Sync items.on_hand with lot totals
+  await recalculateItemOnHand(lot.itemId);
 
   return txnId;
 }
@@ -461,6 +466,7 @@ export async function receiveMaterial(
         referenceNumber: poNumber,
         toWarehouseId: warehouseId,
         performedBy: userId,
+        createdAt: getNow(),
       })
       .returning({ id: transactions.id });
   } else {
@@ -475,6 +481,7 @@ export async function receiveMaterial(
         referenceNumber: poNumber,
         toWarehouseId: warehouseId,
         performedBy: userId,
+        createdAt: getNow(),
       });
   }
 
@@ -903,6 +910,7 @@ export async function adjustInventory(
         reason,
         performedBy: userId,
         approvedBy,
+        createdAt: getNow(),
       })
       .returning({ id: transactions.id });
     txnId = txn.id;
@@ -918,6 +926,7 @@ export async function adjustInventory(
         reason,
         performedBy: userId,
         approvedBy,
+        createdAt: getNow(),
       });
     txnId = getInsertId(result);
   }
@@ -1033,6 +1042,7 @@ export async function transferInventory(
         toWarehouseId,
         reason,
         performedBy: userId,
+        createdAt: getNow(),
       })
       .returning({ id: transactions.id });
     txnId = txn.id;
@@ -1049,6 +1059,7 @@ export async function transferInventory(
         toWarehouseId,
         reason,
         performedBy: userId,
+        createdAt: getNow(),
       });
     txnId = getInsertId(result);
   }
@@ -1150,6 +1161,7 @@ export async function receiveMaterialExtended(
       referenceNumber: data.poNumber,
       toWarehouseId: data.warehouseId,
       performedBy: userId,
+      createdAt: getNow(),
     });
 
   // Create audit log with extended fields
