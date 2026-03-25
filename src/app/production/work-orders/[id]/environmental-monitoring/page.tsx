@@ -24,10 +24,8 @@ import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import {
   Thermometer,
-  Droplets,
   CheckCircle2,
   AlertCircle,
-  Clock,
 } from 'lucide-react';
 
 interface EnvironmentalLog {

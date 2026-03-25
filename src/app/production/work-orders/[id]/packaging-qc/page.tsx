@@ -29,8 +29,6 @@ import {
   Package,
   CheckCircle2,
   XCircle,
-  AlertCircle,
-  Clock,
 } from 'lucide-react';
 
 interface WeightLog {
