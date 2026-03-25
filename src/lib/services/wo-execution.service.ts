@@ -959,6 +959,95 @@ export async function createWOPackagingWeightLog(
   });
 }
 
+export async function updateWOPackagingWeightLog(
+  logId: number,
+  sampleWeights: string,
+  notes: string | undefined,
+  userId: number,
+  bomId: number,
+) {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    // Get QC criteria for recalculation
+    let weightMin = 0;
+    let weightMax = 999999;
+    let maxFailures = 2;
+
+    const qcProfiles = await db
+      .select({
+        weightMin: tables.packagingQCCriteria.weightMin,
+        weightMax: tables.packagingQCCriteria.weightMax,
+        maxFailures: tables.packagingQCCriteria.maxFailures,
+      })
+      .from(tables.bomPackagingQC)
+      .innerJoin(tables.packagingQCCriteria, eq(tables.bomPackagingQC.criteriaId, tables.packagingQCCriteria.id))
+      .where(eq(tables.bomPackagingQC.bomId, bomId));
+
+    if (qcProfiles.length > 0) {
+      weightMin = qcProfiles[0].weightMin;
+      weightMax = qcProfiles[0].weightMax;
+      maxFailures = qcProfiles[0].maxFailures;
+    }
+
+    // Recalculate pass/fail
+    const weights: number[] = JSON.parse(sampleWeights);
+    const failedCount = weights.filter((w) => w < weightMin || w > weightMax).length;
+    const isPass = failedCount <= maxFailures;
+
+    // Capture old values for audit
+    const [oldLog] = await db.select().from(tables.woPackagingWeightLogs).where(eq(tables.woPackagingWeightLogs.id, logId));
+
+    const updateData: any = {
+      sampleWeights,
+      failedCount,
+      isPass,
+      notes: notes || oldLog?.notes,
+    };
+
+    if (isSqlite()) {
+      const [log] = await db.update(tables.woPackagingWeightLogs).set(updateData).where(eq(tables.woPackagingWeightLogs.id, logId)).returning();
+
+      // Audit trail
+      try {
+        await db.insert(tables.woPackagingWeightLogs).values({
+          workOrderId: oldLog.workOrderId,
+          bomQCId: oldLog.bomQCId,
+          checkTime: oldLog.checkTime,
+          sampleWeights: oldLog.sampleWeights,
+          failedCount: oldLog.failedCount,
+          isPass: oldLog.isPass,
+          operatorId: userId,
+          notes: `[AUDIT] Edited by user ${userId}. Original values before edit.`,
+          createdAt: getNow(),
+        });
+      } catch { /* audit is best-effort */ }
+
+      return log;
+    } else {
+      await db.update(tables.woPackagingWeightLogs).set(updateData).where(eq(tables.woPackagingWeightLogs.id, logId));
+
+      // Audit trail - insert a snapshot of old values
+      try {
+        await db.insert(tables.woPackagingWeightLogs).values({
+          workOrderId: oldLog.workOrderId,
+          bomQCId: oldLog.bomQCId,
+          checkTime: oldLog.checkTime,
+          sampleWeights: oldLog.sampleWeights,
+          failedCount: oldLog.failedCount,
+          isPass: oldLog.isPass,
+          operatorId: userId,
+          notes: `[AUDIT] Edited by user ${userId}. Original values before edit.`,
+          createdAt: getNow(),
+        });
+      } catch { /* audit is best-effort */ }
+
+      const [log] = await db.select().from(tables.woPackagingWeightLogs).where(eq(tables.woPackagingWeightLogs.id, logId));
+      return log;
+    }
+  });
+}
+
 // ===========================
 // Packaging Integrity Logs
 // ===========================

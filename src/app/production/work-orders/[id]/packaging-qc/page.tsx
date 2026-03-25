@@ -29,6 +29,7 @@ import {
   Package,
   CheckCircle2,
   XCircle,
+  Pencil,
 } from 'lucide-react';
 
 interface WeightLog {
@@ -100,6 +101,8 @@ export default function PackagingQCPage() {
   const [showWeightDialog, setShowWeightDialog] = useState(false);
   const [showIntegrityDialog, setShowIntegrityDialog] = useState(false);
   const [sampleWeights, setSampleWeights] = useState<number[]>([]);
+  const [editingWeightLog, setEditingWeightLog] = useState<WeightLog | null>(null);
+  const [weightNotes, setWeightNotes] = useState('');
   const [integrityForm, setIntegrityForm] = useState({
     tubeCapComplete: true,
     lotNumberCorrect: true,
@@ -177,6 +180,31 @@ export default function PackagingQCPage() {
     },
   });
 
+  // Edit weight log mutation
+  const editWeightMutation = useMutation({
+    mutationFn: async (data: { logId: number; sampleWeights: number[]; notes?: string }) => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/packaging-weight`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-packaging-weight', workOrderId] });
+      toast.success('Weight Check Updated', 'Weight sample has been updated.');
+      setShowWeightDialog(false);
+      setSampleWeights([]);
+      setEditingWeightLog(null);
+      setWeightNotes('');
+    },
+    onError: (error: Error) => {
+      toast.error('Error', error.message);
+    },
+  });
+
   // Add integrity log mutation
   const addIntegrityMutation = useMutation({
     mutationFn: async (data: typeof integrityForm) => {
@@ -209,10 +237,31 @@ export default function PackagingQCPage() {
   });
 
   const handleOpenWeightDialog = () => {
+    setEditingWeightLog(null);
+    setWeightNotes('');
     if (criteria) {
       setSampleWeights(new Array(criteria.sampleSize).fill(0));
     }
     setShowWeightDialog(true);
+  };
+
+  const handleEditWeightLog = (log: WeightLog) => {
+    let weights: number[] = [];
+    try {
+      weights = typeof log.sampleWeights === 'string' ? JSON.parse(log.sampleWeights as unknown as string) : log.sampleWeights || [];
+    } catch { /* ignore */ }
+    setEditingWeightLog(log);
+    setSampleWeights(weights);
+    setWeightNotes(log.notes || '');
+    setShowWeightDialog(true);
+  };
+
+  const handleSaveWeight = () => {
+    if (editingWeightLog) {
+      editWeightMutation.mutate({ logId: editingWeightLog.id, sampleWeights, notes: weightNotes || undefined });
+    } else {
+      addWeightMutation.mutate({ sampleWeights, notes: weightNotes || undefined });
+    }
   };
 
   const updateSampleWeight = (index: number, value: number) => {
@@ -355,6 +404,17 @@ export default function PackagingQCPage() {
                   )} />
                   <DxColumn dataField="operatorName" caption="Operator" width={150} />
                   <DxColumn dataField="notes" caption="Notes" />
+                  {workOrder.status !== 'completed' && (
+                    <DxColumn caption="" width={70} cellRender={(cell) => (
+                      <button
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                        onClick={() => handleEditWeightLog(cell.data)}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </button>
+                    )} />
+                  )}
                 </DxDataGrid>
               </div>
             )}
@@ -417,20 +477,30 @@ export default function PackagingQCPage() {
         </CardContent>
       </Card>
 
-      {/* Weight Check Dialog */}
+      {/* Weight Check Dialog (Add / Edit) */}
       <DxPopup
         visible={showWeightDialog}
         onHiding={() => {
           setShowWeightDialog(false);
           setSampleWeights([]);
+          setEditingWeightLog(null);
+          setWeightNotes('');
         }}
-        title="Record Weight Check"
+        title={editingWeightLog ? 'Edit Weight Check' : 'Record Weight Check'}
         width={600}
         height="auto"
         showCloseButton
         dragEnabled={false}
       >
         <div className="p-4 space-y-4">
+          {editingWeightLog && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-800">
+                Editing record from <strong>{editingWeightLog.checkTime}</strong>. Changes will be logged in audit trail.
+              </p>
+            </div>
+          )}
+
           {criteria && (
             <div className="bg-indigo-50 rounded-lg p-3">
               <p className="text-sm text-indigo-800">
@@ -461,6 +531,17 @@ export default function PackagingQCPage() {
             </div>
           </div>
 
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes {editingWeightLog && <span className="text-amber-600">(reason for edit)</span>}</label>
+            <DxTextArea
+              value={weightNotes}
+              onValueChanged={(e) => setWeightNotes(e.value)}
+              placeholder={editingWeightLog ? 'Reason for editing...' : 'Any observations...'}
+              height={60}
+            />
+          </div>
+
           {/* Result Preview */}
           <div className={`rounded-lg p-4 ${weightResult.isPass ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
             <div className="flex items-center justify-between">
@@ -486,10 +567,10 @@ export default function PackagingQCPage() {
           <div className="flex justify-end gap-2 pt-4 border-t">
             <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowWeightDialog(false)} />
             <DxButton
-              text="Save"
+              text={editingWeightLog ? 'Update' : 'Save'}
               type="success"
-              onClick={() => addWeightMutation.mutate({ sampleWeights })}
-              disabled={addWeightMutation.isPending || sampleWeights.some(w => w === 0)}
+              onClick={handleSaveWeight}
+              disabled={(editingWeightLog ? editWeightMutation.isPending : addWeightMutation.isPending) || sampleWeights.some(w => w === 0)}
             />
           </div>
         </div>
