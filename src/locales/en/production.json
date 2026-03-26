@@ -301,7 +301,46 @@
     "packagingQC": "Packaging QC",
     "finishedInspection": "Finished Product Inspection",
     "room": "Room",
-    "equipment": "Equipment"
+    "equipment": "Equipment",
+    "materialWeighingPage": {
+      "title": "Material Weighing",
+      "progress": {
+        "weighed": "Weighed",
+        "verified": "Verified",
+        "allVerified": "All Verified"
+      },
+      "material": {
+        "planned": "Planned",
+        "actual": "Actual",
+        "variance": "Variance",
+        "lot": "Lot"
+      },
+      "form": {
+        "actualWeight": "Actual Weight",
+        "lot": {
+          "label": "Lot Number",
+          "placeholder": "Select Lot (optional)",
+          "noData": "No available lots",
+          "expiry": "Exp",
+          "noExpiry": "N/A"
+        },
+        "notes": "Notes",
+        "recordWeight": "Record Weight",
+        "cancel": "Cancel",
+        "varianceWarning": "High variance - please verify"
+      },
+      "actions": {
+        "weigh": "Weigh",
+        "verify": "Verify",
+        "backToExecution": "Back to Execution"
+      },
+      "toast": {
+        "weightRecorded": "Material weight has been recorded",
+        "weightVerified": "Material weight has been verified"
+      },
+      "noMaterials": "No materials found for this work order.",
+      "noMaterialsHint": "Materials are loaded from the BOM formula."
+    }
   },
   "newWorkOrder": {
     "title": "Create Work Order"

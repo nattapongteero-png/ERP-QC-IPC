@@ -301,7 +301,46 @@
     "packagingQC": "QC บรรจุภัณฑ์",
     "finishedInspection": "การตรวจสอบผลิตภัณฑ์สำเร็จรูป",
     "room": "ห้อง",
-    "equipment": "อุปกรณ์"
+    "equipment": "อุปกรณ์",
+    "materialWeighingPage": {
+      "title": "ชั่งน้ำหนักวัตถุดิบ",
+      "progress": {
+        "weighed": "ชั่งแล้ว",
+        "verified": "ตรวจสอบแล้ว",
+        "allVerified": "ตรวจสอบครบทุกรายการ"
+      },
+      "material": {
+        "planned": "แผน",
+        "actual": "จริง",
+        "variance": "ส่วนต่าง",
+        "lot": "Lot"
+      },
+      "form": {
+        "actualWeight": "น้ำหนักจริง",
+        "lot": {
+          "label": "Lot Number",
+          "placeholder": "เลือก Lot (ไม่บังคับ)",
+          "noData": "ไม่พบ Lot ที่ใช้ได้",
+          "expiry": "หมดอายุ",
+          "noExpiry": "N/A"
+        },
+        "notes": "หมายเหตุ",
+        "recordWeight": "บันทึกน้ำหนัก",
+        "cancel": "ยกเลิก",
+        "varianceWarning": "ส่วนต่างสูง - กรุณาตรวจสอบ"
+      },
+      "actions": {
+        "weigh": "ชั่ง",
+        "verify": "ตรวจสอบ",
+        "backToExecution": "กลับไปหน้าดำเนินการ"
+      },
+      "toast": {
+        "weightRecorded": "บันทึกน้ำหนักสำเร็จ",
+        "weightVerified": "ตรวจสอบน้ำหนักสำเร็จ"
+      },
+      "noMaterials": "ไม่พบวัตถุดิบสำหรับใบสั่งผลิตนี้",
+      "noMaterialsHint": "วัตถุดิบจะถูกโหลดจากสูตรการผลิต (BOM)"
+    }
   },
   "newWorkOrder": {
     "title": "สร้างใบสั่งผลิต"
