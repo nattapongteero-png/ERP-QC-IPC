@@ -101,7 +101,7 @@ export default function ProductionOutputPage() {
       const res = await fetch('/api/warehouses?limit=100');
       const data = await res.json();
       if (!data.success) return [];
-      return data.data?.data || [];
+      return data.data?.items || [];
     },
   });
 
