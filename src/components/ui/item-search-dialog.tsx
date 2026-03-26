@@ -36,6 +36,8 @@ export interface Item {
   nameTh: string;
   nameEn: string;
   primaryUnit: string;
+  secondaryUnit?: string | null;
+  conversionRate?: number | null;
   sellingPrice?: number;
   costPrice?: number;
   category?: string;

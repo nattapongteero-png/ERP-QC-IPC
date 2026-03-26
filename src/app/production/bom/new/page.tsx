@@ -8,6 +8,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
@@ -24,6 +25,7 @@ interface BOMLine {
   itemName: string;
   quantity: number;
   unit: string;
+  unitOptions: string[]; // Available units for this item (primary + secondary)
   isOptional: boolean;
   notes: string;
 }
@@ -78,6 +80,12 @@ export default function NewBOMPage() {
       return;
     }
 
+    // Build unit options: primary + secondary (if exists)
+    const unitOpts = [item.primaryUnit];
+    if (item.secondaryUnit) {
+      unitOpts.push(item.secondaryUnit);
+    }
+
     const newLine: BOMLine = {
       id: lineCounter,
       itemId: item.id,
@@ -85,6 +93,7 @@ export default function NewBOMPage() {
       itemName: item.nameTh,
       quantity: 0,
       unit: item.primaryUnit,
+      unitOptions: unitOpts,
       isOptional: false,
       notes: '',
     };
@@ -370,10 +379,11 @@ export default function NewBOMPage() {
                               />
                             </td>
                             <td className="px-4 py-2">
-                              <DxTextBox
+                              <DxSelectBox
                                 value={line.unit}
                                 onValueChange={(value) => handleUpdateLine(line.id, 'unit', value)}
-                                width={80}
+                                items={line.unitOptions.map(u => ({ value: u, label: u }))}
+                                width={100}
                               />
                             </td>
                             <td className="px-4 py-2">

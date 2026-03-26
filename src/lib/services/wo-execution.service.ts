@@ -811,6 +811,7 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
       status: tables.workOrderMaterials.status,
       weighedAt: tables.workOrderMaterials.weighedAt,
       weighedQty: tables.workOrderMaterials.weighedQty,
+      unit: tables.workOrderMaterials.unit,
       lotId: tables.workOrderMaterials.lotId,
     }).from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, materialId));
   });
@@ -824,14 +825,29 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
 
   // If material was weighed but not issued, issue from inventory now
   if (existing.status !== 'issued') {
-    // If user pre-selected a lot during weighing, try that lot first
-    // Otherwise use FEFO multi-lot allocation
+    // Unit conversion: convert weighedQty to primary unit (inventory unit) if needed
+    let deductQty = Number(existing.weighedQty);
+    const [itemData] = await executeDbOperation(async (db: any) => {
+      return db.select({
+        primaryUnit: tables.items.primaryUnit,
+        secondaryUnit: tables.items.secondaryUnit,
+        conversionRate: tables.items.conversionRate,
+      }).from(tables.items).where(eq(tables.items.id, existing.itemId));
+    });
+
+    if (itemData && existing.unit && itemData.secondaryUnit &&
+        existing.unit === itemData.secondaryUnit &&
+        itemData.conversionRate && itemData.conversionRate > 0) {
+      // BOM unit is secondary unit → convert to primary: deductQty = weighedQty / conversionRate
+      deductQty = deductQty / Number(itemData.conversionRate);
+      console.log(`[Unit Conversion] ${existing.weighedQty} ${existing.unit} → ${deductQty.toFixed(4)} ${itemData.primaryUnit} (rate: ${itemData.conversionRate})`);
+    }
+
+    // FEFO multi-lot allocation using converted quantity
     let allocated: { lotId: number; lotNumber: string; quantity: number; expiryDate: string | null }[] = [];
 
     if (existing.lotId) {
-      // User selected a specific lot — try to allocate from it first
-      const { allocated: userLotAlloc } = await getLotsForPicking(existing.itemId, existing.weighedQty);
-      // Put the user-selected lot first if it's in the allocation
+      const { allocated: userLotAlloc } = await getLotsForPicking(existing.itemId, deductQty);
       const userLotIdx = userLotAlloc.findIndex((a: any) => a.lotId === existing.lotId);
       if (userLotIdx >= 0) {
         const [userLot] = userLotAlloc.splice(userLotIdx, 1);
@@ -840,7 +856,7 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
         allocated = userLotAlloc;
       }
     } else {
-      const result = await getLotsForPicking(existing.itemId, existing.weighedQty);
+      const result = await getLotsForPicking(existing.itemId, deductQty);
       allocated = result.allocated;
     }
 
