@@ -21,6 +21,62 @@ import {
 } from 'lucide-react';
 import type { AppRoleWithPermissions, AppPermission } from '@/types/hr';
 
+/**
+ * Memoized per-module permission selector.
+ * DevExtreme TagBox's template-manager calls React setState internally
+ * when it detects prop changes. New array references on `value` cause
+ * infinite re-render loops. This component uses React.memo with a custom
+ * comparator to prevent unnecessary TagBox re-renders.
+ */
+const ModulePermissionSelector = React.memo(function ModulePermissionSelector({
+  module,
+  modulePermissions,
+  selectedIds,
+  onChange,
+  disabled,
+}: {
+  module: string;
+  modulePermissions: AppPermission[];
+  selectedIds: number[];
+  onChange: (module: string, ids: number[]) => void;
+  disabled: boolean;
+}) {
+  const handleChange = React.useCallback(
+    (e: { value?: number[] }) => onChange(module, e.value || []),
+    [module, onChange]
+  );
+
+  return (
+    <div className="border rounded-lg p-4">
+      <h3 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+        <Settings className="h-4 w-4" />
+        {module}
+        <span className="text-xs text-gray-500">
+          ({selectedIds.length}/{modulePermissions.length})
+        </span>
+      </h3>
+      <TagBox
+        items={modulePermissions}
+        displayExpr="name"
+        valueExpr="id"
+        value={selectedIds}
+        onValueChanged={handleChange}
+        showSelectionControls
+        placeholder="เลือกสิทธิ์..."
+        disabled={disabled}
+      />
+    </div>
+  );
+}, (prev, next) => {
+  if (prev.module !== next.module) return false;
+  if (prev.disabled !== next.disabled) return false;
+  if (prev.modulePermissions !== next.modulePermissions) return false;
+  if (prev.onChange !== next.onChange) return false;
+  // Deep compare selectedIds to avoid re-render on same content
+  if (prev.selectedIds.length !== next.selectedIds.length) return false;
+  return prev.selectedIds.every((id, i) => id === next.selectedIds[i]);
+});
+
 export interface RoleFormProps {
   mode: 'create' | 'edit';
   roleId?: number;
@@ -149,10 +205,18 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
     }
   }, [role]);
 
-  // Initialize permissions when loaded
+  // Initialize permissions when loaded — use functional setState to
+  // return same reference when content is unchanged, preventing re-render
   React.useEffect(() => {
     if (rolePermissions.length > 0) {
-      setSelectedPermissionIds(rolePermissions.map(p => p.id));
+      const newIds = rolePermissions.map(p => p.id).sort((a, b) => a - b);
+      setSelectedPermissionIds(prev => {
+        const sorted = [...prev].sort((a, b) => a - b);
+        if (sorted.length === newIds.length && sorted.every((v, i) => v === newIds[i])) {
+          return prev;
+        }
+        return newIds;
+      });
     }
   }, [rolePermissions]);
 
@@ -254,12 +318,25 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isValid = !!formData.code && !!formData.name;
 
-  // Handle permission selection for a module
-  const handleModulePermissionChange = (module: string, newModulePermissionIds: number[]) => {
-    const modulePermissionIds = permissionsByModule[module]?.map(p => p.id) || [];
-    const otherIds = selectedPermissionIds.filter(id => !modulePermissionIds.includes(id));
-    setSelectedPermissionIds([...otherIds, ...newModulePermissionIds]);
-  };
+  // Handle permission selection for a module — use functional setState
+  // to avoid creating new array references when content hasn't changed
+  const handleModulePermissionChange = React.useCallback(
+    (module: string, newModulePermissionIds: number[]) => {
+      setSelectedPermissionIds(prev => {
+        const modulePermissionIds = permissionsByModule[module]?.map(p => p.id) || [];
+        const otherIds = prev.filter(id => !modulePermissionIds.includes(id));
+        const newIds = [...otherIds, ...newModulePermissionIds];
+        // Return same reference if content unchanged — prevents re-render
+        const sortedNew = [...newIds].sort((a, b) => a - b);
+        const sortedPrev = [...prev].sort((a, b) => a - b);
+        if (sortedNew.length === sortedPrev.length && sortedNew.every((v, i) => v === sortedPrev[i])) {
+          return prev;
+        }
+        return newIds;
+      });
+    },
+    [permissionsByModule]
+  );
 
   if (isEditMode && isLoadingRole) {
     return (
@@ -441,25 +518,14 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
                   const selectedForModule = selectedPermissionIds.filter(id => modulePermissionIds.includes(id));
 
                   return (
-                    <div key={module} className="border rounded-lg p-4">
-                      <h3 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        {module}
-                        <span className="text-xs text-gray-500">
-                          ({selectedForModule.length}/{modulePermissions.length})
-                        </span>
-                      </h3>
-                      <TagBox
-                        items={modulePermissions}
-                        displayExpr="name"
-                        valueExpr="id"
-                        value={selectedForModule}
-                        onValueChanged={(e) => handleModulePermissionChange(module, e.value || [])}
-                        showSelectionControls
-                        placeholder="เลือกสิทธิ์..."
-                        disabled={isSystemRole}
-                      />
-                    </div>
+                    <ModulePermissionSelector
+                      key={module}
+                      module={module}
+                      modulePermissions={modulePermissions}
+                      selectedIds={selectedForModule}
+                      onChange={handleModulePermissionChange}
+                      disabled={isSystemRole}
+                    />
                   );
                 })}
                 {Object.keys(permissionsByModule).length === 0 && (
