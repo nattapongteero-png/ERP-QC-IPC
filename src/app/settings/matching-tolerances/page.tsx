@@ -175,9 +175,10 @@ export default function MatchingTolerancesPage() {
   const renderValueCell = (cellData: { data: MatchingTolerance }) => {
     const item = cellData.data;
     const suffix = item.toleranceMethod === 'percentage' ? '%' : '';
+    const value = item.toleranceValue ?? 0;
     return (
       <span className="font-mono">
-        {item.toleranceValue.toFixed(2)}{suffix}
+        {value.toFixed(2)}{suffix}
       </span>
     );
   };
