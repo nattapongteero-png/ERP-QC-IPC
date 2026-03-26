@@ -106,10 +106,10 @@ async function fetchAPInvoices(filters?: { status?: string }): Promise<APInvoice
 }
 
 async function fetchVendors(): Promise<Vendor[]> {
-  const res = await fetch('/api/vendors?isActive=true');
+  const res = await fetch('/api/vendors?isActive=true&limit=1000');
   if (!res.ok) throw new Error('Failed to fetch vendors');
   const json = await res.json();
-  return json.data;
+  return json.data?.items || json.data || [];
 }
 
 async function fetchGLAccounts(): Promise<GLAccount[]> {
