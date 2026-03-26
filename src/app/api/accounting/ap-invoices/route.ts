@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
             description: parseResult.data.description,
             currency: parseResult.data.currency,
             exchangeRate: parseResult.data.exchangeRate,
+            vatRate: parseResult.data.vatRate,
+            vatAmountOverride: parseResult.data.vatAmountOverride,
             lines: parseResult.data.lines,
           },
           session.userId

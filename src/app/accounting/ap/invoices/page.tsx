@@ -87,6 +87,8 @@ interface FormData {
   dueDate: string;
   receivedDate: string;
   description: string;
+  vatRate: number;
+  vatAmountOverride: number | null; // null = auto-calculate, number = manual override
   lines: {
     description: string;
     glAccountId: number | null;
@@ -94,6 +96,11 @@ interface FormData {
     unitPrice: number;
   }[];
 }
+
+const VAT_RATE_OPTIONS = [
+  { value: 0, label: 'VAT 0%' },
+  { value: 7, label: 'VAT 7%' },
+];
 
 // API functions
 async function fetchAPInvoices(filters?: { status?: string }): Promise<APInvoice[]> {
@@ -155,6 +162,8 @@ export default function APInvoicesPage() {
     dueDate: '',
     receivedDate: new Date().toISOString().split('T')[0],
     description: '',
+    vatRate: 7,
+    vatAmountOverride: null,
     lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
   });
 
@@ -208,6 +217,8 @@ export default function APInvoicesPage() {
       dueDate: '',
       receivedDate: new Date().toISOString().split('T')[0],
       description: '',
+      vatRate: 7,
+      vatAmountOverride: null,
       lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
     });
   }, []);
@@ -243,6 +254,8 @@ export default function APInvoicesPage() {
       dueDate: formData.dueDate,
       receivedDate: formData.receivedDate,
       description: formData.description || null,
+      vatRate: formData.vatRate,
+      vatAmountOverride: formData.vatAmountOverride,
       lines: validLines,
     });
   }, [formData, createMutation]);
@@ -289,8 +302,9 @@ export default function APInvoicesPage() {
   }, [formData.lines]);
 
   const vatAmount = useMemo(() => {
-    return Math.round(lineTotal * 0.07 * 100) / 100;
-  }, [lineTotal]);
+    if (formData.vatAmountOverride !== null) return formData.vatAmountOverride;
+    return Math.round(lineTotal * (formData.vatRate / 100) * 100) / 100;
+  }, [lineTotal, formData.vatRate, formData.vatAmountOverride]);
 
   // Status badge render using AccountingStatusBadge
   const statusCellRender = useCallback((cellData: any) => {
@@ -673,11 +687,35 @@ export default function APInvoicesPage() {
                   <td className="border"></td>
                 </tr>
                 <tr className="bg-gray-50">
-                  <td colSpan={4} className="border p-2 text-right">
-                    VAT 7%
+                  <td colSpan={3} className="border p-2 text-right">
+                    VAT
                   </td>
-                  <td className="border p-2 text-right">
-                    {vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  <td className="border p-1 text-center">
+                    <select
+                      className="w-full border rounded px-2 py-1 text-sm text-center bg-white"
+                      value={formData.vatRate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vatRate: Number(e.target.value), vatAmountOverride: null }))}
+                      data-testid="vat-rate-select"
+                    >
+                      <option value={0}>0%</option>
+                      <option value={7}>7%</option>
+                    </select>
+                  </td>
+                  <td className="border p-1 text-right">
+                    <input
+                      type="number"
+                      className="w-full border rounded px-2 py-1 text-sm text-right bg-white"
+                      value={formData.vatAmountOverride !== null ? formData.vatAmountOverride : vatAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vatAmountOverride: Number(e.target.value) || 0 }))}
+                      onBlur={() => {
+                        if (formData.vatAmountOverride !== null && formData.vatAmountOverride === vatAmount) {
+                          setFormData(prev => ({ ...prev, vatAmountOverride: null }));
+                        }
+                      }}
+                      step="0.01"
+                      min="0"
+                      data-testid="vat-amount-input"
+                    />
                   </td>
                   <td className="border"></td>
                 </tr>
