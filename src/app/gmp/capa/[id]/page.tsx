@@ -338,9 +338,20 @@ export default function CapaDetailPage() {
   const statusConfig = capa ? STATUS_CONFIG[capa.status] : null;
   const priorityConfig = capa ? PRIORITY_CONFIG[capa.priority] : null;
   const canClose = capa && capa.status !== 'closed' && capa.status !== 'cancelled';
-  const allActionsComplete = capa?.actions?.every((a) => a.status === 'completed') ?? false;
+  const hasActions = (capa?.actions?.length ?? 0) > 0;
+  const allActionsComplete = hasActions && (capa?.actions?.every((a) => a.status === 'completed') ?? false);
   const hasEffectiveCheck = capa?.effectivenessChecks?.some((e) => e.result === 'effective') ?? false;
-  const canCloseNow = canClose && allActionsComplete && hasEffectiveCheck;
+  const hasRiskAssessment = !!(capa?.riskSeverity && capa?.riskProbability);
+  const hasRootCause = !!(capa?.rootCauseAnalysis && capa.rootCauseAnalysis.trim() !== '');
+  const canCloseNow = canClose && allActionsComplete && hasEffectiveCheck && hasRiskAssessment && hasRootCause;
+
+  // Closure checklist for display
+  const closureChecklist = capa ? [
+    { label: 'การดำเนินการ (Action)', ok: allActionsComplete, detail: hasActions ? `${capa.actions.filter((a) => a.status === 'completed').length}/${capa.actions.length} เสร็จ` : 'ไม่มีรายการ' },
+    { label: 'ประสิทธิผล (Effectiveness)', ok: hasEffectiveCheck, detail: hasEffectiveCheck ? 'ผ่าน' : 'ยังไม่มีผลเป็น Effective' },
+    { label: 'ความเสี่ยง (Risk Assessment)', ok: hasRiskAssessment, detail: hasRiskAssessment ? `${capa.riskSeverity}/${capa.riskProbability}` : 'ยังไม่ได้ประเมิน' },
+    { label: 'สาเหตุ (Root Cause)', ok: hasRootCause, detail: hasRootCause ? 'ระบุแล้ว' : 'ยังไม่ได้ระบุ' },
+  ] : [];
   const completedActions = capa?.actions?.filter((a) => a.status === 'completed').length ?? 0;
   const totalActions = capa?.actions?.length ?? 0;
   const actionProgress = totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0;
@@ -491,7 +502,6 @@ export default function CapaDetailPage() {
                   icon="check"
                   onClick={() => setShowCloseDialog(true)}
                   type="success"
-                  disabled={!canCloseNow}
                 />
               )}
             </div>
@@ -1074,37 +1084,56 @@ export default function CapaDetailPage() {
         visible={showCloseDialog}
         onHiding={() => setShowCloseDialog(false)}
         title="ปิด CAPA"
-        width={500}
+        width={550}
         height="auto"
         showCloseButton
       >
         <div className="p-4 space-y-4">
-          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-              <div>
-                <p className="font-medium text-green-800 dark:text-green-200">
-                  ตรงตามเงื่อนไขทั้งหมด
-                </p>
-                <p className="text-sm text-green-600 dark:text-green-300">
-                  CAPA พร้อมที่จะปิดได้แล้ว
-                </p>
+          {/* Closure Checklist */}
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-gray-700">ตรวจสอบความครบถ้วนก่อนปิด CAPA:</p>
+            {closureChecklist.map((item, idx) => (
+              <div key={idx} className={`flex items-center justify-between px-3 py-2 rounded-lg border ${item.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <div className="flex items-center gap-2">
+                  {item.ok ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                  <span className={`text-sm font-medium ${item.ok ? 'text-green-800' : 'text-red-800'}`}>
+                    {item.label}
+                  </span>
+                </div>
+                <span className={`text-xs ${item.ok ? 'text-green-600' : 'text-red-600'}`}>
+                  {item.detail}
+                </span>
               </div>
-            </div>
+            ))}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">หมายเหตุการปิด (ไม่บังคับ)</label>
-            <DxTextArea
-              value={closureNotes}
-              onValueChange={(value) => setClosureNotes(value || '')}
-              placeholder="เพิ่มหมายเหตุเกี่ยวกับการปิด CAPA นี้..."
-              height={100}
-            />
-          </div>
+          {canCloseNow ? (
+            <>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800 font-medium">ข้อมูลครบถ้วน — พร้อมปิด CAPA</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">หมายเหตุการปิด (ไม่บังคับ)</label>
+                <DxTextArea
+                  value={closureNotes}
+                  onValueChange={(value) => setClosureNotes(value || '')}
+                  placeholder="เพิ่มหมายเหตุเกี่ยวกับการปิด CAPA นี้..."
+                  height={100}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800 font-medium">ไม่สามารถปิด CAPA ได้ — กรุณากรอกข้อมูลที่ยังขาดให้ครบก่อน</p>
+            </div>
+          )}
 
           {closeMutation.error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm whitespace-pre-line">
               {closeMutation.error.message}
             </div>
           )}
@@ -1120,7 +1149,7 @@ export default function CapaDetailPage() {
               icon="check"
               onClick={() => closeMutation.mutate()}
               type="success"
-              disabled={closeMutation.isPending}
+              disabled={!canCloseNow || closeMutation.isPending}
             />
           </div>
         </div>
