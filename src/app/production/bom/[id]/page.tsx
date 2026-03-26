@@ -10,6 +10,7 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -153,6 +154,7 @@ export default function BOMDetailPage() {
     itemCode: '',
     itemName: '',
     itemUnit: '',
+    unitOptions: [] as string[],
     quantity: 0,
     isOptional: false,
     notes: '',
@@ -338,13 +340,18 @@ export default function BOMDetailPage() {
     }
   };
 
-  const handleSelectItem = (item: { id: number; code: string; nameTh: string; primaryUnit: string }) => {
+  const handleSelectItem = (item: { id: number; code: string; nameTh: string; primaryUnit: string; secondaryUnit?: string | null }) => {
+    const unitOpts = [item.primaryUnit];
+    if (item.secondaryUnit) {
+      unitOpts.push(item.secondaryUnit);
+    }
     setNewLine({
       ...newLine,
       itemId: item.id,
       itemCode: item.code,
       itemName: item.nameTh,
       itemUnit: item.primaryUnit,
+      unitOptions: unitOpts,
     });
     setItemSearchOpen(false);
   };
@@ -372,6 +379,7 @@ export default function BOMDetailPage() {
           itemCode: '',
           itemName: '',
           itemUnit: '',
+          unitOptions: [],
           quantity: 0,
           isOptional: false,
           notes: '',
@@ -971,6 +979,7 @@ export default function BOMDetailPage() {
                       itemCode: '',
                       itemName: '',
                       itemUnit: '',
+                      unitOptions: [],
                       quantity: 0,
                       isOptional: false,
                       notes: '',
@@ -1284,11 +1293,20 @@ export default function BOMDetailPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-              <DxTextBox
-                value={newLine.itemUnit}
-                readOnly
-                className="bg-gray-50"
-              />
+              {newLine.unitOptions.length > 1 ? (
+                <DxSelectBox
+                  value={newLine.itemUnit}
+                  onValueChange={(value) => setNewLine({ ...newLine, itemUnit: value })}
+                  items={newLine.unitOptions.map(u => ({ value: u, label: u }))}
+                  width="100%"
+                />
+              ) : (
+                <DxTextBox
+                  value={newLine.itemUnit}
+                  readOnly
+                  className="bg-gray-50"
+                />
+              )}
             </div>
           </div>
           <div>
