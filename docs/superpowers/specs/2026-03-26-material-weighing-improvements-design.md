@@ -11,6 +11,7 @@ Improve the Material Weighing page (`/production/work-orders/[id]/material-weigh
 - "Weigh" dialog has a text input for Lot Number that is never saved to the database
 - Lot is auto-assigned via FEFO after weighing — user has no control over lot selection
 - `getWOMaterials()` does not JOIN with `inventory_lots`, so lot info is not displayed
+- **Field mismatch**: DB column is `plannedQuantity` but frontend `MaterialLine` interface uses `plannedQty` — `getWOMaterials()` must alias correctly
 
 ## Requirements
 
@@ -24,6 +25,8 @@ Each material card in the list must show:
 - **Planned Quantity with UoM**: e.g., `150.000 kg`
 - Status badge + Actual Qty (existing, unchanged)
 
+**Note**: `getWOMaterials()` returns `plannedQuantity` from DB but the `MaterialLine` interface expects `plannedQty`. The service must alias `plannedQuantity` → `plannedQty` in the returned object to match the frontend interface.
+
 ### 2. Lot Selection: SelectBox in Weigh Dialog
 
 Replace the existing Lot Number text input with a DevExtreme SelectBox:
@@ -36,6 +39,7 @@ Replace the existing Lot Number text input with a DevExtreme SelectBox:
 - **Display format**: `{lotNumber} ({availableQty} {unit}) - Exp: {expiryDate} [{vendorLotNumber or manufacturerName}]`
   - Example: `LOT-2603001 (150.00 kg) - Exp: 2026-09-30 [Vendor: ABC]`
   - If no vendor info, omit the bracket portion
+  - If `expiryDate` is null, show `Exp: N/A`
 - **Behavior**:
   - Optional field — operator can skip lot selection
   - If lot selected: system uses that specific lot for inventory deduction
@@ -64,9 +68,11 @@ Response:
 }
 ```
 
-Auth permission: `inventory:lots:read`
+Auth permission: `inventory:read` (matches existing inventory endpoints)
 
-### 4. API: Modified Weight Recording
+**Implementation note**: `availableQty` is computed in application code as `quantity - reservedQuantity` (same pattern as existing `getLotsForPicking()`). The query logic must **reuse** the existing `getLotsForPicking()` query conditions from `inventory.service.ts` to avoid duplication — extract a shared helper or extend `getLotsForPicking()` to support a "list all" mode (no quantity allocation, just return available lots).
+
+### 4. API & Route: Modified Weight Recording
 
 **Modified**: `PUT /api/production/work-orders/[id]/material-weighing`
 
@@ -81,15 +87,36 @@ Add optional `lotId` field to request body:
 
 - If `lotId` provided: use that lot for inventory deduction (skip FEFO auto-pick)
 - If `lotId` omitted/null: auto-assign via FEFO (existing behavior)
-- Validate: if lotId provided, lot must be released and have sufficient available qty
+- **Validation**: if `lotId` provided, validate before calling `issueMaterial()`:
+  - Lot must exist and have `status = 'released'`
+  - Available qty (`quantity - reservedQuantity`) must be >= `weighedQty`
+  - On validation failure: return structured 400 error (not unhandled throw) — operator must re-select lot
+  - **No fallback to FEFO** when an explicit `lotId` fails validation
+
+**Route handler update required**: The route handler in `route.ts` must extract `lotId` from the request body and pass it to `recordMaterialWeight()`. Currently the route only passes `materialId`, `weighedQty`, `weighedBy`, and water params — `lotId` must be added.
 
 ### 5. Service Layer Changes
 
 **`wo-execution.service.ts`**:
-- `recordMaterialWeight()`: Accept optional `lotId` parameter. If provided, use it directly instead of calling `getLotsForPicking()`.
-- `getWOMaterials()`: LEFT JOIN with `inventory_lots` to include `lotNumber` in the response for materials that have been issued.
+- `recordMaterialWeight()`: Accept optional `lotId` parameter. If provided, validate the lot and use it directly instead of calling `getLotsForPicking()`. Return structured error if lot validation fails.
+- `getWOMaterials()`: Add LEFT JOIN with `inventory_lots` on `eq(tables.workOrderMaterials.lotId, tables.inventoryLots.id)` to include `lotNumber` in the SELECT clause. This resolves the pre-existing gap where `MaterialLine.lotNumber` is defined in the interface but was never populated.
 
-### 6. Unchanged Behavior
+**`inventory.service.ts`**:
+- `getAvailableLots(itemId)`: New function using the same `getDb()` pattern as the rest of inventory.service.ts. Must reuse/share the query conditions with `getLotsForPicking()` (released status, available qty > 0, FEFO sort) to avoid code duplication.
+
+### 6. i18n Translation Keys
+
+New keys needed in `src/locales/th/production.json` and `src/locales/en/production.json`:
+
+| Key | Thai | English |
+|-----|------|---------|
+| `materialWeighing.form.lot.label` | Lot Number | Lot Number |
+| `materialWeighing.form.lot.placeholder` | เลือก Lot (ไม่บังคับ) | Select Lot (optional) |
+| `materialWeighing.form.lot.noData` | ไม่พบ Lot ที่ใช้ได้ | No available lots |
+| `materialWeighing.form.lot.expiry` | หมดอายุ | Exp |
+| `materialWeighing.form.lot.noExpiry` | N/A | N/A |
+
+### 7. Unchanged Behavior
 
 - Water quality parameters (conductivity, temperature, date)
 - Two-step verification workflow (weigh then verify)
@@ -113,12 +140,14 @@ Material Weighing Page
 
 GET /api/inventory/lots/available?itemId=XX
   └── inventory.service.ts → getAvailableLots(itemId)
+      └── Reuses getLotsForPicking() query logic (no quantity allocation)
       └── SELECT from inventory_lots WHERE released AND available > 0
 
 PUT /api/production/work-orders/[id]/material-weighing
-  └── wo-execution.service.ts → recordMaterialWeight({...lotId})
-      ├── If lotId: use directly
-      └── If no lotId: getLotsForPicking() (FEFO auto-assign)
+  └── route.ts: extract lotId from body, pass to service
+      └── wo-execution.service.ts → recordMaterialWeight({...lotId})
+          ├── If lotId: validate lot → use directly (error if invalid)
+          └── If no lotId: getLotsForPicking() (FEFO auto-assign)
 ```
 
 ## Testing
@@ -126,6 +155,7 @@ PUT /api/production/work-orders/[id]/material-weighing
 - Unit test: `getAvailableLots()` returns correct lots sorted by FEFO
 - Unit test: `recordMaterialWeight()` uses provided lotId when given
 - Unit test: `recordMaterialWeight()` falls back to FEFO when lotId is null
+- Unit test: `recordMaterialWeight()` returns error when explicit lotId has insufficient qty
 - UI test: Material list renders product names in both languages
 - UI test: Weigh dialog shows SelectBox with lot options
 - UI test: Form submits correctly with and without lot selection
