@@ -27,6 +27,7 @@ import {
   sqliteHRNotifications,
   sqliteHRAuditLog,
   sqliteAuditTrail,
+  sqliteUsers,
   mysqlHROrgUnits,
   mysqlHRPositions,
   mysqlHRJobDescriptions,
@@ -45,6 +46,7 @@ import {
   mysqlHRNotifications,
   mysqlHRAuditLog,
   mysqlAuditTrail,
+  mysqlUsers,
 } from '../db/schema';
 import type {
   OrgUnit,
@@ -4330,22 +4332,31 @@ export async function getHRAuditLogs(
 
   const logs = await query;
 
-  // Enrich with user names
-  const enriched: HRAuditLogWithDetails[] = [];
-  for (const log of logs) {
-    let userName: string | undefined;
-    if (log.userId) {
-      const user = await getEmployeeById(log.userId);
-      userName = user ? `${user.firstName} ${user.lastName}` : undefined;
-    }
+  // Batch-lookup user names from users table (audit_trail.user_id → users.id)
+  const userIds = [...new Set(
+    (logs as { userId: number | null }[])
+      .map(l => l.userId)
+      .filter((id): id is number => id != null)
+  )];
+  const userNameMap = new Map<number, string>();
 
-    enriched.push({
-      ...log,
-      action: log.action as HRAuditAction,
-      userName,
-      actionLabel: getActionLabel(log.action),
-    });
+  if (userIds.length > 0) {
+    const usersTable = isSqlite() ? sqliteUsers : mysqlUsers;
+    const users = await db
+      .select({ id: usersTable.id, name: usersTable.name })
+      .from(usersTable)
+      .where(inArray(usersTable.id, userIds));
+    for (const u of users as { id: number; name: string }[]) {
+      userNameMap.set(u.id, u.name);
+    }
   }
+
+  const enriched: HRAuditLogWithDetails[] = (logs as any[]).map(log => ({
+    ...log,
+    action: log.action as HRAuditAction,
+    userName: log.userId ? userNameMap.get(log.userId) : undefined,
+    actionLabel: getActionLabel(log.action),
+  }));
 
   return { data: enriched, total };
 }
