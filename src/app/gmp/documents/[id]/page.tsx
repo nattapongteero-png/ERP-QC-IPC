@@ -12,6 +12,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { DocumentFormDialog, DocumentVersionHistory } from '@/components/documents';
+import { DocumentAttachment } from '@/components/ui/document-attachment';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { ApprovalChain } from '@/components/shared/ApprovalChain';
 import { DxButton } from '@/components/ui/dx-button';
@@ -728,12 +729,22 @@ export default function DocumentDetailPage() {
           )}
 
           {/* Version History */}
-          <div className="p-4">
+          <div className="p-4 border-b">
             <DocumentVersionHistory
               documentId={documentId}
               currentVersionId={document.currentVersionId || undefined}
               selectedVersionId={selectedVersionId || undefined}
               onVersionSelect={handleVersionSelect}
+            />
+          </div>
+
+          {/* Attachments (Upload/Preview/Download like CAPA) */}
+          <div className="p-4">
+            <DocumentAttachment
+              moduleName="gmp_document"
+              entityId={documentId}
+              title="เอกสารแนบ (Attachments)"
+              readOnly={document.status === 'obsolete' || document.status === 'archived'}
             />
           </div>
         </aside>
