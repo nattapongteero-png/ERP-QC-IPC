@@ -421,18 +421,19 @@ export default function MaterialWeighingPage() {
                           onClick={() => handleOpenWeighDialog(material)}
                         />
                       ) : !material.verifiedAt ? (
-                        material.status === 'issued' ? (
+                        <>
+                          {material.status !== 'issued' && (
+                            <span className="text-xs text-amber-600 text-right max-w-[160px]">
+                              ⚠ ยังไม่ได้ตัดสต็อก — รอรับ lot เข้าคลัง
+                            </span>
+                          )}
                           <DxButton
                             text={tw('actions.verify')}
                             type="default"
                             onClick={() => verifyWeightMutation.mutate(material.id)}
                             disabled={verifyWeightMutation.isPending}
                           />
-                        ) : (
-                          <span className="text-xs text-red-500 text-right max-w-[140px]">
-                            ไม่สามารถ Verify ได้ — ยอดคงเหลือในคลังเป็น 0
-                          </span>
-                        )
+                        </>
                       ) : null}
                     </div>
                   </div>

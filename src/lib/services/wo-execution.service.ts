@@ -881,12 +881,16 @@ export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
 export async function verifyMaterialWeight(materialId: number, verifierId: number) {
   const tables = getTables();
 
-  // Check material exists and was issued from inventory before allowing verification
+  // Check material exists and has been weighed
   const [existing] = await executeDbOperation(async (db: any) => {
     return db.select({
       id: tables.workOrderMaterials.id,
+      itemId: tables.workOrderMaterials.itemId,
+      workOrderId: tables.workOrderMaterials.workOrderId,
       status: tables.workOrderMaterials.status,
       weighedAt: tables.workOrderMaterials.weighedAt,
+      weighedQty: tables.workOrderMaterials.weighedQty,
+      lotId: tables.workOrderMaterials.lotId,
     }).from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, materialId));
   });
 
@@ -896,10 +900,65 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
   if (!existing.weighedAt) {
     throw new Error('Material has not been weighed yet');
   }
+
+  // If material was weighed but not issued, attempt to issue from inventory now
   if (existing.status !== 'issued') {
-    throw new Error('Cannot verify — material was not issued from inventory (stock balance is 0)');
+    let lotId = existing.lotId;
+
+    // Try to find available lot via FEFO
+    if (!lotId) {
+      const { allocated } = await getLotsForPicking(existing.itemId, existing.weighedQty);
+      if (allocated.length > 0) {
+        lotId = allocated[0].lotId;
+        await executeDbOperation(async (db: any) => {
+          await db.update(tables.workOrderMaterials)
+            .set({ lotId })
+            .where(eq(tables.workOrderMaterials.id, materialId));
+        });
+      }
+    }
+
+    if (!lotId) {
+      throw new Error('Cannot verify — no available inventory for this item (stock balance is 0)');
+    }
+
+    // Issue material from inventory
+    try {
+      const [workOrder] = await executeDbOperation(async (db: any) => {
+        return db.select({ woNumber: tables.workOrders.woNumber, batchNumber: tables.workOrders.batchNumber })
+          .from(tables.workOrders)
+          .where(eq(tables.workOrders.id, existing.workOrderId));
+      });
+
+      const woNumber = workOrder?.woNumber || `WO-${existing.workOrderId}`;
+      const batchNumber = workOrder?.batchNumber || '';
+
+      await issueMaterial(
+        lotId,
+        existing.weighedQty,
+        'WO',
+        existing.workOrderId,
+        woNumber,
+        verifierId,
+        `Material weighing for ${woNumber} (issued at verify)`,
+        { workOrderId: existing.workOrderId, batchNumber }
+      );
+
+      // Update material status to issued
+      await executeDbOperation(async (db: any) => {
+        await db.update(tables.workOrderMaterials).set({
+          status: 'issued',
+          actualQuantity: existing.weighedQty,
+          issuedBy: verifierId,
+          issuedAt: getNow(),
+        }).where(eq(tables.workOrderMaterials.id, materialId));
+      });
+    } catch (error: any) {
+      throw new Error(`Cannot verify — inventory issue failed: ${error.message}`);
+    }
   }
 
+  // Now verify
   return executeDbOperation(async (db: any) => {
     const updateData = {
       verifiedBy: verifierId,
