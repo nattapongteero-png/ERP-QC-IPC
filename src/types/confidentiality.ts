@@ -74,6 +74,8 @@ export interface FilteredBOMLine {
   itemId?: number;
   itemCode?: string;
   itemName?: string;
+  itemType?: string;
+  itemUnit?: string;
   quantity?: number;
   unit?: string;
   unitCost?: number;
