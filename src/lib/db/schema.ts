@@ -441,6 +441,11 @@ export const sqliteQualityTests = sqliteTable('quality_tests', {
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
   approvedAt: text('approved_at'),
   notes: text('notes'),
+  // Spec snapshot at time of test recording (immutable after recording)
+  specMinValue: real('spec_min_value'),
+  specMaxValue: real('spec_max_value'),
+  specSpecification: text('spec_specification'),
+  specUnit: text('spec_unit'),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: text('disposition'), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: integer('disposition_by').references(() => sqliteUsers.id),
@@ -1762,6 +1767,11 @@ export const mysqlQualityTests = mysqlTable('quality_tests', {
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
   notes: mysqlText('notes'),
+  // Spec snapshot at time of test recording (immutable after recording)
+  specMinValue: decimal('spec_min_value', { precision: 15, scale: 4 }),
+  specMaxValue: decimal('spec_max_value', { precision: 15, scale: 4 }),
+  specSpecification: varchar('spec_specification', { length: 500 }),
+  specUnit: varchar('spec_unit', { length: 50 }),
   // Phase 2: Disposition columns (FR-067 to FR-070)
   disposition: varchar('disposition', { length: 50 }), // pending, accept, reject, rework, scrap, return_to_vendor, conditional_release
   dispositionBy: int('disposition_by').references(() => mysqlUsers.id),

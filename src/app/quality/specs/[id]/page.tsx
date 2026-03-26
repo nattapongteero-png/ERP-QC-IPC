@@ -51,6 +51,10 @@ interface QualitySpecDetail {
     result: string;
     numericResult: number | null;
     status: string;
+    specMinValue?: number | null;
+    specMaxValue?: number | null;
+    specSpecification?: string | null;
+    specUnit?: string | null;
     createdAt: string;
   }[];
   stats: {
@@ -222,6 +226,24 @@ export default function QualitySpecDetailPage() {
           {cellInfo.data.numericResult !== null ? cellInfo.data.numericResult : cellInfo.data.result || '-'}
         </span>
       ),
+    },
+    {
+      dataField: 'specMinValue',
+      caption: 'Spec Range (at test)',
+      cellRender: (cellInfo) => {
+        const d = cellInfo.data;
+        const min = d.specMinValue ?? spec?.minValue;
+        const max = d.specMaxValue ?? spec?.maxValue;
+        const unit = d.specUnit ?? spec?.unit ?? '';
+        const hasSnapshot = d.specMinValue !== null && d.specMinValue !== undefined;
+        if (min === null && max === null) return <span className="text-gray-400">-</span>;
+        return (
+          <span className={`text-xs ${hasSnapshot ? 'text-gray-700' : 'text-amber-600 italic'}`}>
+            {min !== null && min !== undefined ? min : '—'} ~ {max !== null && max !== undefined ? max : '—'} {unit}
+            {!hasSnapshot && <span title="ใช้ค่าปัจจุบัน (ไม่มี snapshot)"> *</span>}
+          </span>
+        );
+      },
     },
     {
       dataField: 'testDate',

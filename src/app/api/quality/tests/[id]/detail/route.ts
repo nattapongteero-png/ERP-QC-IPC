@@ -33,6 +33,11 @@ export async function GET(
             approvedBy: qualityTests.approvedBy,
             approvedAt: qualityTests.approvedAt,
             notes: qualityTests.notes,
+            // Spec snapshot fields
+            specMinValue: qualityTests.specMinValue,
+            specMaxValue: qualityTests.specMaxValue,
+            specSpecification: qualityTests.specSpecification,
+            specUnit: qualityTests.specUnit,
             createdAt: qualityTests.createdAt,
             updatedAt: qualityTests.updatedAt,
           })
@@ -140,21 +145,34 @@ export async function GET(
         approverInfo = approverResult[0] || null;
       }
 
-      // Calculate pass/fail based on spec
+      // Calculate pass/fail: use snapshot values if available, fall back to live spec
       let specCompliance = null;
-      if (specInfo && test.numericResult !== null) {
+      const hasSnapshot = test.specMinValue !== null || test.specMaxValue !== null;
+      const effectiveMin = hasSnapshot ? test.specMinValue : specInfo?.minValue ?? null;
+      const effectiveMax = hasSnapshot ? test.specMaxValue : specInfo?.maxValue ?? null;
+
+      if ((effectiveMin !== null || effectiveMax !== null) && test.numericResult !== null) {
         const actual = test.numericResult;
-        const min = specInfo.minValue;
-        const max = specInfo.maxValue;
-        
-        if (min !== null && max !== null) {
-          specCompliance = actual >= min && actual <= max ? 'pass' : 'fail';
-        } else if (min !== null) {
-          specCompliance = actual >= min ? 'pass' : 'fail';
-        } else if (max !== null) {
-          specCompliance = actual <= max ? 'pass' : 'fail';
+        if (effectiveMin !== null && effectiveMax !== null) {
+          specCompliance = actual >= effectiveMin && actual <= effectiveMax ? 'pass' : 'fail';
+        } else if (effectiveMin !== null) {
+          specCompliance = actual >= effectiveMin ? 'pass' : 'fail';
+        } else if (effectiveMax !== null) {
+          specCompliance = actual <= effectiveMax ? 'pass' : 'fail';
         }
       }
+
+      // Build effective spec: snapshot values take priority over live spec
+      const effectiveSpec = hasSnapshot
+        ? {
+            ...specInfo,
+            minValue: test.specMinValue,
+            maxValue: test.specMaxValue,
+            specification: test.specSpecification ?? specInfo?.specification,
+            unit: test.specUnit ?? specInfo?.unit,
+            isSnapshot: true,
+          }
+        : specInfo ? { ...specInfo, isSnapshot: false } : null;
 
       return NextResponse.json({
         success: true,
@@ -162,7 +180,8 @@ export async function GET(
           test,
           item: itemInfo,
           lot: lotInfo,
-          specification: specInfo,
+          specification: effectiveSpec,
+          currentSpecification: specInfo,
           tester: testerInfo,
           approver: approverInfo,
           analysis: {
