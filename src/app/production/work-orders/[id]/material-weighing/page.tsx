@@ -15,8 +15,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
-import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,6 +37,7 @@ interface MaterialLine {
   itemCode: string;
   itemName: string;
   itemNameTh?: string;
+  itemNameEn?: string;
   unit: string;
   plannedQty: number;
   actualQty?: number;
@@ -46,12 +48,24 @@ interface MaterialLine {
   verifiedBy?: number;
   verifiedByName?: string;
   verifiedAt?: string;
+  lotId?: number;
   lotNumber?: string;
   // Water-specific fields
   isWater?: boolean;
   waterDate?: string;
   waterConductivity?: number;
   waterTemperature?: number;
+}
+
+interface AvailableLot {
+  id: number;
+  lotNumber: string;
+  availableQty: number;
+  unit: string;
+  expiryDate: string | null;
+  vendorLotNumber: string | null;
+  manufacturerName: string | null;
+  [key: string]: unknown;
 }
 
 interface WorkOrderBasic {
@@ -68,16 +82,15 @@ export default function MaterialWeighingPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const t = useTranslations('production');
+  const tw = (key: string) => t(`execution.materialWeighingPage.${key}`);
 
-  // Use translation for page title
-  const pageTitle = t('execution.materialWeighing');
   const workOrderId = Number(params.id);
 
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialLine | null>(null);
   const [showWeighDialog, setShowWeighDialog] = useState(false);
   const [formData, setFormData] = useState({
     weighedQty: 0,
-    lotNumber: '',
+    lotId: undefined as number | undefined,
     notes: '',
     // Water fields
     waterDate: '',
@@ -107,6 +120,19 @@ export default function MaterialWeighingPage() {
     },
   });
 
+  // Fetch available lots for selected material
+  const { data: availableLots, isLoading: lotsLoading } = useQuery<AvailableLot[]>({
+    queryKey: ['available-lots', selectedMaterial?.itemId],
+    queryFn: async () => {
+      if (!selectedMaterial?.itemId) return [];
+      const res = await fetch(`/api/inventory/lots/available?itemId=${selectedMaterial.itemId}`);
+      const data = await res.json();
+      if (!data.success) return [];
+      return data.data;
+    },
+    enabled: !!selectedMaterial?.itemId,
+  });
+
   // Record weight mutation
   const recordWeightMutation = useMutation({
     mutationFn: async ({ materialId, data }: { materialId: number; data: typeof formData }) => {
@@ -121,12 +147,12 @@ export default function MaterialWeighingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
-      toast.success('Weight Recorded', 'Material weight has been recorded.');
+      toast.success(tw('toast.weightRecorded'), tw('toast.weightRecorded'));
       setShowWeighDialog(false);
       setSelectedMaterial(null);
       setFormData({
         weighedQty: 0,
-        lotNumber: '',
+        lotId: undefined,
         notes: '',
         waterDate: '',
         waterConductivity: 0,
@@ -152,7 +178,7 @@ export default function MaterialWeighingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-materials', workOrderId] });
-      toast.success('Weight Verified', 'Material weight has been verified.');
+      toast.success(tw('toast.weightVerified'), tw('toast.weightVerified'));
     },
     onError: (error: Error) => {
       toast.error('Error', error.message);
@@ -163,7 +189,7 @@ export default function MaterialWeighingPage() {
     setSelectedMaterial(material);
     setFormData({
       weighedQty: material.plannedQty,
-      lotNumber: material.lotNumber || '',
+      lotId: material.lotId || undefined,
       notes: '',
       waterDate: material.waterDate || new Date().toISOString().split('T')[0],
       waterConductivity: material.waterConductivity || 0,
@@ -182,12 +208,29 @@ export default function MaterialWeighingPage() {
 
   const getStatusInfo = (material: MaterialLine) => {
     if (material.verifiedAt) {
-      return { status: 'verified', label: 'Verified', color: 'bg-blue-100 text-blue-700' };
+      return { status: 'verified', label: tw('progress.verified'), color: 'bg-blue-100 text-blue-700' };
     }
     if (material.weighedAt) {
-      return { status: 'weighed', label: 'Weighed', color: 'bg-green-100 text-green-700' };
+      return { status: 'weighed', label: tw('progress.weighed'), color: 'bg-green-100 text-green-700' };
     }
     return { status: 'pending', label: 'Pending', color: 'bg-gray-100 text-gray-600' };
+  };
+
+  const getDisplayName = (material: MaterialLine) => {
+    if (material.itemNameTh && material.itemNameEn) {
+      return `${material.itemNameTh} / ${material.itemNameEn}`;
+    }
+    return material.itemNameTh || material.itemNameEn || material.itemName;
+  };
+
+  const formatLotDisplay = (item: AvailableLot) => {
+    if (!item) return '';
+    const expiry = item.expiryDate
+      ? `${tw('form.lot.expiry')}: ${item.expiryDate}`
+      : `${tw('form.lot.expiry')}: ${tw('form.lot.noExpiry')}`;
+    const vendor = item.vendorLotNumber || item.manufacturerName;
+    const vendorPart = vendor ? ` [${vendor}]` : '';
+    return `${item.lotNumber} (${item.availableQty?.toFixed(2)} ${item.unit}) - ${expiry}${vendorPart}`;
   };
 
   const calculateProgress = () => {
@@ -227,7 +270,7 @@ export default function MaterialWeighingPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="Material Weighing"
+        title={tw('title')}
         subtitle={`${workOrder.woNumber} | Batch: ${workOrder.batchNumber}`}
         icon={Scale}
         iconBgColor="bg-amber-100"
@@ -237,11 +280,11 @@ export default function MaterialWeighingPage() {
           { label: 'Work Orders', href: '/production/work-orders' },
           { label: workOrder.woNumber, href: `/production/work-orders/${workOrderId}` },
           { label: 'Execution', href: `/production/work-orders/${workOrderId}/execution` },
-          { label: 'Material Weighing' },
+          { label: tw('title') },
         ]}
         actions={
           <DxButton
-            text="Back to Execution"
+            text={tw('actions.backToExecution')}
             icon="back"
             stylingMode="outlined"
             onClick={() => router.push(`/production/work-orders/${workOrderId}/execution`)}
@@ -256,11 +299,11 @@ export default function MaterialWeighingPage() {
             <div className="flex items-center gap-6">
               <div className="text-amber-800">
                 <span className="text-2xl font-bold">{progress.weighed}</span>
-                <span className="text-sm">/{progress.total} Weighed</span>
+                <span className="text-sm">/{progress.total} {tw('progress.weighed')}</span>
               </div>
               <div className="text-blue-800">
                 <span className="text-2xl font-bold">{progress.verified}</span>
-                <span className="text-sm">/{progress.total} Verified</span>
+                <span className="text-sm">/{progress.total} {tw('progress.verified')}</span>
               </div>
             </div>
             <div className="flex-1 max-w-xs mx-4">
@@ -274,7 +317,7 @@ export default function MaterialWeighingPage() {
             {progress.verified === progress.total && progress.total > 0 && (
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium">
                 <CheckCircle2 className="h-4 w-4" />
-                All Verified
+                {tw('progress.allVerified')}
               </span>
             )}
           </div>
@@ -291,8 +334,8 @@ export default function MaterialWeighingPage() {
           ) : !materials || materials.length === 0 ? (
             <div className="text-center py-12">
               <AlertCircle className="h-12 w-12 text-amber-400 mx-auto mb-4" />
-              <p className="text-gray-500">No materials found for this work order.</p>
-              <p className="text-sm text-gray-400 mt-2">Materials are loaded from the BOM formula.</p>
+              <p className="text-gray-500">{tw('noMaterials')}</p>
+              <p className="text-sm text-gray-400 mt-2">{tw('noMaterialsHint')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -325,24 +368,24 @@ export default function MaterialWeighingPage() {
                             <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">Water</span>
                           )}
                         </div>
-                        <p className="font-medium text-gray-900">{material.itemName}</p>
+                        <p className="font-medium text-gray-900">{getDisplayName(material)}</p>
                         <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
                           <span>
-                            Planned: <strong>{material.plannedQty} {material.unit}</strong>
+                            {tw('material.planned')}: <strong>{material.plannedQty} {material.unit}</strong>
                           </span>
                           {material.weighedQty && (
                             <>
                               <span>
-                                Actual: <strong>{material.weighedQty} {material.unit}</strong>
+                                {tw('material.actual')}: <strong>{material.weighedQty} {material.unit}</strong>
                               </span>
                               <span className={variance && parseFloat(variance) !== 0 ? 'text-amber-600' : 'text-green-600'}>
-                                Variance: {variance}%
+                                {tw('material.variance')}: {variance}%
                               </span>
                             </>
                           )}
                         </div>
                         {material.lotNumber && (
-                          <p className="text-xs text-gray-500 mt-1">Lot: {material.lotNumber}</p>
+                          <p className="text-xs text-gray-500 mt-1">{tw('material.lot')}: {material.lotNumber}</p>
                         )}
                         {material.weighedByName && (
                           <div className="mt-1 text-xs text-gray-500 flex items-center gap-3">
@@ -372,13 +415,13 @@ export default function MaterialWeighingPage() {
                     <div className="flex gap-2">
                       {!material.weighedAt ? (
                         <DxButton
-                          text="Weigh"
+                          text={tw('actions.weigh')}
                           type="success"
                           onClick={() => handleOpenWeighDialog(material)}
                         />
                       ) : !material.verifiedAt ? (
                         <DxButton
-                          text="Verify"
+                          text={tw('actions.verify')}
                           type="default"
                           onClick={() => verifyWeightMutation.mutate(material.id)}
                           disabled={verifyWeightMutation.isPending}
@@ -400,7 +443,7 @@ export default function MaterialWeighingPage() {
           setShowWeighDialog(false);
           setSelectedMaterial(null);
         }}
-        title={`Weigh: ${selectedMaterial?.itemName || ''}`}
+        title={`${tw('actions.weigh')}: ${selectedMaterial ? getDisplayName(selectedMaterial) : ''}`}
         width={500}
         height="auto"
         showCloseButton
@@ -411,10 +454,10 @@ export default function MaterialWeighingPage() {
             <div className="flex justify-between items-center">
               <div>
                 <p className="font-mono text-sm text-amber-700">{selectedMaterial?.itemCode}</p>
-                <p className="font-medium text-amber-900">{selectedMaterial?.itemName}</p>
+                <p className="font-medium text-amber-900">{selectedMaterial ? getDisplayName(selectedMaterial) : ''}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-amber-700">Planned Quantity</p>
+                <p className="text-sm text-amber-700">{tw('material.planned')}</p>
                 <p className="text-xl font-bold text-amber-900">
                   {selectedMaterial?.plannedQty} {selectedMaterial?.unit}
                 </p>
@@ -424,7 +467,7 @@ export default function MaterialWeighingPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Actual Weight *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{tw('form.actualWeight')} *</label>
               <DxNumberBox
                 value={formData.weighedQty}
                 onValueChanged={(e) => setFormData({ ...formData, weighedQty: e.value })}
@@ -434,11 +477,21 @@ export default function MaterialWeighingPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lot Number</label>
-              <DxTextBox
-                value={formData.lotNumber}
-                onValueChanged={(e) => setFormData({ ...formData, lotNumber: e.value })}
-                placeholder="Enter lot number"
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {tw('form.lot.label')}
+              </label>
+              <DxSelectBox
+                value={formData.lotId}
+                onValueChange={(value) => setFormData({ ...formData, lotId: value || undefined })}
+                dataSource={availableLots || []}
+                valueExpr="id"
+                displayExpr={(item: Record<string, unknown>) => formatLotDisplay(item as unknown as AvailableLot)}
+                placeholder={lotsLoading ? 'Loading lots...' : tw('form.lot.placeholder')}
+                disabled={lotsLoading}
+                searchEnabled
+                searchExpr="lotNumber"
+                showClearButton
+                noDataText={tw('form.lot.noData')}
               />
             </div>
           </div>
@@ -451,12 +504,12 @@ export default function MaterialWeighingPage() {
                 : 'bg-green-50 border border-green-200'
             }`}>
               <p className="text-sm">
-                Variance:{' '}
+                {tw('material.variance')}:{' '}
                 <strong>
                   {((formData.weighedQty - selectedMaterial.plannedQty) / selectedMaterial.plannedQty * 100).toFixed(2)}%
                 </strong>
                 {Math.abs((formData.weighedQty - selectedMaterial.plannedQty) / selectedMaterial.plannedQty * 100) > 5 && (
-                  <span className="text-amber-600 ml-2">(High variance - please verify)</span>
+                  <span className="text-amber-600 ml-2">({tw('form.varianceWarning')})</span>
                 )}
               </p>
             </div>
@@ -500,7 +553,7 @@ export default function MaterialWeighingPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{tw('form.notes')}</label>
             <DxTextArea
               value={formData.notes}
               onValueChanged={(e) => setFormData({ ...formData, notes: e.value })}
@@ -510,9 +563,9 @@ export default function MaterialWeighingPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowWeighDialog(false)} />
+            <DxButton text={tw('form.cancel')} stylingMode="outlined" onClick={() => setShowWeighDialog(false)} />
             <DxButton
-              text="Record Weight"
+              text={tw('form.recordWeight')}
               type="success"
               onClick={handleSubmitWeight}
               disabled={recordWeightMutation.isPending || formData.weighedQty <= 0}
