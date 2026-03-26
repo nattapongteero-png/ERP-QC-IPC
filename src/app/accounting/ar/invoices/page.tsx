@@ -119,10 +119,10 @@ async function fetchARInvoices(filters?: { status?: string }): Promise<ARInvoice
 }
 
 async function fetchCustomers(): Promise<Customer[]> {
-  const res = await fetch('/api/customers?isActive=true');
+  const res = await fetch('/api/customers?isActive=true&limit=500');
   if (!res.ok) throw new Error('Failed to fetch customers');
   const json = await res.json();
-  return json.data;
+  return json.data?.items || json.data || [];
 }
 
 async function fetchGLAccounts(): Promise<GLAccount[]> {
