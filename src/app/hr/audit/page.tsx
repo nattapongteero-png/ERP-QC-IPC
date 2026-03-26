@@ -508,7 +508,13 @@ export default function AuditLogPage() {
                   ค่าเดิม
                 </label>
                 <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-                  {JSON.stringify(JSON.parse(selectedLog.oldValue), null, 2)}
+                  {(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(selectedLog.oldValue), null, 2);
+                    } catch {
+                      return selectedLog.oldValue;
+                    }
+                  })()}
                 </pre>
               </div>
             )}
@@ -519,8 +525,20 @@ export default function AuditLogPage() {
                   ค่าใหม่
                 </label>
                 <pre className="bg-green-50 p-3 rounded text-sm overflow-x-auto">
-                  {JSON.stringify(JSON.parse(selectedLog.newValue), null, 2)}
+                  {(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(selectedLog.newValue), null, 2);
+                    } catch {
+                      return selectedLog.newValue;
+                    }
+                  })()}
                 </pre>
+              </div>
+            )}
+
+            {!selectedLog.oldValue && !selectedLog.newValue && (
+              <div className="text-center py-4 text-gray-400">
+                ไม่มีรายละเอียดการเปลี่ยนแปลง
               </div>
             )}
           </div>
