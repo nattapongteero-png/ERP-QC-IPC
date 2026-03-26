@@ -459,7 +459,7 @@ export default function AuditLogPage() {
         </Card>
       )}
 
-      {/* Detail Popup */}
+      {/* Detail Popup — must use contentRender for DevExtreme to render inside popup */}
       <Popup
         visible={showDetailPopup}
         onHiding={() => {
@@ -470,80 +470,79 @@ export default function AuditLogPage() {
         width={600}
         height="auto"
         showCloseButton
-      >
-        {selectedLog && (
-          <div className="space-y-4 p-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500">
-                  วันที่/เวลา
-                </label>
-                <div>{formatDate(selectedLog.createdAt)}</div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">
-                  ผู้ดำเนินการ
-                </label>
-                <div>{selectedLog.userName || '-'}</div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">
-                  กิจกรรม
-                </label>
-                <div>{selectedLog.actionLabel}</div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">
-                  ตาราง / รหัส
-                </label>
+        contentRender={() => {
+          if (!selectedLog) return null;
+
+          const formatJson = (value: string) => {
+            try {
+              return JSON.stringify(JSON.parse(value), null, 2);
+            } catch {
+              return value;
+            }
+          };
+
+          return (
+            <div className="space-y-4 p-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  {selectedLog.tableName} / {selectedLog.recordId}
+                  <label className="block text-sm font-medium text-gray-500">
+                    วันที่/เวลา
+                  </label>
+                  <div>{formatDate(selectedLog.createdAt)}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">
+                    ผู้ดำเนินการ
+                  </label>
+                  <div>{selectedLog.userName || '-'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">
+                    กิจกรรม
+                  </label>
+                  <div>{selectedLog.actionLabel}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">
+                    ตาราง / รหัส
+                  </label>
+                  <div>
+                    {selectedLog.tableName} / {selectedLog.recordId}
+                  </div>
                 </div>
               </div>
+
+              {selectedLog.oldValue && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                    ค่าเดิม
+                  </label>
+                  <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
+                    {formatJson(selectedLog.oldValue)}
+                  </pre>
+                </div>
+              )}
+
+              {selectedLog.newValue && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                    ค่าใหม่
+                  </label>
+                  <pre className="bg-green-50 p-3 rounded text-sm overflow-x-auto">
+                    {formatJson(selectedLog.newValue)}
+                  </pre>
+                </div>
+              )}
+
+              {!selectedLog.oldValue && !selectedLog.newValue && (
+                <div className="text-center py-4 text-gray-400">
+                  ไม่มีรายละเอียดการเปลี่ยนแปลง
+                </div>
+              )}
             </div>
-
-            {selectedLog.oldValue && (
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  ค่าเดิม
-                </label>
-                <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-                  {(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(selectedLog.oldValue), null, 2);
-                    } catch {
-                      return selectedLog.oldValue;
-                    }
-                  })()}
-                </pre>
-              </div>
-            )}
-
-            {selectedLog.newValue && (
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  ค่าใหม่
-                </label>
-                <pre className="bg-green-50 p-3 rounded text-sm overflow-x-auto">
-                  {(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(selectedLog.newValue), null, 2);
-                    } catch {
-                      return selectedLog.newValue;
-                    }
-                  })()}
-                </pre>
-              </div>
-            )}
-
-            {!selectedLog.oldValue && !selectedLog.newValue && (
-              <div className="text-center py-4 text-gray-400">
-                ไม่มีรายละเอียดการเปลี่ยนแปลง
-              </div>
-            )}
-          </div>
-        )}
-      </Popup>
+          );
+        }}
+      />
     </div>
   );
 }
