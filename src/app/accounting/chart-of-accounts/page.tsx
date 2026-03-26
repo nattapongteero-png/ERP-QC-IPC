@@ -236,7 +236,7 @@ export default function ChartOfAccountsPage() {
 
   // Handle save
   const handleSave = useCallback(async () => {
-    const formInstance = formRef.current?.instance;
+    const formInstance = formRef.current?.instance();
     if (!formInstance) return;
 
     const validationResult = formInstance.validate();
