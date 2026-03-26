@@ -435,6 +435,8 @@ export const arInvoiceCreateSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   currency: z.string().max(3).default('THB'),
   exchangeRate: z.number().positive().default(1),
+  vatRate: z.number().min(0).max(100).default(7),
+  vatAmountOverride: z.number().min(0).optional().nullable(),
   lines: z.array(arInvoiceLineCreateSchema).min(1, 'ต้องมีรายการอย่างน้อย 1 รายการ'),
 });
 

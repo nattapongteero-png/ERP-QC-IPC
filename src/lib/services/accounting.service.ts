@@ -2615,6 +2615,8 @@ export interface CreateARInvoiceInput {
   description?: string | null;
   currency?: string;
   exchangeRate?: number;
+  vatRate?: number;
+  vatAmountOverride?: number | null;
   lines: {
     description: string;
     itemId?: number | null;
@@ -2704,20 +2706,24 @@ export async function createARInvoice(
   const { arInvoices, arInvoiceLines } = getAccountingTables();
   const database = (await getDb()) as any;
 
-  // Calculate line amounts and totals
+  // Calculate line amounts and totals using custom VAT rate
+  const effectiveVatRate = (input.vatRate ?? 7) / 100;
+
   const processedLines = input.lines.map((line, index) => {
     const amount = line.quantity * line.unitPrice;
-    const vatCalc = calculateVAT(amount);
+    const lineVat = Math.round(amount * effectiveVatRate * 100) / 100;
     return {
       ...line,
       lineNumber: index + 1,
       amount,
-      vatAmount: vatCalc.vatAmount,
+      vatAmount: lineVat,
     };
   });
 
   const subtotal = processedLines.reduce((sum, line) => sum + line.amount, 0);
-  const vatAmount = processedLines.reduce((sum, line) => sum + line.vatAmount, 0);
+  const vatAmount = input.vatAmountOverride != null
+    ? input.vatAmountOverride
+    : processedLines.reduce((sum, line) => sum + line.vatAmount, 0);
   const totalAmount = subtotal + vatAmount;
 
   // Insert invoice

@@ -91,6 +91,8 @@ interface FormData {
   invoiceDate: string;
   dueDate: string;
   description: string;
+  vatRate: number;
+  vatAmountOverride: number | null;
   lines: {
     description: string;
     glAccountId: number | null;
@@ -146,6 +148,8 @@ async function createARInvoice(data: {
   invoiceDate: string;
   dueDate: string;
   description?: string | null;
+  vatRate?: number;
+  vatAmountOverride?: number | null;
   lines: { description: string; glAccountId: number; quantity: number; unitPrice: number }[];
 }): Promise<ARInvoice> {
   const res = await fetch('/api/accounting/ar-invoices', {
@@ -207,6 +211,8 @@ export default function ARInvoicesPage() {
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: '',
     description: '',
+    vatRate: 7,
+    vatAmountOverride: null,
     lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
   });
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
@@ -286,6 +292,8 @@ export default function ARInvoicesPage() {
       invoiceDate: new Date().toISOString().split('T')[0],
       dueDate: '',
       description: '',
+      vatRate: 7,
+      vatAmountOverride: null,
       lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
     });
   }, []);
@@ -320,6 +328,8 @@ export default function ARInvoicesPage() {
       invoiceDate: formData.invoiceDate,
       dueDate: formData.dueDate,
       description: formData.description || null,
+      vatRate: formData.vatRate,
+      vatAmountOverride: formData.vatAmountOverride,
       lines: validLines.map((l) => ({
         description: l.description,
         glAccountId: l.glAccountId!,
@@ -416,8 +426,9 @@ export default function ARInvoicesPage() {
   }, [formData.lines]);
 
   const vatAmount = useMemo(() => {
-    return Math.round(lineTotal * 0.07 * 100) / 100;
-  }, [lineTotal]);
+    if (formData.vatAmountOverride !== null) return formData.vatAmountOverride;
+    return Math.round(lineTotal * (formData.vatRate / 100) * 100) / 100;
+  }, [lineTotal, formData.vatRate, formData.vatAmountOverride]);
 
   // Status badge render using AccountingStatusBadge
   const statusCellRender = useCallback((cellData: { value: string }) => {
@@ -793,11 +804,35 @@ export default function ARInvoicesPage() {
                   <td className="border"></td>
                 </tr>
                 <tr className="bg-gray-50">
-                  <td colSpan={4} className="border p-2 text-right">
-                    VAT 7%
+                  <td colSpan={3} className="border p-2 text-right">
+                    VAT
                   </td>
-                  <td className="border p-2 text-right">
-                    {vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  <td className="border p-1 text-center">
+                    <select
+                      className="w-full border rounded px-2 py-1 text-sm text-center bg-white"
+                      value={formData.vatRate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vatRate: Number(e.target.value), vatAmountOverride: null }))}
+                      data-testid="vat-rate-select"
+                    >
+                      <option value={0}>0%</option>
+                      <option value={7}>7%</option>
+                    </select>
+                  </td>
+                  <td className="border p-1 text-right">
+                    <input
+                      type="number"
+                      className="w-full border rounded px-2 py-1 text-sm text-right bg-white"
+                      value={formData.vatAmountOverride !== null ? formData.vatAmountOverride : vatAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vatAmountOverride: Number(e.target.value) || 0 }))}
+                      onBlur={() => {
+                        if (formData.vatAmountOverride !== null && formData.vatAmountOverride === vatAmount) {
+                          setFormData(prev => ({ ...prev, vatAmountOverride: null }));
+                        }
+                      }}
+                      step="0.01"
+                      min="0"
+                      data-testid="vat-amount-input"
+                    />
                   </td>
                   <td className="border"></td>
                 </tr>
