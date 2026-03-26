@@ -680,7 +680,7 @@ export default function WorkOrderDetailPage() {
                   <div className="col-span-2 border-t pt-3 mt-1">
                     <dt className="text-sm text-gray-500">Delivery Date (วันที่ส่งมอบ)</dt>
                     <dd className="font-medium text-lg text-orange-700">
-                      {workOrder.deliveryDate ? new Date(workOrder.deliveryDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
+                      {workOrder.deliveryDate ? new Date(workOrder.deliveryDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-'}
                     </dd>
                   </div>
                 </dl>
