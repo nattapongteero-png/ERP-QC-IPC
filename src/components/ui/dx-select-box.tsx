@@ -148,6 +148,13 @@ export function DxSelectBox<T = string>({
     }
   }, []);
 
+  // Render dropdown popup at document.body to avoid positioning issues
+  // caused by CSS transform on ancestor elements (e.g., mobile sidebar translateX)
+  const mergedDropDownOptions = {
+    container: 'body' as const,
+    ...dropDownOptions,
+  };
+
   return (
     <SelectBox
       value={value}
@@ -169,7 +176,7 @@ export function DxSelectBox<T = string>({
       height={height}
       className={className}
       name={name}
-      dropDownOptions={dropDownOptions}
+      dropDownOptions={mergedDropDownOptions}
       noDataText={noDataText}
     >
       {required && (
