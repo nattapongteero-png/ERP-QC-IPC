@@ -42,11 +42,15 @@ export function toDbDate(value: Date | string): Date | string {
 }
 
 /**
- * Get today's date as YYYY-MM-DD string.
- * Useful for date-only fields or as input to toDbDate().
+ * Get today's date as YYYY-MM-DD string in local timezone.
+ * Uses local date components to avoid UTC timezone shift.
  */
 export function getTodayStr(): string {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -98,14 +102,15 @@ export function toDateSafe(value: Date | string | null | undefined): Date {
 export function formatDateFromDb(value: Date | string | null | undefined): string {
   // Handle null/undefined
   if (!value) {
-    return new Date().toISOString().split('T')[0];
+    return getTodayStr();
   }
 
-  // Handle Date objects
+  // Handle Date objects — use local components to avoid UTC timezone shift
   if (value instanceof Date) {
     const time = value.getTime();
     if (!isNaN(time)) {
-      return new Date(time).toISOString().split('T')[0];
+      const d = new Date(time);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
     // Invalid date, fall through to string handling
   }
@@ -118,13 +123,13 @@ export function formatDateFromDb(value: Date | string | null | undefined): strin
     return strValue;
   }
 
-  // Parse and format ISO string or other formats
+  // Parse and format ISO string or other formats — use local components
   const parsed = new Date(strValue);
   if (isNaN(parsed.getTime())) {
     // Invalid date, return today
-    return new Date().toISOString().split('T')[0];
+    return getTodayStr();
   }
-  return parsed.toISOString().split('T')[0];
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
 }
 
 /**

@@ -23,6 +23,12 @@ import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 import { cn } from '@/lib/utils/cn';
 
+/** Get today's date as YYYY-MM-DD using local timezone (avoids UTC shift from toISOString) */
+function getLocalDateStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 interface Lot {
   id: number;
   lotNumber: string;
@@ -197,7 +203,7 @@ export default function LotsPage() {
     unit: 'kg',
     manufacturingDate: '',
     expiryDate: '',
-    receivedDate: new Date().toISOString().split('T')[0],
+    receivedDate: getLocalDateStr(),
     vendorLotNumber: '',
     vendorId: null,
     cost: 0,
@@ -410,7 +416,7 @@ export default function LotsPage() {
       unit: 'kg',
       manufacturingDate: '',
       expiryDate: '',
-      receivedDate: new Date().toISOString().split('T')[0],
+      receivedDate: getLocalDateStr(),
       vendorLotNumber: '',
       vendorId: null,
       cost: 0,
