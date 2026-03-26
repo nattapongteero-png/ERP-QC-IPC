@@ -579,6 +579,7 @@ export async function calculateYield(workOrderId: number): Promise<YieldCalculat
     .select({
       plannedQuantity: workOrders.plannedQuantity,
       actualQuantity: workOrders.actualQuantity,
+      rejectQuantity: workOrders.rejectQuantity,
       yieldTarget: bom.yieldTarget,
     })
     .from(workOrders)
@@ -693,7 +694,13 @@ export async function recordProductionOutput(
 
   // Calculate and check yield
   const yieldResult = await calculateYield(workOrderId);
-  
+
+  // Save yield percentage to work order
+  await database
+    .update(workOrders)
+    .set({ yieldPercentage: yieldResult.yieldPercent })
+    .where(eq(workOrders.id, workOrderId));
+
   if (yieldResult.status === 'low_yield') {
     // Create deviation for low yield
     await createAuditLog({

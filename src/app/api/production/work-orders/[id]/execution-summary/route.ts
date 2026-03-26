@@ -14,6 +14,8 @@ import {
   getWOPackagingIntegrityLogs,
   getWOFinishedInspection,
 } from '@/lib/services/wo-execution.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { eq } from 'drizzle-orm';
 
 // GET /api/production/work-orders/[id]/execution-summary
 export async function GET(
@@ -137,12 +139,33 @@ export async function GET(
           : 'pending',
       };
 
+      // Fetch production output status from work order
+      const woData = await executeDbOperation(async (db) => {
+        const workOrders = getTableRef('workOrders');
+        const rows = await db
+          .select({
+            actualQuantity: workOrders.actualQuantity,
+            yieldPercentage: workOrders.yieldPercentage,
+          })
+          .from(workOrders)
+          .where(eq(workOrders.id, workOrderId))
+          .limit(1);
+        return rows[0] || null;
+      });
+
+      const productionOutput = {
+        recorded: woData?.actualQuantity !== null && woData?.actualQuantity !== undefined,
+        actualQuantity: woData?.actualQuantity ? Number(woData.actualQuantity) : null,
+        yieldPercent: woData?.yieldPercentage ? Number(woData.yieldPercentage) : null,
+      };
+
       const summary = {
         materialWeighing,
         preProductionCleaning: preProductionCleaningStatus,
         productionCleaning: productionCleaningStatus,
         sopExecution,
         productionEnvironmental,
+        productionOutput,
         postProductionCleaning: postProductionCleaningStatus,
         prePackagingCleaning: prePackagingCleaningStatus,
         packagingWeight,

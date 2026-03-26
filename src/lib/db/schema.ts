@@ -332,6 +332,7 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   batchNumber: text('batch_number').notNull(),
   plannedQuantity: real('planned_quantity').notNull(),
   actualQuantity: real('actual_quantity'),
+  rejectQuantity: real('reject_quantity'),
   unit: text('unit').notNull(),
   status: text('status').notNull().default('planned'), // planned, released, in_progress, completed, cancelled
   priority: integer('priority').notNull().default(5),
@@ -1652,6 +1653,7 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   batchNumber: varchar('batch_number', { length: 100 }).notNull(),
   plannedQuantity: decimal('planned_quantity', { precision: 15, scale: 4 }).notNull(),
   actualQuantity: decimal('actual_quantity', { precision: 15, scale: 4 }),
+  rejectQuantity: decimal('reject_quantity', { precision: 15, scale: 4 }),
   unit: varchar('unit', { length: 50 }).notNull(),
   status: varchar('status', { length: 50 }).notNull().default('planned'),
   priority: int('priority').notNull().default(5),

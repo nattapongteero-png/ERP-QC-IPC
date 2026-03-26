@@ -60,6 +60,11 @@ interface ExecutionSummary {
     recorded: number;
     normal: number;
   };
+  productionOutput: {
+    recorded: boolean;
+    actualQuantity: number | null;
+    yieldPercent: number | null;
+  };
   postProductionCleaning: {
     total: number;
     completed: number;
@@ -150,6 +155,7 @@ export default function WorkOrderExecutionPage() {
           preProductionCleaning: { total: 0, completed: 0, verified: 0 },
           sopExecution: { total: 0, completed: 0, verified: 0 },
           productionEnvironmental: { total: 0, recorded: 0, normal: 0 },
+          productionOutput: { recorded: false, actualQuantity: null, yieldPercent: null },
           postProductionCleaning: { total: 0, completed: 0, verified: 0 },
           prePackagingCleaning: { total: 0, completed: 0, verified: 0 },
           packagingWeight: { total: 0, passed: 0 },
@@ -235,6 +241,19 @@ export default function WorkOrderExecutionPage() {
           : s.productionEnvironmental.recorded > 0
           ? 'in_progress'
           : 'pending',
+      }),
+    },
+    {
+      id: 'production-output',
+      title: 'Production Output / Yield',
+      icon: <Package className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/production-output`,
+      phase: 'post_production',
+      description: 'Record actual production quantity and calculate yield',
+      getStatus: (s) => ({
+        completed: s.productionOutput.recorded ? 1 : 0,
+        total: 1,
+        status: s.productionOutput.recorded ? 'completed' : 'pending',
       }),
     },
     {
@@ -415,6 +434,7 @@ export default function WorkOrderExecutionPage() {
     preProductionCleaning: { total: 0, completed: 0, verified: 0 },
     sopExecution: { total: 0, completed: 0, verified: 0 },
     productionEnvironmental: { total: 0, recorded: 0, normal: 0 },
+    productionOutput: { recorded: false, actualQuantity: null, yieldPercent: null },
     postProductionCleaning: { total: 0, completed: 0, verified: 0 },
     prePackagingCleaning: { total: 0, completed: 0, verified: 0 },
     packagingWeight: { total: 0, passed: 0 },

@@ -340,6 +340,57 @@
       },
       "noMaterials": "ไม่พบวัตถุดิบสำหรับใบสั่งผลิตนี้",
       "noMaterialsHint": "วัตถุดิบจะถูกโหลดจากสูตรการผลิต (BOM)"
+    },
+    "productionOutputPage": {
+      "title": "บันทึกผลผลิต",
+      "subtitle": "Batch: {batch} | {product}",
+      "status": {
+        "notRecorded": "ยังไม่ได้บันทึก",
+        "recorded": "บันทึกแล้ว",
+        "woNotInProgress": "ใบสั่งผลิตยังไม่ได้เริ่มดำเนินการ"
+      },
+      "info": {
+        "plannedQty": "จำนวนตามแผน",
+        "unit": "หน่วย",
+        "batchNumber": "หมายเลข Batch",
+        "product": "สินค้า"
+      },
+      "form": {
+        "actualQuantity": "จำนวนผลิตจริง (Good)",
+        "rejectQuantity": "จำนวนเสียหาย (Reject)",
+        "warehouse": "คลังสินค้าปลายทาง",
+        "warehousePlaceholder": "เลือกคลังสินค้า",
+        "notes": "หมายเหตุ",
+        "submit": "บันทึกผลผลิต",
+        "cancel": "ยกเลิก",
+        "edit": "แก้ไข"
+      },
+      "yield": {
+        "title": "ผลการคำนวณ Yield",
+        "yieldPercent": "Yield %",
+        "rejectPercent": "Reject %",
+        "lossPercent": "Loss %",
+        "theoretical": "จำนวนตามทฤษฎี",
+        "actualGood": "จำนวนดี",
+        "actualReject": "จำนวนเสียหาย",
+        "statusNormal": "ปกติ",
+        "statusLowYield": "Yield ต่ำกว่าเป้า",
+        "statusHighYield": "Yield สูงผิดปกติ"
+      },
+      "output": {
+        "title": "ข้อมูลผลผลิตที่บันทึก",
+        "lotCreated": "สร้าง Lot สำเร็จรูปแล้ว",
+        "lotId": "Lot ID"
+      },
+      "toast": {
+        "success": "บันทึกผลผลิตสำเร็จ",
+        "successDetail": "สร้าง Lot สินค้าสำเร็จรูปในคลังแล้ว",
+        "error": "ไม่สามารถบันทึกผลผลิตได้",
+        "lowYieldWarning": "Yield ต่ำกว่าเป้า อาจต้องบันทึก Deviation"
+      },
+      "actions": {
+        "backToExecution": "กลับไปหน้าดำเนินการ"
+      }
     }
   },
   "newWorkOrder": {

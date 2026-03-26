@@ -340,6 +340,57 @@
       },
       "noMaterials": "No materials found for this work order.",
       "noMaterialsHint": "Materials are loaded from the BOM formula."
+    },
+    "productionOutputPage": {
+      "title": "Production Output",
+      "subtitle": "Batch: {batch} | {product}",
+      "status": {
+        "notRecorded": "Not Recorded",
+        "recorded": "Recorded",
+        "woNotInProgress": "Work Order is not In Progress"
+      },
+      "info": {
+        "plannedQty": "Planned Quantity",
+        "unit": "Unit",
+        "batchNumber": "Batch Number",
+        "product": "Product"
+      },
+      "form": {
+        "actualQuantity": "Actual Quantity (Good)",
+        "rejectQuantity": "Reject Quantity",
+        "warehouse": "Destination Warehouse",
+        "warehousePlaceholder": "Select warehouse",
+        "notes": "Notes",
+        "submit": "Record Output",
+        "cancel": "Cancel",
+        "edit": "Edit"
+      },
+      "yield": {
+        "title": "Yield Calculation",
+        "yieldPercent": "Yield %",
+        "rejectPercent": "Reject %",
+        "lossPercent": "Loss %",
+        "theoretical": "Theoretical",
+        "actualGood": "Good Quantity",
+        "actualReject": "Reject Quantity",
+        "statusNormal": "Normal",
+        "statusLowYield": "Below Target",
+        "statusHighYield": "Abnormally High"
+      },
+      "output": {
+        "title": "Recorded Output",
+        "lotCreated": "Finished goods lot created",
+        "lotId": "Lot ID"
+      },
+      "toast": {
+        "success": "Production output recorded",
+        "successDetail": "Finished goods lot created in inventory",
+        "error": "Failed to record production output",
+        "lowYieldWarning": "Yield below target - deviation may be required"
+      },
+      "actions": {
+        "backToExecution": "Back to Execution"
+      }
     }
   },
   "newWorkOrder": {

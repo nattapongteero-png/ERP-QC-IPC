@@ -31,6 +31,7 @@ export async function GET(
             batchNumber: workOrders.batchNumber,
             plannedQuantity: workOrders.plannedQuantity,
             actualQuantity: workOrders.actualQuantity,
+            rejectQuantity: workOrders.rejectQuantity,
             unit: workOrders.unit,
             status: workOrders.status,
             priority: workOrders.priority,
