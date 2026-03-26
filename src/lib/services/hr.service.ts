@@ -1,7 +1,7 @@
 // HR/Personnel Management Service
 // Feature: 007-hr-personnel-management
 
-import { eq, and, like, or, sql, isNull, desc, SQL } from 'drizzle-orm';
+import { eq, and, like, or, sql, isNull, desc, inArray, SQL } from 'drizzle-orm';
 import { encrypt, decrypt, hashForLookup } from '@/lib/utils/encryption';
 import { validateThaiCid, cleanThaiCid } from '@/lib/utils/thai-cid';
 import { getDb, isSqlite } from '../db';
@@ -3880,7 +3880,7 @@ export async function getRolePermissions(roleId: number): Promise<AppPermission[
   const permissions = await db
     .select()
     .from(tables.appPermissions)
-    .where(sql`${tables.appPermissions.id} IN (${permIds.join(',')})`);
+    .where(inArray(tables.appPermissions.id, permIds));
 
   return permissions as AppPermission[];
 }
