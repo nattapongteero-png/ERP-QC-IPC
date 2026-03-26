@@ -916,59 +916,57 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
 
   // If material was weighed but not issued, attempt to issue from inventory now
   if (existing.status !== 'issued') {
-    let lotId = existing.lotId;
+    // Get all available lots via FEFO (multi-lot allocation)
+    const { allocated } = await getLotsForPicking(existing.itemId, existing.weighedQty);
 
-    // Try to find available lot via FEFO
-    if (!lotId) {
-      const { allocated } = await getLotsForPicking(existing.itemId, existing.weighedQty);
-      if (allocated.length > 0) {
-        lotId = allocated[0].lotId;
-        await executeDbOperation(async (db: any) => {
-          await db.update(tables.workOrderMaterials)
-            .set({ lotId })
-            .where(eq(tables.workOrderMaterials.id, materialId));
-        });
-      }
-    }
-
-    if (!lotId) {
+    if (allocated.length === 0) {
       throw new Error('Cannot verify — no available inventory for this item (stock balance is 0)');
     }
 
-    // Issue material from inventory
-    try {
-      const [workOrder] = await executeDbOperation(async (db: any) => {
-        return db.select({ woNumber: tables.workOrders.woNumber, batchNumber: tables.workOrders.batchNumber })
-          .from(tables.workOrders)
-          .where(eq(tables.workOrders.id, existing.workOrderId));
-      });
+    // Get work order info for reference
+    const [workOrder] = await executeDbOperation(async (db: any) => {
+      return db.select({ woNumber: tables.workOrders.woNumber, batchNumber: tables.workOrders.batchNumber })
+        .from(tables.workOrders)
+        .where(eq(tables.workOrders.id, existing.workOrderId));
+    });
 
-      const woNumber = workOrder?.woNumber || `WO-${existing.workOrderId}`;
-      const batchNumber = workOrder?.batchNumber || '';
+    const woNumber = workOrder?.woNumber || `WO-${existing.workOrderId}`;
+    const batchNumber = workOrder?.batchNumber || '';
 
-      await issueMaterial(
-        lotId,
-        existing.weighedQty,
-        'WO',
-        existing.workOrderId,
-        woNumber,
-        verifierId,
-        `Material weighing for ${woNumber} (issued at verify)`,
-        { workOrderId: existing.workOrderId, batchNumber }
-      );
-
-      // Update material status to issued
-      await executeDbOperation(async (db: any) => {
-        await db.update(tables.workOrderMaterials).set({
-          status: 'issued',
-          actualQuantity: existing.weighedQty,
-          issuedBy: verifierId,
-          issuedAt: getNow(),
-        }).where(eq(tables.workOrderMaterials.id, materialId));
-      });
-    } catch (error: any) {
-      throw new Error(`Cannot verify — inventory issue failed: ${error.message}`);
+    // Issue from each allocated lot
+    let totalIssued = 0;
+    for (const alloc of allocated) {
+      try {
+        await issueMaterial(
+          alloc.lotId,
+          alloc.quantity,
+          'WO',
+          existing.workOrderId,
+          woNumber,
+          verifierId,
+          `Material weighing for ${woNumber} (issued at verify)`,
+          { workOrderId: existing.workOrderId, batchNumber }
+        );
+        totalIssued += alloc.quantity;
+      } catch (error: any) {
+        console.error(`Failed to issue from lot ${alloc.lotId}:`, error.message);
+      }
     }
+
+    if (totalIssued === 0) {
+      throw new Error('Cannot verify — inventory issue failed for all lots');
+    }
+
+    // Assign primary lot (first allocated) to material record
+    await executeDbOperation(async (db: any) => {
+      await db.update(tables.workOrderMaterials).set({
+        lotId: allocated[0].lotId,
+        status: 'issued',
+        actualQuantity: totalIssued,
+        issuedBy: verifierId,
+        issuedAt: getNow(),
+      }).where(eq(tables.workOrderMaterials.id, materialId));
+    });
   }
 
   // Now verify
