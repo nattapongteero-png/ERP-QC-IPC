@@ -84,7 +84,7 @@ async function verifyAction(capaId: number, actionId: number): Promise<CapaActio
   return result.data;
 }
 
-async function fetchUsers(): Promise<{ id: number; displayName: string }[]> {
+async function fetchUsers(): Promise<{ id: number; name: string }[]> {
   const response = await fetch('/api/users');
   const result = await response.json();
   if (!result.success) return [];
@@ -107,7 +107,7 @@ export function CapaActionList({
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [selectedAction, setSelectedAction] = useState<CapaAction | null>(null);
   const [completionNotes, setCompletionNotes] = useState('');
-  const [users, setUsers] = useState<{ id: number; displayName: string }[]>([]);
+  const [users, setUsers] = useState<{ id: number; name: string }[]>([]);
 
   const [newAction, setNewAction] = useState<NewActionForm>({
     description: '',
@@ -363,7 +363,7 @@ export function CapaActionList({
           <div className="space-y-2">
             <label className="text-sm font-medium">Assignee</label>
             <DxSelectBox
-              items={users.map((u) => ({ value: u.id, label: u.displayName }))}
+              items={users.map((u) => ({ value: u.id, label: u.name }))}
               value={newAction.assigneeId}
               valueExpr="value"
               displayExpr="label"
