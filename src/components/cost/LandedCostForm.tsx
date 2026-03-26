@@ -293,7 +293,9 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
       referenceId: formData.referenceId,
       vendorId: formData.vendorId,
       invoiceNumber: formData.invoiceNumber || null,
-      invoiceDate: formData.invoiceDate,
+      invoiceDate: formData.invoiceDate
+        ? (formData.invoiceDate.includes('T') ? formData.invoiceDate.split('T')[0] : formData.invoiceDate)
+        : null,
       currency: formData.currency,
       exchangeRate: formData.exchangeRate,
       lines: formData.lines.filter((l) => l.amount > 0),
@@ -488,7 +490,16 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             </label>
             <DxDateBox
               value={formData.invoiceDate || undefined}
-              onValueChanged={(e) => setFormData((prev) => ({ ...prev, invoiceDate: e.value }))}
+              onValueChanged={(e) => {
+                const val = e.value;
+                let formatted: string | null = null;
+                if (val instanceof Date) {
+                  formatted = val.toISOString().split('T')[0]; // YYYY-MM-DD
+                } else if (typeof val === 'string' && val) {
+                  formatted = val.includes('T') ? val.split('T')[0] : val;
+                }
+                setFormData((prev) => ({ ...prev, invoiceDate: formatted }));
+              }}
               disabled={!isEditable}
               data-testid="invoice-date-input"
             />
