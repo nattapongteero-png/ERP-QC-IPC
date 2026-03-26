@@ -692,7 +692,7 @@ export async function listWorkCenters(
       .select({
         id: tables.workCenters.id,
         code: tables.workCenters.code,
-        name: tables.workCenters.name,
+        wcName: tables.workCenters.name,
         nameTh: tables.workCenters.nameTh,
         orgUnitId: tables.workCenters.orgUnitId,
         orgUnitName: tables.hrOrgUnits.name,
@@ -714,6 +714,7 @@ export async function listWorkCenters(
     return {
       data: data.map((row: typeof data[0]) => ({
         ...row,
+        name: row.wcName, // Resolve alias collision with hrOrgUnits.name
         laborRatePerHour: Number(row.laborRatePerHour) || 0,
         overheadRatePerHour: Number(row.overheadRatePerHour) || 0,
         machineRatePerHour: Number(row.machineRatePerHour) || 0,
@@ -737,7 +738,7 @@ export async function getWorkCenter(id: number): Promise<WorkCenter | null> {
       .select({
         id: tables.workCenters.id,
         code: tables.workCenters.code,
-        name: tables.workCenters.name,
+        wcName: tables.workCenters.name,
         nameTh: tables.workCenters.nameTh,
         orgUnitId: tables.workCenters.orgUnitId,
         orgUnitName: tables.hrOrgUnits.name,
@@ -761,6 +762,7 @@ export async function getWorkCenter(id: number): Promise<WorkCenter | null> {
     const row = result[0];
     return {
       ...row,
+      name: row.wcName, // Resolve alias collision with hrOrgUnits.name
       laborRatePerHour: Number(row.laborRatePerHour) || 0,
       overheadRatePerHour: Number(row.overheadRatePerHour) || 0,
       machineRatePerHour: Number(row.machineRatePerHour) || 0,
