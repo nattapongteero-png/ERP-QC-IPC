@@ -23,6 +23,12 @@ import {
   mysqlUsers,
   mysqlHROrgUnits,
   mysqlHRTrainingCourses,
+  sqliteHRTrainingRecords,
+  mysqlHRTrainingRecords,
+  sqliteHRNotifications,
+  mysqlHRNotifications,
+  sqliteHREmployees,
+  mysqlHREmployees,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 
@@ -118,6 +124,9 @@ function getTables() {
       users: sqliteUsers,
       orgUnits: sqliteHROrgUnits,
       trainingCourses: sqliteHRTrainingCourses,
+      trainingRecords: sqliteHRTrainingRecords,
+      notifications: sqliteHRNotifications,
+      employees: sqliteHREmployees,
     };
   }
   return {
@@ -128,6 +137,9 @@ function getTables() {
     users: mysqlUsers,
     orgUnits: mysqlHROrgUnits,
     trainingCourses: mysqlHRTrainingCourses,
+    trainingRecords: mysqlHRTrainingRecords,
+    notifications: mysqlHRNotifications,
+    employees: mysqlHREmployees,
   };
 }
 
@@ -649,7 +661,87 @@ export async function createVersion(
     },
   });
 
+  // Check if document is linked to a training course → create re-training alerts
+  if (doc.trainingCourseId) {
+    try {
+      await createRetrainingAlerts(
+        database,
+        doc.trainingCourseId,
+        data.documentId,
+        doc.documentNumber || `Doc #${data.documentId}`,
+        doc.title || '',
+        newVersionNumber
+      );
+    } catch (err) {
+      // Don't fail version creation if alerts fail
+      console.error('Failed to create re-training alerts:', err);
+    }
+  }
+
   return { id: newVersion.id, versionNumber: newVersionNumber };
+}
+
+/**
+ * Create re-training notifications for employees who completed
+ * a training course linked to an updated document
+ */
+async function createRetrainingAlerts(
+  database: ReturnType<typeof Object>,
+  courseId: number,
+  documentId: number,
+  documentNumber: string,
+  documentTitle: string,
+  newVersion: string
+): Promise<void> {
+  const { trainingRecords, notifications, employees, trainingCourses } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = database as any;
+
+  // Get course name
+  const [course] = await db
+    .select({ name: trainingCourses.name, code: trainingCourses.code })
+    .from(trainingCourses)
+    .where(eq(trainingCourses.id, courseId))
+    .limit(1);
+
+  const courseName = course ? `${course.code} - ${course.name}` : `Course #${courseId}`;
+
+  // Find employees who completed this training course
+  const trainedEmployees = await db
+    .select({
+      employeeId: trainingRecords.employeeId,
+      employeeName: employees.firstName,
+    })
+    .from(trainingRecords)
+    .leftJoin(employees, eq(trainingRecords.employeeId, employees.id))
+    .where(
+      and(
+        eq(trainingRecords.courseId, courseId),
+        eq(trainingRecords.result, 'pass')
+      )
+    );
+
+  if (trainedEmployees.length === 0) return;
+
+  // Deduplicate by employeeId
+  const uniqueEmployeeIds = [...new Set(trainedEmployees.map((r: { employeeId: number }) => r.employeeId))];
+
+  const nowStr = formatDateForDb();
+  const notificationValues = uniqueEmployeeIds.map((empId) => ({
+    employeeId: empId as number,
+    type: 'retraining_required',
+    title: `เอกสาร ${documentNumber} มีการอัปเดตเวอร์ชัน - ต้อง Re-training`,
+    message: `เอกสาร "${documentTitle}" ได้อัปเดตเป็นเวอร์ชัน ${newVersion} กรุณาเข้ารับการอบรมหลักสูตร "${courseName}" อีกครั้ง`,
+    referenceType: 'document',
+    referenceId: documentId,
+    isRead: false,
+    createdAt: nowStr,
+  }));
+
+  // Batch insert notifications
+  if (notificationValues.length > 0) {
+    await db.insert(notifications).values(notificationValues);
+  }
 }
 
 /**
