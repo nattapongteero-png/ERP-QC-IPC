@@ -503,7 +503,8 @@ export default function DocumentDetailPage() {
   const canEdit = document.status === 'draft';
   const canCreateVersion = document.status === 'active' || document.status === 'draft';
   const hasDraftVersion = document.currentVersion?.status === 'draft';
-  const fileName = selectedVersion?.filePath?.split('/').pop() || 'document';
+  const hasFile = !!(selectedVersion?.filePath || selectedVersion?.fileName || selectedVersion?.hasFileData);
+  const fileName = selectedVersion?.fileName || selectedVersion?.filePath?.split('/').pop() || 'document';
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -635,13 +636,13 @@ export default function DocumentDetailPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Document Preview Panel (Left - 2/3 width) */}
         <main className="flex-1 flex flex-col border-r overflow-hidden">
-          {selectedVersion?.filePath ? (
+          {hasFile ? (
             <DocumentPreview
-              key={selectedVersion.id}
-              versionId={selectedVersion.id}
-              filePath={selectedVersion.filePath}
+              key={selectedVersion!.id}
+              versionId={selectedVersion!.id}
+              filePath={selectedVersion?.filePath || selectedVersion?.fileName || 'document'}
               fileName={fileName}
-              versionNumber={selectedVersion.versionNumber}
+              versionNumber={selectedVersion!.versionNumber}
               isFullscreen={isPreviewFullscreen}
               onToggleFullscreen={() => setIsPreviewFullscreen(!isPreviewFullscreen)}
             />
