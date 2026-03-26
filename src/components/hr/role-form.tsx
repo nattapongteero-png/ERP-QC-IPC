@@ -14,7 +14,6 @@ import TextArea from 'devextreme-react/text-area';
 import TagBox from 'devextreme-react/tag-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
-import { MainLayout } from '@/components/layout/main-layout';
 import {
   Shield,
   Key,
@@ -264,11 +263,9 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
 
   if (isEditMode && isLoadingRole) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <LoadIndicator />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <LoadIndicator />
+      </div>
     );
   }
 
@@ -276,7 +273,6 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
   const isSystemRole = role?.isSystemRole || false;
 
   return (
-    <MainLayout>
       <div className="space-y-6 p-1">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -539,7 +535,6 @@ export function RoleForm({ mode, roleId, onSuccess, onCancel }: RoleFormProps) {
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }
 
