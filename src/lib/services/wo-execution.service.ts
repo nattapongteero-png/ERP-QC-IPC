@@ -38,6 +38,7 @@ import {
   sqlitePackagingQCCriteria,
   sqliteItems,
   sqliteUsers,
+  sqliteInventoryLots,
   // MySQL tables
   mysqlWOEnvironmentalLogs,
   mysqlWOCleaningLogs,
@@ -60,6 +61,7 @@ import {
   mysqlPackagingQCCriteria,
   mysqlItems,
   mysqlUsers,
+  mysqlInventoryLots,
 } from '../db/schema';
 import { getNow } from '../db/date-utils';
 import { issueMaterial, getLotsForPicking } from './inventory.service';
@@ -89,6 +91,7 @@ function getTables() {
       packagingQCCriteria: sqlitePackagingQCCriteria,
       items: sqliteItems,
       users: sqliteUsers,
+      inventoryLots: sqliteInventoryLots,
     };
   }
   return {
@@ -113,6 +116,7 @@ function getTables() {
     packagingQCCriteria: mysqlPackagingQCCriteria,
     items: mysqlItems,
     users: mysqlUsers,
+    inventoryLots: mysqlInventoryLots,
   };
 }
 
@@ -716,8 +720,8 @@ export async function getWOMaterials(workOrderId: number) {
         workOrderId: tables.workOrderMaterials.workOrderId,
         itemId: tables.workOrderMaterials.itemId,
         bomLineId: tables.workOrderMaterials.bomLineId,
-        plannedQuantity: tables.workOrderMaterials.plannedQuantity,
-        actualQuantity: tables.workOrderMaterials.actualQuantity,
+        plannedQty: tables.workOrderMaterials.plannedQuantity,
+        actualQty: tables.workOrderMaterials.actualQuantity,
         weighedQty: tables.workOrderMaterials.weighedQty,
         weighedBy: tables.workOrderMaterials.weighedBy,
         weighedAt: tables.workOrderMaterials.weighedAt,
@@ -728,13 +732,18 @@ export async function getWOMaterials(workOrderId: number) {
         waterTemperature: tables.workOrderMaterials.waterTemperature,
         status: tables.workOrderMaterials.status,
         unit: tables.workOrderMaterials.unit,
+        lotId: tables.workOrderMaterials.lotId,
         // Item details
         itemNameTh: tables.items.nameTh,
         itemNameEn: tables.items.nameEn,
+        itemName: tables.items.nameEn,
         itemCode: tables.items.code,
+        // Lot details (from LEFT JOIN)
+        lotNumber: tables.inventoryLots.lotNumber,
       })
       .from(tables.workOrderMaterials)
       .innerJoin(tables.items, eq(tables.workOrderMaterials.itemId, tables.items.id))
+      .leftJoin(tables.inventoryLots, eq(tables.workOrderMaterials.lotId, tables.inventoryLots.id))
       .where(eq(tables.workOrderMaterials.workOrderId, workOrderId));
 
     return materials;
