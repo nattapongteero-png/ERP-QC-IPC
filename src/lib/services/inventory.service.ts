@@ -218,6 +218,57 @@ export async function getLotsForPicking(
 }
 
 /**
+ * Get available lots for an item (for lot selection UI)
+ * Reuses same query conditions as getLotsForPicking (FEFO sort)
+ * Returns all available lots without quantity allocation
+ */
+export async function getAvailableLots(itemId: number): Promise<{
+  id: number;
+  lotNumber: string;
+  availableQty: number;
+  unit: string;
+  expiryDate: string | null;
+  vendorLotNumber: string | null;
+  manufacturerName: string | null;
+}[]> {
+  const { lots } = getTables();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const database = (await getDb()) as any;
+
+  const conditions = [
+    eq(lots.itemId, itemId),
+    eq(lots.status, 'released'),
+    sql`${lots.quantity} - ${lots.reservedQuantity} > 0`,
+  ];
+
+  const availableLots = await database
+    .select({
+      id: lots.id,
+      lotNumber: lots.lotNumber,
+      quantity: lots.quantity,
+      reservedQuantity: lots.reservedQuantity,
+      unit: lots.unit,
+      expiryDate: lots.expiryDate,
+      vendorLotNumber: lots.vendorLotNumber,
+      manufacturerName: lots.manufacturerName,
+    })
+    .from(lots)
+    .where(and(...conditions))
+    .orderBy(asc(lots.expiryDate), asc(lots.id));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return availableLots.map((lot: any) => ({
+    id: lot.id,
+    lotNumber: lot.lotNumber,
+    availableQty: (lot.quantity || 0) - (lot.reservedQuantity || 0),
+    unit: lot.unit,
+    expiryDate: lot.expiryDate,
+    vendorLotNumber: lot.vendorLotNumber,
+    manufacturerName: lot.manufacturerName,
+  }));
+}
+
+/**
  * Reserve lots for an order/work order
  */
 export async function reserveLots(
