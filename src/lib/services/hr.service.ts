@@ -3916,11 +3916,10 @@ export async function updateRolePermissions(
 
   // Insert new permissions
   if (permissionIds.length > 0) {
-    const now = new Date();
     const inserts = permissionIds.map((permissionId) => ({
       roleId,
       permissionId,
-      createdAt: now,
+      createdAt: getNow(),
     }));
     await db.insert(tables.rolePermissions).values(inserts);
   }

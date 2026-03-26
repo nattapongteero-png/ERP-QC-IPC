@@ -63,6 +63,10 @@ import {
   updatePosition,
   getEmployees,
   getEmployeeById,
+  getAppPermissions,
+  getRolePermissions,
+  updateRolePermissions,
+  getAppRoleById,
 } from '@/lib/services/hr.service';
 
 // ============================================
@@ -164,6 +168,9 @@ describe('HR Service Real Integration Tests', () => {
       schema.sqliteHRAuthorizations,
       schema.sqliteHRDelegations,
       schema.sqliteHRHealthRecords,
+      schema.sqliteHRAppRoles,
+      schema.sqliteHRAppPermissions,
+      schema.sqliteHRRolePermissions,
     ];
 
     for (const table of tables) {
@@ -827,6 +834,90 @@ describe('HR Service Real Integration Tests', () => {
 
       expect(expired.length).toBe(1);
       expect(expired[0].employee_code).toBe('EMP-001');
+    });
+  });
+
+  // ============================================
+  // Role Permissions (Bug fix: inArray query)
+  // ============================================
+  describe('Role Permissions - getRolePermissions with multiple IDs', () => {
+    beforeEach(() => {
+      sqlite.exec('DELETE FROM hr_role_permissions');
+      sqlite.exec('DELETE FROM hr_app_permissions');
+      sqlite.exec('DELETE FROM hr_app_roles');
+
+      sqlite.exec(`
+        INSERT INTO hr_app_permissions (id, code, name, module, created_at) VALUES
+          (1, 'hr:read', 'HR View', 'HR', '2024-01-01'),
+          (2, 'hr:write', 'HR Edit', 'HR', '2024-01-01'),
+          (3, 'hr:admin', 'HR Admin', 'HR', '2024-01-01'),
+          (4, 'production:read', 'Production View', 'Production', '2024-01-01'),
+          (5, 'production:write', 'Production Edit', 'Production', '2024-01-01'),
+          (6, 'quality:read', 'Quality View', 'Quality', '2024-01-01'),
+          (7, 'quality:write', 'Quality Edit', 'Quality', '2024-01-01'),
+          (8, 'inventory:read', 'Inventory View', 'Inventory', '2024-01-01'),
+          (9, 'inventory:write', 'Inventory Edit', 'Inventory', '2024-01-01'),
+          (10, 'purchasing:read', 'Purchasing View', 'Purchasing', '2024-01-01')
+      `);
+
+      sqlite.exec(`
+        INSERT INTO hr_app_roles (id, code, name, description, is_system_role, is_active, created_at, updated_at)
+        VALUES (1, 'TEST_LEADER', 'Test Leader', 'Tests all systems', 0, 1, '2024-01-01', '2024-01-01')
+      `);
+    });
+
+    it('returns all permissions when role has multiple assigned (inArray regression)', async () => {
+      sqlite.exec(`
+        INSERT INTO hr_role_permissions (role_id, permission_id, created_at) VALUES
+          (1, 1, '2024-01-01'), (1, 2, '2024-01-01'), (1, 3, '2024-01-01'),
+          (1, 4, '2024-01-01'), (1, 5, '2024-01-01'), (1, 6, '2024-01-01'),
+          (1, 7, '2024-01-01')
+      `);
+
+      const permissions = await getRolePermissions(1);
+      expect(permissions.length).toBe(7);
+
+      const modules = [...new Set(permissions.map((p: { module: string }) => p.module))].sort();
+      expect(modules).toEqual(['HR', 'Production', 'Quality']);
+    });
+
+    it('returns empty array when role has no permissions', async () => {
+      const permissions = await getRolePermissions(1);
+      expect(permissions).toEqual([]);
+    });
+
+    it('returns single permission correctly', async () => {
+      sqlite.exec(`
+        INSERT INTO hr_role_permissions (role_id, permission_id, created_at)
+        VALUES (1, 5, '2024-01-01')
+      `);
+
+      const permissions = await getRolePermissions(1);
+      expect(permissions.length).toBe(1);
+      expect(permissions[0].code).toBe('production:write');
+    });
+
+    it('updateRolePermissions saves and retrieves all permissions', async () => {
+      const allPermIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      await updateRolePermissions(1, allPermIds);
+
+      const permissions = await getRolePermissions(1);
+      expect(permissions.length).toBe(10);
+
+      const returnedIds = permissions.map((p: { id: number }) => p.id).sort((a: number, b: number) => a - b);
+      expect(returnedIds).toEqual(allPermIds);
+    });
+
+    it('updateRolePermissions replaces existing permissions', async () => {
+      await updateRolePermissions(1, [1, 2, 3]);
+      let permissions = await getRolePermissions(1);
+      expect(permissions.length).toBe(3);
+
+      await updateRolePermissions(1, [8, 9]);
+      permissions = await getRolePermissions(1);
+      expect(permissions.length).toBe(2);
+      const codes = permissions.map((p: { code: string }) => p.code).sort();
+      expect(codes).toEqual(['inventory:read', 'inventory:write']);
     });
   });
 });
