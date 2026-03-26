@@ -50,6 +50,7 @@ interface MaterialLine {
   verifiedAt?: string;
   lotId?: number;
   lotNumber?: string;
+  status?: string;
   // Water-specific fields
   isWater?: boolean;
   waterDate?: string;
@@ -412,7 +413,7 @@ export default function MaterialWeighingPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col items-end gap-1">
                       {!material.weighedAt ? (
                         <DxButton
                           text={tw('actions.weigh')}
@@ -420,12 +421,18 @@ export default function MaterialWeighingPage() {
                           onClick={() => handleOpenWeighDialog(material)}
                         />
                       ) : !material.verifiedAt ? (
-                        <DxButton
-                          text={tw('actions.verify')}
-                          type="default"
-                          onClick={() => verifyWeightMutation.mutate(material.id)}
-                          disabled={verifyWeightMutation.isPending}
-                        />
+                        material.status === 'issued' ? (
+                          <DxButton
+                            text={tw('actions.verify')}
+                            type="default"
+                            onClick={() => verifyWeightMutation.mutate(material.id)}
+                            disabled={verifyWeightMutation.isPending}
+                          />
+                        ) : (
+                          <span className="text-xs text-red-500 text-right max-w-[140px]">
+                            ไม่สามารถ Verify ได้ — ยอดคงเหลือในคลังเป็น 0
+                          </span>
+                        )
                       ) : null}
                     </div>
                   </div>

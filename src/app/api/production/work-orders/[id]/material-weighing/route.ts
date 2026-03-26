@@ -110,6 +110,13 @@ export async function PATCH(
       return successResponse(material, 'Material weight verified');
     } catch (error) {
       console.error('Error verifying material weight:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('not found') ||
+            error.message.includes('not been weighed') ||
+            error.message.includes('not issued from inventory')) {
+          return errorResponse(error.message, 400);
+        }
+      }
       return serverErrorResponse(error);
     }
   });

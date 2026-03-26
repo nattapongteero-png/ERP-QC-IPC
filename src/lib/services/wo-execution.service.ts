@@ -881,6 +881,25 @@ export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
 export async function verifyMaterialWeight(materialId: number, verifierId: number) {
   const tables = getTables();
 
+  // Check material exists and was issued from inventory before allowing verification
+  const [existing] = await executeDbOperation(async (db: any) => {
+    return db.select({
+      id: tables.workOrderMaterials.id,
+      status: tables.workOrderMaterials.status,
+      weighedAt: tables.workOrderMaterials.weighedAt,
+    }).from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, materialId));
+  });
+
+  if (!existing) {
+    throw new Error('Material not found');
+  }
+  if (!existing.weighedAt) {
+    throw new Error('Material has not been weighed yet');
+  }
+  if (existing.status !== 'issued') {
+    throw new Error('Cannot verify — material was not issued from inventory (stock balance is 0)');
+  }
+
   return executeDbOperation(async (db: any) => {
     const updateData = {
       verifiedBy: verifierId,
