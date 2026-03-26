@@ -62,6 +62,7 @@ export async function PUT(
         materialId: data.materialId,
         weighedQty: data.weighedQty,
         weighedBy,
+        lotId: data.lotId || undefined,
         waterDate: data.waterDate,
         waterConductivity: data.waterConductivity,
         waterTemperature: data.waterTemperature,
@@ -70,6 +71,13 @@ export async function PUT(
       return successResponse(material, 'Material weight recorded');
     } catch (error) {
       console.error('Error recording material weight:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('lot not found') ||
+            error.message.includes('not in released status') ||
+            error.message.includes('Insufficient quantity')) {
+          return errorResponse(error.message, 400);
+        }
+      }
       return serverErrorResponse(error);
     }
   });

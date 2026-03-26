@@ -705,6 +705,7 @@ export interface RecordMaterialWeightInput {
   materialId: number;
   weighedQty: number;
   weighedBy: number;
+  lotId?: number; // Optional: if provided, use this lot; otherwise FEFO auto-pick
   waterDate?: string;
   waterConductivity?: number;
   waterTemperature?: number;
@@ -776,14 +777,46 @@ export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
 
   // Step 2: Deduct inventory if not already issued
   if (material.status !== 'issued') {
-    let lotId = material.lotId;
+    let lotId = data.lotId || material.lotId;
 
-    // If no lot assigned, auto-find one using FEFO algorithm
-    if (!lotId) {
+    // If user selected a specific lot, validate it
+    if (data.lotId) {
+      const selectedLot = await executeDbOperation(async (db: any) => {
+        const [lot] = await db.select({
+          id: tables.inventoryLots.id,
+          status: tables.inventoryLots.status,
+          quantity: tables.inventoryLots.quantity,
+          reservedQuantity: tables.inventoryLots.reservedQuantity,
+        })
+        .from(tables.inventoryLots)
+        .where(eq(tables.inventoryLots.id, data.lotId!));
+        return lot;
+      });
+
+      if (!selectedLot) {
+        throw new Error('Selected lot not found');
+      }
+      if (selectedLot.status !== 'released') {
+        throw new Error('Selected lot is not in released status');
+      }
+      const availableQty = (selectedLot.quantity || 0) - (selectedLot.reservedQuantity || 0);
+      if (availableQty < data.weighedQty) {
+        throw new Error(`Insufficient quantity in selected lot. Available: ${availableQty}, Required: ${data.weighedQty}`);
+      }
+
+      lotId = data.lotId;
+      // Assign the selected lot to the material record
+      await executeDbOperation(async (db: any) => {
+        await db.update(tables.workOrderMaterials)
+          .set({ lotId })
+          .where(eq(tables.workOrderMaterials.id, data.materialId));
+      });
+    }
+    // If no lot assigned and no user selection, auto-find one using FEFO algorithm
+    else if (!lotId) {
       const { allocated } = await getLotsForPicking(material.itemId, data.weighedQty);
       if (allocated.length > 0) {
         lotId = allocated[0].lotId;
-        // Assign the lot to the material record
         await executeDbOperation(async (db: any) => {
           await db.update(tables.workOrderMaterials)
             .set({ lotId })
