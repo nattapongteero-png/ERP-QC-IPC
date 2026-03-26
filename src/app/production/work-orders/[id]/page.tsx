@@ -1005,6 +1005,7 @@ export default function WorkOrderDetailPage() {
         onSelect={handleSelectItem}
         title="Select Material"
         excludeType="finished_goods"
+        allowCreate
       />
 
       {/* Material Details Dialog */}

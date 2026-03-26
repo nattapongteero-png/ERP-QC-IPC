@@ -476,6 +476,7 @@ export default function NewBOMPage() {
         onSelect={handleSelectProduct}
         title="Select Product"
         filterType="finished_goods"
+        allowCreate
       />
 
       {/* Material Selection Dialog */}
@@ -486,6 +487,7 @@ export default function NewBOMPage() {
         title="Select Material"
         excludeType="finished_goods"
         excludeIds={lines.map(l => l.itemId)}
+        allowCreate
       />
     </div>
   );

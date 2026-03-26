@@ -1349,6 +1349,7 @@ export default function BOMDetailPage() {
         title="Select Material"
         showPrice="cost"
         filterType="raw_material"
+        allowCreate
       />
 
       {/* Edit Line Dialog */}

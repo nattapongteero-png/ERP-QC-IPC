@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dx-data-grid';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 import { DxTabs } from '@/components/ui/dx-tabs';
+import { useToast } from '@/hooks/use-toast';
+import { ItemEditDialog, type ItemFormData } from '@/components/ui/item-edit-dialog';
 import {
   Package,
   Leaf,
@@ -60,6 +62,7 @@ interface ItemSearchDialogProps {
   excludeType?: string;
   excludeIds?: number[];
   showStock?: boolean;
+  allowCreate?: boolean;
 }
 
 // Item type configuration with icons and colors
@@ -97,12 +100,15 @@ export function ItemSearchDialog({
   excludeType,
   excludeIds = [],
   showStock = true,
+  allowCreate = false,
 }: ItemSearchDialogProps) {
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [allResults, setAllResults] = useState<Item[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedTypeTab, setSelectedTypeTab] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Use ref to avoid infinite loop from excludeIds array reference changes
   const excludeIdsRef = useRef(excludeIds);
@@ -167,6 +173,22 @@ export function ItemSearchDialog({
     onOpenChange(false);
   }, [onSelect, onOpenChange]);
 
+  const handleSaveNewItem = async (data: ItemFormData) => {
+    const res = await fetch('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || 'Failed to create item');
+
+    toast.success('สร้างรายการสำเร็จ', `${data.code} - ${data.nameTh}`);
+    setShowCreateDialog(false);
+
+    // Re-search to include new item
+    await searchItems('');
+  };
+
   const searchItems = useCallback(async (query: string) => {
     setIsSearching(true);
     try {
@@ -224,6 +246,7 @@ export function ItemSearchDialog({
       setAllResults([]);
       setSelectedTypeTab(0);
       setSelectedItem(null);
+      setShowCreateDialog(false);
     }
   }, [open]);
 
@@ -424,6 +447,15 @@ export function ItemSearchDialog({
               elementAttr={{ 'data-testid': 'item-search-input' }}
             />
           </div>
+          {allowCreate && (
+            <DxButton
+              text="+ เพิ่มรายการใหม่"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setShowCreateDialog(true)}
+              elementAttr={{ 'data-testid': 'item-create-btn' }}
+            />
+          )}
           {selectedItem && (
             <DxButton
               text="Confirm Selection"
@@ -549,7 +581,16 @@ export function ItemSearchDialog({
             ) : (
               <p className="text-gray-500 mb-4">No items available in the system</p>
             )}
-            {search && (
+            {allowCreate && (
+              <DxButton
+                text="+ เพิ่มรายการใหม่"
+                type="default"
+                stylingMode="contained"
+                onClick={() => setShowCreateDialog(true)}
+                className="mt-2"
+              />
+            )}
+            {search && !allowCreate && (
               <div className="bg-white rounded-xl p-4 border max-w-md text-left">
                 <p className="font-medium text-gray-700 mb-2">Search tips:</p>
                 <ul className="list-disc list-inside space-y-1 text-sm text-gray-500">
@@ -607,18 +648,29 @@ export function ItemSearchDialog({
   );
 
   return (
-    <DxPopup
-      visible={open}
-      onHiding={() => onOpenChange(false)}
-      title=""
-      width="95%"
-      maxWidth={1200}
-      height="90%"
-      maxHeight={900}
-      showCloseButton
-      showTitle={false}
-    >
-      {renderDialogContent()}
-    </DxPopup>
+    <>
+      <DxPopup
+        visible={open}
+        onHiding={() => onOpenChange(false)}
+        title=""
+        width="95%"
+        maxWidth={1200}
+        height="90%"
+        maxHeight={900}
+        showCloseButton
+        showTitle={false}
+      >
+        {renderDialogContent()}
+      </DxPopup>
+
+      {/* Full Item Create Dialog (same as inventory create item page) */}
+      {allowCreate && (
+        <ItemEditDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSave={handleSaveNewItem}
+        />
+      )}
+    </>
   );
 }
