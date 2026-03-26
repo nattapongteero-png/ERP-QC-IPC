@@ -51,6 +51,7 @@ interface MaterialLine {
   lotId?: number;
   lotNumber?: string;
   status?: string;
+  itemAvailableQty?: number;
   // Water-specific fields
   isWater?: boolean;
   waterDate?: string;
@@ -421,19 +422,18 @@ export default function MaterialWeighingPage() {
                           onClick={() => handleOpenWeighDialog(material)}
                         />
                       ) : !material.verifiedAt ? (
-                        <>
-                          {material.status !== 'issued' && (
-                            <span className="text-xs text-amber-600 text-right max-w-[160px]">
-                              ⚠ ยังไม่ได้ตัดสต็อก — รอรับ lot เข้าคลัง
-                            </span>
-                          )}
+                        material.status === 'issued' || (material.itemAvailableQty ?? 0) > 0 ? (
                           <DxButton
                             text={tw('actions.verify')}
                             type="default"
                             onClick={() => verifyWeightMutation.mutate(material.id)}
                             disabled={verifyWeightMutation.isPending}
                           />
-                        </>
+                        ) : (
+                          <span className="text-xs text-red-500 text-right max-w-[160px]">
+                            ยอดคงเหลือในคลังเป็น 0
+                          </span>
+                        )
                       ) : null}
                     </div>
                   </div>

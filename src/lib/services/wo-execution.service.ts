@@ -64,7 +64,7 @@ import {
   mysqlInventoryLots,
 } from '../db/schema';
 import { getNow } from '../db/date-utils';
-import { issueMaterial, getLotsForPicking } from './inventory.service';
+import { issueMaterial, getLotsForPicking, getAvailableLots } from './inventory.service';
 
 // Get the appropriate tables based on database type
 function getTables() {
@@ -747,7 +747,20 @@ export async function getWOMaterials(workOrderId: number) {
       .leftJoin(tables.inventoryLots, eq(tables.workOrderMaterials.lotId, tables.inventoryLots.id))
       .where(eq(tables.workOrderMaterials.workOrderId, workOrderId));
 
-    return materials;
+    // Compute available stock per item for verify eligibility
+    const itemIds: number[] = [...new Set<number>(materials.map((m: any) => Number(m.itemId)))];
+    const stockMap = new Map<number, number>();
+
+    for (const id of itemIds) {
+      const lots = await getAvailableLots(id);
+      const totalAvailable = lots.reduce((sum: number, lot) => sum + lot.availableQty, 0);
+      stockMap.set(id, totalAvailable);
+    }
+
+    return materials.map((m: any) => ({
+      ...m,
+      itemAvailableQty: stockMap.get(m.itemId) || 0,
+    }));
   });
 }
 
