@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { PageHeader } from '@/components/ui/page-header';
-import { Check, AlertCircle, Wifi, Shield, ChevronRight } from 'lucide-react';
+import { Check, AlertCircle, Wifi, Shield, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
 
@@ -29,21 +29,40 @@ interface Settings {
 export default function SettingsPage() {
   const t = useTranslations('settings');
   const [settings, setSettings] = useState<Settings>({
-    companyName: 'Herbal Medicine Co., Ltd.',
-    companyNameTh: 'บริษัท สมุนไพรไทย จำกัด',
-    address: '123 Herbal Street, Bangkok 10110',
-    phone: '02-123-4567',
-    email: 'info@herbal-medicine.co.th',
-    taxId: '0123456789012',
-    fdaLicense: 'FDA-12345',
-    gmpCertificate: 'GMP-67890',
+    companyName: '',
+    companyNameTh: '',
+    address: '',
+    phone: '',
+    email: '',
+    taxId: '',
+    fdaLicense: '',
+    gmpCertificate: '',
     lotPrefix: 'LOT',
     poPrefix: 'PO',
     soPrefix: 'SO',
     woPrefix: 'WO',
   });
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings/company');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSettings(json.data);
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleChange = (field: keyof Settings, value: string) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
@@ -53,10 +72,18 @@ export default function SettingsPage() {
     setIsSaving(true);
     setMessage(null);
     try {
-      // In a real app, this would save to the database
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const res = await fetch('/api/settings/company', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Save failed');
+      }
       setMessage({ type: 'success', text: t('settingsPage.saveSuccess') });
-    } catch {
+    } catch (error) {
+      console.error('Failed to save settings:', error);
       setMessage({ type: 'error', text: t('settingsPage.saveError') });
     } finally {
       setIsSaving(false);
@@ -75,7 +102,7 @@ export default function SettingsPage() {
               icon="save"
               type="success"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || isLoading}
             />
           }
         />
@@ -99,6 +126,14 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
+        )}
+
+        {!isLoading && (
+        <>
         {/* Company Information */}
         <Card elevation="raised">
           <CardHeader>
@@ -296,6 +331,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
       </div>
     </MainLayout>
   );
