@@ -164,7 +164,7 @@ export async function explodeBOM(
     throw new Error(`BOM ${bomId} not found`);
   }
 
-  // Get BOM lines
+  // Get BOM lines with item unit info for conversion
   const lines = await database
     .select({
       id: bomLines.id,
@@ -174,6 +174,9 @@ export async function explodeBOM(
       itemCode: items.code,
       itemName: items.nameEn,
       itemType: items.type,
+      primaryUnit: items.primaryUnit,
+      secondaryUnit: items.secondaryUnit,
+      conversionRate: items.conversionRate,
     })
     .from(bomLines)
     .innerJoin(items, eq(bomLines.itemId, items.id))
@@ -189,7 +192,7 @@ export async function explodeBOM(
       requiredQty = requiredQty / (1 - Number(bomHeader.lossAllowance) / 100);
     }
 
-    // Get available stock
+    // Get available stock (in primary unit from inventory)
     const stockResult = await database
       .select({
         totalAvailable: sql<number>`COALESCE(SUM(${lots.quantity} - ${lots.reservedQuantity}), 0)`,
@@ -202,7 +205,15 @@ export async function explodeBOM(
         )
       );
 
-    const availableStock = Number(stockResult[0]?.totalAvailable) || 0;
+    let availableStock = Number(stockResult[0]?.totalAvailable) || 0;
+
+    // Convert availableStock to BOM line unit if different from primary unit
+    // e.g., inventory is in kg, BOM line is in g → multiply by conversionRate
+    if (line.unit && line.secondaryUnit && line.conversionRate &&
+        line.unit === line.secondaryUnit && Number(line.conversionRate) > 0) {
+      availableStock = availableStock * Number(line.conversionRate);
+    }
+
     const shortage = Math.max(0, requiredQty - availableStock);
 
     results.push({
