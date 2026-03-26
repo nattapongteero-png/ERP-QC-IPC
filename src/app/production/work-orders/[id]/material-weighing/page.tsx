@@ -422,18 +422,28 @@ export default function MaterialWeighingPage() {
                           onClick={() => handleOpenWeighDialog(material)}
                         />
                       ) : !material.verifiedAt ? (
-                        material.status === 'issued' || (material.itemAvailableQty ?? 0) > 0 ? (
-                          <DxButton
-                            text={tw('actions.verify')}
-                            type="default"
-                            onClick={() => verifyWeightMutation.mutate(material.id)}
-                            disabled={verifyWeightMutation.isPending}
-                          />
-                        ) : (
-                          <span className="text-xs text-red-500 text-right max-w-[160px]">
-                            ยอดคงเหลือในคลังเป็น 0
-                          </span>
-                        )
+                        <>
+                          <div className="flex gap-2">
+                            <DxButton
+                              text="Edit"
+                              type="normal"
+                              stylingMode="outlined"
+                              onClick={() => handleOpenWeighDialog(material)}
+                            />
+                            {(material.itemAvailableQty ?? 0) > 0 ? (
+                              <DxButton
+                                text={tw('actions.verify')}
+                                type="default"
+                                onClick={() => verifyWeightMutation.mutate(material.id)}
+                                disabled={verifyWeightMutation.isPending}
+                              />
+                            ) : (
+                              <span className="text-xs text-red-500 self-center max-w-[140px] text-right">
+                                ยอดคงเหลือในคลังเป็น 0
+                              </span>
+                            )}
+                          </div>
+                        </>
                       ) : null}
                     </div>
                   </div>

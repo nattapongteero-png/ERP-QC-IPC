@@ -767,17 +767,22 @@ export async function getWOMaterials(workOrderId: number) {
 export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
   const tables = getTables();
 
-  // Step 1: Record the weighing data
-  const material = await executeDbOperation(async (db: any) => {
-    const updateData = {
-      weighedQty: data.weighedQty,
-      weighedBy: data.weighedBy,
-      weighedAt: getNow(),
-      waterDate: data.waterDate,
-      waterConductivity: data.waterConductivity,
-      waterTemperature: data.waterTemperature,
-    };
+  // Record the weighing data only — inventory deduction happens at Verify step
+  const updateData: Record<string, any> = {
+    weighedQty: data.weighedQty,
+    weighedBy: data.weighedBy,
+    weighedAt: getNow(),
+    waterDate: data.waterDate,
+    waterConductivity: data.waterConductivity,
+    waterTemperature: data.waterTemperature,
+  };
 
+  // If user selected a specific lot, save the preference (no stock deduction yet)
+  if (data.lotId) {
+    updateData.lotId = data.lotId;
+  }
+
+  return executeDbOperation(async (db: any) => {
     if (isSqlite()) {
       const [mat] = await db.update(tables.workOrderMaterials).set(updateData).where(eq(tables.workOrderMaterials.id, data.materialId)).returning();
       return mat;
@@ -787,108 +792,6 @@ export async function recordMaterialWeight(data: RecordMaterialWeightInput) {
       return mat;
     }
   });
-
-  // Step 2: Deduct inventory if not already issued
-  if (material.status !== 'issued') {
-    let lotId = data.lotId || material.lotId;
-
-    // If user selected a specific lot, validate it
-    if (data.lotId) {
-      const selectedLot = await executeDbOperation(async (db: any) => {
-        const [lot] = await db.select({
-          id: tables.inventoryLots.id,
-          status: tables.inventoryLots.status,
-          quantity: tables.inventoryLots.quantity,
-          reservedQuantity: tables.inventoryLots.reservedQuantity,
-        })
-        .from(tables.inventoryLots)
-        .where(eq(tables.inventoryLots.id, data.lotId!));
-        return lot;
-      });
-
-      if (!selectedLot) {
-        throw new Error('Selected lot not found');
-      }
-      if (selectedLot.status !== 'released') {
-        throw new Error('Selected lot is not in released status');
-      }
-      const availableQty = (selectedLot.quantity || 0) - (selectedLot.reservedQuantity || 0);
-      if (availableQty < data.weighedQty) {
-        throw new Error(`Insufficient quantity in selected lot. Available: ${availableQty}, Required: ${data.weighedQty}`);
-      }
-
-      lotId = data.lotId;
-      // Assign the selected lot to the material record
-      await executeDbOperation(async (db: any) => {
-        await db.update(tables.workOrderMaterials)
-          .set({ lotId })
-          .where(eq(tables.workOrderMaterials.id, data.materialId));
-      });
-    }
-    // If no lot assigned and no user selection, auto-find one using FEFO algorithm
-    else if (!lotId) {
-      const { allocated } = await getLotsForPicking(material.itemId, data.weighedQty);
-      if (allocated.length > 0) {
-        lotId = allocated[0].lotId;
-        await executeDbOperation(async (db: any) => {
-          await db.update(tables.workOrderMaterials)
-            .set({ lotId })
-            .where(eq(tables.workOrderMaterials.id, data.materialId));
-        });
-      }
-    }
-
-    if (lotId) {
-      try {
-        // Get work order number for reference
-        const [workOrder] = await executeDbOperation(async (db: any) => {
-          return db.select({ woNumber: tables.workOrders.woNumber, batchNumber: tables.workOrders.batchNumber })
-            .from(tables.workOrders)
-            .where(eq(tables.workOrders.id, material.workOrderId));
-        });
-
-        const woNumber = workOrder?.woNumber || `WO-${material.workOrderId}`;
-        const batchNumber = workOrder?.batchNumber || '';
-
-        // Issue material from inventory (deducts lot quantity + creates transaction)
-        await issueMaterial(
-          lotId,
-          data.weighedQty,
-          'WO',
-          material.workOrderId,
-          woNumber,
-          data.weighedBy,
-          `Material weighing for ${woNumber}`,
-          {
-            workOrderId: material.workOrderId,
-            batchNumber,
-          }
-        );
-
-        // Update material status to "issued"
-        await executeDbOperation(async (db: any) => {
-          await db.update(tables.workOrderMaterials).set({
-            status: 'issued',
-            actualQuantity: data.weighedQty,
-            issuedBy: data.weighedBy,
-            issuedAt: getNow(),
-          }).where(eq(tables.workOrderMaterials.id, data.materialId));
-        });
-
-        // Return updated material
-        return executeDbOperation(async (db: any) => {
-          const [updated] = await db.select().from(tables.workOrderMaterials).where(eq(tables.workOrderMaterials.id, data.materialId));
-          return updated;
-        });
-      } catch (error: any) {
-        console.error('Error issuing material from inventory:', error);
-        throw new Error(`Material weight recorded but inventory deduction failed: ${error.message}`);
-      }
-    }
-    // If no lot found (e.g. water, non-lot-controlled items), just return the weighing data
-  }
-
-  return material;
 }
 
 export async function verifyMaterialWeight(materialId: number, verifierId: number) {
@@ -914,10 +817,27 @@ export async function verifyMaterialWeight(materialId: number, verifierId: numbe
     throw new Error('Material has not been weighed yet');
   }
 
-  // If material was weighed but not issued, attempt to issue from inventory now
+  // If material was weighed but not issued, issue from inventory now
   if (existing.status !== 'issued') {
-    // Get all available lots via FEFO (multi-lot allocation)
-    const { allocated } = await getLotsForPicking(existing.itemId, existing.weighedQty);
+    // If user pre-selected a lot during weighing, try that lot first
+    // Otherwise use FEFO multi-lot allocation
+    let allocated: { lotId: number; lotNumber: string; quantity: number; expiryDate: string | null }[] = [];
+
+    if (existing.lotId) {
+      // User selected a specific lot — try to allocate from it first
+      const { allocated: userLotAlloc } = await getLotsForPicking(existing.itemId, existing.weighedQty);
+      // Put the user-selected lot first if it's in the allocation
+      const userLotIdx = userLotAlloc.findIndex((a: any) => a.lotId === existing.lotId);
+      if (userLotIdx >= 0) {
+        const [userLot] = userLotAlloc.splice(userLotIdx, 1);
+        allocated = [userLot, ...userLotAlloc];
+      } else {
+        allocated = userLotAlloc;
+      }
+    } else {
+      const result = await getLotsForPicking(existing.itemId, existing.weighedQty);
+      allocated = result.allocated;
+    }
 
     if (allocated.length === 0) {
       throw new Error('Cannot verify — no available inventory for this item (stock balance is 0)');
