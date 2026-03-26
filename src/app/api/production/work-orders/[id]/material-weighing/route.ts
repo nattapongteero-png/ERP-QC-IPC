@@ -113,7 +113,8 @@ export async function PATCH(
       if (error instanceof Error) {
         if (error.message.includes('not found') ||
             error.message.includes('not been weighed') ||
-            error.message.includes('not issued from inventory')) {
+            error.message.includes('Cannot verify') ||
+            error.message.includes('Insufficient quantity')) {
           return errorResponse(error.message, 400);
         }
       }
