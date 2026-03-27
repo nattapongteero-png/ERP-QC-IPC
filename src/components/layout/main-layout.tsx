@@ -55,8 +55,9 @@ export function MainLayout({ children }: MainLayoutProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // VMI Auto Sync - runs every 15 minutes when user is authenticated
-  useVmiAutoSync({ enabled: !!user });
+  // VMI Auto Sync - runs every 15 minutes only for roles with VMI sync permission
+  const vmiRoles = ['admin', 'manager', 'sales'];
+  useVmiAutoSync({ enabled: !!user && vmiRoles.includes(user.role) });
 
   const handleLogout = async () => {
     try {
