@@ -259,7 +259,7 @@ function LabelVerificationContent() {
             <DxButton
               text="Back to Work Orders"
               icon="arrowleft"
-              onClick={() => router.push('/production/work-orders')}
+              onClick={() => router.push(selectedWorkOrderId ? `/production/work-orders/${selectedWorkOrderId}` : '/production/work-orders')}
               type="normal"
               stylingMode="outlined"
             />
