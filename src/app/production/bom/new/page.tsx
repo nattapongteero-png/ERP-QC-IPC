@@ -11,13 +11,7 @@ import { DxDateBox } from '@/components/ui/dx-date-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxPopup } from '@/components/ui/dx-popup';
-import {
-  DxDataGrid,
-  DxColumn,
-  DxSelection,
-  DxSearchPanel,
-  DxFilterRow,
-} from '@/components/ui/dx-data-grid';
+import { DxDataGrid } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
@@ -552,37 +546,39 @@ export default function NewBOMPage() {
                 height="100%"
                 paging={false}
                 virtualScrolling
+                selection="multiple"
+                selectedRowKeys={selectedMaterialIds}
                 onSelectionChanged={(e) => {
                   const keys = e.selectedRowKeys as number[];
                   setSelectedMaterialIds(keys);
                 }}
-              >
-                <DxSelection mode="multiple" showCheckBoxesMode="always" />
-                <DxSearchPanel visible placeholder="ค้นหา Item Code / ชื่อ..." />
-                <DxFilterRow visible />
-                <DxColumn dataField="code" caption="Item Code" width={140} />
-                <DxColumn dataField="nameTh" caption="ชื่อวัตถุดิบ" />
-                <DxColumn dataField="type" caption="ประเภท" width={120}
-                  cellRender={(cellData) => {
-                    const typeLabels: Record<string, string> = {
-                      raw_material: 'วัตถุดิบ',
-                      packaging: 'บรรจุภัณฑ์',
-                      wip: 'งานระหว่างทำ',
-                      extract: 'สารสกัด',
-                      consumable: 'วัสดุสิ้นเปลือง',
-                    };
-                    return <span>{typeLabels[cellData.value] || cellData.value}</span>;
-                  }}
-                />
-                <DxColumn dataField="primaryUnit" caption="หน่วย" width={80} />
-                <DxColumn dataField="onHand" caption="คงเหลือ" width={100} dataType="number" format="#,##0.##"
-                  cellRender={(cellData) => {
-                    const qty = Number(cellData.value) || 0;
-                    const color = qty <= 0 ? 'text-red-600' : qty <= (Number(cellData.data.reorderPoint) || 0) ? 'text-amber-600' : 'text-green-600';
-                    return <span className={`font-medium ${color}`}>{qty.toLocaleString()}</span>;
-                  }}
-                />
-              </DxDataGrid>
+                searchPanel
+                filterRow
+                columns={[
+                  { dataField: 'code', caption: 'Item Code', width: 140 },
+                  { dataField: 'nameTh', caption: 'ชื่อวัตถุดิบ' },
+                  { dataField: 'type', caption: 'ประเภท', width: 120,
+                    cellRender: (cellData) => {
+                      const typeLabels: Record<string, string> = {
+                        raw_material: 'วัตถุดิบ',
+                        packaging: 'บรรจุภัณฑ์',
+                        wip: 'งานระหว่างทำ',
+                        extract: 'สารสกัด',
+                        consumable: 'วัสดุสิ้นเปลือง',
+                      };
+                      return <span>{typeLabels[cellData.value as string] || cellData.value}</span>;
+                    },
+                  },
+                  { dataField: 'primaryUnit', caption: 'หน่วย', width: 80 },
+                  { dataField: 'onHand', caption: 'คงเหลือ', width: 100, dataType: 'number', format: '#,##0.##',
+                    cellRender: (cellData) => {
+                      const qty = Number(cellData.value) || 0;
+                      const color = qty <= 0 ? 'text-red-600' : qty <= (Number(cellData.data?.reorderPoint) || 0) ? 'text-amber-600' : 'text-green-600';
+                      return <span className={`font-medium ${color}`}>{qty.toLocaleString()}</span>;
+                    },
+                  },
+                ]}
+              />
             </div>
           )}
 
