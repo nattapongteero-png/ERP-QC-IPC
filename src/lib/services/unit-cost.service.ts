@@ -750,6 +750,8 @@ export async function getWorkCenter(id: number): Promise<WorkCenter | null> {
     }
 
     const wc = wcResult[0] as Record<string, unknown>;
+    console.log('[DEBUG getWorkCenter] raw DB keys:', Object.keys(wc));
+    console.log('[DEBUG getWorkCenter] wc.name:', wc.name, '| wc.code:', wc.code);
 
     // Get org unit name separately
     let orgUnitName: string | null = null;
