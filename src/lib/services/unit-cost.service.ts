@@ -738,9 +738,22 @@ export async function getWorkCenter(id: number): Promise<WorkCenter | null> {
   return executeDbOperation(async (db) => {
     const tables = getUnitCostTables();
 
-    // Query work center (separate from org unit to avoid column name collision)
+    // Query work center with explicit field names to avoid any collision
     const wcResult = await db
-      .select()
+      .select({
+        id: tables.workCenters.id,
+        code: tables.workCenters.code,
+        wcName: tables.workCenters.name,
+        nameTh: tables.workCenters.nameTh,
+        orgUnitId: tables.workCenters.orgUnitId,
+        laborRatePerHour: tables.workCenters.laborRatePerHour,
+        overheadRatePerHour: tables.workCenters.overheadRatePerHour,
+        machineRatePerHour: tables.workCenters.machineRatePerHour,
+        capacityHoursPerDay: tables.workCenters.capacityHoursPerDay,
+        isActive: tables.workCenters.isActive,
+        createdAt: tables.workCenters.createdAt,
+        updatedAt: tables.workCenters.updatedAt,
+      })
       .from(tables.workCenters)
       .where(eq(tables.workCenters.id, id))
       .limit(1);
@@ -749,27 +762,25 @@ export async function getWorkCenter(id: number): Promise<WorkCenter | null> {
       return null;
     }
 
-    const wc = wcResult[0] as Record<string, unknown>;
-    console.log('[DEBUG getWorkCenter] raw DB keys:', Object.keys(wc));
-    console.log('[DEBUG getWorkCenter] wc.name:', wc.name, '| wc.code:', wc.code);
+    const wc = wcResult[0];
 
-    // Get org unit name separately
+    // Get org unit name separately to avoid column name collision
     let orgUnitName: string | null = null;
     if (wc.orgUnitId) {
       const ouResult = await db
-        .select({ name: tables.hrOrgUnits.name })
+        .select({ ouName: tables.hrOrgUnits.name })
         .from(tables.hrOrgUnits)
-        .where(eq(tables.hrOrgUnits.id, wc.orgUnitId as number))
+        .where(eq(tables.hrOrgUnits.id, wc.orgUnitId))
         .limit(1);
-      orgUnitName = (ouResult[0]?.name as string) || null;
+      orgUnitName = (ouResult[0]?.ouName as string) || null;
     }
 
     return {
-      id: wc.id as number,
-      code: wc.code as string,
-      name: wc.name as string,
-      nameTh: (wc.nameTh as string) || null,
-      orgUnitId: (wc.orgUnitId as number) || null,
+      id: wc.id,
+      code: wc.code,
+      name: wc.wcName,
+      nameTh: wc.nameTh || null,
+      orgUnitId: wc.orgUnitId || null,
       orgUnitName,
       laborRatePerHour: Number(wc.laborRatePerHour) || 0,
       overheadRatePerHour: Number(wc.overheadRatePerHour) || 0,
