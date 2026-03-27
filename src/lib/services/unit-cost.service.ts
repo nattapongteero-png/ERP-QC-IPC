@@ -688,39 +688,43 @@ export async function listWorkCenters(
     const total = Number(countResult[0]?.count) || 0;
 
     // Get paginated data
-    const data = await db
-      .select({
-        id: tables.workCenters.id,
-        code: tables.workCenters.code,
-        wcName: tables.workCenters.name,
-        nameTh: tables.workCenters.nameTh,
-        orgUnitId: tables.workCenters.orgUnitId,
-        orgUnitName: tables.hrOrgUnits.name,
-        laborRatePerHour: tables.workCenters.laborRatePerHour,
-        overheadRatePerHour: tables.workCenters.overheadRatePerHour,
-        machineRatePerHour: tables.workCenters.machineRatePerHour,
-        capacityHoursPerDay: tables.workCenters.capacityHoursPerDay,
-        isActive: tables.workCenters.isActive,
-        createdAt: tables.workCenters.createdAt,
-        updatedAt: tables.workCenters.updatedAt,
-      })
+    // Query work centers (no JOIN to avoid column name collision)
+    const rows = await db
+      .select()
       .from(tables.workCenters)
-      .leftJoin(tables.hrOrgUnits, eq(tables.workCenters.orgUnitId, tables.hrOrgUnits.id))
       .where(whereClause)
       .orderBy(asc(tables.workCenters.code))
       .limit(pageSize)
       .offset(offset);
 
+    // Get org unit names for all rows that have orgUnitId
+    const orgUnitIds = rows
+      .map((r: Record<string, unknown>) => r.orgUnitId as number)
+      .filter(Boolean);
+    let orgUnitMap = new Map<number, string>();
+    if (orgUnitIds.length > 0) {
+      const ouRows = await db
+        .select({ id: tables.hrOrgUnits.id, name: tables.hrOrgUnits.name })
+        .from(tables.hrOrgUnits)
+        .where(inArray(tables.hrOrgUnits.id, orgUnitIds));
+      orgUnitMap = new Map(ouRows.map((o: { id: number; name: string }) => [o.id, o.name]));
+    }
+
     return {
-      data: data.map((row: typeof data[0]) => ({
-        ...row,
-        name: row.wcName, // Resolve alias collision with hrOrgUnits.name
-        laborRatePerHour: Number(row.laborRatePerHour) || 0,
-        overheadRatePerHour: Number(row.overheadRatePerHour) || 0,
-        machineRatePerHour: Number(row.machineRatePerHour) || 0,
-        capacityHoursPerDay: row.capacityHoursPerDay !== null ? Number(row.capacityHoursPerDay) : null,
-        createdAt: row.createdAt?.toString() || '',
-        updatedAt: row.updatedAt?.toString() || '',
+      data: rows.map((wc: Record<string, unknown>) => ({
+        id: wc.id as number,
+        code: wc.code as string,
+        name: wc.name as string,
+        nameTh: (wc.nameTh as string) || null,
+        orgUnitId: (wc.orgUnitId as number) || null,
+        orgUnitName: wc.orgUnitId ? orgUnitMap.get(wc.orgUnitId as number) || null : null,
+        laborRatePerHour: Number(wc.laborRatePerHour) || 0,
+        overheadRatePerHour: Number(wc.overheadRatePerHour) || 0,
+        machineRatePerHour: Number(wc.machineRatePerHour) || 0,
+        capacityHoursPerDay: wc.capacityHoursPerDay !== null ? Number(wc.capacityHoursPerDay) : null,
+        isActive: wc.isActive as boolean,
+        createdAt: wc.createdAt?.toString() || '',
+        updatedAt: wc.updatedAt?.toString() || '',
       })) as WorkCenter[],
       total,
     };
@@ -734,41 +738,44 @@ export async function getWorkCenter(id: number): Promise<WorkCenter | null> {
   return executeDbOperation(async (db) => {
     const tables = getUnitCostTables();
 
-    const result = await db
-      .select({
-        id: tables.workCenters.id,
-        code: tables.workCenters.code,
-        wcName: tables.workCenters.name,
-        nameTh: tables.workCenters.nameTh,
-        orgUnitId: tables.workCenters.orgUnitId,
-        orgUnitName: tables.hrOrgUnits.name,
-        laborRatePerHour: tables.workCenters.laborRatePerHour,
-        overheadRatePerHour: tables.workCenters.overheadRatePerHour,
-        machineRatePerHour: tables.workCenters.machineRatePerHour,
-        capacityHoursPerDay: tables.workCenters.capacityHoursPerDay,
-        isActive: tables.workCenters.isActive,
-        createdAt: tables.workCenters.createdAt,
-        updatedAt: tables.workCenters.updatedAt,
-      })
+    // Query work center (separate from org unit to avoid column name collision)
+    const wcResult = await db
+      .select()
       .from(tables.workCenters)
-      .leftJoin(tables.hrOrgUnits, eq(tables.workCenters.orgUnitId, tables.hrOrgUnits.id))
       .where(eq(tables.workCenters.id, id))
       .limit(1);
 
-    if (result.length === 0) {
+    if (wcResult.length === 0) {
       return null;
     }
 
-    const row = result[0];
+    const wc = wcResult[0] as Record<string, unknown>;
+
+    // Get org unit name separately
+    let orgUnitName: string | null = null;
+    if (wc.orgUnitId) {
+      const ouResult = await db
+        .select({ name: tables.hrOrgUnits.name })
+        .from(tables.hrOrgUnits)
+        .where(eq(tables.hrOrgUnits.id, wc.orgUnitId as number))
+        .limit(1);
+      orgUnitName = (ouResult[0]?.name as string) || null;
+    }
+
     return {
-      ...row,
-      name: row.wcName, // Resolve alias collision with hrOrgUnits.name
-      laborRatePerHour: Number(row.laborRatePerHour) || 0,
-      overheadRatePerHour: Number(row.overheadRatePerHour) || 0,
-      machineRatePerHour: Number(row.machineRatePerHour) || 0,
-      capacityHoursPerDay: row.capacityHoursPerDay !== null ? Number(row.capacityHoursPerDay) : null,
-      createdAt: row.createdAt?.toString() || '',
-      updatedAt: row.updatedAt?.toString() || '',
+      id: wc.id as number,
+      code: wc.code as string,
+      name: wc.name as string,
+      nameTh: (wc.nameTh as string) || null,
+      orgUnitId: (wc.orgUnitId as number) || null,
+      orgUnitName,
+      laborRatePerHour: Number(wc.laborRatePerHour) || 0,
+      overheadRatePerHour: Number(wc.overheadRatePerHour) || 0,
+      machineRatePerHour: Number(wc.machineRatePerHour) || 0,
+      capacityHoursPerDay: wc.capacityHoursPerDay !== null ? Number(wc.capacityHoursPerDay) : null,
+      isActive: wc.isActive as boolean,
+      createdAt: wc.createdAt?.toString() || '',
+      updatedAt: wc.updatedAt?.toString() || '',
     } as WorkCenter;
   });
 }
