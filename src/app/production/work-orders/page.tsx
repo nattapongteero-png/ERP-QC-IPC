@@ -998,6 +998,7 @@ export default function WorkOrdersPage() {
                 onValueChanged={(e) => setEditForm(prev => ({ ...prev, plannedStartDate: e.value }))}
                 type="date"
                 displayFormat="dd/MM/yyyy"
+                max={editForm.plannedEndDate || undefined}
               />
             </div>
             <div>
@@ -1009,6 +1010,7 @@ export default function WorkOrdersPage() {
                 onValueChanged={(e) => setEditForm(prev => ({ ...prev, plannedEndDate: e.value }))}
                 type="date"
                 displayFormat="dd/MM/yyyy"
+                min={editForm.plannedStartDate || undefined}
               />
             </div>
           </div>
@@ -1021,6 +1023,13 @@ export default function WorkOrdersPage() {
               onValueChanged={(e) => setEditForm(prev => ({ ...prev, deliveryDate: e.value }))}
               type="date"
               displayFormat="dd/MM/yyyy"
+              min={editForm.plannedEndDate || undefined}
+              disabled={!editForm.plannedStartDate || !editForm.plannedEndDate}
+              placeholder={
+                !editForm.plannedStartDate || !editForm.plannedEndDate
+                  ? 'กรุณาระบุวันเริ่มต้นและวันสิ้นสุดก่อน'
+                  : 'เลือกวันส่งมอบ'
+              }
             />
           </div>
           <div>
@@ -1042,11 +1051,52 @@ export default function WorkOrdersPage() {
         onConfirm={handleConfirmDelete}
         onCancel={() => { setDeleteDialogVisible(false); setSelectedWO(null); }}
         title={t('workOrders.actions.deleteWO')}
-        message={t('workOrders.actions.deleteConfirm', { woNumber: selectedWO?.woNumber || '' })}
         confirmText={tCommon('actions.delete')}
         cancelText={tCommon('actions.cancel')}
         confirmType="danger"
-      />
+        width={480}
+      >
+        <div className="p-6">
+          <div className="flex flex-col items-center text-center">
+            {/* Warning Icon */}
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+            </div>
+
+            {/* WO Number */}
+            <div className="mb-3">
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
+                <Factory className="w-4 h-4 text-gray-500" />
+                <span className="font-semibold text-gray-900 text-lg">{selectedWO?.woNumber}</span>
+              </span>
+            </div>
+
+            {/* Product Info */}
+            {selectedWO?.productName && (
+              <p className="text-sm text-gray-500 mb-4">
+                {selectedWO.productName}
+                {selectedWO.batchNumber && (
+                  <span className="ml-2 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                    Batch: {selectedWO.batchNumber}
+                  </span>
+                )}
+              </p>
+            )}
+
+            {/* Warning Message */}
+            <div className="w-full bg-red-50 border border-red-200 rounded-lg p-4 mb-2">
+              <p className="text-sm text-red-800 font-medium">
+                {t('workOrders.actions.deleteConfirm', { woNumber: selectedWO?.woNumber || '' })}
+              </p>
+            </div>
+
+            {/* Additional Warning */}
+            <p className="text-xs text-gray-400 mt-2">
+              {tCommon('actions.cannotUndo') || 'การดำเนินการนี้ไม่สามารถย้อนกลับได้'}
+            </p>
+          </div>
+        </div>
+      </DxConfirmDialog>
     </div>
   );
 }
