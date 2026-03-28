@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -59,10 +58,7 @@ const priorityOptions = [
 function NewWorkOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const t = useTranslations('production');
 
-  // Use translation for page title
-  const pageTitle = t('newWorkOrder.title');
   const bomIdParam = searchParams.get('bomId');
   const [isLoading, setIsLoading] = useState(false);
   const [initialBomLoaded, setInitialBomLoaded] = useState(false);
@@ -478,7 +474,12 @@ function NewWorkOrderContent() {
                         setFormData((prev) => ({ ...prev, deliveryDate: value || '' }))
                       }
                       min={formData.plannedEndDate || undefined}
-                      placeholder="เลือกวันส่งมอบ"
+                      disabled={!formData.plannedStartDate || !formData.plannedEndDate}
+                      placeholder={
+                        !formData.plannedStartDate || !formData.plannedEndDate
+                          ? 'กรุณาระบุวันเริ่มต้นและวันสิ้นสุดก่อน'
+                          : 'เลือกวันส่งมอบ'
+                      }
                     />
                   </div>
                 </div>
