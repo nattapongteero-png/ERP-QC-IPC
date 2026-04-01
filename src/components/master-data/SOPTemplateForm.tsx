@@ -210,20 +210,30 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN)</label>
-            <DxTextBox
-              value={formData.name || ''}
-              onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="Step name in English"
-            />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH) *</label>
             <DxTextBox
               value={formData.nameTh || ''}
               onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })}
-              placeholder="Step name in Thai"
+              placeholder="ชื่อ SOP Template ภาษาไทย"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN)</label>
+            <DxTextBox
+              value={formData.name || ''}
+              onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
+              placeholder="SOP Template name in English"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (TH)</label>
+            <DxTextArea
+              value={formData.instructionsTh || ''}
+              onValueChanged={(e) => setFormData({ ...formData, instructionsTh: e.value })}
+              placeholder="คำแนะนำโดยละเอียดเป็นภาษาไทย"
+              height={100}
             />
           </div>
 
@@ -233,16 +243,6 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
               value={formData.instructions || ''}
               onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
               placeholder="Detailed instructions in English"
-              height={100}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (TH)</label>
-            <DxTextArea
-              value={formData.instructionsTh || ''}
-              onValueChanged={(e) => setFormData({ ...formData, instructionsTh: e.value })}
-              placeholder="Detailed instructions in Thai"
               height={100}
             />
           </div>
