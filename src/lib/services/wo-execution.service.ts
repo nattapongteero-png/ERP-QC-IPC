@@ -13,7 +13,7 @@
  */
 
 import { eq, and, desc, asc, inArray } from 'drizzle-orm';
-import { executeDbOperation, getInsertId } from '../db/db-helper';
+import { executeDbOperation, getInsertId, getTableRef } from '../db/db-helper';
 import { isSqlite } from '../db';
 import {
   // SQLite tables
@@ -592,13 +592,38 @@ export async function getWOSOPExecution(workOrderId: number) {
         expectedParameters: tables.bomSOPSteps.parameters,
         equipmentIds: tables.bomSOPSteps.equipmentIds,
         requiresVerification: tables.bomSOPSteps.requiresVerification,
+        // Template ID for fetching sub-steps
+        templateId: tables.bomSOPSteps.templateId,
       })
       .from(tables.woSOPExecution)
       .innerJoin(tables.bomSOPSteps, eq(tables.woSOPExecution.bomStepId, tables.bomSOPSteps.id))
       .where(eq(tables.woSOPExecution.workOrderId, workOrderId))
       .orderBy(asc(tables.woSOPExecution.sequence));
 
-    return executions;
+    // Fetch template sub-steps for each step that has a templateId
+    const sopTemplateSteps = getTableRef('sOPTemplateSteps');
+    const templateIds = [...new Set(executions.map((e: any) => e.templateId).filter(Boolean))] as number[];
+
+    let templateStepsMap: Record<number, any[]> = {};
+    if (templateIds.length > 0) {
+      const { inArray } = await import('drizzle-orm');
+      const allTemplateSteps = await db
+        .select()
+        .from(sopTemplateSteps)
+        .where(inArray(sopTemplateSteps.templateId, templateIds))
+        .orderBy(asc(sopTemplateSteps.sequence));
+
+      for (const ts of allTemplateSteps) {
+        if (!templateStepsMap[ts.templateId]) templateStepsMap[ts.templateId] = [];
+        templateStepsMap[ts.templateId].push(ts);
+      }
+    }
+
+    // Attach template sub-steps to each execution
+    return executions.map((exec: any) => ({
+      ...exec,
+      templateSteps: exec.templateId ? (templateStepsMap[exec.templateId] || []) : [],
+    }));
   });
 }
 

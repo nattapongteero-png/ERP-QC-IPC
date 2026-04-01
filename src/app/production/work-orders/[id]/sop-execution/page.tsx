@@ -30,7 +30,18 @@ import {
   Timer,
   Gauge,
   Wrench,
+  ListChecks,
 } from 'lucide-react';
+
+interface TemplateSubStep {
+  id: number;
+  sequence: number;
+  stepName: string;
+  stepNameTh?: string;
+  instructions?: string;
+  instructionsTh?: string;
+  defaultParameters?: string;
+}
 
 interface SOPStep {
   id: number;
@@ -53,6 +64,7 @@ interface SOPStep {
   verifierName?: string;
   verifiedAt?: string;
   notes?: string;
+  templateSteps?: TemplateSubStep[];
 }
 
 /** Safely parse JSON that might be a string or already parsed */
@@ -451,6 +463,38 @@ export default function SOPExecutionPage() {
                               {locale !== 'th' && step.instructionsTh && (
                                 <p className="text-xs text-blue-600 mt-1">{step.instructionsTh}</p>
                               )}
+                            </div>
+                          )}
+
+                          {/* Template Sub-Steps (Procedure Details) */}
+                          {step.templateSteps && step.templateSteps.length > 0 && (
+                            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                              <p className="text-sm font-semibold text-emerald-800 mb-2 flex items-center gap-1.5">
+                                <ListChecks className="h-4 w-4" />
+                                ขั้นตอนย่อย ({step.templateSteps.length} รายการ)
+                              </p>
+                              <ol className="space-y-2">
+                                {step.templateSteps.map((sub, subIdx) => {
+                                  const subName = locale === 'th' && sub.stepNameTh ? sub.stepNameTh : sub.stepName;
+                                  const subInstr = locale === 'th' && sub.instructionsTh ? sub.instructionsTh : sub.instructions;
+                                  return (
+                                    <li key={sub.id} className="flex gap-2">
+                                      <span className="flex-none w-6 h-6 rounded-full bg-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-center mt-0.5">
+                                        {subIdx + 1}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-900">{subName}</p>
+                                        {locale === 'th' && sub.stepNameTh && sub.stepName && (
+                                          <p className="text-xs text-gray-500">{sub.stepName}</p>
+                                        )}
+                                        {subInstr && (
+                                          <p className="text-xs text-gray-600 mt-0.5">{subInstr}</p>
+                                        )}
+                                      </div>
+                                    </li>
+                                  );
+                                })}
+                              </ol>
                             </div>
                           )}
 
