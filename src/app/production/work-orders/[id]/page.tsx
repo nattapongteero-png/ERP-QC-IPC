@@ -36,6 +36,7 @@ interface WorkOrderDetail {
     productUnit: string;
     ttmtCode: string | null;
     drugCode24: string | null;
+    gRegNumber: string | null;
     batchNumber: string;
     plannedQty: number;
     actualQty: number;
@@ -80,6 +81,7 @@ interface WorkOrderDetail {
     productName: string;
     ttmtCode: string | null;
     drugCode24: string | null;
+    gRegNumber: string | null;
     plannedQty: number;
     actualQty: number;
     yieldPercent: number;
@@ -700,6 +702,12 @@ export default function WorkOrderDetailPage() {
                       <dd className="font-medium text-blue-700">{workOrder.drugCode24}</dd>
                     </div>
                   )}
+                  {workOrder.gRegNumber && (
+                    <div>
+                      <dt className="text-sm text-gray-500">เลขที่ทะเบียน G</dt>
+                      <dd className="font-medium text-purple-700">{workOrder.gRegNumber}</dd>
+                    </div>
+                  )}
                 </dl>
               </CardContent>
             </Card>
@@ -911,7 +919,7 @@ export default function WorkOrderDetailPage() {
                     </Badge>
                   </div>
                 </div>
-                {(ebmr.ttmtCode || ebmr.drugCode24) && (
+                {(ebmr.ttmtCode || ebmr.drugCode24 || ebmr.gRegNumber) && (
                   <div className="grid grid-cols-3 gap-4 border border-t-0 p-4 rounded-b-lg -mt-1">
                     {ebmr.ttmtCode && (
                       <div>
@@ -923,6 +931,12 @@ export default function WorkOrderDetailPage() {
                       <div>
                         <p className="text-sm text-gray-500">รหัสยา 24 หลัก</p>
                         <p className="font-semibold text-blue-700">{ebmr.drugCode24}</p>
+                      </div>
+                    )}
+                    {ebmr.gRegNumber && (
+                      <div>
+                        <p className="text-sm text-gray-500">เลขที่ทะเบียน G</p>
+                        <p className="font-semibold text-purple-700">{ebmr.gRegNumber}</p>
                       </div>
                     )}
                   </div>
