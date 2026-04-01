@@ -517,7 +517,7 @@ export function ItemEditForm({
     <div className={cn('flex flex-col h-full', className)}>
       {/* Header */}
       {showHeader && (
-        <div className="flex-none px-8 py-5 border-b bg-white">
+        <div className="flex-none px-4 md:px-6 py-4 border-b bg-white">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-4">
               {onCancel && (
@@ -1166,8 +1166,8 @@ export function ItemEditForm({
         </div>
       </div>
 
-      {/* Fixed Footer */}
-      <div className="flex-none px-8 py-4 border-t bg-white">
+      {/* Footer */}
+      <div className="flex-none px-4 md:px-6 py-3 border-t bg-white">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="text-sm text-gray-500">
             {isEditing && item?.createdAt ? (

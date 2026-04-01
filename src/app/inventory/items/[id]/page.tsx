@@ -107,7 +107,7 @@ export default function ItemDetailPage() {
 
   return (
     <MainLayout>
-      <div className="h-[calc(100vh-64px)] flex flex-col -m-4 md:-m-6">
+      <div className="h-[calc(100vh-120px)] flex flex-col">
         {error && (
           <div className="mx-8 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
