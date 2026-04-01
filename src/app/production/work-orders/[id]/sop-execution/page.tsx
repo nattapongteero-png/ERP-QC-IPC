@@ -257,6 +257,10 @@ export default function SOPExecutionPage() {
 
   /** Get confirmed sub-step IDs from actualParameters */
   const getConfirmedSubSteps = (step: SOPStep): number[] => {
+    // If step is completed or verified, all sub-steps are confirmed
+    if ((step.status === 'completed' || step.status === 'verified') && step.templateSteps?.length) {
+      return step.templateSteps.map((s) => s.id);
+    }
     const params = parseJson<Record<string, unknown>>(step.actualParameters);
     return (params?._confirmedSubSteps as number[]) || [];
   };
