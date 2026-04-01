@@ -13,7 +13,7 @@ import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
-import { DxPopup } from '@/components/ui/dx-popup';
+// DxPopup removed — inline recording used instead
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -110,8 +110,7 @@ export default function IPCPage() {
 
   const workOrderId = Number(params.id);
 
-  // Dialog state
-  const [showRecordDialog, setShowRecordDialog] = useState(false);
+  // Inline record state
   const [selectedTest, setSelectedTest] = useState<IPCTest | null>(null);
   const [numericResult, setNumericResult] = useState<number | undefined>(undefined);
   const [sampleValues, setSampleValues] = useState<(number | undefined)[]>([]);
@@ -189,7 +188,6 @@ export default function IPCPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-ipc-tests', workOrderId] });
       toast.success('IPC test result recorded', 'IPC');
-      setShowRecordDialog(false);
       resetForm();
     },
     onError: (err: Error) => {
@@ -225,12 +223,11 @@ export default function IPCPage() {
     setSelectedTest(null);
   }
 
-  function openRecordDialog(test: IPCTest) {
+  function openInlineRecord(test: IPCTest) {
     setSelectedTest(test);
     setNumericResult(test.numericResult ?? undefined);
     setRecordNotes(test.notes || '');
 
-    // Initialize sample values
     const sampleSize = test.sampleSize || 1;
     if (sampleSize > 1) {
       const existing = test.samples || [];
@@ -242,8 +239,6 @@ export default function IPCPage() {
     } else {
       setSampleValues([]);
     }
-
-    setShowRecordDialog(true);
   }
 
   function handleSaveRecord() {
@@ -452,7 +447,7 @@ export default function IPCPage() {
                           text={isRecorded ? t('actions.edit') : t('execution.record')}
                           type={isRecorded ? 'normal' : 'default'}
                           stylingMode={isRecorded ? 'outlined' : 'contained'}
-                          onClick={() => openRecordDialog(test)}
+                          onClick={() => openInlineRecord(test)}
                           disabled={workOrder?.status === 'completed'}
                         />
                       )}
@@ -515,6 +510,82 @@ export default function IPCPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Inline Record Form */}
+                  {selectedTest?.id === test.id && !isApproved && (
+                    <div className="mt-3 pt-3 border-t border-emerald-200 bg-emerald-50/50 rounded-lg p-3 space-y-3">
+                      {/* Spec info */}
+                      {(test.specMinValue != null || test.specSpecification) && (
+                        <div className="text-xs text-blue-700 bg-blue-50 rounded p-2">
+                          {test.specMinValue != null && test.specMaxValue != null && (
+                            <span>{t('execution.range')}: {test.specMinValue} - {test.specMaxValue}{test.specUnit ? ` ${test.specUnit}` : ''}</span>
+                          )}
+                          {test.specSpecification && <span> | {test.specSpecification}</span>}
+                        </div>
+                      )}
+
+                      {/* Single value input */}
+                      {(test.sampleSize || 1) <= 1 && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('execution.measuredValue')} {test.specUnit ? `(${test.specUnit})` : ''}
+                          </label>
+                          <DxNumberBox
+                            value={numericResult}
+                            onValueChanged={(e) => setNumericResult(e.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      )}
+
+                      {/* Multi-sample inputs */}
+                      {(test.sampleSize || 1) > 1 && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('execution.sampleValues')} ({test.sampleSize} {t('execution.samples')})
+                          </label>
+                          <div className="grid grid-cols-5 gap-2">
+                            {sampleValues.map((val, idx) => (
+                              <div key={idx}>
+                                <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
+                                <DxNumberBox
+                                  value={val}
+                                  onValueChanged={(e) => {
+                                    const next = [...sampleValues];
+                                    next[idx] = e.value;
+                                    setSampleValues(next);
+                                  }}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('execution.notes')}</label>
+                        <DxTextArea
+                          value={recordNotes}
+                          onValueChanged={(e) => setRecordNotes(e.value)}
+                          placeholder={t('execution.notesPlaceholder')}
+                          height={60}
+                        />
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex justify-end gap-2">
+                        <DxButton text={t('actions.cancel')} stylingMode="text" onClick={resetForm} />
+                        <DxButton
+                          text={recordMutation.isPending ? t('actions.saving') : t('actions.save')}
+                          type="success"
+                          onClick={handleSaveRecord}
+                          disabled={recordMutation.isPending}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -522,142 +593,7 @@ export default function IPCPage() {
         </div>
       )}
 
-      {/* Record Dialog */}
-      <DxPopup
-        visible={showRecordDialog}
-        onHiding={() => {
-          setShowRecordDialog(false);
-          resetForm();
-        }}
-        title={selectedTest
-          ? `${t('execution.recordResult')}: ${selectedTest.testName || selectedTest.specSpecification || `IPC-${selectedTest.id}`}`
-          : t('execution.recordResult')
-        }
-        width={500}
-        height="auto"
-        showCloseButton
-        dragEnabled={false}
-      >
-        {selectedTest && (
-          <div className="p-4 space-y-4">
-            {/* Spec info banner */}
-            {(selectedTest.specMinValue != null || selectedTest.specSpecification) && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                <div className="font-medium text-blue-800">{t('execution.specRequirement')}</div>
-                {selectedTest.specMinValue != null && selectedTest.specMaxValue != null && (
-                  <div className="text-blue-700">
-                    {t('execution.range')}: {selectedTest.specMinValue} - {selectedTest.specMaxValue}
-                    {selectedTest.specUnit ? ` ${selectedTest.specUnit}` : ''}
-                  </div>
-                )}
-                {selectedTest.specSpecification && (
-                  <div className="text-blue-700">{selectedTest.specSpecification}</div>
-                )}
-              </div>
-            )}
-
-            {/* Single value input */}
-            {(selectedTest.sampleSize || 1) <= 1 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('execution.measuredValue')} {selectedTest.specUnit ? `(${selectedTest.specUnit})` : ''}
-                </label>
-                <DxNumberBox
-                  value={numericResult}
-                  onValueChanged={(e) => setNumericResult(e.value)}
-                  showSpinButtons
-                  format="#0.####"
-                  width="100%"
-                />
-                {/* Pass/Fail preview */}
-                {numericResult != null && selectedTest.specMinValue != null && selectedTest.specMaxValue != null && (
-                  <div className={`mt-2 text-sm font-medium ${
-                    numericResult >= Number(selectedTest.specMinValue) && numericResult <= Number(selectedTest.specMaxValue)
-                      ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {numericResult >= Number(selectedTest.specMinValue) && numericResult <= Number(selectedTest.specMaxValue)
-                      ? `✓ ${t('execution.withinSpec')}`
-                      : `✗ ${t('execution.outOfSpec')}`}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Multi-sample inputs */}
-            {(selectedTest.sampleSize || 1) > 1 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('execution.sampleValues')} ({selectedTest.sampleSize} {t('execution.samples')})
-                  {selectedTest.specUnit ? ` (${selectedTest.specUnit})` : ''}
-                </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {sampleValues.map((val, i) => (
-                    <div key={i}>
-                      <div className="text-xs text-gray-500 text-center mb-0.5">#{i + 1}</div>
-                      <DxNumberBox
-                        value={val}
-                        onValueChanged={(e) => {
-                          const next = [...sampleValues];
-                          next[i] = e.value;
-                          setSampleValues(next);
-                        }}
-                        format="#0.####"
-                        width="100%"
-                      />
-                    </div>
-                  ))}
-                </div>
-                {/* Summary of pass/fail */}
-                {selectedTest.specMinValue != null && selectedTest.specMaxValue != null && (
-                  <div className="mt-2 text-xs text-gray-600">
-                    {(() => {
-                      const filled = sampleValues.filter((v) => v != null);
-                      const passed = filled.filter(
-                        (v) => v! >= Number(selectedTest.specMinValue) && v! <= Number(selectedTest.specMaxValue)
-                      );
-                      return filled.length > 0
-                        ? `${passed.length}/${filled.length} ${t('execution.samplesPass')}`
-                        : '';
-                    })()}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('execution.notes')}
-              </label>
-              <DxTextArea
-                value={recordNotes}
-                onValueChanged={(e) => setRecordNotes(e.value || '')}
-                height={80}
-                placeholder={t('execution.notesPlaceholder')}
-              />
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <DxButton
-                text={t('actions.cancel')}
-                stylingMode="outlined"
-                onClick={() => {
-                  setShowRecordDialog(false);
-                  resetForm();
-                }}
-              />
-              <DxButton
-                text={t('actions.save')}
-                type="default"
-                stylingMode="contained"
-                onClick={handleSaveRecord}
-                disabled={recordMutation.isPending}
-              />
-            </div>
-          </div>
-        )}
-      </DxPopup>
+      {/* Popup removed — inline recording is used instead */}
     </div>
   );
 }
