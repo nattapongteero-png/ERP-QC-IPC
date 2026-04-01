@@ -34,6 +34,8 @@ interface WorkOrderDetail {
     productName: string;
     productNameEn: string;
     productUnit: string;
+    ttmtCode: string | null;
+    drugCode24: string | null;
     batchNumber: string;
     plannedQty: number;
     actualQty: number;
@@ -76,6 +78,8 @@ interface WorkOrderDetail {
     batchNumber: string;
     productCode: string;
     productName: string;
+    ttmtCode: string | null;
+    drugCode24: string | null;
     plannedQty: number;
     actualQty: number;
     yieldPercent: number;
@@ -83,6 +87,31 @@ interface WorkOrderDetail {
     status: string;
     materials: any[];
     qcTests: any[];
+    operations: Array<{
+      id: number;
+      sequence: number;
+      name: string;
+      description: string;
+      standardTime: number;
+      setupTime: number;
+      cleaningTime: number;
+      instructions: string;
+    }>;
+    batchRecords: Array<{
+      id: number;
+      sequence: number;
+      stepName: string;
+      instructions: string;
+      parameters: any[] | null;
+      actualValues: Record<string, any> | null;
+      status: string;
+      startTime: string;
+      endTime: string;
+      performerName: string | null;
+      verifierName: string | null;
+      verifiedAt: string;
+      notes: string;
+    }>;
     timeline: {
       plannedStart: string;
       plannedEnd: string;
@@ -111,19 +140,16 @@ interface Lot {
   itemName: string;
 }
 
-const testTypeOptions = [
-  { value: 'identity', label: 'Identity Test' },
-  { value: 'purity', label: 'Purity Test' },
-  { value: 'potency', label: 'Potency Test' },
-  { value: 'microbial', label: 'Microbial Test' },
-  { value: 'heavy_metals', label: 'Heavy Metals Test' },
-  { value: 'pesticides', label: 'Pesticides Test' },
-  { value: 'moisture', label: 'Moisture Content' },
-  { value: 'dissolution', label: 'Dissolution Test' },
-  { value: 'disintegration', label: 'Disintegration Test' },
-  { value: 'appearance', label: 'Appearance' },
-  { value: 'other', label: 'Other' },
-];
+interface ProductSpec {
+  id: number;
+  testName: string;
+  testMethod: string;
+  specification: string;
+  minValue: number | null;
+  maxValue: number | null;
+  unit: string | null;
+  isCritical: boolean;
+}
 
 export default function WorkOrderDetailPage() {
   const params = useParams();
@@ -150,9 +176,11 @@ export default function WorkOrderDetailPage() {
   // Add QC Test Dialog State
   const [qcDialogOpen, setQcDialogOpen] = useState(false);
   const [testType, setTestType] = useState('');
+  const [selectedSpecId, setSelectedSpecId] = useState<number | null>(null);
   const [testMethod, setTestMethod] = useState('');
   const [testNotes, setTestNotes] = useState('');
   const [addingQCTest, setAddingQCTest] = useState(false);
+  const [productSpecs, setProductSpecs] = useState<ProductSpec[]>([]);
 
   // Line Clearance State (FR-062)
   const [lineClearanceStatus, setLineClearanceStatus] = useState<LineClearanceStatus | null>(null);
@@ -196,11 +224,28 @@ export default function WorkOrderDetailPage() {
       const result = await response.json();
       if (result.success) {
         setData(result.data);
+        // Fetch product-specific QC specs
+        if (result.data.workOrder?.productId) {
+          fetchProductSpecs(result.data.workOrder.productId);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch work order detail:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProductSpecs = async (productId: number) => {
+    try {
+      const response = await fetch(`/api/quality/specs?itemId=${productId}&isActive=true&limit=100`);
+      const result = await response.json();
+      if (result.success) {
+        const specs = result.data?.items || result.data?.data || (Array.isArray(result.data) ? result.data : []);
+        setProductSpecs(specs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch product specs:', error);
     }
   };
 
@@ -260,7 +305,7 @@ export default function WorkOrderDetailPage() {
   };
 
   const handleAddQCTest = async () => {
-    if (!testType) return;
+    if (!selectedSpecId && !testType) return;
 
     setAddingQCTest(true);
     try {
@@ -268,8 +313,8 @@ export default function WorkOrderDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          testType,
-          testMethod: testMethod || null,
+          specId: selectedSpecId || null,
+          testType: testType || 'in_process',
           notes: testNotes || null,
         }),
       });
@@ -288,6 +333,7 @@ export default function WorkOrderDetailPage() {
 
   const resetQCForm = () => {
     setTestType('');
+    setSelectedSpecId(null);
     setTestMethod('');
     setTestNotes('');
   };
@@ -642,6 +688,18 @@ export default function WorkOrderDetailPage() {
                     <dt className="text-sm text-gray-500">Unit</dt>
                     <dd className="font-medium">{workOrder.productUnit}</dd>
                   </div>
+                  {workOrder.ttmtCode && (
+                    <div>
+                      <dt className="text-sm text-gray-500">TTMT Code</dt>
+                      <dd className="font-medium text-green-700">{workOrder.ttmtCode}</dd>
+                    </div>
+                  )}
+                  {workOrder.drugCode24 && (
+                    <div>
+                      <dt className="text-sm text-gray-500">รหัสยา 24 หลัก</dt>
+                      <dd className="font-medium text-blue-700">{workOrder.drugCode24}</dd>
+                    </div>
+                  )}
                 </dl>
               </CardContent>
             </Card>
@@ -679,8 +737,14 @@ export default function WorkOrderDetailPage() {
                   </div>
                   <div className="col-span-2 border-t pt-3 mt-1">
                     <dt className="text-sm text-gray-500">Delivery Date (วันที่ส่งมอบ)</dt>
-                    <dd className="font-medium text-lg text-orange-700">
-                      {workOrder.deliveryDate ? new Date(workOrder.deliveryDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-'}
+                    <dd className={`font-medium text-lg ${workOrder.deliveryDate && new Date(workOrder.deliveryDate) < new Date(new Date().toDateString()) ? 'text-red-600' : 'text-orange-700'}`}>
+                      {workOrder.deliveryDate ? new Date(workOrder.deliveryDate).toLocaleDateString('th-TH') : '-'}
+                      {workOrder.deliveryDate && new Date(workOrder.deliveryDate) < new Date(new Date().toDateString()) && workOrder.status !== 'completed' && workOrder.status !== 'cancelled' && (
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                          <AlertCircle className="w-3 h-3" />
+                          เลยกำหนดส่งมอบ
+                        </span>
+                      )}
                     </dd>
                   </div>
                 </dl>
@@ -847,6 +911,22 @@ export default function WorkOrderDetailPage() {
                     </Badge>
                   </div>
                 </div>
+                {(ebmr.ttmtCode || ebmr.drugCode24) && (
+                  <div className="grid grid-cols-3 gap-4 border border-t-0 p-4 rounded-b-lg -mt-1">
+                    {ebmr.ttmtCode && (
+                      <div>
+                        <p className="text-sm text-gray-500">TTMT Code</p>
+                        <p className="font-semibold text-green-700">{ebmr.ttmtCode}</p>
+                      </div>
+                    )}
+                    {ebmr.drugCode24 && (
+                      <div>
+                        <p className="text-sm text-gray-500">รหัสยา 24 หลัก</p>
+                        <p className="font-semibold text-blue-700">{ebmr.drugCode24}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -899,6 +979,98 @@ export default function WorkOrderDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Production Steps (Operations from BOM) */}
+            {ebmr.operations && ebmr.operations.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Production Steps (Operations)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full border-collapse border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-center text-gray-700 w-16">Step</th>
+                        <th className="border p-2 text-left text-gray-700">Operation</th>
+                        <th className="border p-2 text-left text-gray-700">Description</th>
+                        <th className="border p-2 text-right text-gray-700">Std Time (min)</th>
+                        <th className="border p-2 text-right text-gray-700">Setup (min)</th>
+                        <th className="border p-2 text-right text-gray-700">Cleaning (min)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.operations.map((op) => (
+                        <tr key={op.id}>
+                          <td className="border p-2 text-center text-gray-900 font-medium">{op.sequence}</td>
+                          <td className="border p-2 text-gray-900 font-medium">{op.name}</td>
+                          <td className="border p-2 text-gray-900">{op.description || '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{op.standardTime ?? '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{op.setupTime ?? '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{op.cleaningTime ?? '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Batch Records (Step-by-Step Execution) */}
+            {ebmr.batchRecords && ebmr.batchRecords.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Batch Record Execution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {ebmr.batchRecords.map((br) => (
+                      <div key={br.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-medium">
+                              {br.sequence}
+                            </span>
+                            <h4 className="font-medium text-gray-900">{br.stepName}</h4>
+                          </div>
+                          <Badge variant={
+                            br.status === 'completed' ? 'primary' :
+                            br.status === 'in_progress' ? 'secondary' :
+                            br.status === 'deviation' ? 'danger' : 'default'
+                          }>
+                            {br.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        {br.instructions && (
+                          <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">{br.instructions}</p>
+                        )}
+                        {br.actualValues && Object.keys(br.actualValues).length > 0 && (
+                          <div className="bg-gray-50 rounded p-2 mb-2">
+                            <p className="text-xs font-medium text-gray-500 mb-1">Recorded Values</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {Object.entries(br.actualValues).map(([key, value]) => (
+                                <div key={key} className="text-sm">
+                                  <span className="text-gray-500">{key.replace(/_/g, ' ')}:</span>{' '}
+                                  <span className="font-medium text-gray-900">{String(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          {br.performerName && <span>Performed: {br.performerName}</span>}
+                          {br.verifierName && <span>Verified: {br.verifierName}</span>}
+                          {br.startTime && <span>Start: {new Date(br.startTime).toLocaleString('th-TH')}</span>}
+                          {br.endTime && <span>End: {new Date(br.endTime).toLocaleString('th-TH')}</span>}
+                        </div>
+                        {br.notes && (
+                          <p className="text-sm text-gray-600 mt-1 italic">Note: {br.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Material Consumption */}
             <Card>
@@ -1124,32 +1296,54 @@ export default function WorkOrderDetailPage() {
       >
         <div className="space-y-4 p-4">
           <p className="text-sm text-gray-500">
-            Create a new quality control test for this work order.
+            เลือกรายการทดสอบคุณภาพสำหรับสินค้าของใบสั่งผลิตนี้
           </p>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Test Type <span className="text-red-500">*</span>
-            </label>
-            <DxSelectBox
-              items={testTypeOptions}
-              value={testType}
-              onValueChange={setTestType}
-              valueExpr="value"
-              displayExpr="label"
-              placeholder="Select test type"
-            />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Test Method
-            </label>
-            <DxTextBox
-              value={testMethod}
-              onValueChange={setTestMethod}
-              placeholder="e.g., HPLC, TLC, USP Method..."
-            />
-          </div>
+          {productSpecs.length > 0 ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Specification <span className="text-red-500">*</span>
+              </label>
+              <DxSelectBox
+                items={productSpecs.map((spec) => ({
+                  value: spec.id,
+                  label: `${spec.testName}${spec.specification ? ` (${spec.specification})` : ''}`,
+                  testMethod: spec.testMethod,
+                }))}
+                value={selectedSpecId}
+                onValueChange={(val) => {
+                  setSelectedSpecId(val);
+                  const spec = productSpecs.find(s => s.id === val);
+                  if (spec) {
+                    setTestType(spec.testName);
+                    setTestMethod(spec.testMethod || '');
+                  }
+                }}
+                valueExpr="value"
+                displayExpr="label"
+                placeholder="เลือกรายการทดสอบ..."
+                searchEnabled
+              />
+              {selectedSpecId && (() => {
+                const spec = productSpecs.find(s => s.id === selectedSpecId);
+                if (!spec) return null;
+                return (
+                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600">
+                    {spec.testMethod && <p>Method: {spec.testMethod}</p>}
+                    {spec.specification && <p>Spec: {spec.specification}</p>}
+                    {(spec.minValue !== null || spec.maxValue !== null) && (
+                      <p>Range: {spec.minValue ?? '-'} ~ {spec.maxValue ?? '-'} {spec.unit || ''}</p>
+                    )}
+                    {spec.isCritical && <p className="text-red-600 font-medium">Critical Test</p>}
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+              ไม่พบรายการทดสอบคุณภาพสำหรับสินค้านี้ กรุณากำหนดที่ Quality &gt; Specifications ก่อน
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1158,7 +1352,7 @@ export default function WorkOrderDetailPage() {
             <DxTextArea
               value={testNotes}
               onValueChange={setTestNotes}
-              placeholder="Additional notes..."
+              placeholder="บันทึกเพิ่มเติม..."
               height={80}
             />
           </div>
@@ -1174,7 +1368,7 @@ export default function WorkOrderDetailPage() {
               text={addingQCTest ? 'Adding...' : 'Add QC Test'}
               type="default"
               onClick={handleAddQCTest}
-              disabled={!testType || addingQCTest}
+              disabled={(!selectedSpecId && !testType) || addingQCTest}
             />
           </div>
         </div>

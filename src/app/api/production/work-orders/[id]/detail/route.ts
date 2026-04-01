@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
 
 export async function GET(
@@ -23,11 +23,14 @@ export async function GET(
           .select({
             id: workOrders.id,
             woNumber: workOrders.woNumber,
+            bomId: workOrders.bomId,
             productId: workOrders.productId,
             productCode: items.code,
             productName: items.nameTh,
             productNameEn: items.nameEn,
             productUnit: items.primaryUnit,
+            ttmtCode: items.ttmtCode,
+            drugCode24: items.drugCode24,
             batchNumber: workOrders.batchNumber,
             plannedQuantity: workOrders.plannedQuantity,
             actualQuantity: workOrders.actualQuantity,
@@ -100,25 +103,50 @@ export async function GET(
         })
       );
 
-      // Get QC tests for lots associated with this work order
-      const qcTestsResult = await executeDbOperation(async (db) => {
-        return db
-          .select({
-            id: qualityTests.id,
-            lotId: qualityTests.lotId,
-            testType: qualityTests.testType,
-            status: qualityTests.status,
-            result: qualityTests.result,
-            testDate: qualityTests.testDate,
-          })
-          .from(qualityTests);
+      // Collect all lot IDs related to this work order
+      const relatedLotIds = new Set<number>();
+      // 1. Material lots
+      materialsWithLots.forEach((m: Record<string, unknown>) => {
+        if (m.lotId) relatedLotIds.add(m.lotId as number);
       });
+      // 2. Lots matching batch number (produced lot + in-process lot)
+      if (workOrder.batchNumber) {
+        const batchLots = await executeDbOperation(async (db) => {
+          return db.select({ id: inventoryLots.id }).from(inventoryLots)
+            .where(eq(inventoryLots.batchNumber, workOrder.batchNumber as string));
+        });
+        batchLots.forEach((l: { id: number }) => relatedLotIds.add(l.id));
+      }
 
-      // Filter QC tests related to this work order's lots
-      const relatedLotIds = materialsWithLots
-        .filter((m: Record<string, unknown>) => m.lotId)
-        .map((m: Record<string, unknown>) => m.lotId);
-      const relatedQcTests = qcTestsResult.filter((t: Record<string, unknown>) => relatedLotIds.includes(t.lotId));
+      // Get QC tests for all related lots
+      let relatedQcTests: Record<string, unknown>[] = [];
+      if (relatedLotIds.size > 0) {
+        const lotIdArray = Array.from(relatedLotIds);
+        const { inArray } = await import('drizzle-orm');
+        relatedQcTests = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: qualityTests.id,
+              lotId: qualityTests.lotId,
+              testType: qualityTests.testType,
+              sampleNumber: qualityTests.sampleNumber,
+              status: qualityTests.status,
+              result: qualityTests.result,
+              testDate: qualityTests.testDate,
+              specSpecification: qualityTests.specSpecification,
+              specUnit: qualityTests.specUnit,
+              notes: qualityTests.notes,
+            })
+            .from(qualityTests)
+            .where(inArray(qualityTests.lotId, lotIdArray));
+        });
+        // Map field names for UI compatibility
+        relatedQcTests = relatedQcTests.map((t: Record<string, unknown>) => ({
+          ...t,
+          testCode: `QC-${t.id}`,
+          testedAt: t.testDate,
+        }));
+      }
 
       // Calculate yield
       const yieldPercent = workOrder.plannedQuantity && workOrder.actualQuantity
@@ -147,18 +175,105 @@ export async function GET(
         productionTimeHours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60) * 10) / 10;
       }
 
+      // Fetch BOM operations (production steps)
+      const operations = getTableRef('operations');
+      const bomId = workOrder.bomId;
+
+      let bomOperations: Record<string, unknown>[] = [];
+      if (bomId) {
+        bomOperations = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: operations.id,
+              sequence: operations.sequence,
+              name: operations.name,
+              description: operations.description,
+              standardTime: operations.standardTime,
+              setupTime: operations.setupTime,
+              cleaningTime: operations.cleaningTime,
+              instructions: operations.instructions,
+            })
+            .from(operations)
+            .where(eq(operations.bomId, bomId as number))
+            .orderBy(asc(operations.sequence));
+        });
+      }
+
+      // Fetch batch records for this work order
+      const batchRecords = getTableRef('batchRecords');
+      const users = getTableRef('users');
+      let batchRecordsList: Record<string, unknown>[] = [];
+      try {
+        batchRecordsList = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: batchRecords.id,
+              operationId: batchRecords.operationId,
+              sequence: batchRecords.sequence,
+              stepName: batchRecords.stepName,
+              instructions: batchRecords.instructions,
+              parameters: batchRecords.parameters,
+              actualValues: batchRecords.actualValues,
+              status: batchRecords.status,
+              startTime: batchRecords.startTime,
+              endTime: batchRecords.endTime,
+              performedBy: batchRecords.performedBy,
+              verifiedBy: batchRecords.verifiedBy,
+              verifiedAt: batchRecords.verifiedAt,
+              notes: batchRecords.notes,
+            })
+            .from(batchRecords)
+            .where(eq(batchRecords.workOrderId, parseInt(id)))
+            .orderBy(asc(batchRecords.sequence));
+        });
+
+        // Resolve performer/verifier names
+        batchRecordsList = await Promise.all(
+          batchRecordsList.map(async (br) => {
+            let performerName = null;
+            let verifierName = null;
+            if (br.performedBy) {
+              const u = await executeDbOperation(async (db) =>
+                db.select({ name: users.name }).from(users).where(eq(users.id, br.performedBy as number))
+              );
+              performerName = u[0]?.name ?? null;
+            }
+            if (br.verifiedBy) {
+              const u = await executeDbOperation(async (db) =>
+                db.select({ name: users.name }).from(users).where(eq(users.id, br.verifiedBy as number))
+              );
+              verifierName = u[0]?.name ?? null;
+            }
+            // Parse JSON fields
+            let parameters = null;
+            let actualValues = null;
+            try {
+              if (br.parameters) parameters = JSON.parse(br.parameters as string);
+              if (br.actualValues) actualValues = JSON.parse(br.actualValues as string);
+            } catch { /* keep as-is */ }
+            return { ...br, performerName, verifierName, parameters, actualValues };
+          })
+        );
+      } catch {
+        // batch_records table may not exist in older setups
+      }
+
       // eBMR (Electronic Batch Manufacturing Record) summary
       const ebmr = {
         batchNumber: workOrder.batchNumber,
         productCode: workOrder.productCode,
         productName: workOrder.productName,
-        plannedQuantity: workOrder.plannedQuantity,
-        actualQuantity: workOrder.actualQuantity,
+        ttmtCode: workOrder.ttmtCode,
+        drugCode24: workOrder.drugCode24,
+        plannedQty: workOrder.plannedQuantity,
+        actualQty: workOrder.actualQuantity,
         yieldPercent,
         productionTimeHours,
         status: workOrder.status,
         materials: materialConsumption,
         qcTests: relatedQcTests,
+        operations: bomOperations,
+        batchRecords: batchRecordsList,
         timeline: {
           plannedStart: workOrder.plannedStartDate,
           plannedEnd: workOrder.plannedEndDate,
