@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       return successResponse(condition, 'Environmental condition created successfully');
     } catch (error) {
       console.error('Error creating environmental condition:', error);
-      if ((error as Error).message?.includes('UNIQUE constraint')) {
+      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
+      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
         return errorResponse('Condition code already exists');
       }
       return serverErrorResponse(error);

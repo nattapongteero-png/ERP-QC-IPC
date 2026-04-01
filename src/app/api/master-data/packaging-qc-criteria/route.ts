@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
       return successResponse(criteria, 'Packaging QC criteria created successfully');
     } catch (error) {
       console.error('Error creating packaging QC criteria:', error);
-      if ((error as Error).message?.includes('UNIQUE constraint')) {
+      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
+      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
         return errorResponse('Criteria code already exists');
       }
       return serverErrorResponse(error);

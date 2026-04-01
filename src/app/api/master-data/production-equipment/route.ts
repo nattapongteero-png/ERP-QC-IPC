@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
       return successResponse(equipment, 'Production equipment created successfully');
     } catch (error) {
       console.error('Error creating production equipment:', error);
-      if ((error as Error).message?.includes('UNIQUE constraint')) {
+      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
+      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
         return errorResponse('Equipment code already exists');
       }
       return serverErrorResponse(error);

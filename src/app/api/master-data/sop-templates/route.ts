@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
       return successResponse(template, 'SOP template created successfully');
     } catch (error) {
       console.error('Error creating SOP template:', error);
-      if ((error as Error).message?.includes('UNIQUE constraint')) {
+      const errMsg = String((error as Error).message || '') + String((error as any).cause?.message || '');
+      if (errMsg.includes('UNIQUE constraint') || errMsg.includes('Duplicate entry')) {
         return errorResponse('Template code already exists');
       }
       return serverErrorResponse(error);
