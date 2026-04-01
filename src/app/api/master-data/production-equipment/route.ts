@@ -18,9 +18,18 @@ export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
       const equipmentType = searchParams.get('equipmentType') || undefined;
       const roomId = searchParams.get('roomId');
       const isActive = searchParams.get('isActive');
+
+      // Fetch single item by ID
+      if (id) {
+        const raw = await getProductionEquipmentById(Number(id));
+        if (!raw) return successResponse(null);
+        const item = { ...raw.equipment, room: raw.room };
+        return successResponse(item);
+      }
 
       const rawEquipment = await getProductionEquipment({
         equipmentType,

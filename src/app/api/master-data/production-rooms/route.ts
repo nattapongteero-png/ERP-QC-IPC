@@ -18,8 +18,16 @@ export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
       const roomType = searchParams.get('roomType') || undefined;
       const isActive = searchParams.get('isActive');
+
+      // Fetch single item by ID
+      if (id) {
+        const room = await getProductionRoomById(Number(id));
+        if (!room) return successResponse(null);
+        return successResponse(room);
+      }
 
       const rooms = await getProductionRooms({
         roomType,

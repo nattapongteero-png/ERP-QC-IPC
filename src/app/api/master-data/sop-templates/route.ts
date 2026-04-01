@@ -17,8 +17,16 @@ export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
       const category = searchParams.get('category') || undefined;
       const isActive = searchParams.get('isActive');
+
+      // Fetch single item by ID
+      if (id) {
+        const template = await getSOPTemplateById(Number(id));
+        if (!template) return successResponse(null);
+        return successResponse(template);
+      }
 
       const templates = await getSOPTemplates({
         category,
