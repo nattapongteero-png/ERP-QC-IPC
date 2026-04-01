@@ -103,18 +103,6 @@ export default function SOPTemplatesPage() {
     );
   };
 
-  const parseParameters = (params?: string) => {
-    if (!params) return null;
-    try {
-      const parsed = JSON.parse(params);
-      return Object.entries(parsed)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(', ');
-    } catch {
-      return params;
-    }
-  };
-
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
@@ -124,6 +112,7 @@ export default function SOPTemplatesPage() {
         icon={FileText}
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"
+        onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'SOP Templates' },
@@ -153,15 +142,12 @@ export default function SOPTemplatesPage() {
           <DxSearchPanel visible placeholder="Search templates..." width={200} />
           <DxPaging defaultPageSize={15} />
 
-          <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
+          <DxColumn dataField="code" caption="Code" minWidth={140} cellRender={(cell) => (
             <span className="font-mono font-medium text-amber-700">{cell.value}</span>
           )} />
-          <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
-          <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />
+          <DxColumn dataField="name" caption="Name (EN)" minWidth={200} />
+          <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={200} />
           <DxColumn dataField="category" caption="Category" width={130} cellRender={(cell) => renderCategoryBadge(cell.value)} />
-          <DxColumn dataField="defaultParameters" caption="Default Parameters" minWidth={200} cellRender={(cell) => (
-            <span className="text-gray-600 text-sm">{parseParameters(cell.value) || '-'}</span>
-          )} />
           <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {cell.value ? 'Active' : 'Inactive'}
