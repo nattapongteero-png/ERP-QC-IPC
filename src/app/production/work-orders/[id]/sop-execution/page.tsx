@@ -541,8 +541,8 @@ export default function SOPExecutionPage() {
                                 <ol className="space-y-1.5">
                                   {step.templateSteps!.map((sub, subIdx) => {
                                     const isConfirmed = confirmed.includes(sub.id);
-                                    const subName = locale === 'th' && sub.stepNameTh ? sub.stepNameTh : sub.stepName;
-                                    const subInstr = locale === 'th' && sub.instructionsTh ? sub.instructionsTh : sub.instructions;
+                                    const subNameTh = sub.stepNameTh || sub.stepName;
+                                    const subInstrTh = sub.instructionsTh || sub.instructions;
                                     return (
                                       <li
                                         key={sub.id}
@@ -560,9 +560,9 @@ export default function SOPExecutionPage() {
                                           {subIdx + 1}.
                                         </span>
                                         <div className="flex-1 min-w-0">
-                                          <p className={`text-sm font-medium ${isConfirmed ? 'text-emerald-800 line-through decoration-emerald-400' : 'text-gray-900'}`}>{subName}</p>
-                                          {subInstr && (
-                                            <p className={`text-xs mt-0.5 ${isConfirmed ? 'text-emerald-600' : 'text-gray-600'}`}>{subInstr}</p>
+                                          <p className={`text-sm font-medium ${isConfirmed ? 'text-emerald-800 line-through decoration-emerald-400' : 'text-gray-900'}`}>{subNameTh}</p>
+                                          {subInstrTh && (
+                                            <p className={`text-xs mt-1 whitespace-pre-line ${isConfirmed ? 'text-emerald-600' : 'text-gray-600'}`}>{subInstrTh}</p>
                                           )}
                                         </div>
                                       </li>
