@@ -172,7 +172,8 @@ export async function explodeBOM(
       quantity: bomLines.quantity,
       unit: bomLines.unit,
       itemCode: items.code,
-      itemName: items.nameEn,
+      itemName: items.nameTh,
+      itemNameEn: items.nameEn,
       itemType: items.type,
       primaryUnit: items.primaryUnit,
       secondaryUnit: items.secondaryUnit,
@@ -219,7 +220,7 @@ export async function explodeBOM(
     results.push({
       itemId: line.itemId,
       itemCode: line.itemCode,
-      itemName: line.itemName || line.itemCode,
+      itemName: line.itemName || line.itemNameEn || line.itemCode,
       requiredQuantity: Math.round(requiredQty * 1000) / 1000,
       unit: line.unit,
       level,
@@ -666,7 +667,7 @@ export async function recordProductionOutput(
   if (product?.shelfLifeDays) {
     const expiry = new Date();
     expiry.setDate(expiry.getDate() + product.shelfLifeDays);
-    expiryDate = expiry.toISOString().split('T')[0];
+    expiryDate = expiry.toISOString().split('T')[0]; // String for receiveMaterial parameter
   }
 
   // Update work order
