@@ -5,7 +5,7 @@
  * Records actual production quantity, reject quantity, and creates finished goods lot
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -39,6 +39,8 @@ interface WorkOrderInfo {
   yieldPercentage: number | null;
   unit: string;
   status: string;
+  bomYieldTarget?: number | null;
+  bomLossAllowance?: number | null;
 }
 
 interface Warehouse {
@@ -151,6 +153,25 @@ export default function ProductionOutputPage() {
       toast.error(tw('toast.error'), error.message);
     },
   });
+
+  // Auto-calculate initial values from BOM yield/loss when WO loads
+  useEffect(() => {
+    if (!workOrder) return;
+    const hasExisting = workOrder.actualQuantity !== null && workOrder.actualQuantity !== undefined;
+    if (hasExisting) return; // Don't overwrite if already recorded
+
+    const planned = Number(workOrder.plannedQuantity) || 0;
+    const yieldTarget = Number(workOrder.bomYieldTarget) || 0;
+    const lossAllowance = Number(workOrder.bomLossAllowance) || 0;
+
+    if (planned > 0 && (yieldTarget > 0 || lossAllowance > 0)) {
+      setFormData(prev => ({
+        ...prev,
+        actualQuantity: yieldTarget > 0 ? Math.round(planned * yieldTarget / 100 * 10000) / 10000 : prev.actualQuantity,
+        rejectQuantity: lossAllowance > 0 ? Math.round(planned * lossAllowance / 100 * 10000) / 10000 : prev.rejectQuantity,
+      }));
+    }
+  }, [workOrder]);
 
   const hasRecorded = workOrder?.actualQuantity !== null && workOrder?.actualQuantity !== undefined;
   const isInProgress = workOrder?.status === 'in_progress';
@@ -417,6 +438,16 @@ export default function ProductionOutputPage() {
             </h3>
 
             <div className="space-y-4">
+              {/* BOM Target Info */}
+              {(workOrder.bomYieldTarget || workOrder.bomLossAllowance) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                  <span className="font-medium">BOM Target:</span>
+                  {workOrder.bomYieldTarget ? ` Yield ${Number(workOrder.bomYieldTarget).toFixed(2)}%` : ''}
+                  {workOrder.bomLossAllowance ? ` · Loss Allowance ${Number(workOrder.bomLossAllowance).toFixed(2)}%` : ''}
+                  {' '}(จำนวนแผน {Number(workOrder.plannedQuantity).toLocaleString()} {workOrder.unit})
+                </div>
+              )}
+
               {/* Actual Quantity */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -442,6 +473,11 @@ export default function ProductionOutputPage() {
                     Yield: {liveYieldPercent.toFixed(2)}% ({formData.actualQuantity.toLocaleString()} / {Number(workOrder.plannedQuantity).toLocaleString()})
                   </p>
                 )}
+                {workOrder.bomYieldTarget && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    คำนวณจาก BOM Yield Target {Number(workOrder.bomYieldTarget).toFixed(2)}% = {(Number(workOrder.plannedQuantity) * Number(workOrder.bomYieldTarget) / 100).toLocaleString()} {workOrder.unit}
+                  </p>
+                )}
               </div>
 
               {/* Reject Quantity */}
@@ -459,6 +495,11 @@ export default function ProductionOutputPage() {
                   showSpinButtons
                   width="100%"
                 />
+                {workOrder.bomLossAllowance && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    คำนวณจาก BOM Loss Allowance {Number(workOrder.bomLossAllowance).toFixed(2)}% = {(Number(workOrder.plannedQuantity) * Number(workOrder.bomLossAllowance) / 100).toLocaleString()} {workOrder.unit}
+                  </p>
+                )}
               </div>
 
               {/* Warehouse Selection */}

@@ -57,7 +57,25 @@ export async function GET(
         return NextResponse.json({ success: false, error: 'Work order not found' }, { status: 404 });
       }
 
-      const workOrder = woResult[0];
+      const workOrder = woResult[0] as Record<string, unknown>;
+
+      // Get BOM yield/loss settings if BOM is linked
+      if (workOrder.bomId) {
+        const bom = getTableRef('bOM');
+        const bomResult = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              yieldTarget: bom.yieldTarget,
+              lossAllowance: bom.lossAllowance,
+            })
+            .from(bom)
+            .where(eq(bom.id, workOrder.bomId));
+        });
+        if (bomResult.length > 0) {
+          workOrder.bomYieldTarget = bomResult[0].yieldTarget;
+          workOrder.bomLossAllowance = bomResult[0].lossAllowance;
+        }
+      }
 
       // Get work order materials
       const materialsResult = await executeDbOperation(async (db) => {
