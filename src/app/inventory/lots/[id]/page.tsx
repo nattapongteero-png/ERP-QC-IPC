@@ -280,17 +280,42 @@ export default function LotDetailPage() {
 
   // QC tests table columns
   const qcTestColumns: DxDataGridColumn[] = [
-    { dataField: 'sampleNumber', caption: 'Sample Number', cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.sampleNumber || '-'}</span> },
-    { dataField: 'testType', caption: 'Test Type' },
+    { dataField: 'testName', caption: 'Test Name', width: 160, cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.testName || cellInfo.data.sampleNumber || '-'}</span> },
+    { dataField: 'testType', caption: 'Type', width: 100, cellRender: (cellInfo) => {
+      const typeLabels: Record<string, string> = { incoming: 'Incoming', in_process: 'In-Process', final: 'Final' };
+      return <span className="text-xs">{typeLabels[cellInfo.data.testType] || cellInfo.data.testType}</span>;
+    }},
     {
       dataField: 'status',
       caption: 'Status',
-      width: 120,
+      width: 90,
       cellRender: (cellInfo) => <Badge variant={getQcStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>
     },
-    { dataField: 'result', caption: 'Result', cellRender: (cellInfo) => cellInfo.data.result || '-' },
-    { dataField: 'testedByName', caption: 'Tested By', cellRender: (cellInfo) => cellInfo.data.testedByName || '-' },
-    { dataField: 'testDate', caption: 'Test Date', width: 130, cellRender: (cellInfo) => formatDate(cellInfo.data.testDate) },
+    { dataField: 'numericResult', caption: 'Result', width: 120, cellRender: (cellInfo) => {
+      const d = cellInfo.data;
+      if (d.numericResult != null) {
+        return <span className="font-medium">{Number(d.numericResult).toFixed(2)}{d.specUnit ? ` ${d.specUnit}` : ''}</span>;
+      }
+      return <span>{d.result || '-'}</span>;
+    }},
+    { dataField: 'specMinValue', caption: 'Spec Range', width: 130, cellRender: (cellInfo) => {
+      const d = cellInfo.data;
+      if (d.specMinValue != null && d.specMaxValue != null) {
+        return <span className="text-xs text-gray-600">{Number(d.specMinValue).toFixed(2)} - {Number(d.specMaxValue).toFixed(2)}{d.specUnit ? ` ${d.specUnit}` : ''}</span>;
+      }
+      if (d.specSpecification) return <span className="text-xs text-gray-600">{d.specSpecification}</span>;
+      return <span className="text-gray-400">-</span>;
+    }},
+    { dataField: 'disposition', caption: 'Disposition', width: 110, cellRender: (cellInfo) => {
+      const d = cellInfo.data.disposition;
+      if (!d) return <span className="text-gray-400">-</span>;
+      const colors: Record<string, string> = { accept: 'bg-green-100 text-green-800', reject: 'bg-red-100 text-red-800', rework: 'bg-amber-100 text-amber-800', pending: 'bg-gray-100 text-gray-600' };
+      return <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${colors[d] || 'bg-gray-100 text-gray-600'}`}>{d}</span>;
+    }},
+    { dataField: 'testedByName', caption: 'Tested By', width: 120, cellRender: (cellInfo) => cellInfo.data.testedByName || '-' },
+    { dataField: 'approvedByName', caption: 'Approved By', width: 120, cellRender: (cellInfo) => cellInfo.data.approvedByName || '-' },
+    { dataField: 'testDate', caption: 'Test Date', width: 110, cellRender: (cellInfo) => formatDate(cellInfo.data.testDate) },
+    { dataField: 'notes', caption: 'Notes', cellRender: (cellInfo) => cellInfo.data.notes ? <span className="text-xs text-gray-600 truncate block max-w-[200px]" title={cellInfo.data.notes}>{cellInfo.data.notes}</span> : '-' },
   ];
 
   // Work orders table columns
