@@ -38,15 +38,23 @@ interface SOPTemplateFormProps {
 }
 
 const categories = [
-  { value: 'preparation', label: 'Preparation' },
-  { value: 'weighing', label: 'Weighing' },
-  { value: 'mixing', label: 'Mixing' },
-  { value: 'heating', label: 'Heating' },
-  { value: 'cooling', label: 'Cooling' },
-  { value: 'packaging', label: 'Packaging' },
-  { value: 'cleaning', label: 'Cleaning' },
-  { value: 'inspection', label: 'Inspection' },
-  { value: 'other', label: 'Other' },
+  { value: 'line_clearance', label: 'Line Clearance (การเคลียร์สายผลิต)' },
+  { value: 'dispensing', label: 'Dispensing (การเบิกจ่าย/ชั่ง)' },
+  { value: 'preparation', label: 'Preparation (การเตรียม)' },
+  { value: 'milling', label: 'Milling / Grinding (การบด)' },
+  { value: 'sieving', label: 'Sieving (การแร่ง)' },
+  { value: 'drying', label: 'Drying (การอบแห้ง)' },
+  { value: 'blending', label: 'Blending / Mixing (การผสม)' },
+  { value: 'mixing', label: 'Mixing (การผสม)' },
+  { value: 'heating', label: 'Heating (การให้ความร้อน)' },
+  { value: 'cooling', label: 'Cooling (การทำให้เย็น)' },
+  { value: 'filling', label: 'Filling (การบรรจุ)' },
+  { value: 'packaging', label: 'Packaging (การบรรจุภัณฑ์)' },
+  { value: 'ipc', label: 'In-Process Control (IPC)' },
+  { value: 'weighing', label: 'Weighing (การชั่ง)' },
+  { value: 'cleaning', label: 'Cleaning (การทำความสะอาด)' },
+  { value: 'inspection', label: 'Inspection (การตรวจสอบ)' },
+  { value: 'other', label: 'Other (อื่นๆ)' },
 ];
 
 export function SOPTemplateForm({ mode, id }: SOPTemplateFormProps) {

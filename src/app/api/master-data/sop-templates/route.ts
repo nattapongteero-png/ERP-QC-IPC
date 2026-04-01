@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Validate category
-      const validCategories = ['preparation', 'weighing', 'mixing', 'heating', 'cooling', 'packaging', 'cleaning', 'inspection', 'other'];
+      const validCategories = ['line_clearance', 'dispensing', 'preparation', 'milling', 'sieving', 'drying', 'blending', 'mixing', 'heating', 'cooling', 'filling', 'packaging', 'ipc', 'weighing', 'cleaning', 'inspection', 'other'];
       if (!validCategories.includes(data.category)) {
         return errorResponse(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
       }
@@ -111,7 +111,7 @@ export async function PUT(request: NextRequest) {
 
       // Validate category if provided
       if (data.category) {
-        const validCategories = ['preparation', 'weighing', 'mixing', 'heating', 'cooling', 'packaging', 'cleaning', 'inspection', 'other'];
+        const validCategories = ['line_clearance', 'dispensing', 'preparation', 'milling', 'sieving', 'drying', 'blending', 'mixing', 'heating', 'cooling', 'filling', 'packaging', 'ipc', 'weighing', 'cleaning', 'inspection', 'other'];
         if (!validCategories.includes(data.category)) {
           return errorResponse(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
         }
