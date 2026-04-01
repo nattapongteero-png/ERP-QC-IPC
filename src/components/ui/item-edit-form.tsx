@@ -569,7 +569,7 @@ export function ItemEditForm({
 
       {/* Scrollable Body */}
       <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/50">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 lg:py-8 pb-20">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 lg:py-8">
           <div className="grid grid-cols-12 gap-6">
 
             {/* Left Column - Main Form (8 cols) */}
@@ -1167,8 +1167,8 @@ export function ItemEditForm({
 
       </div>
 
-      {/* Fixed Footer - always visible at bottom of viewport */}
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 px-4 md:px-6 lg:px-8 py-4 border-t bg-white/95 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.08)] z-30">
+      {/* Footer - pinned at bottom via flex layout */}
+      <div className="flex-none px-4 md:px-6 lg:px-8 py-4 border-t bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.08)] z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="text-sm text-gray-500">
             {isEditing && item?.createdAt ? (
