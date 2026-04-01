@@ -10,7 +10,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
@@ -36,7 +36,10 @@ import {
   ChevronRight,
   Boxes,
   Settings,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import type { BOMDashboard } from '@/app/api/bom/dashboard/route';
 
 // Status configuration - Simplified workflow: draft → approved → obsolete
@@ -52,6 +55,8 @@ const chartColors = ['#059669', '#3B82F6', '#F59E0B', '#6B7280'];
 
 export default function BOMDashboardPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
   const t = useTranslations('production');
   const [statusFilter, setStatusFilter] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -113,6 +118,23 @@ export default function BOMDashboardPage() {
       </span>
     );
   };
+
+  const deleteBomMutation = useMutation({
+    mutationFn: async (bomId: number) => {
+      const res = await fetch(`/api/bom/${bomId}`, { method: 'DELETE' });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bom-list'] });
+      queryClient.invalidateQueries({ queryKey: ['bom-dashboard'] });
+      toast.success('BOM Deleted', 'Draft BOM has been deleted.');
+    },
+    onError: (error: Error) => {
+      toast.error('Error', error.message);
+    },
+  });
 
   const filteredBOMs = bomData?.filter((bom: { status: string }) => {
     if (activeTab === 'all') return true;
@@ -398,7 +420,7 @@ export default function BOMDashboardPage() {
             showBorders={false}
             rowAlternationEnabled
             loading={bomLoading}
-            height={350}
+            height={650}
             width="100%"
             columnAutoWidth
             showColumnLines={false}
@@ -409,7 +431,7 @@ export default function BOMDashboardPage() {
             }}
           >
             <DxSearchPanel visible placeholder="Search..." width={160} />
-            <DxPaging defaultPageSize={10} />
+            <DxPaging defaultPageSize={20} />
 
             <DxColumn
               dataField="code"
@@ -470,18 +492,52 @@ export default function BOMDashboardPage() {
               format="yyyy-MM-dd"
             />
             <DxColumn
-              caption=""
-              width={40}
-              cellRender={(cell) => (
-                <DxButton
-                  icon="chevronright"
-                  stylingMode="text"
-                  onClick={(e) => {
-                    e?.event?.stopPropagation();
-                    router.push(`/production/bom/${cell.data.id}`);
-                  }}
-                />
-              )}
+              caption="Actions"
+              width={110}
+              cellRender={(cell) => {
+                const bom = cell.data as { id: number; status: string };
+                const isDraft = bom.status === 'draft';
+                return (
+                  <div className="flex items-center gap-1">
+                    {isDraft && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/production/bom/${bom.id}`);
+                          }}
+                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('ต้องการลบ BOM นี้หรือไม่?')) {
+                              deleteBomMutation.mutate(bom.id);
+                            }
+                          }}
+                          disabled={deleteBomMutation.isPending}
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/production/bom/${bom.id}`);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded transition-colors"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              }}
               allowFiltering={false}
               allowSorting={false}
             />
