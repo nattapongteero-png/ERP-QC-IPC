@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         'secondaryUnit', 'conversionRate', 'shelfLifeDays', 'storageCondition',
         'minStock', 'maxStock', 'reorderPoint', 'isLotControlled', 'isFEFO', 'isActive',
         'tppCode', 'tppName', 'ttmtCode', 'ttmtName', 'drugCode24', 'vmiSyncEnabled',
-        'confidentialityLevel', 'defaultConfidential', 'strength'
+        'confidentialityLevel', 'defaultConfidential', 'strength', 'gRegNumber'
       ];
 
       // Map frontend field names to DB column names

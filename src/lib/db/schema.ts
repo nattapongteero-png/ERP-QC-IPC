@@ -108,6 +108,7 @@ export const sqliteItems = sqliteTable('items', {
   lastVmiSyncAt: text('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
   strength: text('strength'),
+  gRegNumber: text('g_reg_number'), // เลขที่ทะเบียน G (drug registration number)
   // Unit Cost Calculation fields (014-unit-cost)
   currentWAC: real('current_wac'), // Current weighted average cost
   lastPurchaseCost: real('last_purchase_cost'), // From most recent PO receipt
@@ -1457,6 +1458,7 @@ export const mysqlItems = mysqlTable('items', {
   lastVmiSyncAt: datetime('last_vmi_sync_at'),
   // Phase 2: Strength/potency for finished goods (FR-059)
   strength: varchar('strength', { length: 100 }),
+  gRegNumber: varchar('g_reg_number', { length: 50 }), // เลขที่ทะเบียน G
   // Unit Cost Calculation fields (014-unit-cost)
   currentWAC: decimal('current_wac', { precision: 15, scale: 4 }), // Current weighted average cost
   lastPurchaseCost: decimal('last_purchase_cost', { precision: 15, scale: 4 }), // From most recent PO receipt

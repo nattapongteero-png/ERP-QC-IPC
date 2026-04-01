@@ -77,6 +77,7 @@ export interface Item {
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string | null;
+  gRegNumber: string | null;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
   defaultConfidential: boolean;
@@ -106,6 +107,7 @@ export interface ItemFormData {
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string;
+  gRegNumber: string;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
   defaultConfidential: boolean;
@@ -166,6 +168,7 @@ export const getDefaultFormData = (): ItemFormData => ({
   drugCode24: '',
   vmiSyncEnabled: false,
   strength: '',
+  gRegNumber: '',
   confidentialityLevel: 'public',
   defaultConfidential: false,
 });
@@ -192,6 +195,7 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   drugCode24: item.drugCode24 || '',
   vmiSyncEnabled: item.vmiSyncEnabled || false,
   strength: item.strength || '',
+  gRegNumber: item.gRegNumber || '',
   confidentialityLevel: item.confidentialityLevel || 'public',
   defaultConfidential: item.defaultConfidential || false,
 });
@@ -671,6 +675,19 @@ export function ItemEditForm({
                         placeholder="e.g., 500mg, 250mg/5ml"
                       />
                       <p className="text-xs text-gray-500 mt-1">Dosage strength for GMP compliance</p>
+                    </div>
+                  )}
+                  {/* เลขที่ทะเบียน G */}
+                  {formData.type === 'finished_goods' && (
+                    <div className="col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">เลขที่ทะเบียน G</label>
+                      <DxTextBox
+                        value={formData.gRegNumber}
+                        onValueChange={(value) => updateFormData('gRegNumber', value)}
+                        placeholder="e.g., G 123/45"
+                        maxLength={50}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">เลขที่ทะเบียนตำรับยา (G number)</p>
                     </div>
                   )}
                 </div>
