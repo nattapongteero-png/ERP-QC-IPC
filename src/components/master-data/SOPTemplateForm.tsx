@@ -63,9 +63,7 @@ export function SOPTemplateForm({ mode, id }: SOPTemplateFormProps) {
       const res = await fetch(`/api/master-data/sop-templates?id=${id}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      const items = data.data;
-      const item = Array.isArray(items) ? items.find((i: SOPTemplate) => i.id === id) : items;
-      return item;
+      return data.data;
     },
     enabled: mode === 'edit' && !!id,
   });

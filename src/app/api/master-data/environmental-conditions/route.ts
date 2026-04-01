@@ -17,7 +17,14 @@ export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
       const isActive = searchParams.get('isActive');
+
+      if (id) {
+        const condition = await getEnvironmentalConditionById(Number(id));
+        if (!condition) return successResponse(null);
+        return successResponse(condition);
+      }
 
       const conditions = await getEnvironmentalConditions({
         isActive: isActive ? isActive === 'true' : undefined,

@@ -68,10 +68,7 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
       const res = await fetch(`/api/master-data/production-equipment?id=${id}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      // API returns array, get the single item
-      const items = data.data;
-      const item = Array.isArray(items) ? items.find((i: ProductionEquipment) => i.id === id) : items;
-      return item;
+      return data.data;
     },
     enabled: mode === 'edit' && !!id,
   });

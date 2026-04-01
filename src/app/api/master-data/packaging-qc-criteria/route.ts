@@ -17,7 +17,14 @@ export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
       const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
       const isActive = searchParams.get('isActive');
+
+      if (id) {
+        const item = await getPackagingQCCriteriaById(Number(id));
+        if (!item) return successResponse(null);
+        return successResponse(item);
+      }
 
       const criteria = await getPackagingQCCriteria({
         isActive: isActive ? isActive === 'true' : undefined,

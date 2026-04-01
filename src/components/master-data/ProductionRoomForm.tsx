@@ -57,9 +57,7 @@ export function ProductionRoomForm({ mode, id }: ProductionRoomFormProps) {
       const res = await fetch(`/api/master-data/production-rooms?id=${id}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      const items = data.data;
-      const item = Array.isArray(items) ? items.find((i: ProductionRoom) => i.id === id) : items;
-      return item;
+      return data.data;
     },
     enabled: mode === 'edit' && !!id,
   });
