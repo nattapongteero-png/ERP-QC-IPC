@@ -140,7 +140,7 @@ export default function SOPTemplatesPage() {
           columnAutoWidth
         >
           <DxSearchPanel visible placeholder="Search templates..." width={200} />
-          <DxPaging defaultPageSize={15} />
+          <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="code" caption="Code" minWidth={140} cellRender={(cell) => (
             <span className="font-mono font-medium text-amber-700">{cell.value}</span>
