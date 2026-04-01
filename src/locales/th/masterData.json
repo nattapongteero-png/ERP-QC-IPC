@@ -23,6 +23,10 @@
     "packagingQCCriteria": {
       "title": "เกณฑ์ QC บรรจุภัณฑ์",
       "description": "กำหนดเกณฑ์น้ำหนักและการควบคุมคุณภาพบรรจุภัณฑ์"
+    },
+    "ipcCriteria": {
+      "title": "เกณฑ์ IPC",
+      "description": "กำหนดเกณฑ์การควบคุมคุณภาพระหว่างผลิต (In-Process Control)"
     }
   },
   "about": {
@@ -33,7 +37,8 @@
       "productionEquipment": "ลงทะเบียนอุปกรณ์ที่ใช้ในการผลิต",
       "environmentalConditions": "ตั้งค่าโปรไฟล์การตรวจสอบอุณหภูมิ/ความชื้น",
       "sopTemplates": "สร้างเทมเพลตขั้นตอนการผลิตที่ใช้ซ้ำได้",
-      "packagingQCCriteria": "กำหนดมาตรฐานน้ำหนักและการควบคุมคุณภาพ"
+      "packagingQCCriteria": "กำหนดมาตรฐานน้ำหนักและการควบคุมคุณภาพ",
+      "ipcCriteria": "กำหนดเกณฑ์การตรวจสอบคุณภาพระหว่างการผลิต"
     }
   },
  "productionRooms": {

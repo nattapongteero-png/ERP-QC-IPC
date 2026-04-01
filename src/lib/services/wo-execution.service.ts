@@ -1491,27 +1491,29 @@ export async function verifyWOPackagingMaterial(materialId: number, verifierId: 
  */
 export async function getBOMIPCConfig(bomId: number) {
   const tables = getTables();
+  const ipcCriteria = getTableRef('iPCCriteria');
 
   return executeDbOperation(async (db: any) => {
     return db
       .select({
         id: tables.bomInProcessQC.id,
         bomId: tables.bomInProcessQC.bomId,
-        specId: tables.bomInProcessQC.specId,
+        criteriaId: tables.bomInProcessQC.criteriaId,
         sequence: tables.bomInProcessQC.sequence,
         sampleSize: tables.bomInProcessQC.sampleSize,
         isCritical: tables.bomInProcessQC.isCritical,
-        // Spec details
-        testName: tables.qualitySpecs.testName,
-        testMethod: tables.qualitySpecs.testMethod,
-        specification: tables.qualitySpecs.specification,
-        minValue: tables.qualitySpecs.minValue,
-        maxValue: tables.qualitySpecs.maxValue,
-        unit: tables.qualitySpecs.unit,
-        specIsCritical: tables.qualitySpecs.isCritical,
+        // IPC Criteria details
+        testName: ipcCriteria.name,
+        testNameTh: ipcCriteria.nameTh,
+        testMethod: ipcCriteria.testMethod,
+        specification: ipcCriteria.specification,
+        minValue: ipcCriteria.minValue,
+        maxValue: ipcCriteria.maxValue,
+        unit: ipcCriteria.unit,
+        criteriaIsCritical: ipcCriteria.isCritical,
       })
       .from(tables.bomInProcessQC)
-      .innerJoin(tables.qualitySpecs, eq(tables.bomInProcessQC.specId, tables.qualitySpecs.id))
+      .innerJoin(ipcCriteria, eq(tables.bomInProcessQC.criteriaId, ipcCriteria.id))
       .where(eq(tables.bomInProcessQC.bomId, bomId))
       .orderBy(asc(tables.bomInProcessQC.sequence));
   });
@@ -1519,7 +1521,7 @@ export async function getBOMIPCConfig(bomId: number) {
 
 export interface CreateIPCTestInput {
   workOrderId: number;
-  specId: number;
+  criteriaId: number;
   bomIpcId: number;
   sampleSize: number;
   operatorId: number;
@@ -1812,7 +1814,7 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
 
     // Check existing IPC tests to avoid duplicates
     const existingTests = await db
-      .select({ specId: tables.qualityTests.specId })
+      .select({ sampleNumber: tables.qualityTests.sampleNumber })
       .from(tables.qualityTests)
       .where(
         and(
@@ -1820,30 +1822,33 @@ export async function initializeWOIPCTests(workOrderId: number, operatorId: numb
           eq(tables.qualityTests.testType, 'in_process')
         )
       );
-    const existingSpecIds = new Set(existingTests.map((t: any) => t.specId));
+    const existingCount = existingTests.length;
 
-    // Create quality_tests for each BOM IPC spec
+    // Create quality_tests for each BOM IPC criteria
     const created = [];
-    for (const config of ipcConfig) {
-      if (existingSpecIds.has(config.specId)) continue;
+    for (let i = 0; i < ipcConfig.length; i++) {
+      const config = ipcConfig[i];
+      // Skip if already initialized (based on count match)
+      if (existingCount >= ipcConfig.length) continue;
 
       const testResult = await db.insert(tables.qualityTests).values({
         lotId: targetLotId,
-        specId: config.specId,
         testType: 'in_process',
+        sampleNumber: `IPC-${config.sequence || (i + 1)}`,
         sampleSize: config.sampleSize,
         status: 'pending',
         requestedBy: operatorId,
         requestedAt: getNow(),
-        // Snapshot spec values
+        // Snapshot criteria values
         specMinValue: config.minValue,
         specMaxValue: config.maxValue,
-        specSpecification: config.specification,
+        specSpecification: config.specification || config.testName,
         specUnit: config.unit,
+        notes: config.testNameTh || config.testName,
         createdAt: getNow(),
         updatedAt: getNow(),
       });
-      created.push({ id: getInsertId(testResult), specId: config.specId, testName: config.testName });
+      created.push({ id: getInsertId(testResult), criteriaId: config.criteriaId, testName: config.testName });
     }
 
     return created;

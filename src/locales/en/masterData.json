@@ -23,6 +23,10 @@
     "packagingQCCriteria": {
       "title": "Packaging QC Criteria",
       "description": "Define packaging weight and quality control criteria"
+    },
+    "ipcCriteria": {
+      "title": "IPC Criteria",
+      "description": "Define In-Process Control test criteria for production quality"
     }
   },
   "about": {
@@ -33,7 +37,8 @@
       "productionEquipment": "Register equipment used in production",
       "environmentalConditions": "Set temperature/humidity monitoring profiles",
       "sopTemplates": "Create reusable production step templates",
-      "packagingQCCriteria": "Define weight and quality control standards"
+      "packagingQCCriteria": "Define weight and quality control standards",
+      "ipcCriteria": "Define in-process quality control test criteria"
     }
   },
   "productionRooms": {

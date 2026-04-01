@@ -1233,10 +1233,28 @@ export const sqliteBOMPackagingQC = sqliteTable('bom_packaging_qc', {
 });
 
 // BOM In-Process QC - Link quality specs to BOM for IPC tests
+// IPC Criteria (Master Data) - In-Process Control test criteria templates
+export const sqliteIPCCriteria = sqliteTable('ipc_criteria', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  nameTh: text('name_th'),
+  testMethod: text('test_method'),
+  specification: text('specification'), // e.g., "200 ± 10 mg"
+  minValue: real('min_value'),
+  maxValue: real('max_value'),
+  unit: text('unit'), // e.g., "mg", "mm", "min"
+  sampleSize: integer('sample_size').notNull().default(5),
+  checkIntervalMinutes: integer('check_interval_minutes').notNull().default(30),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 export const sqliteBOMInProcessQC = sqliteTable('bom_in_process_qc', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
-  specId: integer('spec_id').notNull().references(() => sqliteQualitySpecs.id),
+  criteriaId: integer('criteria_id').notNull().references(() => sqliteIPCCriteria.id),
   sequence: integer('sequence').notNull().default(1),
   sampleSize: integer('sample_size').notNull().default(1),
   isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
@@ -4387,10 +4405,28 @@ export const mysqlBOMPackagingQC = mysqlTable('bom_packaging_qc', {
 });
 
 // BOM In-Process QC - MySQL
+// IPC Criteria (Master Data) - MySQL
+export const mysqlIPCCriteria = mysqlTable('ipc_criteria', {
+  id: int('id').primaryKey().autoincrement(),
+  code: varchar('code', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  nameTh: varchar('name_th', { length: 255 }),
+  testMethod: varchar('test_method', { length: 255 }),
+  specification: varchar('specification', { length: 255 }), // e.g., "200 ± 10 mg"
+  minValue: decimal('min_value', { precision: 15, scale: 4 }),
+  maxValue: decimal('max_value', { precision: 15, scale: 4 }),
+  unit: varchar('unit', { length: 50 }), // e.g., "mg", "mm", "min"
+  sampleSize: int('sample_size').notNull().default(5),
+  checkIntervalMinutes: int('check_interval_minutes').notNull().default(30),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const mysqlBOMInProcessQC = mysqlTable('bom_in_process_qc', {
   id: int('id').primaryKey().autoincrement(),
   bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
-  specId: int('spec_id').notNull().references(() => mysqlQualitySpecs.id),
+  criteriaId: int('criteria_id').notNull().references(() => mysqlIPCCriteria.id),
   sequence: int('sequence').notNull().default(1),
   sampleSize: int('sample_size').notNull().default(1),
   isCritical: mysqlBoolean('is_critical').notNull().default(false),
@@ -6172,6 +6208,8 @@ export type BOMSOPStep = typeof sqliteBOMSOPSteps.$inferSelect;
 export type NewBOMSOPStep = typeof sqliteBOMSOPSteps.$inferInsert;
 export type BOMPackagingQC = typeof sqliteBOMPackagingQC.$inferSelect;
 export type NewBOMPackagingQC = typeof sqliteBOMPackagingQC.$inferInsert;
+export type IPCCriteria = typeof sqliteIPCCriteria.$inferSelect;
+export type NewIPCCriteria = typeof sqliteIPCCriteria.$inferInsert;
 export type BOMInProcessQC = typeof sqliteBOMInProcessQC.$inferSelect;
 export type NewBOMInProcessQC = typeof sqliteBOMInProcessQC.$inferInsert;
 export type IPCTestSample = typeof sqliteIPCTestSamples.$inferSelect;

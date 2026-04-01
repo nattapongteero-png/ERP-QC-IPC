@@ -15,6 +15,7 @@ import {
   Thermometer,
   FileText,
   Scale,
+  FlaskConical,
   ChevronRight
 } from 'lucide-react';
 
@@ -54,6 +55,13 @@ const masterDataModules = [
     iconBgColor: 'bg-indigo-100',
     iconColor: 'text-indigo-600',
   },
+  {
+    key: 'ipcCriteria',
+    href: '/master-data/ipc-criteria',
+    icon: FlaskConical,
+    iconBgColor: 'bg-emerald-100',
+    iconColor: 'text-emerald-600',
+  },
 ];
 
 export default function MasterDataPage() {
@@ -68,6 +76,10 @@ export default function MasterDataPage() {
         icon={Database}
         iconBgColor="bg-gray-100"
         iconColor="text-gray-600"
+        breadcrumbs={[
+          { label: 'Production', href: '/production/work-orders' },
+          { label: 'Master Data' },
+        ]}
       />
 
       {/* Module Cards */}
