@@ -530,12 +530,13 @@ export default function IPCPage() {
           resetForm();
         }}
         title={selectedTest
-          ? `${t('execution.recordResult')}: ${selectedTest.testName || `Test #${selectedTest.id}`}`
+          ? `${t('execution.recordResult')}: ${selectedTest.testName || selectedTest.specSpecification || `IPC-${selectedTest.id}`}`
           : t('execution.recordResult')
         }
         width={500}
         height="auto"
         showCloseButton
+        dragEnabled={false}
       >
         {selectedTest && (
           <div className="p-4 space-y-4">

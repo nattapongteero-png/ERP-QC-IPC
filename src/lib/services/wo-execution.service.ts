@@ -1605,7 +1605,7 @@ export async function getWOIPCTests(workOrderId: number) {
       )
       .orderBy(asc(tables.qualityTests.id));
 
-    // Get samples for each test
+    // Get samples for each test + resolve testName from notes if specId is null
     const testsWithSamples = await Promise.all(
       tests.map(async (test: any) => {
         const samples = await db
@@ -1613,7 +1613,12 @@ export async function getWOIPCTests(workOrderId: number) {
           .from(tables.ipcTestSamples)
           .where(eq(tables.ipcTestSamples.qualityTestId, test.id))
           .orderBy(asc(tables.ipcTestSamples.sampleNumber));
-        return { ...test, samples };
+        return {
+          ...test,
+          // Use notes as testName fallback when specId is null (IPC criteria-based tests)
+          testName: test.testName || test.notes || test.specSpecification || `IPC-${test.sampleNumber || test.id}`,
+          samples,
+        };
       })
     );
 
