@@ -73,6 +73,7 @@ export interface Item {
   tppName: string | null;
   ttmtCode: string | null;
   ttmtName: string | null;
+  drugCode24: string | null;
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string | null;
@@ -101,6 +102,7 @@ export interface ItemFormData {
   tppName: string;
   ttmtCode: string;
   ttmtName: string;
+  drugCode24: string;
   vmiSyncEnabled: boolean;
   // GMP Phase 4: Strength for finished goods (FR-059)
   strength: string;
@@ -161,6 +163,7 @@ export const getDefaultFormData = (): ItemFormData => ({
   tppName: '',
   ttmtCode: '',
   ttmtName: '',
+  drugCode24: '',
   vmiSyncEnabled: false,
   strength: '',
   confidentialityLevel: 'public',
@@ -186,6 +189,7 @@ export const itemToFormData = (item: Item): ItemFormData => ({
   tppName: item.tppName || '',
   ttmtCode: item.ttmtCode || '',
   ttmtName: item.ttmtName || '',
+  drugCode24: item.drugCode24 || '',
   vmiSyncEnabled: item.vmiSyncEnabled || false,
   strength: item.strength || '',
   confidentialityLevel: item.confidentialityLevel || 'public',
@@ -761,6 +765,19 @@ export function ItemEditForm({
                     <p className="text-xs text-gray-500 mt-1">Thai Traditional Medicine Terminology code</p>
                   </div>
                 </div>
+
+                {/* Drug Code 24 digits */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">รหัสยา 24 หลัก (Drug Code 24)</label>
+                  <DxTextBox
+                    value={formData.drugCode24}
+                    onValueChange={(value) => updateFormData('drugCode24', value)}
+                    placeholder="เลขทะเบียนยา 24 หลัก"
+                    maxLength={24}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">เลขรหัสยามาตรฐาน 24 หลัก สำหรับการระบุตัวยาในระบบ VMI</p>
+                </div>
+
                 {formData.vmiSyncEnabled && (formData.tppCode || formData.ttmtCode) && (
                   <div className="mt-4 bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
                     <div className="p-2 bg-emerald-100 rounded-lg">

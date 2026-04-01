@@ -102,6 +102,7 @@ export const sqliteItems = sqliteTable('items', {
   tppName: text('tpp_name'), // TPP product name from VMI Portal
   ttmtCode: text('ttmt_code'), // Thai Traditional Medicine Terminology (A + 8 digits)
   ttmtName: text('ttmt_name'), // TTMT product name (FSN) from VMI Portal
+  drugCode24: text('drug_code_24'), // 24-digit drug registration code
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSyncEnabled: integer('vmi_sync_enabled', { mode: 'boolean' }).notNull().default(false),
   lastVmiSyncAt: text('last_vmi_sync_at'),
@@ -1450,6 +1451,7 @@ export const mysqlItems = mysqlTable('items', {
   tppName: varchar('tpp_name', { length: 255 }), // TPP product name from VMI Portal
   ttmtCode: varchar('ttmt_code', { length: 10 }), // Thai Traditional Medicine Terminology (A + 8 digits)
   ttmtName: varchar('ttmt_name', { length: 255 }), // TTMT product name (FSN) from VMI Portal
+  drugCode24: varchar('drug_code_24', { length: 24 }), // 24-digit drug registration code
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSyncEnabled: mysqlBoolean('vmi_sync_enabled').notNull().default(false),
   lastVmiSyncAt: datetime('last_vmi_sync_at'),
