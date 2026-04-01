@@ -49,13 +49,6 @@ const categories = [
 ];
 
 export function SOPTemplateForm({ mode, id }: SOPTemplateFormProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const [formData, setFormData] = React.useState<Partial<SOPTemplate>>({
-    isActive: true,
-  });
-
   // Fetch existing template for edit mode
   const { data: existingTemplate, isLoading: isLoadingTemplate } = useQuery<SOPTemplate>({
     queryKey: ['sop-template', id],
@@ -68,12 +61,38 @@ export function SOPTemplateForm({ mode, id }: SOPTemplateFormProps) {
     enabled: mode === 'edit' && !!id,
   });
 
-  // Populate form when editing
-  React.useEffect(() => {
-    if (existingTemplate) {
-      setFormData(existingTemplate);
-    }
-  }, [existingTemplate]);
+  // Block render until data is loaded — then mount inner form with key to ensure
+  // DevExtreme TextBox gets correct initial values (it doesn't re-render from '' → value)
+  if (mode === 'edit' && (isLoadingTemplate || !existingTemplate)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  const initialData: Partial<SOPTemplate> = existingTemplate
+    ? {
+        code: existingTemplate.code || '',
+        name: existingTemplate.name || '',
+        nameTh: existingTemplate.nameTh || '',
+        category: existingTemplate.category || '',
+        instructions: existingTemplate.instructions || '',
+        instructionsTh: existingTemplate.instructionsTh || '',
+        defaultParameters: existingTemplate.defaultParameters || '',
+        isActive: existingTemplate.isActive ?? true,
+      }
+    : { code: '', name: '', nameTh: '', category: '', instructions: '', instructionsTh: '', defaultParameters: '', isActive: true };
+
+  return <SOPTemplateFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingTemplate={existingTemplate} />;
+}
+
+function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTemplateFormProps & { initialData: Partial<SOPTemplate>; existingTemplate?: SOPTemplate | null }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const [formData, setFormData] = React.useState<Partial<SOPTemplate>>(initialData);
 
   // Create/Update mutation
   const saveMutation = useMutation({
@@ -116,14 +135,6 @@ export function SOPTemplateForm({ mode, id }: SOPTemplateFormProps) {
   const handleCancel = () => {
     router.push('/master-data/sop-templates');
   };
-
-  if (mode === 'edit' && isLoadingTemplate) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">

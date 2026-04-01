@@ -37,19 +37,6 @@ interface PackagingQCCriteriaFormProps {
 }
 
 export function PackagingQCCriteriaForm({ mode, id }: PackagingQCCriteriaFormProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const [formData, setFormData] = React.useState<Partial<PackagingQCCriteria>>({
-    weightMin: 30,
-    weightMax: 33,
-    sampleSize: 20,
-    maxFailures: 2,
-    checkIntervalMinutes: 30,
-    unitsPerPack: 12,
-    isActive: true,
-  });
-
   // Fetch existing criteria for edit mode
   const { data: existingCriteria, isLoading: isLoadingCriteria } = useQuery<PackagingQCCriteria>({
     queryKey: ['packaging-qc-criteria', id],
@@ -62,12 +49,39 @@ export function PackagingQCCriteriaForm({ mode, id }: PackagingQCCriteriaFormPro
     enabled: mode === 'edit' && !!id,
   });
 
-  // Populate form when editing
-  React.useEffect(() => {
-    if (existingCriteria) {
-      setFormData(existingCriteria);
-    }
-  }, [existingCriteria]);
+  // Block render until data is loaded — then mount inner form with key to ensure
+  // DevExtreme TextBox gets correct initial values (it doesn't re-render from '' → value)
+  if (mode === 'edit' && (isLoadingCriteria || !existingCriteria)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  const initialData: Partial<PackagingQCCriteria> = existingCriteria
+    ? {
+        code: existingCriteria.code || '',
+        name: existingCriteria.name || '',
+        weightMin: existingCriteria.weightMin ?? 30,
+        weightMax: existingCriteria.weightMax ?? 33,
+        sampleSize: existingCriteria.sampleSize ?? 20,
+        maxFailures: existingCriteria.maxFailures ?? 2,
+        checkIntervalMinutes: existingCriteria.checkIntervalMinutes ?? 30,
+        unitsPerPack: existingCriteria.unitsPerPack ?? 12,
+        isActive: existingCriteria.isActive ?? true,
+      }
+    : { code: '', name: '', weightMin: 30, weightMax: 33, sampleSize: 20, maxFailures: 2, checkIntervalMinutes: 30, unitsPerPack: 12, isActive: true };
+
+  return <PackagingQCCriteriaFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingCriteria={existingCriteria} />;
+}
+
+function PackagingQCCriteriaFormInner({ mode, id, initialData, existingCriteria }: PackagingQCCriteriaFormProps & { initialData: Partial<PackagingQCCriteria>; existingCriteria?: PackagingQCCriteria | null }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const [formData, setFormData] = React.useState<Partial<PackagingQCCriteria>>(initialData);
 
   // Create/Update mutation
   const saveMutation = useMutation({
@@ -110,14 +124,6 @@ export function PackagingQCCriteriaForm({ mode, id }: PackagingQCCriteriaFormPro
   const handleCancel = () => {
     router.push('/master-data/packaging-qc-criteria');
   };
-
-  if (mode === 'edit' && isLoadingCriteria) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">

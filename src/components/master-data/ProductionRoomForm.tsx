@@ -43,13 +43,6 @@ const roomTypes = [
 ];
 
 export function ProductionRoomForm({ mode, id }: ProductionRoomFormProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const [formData, setFormData] = React.useState<Partial<ProductionRoom>>({
-    isActive: true,
-  });
-
   // Fetch existing room for edit mode
   const { data: existingRoom, isLoading: isLoadingRoom } = useQuery<ProductionRoom>({
     queryKey: ['production-room', id],
@@ -62,12 +55,36 @@ export function ProductionRoomForm({ mode, id }: ProductionRoomFormProps) {
     enabled: mode === 'edit' && !!id,
   });
 
-  // Populate form when editing
-  React.useEffect(() => {
-    if (existingRoom) {
-      setFormData(existingRoom);
-    }
-  }, [existingRoom]);
+  // Block render until data is loaded — then mount inner form with key to ensure
+  // DevExtreme TextBox gets correct initial values (it doesn't re-render from '' → value)
+  if (mode === 'edit' && (isLoadingRoom || !existingRoom)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  const initialData: Partial<ProductionRoom> = existingRoom
+    ? {
+        code: existingRoom.code || '',
+        name: existingRoom.name || '',
+        nameTh: existingRoom.nameTh || '',
+        roomType: existingRoom.roomType || '',
+        description: existingRoom.description || '',
+        isActive: existingRoom.isActive ?? true,
+      }
+    : { code: '', name: '', nameTh: '', roomType: '', description: '', isActive: true };
+
+  return <ProductionRoomFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingRoom={existingRoom} />;
+}
+
+function ProductionRoomFormInner({ mode, id, initialData, existingRoom }: ProductionRoomFormProps & { initialData: Partial<ProductionRoom>; existingRoom?: ProductionRoom | null }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const [formData, setFormData] = React.useState<Partial<ProductionRoom>>(initialData);
 
   // Create/Update mutation
   const saveMutation = useMutation({
@@ -110,14 +127,6 @@ export function ProductionRoomForm({ mode, id }: ProductionRoomFormProps) {
   const handleCancel = () => {
     router.push('/master-data/production-rooms');
   };
-
-  if (mode === 'edit' && isLoadingRoom) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">

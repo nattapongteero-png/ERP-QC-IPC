@@ -37,17 +37,6 @@ interface EnvironmentalConditionFormProps {
 }
 
 export function EnvironmentalConditionForm({ mode, id }: EnvironmentalConditionFormProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const [formData, setFormData] = React.useState<Partial<EnvironmentalCondition>>({
-    temperatureMin: 20,
-    temperatureMax: 30,
-    humidityMax: 60,
-    monitoringIntervalMinutes: 60,
-    isActive: true,
-  });
-
   // Fetch existing condition for edit mode
   const { data: existingCondition, isLoading: isLoadingCondition } = useQuery<EnvironmentalCondition>({
     queryKey: ['environmental-condition', id],
@@ -60,12 +49,38 @@ export function EnvironmentalConditionForm({ mode, id }: EnvironmentalConditionF
     enabled: mode === 'edit' && !!id,
   });
 
-  // Populate form when editing
-  React.useEffect(() => {
-    if (existingCondition) {
-      setFormData(existingCondition);
-    }
-  }, [existingCondition]);
+  // Block render until data is loaded — then mount inner form with key to ensure
+  // DevExtreme TextBox gets correct initial values (it doesn't re-render from '' → value)
+  if (mode === 'edit' && (isLoadingCondition || !existingCondition)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  const initialData: Partial<EnvironmentalCondition> = existingCondition
+    ? {
+        code: existingCondition.code || '',
+        name: existingCondition.name || '',
+        temperatureMin: existingCondition.temperatureMin ?? 20,
+        temperatureMax: existingCondition.temperatureMax ?? 30,
+        humidityMax: existingCondition.humidityMax ?? 60,
+        monitoringIntervalMinutes: existingCondition.monitoringIntervalMinutes ?? 60,
+        notes: existingCondition.notes || '',
+        isActive: existingCondition.isActive ?? true,
+      }
+    : { code: '', name: '', temperatureMin: 20, temperatureMax: 30, humidityMax: 60, monitoringIntervalMinutes: 60, notes: '', isActive: true };
+
+  return <EnvironmentalConditionFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingCondition={existingCondition} />;
+}
+
+function EnvironmentalConditionFormInner({ mode, id, initialData, existingCondition }: EnvironmentalConditionFormProps & { initialData: Partial<EnvironmentalCondition>; existingCondition?: EnvironmentalCondition | null }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const [formData, setFormData] = React.useState<Partial<EnvironmentalCondition>>(initialData);
 
   // Create/Update mutation
   const saveMutation = useMutation({
@@ -108,14 +123,6 @@ export function EnvironmentalConditionForm({ mode, id }: EnvironmentalConditionF
   const handleCancel = () => {
     router.push('/master-data/environmental-conditions');
   };
-
-  if (mode === 'edit' && isLoadingCondition) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">
