@@ -12,7 +12,7 @@
  * - Packaging materials
  */
 
-import { eq, and, desc, asc } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray } from 'drizzle-orm';
 import { executeDbOperation, getInsertId } from '../db/db-helper';
 import { isSqlite } from '../db';
 import {
@@ -765,7 +765,25 @@ export async function getWOMaterials(workOrderId: number) {
       .where(eq(tables.workOrderMaterials.workOrderId, workOrderId));
   });
 
-  // Step 2: Compute available stock per item (outside executeDbOperation to avoid DB conflict)
+  // Step 2: Resolve user names for weighedBy and verifiedBy
+  const userIds = new Set<number>();
+  materials.forEach((m: any) => {
+    if (m.weighedBy) userIds.add(Number(m.weighedBy));
+    if (m.verifiedBy) userIds.add(Number(m.verifiedBy));
+  });
+
+  const userNameMap = new Map<number, string>();
+  if (userIds.size > 0) {
+    const userResults = await executeDbOperation(async (db: any) => {
+      return db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users)
+        .where(inArray(tables.users.id, Array.from(userIds)));
+    });
+    userResults.forEach((u: any) => userNameMap.set(Number(u.id), u.name));
+  }
+
+  // Step 3: Compute available stock per item (outside executeDbOperation to avoid DB conflict)
   const itemIds: number[] = [...new Set<number>(materials.map((m: any) => Number(m.itemId)))];
   const stockMap = new Map<number, number>();
 
@@ -781,6 +799,8 @@ export async function getWOMaterials(workOrderId: number) {
 
   return materials.map((m: any) => ({
     ...m,
+    weighedByName: m.weighedBy ? userNameMap.get(Number(m.weighedBy)) || null : null,
+    verifiedByName: m.verifiedBy ? userNameMap.get(Number(m.verifiedBy)) || null : null,
     itemAvailableQty: stockMap.get(Number(m.itemId)) || 0,
   }));
 }
