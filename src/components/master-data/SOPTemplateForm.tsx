@@ -134,8 +134,8 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
   });
 
   const handleSave = () => {
-    if (!formData.code || !formData.name || !formData.nameTh || !formData.category) {
-      toast.error('Validation Error', 'Please fill in all required fields.');
+    if (!formData.code || !formData.nameTh || !formData.category) {
+      toast.error('Validation Error', 'กรุณากรอก Code, ชื่อ (TH), และ Category');
       return;
     }
     saveMutation.mutate(formData);
@@ -210,7 +210,7 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN)</label>
             <DxTextBox
               value={formData.name || ''}
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
@@ -219,7 +219,7 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (TH) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH) *</label>
             <DxTextBox
               value={formData.nameTh || ''}
               onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })}
@@ -245,17 +245,6 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
               placeholder="Detailed instructions in Thai"
               height={100}
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Default Parameters (JSON)</label>
-            <DxTextArea
-              value={formData.defaultParameters || ''}
-              onValueChanged={(e) => setFormData({ ...formData, defaultParameters: e.value })}
-              placeholder='e.g., {"temperature": 75, "mixingSpeed": 45, "duration": 5}'
-              height={80}
-            />
-            <p className="text-xs text-gray-500 mt-1">Enter JSON object with default parameter values</p>
           </div>
 
           <div className="flex items-center gap-2 pt-2">

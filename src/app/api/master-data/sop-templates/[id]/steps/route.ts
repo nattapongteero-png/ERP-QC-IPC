@@ -42,8 +42,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       const data = await request.json();
 
-      if (!data.stepName) {
-        return errorResponse('Step name is required');
+      if (!data.stepNameTh && !data.stepName) {
+        return errorResponse('ชื่อขั้นตอน (TH) is required');
       }
 
       // Validate JSON if provided
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const step = await addSOPTemplateStep({
         templateId,
         sequence: data.sequence || 1,
-        stepName: data.stepName,
+        stepName: data.stepName || data.stepNameTh || '',
         stepNameTh: data.stepNameTh || null,
         instructions: data.instructions || null,
         instructionsTh: data.instructionsTh || null,

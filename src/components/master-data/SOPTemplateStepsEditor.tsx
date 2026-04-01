@@ -171,8 +171,8 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
   };
 
   const handleSave = () => {
-    if (!formData.stepName.trim()) {
-      toast.error('Validation', 'Step name is required.');
+    if (!formData.stepNameTh.trim()) {
+      toast.error('Validation', 'กรุณากรอกชื่อขั้นตอน (TH)');
       return;
     }
     if (editingId) {
@@ -186,31 +186,12 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
 
   const renderForm = () => (
     <div className="border border-emerald-200 bg-emerald-50/50 rounded-xl p-4 space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (EN) *</label>
-          <DxTextBox
-            value={formData.stepName}
-            onValueChanged={(e) => setFormData({ ...formData, stepName: e.value })}
-            placeholder="e.g., Line Clearance"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อขั้นตอน (TH)</label>
-          <DxTextBox
-            value={formData.stepNameTh}
-            onValueChanged={(e) => setFormData({ ...formData, stepNameTh: e.value })}
-            placeholder="เช่น การเตรียมการก่อนการผลิต"
-          />
-        </div>
-      </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
-        <DxTextArea
-          value={formData.instructions}
-          onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
-          placeholder="Detailed procedure instructions in English"
-          height={80}
+        <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อขั้นตอน (TH) *</label>
+        <DxTextBox
+          value={formData.stepNameTh}
+          onValueChanged={(e) => setFormData({ ...formData, stepNameTh: e.value })}
+          placeholder="เช่น การเตรียมการก่อนการผลิต"
         />
       </div>
       <div>
@@ -222,18 +203,28 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
           height={80}
         />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Default Parameters (JSON)</label>
-        <DxTextBox
-          value={formData.defaultParameters}
-          onValueChanged={(e) => setFormData({ ...formData, defaultParameters: e.value })}
-          placeholder='e.g., {"temperature": 75, "duration": 10}'
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (EN)</label>
+          <DxTextBox
+            value={formData.stepName}
+            onValueChanged={(e) => setFormData({ ...formData, stepName: e.value })}
+            placeholder="e.g., Line Clearance"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
+          <DxTextBox
+            value={formData.instructions}
+            onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
+            placeholder="Instructions in English"
+          />
+        </div>
       </div>
       <div className="flex justify-end gap-2 pt-2">
-        <DxButton text="Cancel" icon="close" stylingMode="text" onClick={cancelForm} disabled={isSaving} />
+        <DxButton text="ยกเลิก" icon="close" stylingMode="text" onClick={cancelForm} disabled={isSaving} />
         <DxButton
-          text={isSaving ? 'Saving...' : editingId ? 'Update Step' : 'Add Step'}
+          text={isSaving ? 'กำลังบันทึก...' : editingId ? 'บันทึกขั้นตอน' : 'เพิ่มขั้นตอน'}
           icon="save"
           type="success"
           onClick={handleSave}
@@ -286,17 +277,17 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
                   {index + 1}
                 </div>
 
-                {/* Content */}
+                {/* Content — show TH as primary */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900">{step.stepName}</div>
-                  {step.stepNameTh && (
-                    <div className="text-sm text-gray-500">{step.stepNameTh}</div>
+                  <div className="font-medium text-gray-900">{step.stepNameTh || step.stepName}</div>
+                  {step.stepName && step.stepNameTh && (
+                    <div className="text-sm text-gray-500">{step.stepName}</div>
                   )}
-                  {step.instructions && (
-                    <div className="text-xs text-gray-400 mt-1 line-clamp-2">{step.instructions}</div>
-                  )}
-                  {step.instructionsTh && !step.instructions && (
+                  {step.instructionsTh && (
                     <div className="text-xs text-gray-400 mt-1 line-clamp-2">{step.instructionsTh}</div>
+                  )}
+                  {step.instructions && !step.instructionsTh && (
+                    <div className="text-xs text-gray-400 mt-1 line-clamp-2">{step.instructions}</div>
                   )}
                 </div>
 

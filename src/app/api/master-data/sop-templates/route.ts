@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
       const data = await request.json();
 
       // Validate required fields
-      if (!data.code || !data.name || !data.nameTh || !data.category) {
-        return errorResponse('Missing required fields: code, name, nameTh, category');
+      if (!data.code || !data.nameTh || !data.category) {
+        return errorResponse('Missing required fields: code, nameTh, category');
       }
 
       // Validate category
