@@ -186,13 +186,23 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
 
   const renderForm = () => (
     <div className="border border-emerald-200 bg-emerald-50/50 rounded-xl p-4 space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อขั้นตอน (TH) *</label>
-        <DxTextBox
-          value={formData.stepNameTh}
-          onValueChanged={(e) => setFormData({ ...formData, stepNameTh: e.value })}
-          placeholder="เช่น การเตรียมการก่อนการผลิต"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อขั้นตอน (TH) *</label>
+          <DxTextBox
+            value={formData.stepNameTh}
+            onValueChanged={(e) => setFormData({ ...formData, stepNameTh: e.value })}
+            placeholder="เช่น การเตรียมการก่อนการผลิต"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (EN)</label>
+          <DxTextBox
+            value={formData.stepName}
+            onValueChanged={(e) => setFormData({ ...formData, stepName: e.value })}
+            placeholder="e.g., Line Clearance"
+          />
+        </div>
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">คำแนะนำ (TH)</label>
@@ -203,23 +213,14 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
           height={80}
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (EN)</label>
-          <DxTextBox
-            value={formData.stepName}
-            onValueChanged={(e) => setFormData({ ...formData, stepName: e.value })}
-            placeholder="e.g., Line Clearance"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
-          <DxTextBox
-            value={formData.instructions}
-            onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
-            placeholder="Instructions in English"
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
+        <DxTextArea
+          value={formData.instructions}
+          onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
+          placeholder="Instructions in English"
+          height={80}
+        />
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <DxButton text="ยกเลิก" icon="close" stylingMode="text" onClick={cancelForm} disabled={isSaving} />
