@@ -39,6 +39,10 @@ import {
   sqliteItems,
   sqliteUsers,
   sqliteInventoryLots,
+  sqliteBOMInProcessQC,
+  sqliteIPCTestSamples,
+  sqliteQualityTests,
+  sqliteQualitySpecs,
   // MySQL tables
   mysqlWOEnvironmentalLogs,
   mysqlWOCleaningLogs,
@@ -62,6 +66,10 @@ import {
   mysqlItems,
   mysqlUsers,
   mysqlInventoryLots,
+  mysqlBOMInProcessQC,
+  mysqlIPCTestSamples,
+  mysqlQualityTests,
+  mysqlQualitySpecs,
 } from '../db/schema';
 import { getNow } from '../db/date-utils';
 import { issueMaterial, getLotsForPicking, getAvailableLots } from './inventory.service';
@@ -92,6 +100,10 @@ function getTables() {
       items: sqliteItems,
       users: sqliteUsers,
       inventoryLots: sqliteInventoryLots,
+      bomInProcessQC: sqliteBOMInProcessQC,
+      ipcTestSamples: sqliteIPCTestSamples,
+      qualityTests: sqliteQualityTests,
+      qualitySpecs: sqliteQualitySpecs,
     };
   }
   return {
@@ -117,6 +129,10 @@ function getTables() {
     items: mysqlItems,
     users: mysqlUsers,
     inventoryLots: mysqlInventoryLots,
+    bomInProcessQC: mysqlBOMInProcessQC,
+    ipcTestSamples: mysqlIPCTestSamples,
+    qualityTests: mysqlQualityTests,
+    qualitySpecs: mysqlQualitySpecs,
   };
 }
 
@@ -1379,5 +1395,373 @@ export async function verifyWOPackagingMaterial(materialId: number, verifierId: 
       const [material] = await db.select().from(tables.woPackagingMaterials).where(eq(tables.woPackagingMaterials.id, materialId));
       return material;
     }
+  });
+}
+
+// ===========================
+// In-Process Control (IPC)
+// ===========================
+
+/**
+ * Get BOM IPC config (which quality specs are linked to this BOM for IPC)
+ */
+export async function getBOMIPCConfig(bomId: number) {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    return db
+      .select({
+        id: tables.bomInProcessQC.id,
+        bomId: tables.bomInProcessQC.bomId,
+        specId: tables.bomInProcessQC.specId,
+        sequence: tables.bomInProcessQC.sequence,
+        sampleSize: tables.bomInProcessQC.sampleSize,
+        isCritical: tables.bomInProcessQC.isCritical,
+        // Spec details
+        testName: tables.qualitySpecs.testName,
+        testMethod: tables.qualitySpecs.testMethod,
+        specification: tables.qualitySpecs.specification,
+        minValue: tables.qualitySpecs.minValue,
+        maxValue: tables.qualitySpecs.maxValue,
+        unit: tables.qualitySpecs.unit,
+        specIsCritical: tables.qualitySpecs.isCritical,
+      })
+      .from(tables.bomInProcessQC)
+      .innerJoin(tables.qualitySpecs, eq(tables.bomInProcessQC.specId, tables.qualitySpecs.id))
+      .where(eq(tables.bomInProcessQC.bomId, bomId))
+      .orderBy(asc(tables.bomInProcessQC.sequence));
+  });
+}
+
+export interface CreateIPCTestInput {
+  workOrderId: number;
+  specId: number;
+  bomIpcId: number;
+  sampleSize: number;
+  operatorId: number;
+  notes?: string;
+}
+
+/**
+ * Find lot IDs associated with a work order (by batchNumber + material lots)
+ */
+async function findWOLotIds(db: any, tables: ReturnType<typeof getTables>, workOrderId: number): Promise<number[]> {
+  const [wo] = await db
+    .select({
+      id: tables.workOrders.id,
+      bomId: tables.workOrders.bomId,
+      batchNumber: tables.workOrders.batchNumber,
+      productId: tables.workOrders.productId,
+      unit: tables.workOrders.unit,
+    })
+    .from(tables.workOrders)
+    .where(eq(tables.workOrders.id, workOrderId));
+
+  if (!wo) return [];
+
+  const lotIds = new Set<number>();
+
+  // Find lots by batch number
+  if (wo.batchNumber) {
+    const batchLots = await db
+      .select({ id: tables.inventoryLots.id })
+      .from(tables.inventoryLots)
+      .where(eq(tables.inventoryLots.batchNumber, wo.batchNumber));
+    batchLots.forEach((l: any) => lotIds.add(l.id));
+  }
+
+  return Array.from(lotIds);
+}
+
+/**
+ * Get all IPC tests for a work order with samples and spec info
+ */
+export async function getWOIPCTests(workOrderId: number) {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    const lotIds = await findWOLotIds(db, tables, workOrderId);
+    if (lotIds.length === 0) return [];
+
+    // Get quality_tests with testType = 'in_process' for these lots
+    const tests = await db
+      .select({
+        id: tables.qualityTests.id,
+        lotId: tables.qualityTests.lotId,
+        specId: tables.qualityTests.specId,
+        testType: tables.qualityTests.testType,
+        sampleNumber: tables.qualityTests.sampleNumber,
+        sampleSize: tables.qualityTests.sampleSize,
+        testDate: tables.qualityTests.testDate,
+        result: tables.qualityTests.result,
+        numericResult: tables.qualityTests.numericResult,
+        status: tables.qualityTests.status,
+        testedBy: tables.qualityTests.testedBy,
+        approvedBy: tables.qualityTests.approvedBy,
+        approvedAt: tables.qualityTests.approvedAt,
+        notes: tables.qualityTests.notes,
+        specMinValue: tables.qualityTests.specMinValue,
+        specMaxValue: tables.qualityTests.specMaxValue,
+        specSpecification: tables.qualityTests.specSpecification,
+        specUnit: tables.qualityTests.specUnit,
+        disposition: tables.qualityTests.disposition,
+        // Spec details
+        testName: tables.qualitySpecs.testName,
+        testMethod: tables.qualitySpecs.testMethod,
+      })
+      .from(tables.qualityTests)
+      .leftJoin(tables.qualitySpecs, eq(tables.qualityTests.specId, tables.qualitySpecs.id))
+      .where(
+        and(
+          eq(tables.qualityTests.testType, 'in_process'),
+          eq(tables.qualityTests.lotId, lotIds[0])
+        )
+      )
+      .orderBy(asc(tables.qualityTests.id));
+
+    // Get samples for each test
+    const testsWithSamples = await Promise.all(
+      tests.map(async (test: any) => {
+        const samples = await db
+          .select()
+          .from(tables.ipcTestSamples)
+          .where(eq(tables.ipcTestSamples.qualityTestId, test.id))
+          .orderBy(asc(tables.ipcTestSamples.sampleNumber));
+        return { ...test, samples };
+      })
+    );
+
+    return testsWithSamples;
+  });
+}
+
+/**
+ * Record an IPC test result (single value or with samples)
+ */
+export interface RecordIPCTestInput {
+  qualityTestId: number;
+  numericResult?: number;
+  result?: string;
+  notes?: string;
+  testedBy: number;
+  samples?: Array<{
+    sampleNumber: number;
+    numericValue?: number;
+    textValue?: string;
+  }>;
+}
+
+export async function recordIPCTestResult(input: RecordIPCTestInput) {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    // Get test with spec info
+    const [test] = await db
+      .select()
+      .from(tables.qualityTests)
+      .where(eq(tables.qualityTests.id, input.qualityTestId));
+
+    if (!test) throw new Error('Quality test not found');
+
+    // Calculate pass/fail based on spec limits
+    let autoResult = input.result;
+    if (input.numericResult != null && test.specMinValue != null && test.specMaxValue != null) {
+      autoResult = (input.numericResult >= Number(test.specMinValue) && input.numericResult <= Number(test.specMaxValue))
+        ? 'pass' : 'fail';
+    }
+
+    // If samples provided, calculate aggregate result
+    if (input.samples && input.samples.length > 0) {
+      // Insert samples
+      for (const sample of input.samples) {
+        let sampleResult: string | null = null;
+        if (sample.numericValue != null && test.specMinValue != null && test.specMaxValue != null) {
+          sampleResult = (sample.numericValue >= Number(test.specMinValue) && sample.numericValue <= Number(test.specMaxValue))
+            ? 'pass' : 'fail';
+        }
+        await db.insert(tables.ipcTestSamples).values({
+          qualityTestId: input.qualityTestId,
+          sampleNumber: sample.sampleNumber,
+          numericValue: sample.numericValue ?? null,
+          textValue: sample.textValue ?? null,
+          result: sampleResult,
+          createdAt: getNow(),
+        });
+      }
+
+      // Aggregate: if any sample fails, test fails
+      const sampleResults = input.samples.map((s) => {
+        if (s.numericValue != null && test.specMinValue != null && test.specMaxValue != null) {
+          return s.numericValue >= Number(test.specMinValue) && s.numericValue <= Number(test.specMaxValue);
+        }
+        return true; // text-only samples default to pass
+      });
+      autoResult = sampleResults.every(Boolean) ? 'pass' : 'fail';
+
+      // Calculate average numeric result from samples
+      const numericSamples = input.samples.filter((s) => s.numericValue != null);
+      if (numericSamples.length > 0) {
+        input.numericResult = numericSamples.reduce((sum, s) => sum + (s.numericValue || 0), 0) / numericSamples.length;
+      }
+    }
+
+    const updateData: any = {
+      numericResult: input.numericResult ?? null,
+      result: autoResult || input.result || null,
+      status: autoResult || 'pending',
+      testedBy: input.testedBy,
+      testDate: getNow(),
+      notes: input.notes || null,
+    };
+
+    if (isSqlite()) {
+      const [updated] = await db
+        .update(tables.qualityTests)
+        .set(updateData)
+        .where(eq(tables.qualityTests.id, input.qualityTestId))
+        .returning();
+      return updated;
+    } else {
+      await db
+        .update(tables.qualityTests)
+        .set(updateData)
+        .where(eq(tables.qualityTests.id, input.qualityTestId));
+      const [updated] = await db
+        .select()
+        .from(tables.qualityTests)
+        .where(eq(tables.qualityTests.id, input.qualityTestId));
+      return updated;
+    }
+  });
+}
+
+/**
+ * Approve an IPC test
+ */
+export async function approveIPCTest(qualityTestId: number, approvedBy: number, disposition: string = 'accept') {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    const updateData: any = {
+      approvedBy,
+      approvedAt: getNow(),
+      disposition,
+    };
+
+    if (isSqlite()) {
+      const [updated] = await db
+        .update(tables.qualityTests)
+        .set(updateData)
+        .where(eq(tables.qualityTests.id, qualityTestId))
+        .returning();
+      return updated;
+    } else {
+      await db
+        .update(tables.qualityTests)
+        .set(updateData)
+        .where(eq(tables.qualityTests.id, qualityTestId));
+      const [updated] = await db
+        .select()
+        .from(tables.qualityTests)
+        .where(eq(tables.qualityTests.id, qualityTestId));
+      return updated;
+    }
+  });
+}
+
+/**
+ * Initialize IPC tests for a work order from its BOM config.
+ * Creates quality_tests records for each BOM IPC spec.
+ * Uses the same lot-finding pattern as qc-tests route (batchNumber-based).
+ */
+export async function initializeWOIPCTests(workOrderId: number, operatorId: number) {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    // Get WO with BOM and batchNumber
+    const [wo] = await db
+      .select({
+        id: tables.workOrders.id,
+        bomId: tables.workOrders.bomId,
+        batchNumber: tables.workOrders.batchNumber,
+        productId: tables.workOrders.productId,
+        unit: tables.workOrders.unit,
+      })
+      .from(tables.workOrders)
+      .where(eq(tables.workOrders.id, workOrderId));
+
+    if (!wo?.bomId) throw new Error('Work order has no BOM linked');
+
+    // Get BOM IPC config
+    const ipcConfig = await getBOMIPCConfig(wo.bomId);
+    if (ipcConfig.length === 0) return [];
+
+    // Find lot by batchNumber (same as qc-tests pattern)
+    let targetLotId: number | null = null;
+    if (wo.batchNumber) {
+      const batchLots = await db
+        .select({ id: tables.inventoryLots.id })
+        .from(tables.inventoryLots)
+        .where(eq(tables.inventoryLots.batchNumber, wo.batchNumber));
+      if (batchLots.length > 0) {
+        targetLotId = batchLots[0].id;
+      }
+    }
+
+    // Auto-create in-process lot if none exists
+    if (!targetLotId) {
+      const lotResult = await db.insert(tables.inventoryLots).values({
+        itemId: wo.productId,
+        lotNumber: `${wo.batchNumber || `WO${workOrderId}`}-IP`,
+        batchNumber: wo.batchNumber || null,
+        warehouseId: 1,
+        quantity: 0,
+        reservedQuantity: 0,
+        unit: wo.unit || 'unit',
+        status: 'under_test',
+        manufacturingDate: getNow(),
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      });
+      targetLotId = Number(getInsertId(lotResult));
+    }
+
+    // Check existing IPC tests to avoid duplicates
+    const existingTests = await db
+      .select({ specId: tables.qualityTests.specId })
+      .from(tables.qualityTests)
+      .where(
+        and(
+          eq(tables.qualityTests.lotId, targetLotId),
+          eq(tables.qualityTests.testType, 'in_process')
+        )
+      );
+    const existingSpecIds = new Set(existingTests.map((t: any) => t.specId));
+
+    // Create quality_tests for each BOM IPC spec
+    const created = [];
+    for (const config of ipcConfig) {
+      if (existingSpecIds.has(config.specId)) continue;
+
+      const testResult = await db.insert(tables.qualityTests).values({
+        lotId: targetLotId,
+        specId: config.specId,
+        testType: 'in_process',
+        sampleSize: config.sampleSize,
+        status: 'pending',
+        requestedBy: operatorId,
+        requestedAt: getNow(),
+        // Snapshot spec values
+        specMinValue: config.minValue,
+        specMaxValue: config.maxValue,
+        specSpecification: config.specification,
+        specUnit: config.unit,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      });
+      created.push({ id: getInsertId(testResult), specId: config.specId, testName: config.testName });
+    }
+
+    return created;
   });
 }

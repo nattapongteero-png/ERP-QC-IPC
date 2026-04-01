@@ -1217,9 +1217,31 @@ export const sqliteBOMPackagingQC = sqliteTable('bom_packaging_qc', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// BOM In-Process QC - Link quality specs to BOM for IPC tests
+export const sqliteBOMInProcessQC = sqliteTable('bom_in_process_qc', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bomId: integer('bom_id').notNull().references(() => sqliteBOM.id),
+  specId: integer('spec_id').notNull().references(() => sqliteQualitySpecs.id),
+  sequence: integer('sequence').notNull().default(1),
+  sampleSize: integer('sample_size').notNull().default(1),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // ============================================
 // Work Order Execution Tables (Phase 3 - BMPR Form)
 // ============================================
+
+// IPC Test Samples - Multi-sample values per quality test
+export const sqliteIPCTestSamples = sqliteTable('ipc_test_samples', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  qualityTestId: integer('quality_test_id').notNull().references(() => sqliteQualityTests.id),
+  sampleNumber: integer('sample_number').notNull(),
+  numericValue: real('numeric_value'),
+  textValue: text('text_value'),
+  result: text('result'), // pass, fail
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
 
 // Work Order Environmental Logs - Actual environmental readings during production
 export const sqliteWOEnvironmentalLogs = sqliteTable('wo_environmental_logs', {
@@ -4334,9 +4356,31 @@ export const mysqlBOMPackagingQC = mysqlTable('bom_packaging_qc', {
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// BOM In-Process QC - MySQL
+export const mysqlBOMInProcessQC = mysqlTable('bom_in_process_qc', {
+  id: int('id').primaryKey().autoincrement(),
+  bomId: int('bom_id').notNull().references(() => mysqlBOM.id),
+  specId: int('spec_id').notNull().references(() => mysqlQualitySpecs.id),
+  sequence: int('sequence').notNull().default(1),
+  sampleSize: int('sample_size').notNull().default(1),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // ============================================
 // Work Order Execution Tables (Phase 3 - BMPR Form) - MySQL
 // ============================================
+
+// IPC Test Samples - MySQL
+export const mysqlIPCTestSamples = mysqlTable('ipc_test_samples', {
+  id: int('id').primaryKey().autoincrement(),
+  qualityTestId: int('quality_test_id').notNull().references(() => mysqlQualityTests.id),
+  sampleNumber: int('sample_number').notNull(),
+  numericValue: decimal('numeric_value', { precision: 15, scale: 4 }),
+  textValue: mysqlText('text_value'),
+  result: varchar('result', { length: 20 }), // pass, fail
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
 
 // Work Order Environmental Logs - MySQL
 export const mysqlWOEnvironmentalLogs = mysqlTable('wo_environmental_logs', {
@@ -4885,6 +4929,7 @@ export const sqlitePurchaseRequisitions = sqliteTable('purchase_requisitions', {
   departmentId: integer('department_id').references(() => sqliteHROrgUnits.id),
   requiredDate: text('required_date'), // Nullable - PR can be saved as draft without required date
   priority: text('priority').notNull().default('normal'), // normal, urgent, critical
+  description: text('description'),
   justification: text('justification'),
   status: text('status').notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
   totalAmount: real('total_amount').notNull().default(0),
@@ -5598,6 +5643,7 @@ export const mysqlPurchaseRequisitions = mysqlTable('purchase_requisitions', {
   departmentId: int('department_id').references(() => mysqlHROrgUnits.id),
   requiredDate: datetime('required_date'), // Nullable - PR can be saved as draft without required date
   priority: varchar('priority', { length: 20 }).notNull().default('normal'), // normal, urgent, critical
+  description: mysqlText('description'),
   justification: mysqlText('justification'),
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, submitted, pending_approval, approved, rejected, converted, closed, cancelled
   totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
@@ -6094,6 +6140,10 @@ export type BOMSOPStep = typeof sqliteBOMSOPSteps.$inferSelect;
 export type NewBOMSOPStep = typeof sqliteBOMSOPSteps.$inferInsert;
 export type BOMPackagingQC = typeof sqliteBOMPackagingQC.$inferSelect;
 export type NewBOMPackagingQC = typeof sqliteBOMPackagingQC.$inferInsert;
+export type BOMInProcessQC = typeof sqliteBOMInProcessQC.$inferSelect;
+export type NewBOMInProcessQC = typeof sqliteBOMInProcessQC.$inferInsert;
+export type IPCTestSample = typeof sqliteIPCTestSamples.$inferSelect;
+export type NewIPCTestSample = typeof sqliteIPCTestSamples.$inferInsert;
 
 // Phase 3: Work Order Execution (BMPR Form)
 export type WOEnvironmentalLog = typeof sqliteWOEnvironmentalLogs.$inferSelect;

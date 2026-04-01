@@ -38,6 +38,7 @@ const PRODUCTION_PAGES = [
   'src/app/production/work-orders/[id]/environmental-monitoring/page.tsx',
   'src/app/production/work-orders/[id]/execution/page.tsx',
   'src/app/production/work-orders/[id]/finished-inspection/page.tsx',
+  'src/app/production/work-orders/[id]/ipc/page.tsx',
   'src/app/production/work-orders/[id]/material-weighing/page.tsx',
   'src/app/production/work-orders/[id]/packaging-qc/page.tsx',
   'src/app/production/work-orders/[id]/sop-execution/page.tsx',

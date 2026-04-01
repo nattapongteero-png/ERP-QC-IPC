@@ -27,6 +27,7 @@ import {
   ArrowRight,
   Sparkles,
   ClipboardList,
+  FlaskConical,
 } from 'lucide-react';
 
 interface WorkOrderBasic {
@@ -224,6 +225,19 @@ export default function WorkOrderExecutionPage() {
           : s.sopExecution.completed > 0
           ? 'in_progress'
           : 'pending',
+      }),
+    },
+    {
+      id: 'ipc',
+      title: t('execution.ipc'),
+      icon: <FlaskConical className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/ipc`,
+      phase: 'production',
+      description: t('execution.ipcDescription'),
+      getStatus: () => ({
+        completed: 0,
+        total: 0,
+        status: 'pending' as const,
       }),
     },
     {
