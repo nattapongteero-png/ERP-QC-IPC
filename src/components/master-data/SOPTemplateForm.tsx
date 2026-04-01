@@ -17,6 +17,7 @@ import { DxSwitch } from '@/components/ui/dx-switch';
 import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
 import { FileText } from 'lucide-react';
+import { SOPTemplateStepsEditor } from './SOPTemplateStepsEditor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface SOPTemplate {
@@ -258,6 +259,11 @@ function SOPTemplateFormInner({ mode, id, initialData, existingTemplate }: SOPTe
           </div>
         </CardContent>
       </Card>
+
+      {/* Procedure Steps - only in edit mode */}
+      {mode === 'edit' && id && (
+        <SOPTemplateStepsEditor templateId={id} />
+      )}
 
       {/* Bottom Actions */}
       <div className="flex justify-end gap-2 pt-4">

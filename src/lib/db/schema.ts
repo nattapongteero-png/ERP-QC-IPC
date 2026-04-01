@@ -1140,6 +1140,19 @@ export const sqliteSOPStepTemplates = sqliteTable('sop_step_templates', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// SOP Template Steps - Ordered procedure steps within an SOP template
+export const sqliteSOPTemplateSteps = sqliteTable('sop_template_steps', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  templateId: integer('template_id').notNull().references(() => sqliteSOPStepTemplates.id),
+  sequence: integer('sequence').notNull(),
+  stepName: text('step_name').notNull(),
+  stepNameTh: text('step_name_th'),
+  instructions: text('instructions'),
+  instructionsTh: text('instructions_th'),
+  defaultParameters: text('default_parameters'), // JSON: { temperature: 75, duration: 10 }
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Packaging QC Criteria (Master Data) - Lookup table for packaging weight/inspection criteria
 export const sqlitePackagingQCCriteria = sqliteTable('packaging_qc_criteria', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -4281,6 +4294,19 @@ export const mysqlSOPStepTemplates = mysqlTable('sop_step_templates', {
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// SOP Template Steps - Ordered procedure steps within an SOP template (MySQL)
+export const mysqlSOPTemplateSteps = mysqlTable('sop_template_steps', {
+  id: int('id').primaryKey().autoincrement(),
+  templateId: int('template_id').notNull().references(() => mysqlSOPStepTemplates.id),
+  sequence: int('sequence').notNull(),
+  stepName: varchar('step_name', { length: 255 }).notNull(),
+  stepNameTh: varchar('step_name_th', { length: 255 }),
+  instructions: mysqlText('instructions'),
+  instructionsTh: mysqlText('instructions_th'),
+  defaultParameters: mysqlText('default_parameters'), // JSON: { temperature: 75, duration: 10 }
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Packaging QC Criteria (Master Data) - MySQL
 export const mysqlPackagingQCCriteria = mysqlTable('packaging_qc_criteria', {
   id: int('id').primaryKey().autoincrement(),
@@ -6130,6 +6156,8 @@ export type EnvironmentalCondition = typeof sqliteEnvironmentalConditions.$infer
 export type NewEnvironmentalCondition = typeof sqliteEnvironmentalConditions.$inferInsert;
 export type SOPStepTemplate = typeof sqliteSOPStepTemplates.$inferSelect;
 export type NewSOPStepTemplate = typeof sqliteSOPStepTemplates.$inferInsert;
+export type SOPTemplateStep = typeof sqliteSOPTemplateSteps.$inferSelect;
+export type NewSOPTemplateStep = typeof sqliteSOPTemplateSteps.$inferInsert;
 export type PackagingQCCriteria = typeof sqlitePackagingQCCriteria.$inferSelect;
 export type NewPackagingQCCriteria = typeof sqlitePackagingQCCriteria.$inferInsert;
 
