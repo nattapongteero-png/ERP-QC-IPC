@@ -11,6 +11,7 @@ import {
   startWOSOPStep,
   completeWOSOPStep,
   verifyWOSOPStep,
+  confirmWOSOPSubSteps,
 } from '@/lib/services/wo-execution.service';
 import { executeDbOperation } from '@/lib/db/db-helper';
 import { isSqlite } from '@/lib/db';
@@ -101,7 +102,7 @@ export async function PUT(
         return errorResponse('Missing required fields: executionId, action');
       }
 
-      const validActions = ['start', 'complete'];
+      const validActions = ['start', 'complete', 'confirm_substeps'];
       if (!validActions.includes(data.action)) {
         return errorResponse(`Invalid action. Must be one of: ${validActions.join(', ')}`);
       }
@@ -110,7 +111,13 @@ export async function PUT(
       const operatorId = data.operatorId || session.userId;
 
       let execution;
-      if (data.action === 'start') {
+      if (data.action === 'confirm_substeps') {
+        if (!Array.isArray(data.confirmedSubStepIds)) {
+          return errorResponse('confirmedSubStepIds array is required');
+        }
+        execution = await confirmWOSOPSubSteps(data.executionId, data.confirmedSubStepIds);
+        return successResponse(execution, 'Sub-steps confirmed');
+      } else if (data.action === 'start') {
         execution = await startWOSOPStep(data.executionId, operatorId);
         return successResponse(execution, 'Step started');
       } else {

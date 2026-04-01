@@ -716,6 +716,45 @@ export async function completeWOSOPStep(
   });
 }
 
+export async function confirmWOSOPSubSteps(
+  executionId: number,
+  confirmedSubStepIds: number[]
+) {
+  const tables = getTables();
+
+  return executeDbOperation(async (db: any) => {
+    // Get current actualParameters
+    const [current] = await db.select({ actualParameters: tables.woSOPExecution.actualParameters })
+      .from(tables.woSOPExecution)
+      .where(eq(tables.woSOPExecution.id, executionId));
+
+    let params: Record<string, unknown> = {};
+    if (current?.actualParameters) {
+      try {
+        params = typeof current.actualParameters === 'string'
+          ? JSON.parse(current.actualParameters)
+          : current.actualParameters;
+      } catch { /* ignore */ }
+    }
+
+    params._confirmedSubSteps = confirmedSubStepIds;
+
+    const updateData = {
+      actualParameters: JSON.stringify(params),
+      updatedAt: getNow(),
+    };
+
+    if (isSqlite()) {
+      const [execution] = await db.update(tables.woSOPExecution).set(updateData).where(eq(tables.woSOPExecution.id, executionId)).returning();
+      return execution;
+    } else {
+      await db.update(tables.woSOPExecution).set(updateData).where(eq(tables.woSOPExecution.id, executionId));
+      const [execution] = await db.select().from(tables.woSOPExecution).where(eq(tables.woSOPExecution.id, executionId));
+      return execution;
+    }
+  });
+}
+
 export async function verifyWOSOPStep(executionId: number, verifierId: number) {
   const tables = getTables();
 

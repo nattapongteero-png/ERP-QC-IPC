@@ -238,6 +238,42 @@ export default function SOPExecutionPage() {
     },
   });
 
+  // Sub-step confirmation mutation
+  const confirmSubStepsMutation = useMutation({
+    mutationFn: async ({ executionId, confirmedIds }: { executionId: number; confirmedIds: number[] }) => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ executionId, action: 'confirm_substeps', confirmedSubStepIds: confirmedIds }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-sop-execution', workOrderId] });
+    },
+  });
+
+  /** Get confirmed sub-step IDs from actualParameters */
+  const getConfirmedSubSteps = (step: SOPStep): number[] => {
+    const params = parseJson<Record<string, unknown>>(step.actualParameters);
+    return (params?._confirmedSubSteps as number[]) || [];
+  };
+
+  const toggleSubStep = (step: SOPStep, subStepId: number) => {
+    const current = getConfirmedSubSteps(step);
+    const next = current.includes(subStepId)
+      ? current.filter((id) => id !== subStepId)
+      : [...current, subStepId];
+    confirmSubStepsMutation.mutate({ executionId: step.id, confirmedIds: next });
+  };
+
+  const confirmAllSubSteps = (step: SOPStep) => {
+    const allIds = (step.templateSteps || []).map((s) => s.id);
+    confirmSubStepsMutation.mutate({ executionId: step.id, confirmedIds: allIds });
+  };
+
   const handleStartStep = (step: SOPStep) => {
     setSelectedStep(step);
     setShowExecuteDialog(true);
@@ -466,37 +502,76 @@ export default function SOPExecutionPage() {
                             </div>
                           )}
 
-                          {/* Template Sub-Steps (Procedure Details) */}
-                          {step.templateSteps && step.templateSteps.length > 0 && (
-                            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                              <p className="text-sm font-semibold text-emerald-800 mb-2 flex items-center gap-1.5">
-                                <ListChecks className="h-4 w-4" />
-                                ขั้นตอนย่อย ({step.templateSteps.length} รายการ)
-                              </p>
-                              <ol className="space-y-2">
-                                {step.templateSteps.map((sub, subIdx) => {
-                                  const subName = locale === 'th' && sub.stepNameTh ? sub.stepNameTh : sub.stepName;
-                                  const subInstr = locale === 'th' && sub.instructionsTh ? sub.instructionsTh : sub.instructions;
-                                  return (
-                                    <li key={sub.id} className="flex gap-2">
-                                      <span className="flex-none w-6 h-6 rounded-full bg-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-center mt-0.5">
-                                        {subIdx + 1}
-                                      </span>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-900">{subName}</p>
-                                        {locale === 'th' && sub.stepNameTh && sub.stepName && (
-                                          <p className="text-xs text-gray-500">{sub.stepName}</p>
-                                        )}
-                                        {subInstr && (
-                                          <p className="text-xs text-gray-600 mt-0.5">{subInstr}</p>
-                                        )}
-                                      </div>
-                                    </li>
-                                  );
-                                })}
-                              </ol>
-                            </div>
-                          )}
+                          {/* Template Sub-Steps (Procedure Details) with Confirmation */}
+                          {step.templateSteps && step.templateSteps.length > 0 && (() => {
+                            const confirmed = getConfirmedSubSteps(step);
+                            const allConfirmed = step.templateSteps!.every((s) => confirmed.includes(s.id));
+                            const confirmedCount = step.templateSteps!.filter((s) => confirmed.includes(s.id)).length;
+                            return (
+                              <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-sm font-semibold text-emerald-800 flex items-center gap-1.5">
+                                    <ListChecks className="h-4 w-4" />
+                                    ขั้นตอนย่อย ({confirmedCount}/{step.templateSteps!.length})
+                                  </p>
+                                  {!allConfirmed && (
+                                    <button
+                                      onClick={() => confirmAllSubSteps(step)}
+                                      disabled={confirmSubStepsMutation.isPending}
+                                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors disabled:opacity-50"
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5" />
+                                      ยืนยันทั้งหมด
+                                    </button>
+                                  )}
+                                  {allConfirmed && (
+                                    <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-200 rounded-md">
+                                      <CheckCircle2 className="h-3.5 w-3.5" />
+                                      ยืนยันครบแล้ว
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Progress bar */}
+                                <div className="w-full h-1.5 bg-emerald-200 rounded-full mb-3">
+                                  <div
+                                    className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                                    style={{ width: `${step.templateSteps!.length > 0 ? (confirmedCount / step.templateSteps!.length) * 100 : 0}%` }}
+                                  />
+                                </div>
+                                <ol className="space-y-1.5">
+                                  {step.templateSteps!.map((sub, subIdx) => {
+                                    const isConfirmed = confirmed.includes(sub.id);
+                                    const subName = locale === 'th' && sub.stepNameTh ? sub.stepNameTh : sub.stepName;
+                                    const subInstr = locale === 'th' && sub.instructionsTh ? sub.instructionsTh : sub.instructions;
+                                    return (
+                                      <li
+                                        key={sub.id}
+                                        className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors ${isConfirmed ? 'bg-emerald-100/80' : 'hover:bg-white/60'}`}
+                                        onClick={() => toggleSubStep(step, sub.id)}
+                                      >
+                                        <div className={`flex-none w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center transition-colors ${isConfirmed ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300 bg-white'}`}>
+                                          {isConfirmed && (
+                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                          )}
+                                        </div>
+                                        <span className={`flex-none text-xs font-bold w-5 text-center mt-0.5 ${isConfirmed ? 'text-emerald-700' : 'text-gray-500'}`}>
+                                          {subIdx + 1}.
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                          <p className={`text-sm font-medium ${isConfirmed ? 'text-emerald-800 line-through decoration-emerald-400' : 'text-gray-900'}`}>{subName}</p>
+                                          {subInstr && (
+                                            <p className={`text-xs mt-0.5 ${isConfirmed ? 'text-emerald-600' : 'text-gray-600'}`}>{subInstr}</p>
+                                          )}
+                                        </div>
+                                      </li>
+                                    );
+                                  })}
+                                </ol>
+                              </div>
+                            );
+                          })()}
 
                           {/* BOM Equipment Requirements */}
                           {stepEquipmentIds && stepEquipmentIds.length > 0 && (
