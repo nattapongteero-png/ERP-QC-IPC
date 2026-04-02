@@ -428,6 +428,17 @@ export default function IPCPage() {
                             <span> · {test.sampleSize} {t('execution.samples')}</span>
                           )}
                         </div>
+                        {/* Tester/Approver names on card header */}
+                        {(test.testedByName || test.approvedByName) && (
+                          <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
+                            {test.testedByName && (
+                              <span>ผู้บันทึก: <strong className="text-gray-700">{test.testedByName}</strong></span>
+                            )}
+                            {test.approvedByName && (
+                              <span>ผู้อนุมัติ: <strong className="text-emerald-700">{test.approvedByName}</strong></span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 

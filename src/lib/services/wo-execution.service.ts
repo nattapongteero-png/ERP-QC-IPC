@@ -619,9 +619,27 @@ export async function getWOSOPExecution(workOrderId: number) {
       }
     }
 
-    // Attach template sub-steps to each execution
+    // Resolve operator/verifier names
+    const userIds = new Set<number>();
+    for (const e of executions) {
+      if (e.operatorId) userIds.add(e.operatorId);
+      if (e.verifierId) userIds.add(e.verifierId);
+    }
+    const userMap = new Map<number, string>();
+    if (userIds.size > 0) {
+      const { inArray } = await import('drizzle-orm');
+      const users = await db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users)
+        .where(inArray(tables.users.id, [...userIds]));
+      for (const u of users) userMap.set(u.id, u.name);
+    }
+
+    // Attach template sub-steps + user names to each execution
     return executions.map((exec: any) => ({
       ...exec,
+      operatorName: exec.operatorId ? (userMap.get(exec.operatorId) || null) : null,
+      verifierName: exec.verifierId ? (userMap.get(exec.verifierId) || null) : null,
       templateSteps: exec.templateId ? (templateStepsMap[exec.templateId] || []) : [],
     }));
   });
@@ -1297,6 +1315,27 @@ export async function getWOFinishedInspection(workOrderId: number) {
         inspection.checklistResults = JSON.parse(inspection.checklistResults);
       } catch { /* keep as-is */ }
     }
+
+    // Resolve user names for sampler, inspector, re-inspector
+    const userIds = new Set<number>();
+    if (inspection.samplerId) userIds.add(inspection.samplerId);
+    if (inspection.inspectorId) userIds.add(inspection.inspectorId);
+    if (inspection.reInspectorId) userIds.add(inspection.reInspectorId);
+
+    if (userIds.size > 0) {
+      const { inArray } = await import('drizzle-orm');
+      const users = await db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users)
+        .where(inArray(tables.users.id, [...userIds]));
+      const userMap = new Map<number, string>();
+      for (const u of users) userMap.set(u.id, u.name);
+
+      inspection.samplerName = inspection.samplerId ? (userMap.get(inspection.samplerId) || null) : null;
+      inspection.inspectorName = inspection.inspectorId ? (userMap.get(inspection.inspectorId) || null) : null;
+      inspection.reInspectorName = inspection.reInspectorId ? (userMap.get(inspection.reInspectorId) || null) : null;
+    }
+
     return inspection;
   });
 }

@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -163,7 +164,7 @@ export default function FinishedInspectionPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sampleDate: new Date().toISOString().split('T')[0],
+          sampleDate: toLocalDateStr(new Date()),
           ...data,
         }),
       });
@@ -394,7 +395,7 @@ export default function FinishedInspectionPage() {
                             {statusInfo.label}
                           </span>
                           <p className="text-sm text-gray-600 mt-1">
-                            Sampled: {new Date(inspection.sampleDate).toLocaleDateString()} by {inspection.samplerName}
+                            สุ่มตัวอย่าง: {new Date(inspection.sampleDate).toLocaleDateString('th-TH')} โดย {inspection.samplerName || `User#${inspection.samplerId}`}
                           </p>
                         </div>
                       </>
@@ -585,17 +586,17 @@ export default function FinishedInspectionPage() {
                     </div>
                   )}
 
-                  {inspection.inspectorName && (
+                  {(inspection.inspectorId || inspection.inspectorName) && (
                     <div className="mt-4 text-sm text-gray-600 flex items-center gap-4">
-                      <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> Inspected by {inspection.inspectorName}</span>
-                      <span>{new Date(inspection.inspectedAt!).toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> ผู้ตรวจ: {inspection.inspectorName || `User#${inspection.inspectorId}`}</span>
+                      {inspection.inspectedAt && <span>{new Date(inspection.inspectedAt).toLocaleString('th-TH')}</span>}
                     </div>
                   )}
 
-                  {inspection.reInspectorName && (
+                  {(inspection.reInspectorId || inspection.reInspectorName) && (
                     <div className="mt-2 text-sm text-blue-600 flex items-center gap-4">
-                      <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> Re-inspected by {inspection.reInspectorName}</span>
-                      <span>{new Date(inspection.reInspectedAt!).toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> ผู้ตรวจซ้ำ: {inspection.reInspectorName || `User#${inspection.reInspectorId}`}</span>
+                      {inspection.reInspectedAt && <span>{new Date(inspection.reInspectedAt).toLocaleString('th-TH')}</span>}
                     </div>
                   )}
                 </CardContent>

@@ -642,16 +642,16 @@ export default function SOPExecutionPage() {
                           )}
 
                           {/* Execution info */}
-                          {step.operatorName && (
-                            <div className="mt-2 text-xs text-gray-500 flex items-center gap-3">
+                          {(step.startedAt || step.completedAt || step.verifiedAt) && (
+                            <div className="mt-2 text-xs text-gray-500 flex flex-wrap items-center gap-3">
                               {step.startedAt && (
-                                <span>Started: {new Date(step.startedAt).toLocaleString()} by {step.operatorName}</span>
+                                <span>เริ่ม: {new Date(step.startedAt).toLocaleString('th-TH')}{step.operatorName ? ` โดย ${step.operatorName}` : ''}</span>
                               )}
                               {step.completedAt && (
-                                <span>Completed: {new Date(step.completedAt).toLocaleString()}</span>
+                                <span>เสร็จ: {new Date(step.completedAt).toLocaleString('th-TH')}{step.operatorName ? ` โดย ${step.operatorName}` : ''}</span>
                               )}
-                              {step.verifierName && (
-                                <span className="text-blue-600">Verified by {step.verifierName}</span>
+                              {step.verifiedAt && (
+                                <span className="text-blue-600">ตรวจสอบ: {new Date(step.verifiedAt).toLocaleString('th-TH')}{step.verifierName ? ` โดย ${step.verifierName}` : ''}</span>
                               )}
                             </div>
                           )}
