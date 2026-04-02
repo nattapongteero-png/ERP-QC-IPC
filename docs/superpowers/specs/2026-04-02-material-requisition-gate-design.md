@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-02
 **Status:** Approved
-**Approach:** Status Gate on Work Orders (Approach A)
+**Approach:** Status Gate on Work Orders (เพิ่ม fields ใน work_orders)
 
 ## Problem
 
@@ -50,29 +50,31 @@ ALTER TABLE work_orders ADD COLUMN requisition_approved_at DATETIME;
 
 ### 1. Execution Dashboard (`/production/work-orders/[id]/execution`)
 
-เพิ่ม section "Material Requisition" ในกลุ่ม pre_production ก่อน Material Weighing:
+เพิ่ม section "ใบเบิกวัตถุดิบ" ในกลุ่ม pre_production ก่อน Material Weighing:
 
-- แสดงรายการวัตถุดิบจาก work_order_materials (item, qty, unit)
+- แสดงรายการวัตถุดิบจาก work_order_materials (item code, ชื่อ, qty, unit)
 - สถานะ `none`: ปุ่ม "ส่งใบเบิกวัตถุดิบ"
-- สถานะ `requested`: แสดง "รอคลังอนุมัติ" + วันที่ส่ง + ผู้ส่ง
-- สถานะ `approved`: แสดง "คลังอนุมัติแล้ว" + วันที่อนุมัติ + ผู้อนุมัติ
+- สถานะ `requested`: แสดง "รอคลังอนุมัติ" (badge สีเหลือง) + วันที่ส่ง + ผู้ส่ง
+- สถานะ `approved`: แสดง "คลังอนุมัติแล้ว" (badge สีเขียว) + วันที่อนุมัติ + ผู้อนุมัติ
 
-### 2. Inventory Lots Page (`/inventory/lots`) — Tab ใหม่
-
-เพิ่ม Tab "ใบเบิกวัตถุดิบ" แสดง:
-
-- รายการ WO ที่มี requisitionStatus = 'requested' หรือ 'approved'
-- Filter: รอ / อนุมัติแล้ว / ทั้งหมด
-- แต่ละรายการแสดง: WO Number, Batch, สินค้า, จำนวน, วันที่ขอ, ผู้ขอ
-- กดขยายเห็นรายการวัตถุดิบ (item code, name, qty, unit, available stock)
-- ปุ่ม "อนุมัติปล่อยของ" (เฉพาะ status = 'requested')
-
-### 3. Material Weighing Gate
+### 2. Material Weighing Gate
 
 แก้ไขหน้า Material Weighing:
 
 - ถ้า `requisitionStatus !== 'approved'`: แสดง banner warning + disable ปุ่มชั่งทั้งหมด
 - ถ้า `approved`: ทำงานเหมือนเดิมทุกประการ
+
+### 3. Inventory Lots Page (`/inventory/lots`) — Tab ใหม่
+
+เพิ่ม Tab structure: "รายการ Lot" (เนื้อหาเดิม) + "ใบเบิกวัตถุดิบ" (ใหม่)
+
+Tab ใบเบิกวัตถุดิบ แสดง:
+
+- รายการ WO ที่มี requisitionStatus = 'requested' หรือ 'approved'
+- Filter: รอ / อนุมัติแล้ว / ทั้งหมด
+- แต่ละรายการแสดง: WO Number, Batch Number, สินค้า, จำนวน, วันที่ขอ, ผู้ขอ
+- กดขยายเห็นรายการวัตถุดิบ (item code, name, qty, unit, available stock)
+- ปุ่ม "อนุมัติปล่อยของ" (เฉพาะ status = 'requested')
 
 ## API Endpoints
 
@@ -151,7 +153,6 @@ ALTER TABLE work_orders ADD COLUMN requisition_approved_at DATETIME;
 - Database: เพิ่ม 5 fields ใน work_orders
 - API: 1 endpoint ใหม่ (requisition), 1 endpoint ใหม่ (inventory/requisitions), 1 แก้ไข (material-weighing)
 - UI: 1 section ใหม่ใน execution dashboard, 1 tab ใหม่ในหน้า lots, 1 gate check ที่ material weighing
-- Transaction history: ใช้ตาราง inventory_transactions เดิม
 
 **Out of scope:**
 - ปฏิเสธใบเบิก
