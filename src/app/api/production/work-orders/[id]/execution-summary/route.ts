@@ -13,6 +13,7 @@ import {
   getWOPackagingWeightLogs,
   getWOPackagingIntegrityLogs,
   getWOFinishedInspection,
+  getWOIPCTests,
 } from '@/lib/services/wo-execution.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { eq } from 'drizzle-orm';
@@ -44,6 +45,7 @@ export async function GET(
         packagingWeightLogs,
         packagingIntegrityLogs,
         finishedInspection,
+        ipcTests,
       ] = await Promise.all([
         getWOMaterials(workOrderId),
         getWOCleaningLogs(workOrderId, 'pre_production'),
@@ -56,6 +58,7 @@ export async function GET(
         getWOPackagingWeightLogs(workOrderId),
         getWOPackagingIntegrityLogs(workOrderId),
         getWOFinishedInspection(workOrderId),
+        getWOIPCTests(workOrderId),
       ]);
 
       // Calculate material weighing status
@@ -159,6 +162,14 @@ export async function GET(
         yieldPercent: woData?.yieldPercentage ? Number(woData.yieldPercentage) : null,
       };
 
+      // Calculate IPC (In-Process Control) status
+      const ipcTestList = Array.isArray(ipcTests) ? ipcTests : [];
+      const ipc = {
+        total: ipcTestList.length,
+        completed: ipcTestList.filter((t: any) => t.status === 'pass' || t.status === 'fail').length,
+        approved: ipcTestList.filter((t: any) => t.approvedBy != null).length,
+      };
+
       const summary = {
         materialWeighing,
         preProductionCleaning: preProductionCleaningStatus,
@@ -172,6 +183,7 @@ export async function GET(
         packagingIntegrity,
         packagingEnvironmental,
         finishedInspection: finishedInspectionStatus,
+        ipc,
       };
 
       return successResponse(summary);

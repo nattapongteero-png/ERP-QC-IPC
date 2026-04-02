@@ -92,6 +92,11 @@ interface ExecutionSummary {
   finishedInspection: {
     status: 'pending' | 'in_progress' | 'passed' | 'failed';
   };
+  ipc: {
+    total: number;
+    completed: number;
+    approved: number;
+  };
 }
 
 interface ExecutionSection {
@@ -163,6 +168,7 @@ export default function WorkOrderExecutionPage() {
           packagingIntegrity: { total: 0, passed: 0 },
           packagingEnvironmental: { total: 0, recorded: 0, normal: 0 },
           finishedInspection: { status: 'pending' },
+          ipc: { total: 0, completed: 0, approved: 0 },
         };
       }
       return data.data;
@@ -234,10 +240,16 @@ export default function WorkOrderExecutionPage() {
       href: `/production/work-orders/${workOrderId}/ipc`,
       phase: 'production',
       description: t('execution.ipcDescription'),
-      getStatus: () => ({
-        completed: 0,
-        total: 0,
-        status: 'pending' as const,
+      getStatus: (s) => ({
+        completed: s.ipc.completed,
+        total: s.ipc.total,
+        status: s.ipc.approved === s.ipc.total && s.ipc.total > 0
+          ? 'verified'
+          : s.ipc.completed === s.ipc.total && s.ipc.total > 0
+          ? 'completed'
+          : s.ipc.completed > 0
+          ? 'in_progress'
+          : 'pending',
       }),
     },
     {
@@ -455,6 +467,7 @@ export default function WorkOrderExecutionPage() {
     packagingIntegrity: { total: 0, passed: 0 },
     packagingEnvironmental: { total: 0, recorded: 0, normal: 0 },
     finishedInspection: { status: 'pending' },
+    ipc: { total: 0, completed: 0, approved: 0 },
   };
 
   // Group sections by phase
