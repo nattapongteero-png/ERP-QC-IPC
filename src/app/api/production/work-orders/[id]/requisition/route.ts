@@ -43,10 +43,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const wo = existing[0];
 
       if (action === 'request') {
-        // Validate: WO status must be 'released' or 'in_progress'
-        if (wo.status !== 'released' && wo.status !== 'in_progress') {
+        // Validate: WO status must be planned, released, or in_progress
+        if (!['planned', 'released', 'in_progress'].includes(wo.status as string)) {
           return errorResponse(
-            `Cannot request materials for work order with status '${wo.status}'. Status must be 'released' or 'in_progress'.`
+            `Cannot request materials for work order with status '${wo.status}'. Status must be 'planned', 'released' or 'in_progress'.`
           );
         }
 
