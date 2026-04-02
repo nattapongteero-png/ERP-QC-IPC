@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-search-dialog';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { cn } from '@/lib/utils/cn';
 
 /** Get today's date as YYYY-MM-DD using local timezone (avoids UTC shift from toISOString) */
@@ -35,6 +37,7 @@ interface Lot {
   itemId: number;
   itemCode?: string;
   itemName?: string;
+  itemType?: string;
   warehouseId: number;
   warehouseName?: string;
   quantity: number;
@@ -49,6 +52,17 @@ interface Lot {
   vendorName?: string;
   cost: number | null;
 }
+
+// Item type labels
+const ITEM_TYPE_LABELS: Record<string, string> = {
+  raw_material: 'วัตถุดิบ',
+  finished_good: 'สินค้าสำเร็จรูป',
+  finished_goods: 'สินค้าสำเร็จรูป',
+  packaging: 'บรรจุภัณฑ์',
+  consumable: 'วัสดุสิ้นเปลือง',
+};
+
+type QuickFilter = '' | 'near_expiry' | 'expired' | 'raw_material' | 'finished_goods';
 
 interface LotFormData {
   lotNumber: string;
@@ -183,12 +197,19 @@ const formatCurrency = (value: number) => {
 export default function LotsPage() {
   const router = useRouter();
   const t = useTranslations('inventory');
+  const [activeTab, setActiveTab] = useState('lots');
   const [lots, setLots] = useState<Lot[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusType>('');
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('');
+  const [warehouseFilter, setWarehouseFilter] = useState<number | ''>('');
+  const [expiryFrom, setExpiryFrom] = useState('');
+  const [expiryTo, setExpiryTo] = useState('');
+  const [receivedFrom, setReceivedFrom] = useState('');
+  const [receivedTo, setReceivedTo] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showQCModal, setShowQCModal] = useState(false);
   const [showTraceModal, setShowTraceModal] = useState(false);
@@ -295,6 +316,42 @@ export default function LotsPage() {
           );
         }
 
+        // Warehouse filter
+        if (warehouseFilter) {
+          fetchedLots = fetchedLots.filter((lot: Lot) => lot.warehouseId === warehouseFilter);
+        }
+
+        // Date range filters
+        if (expiryFrom) {
+          fetchedLots = fetchedLots.filter((lot: Lot) => lot.expiryDate && new Date(lot.expiryDate) >= new Date(expiryFrom));
+        }
+        if (expiryTo) {
+          fetchedLots = fetchedLots.filter((lot: Lot) => lot.expiryDate && new Date(lot.expiryDate) <= new Date(expiryTo));
+        }
+        if (receivedFrom) {
+          fetchedLots = fetchedLots.filter((lot: Lot) => lot.receivedDate && new Date(lot.receivedDate) >= new Date(receivedFrom));
+        }
+        if (receivedTo) {
+          fetchedLots = fetchedLots.filter((lot: Lot) => lot.receivedDate && new Date(lot.receivedDate) <= new Date(receivedTo));
+        }
+
+        // Quick filters
+        if (quickFilter === 'near_expiry') {
+          fetchedLots = fetchedLots.filter((lot: Lot) => {
+            const days = getDaysUntilExpiry(lot.expiryDate);
+            return days !== null && days > 0 && days <= 30;
+          });
+        } else if (quickFilter === 'expired') {
+          fetchedLots = fetchedLots.filter((lot: Lot) => {
+            const days = getDaysUntilExpiry(lot.expiryDate);
+            return days !== null && days < 0;
+          });
+        } else if (quickFilter === 'raw_material') {
+          fetchedLots = fetchedLots.filter((lot: Lot) => lot.itemType === 'raw_material');
+        } else if (quickFilter === 'finished_goods') {
+          fetchedLots = fetchedLots.filter((lot: Lot) => lot.itemType === 'finished_good' || lot.itemType === 'finished_goods');
+        }
+
         setLots(fetchedLots);
       } else {
         setLots([]);
@@ -305,7 +362,7 @@ export default function LotsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, search]);
+  }, [statusFilter, search, warehouseFilter, expiryFrom, expiryTo, receivedFrom, receivedTo, quickFilter]);
 
   const fetchMasterData = async () => {
     try {
@@ -503,7 +560,7 @@ export default function LotsPage() {
     {
       dataField: 'lotNumber',
       caption: t('lots.grid.columns.lotNumber'),
-      width: 160,
+      minWidth: 180,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
           <span className={cn('p-1 rounded', STATUS_CONFIG[cellInfo.data.status as StatusType]?.bgColor, STATUS_CONFIG[cellInfo.data.status as StatusType]?.textColor)}>
@@ -516,7 +573,7 @@ export default function LotsPage() {
     {
       dataField: 'vendorLotNumber',
       caption: t('lots.grid.columns.vendorLotNumber'),
-      width: 140,
+      minWidth: 140,
       hideOnMobile: true,
       cellRender: (cellInfo) => (
         <span className="text-gray-700">{cellInfo.data.vendorLotNumber || '-'}</span>
@@ -525,18 +582,18 @@ export default function LotsPage() {
     {
       dataField: 'itemCode',
       caption: t('lots.grid.columns.item'),
-      minWidth: 200,
+      minWidth: 220,
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium text-gray-900">{cellInfo.data.itemCode}</p>
-          <p className="text-xs text-gray-500 truncate max-w-[200px]">{cellInfo.data.itemName}</p>
+          <p className="text-xs text-gray-500">{cellInfo.data.itemName}</p>
         </div>
       ),
     },
     {
       dataField: 'quantity',
       caption: t('lots.grid.columns.quantity'),
-      width: 140,
+      minWidth: 130,
       dataType: 'number',
       cellRender: (cellInfo) => (
         <div>
@@ -552,7 +609,7 @@ export default function LotsPage() {
     {
       dataField: 'cost',
       caption: t('lots.grid.columns.value'),
-      width: 160,
+      minWidth: 150,
       dataType: 'number',
       hideOnMobile: true,
       cellRender: (cellInfo) => {
@@ -570,8 +627,7 @@ export default function LotsPage() {
     {
       dataField: 'warehouseName',
       caption: t('lots.grid.columns.warehouse'),
-      width: 130,
-      hideOnMobile: true,
+      minWidth: 130,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
           <Warehouse className="h-4 w-4 text-gray-400" />
@@ -582,7 +638,7 @@ export default function LotsPage() {
     {
       dataField: 'expiryDate',
       caption: t('lots.grid.columns.expiryDate'),
-      width: 150,
+      minWidth: 140,
       dataType: 'date',
       hideOnMobile: true,
       cellRender: (cellInfo) => {
@@ -610,11 +666,11 @@ export default function LotsPage() {
     {
       dataField: 'manufacturerName',
       caption: t('lots.grid.columns.manufacturer'),
-      width: 150,
+      minWidth: 160,
       hideOnMobile: true,
       cellRender: (cellInfo) => (
         <div>
-          <p className="text-gray-700 text-sm truncate">{cellInfo.data.manufacturerName || '-'}</p>
+          <p className="text-gray-700 text-sm">{cellInfo.data.manufacturerName || '-'}</p>
           {cellInfo.data.countryOfOrigin && (
             <p className="text-xs text-gray-500">{cellInfo.data.countryOfOrigin}</p>
           )}
@@ -624,7 +680,7 @@ export default function LotsPage() {
     {
       dataField: 'retestDate',
       caption: t('lots.grid.columns.retest'),
-      width: 130,
+      minWidth: 130,
       hideOnMobile: true,
       cellRender: (cellInfo) => {
         if (!cellInfo.data.retestDate) return <span className="text-gray-400">-</span>;
@@ -646,7 +702,7 @@ export default function LotsPage() {
     {
       dataField: 'status',
       caption: t('lots.grid.columns.status'),
-      width: 120,
+      minWidth: 120,
       cellRender: (cellInfo) => {
         const status = cellInfo.data.status;
         const variant = getStatusVariant(status);
@@ -738,6 +794,12 @@ export default function LotsPage() {
           }
         />
 
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="lots">รายการ Lot</TabsTrigger>
+            <TabsTrigger value="requisitions">ใบเบิกวัตถุดิบ</TabsTrigger>
+          </TabsList>
+          <TabsContent value="lots">
         {/* DataGrid Card */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           {/* Tabs + Stats Header */}
@@ -800,17 +862,65 @@ export default function LotsPage() {
             </div>
           </div>
 
-          {/* Search Row */}
+          {/* Search & Filters — Single Line */}
           <div className="px-4 py-2 border-b border-gray-100">
-            <div className="w-full md:w-72">
-              <DxTextBox
-                placeholder={t('lots.searchPlaceholder')}
-                value={search}
-                onValueChange={setSearch}
-                showClearButton
-                mode="search"
-                onEnterKey={() => fetchLots()}
-              />
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Search */}
+              <div className="w-48">
+                <DxTextBox
+                  placeholder={t('lots.searchPlaceholder')}
+                  value={search}
+                  onValueChange={setSearch}
+                  showClearButton
+                  mode="search"
+                  onEnterKey={() => fetchLots()}
+                />
+              </div>
+              {/* Warehouse */}
+              <div className="w-44">
+                <DxSelectBox
+                  items={[{ value: '', label: 'คลัง: ทั้งหมด' }, ...warehouses.map(w => ({ value: w.id, label: w.name }))]}
+                  value={warehouseFilter}
+                  onValueChange={(v) => setWarehouseFilter(v || '')}
+                />
+              </div>
+              {/* Expiry date range */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-400 whitespace-nowrap">หมดอายุ</span>
+                <div className="w-32"><DxDateBox value={expiryFrom} onValueChange={(v) => setExpiryFrom(v || '')} placeholder="ตั้งแต่" /></div>
+                <span className="text-gray-400">-</span>
+                <div className="w-32"><DxDateBox value={expiryTo} onValueChange={(v) => setExpiryTo(v || '')} placeholder="ถึง" /></div>
+              </div>
+              <div className="hidden lg:block h-5 w-px bg-gray-300" />
+              {/* Quick Filter Tags */}
+              {([
+                { key: 'near_expiry' as QuickFilter, label: '≤30 วัน', color: 'text-amber-700 bg-amber-50 border-amber-200', icon: <CalendarClock className="h-3.5 w-3.5" /> },
+                { key: 'expired' as QuickFilter, label: 'หมดอายุ', color: 'text-red-700 bg-red-50 border-red-200', icon: <XCircle className="h-3.5 w-3.5" /> },
+                { key: 'raw_material' as QuickFilter, label: 'วัตถุดิบ', color: 'text-blue-700 bg-blue-50 border-blue-200', icon: <Package className="h-3.5 w-3.5" /> },
+                { key: 'finished_goods' as QuickFilter, label: 'สำเร็จรูป', color: 'text-purple-700 bg-purple-50 border-purple-200', icon: <Boxes className="h-3.5 w-3.5" /> },
+              ]).map((tag) => (
+                <button
+                  key={tag.key}
+                  onClick={() => setQuickFilter(quickFilter === tag.key ? '' : tag.key)}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors',
+                    quickFilter === tag.key ? tag.color : 'text-gray-500 bg-white border-gray-200 hover:bg-gray-50'
+                  )}
+                >
+                  {tag.icon}
+                  {tag.label}
+                </button>
+              ))}
+              {/* Clear all filters */}
+              {(warehouseFilter || expiryFrom || expiryTo || quickFilter || search) && (
+                <button
+                  onClick={() => { setSearch(''); setWarehouseFilter(''); setExpiryFrom(''); setExpiryTo(''); setReceivedFrom(''); setReceivedTo(''); setQuickFilter(''); }}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                >
+                  <RefreshCcw className="h-3 w-3" />
+                  ล้าง
+                </button>
+              )}
             </div>
           </div>
 
@@ -823,12 +933,15 @@ export default function LotsPage() {
                 columns={columns}
                 loading={isLoading}
                 sorting
-                filterRow
                 headerFilter
                 export
                 exportFileName="inventory-lots"
                 columnChooser
-                virtualScrolling={lots.length > 100}
+                wordWrapEnabled
+                columnAutoWidth
+                allowColumnResizing
+                paging
+                pageSize={20}
                 height={600}
                 onRowClick={handleRowClick}
                 noDataText={t('lots.noLots')}
@@ -846,6 +959,11 @@ export default function LotsPage() {
             )}
           </div>
         </div>
+          </TabsContent>
+          <TabsContent value="requisitions">
+            <RequisitionTab />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create Lot Modal */}
@@ -1335,5 +1453,150 @@ export default function LotsPage() {
         showStock={true}
       />
     </MainLayout>
+  );
+}
+
+function RequisitionTab() {
+  const [filter, setFilter] = useState('requested');
+  const [expandedWo, setExpandedWo] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: requisitions = [], isLoading } = useQuery({
+    queryKey: ['inventory-requisitions', filter],
+    queryFn: async () => {
+      const res = await fetch(`/api/inventory/requisitions?status=${filter}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data || [];
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async (workOrderId: number) => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/requisition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory-requisitions'] });
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      {/* Filter buttons */}
+      <div className="flex gap-2">
+        {[
+          { value: 'requested', label: 'รออนุมัติ' },
+          { value: 'approved', label: 'อนุมัติแล้ว' },
+          { value: 'all', label: 'ทั้งหมด' },
+        ].map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+              filter === f.value
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && requisitions.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          <Package className="h-12 w-12 mx-auto mb-3 opacity-40" />
+          <p>ไม่มีใบเบิกวัตถุดิบ</p>
+        </div>
+      )}
+
+      {/* Requisition cards */}
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      {requisitions.map((req: any) => (
+        <div key={req.workOrderId} className="bg-white border rounded-lg shadow-sm overflow-hidden">
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-medium text-indigo-700">{req.woNumber}</span>
+                  <span className={cn(
+                    'px-2 py-0.5 rounded-full text-xs font-medium',
+                    req.requisitionStatus === 'requested' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                  )}>
+                    {req.requisitionStatus === 'requested' ? 'รออนุมัติ' : 'อนุมัติแล้ว'}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Batch: {req.batchNumber} | {req.productName}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  ขอเบิกโดย: {req.requestedBy || '-'} | {req.requestedAt ? new Date(req.requestedAt).toLocaleString('th-TH') : '-'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setExpandedWo(expandedWo === req.workOrderId ? null : req.workOrderId)}
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1"
+              >
+                {expandedWo === req.workOrderId ? 'ซ่อน' : 'ดูวัตถุดิบ'}
+              </button>
+              {req.requisitionStatus === 'requested' && (
+                <button
+                  onClick={() => approveMutation.mutate(req.workOrderId)}
+                  disabled={approveMutation.isPending}
+                  className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                >
+                  {approveMutation.isPending ? 'กำลังอนุมัติ...' : 'อนุมัติปล่อยของ'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Expanded materials list */}
+          {expandedWo === req.workOrderId && req.materials?.length > 0 && (
+            <div className="border-t bg-gray-50 p-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500">
+                    <th className="pb-2">รหัสสินค้า</th>
+                    <th className="pb-2">ชื่อวัตถุดิบ</th>
+                    <th className="pb-2 text-right">จำนวน</th>
+                    <th className="pb-2">หน่วย</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {req.materials.map((mat: any, idx: number) => (
+                    <tr key={idx} className="border-t border-gray-200">
+                      <td className="py-1.5 font-mono text-xs">{mat.itemCode}</td>
+                      <td className="py-1.5">{mat.itemName}</td>
+                      <td className="py-1.5 text-right">{mat.plannedQuantity}</td>
+                      <td className="py-1.5">{mat.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
