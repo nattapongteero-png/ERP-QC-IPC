@@ -3,7 +3,7 @@
 // Core functions for WAC calculation, cost layers, and cost aggregation
 
 import { eq, and, like, desc, asc, sql, gte, lte, lt, gt, count, inArray } from 'drizzle-orm';
-import { toQueryDate } from '../db/date-utils';
+import { toQueryDate, toDbDate } from '../db/date-utils';
 import { getNow, formatDateFromDb, getTodayStr } from '../db/date-utils';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import type {
@@ -229,6 +229,9 @@ export async function recalculateWAC(input: RecalculateWACInput): Promise<Recalc
       .insert(tables.itemCostLayers)
       .values({
         ...costLayerData,
+        transactionDate: costLayerData.transactionDate
+          ? toDbDate(costLayerData.transactionDate)
+          : getNow(),
         createdAt: getNow(),
       });
 
@@ -738,22 +741,9 @@ export async function getWorkCenter(id: number): Promise<WorkCenter | null> {
   return executeDbOperation(async (db) => {
     const tables = getUnitCostTables();
 
-    // Query work center with explicit field names to avoid any collision
+    // Use select() without explicit columns — same pattern as listWorkCenters (no JOIN, no collision)
     const wcResult = await db
-      .select({
-        id: tables.workCenters.id,
-        code: tables.workCenters.code,
-        wcName: tables.workCenters.name,
-        nameTh: tables.workCenters.nameTh,
-        orgUnitId: tables.workCenters.orgUnitId,
-        laborRatePerHour: tables.workCenters.laborRatePerHour,
-        overheadRatePerHour: tables.workCenters.overheadRatePerHour,
-        machineRatePerHour: tables.workCenters.machineRatePerHour,
-        capacityHoursPerDay: tables.workCenters.capacityHoursPerDay,
-        isActive: tables.workCenters.isActive,
-        createdAt: tables.workCenters.createdAt,
-        updatedAt: tables.workCenters.updatedAt,
-      })
+      .select()
       .from(tables.workCenters)
       .where(eq(tables.workCenters.id, id))
       .limit(1);
@@ -762,33 +752,33 @@ export async function getWorkCenter(id: number): Promise<WorkCenter | null> {
       return null;
     }
 
-    const wc = wcResult[0];
+    const wc = wcResult[0] as Record<string, unknown>;
 
-    // Get org unit name separately to avoid column name collision
+    // Get org unit name separately
     let orgUnitName: string | null = null;
     if (wc.orgUnitId) {
       const ouResult = await db
         .select({ ouName: tables.hrOrgUnits.name })
         .from(tables.hrOrgUnits)
-        .where(eq(tables.hrOrgUnits.id, wc.orgUnitId))
+        .where(eq(tables.hrOrgUnits.id, wc.orgUnitId as number))
         .limit(1);
       orgUnitName = (ouResult[0]?.ouName as string) || null;
     }
 
     return {
-      id: wc.id,
-      code: wc.code,
-      name: wc.wcName,
-      nameTh: wc.nameTh || null,
-      orgUnitId: wc.orgUnitId || null,
+      id: wc.id as number,
+      code: wc.code as string,
+      name: wc.name as string,
+      nameTh: (wc.nameTh as string) || null,
+      orgUnitId: (wc.orgUnitId as number) || null,
       orgUnitName,
       laborRatePerHour: Number(wc.laborRatePerHour) || 0,
       overheadRatePerHour: Number(wc.overheadRatePerHour) || 0,
       machineRatePerHour: Number(wc.machineRatePerHour) || 0,
       capacityHoursPerDay: wc.capacityHoursPerDay !== null ? Number(wc.capacityHoursPerDay) : null,
       isActive: wc.isActive as boolean,
-      createdAt: wc.createdAt?.toString() || '',
-      updatedAt: wc.updatedAt?.toString() || '',
+      createdAt: (wc.createdAt as Date)?.toString() || '',
+      updatedAt: (wc.updatedAt as Date)?.toString() || '',
     } as WorkCenter;
   });
 }
@@ -1314,7 +1304,7 @@ export async function createLandedCost(
         referenceNumber,
         vendorId: data.vendorId || null,
         invoiceNumber: data.invoiceNumber || null,
-        invoiceDate: data.invoiceDate || null,
+        invoiceDate: data.invoiceDate ? toDbDate(data.invoiceDate) : null,
         totalAmount: 0, // Will be calculated from lines
         currency: data.currency || 'THB',
         exchangeRate: data.exchangeRate || 1,
@@ -1457,16 +1447,18 @@ export async function updateLandedCost(
     }
 
     // Update header fields
+    const updateData: Record<string, unknown> = { updatedAt: getNow() };
+    if (data.vendorId !== undefined) updateData.vendorId = data.vendorId;
+    if (data.invoiceNumber !== undefined) updateData.invoiceNumber = data.invoiceNumber;
+    if (data.invoiceDate !== undefined) {
+      updateData.invoiceDate = data.invoiceDate ? toDbDate(data.invoiceDate) : null;
+    }
+    if (data.currency !== undefined) updateData.currency = data.currency;
+    if (data.exchangeRate !== undefined) updateData.exchangeRate = data.exchangeRate;
+
     await db
       .update(tables.landedCostHeaders)
-      .set({
-        vendorId: data.vendorId !== undefined ? data.vendorId : undefined,
-        invoiceNumber: data.invoiceNumber !== undefined ? data.invoiceNumber : undefined,
-        invoiceDate: data.invoiceDate !== undefined ? data.invoiceDate : undefined,
-        currency: data.currency !== undefined ? data.currency : undefined,
-        exchangeRate: data.exchangeRate !== undefined ? data.exchangeRate : undefined,
-        updatedAt: getNow(),
-      })
+      .set(updateData)
       .where(eq(tables.landedCostHeaders.id, id));
 
     // If lines are provided, replace all lines
@@ -1681,15 +1673,13 @@ export async function allocateLandedCost(
       throw new Error('No PO lines found for allocation');
     }
 
-    // Get item details for weight/volume (if needed)
+    // Get item details for allocation
     const itemIds = [...new Set(poLines.map((l: typeof poLines[0]) => l.itemId))];
     const itemDetails = await db
       .select({
         id: tables.items.id,
         code: tables.items.code,
         nameTh: tables.items.nameTh,
-        weight: tables.items.weight,
-        volume: tables.items.volume,
       })
       .from(tables.items)
       .where(sql`${tables.items.id} IN (${sql.join(itemIds.map((id) => sql`${id}`), sql`, `)})`);
@@ -1725,10 +1715,10 @@ export async function allocateLandedCost(
             basisValue = qty;
             break;
           case 'weight':
-            basisValue = qty * (Number(item?.weight) || 1); // Default weight 1 if not set
+            basisValue = qty * 1; // Weight field not yet in items schema, default to qty
             break;
           case 'volume':
-            basisValue = qty * (Number(item?.volume) || 1); // Default volume 1 if not set
+            basisValue = qty * 1; // Volume field not yet in items schema, default to qty
             break;
         }
 
@@ -2415,13 +2405,19 @@ export async function getCostDashboardKPIs(): Promise<CostDashboardKPIs> {
   return executeDbOperation(async (db) => {
     const tables = getUnitCostTables();
 
-    // Get inventory value from items table
+    // Get inventory value from inventory_lots (items.on_hand_cost may be stale)
+    const inventoryLots = getTableRef('inventoryLots');
     const inventoryResult = await db
       .select({
-        totalValue: sql<number>`SUM(COALESCE(${tables.items.onHandCost}, 0))`,
+        totalValue: sql<number>`SUM(${inventoryLots.quantity} * ${inventoryLots.cost})`,
       })
-      .from(tables.items)
-      .where(eq(tables.items.isActive, true));
+      .from(inventoryLots)
+      .innerJoin(tables.items, eq(inventoryLots.itemId, tables.items.id))
+      .where(and(
+        eq(tables.items.isActive, true),
+        sql`${inventoryLots.quantity} > 0`,
+        sql`${inventoryLots.cost} > 0`
+      ));
     const inventoryValue = Number(inventoryResult[0]?.totalValue) || 0;
 
     // Get WIP value from open work orders
@@ -2488,13 +2484,17 @@ export async function getTopCostIncreases(limit: number = 5): Promise<ItemCostCh
     const tables = getUnitCostTables();
 
     // Get items with cost layer history
-    // Compare most recent cost to average of previous costs
+    // Compare current WAC (from lots) to previous cost from cost layers
     const rows = await db
       .select({
         itemId: tables.items.id,
         itemCode: tables.items.code,
         itemName: tables.items.nameTh,
-        currentWAC: sql<number>`(${tables.items.onHandCost} / NULLIF(${tables.items.onHand}, 0))`,
+        currentWAC: sql<number>`(
+          SELECT SUM(il.quantity * il.cost) / NULLIF(SUM(il.quantity), 0)
+          FROM inventory_lots il
+          WHERE il.item_id = ${tables.items.id} AND il.quantity > 0 AND il.cost > 0
+        )`,
         lastCost: sql<number>`(
           SELECT c.running_wac
           FROM item_cost_layers c
@@ -2596,6 +2596,7 @@ export async function getCostSummaryReport(filters: {
 } = {}): Promise<{ data: ItemCostSummaryRow[]; total: number }> {
   return executeDbOperation(async (db) => {
     const tables = getUnitCostTables();
+    const inventoryLots = getTableRef('inventoryLots');
     const page = filters.page || 1;
     const pageSize = filters.pageSize || 50;
     const offset = (page - 1) * pageSize;
@@ -2646,10 +2647,39 @@ export async function getCostSummaryReport(filters: {
       .limit(pageSize)
       .offset(offset);
 
+    // Calculate actual costs from inventory_lots (since items.on_hand_cost may be stale/zero)
+    const itemIds = rows.map((r: { itemId: number }) => r.itemId);
+    const lotCostMap = new Map<number, { totalValue: number; totalQty: number }>();
+    if (itemIds.length > 0) {
+      const lotCosts = await db
+        .select({
+          itemId: inventoryLots.itemId,
+          totalValue: sql<number>`SUM(${inventoryLots.quantity} * ${inventoryLots.cost})`,
+          totalQty: sql<number>`SUM(${inventoryLots.quantity})`,
+        })
+        .from(inventoryLots)
+        .where(and(
+          inArray(inventoryLots.itemId, itemIds),
+          sql`${inventoryLots.quantity} > 0`,
+          sql`${inventoryLots.cost} > 0`
+        ))
+        .groupBy(inventoryLots.itemId);
+
+      for (const row of lotCosts) {
+        lotCostMap.set(row.itemId as number, {
+          totalValue: Number(row.totalValue) || 0,
+          totalQty: Number(row.totalQty) || 0,
+        });
+      }
+    }
+
     const data: ItemCostSummaryRow[] = rows.map((row: typeof rows[number]) => {
       const onHand = Number(row.onHand) || 0;
-      const onHandCost = Number(row.onHandCost) || 0;
-      const currentWAC = onHand > 0 ? Math.round((onHandCost / onHand) * 10000) / 10000 : null;
+      // Use lot-based cost if available, fallback to cached on_hand_cost
+      const lotCost = lotCostMap.get(row.itemId);
+      const onHandValue = lotCost ? lotCost.totalValue : (Number(row.onHandCost) || 0);
+      const lotQty = lotCost ? lotCost.totalQty : onHand;
+      const currentWAC = lotQty > 0 ? Math.round((onHandValue / lotQty) * 10000) / 10000 : null;
       const fullCost = currentWAC !== null ? Math.round(currentWAC * 1.1 * 10000) / 10000 : null;
 
       return {
@@ -2657,11 +2687,11 @@ export async function getCostSummaryReport(filters: {
         itemCode: row.itemCode,
         itemName: row.itemName || row.itemCode,
         itemType: row.itemType as ItemCostSummaryRow['itemType'],
-        categoryName: null, // Would need join to categories
+        categoryName: null,
         uom: row.uom,
         onHand,
         currentWAC,
-        onHandValue: onHandCost,
+        onHandValue,
         standardCost: row.standardCost ? Number(row.standardCost) : null,
         lastPurchaseCost: row.lastPurchaseCost ? Number(row.lastPurchaseCost) : null,
         lastPurchaseDate: row.lastPurchaseDate ? formatDateFromDb(row.lastPurchaseDate) : null,
@@ -2813,14 +2843,20 @@ export async function getFinancialHealthKPIs(
   return executeDbOperation(async (db) => {
     const tables = getUnitCostTables();
 
-    // Inventory value by category
+    // Inventory value by category (from inventory_lots, not cached items.on_hand_cost)
+    const inventoryLots = getTableRef('inventoryLots');
     const invByCat = await db
       .select({
         category: tables.items.type,
-        value: sql<number>`SUM(COALESCE(${tables.items.onHandCost}, 0))`,
+        value: sql<number>`SUM(${inventoryLots.quantity} * ${inventoryLots.cost})`,
       })
-      .from(tables.items)
-      .where(eq(tables.items.isActive, true))
+      .from(inventoryLots)
+      .innerJoin(tables.items, eq(inventoryLots.itemId, tables.items.id))
+      .where(and(
+        eq(tables.items.isActive, true),
+        sql`${inventoryLots.quantity} > 0`,
+        sql`${inventoryLots.cost} > 0`
+      ))
       .groupBy(tables.items.type);
 
     const totalInventory = invByCat.reduce((sum: number, r: typeof invByCat[number]) => sum + Number(r.value || 0), 0);
@@ -2965,10 +3001,16 @@ export async function getMaterialCostKPIs(
     const annualCOGS = await db
       .select({ total: sql<number>`SUM(COALESCE(${tables.salesOrderLines.totalCost}, 0))` })
       .from(tables.salesOrderLines);
+    const invLotsRef = getTableRef('inventoryLots');
     const invValue = await db
-      .select({ total: sql<number>`SUM(COALESCE(${tables.items.onHandCost}, 0))` })
-      .from(tables.items)
-      .where(eq(tables.items.isActive, true));
+      .select({ total: sql<number>`SUM(${invLotsRef.quantity} * ${invLotsRef.cost})` })
+      .from(invLotsRef)
+      .innerJoin(tables.items, eq(invLotsRef.itemId, tables.items.id))
+      .where(and(
+        eq(tables.items.isActive, true),
+        sql`${invLotsRef.quantity} > 0`,
+        sql`${invLotsRef.cost} > 0`
+      ));
 
     const annualCOGSVal = Number(annualCOGS[0]?.total || 0);
     const avgInvVal = Number(invValue[0]?.total || 0);
