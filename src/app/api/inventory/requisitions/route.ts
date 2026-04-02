@@ -3,20 +3,20 @@ import { eq, or, inArray, desc } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { successResponse, serverErrorResponse, withAuth } from '@/lib/api-utils';
 
-type WORequisitionRow = {
-  workOrderId: number | null;
-  woNumber: string | null;
-  batchNumber: string | null;
+interface WORequisitionRow {
+  workOrderId: number;
+  woNumber: string;
+  batchNumber: string;
   productName: string | null;
   productCode: string | null;
-  plannedQuantity: number | null;
-  unit: string | null;
+  plannedQuantity: number;
+  unit: string;
   requisitionStatus: string;
   requestedById: number | null;
   requestedAt: string | Date | null;
   approvedById: number | null;
   approvedAt: string | Date | null;
-};
+}
 
 // GET /api/inventory/requisitions?status=requested|approved|all
 export async function GET(request: NextRequest) {
@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
       }
 
       // Query work orders with product info
-      const workOrders: WORequisitionRow[] = await executeDbOperation(async (db) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const workOrders: WORequisitionRow[] = (await executeDbOperation(async (db) => {
         return db
           .select({
             workOrderId: workOrdersTable.id,
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
           .leftJoin(itemsTable, eq(workOrdersTable.productId, itemsTable.id))
           .where(statusCondition)
           .orderBy(desc(workOrdersTable.requisitionRequestedAt));
-      });
+      })) as WORequisitionRow[];
 
       if (workOrders.length === 0) {
         return successResponse([]);
