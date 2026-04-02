@@ -16,7 +16,7 @@ import {
   getWOIPCTests,
 } from '@/lib/services/wo-execution.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 // GET /api/production/work-orders/[id]/execution-summary
 export async function GET(
@@ -162,6 +162,49 @@ export async function GET(
         yieldPercent: woData?.yieldPercentage ? Number(woData.yieldPercentage) : null,
       };
 
+      // Fetch requisition fields from work order
+      const woReqResult = await executeDbOperation(async (db) => {
+        const workOrders = getTableRef('workOrders');
+        return db.select({
+          requisitionStatus: workOrders.requisitionStatus,
+          requisitionRequestedBy: workOrders.requisitionRequestedBy,
+          requisitionRequestedAt: workOrders.requisitionRequestedAt,
+          requisitionApprovedBy: workOrders.requisitionApprovedBy,
+          requisitionApprovedAt: workOrders.requisitionApprovedAt,
+        }).from(workOrders).where(eq(workOrders.id, workOrderId));
+      });
+
+      // Resolve user names for requestedBy / approvedBy
+      const reqRow = woReqResult[0];
+      const reqUserIds: number[] = [];
+      if (reqRow?.requisitionRequestedBy) reqUserIds.push(reqRow.requisitionRequestedBy);
+      if (reqRow?.requisitionApprovedBy) reqUserIds.push(reqRow.requisitionApprovedBy);
+
+      const reqUserMap = new Map<number, string>();
+      if (reqUserIds.length > 0) {
+        const usersTable = getTableRef('users');
+        const userRows = await executeDbOperation(async (db) =>
+          db.select({ id: usersTable.id, name: usersTable.name })
+            .from(usersTable)
+            .where(inArray(usersTable.id, reqUserIds))
+        );
+        for (const u of userRows) reqUserMap.set(u.id, u.name);
+      }
+
+      const materialRequisition = {
+        status: reqRow?.requisitionStatus || 'none',
+        requestedBy: reqRow?.requisitionRequestedBy || null,
+        requestedAt: reqRow?.requisitionRequestedAt || null,
+        approvedBy: reqRow?.requisitionApprovedBy || null,
+        approvedAt: reqRow?.requisitionApprovedAt || null,
+        requestedByName: reqRow?.requisitionRequestedBy
+          ? (reqUserMap.get(reqRow.requisitionRequestedBy) || null)
+          : null,
+        approvedByName: reqRow?.requisitionApprovedBy
+          ? (reqUserMap.get(reqRow.requisitionApprovedBy) || null)
+          : null,
+      };
+
       // Calculate IPC (In-Process Control) status
       const ipcTestList = Array.isArray(ipcTests) ? ipcTests : [];
       const ipc = {
@@ -171,6 +214,7 @@ export async function GET(
       };
 
       const summary = {
+        materialRequisition,
         materialWeighing,
         preProductionCleaning: preProductionCleaningStatus,
         productionCleaning: productionCleaningStatus,

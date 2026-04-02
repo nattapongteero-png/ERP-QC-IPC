@@ -10,6 +10,8 @@ import {
   recordMaterialWeight,
   verifyMaterialWeight,
 } from '@/lib/services/wo-execution.service';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
+import { eq } from 'drizzle-orm';
 
 // GET /api/production/work-orders/[id]/material-weighing - Get materials with weighing status
 export async function GET(
@@ -26,7 +28,17 @@ export async function GET(
       }
 
       const materials = await getWOMaterials(workOrderId);
-      return successResponse(materials);
+
+      // Fetch requisition status from work order
+      const workOrders = getTableRef('workOrders');
+      const woReqResult = await executeDbOperation(async (db) =>
+        db.select({ requisitionStatus: workOrders.requisitionStatus })
+          .from(workOrders)
+          .where(eq(workOrders.id, parseInt(id)))
+      );
+      const requisitionStatus = (woReqResult[0] as Record<string, unknown>)?.requisitionStatus || 'none';
+
+      return successResponse({ materials, requisitionStatus });
     } catch (error) {
       console.error('Error fetching WO materials:', error);
       return serverErrorResponse(error);
