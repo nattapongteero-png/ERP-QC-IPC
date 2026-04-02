@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { eq, like, or, sql, and, desc, type SQL } from 'drizzle-orm';
+import { eq, like, or, and, desc, count, inArray, type SQL } from 'drizzle-orm';
 import { getTableRef, executeDbOperation, getInsertId } from '@/lib/db/db-helper';
 import {
   successResponse,
@@ -11,7 +11,7 @@ import {
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
 
-// GET /api/production/batch-records - List batch records
+// GET /api/production/batch-records - List WOs with execution data (eBMR registry)
 export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
     try {
@@ -19,127 +19,210 @@ export async function GET(request: NextRequest) {
       const pagination = getPaginationParams(searchParams);
       const search = searchParams.get('search') || '';
       const status = searchParams.get('status') || '';
-      const workOrderId = searchParams.get('workOrderId');
 
-      const batchRecords = getTableRef('batchRecords');
       const workOrders = getTableRef('workOrders');
-      const operations = getTableRef('operations');
       const items = getTableRef('items');
-      const users = getTableRef('users');
+      const woSOPExecution = getTableRef('wOSOPExecution');
+      const woCleaningLogs = getTableRef('wOCleaningLogs');
+      const woEnvironmentalLogs = getTableRef('wOEnvironmentalLogs');
+      const woFinishedInspection = getTableRef('wOFinishedInspection');
 
-      const conditions: (SQL | undefined)[] = [];
+      // Step 1: Collect all WO IDs that have execution data
+      const [sopWoIds, cleanWoIds, envWoIds, fiWoIds] = await Promise.all([
+        executeDbOperation(async (db) =>
+          db.selectDistinct({ workOrderId: woSOPExecution.workOrderId }).from(woSOPExecution)
+        ),
+        executeDbOperation(async (db) =>
+          db.selectDistinct({ workOrderId: woCleaningLogs.workOrderId }).from(woCleaningLogs)
+        ),
+        executeDbOperation(async (db) =>
+          db.selectDistinct({ workOrderId: woEnvironmentalLogs.workOrderId }).from(woEnvironmentalLogs)
+        ),
+        executeDbOperation(async (db) =>
+          db.selectDistinct({ workOrderId: woFinishedInspection.workOrderId }).from(woFinishedInspection)
+        ),
+      ]);
+
+      const woIdSet = new Set<number>();
+      for (const row of [...sopWoIds, ...cleanWoIds, ...envWoIds, ...fiWoIds]) {
+        woIdSet.add(row.workOrderId);
+      }
+      const allWoIds = Array.from(woIdSet);
+
+      if (allWoIds.length === 0) {
+        return successResponse(createPaginatedResponse([], 0, pagination));
+      }
+
+      // Map WO status → eBMR status
+      const mapStatus = (woStatus: string): string => {
+        if (woStatus === 'completed' || woStatus === 'closed') return 'completed';
+        if (woStatus === 'in_progress') return 'in_progress';
+        return 'pending';
+      };
+
+      // Step 2: Get WO details with conditions
+      const conditions: (SQL | undefined)[] = [inArray(workOrders.id, allWoIds)];
+
       if (search) {
         conditions.push(
           or(
-            like(batchRecords.stepName, `%${search}%`),
             like(workOrders.woNumber, `%${search}%`),
-            like(workOrders.batchNumber, `%${search}%`)
+            like(workOrders.batchNumber, `%${search}%`),
+            like(items.nameTh, `%${search}%`),
+            like(items.code, `%${search}%`)
           )
         );
       }
+
+      // For status filter, map to WO statuses
       if (status) {
-        conditions.push(eq(batchRecords.status, status));
-      }
-      if (workOrderId) {
-        conditions.push(eq(batchRecords.workOrderId, parseInt(workOrderId)));
-      }
-
-      // Count query
-      const total = await executeDbOperation(async (db) => {
-        let countQuery = db
-          .select({ count: sql`count(*)` })
-          .from(batchRecords)
-          .leftJoin(workOrders, eq(batchRecords.workOrderId, workOrders.id));
-
-        if (conditions.length > 0) {
-          countQuery = countQuery.where(and(...conditions));
+        if (status === 'completed') {
+          conditions.push(or(eq(workOrders.status, 'completed'), eq(workOrders.status, 'closed')));
+        } else if (status === 'in_progress') {
+          conditions.push(eq(workOrders.status, 'in_progress'));
+        } else if (status === 'pending') {
+          conditions.push(or(eq(workOrders.status, 'planned'), eq(workOrders.status, 'released')));
         }
-        const countResult = await countQuery;
+      }
+
+      // Count
+      const total = await executeDbOperation(async (db) => {
+        const countResult = await db
+          .select({ count: count() })
+          .from(workOrders)
+          .leftJoin(items, eq(workOrders.productId, items.id))
+          .where(and(...conditions));
         return Number(countResult[0]?.count || 0);
       });
 
-      // Data query with joins
+      // Paginated data
       const offset = (pagination.page - 1) * pagination.limit;
-      const records = await executeDbOperation(async (db) => {
-        let query = db
+      const woRecords = await executeDbOperation(async (db) =>
+        db
           .select({
-            id: batchRecords.id,
-            workOrderId: batchRecords.workOrderId,
+            id: workOrders.id,
             woNumber: workOrders.woNumber,
             batchNumber: workOrders.batchNumber,
             productId: workOrders.productId,
             productCode: items.code,
             productName: items.nameTh,
-            operationId: batchRecords.operationId,
-            operationName: operations.name,
-            sequence: batchRecords.sequence,
-            stepName: batchRecords.stepName,
-            instructions: batchRecords.instructions,
-            status: batchRecords.status,
-            startTime: batchRecords.startTime,
-            endTime: batchRecords.endTime,
-            performedBy: batchRecords.performedBy,
-            verifiedBy: batchRecords.verifiedBy,
-            verifiedAt: batchRecords.verifiedAt,
-            createdAt: batchRecords.createdAt,
+            status: workOrders.status,
+            plannedQuantity: workOrders.plannedQuantity,
+            actualQuantity: workOrders.actualQuantity,
+            unit: workOrders.unit,
+            plannedStartDate: workOrders.plannedStartDate,
+            plannedEndDate: workOrders.plannedEndDate,
+            actualStartDate: workOrders.actualStartDate,
+            actualEndDate: workOrders.actualEndDate,
+            createdAt: workOrders.createdAt,
+            updatedAt: workOrders.updatedAt,
           })
-          .from(batchRecords)
-          .leftJoin(workOrders, eq(batchRecords.workOrderId, workOrders.id))
+          .from(workOrders)
           .leftJoin(items, eq(workOrders.productId, items.id))
-          .leftJoin(operations, eq(batchRecords.operationId, operations.id));
-
-        if (conditions.length > 0) {
-          query = query.where(and(...conditions));
-        }
-
-        return query
-          .orderBy(desc(batchRecords.createdAt))
+          .where(and(...conditions))
+          .orderBy(desc(workOrders.id))
           .limit(pagination.limit)
-          .offset(offset);
-      });
-
-      // Get performer and verifier names
-      const recordsWithUsers = await Promise.all(
-        records.map(async (record: Record<string, unknown>) => {
-          let performerName = null;
-          let verifierName = null;
-
-          if (record.performedBy) {
-            const performer = await executeDbOperation(async (db) => {
-              return db
-                .select({ name: users.name })
-                .from(users)
-                .where(eq(users.id, record.performedBy as number));
-            });
-            performerName = performer[0]?.name;
-          }
-
-          if (record.verifiedBy) {
-            const verifier = await executeDbOperation(async (db) => {
-              return db
-                .select({ name: users.name })
-                .from(users)
-                .where(eq(users.id, record.verifiedBy as number));
-            });
-            verifierName = verifier[0]?.name;
-          }
-
-          return {
-            ...record,
-            performerName,
-            verifierName,
-          };
-        })
+          .offset(offset)
       );
 
-      return successResponse(createPaginatedResponse(recordsWithUsers, total, pagination));
+      if (woRecords.length === 0) {
+        return successResponse(createPaginatedResponse([], total, pagination));
+      }
+
+      // Step 3: Get execution counts for these WOs
+      const recordIds = woRecords.map((r: Record<string, unknown>) => r.id as number);
+
+      const [sopCounts, cleanCounts, envCounts, fiCounts] = await Promise.all([
+        executeDbOperation(async (db) =>
+          db.select({ workOrderId: woSOPExecution.workOrderId, total: count(), verified: count(woSOPExecution.verifiedAt) })
+            .from(woSOPExecution)
+            .where(inArray(woSOPExecution.workOrderId, recordIds))
+            .groupBy(woSOPExecution.workOrderId)
+        ),
+        executeDbOperation(async (db) =>
+          db.select({ workOrderId: woCleaningLogs.workOrderId, total: count() })
+            .from(woCleaningLogs)
+            .where(inArray(woCleaningLogs.workOrderId, recordIds))
+            .groupBy(woCleaningLogs.workOrderId)
+        ),
+        executeDbOperation(async (db) =>
+          db.select({ workOrderId: woEnvironmentalLogs.workOrderId, total: count() })
+            .from(woEnvironmentalLogs)
+            .where(inArray(woEnvironmentalLogs.workOrderId, recordIds))
+            .groupBy(woEnvironmentalLogs.workOrderId)
+        ),
+        executeDbOperation(async (db) =>
+          db.select({ workOrderId: woFinishedInspection.workOrderId, total: count() })
+            .from(woFinishedInspection)
+            .where(inArray(woFinishedInspection.workOrderId, recordIds))
+            .groupBy(woFinishedInspection.workOrderId)
+        ),
+      ]);
+
+      // Build count maps
+      const sopMap = new Map<number, { total: number; verified: number }>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of sopCounts as any[]) {
+        sopMap.set(r.workOrderId, { total: Number(r.total), verified: Number(r.verified) });
+      }
+      const cleanMap = new Map<number, number>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of cleanCounts as any[]) cleanMap.set(r.workOrderId, Number(r.total));
+      const envMap = new Map<number, number>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of envCounts as any[]) envMap.set(r.workOrderId, Number(r.total));
+      const fiMap = new Map<number, number>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of fiCounts as any[]) fiMap.set(r.workOrderId, Number(r.total));
+
+      // Build final records
+      const recordsWithExecution = woRecords.map((wo: Record<string, unknown>) => {
+        const woId = wo.id as number;
+        const sop = sopMap.get(woId) ?? { total: 0, verified: 0 };
+        const clean = cleanMap.get(woId) ?? 0;
+        const env = envMap.get(woId) ?? 0;
+        const fi = fiMap.get(woId) ?? 0;
+        const totalSteps = sop.total + clean + env + fi;
+
+        return {
+          id: woId,
+          workOrderId: woId,
+          woNumber: wo.woNumber,
+          batchNumber: wo.batchNumber,
+          productCode: wo.productCode,
+          productName: wo.productName,
+          status: mapStatus(wo.status as string),
+          woStatus: wo.status,
+          plannedQuantity: wo.plannedQuantity,
+          actualQuantity: wo.actualQuantity,
+          unit: wo.unit,
+          // Execution summary
+          sopSteps: sop.total,
+          sopVerified: sop.verified,
+          cleaningLogs: clean,
+          environmentalLogs: env,
+          finishedInspection: fi,
+          totalExecutionRecords: totalSteps,
+          // Dates
+          startTime: wo.actualStartDate || wo.plannedStartDate,
+          endTime: wo.actualEndDate || wo.plannedEndDate,
+          createdAt: wo.createdAt,
+          // For UI compatibility
+          sequence: 1,
+          stepName: `eBMR`,
+          operationName: `${totalSteps} records`,
+          performerName: null,
+        };
+      });
+
+      return successResponse(createPaginatedResponse(recordsWithExecution, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);
     }
   }, ['production:read']);
 }
 
-// POST /api/production/batch-records - Create batch record
+// POST /api/production/batch-records - Create batch record (kept for compatibility)
 export async function POST(request: NextRequest) {
   return withAuth(request, async (session) => {
     try {
@@ -175,6 +258,7 @@ export async function POST(request: NextRequest) {
       // Get max sequence if not provided
       let recordSequence = sequence;
       if (!recordSequence) {
+        const { sql } = await import('drizzle-orm');
         const maxSeqResult = await executeDbOperation(async (db) => {
           return db
             .select({ maxSeq: sql`MAX(${batchRecords.sequence})` })

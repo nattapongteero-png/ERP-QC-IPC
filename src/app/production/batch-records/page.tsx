@@ -4,8 +4,8 @@
  * Batch Records (eBMR) Dashboard Page
  * Feature: Production Management
  *
- * Professional dashboard for Electronic Batch Manufacturing Records.
- * Tracks production steps, deviations, and manufacturing compliance.
+ * Shows Work Orders that have execution data (SOP, Cleaning, Environmental, Finished Inspection).
+ * Each row = 1 Work Order with execution progress summary.
  */
 
 import { useState } from 'react';
@@ -58,11 +58,32 @@ const statusFilters = [
   { value: 'pending', label: 'Pending' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
-  { value: 'deviation', label: 'Deviation' },
 ];
 
 // Chart color palette - production/manufacturing theme
 const chartColors = ['#6B7280', '#3B82F6', '#10B981', '#EF4444'];
+
+interface BatchRecordRow {
+  id: number;
+  workOrderId: number;
+  woNumber: string;
+  batchNumber: string;
+  productCode: string;
+  productName: string;
+  status: string;
+  woStatus: string;
+  plannedQuantity: number;
+  actualQuantity: number | null;
+  unit: string;
+  sopSteps: number;
+  sopVerified: number;
+  cleaningLogs: number;
+  environmentalLogs: number;
+  finishedInspection: number;
+  totalExecutionRecords: number;
+  startTime: string | null;
+  endTime: string | null;
+}
 
 export default function BatchRecordsDashboardPage() {
   const router = useRouter();
@@ -81,8 +102,8 @@ export default function BatchRecordsDashboardPage() {
     },
   });
 
-  // Fetch batch records list
-  const { data: recordsData, isLoading: recordsLoading } = useQuery({
+  // Fetch batch records list (WOs with execution data)
+  const { data: recordsData, isLoading: recordsLoading } = useQuery<BatchRecordRow[]>({
     queryKey: ['batch-records-list', statusFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -129,7 +150,7 @@ export default function BatchRecordsDashboardPage() {
     });
   };
 
-  const filteredRecords = recordsData?.filter((record: { status: string }) => {
+  const filteredRecords = recordsData?.filter((record) => {
     if (activeTab === 'all') return true;
     return record.status === activeTab;
   }) || [];
@@ -152,7 +173,7 @@ export default function BatchRecordsDashboardPage() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
-          label="Total Records"
+          label="Total eBMR"
           value={dashboard?.totalRecords ?? 0}
           icon={FileText}
           iconColor="text-indigo-500"
@@ -168,11 +189,31 @@ export default function BatchRecordsDashboardPage() {
           isLoading={dashboardLoading}
         />
         <StatCard
-          label="Completed Today"
-          value={dashboard?.completedToday ?? 0}
+          label="Completed"
+          value={dashboard?.completedRecords ?? 0}
           icon={CheckCircle2}
           iconColor="text-green-500"
           accentColor="border-green-500"
+          isLoading={dashboardLoading}
+        />
+        <StatCard
+          label="Pending"
+          value={dashboard?.pendingRecords ?? 0}
+          icon={Clock}
+          iconColor="text-gray-500"
+          accentColor="border-gray-400"
+          isLoading={dashboardLoading}
+        />
+      </div>
+
+      {/* Secondary Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <StatCard
+          label="Completed Today"
+          value={dashboard?.completedToday ?? 0}
+          icon={Timer}
+          iconColor="text-purple-500"
+          accentColor="border-purple-500"
           isLoading={dashboardLoading}
         />
         <StatCard
@@ -183,30 +224,10 @@ export default function BatchRecordsDashboardPage() {
           accentColor="border-red-500"
           isLoading={dashboardLoading}
         />
-      </div>
-
-      {/* Secondary Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard
-          label="Pending Steps"
-          value={dashboard?.pendingRecords ?? 0}
-          icon={Clock}
-          iconColor="text-gray-500"
-          accentColor="border-gray-400"
-          isLoading={dashboardLoading}
-        />
         <StatCard
           label="Avg Completion Time"
           value={dashboard?.avgCompletionTime ? `${dashboard.avgCompletionTime} min` : '-'}
           icon={Timer}
-          iconColor="text-purple-500"
-          accentColor="border-purple-500"
-          isLoading={dashboardLoading}
-        />
-        <StatCard
-          label="Completed Steps"
-          value={dashboard?.completedRecords ?? 0}
-          icon={CheckCircle2}
           iconColor="text-emerald-500"
           accentColor="border-emerald-500"
           isLoading={dashboardLoading}
@@ -221,7 +242,7 @@ export default function BatchRecordsDashboardPage() {
             <div className="p-2 bg-indigo-50 rounded-lg">
               <Activity className="h-5 w-5 text-indigo-600" />
             </div>
-            <h3 className="font-semibold text-gray-900">Record Status Distribution</h3>
+            <h3 className="font-semibold text-gray-900">eBMR Status Distribution</h3>
           </div>
           {statusChartData.length > 0 ? (
             <PieChart
@@ -303,7 +324,7 @@ export default function BatchRecordsDashboardPage() {
               <div className="p-2 bg-purple-50 rounded-lg">
                 <Layers className="h-5 w-5 text-purple-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">Top Products by Records</h3>
+              <h3 className="font-semibold text-gray-900">Top Products by eBMR</h3>
             </div>
           </div>
           <div className="space-y-2">
@@ -322,7 +343,7 @@ export default function BatchRecordsDashboardPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">{product.recordCount} steps</p>
+                  <p className="font-semibold text-gray-900">{product.recordCount} WO</p>
                   <p className="text-xs text-green-600">{product.completionRate}% complete</p>
                 </div>
               </div>
@@ -342,14 +363,14 @@ export default function BatchRecordsDashboardPage() {
               <div className="p-2 bg-amber-50 rounded-lg">
                 <ClipboardCheck className="h-5 w-5 text-amber-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">Recent Manufacturing Steps</h3>
+              <h3 className="font-semibold text-gray-900">Recent eBMR Records</h3>
             </div>
           </div>
           <div className="space-y-2">
             {dashboard?.recentRecords?.slice(0, 6).map((record) => (
               <div
                 key={record.id}
-                onClick={() => router.push(`/production/batch-records/${record.id}`)}
+                onClick={() => router.push(`/production/work-orders/${record.id}`)}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -358,7 +379,7 @@ export default function BatchRecordsDashboardPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-mono text-sm font-medium text-gray-900">{record.woNumber}</p>
                     </div>
-                    <p className="text-xs text-gray-500 truncate">{record.stepName}</p>
+                    <p className="text-xs text-gray-500 truncate">{record.batchNumber}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -390,17 +411,7 @@ export default function BatchRecordsDashboardPage() {
               <h4 className="font-semibold text-red-800">Deviations Detected</h4>
               <p className="text-sm text-red-700 mt-1">
                 There are <strong>{dashboard.deviationRecords}</strong> batch record{dashboard.deviationRecords > 1 ? 's' : ''} with deviations that require attention.
-                Review and address these deviations to maintain GMP compliance.
               </p>
-              <button
-                onClick={() => {
-                  setStatusFilter('deviation');
-                  setActiveTab('deviation');
-                }}
-                className="mt-2 text-sm font-medium text-red-800 hover:text-red-900 flex items-center gap-1"
-              >
-                View deviations <ChevronRight className="h-4 w-4" />
-              </button>
             </div>
           </div>
         </div>
@@ -413,10 +424,9 @@ export default function BatchRecordsDashboardPage() {
               <PlayCircle className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <h4 className="font-semibold text-blue-800">Active Production Steps</h4>
+              <h4 className="font-semibold text-blue-800">Active Production</h4>
               <p className="text-sm text-blue-700 mt-1">
-                <strong>{dashboard.inProgressRecords}</strong> manufacturing step{dashboard.inProgressRecords > 1 ? 's are' : ' is'} currently in progress.
-                Monitor these steps to ensure timely completion.
+                <strong>{dashboard.inProgressRecords}</strong> Work Order{dashboard.inProgressRecords > 1 ? 's are' : ' is'} currently in progress with execution data.
               </p>
               <button
                 onClick={() => {
@@ -441,7 +451,7 @@ export default function BatchRecordsDashboardPage() {
               <div className="p-2 bg-indigo-50 rounded-lg">
                 <FileText className="h-5 w-5 text-indigo-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">Batch Records Registry</h3>
+              <h3 className="font-semibold text-gray-900">eBMR Registry</h3>
             </div>
             <div className="flex items-center gap-3">
               <DxSelectBox
@@ -461,16 +471,13 @@ export default function BatchRecordsDashboardPage() {
                 All ({recordsData?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="in_progress">
-                In Progress ({recordsData?.filter((r: { status: string }) => r.status === 'in_progress').length || 0})
+                In Progress ({recordsData?.filter((r) => r.status === 'in_progress').length || 0})
               </TabsTrigger>
               <TabsTrigger value="pending">
-                Pending ({recordsData?.filter((r: { status: string }) => r.status === 'pending').length || 0})
+                Pending ({recordsData?.filter((r) => r.status === 'pending').length || 0})
               </TabsTrigger>
               <TabsTrigger value="completed">
-                Completed ({recordsData?.filter((r: { status: string }) => r.status === 'completed').length || 0})
-              </TabsTrigger>
-              <TabsTrigger value="deviation">
-                Deviations ({recordsData?.filter((r: { status: string }) => r.status === 'deviation').length || 0})
+                Completed ({recordsData?.filter((r) => r.status === 'completed').length || 0})
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -486,7 +493,7 @@ export default function BatchRecordsDashboardPage() {
             loading={recordsLoading}
             onRowClick={(e) => {
               if (e.data?.id) {
-                router.push(`/production/batch-records/${e.data.id}`);
+                router.push(`/production/work-orders/${e.data.id}`);
               }
             }}
           >
@@ -496,7 +503,7 @@ export default function BatchRecordsDashboardPage() {
             <DxColumn
               dataField="woNumber"
               caption="Work Order"
-              width={150}
+              width={180}
               cellRender={(cell) => (
                 <div>
                   <span className="font-mono font-medium text-indigo-700">{cell.data.woNumber}</span>
@@ -507,7 +514,7 @@ export default function BatchRecordsDashboardPage() {
             <DxColumn
               dataField="productCode"
               caption="Product"
-              minWidth={150}
+              minWidth={180}
               cellRender={(cell) => (
                 <div>
                   <p className="font-medium text-gray-900">{cell.data.productCode}</p>
@@ -516,19 +523,37 @@ export default function BatchRecordsDashboardPage() {
               )}
             />
             <DxColumn
-              dataField="stepName"
-              caption="Step"
-              minWidth={180}
-              cellRender={(cell) => (
-                <div>
-                  <p className="font-medium text-gray-900">#{cell.data.sequence} - {cell.data.stepName}</p>
-                  <p className="text-xs text-gray-500">{cell.data.operationName}</p>
-                </div>
-              )}
+              dataField="totalExecutionRecords"
+              caption="Execution Records"
+              width={200}
+              cellRender={(cell) => {
+                const d = cell.data as BatchRecordRow;
+                return (
+                  <div className="text-xs space-y-0.5">
+                    <div className="flex gap-3">
+                      {d.sopSteps > 0 && (
+                        <span className="text-blue-700">SOP: {d.sopVerified}/{d.sopSteps}</span>
+                      )}
+                      {d.cleaningLogs > 0 && (
+                        <span className="text-green-700">Clean: {d.cleaningLogs}</span>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      {d.environmentalLogs > 0 && (
+                        <span className="text-purple-700">Env: {d.environmentalLogs}</span>
+                      )}
+                      {d.finishedInspection > 0 && (
+                        <span className="text-amber-700">FI: {d.finishedInspection}</span>
+                      )}
+                    </div>
+                    <p className="font-medium text-gray-600">{d.totalExecutionRecords} total</p>
+                  </div>
+                );
+              }}
             />
             <DxColumn
               dataField="startTime"
-              caption="Start Time"
+              caption="Start Date"
               width={140}
               cellRender={(cell) => (
                 <span className="text-sm tabular-nums">{formatDateTime(cell.data.startTime)}</span>
@@ -536,17 +561,11 @@ export default function BatchRecordsDashboardPage() {
             />
             <DxColumn
               dataField="endTime"
-              caption="End Time"
+              caption="End Date"
               width={140}
               cellRender={(cell) => (
                 <span className="text-sm tabular-nums">{formatDateTime(cell.data.endTime)}</span>
               )}
-            />
-            <DxColumn
-              dataField="performerName"
-              caption="Performer"
-              width={120}
-              cellRender={(cell) => cell.data.performerName || '-'}
             />
             <DxColumn
               dataField="status"

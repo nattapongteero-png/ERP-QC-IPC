@@ -1,21 +1,16 @@
 /**
- * Batch Records Dashboard API
+ * Batch Records (eBMR) Dashboard API
  * Feature: Production Management
  *
- * GET /api/production/batch-records/dashboard - Get comprehensive eBMR dashboard data
+ * GET /api/production/batch-records/dashboard
+ * Aggregates execution data from wo_* tables (SOP, Cleaning, Environmental, Finished Inspection)
+ * since batch_records table is not used by the execution workflow.
  */
 
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { getDb, isSqlite } from '@/lib/db';
-import {
-  sqliteBatchRecords,
-  sqliteWorkOrders,
-  sqliteItems,
-  sqliteOperations,
-} from '@/lib/db/schema';
-import { eq, count, sql, gte, lte, and } from 'drizzle-orm';
-import { toQueryDate, getTodayStr } from '@/lib/db/date-utils';
+import { eq, count, inArray } from 'drizzle-orm';
+import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 
 export interface BatchRecordsDashboard {
   totalRecords: number;
@@ -65,222 +60,202 @@ export async function GET() {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const database = (await getDb()) as any;
+    const workOrders = getTableRef('workOrders');
+    const items = getTableRef('items');
+    const woSOPExecution = getTableRef('wOSOPExecution');
+    const woCleaningLogs = getTableRef('wOCleaningLogs');
+    const woEnvironmentalLogs = getTableRef('wOEnvironmentalLogs');
+    const woFinishedInspection = getTableRef('wOFinishedInspection');
 
-    const today = new Date();
-    const todayStr = getTodayStr();
+    // Step 1: Get all unique WO IDs that have any execution data
+    const [sopWoIds, cleanWoIds, envWoIds, fiWoIds] = await Promise.all([
+      executeDbOperation(async (db) =>
+        db.selectDistinct({ workOrderId: woSOPExecution.workOrderId }).from(woSOPExecution)
+      ),
+      executeDbOperation(async (db) =>
+        db.selectDistinct({ workOrderId: woCleaningLogs.workOrderId }).from(woCleaningLogs)
+      ),
+      executeDbOperation(async (db) =>
+        db.selectDistinct({ workOrderId: woEnvironmentalLogs.workOrderId }).from(woEnvironmentalLogs)
+      ),
+      executeDbOperation(async (db) =>
+        db.selectDistinct({ workOrderId: woFinishedInspection.workOrderId }).from(woFinishedInspection)
+      ),
+    ]);
 
-    // Get record counts by status
-    const statusResult = await database
-      .select({
-        status: sqliteBatchRecords.status,
-        count: count(),
-      })
-      .from(sqliteBatchRecords)
-      .groupBy(sqliteBatchRecords.status);
+    // Collect unique WO IDs
+    const woIdSet = new Set<number>();
+    for (const row of [...sopWoIds, ...cleanWoIds, ...envWoIds, ...fiWoIds]) {
+      woIdSet.add(row.workOrderId);
+    }
+    const woIds = Array.from(woIdSet);
 
-    const byStatus: Record<string, number> = {
-      pending: 0,
-      in_progress: 0,
-      completed: 0,
-      deviation: 0,
+    if (woIds.length === 0) {
+      // No execution data at all
+      const emptyDashboard: BatchRecordsDashboard = {
+        totalRecords: 0,
+        pendingRecords: 0,
+        inProgressRecords: 0,
+        completedRecords: 0,
+        deviationRecords: 0,
+        completedToday: 0,
+        avgCompletionTime: null,
+        byStatus: { pending: 0, in_progress: 0, completed: 0, deviation: 0 },
+        byOperation: [],
+        topProducts: [],
+        recentActivity: [],
+        recentRecords: [],
+      };
+      return NextResponse.json({ success: true, data: emptyDashboard });
+    }
+
+    // Step 2: Get WO details for all relevant WOs
+    const woDetails = await executeDbOperation(async (db) =>
+      db
+        .select({
+          id: workOrders.id,
+          woNumber: workOrders.woNumber,
+          batchNumber: workOrders.batchNumber,
+          status: workOrders.status,
+          productId: workOrders.productId,
+          productCode: items.code,
+          productName: items.nameTh,
+          plannedStartDate: workOrders.plannedStartDate,
+          actualEndDate: workOrders.actualEndDate,
+          actualStartDate: workOrders.actualStartDate,
+          updatedAt: workOrders.updatedAt,
+        })
+        .from(workOrders)
+        .leftJoin(items, eq(workOrders.productId, items.id))
+        .where(inArray(workOrders.id, woIds))
+    );
+
+    // Step 3: Map WO statuses to eBMR statuses
+    // planned/released → pending, in_progress → in_progress, completed/closed → completed
+    const mapStatus = (woStatus: string): string => {
+      if (woStatus === 'completed' || woStatus === 'closed') return 'completed';
+      if (woStatus === 'in_progress') return 'in_progress';
+      return 'pending'; // planned, released, draft
     };
-    let totalRecords = 0;
-    let pendingRecords = 0;
-    let inProgressRecords = 0;
-    let completedRecords = 0;
-    let deviationRecords = 0;
 
-    for (const row of statusResult) {
-      byStatus[row.status] = row.count;
-      totalRecords += row.count;
-      if (row.status === 'pending') pendingRecords = row.count;
-      if (row.status === 'in_progress') inProgressRecords = row.count;
-      if (row.status === 'completed') completedRecords = row.count;
-      if (row.status === 'deviation') deviationRecords = row.count;
-    }
+    const byStatus: Record<string, number> = { pending: 0, in_progress: 0, completed: 0, deviation: 0 };
+    const productMap = new Map<number, { productId: number; productName: string; productCode: string; total: number; completed: number }>();
 
-    // Get records completed today
-    const completedTodayResult = await database
-      .select({ count: count() })
-      .from(sqliteBatchRecords)
-      .where(
-        and(
-          eq(sqliteBatchRecords.status, 'completed'),
-          gte(sqliteBatchRecords.endTime, todayStr as string)
-        )
-      );
-    const completedToday = completedTodayResult[0]?.count || 0;
+    for (const wo of woDetails) {
+      const ebmrStatus = mapStatus(wo.status as string);
+      byStatus[ebmrStatus] = (byStatus[ebmrStatus] || 0) + 1;
 
-    // Get average completion time (in minutes)
-    // SQLite uses julianday, MySQL uses TIMESTAMPDIFF
-    const avgTimeSql = isSqlite()
-      ? sql`AVG((julianday(${sqliteBatchRecords.endTime}) - julianday(${sqliteBatchRecords.startTime})) * 24 * 60)`
-      : sql`AVG(TIMESTAMPDIFF(MINUTE, ${sqliteBatchRecords.startTime}, ${sqliteBatchRecords.endTime}))`;
-
-    const avgTimeResult = await database
-      .select({
-        avgTime: avgTimeSql,
-      })
-      .from(sqliteBatchRecords)
-      .where(
-        and(
-          eq(sqliteBatchRecords.status, 'completed'),
-          sql`${sqliteBatchRecords.startTime} IS NOT NULL`,
-          sql`${sqliteBatchRecords.endTime} IS NOT NULL`
-        )
-      );
-    const avgCompletionTime = avgTimeResult[0]?.avgTime
-      ? Math.round(avgTimeResult[0].avgTime)
-      : null;
-
-    // Get records by operation
-    const operationResult = await database
-      .select({
-        operationId: sqliteBatchRecords.operationId,
-        operationName: sqliteOperations.name,
-        status: sqliteBatchRecords.status,
-        count: count(),
-      })
-      .from(sqliteBatchRecords)
-      .leftJoin(sqliteOperations, eq(sqliteBatchRecords.operationId, sqliteOperations.id))
-      .groupBy(sqliteBatchRecords.operationId, sqliteBatchRecords.status);
-
-    const operationMap = new Map<
-      number,
-      { operationId: number; operationName: string; recordCount: number; completedCount: number }
-    >();
-
-    for (const row of operationResult) {
-      if (!row.operationId) continue;
-      if (!operationMap.has(row.operationId)) {
-        operationMap.set(row.operationId, {
-          operationId: row.operationId,
-          operationName: row.operationName || 'Unknown',
-          recordCount: 0,
-          completedCount: 0,
-        });
-      }
-      const op = operationMap.get(row.operationId)!;
-      op.recordCount += row.count;
-      if (row.status === 'completed') {
-        op.completedCount += row.count;
+      const pid = wo.productId as number;
+      if (pid) {
+        if (!productMap.has(pid)) {
+          productMap.set(pid, {
+            productId: pid,
+            productName: (wo.productName as string) || 'Unknown',
+            productCode: (wo.productCode as string) || 'N/A',
+            total: 0,
+            completed: 0,
+          });
+        }
+        const p = productMap.get(pid)!;
+        p.total++;
+        if (ebmrStatus === 'completed') p.completed++;
       }
     }
 
-    const byOperation = Array.from(operationMap.values())
-      .sort((a, b) => b.recordCount - a.recordCount)
-      .slice(0, 8);
+    const totalRecords = woDetails.length;
+    const pendingRecords = byStatus.pending;
+    const inProgressRecords = byStatus.in_progress;
+    const completedRecords = byStatus.completed;
+    const deviationRecords = byStatus.deviation;
 
-    // Get top products by record count
-    const productResult = await database
-      .select({
-        productId: sqliteWorkOrders.productId,
-        productName: sqliteItems.nameTh,
-        productCode: sqliteItems.code,
-        status: sqliteBatchRecords.status,
-        count: count(),
-      })
-      .from(sqliteBatchRecords)
-      .leftJoin(sqliteWorkOrders, eq(sqliteBatchRecords.workOrderId, sqliteWorkOrders.id))
-      .leftJoin(sqliteItems, eq(sqliteWorkOrders.productId, sqliteItems.id))
-      .groupBy(sqliteWorkOrders.productId, sqliteBatchRecords.status);
+    // Completed today: WOs with completed status and actualEndDate = today
+    const today = new Date().toISOString().split('T')[0];
+    const completedToday = woDetails.filter((wo: Record<string, unknown>) => {
+      const ebmrStatus = mapStatus(wo.status as string);
+      if (ebmrStatus !== 'completed') return false;
+      const endDate = wo.actualEndDate ? new Date(wo.actualEndDate as string).toISOString().split('T')[0] : null;
+      const updatedDate = wo.updatedAt ? new Date(wo.updatedAt as string).toISOString().split('T')[0] : null;
+      return endDate === today || updatedDate === today;
+    }).length;
 
-    const productMap = new Map<
-      number,
-      {
-        productId: number;
-        productName: string;
-        productCode: string;
-        recordCount: number;
-        completedCount: number;
-      }
-    >();
+    // Step 4: Get execution activity counts per WO for progress tracking
+    const [sopCounts, cleanCounts, envCounts, fiCounts] = await Promise.all([
+      executeDbOperation(async (db) =>
+        db.select({ workOrderId: woSOPExecution.workOrderId, count: count() })
+          .from(woSOPExecution)
+          .where(inArray(woSOPExecution.workOrderId, woIds))
+          .groupBy(woSOPExecution.workOrderId)
+      ),
+      executeDbOperation(async (db) =>
+        db.select({ workOrderId: woCleaningLogs.workOrderId, count: count() })
+          .from(woCleaningLogs)
+          .where(inArray(woCleaningLogs.workOrderId, woIds))
+          .groupBy(woCleaningLogs.workOrderId)
+      ),
+      executeDbOperation(async (db) =>
+        db.select({ workOrderId: woEnvironmentalLogs.workOrderId, count: count() })
+          .from(woEnvironmentalLogs)
+          .where(inArray(woEnvironmentalLogs.workOrderId, woIds))
+          .groupBy(woEnvironmentalLogs.workOrderId)
+      ),
+      executeDbOperation(async (db) =>
+        db.select({ workOrderId: woFinishedInspection.workOrderId, count: count() })
+          .from(woFinishedInspection)
+          .where(inArray(woFinishedInspection.workOrderId, woIds))
+          .groupBy(woFinishedInspection.workOrderId)
+      ),
+    ]);
 
-    for (const row of productResult) {
-      if (!row.productId) continue;
-      if (!productMap.has(row.productId)) {
-        productMap.set(row.productId, {
-          productId: row.productId,
-          productName: row.productName || 'Unknown',
-          productCode: row.productCode || 'N/A',
-          recordCount: 0,
-          completedCount: 0,
-        });
-      }
-      const product = productMap.get(row.productId)!;
-      product.recordCount += row.count;
-      if (row.status === 'completed') {
-        product.completedCount += row.count;
-      }
-    }
+    // Build execution summary per category (as "operations")
+    const byOperation = [
+      { operationId: 1, operationName: 'SOP Execution', recordCount: sopCounts.reduce((s: number, r: { count: number }) => s + r.count, 0), completedCount: sopCounts.length },
+      { operationId: 2, operationName: 'Cleaning Verification', recordCount: cleanCounts.reduce((s: number, r: { count: number }) => s + r.count, 0), completedCount: cleanCounts.length },
+      { operationId: 3, operationName: 'Environmental Monitoring', recordCount: envCounts.reduce((s: number, r: { count: number }) => s + r.count, 0), completedCount: envCounts.length },
+      { operationId: 4, operationName: 'Finished Inspection', recordCount: fiCounts.reduce((s: number, r: { count: number }) => s + r.count, 0), completedCount: fiCounts.length },
+    ].filter((op) => op.recordCount > 0);
 
+    // Top products
     const topProducts = Array.from(productMap.values())
       .map((p) => ({
-        ...p,
-        completionRate: p.recordCount > 0 ? Math.round((p.completedCount / p.recordCount) * 100) : 0,
+        productId: p.productId,
+        productName: p.productName,
+        productCode: p.productCode,
+        recordCount: p.total,
+        completionRate: p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0,
       }))
       .sort((a, b) => b.recordCount - a.recordCount)
       .slice(0, 6);
 
-    // Get recent activity (last 7 days)
+    // Recent activity (last 7 days) — count SOP executions created per day
     const recentActivity: Array<{ date: string; completed: number; deviations: number }> = [];
+    const nowDate = new Date();
     for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
+      const date = new Date(nowDate);
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-      const nextDateStr = nextDate.toISOString().split('T')[0];
-
       const dayLabel = date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' });
-
-      const completedResult = await database
-        .select({ count: count() })
-        .from(sqliteBatchRecords)
-        .where(
-          and(
-            eq(sqliteBatchRecords.status, 'completed'),
-            gte(sqliteBatchRecords.endTime, dateStr),
-            lte(sqliteBatchRecords.endTime, nextDateStr)
-          )
-        );
-
-      const deviationResult = await database
-        .select({ count: count() })
-        .from(sqliteBatchRecords)
-        .where(
-          and(
-            eq(sqliteBatchRecords.status, 'deviation'),
-            gte(sqliteBatchRecords.updatedAt, dateStr),
-            lte(sqliteBatchRecords.updatedAt, nextDateStr)
-          )
-        );
-
-      recentActivity.push({
-        date: dayLabel,
-        completed: completedResult[0]?.count || 0,
-        deviations: deviationResult[0]?.count || 0,
-      });
+      // Count WOs that completed on this date
+      const dateStr = date.toISOString().split('T')[0];
+      const completedOnDay = woDetails.filter((wo: Record<string, unknown>) => {
+        if (mapStatus(wo.status as string) !== 'completed') return false;
+        const endDate = wo.actualEndDate ? new Date(wo.actualEndDate as string).toISOString().split('T')[0] : null;
+        return endDate === dateStr;
+      }).length;
+      recentActivity.push({ date: dayLabel, completed: completedOnDay, deviations: 0 });
     }
 
-    // Get recent records
-    const recentRecordsResult = await database
-      .select({
-        id: sqliteBatchRecords.id,
-        woNumber: sqliteWorkOrders.woNumber,
-        batchNumber: sqliteWorkOrders.batchNumber,
-        productName: sqliteItems.nameTh,
-        stepName: sqliteBatchRecords.stepName,
-        status: sqliteBatchRecords.status,
-        startTime: sqliteBatchRecords.startTime,
-      })
-      .from(sqliteBatchRecords)
-      .leftJoin(sqliteWorkOrders, eq(sqliteBatchRecords.workOrderId, sqliteWorkOrders.id))
-      .leftJoin(sqliteItems, eq(sqliteWorkOrders.productId, sqliteItems.id))
-      .orderBy(sql`${sqliteBatchRecords.createdAt} DESC`)
-      .limit(8);
+    // Recent records — latest WOs with execution data
+    const recentRecords = [...woDetails]
+      .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.id as number) - (a.id as number))
+      .slice(0, 8)
+      .map((wo: Record<string, unknown>) => ({
+        id: wo.id as number,
+        woNumber: (wo.woNumber as string) || '',
+        batchNumber: (wo.batchNumber as string) || '',
+        productName: (wo.productName as string) || 'Unknown',
+        stepName: `eBMR - ${(wo.batchNumber as string) || 'N/A'}`,
+        status: mapStatus(wo.status as string),
+        startTime: (wo.actualStartDate as string) || (wo.plannedStartDate as string) || null,
+      }));
 
     const dashboard: BatchRecordsDashboard = {
       totalRecords,
@@ -289,18 +264,15 @@ export async function GET() {
       completedRecords,
       deviationRecords,
       completedToday,
-      avgCompletionTime,
+      avgCompletionTime: null, // Not directly applicable for WO-level
       byStatus,
       byOperation,
       topProducts,
       recentActivity,
-      recentRecords: recentRecordsResult,
+      recentRecords,
     };
 
-    return NextResponse.json({
-      success: true,
-      data: dashboard,
-    });
+    return NextResponse.json({ success: true, data: dashboard });
   } catch (error) {
     console.error('Error fetching batch records dashboard:', error);
     return NextResponse.json(
