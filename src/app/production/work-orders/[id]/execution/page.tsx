@@ -7,7 +7,7 @@
  */
 
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -97,6 +97,15 @@ interface ExecutionSummary {
     completed: number;
     approved: number;
   };
+  materialRequisition: {
+    status: 'none' | 'requested' | 'approved';
+    requestedBy: number | null;
+    requestedAt: string | null;
+    approvedBy: number | null;
+    approvedAt: string | null;
+    requestedByName?: string;
+    approvedByName?: string;
+  };
 }
 
 interface ExecutionSection {
@@ -132,6 +141,7 @@ export default function WorkOrderExecutionPage() {
   const router = useRouter();
   const toast = useToast();
   const t = useTranslations('production');
+  const queryClient = useQueryClient();
 
   // Use translation for page title
   const pageTitle = t('execution.title');
@@ -169,13 +179,51 @@ export default function WorkOrderExecutionPage() {
           packagingEnvironmental: { total: 0, recorded: 0, normal: 0 },
           finishedInspection: { status: 'pending' },
           ipc: { total: 0, completed: 0, approved: 0 },
+          materialRequisition: { status: 'none', requestedBy: null, requestedAt: null, approvedBy: null, approvedAt: null },
         };
       }
       return data.data;
     },
   });
 
+  const requisitionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/requisition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'request' }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wo-execution-summary', workOrderId] });
+      toast.success('ส่งใบเบิกวัตถุดิบสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   const executionSections: ExecutionSection[] = [
+    {
+      id: 'material-requisition',
+      title: 'ใบเบิกวัตถุดิบ',
+      icon: <ClipboardList className="h-5 w-5" />,
+      href: '',
+      phase: 'pre_production',
+      description: 'ส่งใบเบิกวัตถุดิบให้คลังอนุมัติก่อนชั่ง',
+      getStatus: (s) => ({
+        completed: s.materialRequisition.status === 'approved' ? 1 : 0,
+        total: 1,
+        status: s.materialRequisition.status === 'approved'
+          ? 'verified'
+          : s.materialRequisition.status === 'requested'
+          ? 'in_progress'
+          : 'pending',
+      }),
+    },
     {
       id: 'material-weighing',
       title: 'Material Weighing',
@@ -468,6 +516,7 @@ export default function WorkOrderExecutionPage() {
     packagingEnvironmental: { total: 0, recorded: 0, normal: 0 },
     finishedInspection: { status: 'pending' },
     ipc: { total: 0, completed: 0, approved: 0 },
+    materialRequisition: { status: 'none', requestedBy: null, requestedAt: null, approvedBy: null, approvedAt: null },
   };
 
   // Group sections by phase
@@ -545,6 +594,71 @@ export default function WorkOrderExecutionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {sections.map((section) => {
                 const sectionStatus = section.getStatus(defaultSummary);
+
+                // Material Requisition: inline card (no navigation)
+                if (section.id === 'material-requisition') {
+                  const reqStatus = defaultSummary.materialRequisition;
+                  return (
+                    <Card key={section.id} className="h-full">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${phaseColors[section.phase].split(' ')[0]}`}>
+                              {section.icon}
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-gray-900">{section.title}</h3>
+                              <p className="text-sm text-gray-500">{section.description}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          {renderProgressBar(sectionStatus.completed, sectionStatus.total)}
+                          <div className="flex justify-end">
+                            {renderStatusBadge(sectionStatus.status)}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t">
+                          {reqStatus.status === 'none' && (
+                            <DxButton
+                              text="ส่งใบเบิกวัตถุดิบ"
+                              type="success"
+                              stylingMode="contained"
+                              disabled={requisitionMutation.isPending}
+                              onClick={() => requisitionMutation.mutate()}
+                            />
+                          )}
+                          {reqStatus.status === 'requested' && (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                <Clock className="h-3 w-3" />
+                                รอคลังอนุมัติ
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {reqStatus.requestedByName && `โดย ${reqStatus.requestedByName}`}
+                                {reqStatus.requestedAt && ` เมื่อ ${new Date(reqStatus.requestedAt).toLocaleString('th-TH')}`}
+                              </span>
+                            </div>
+                          )}
+                          {reqStatus.status === 'approved' && (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                <CheckCircle2 className="h-3 w-3" />
+                                คลังอนุมัติแล้ว
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {reqStatus.approvedByName && `โดย ${reqStatus.approvedByName}`}
+                                {reqStatus.approvedAt && ` เมื่อ ${new Date(reqStatus.approvedAt).toLocaleString('th-TH')}`}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                }
 
                 return (
                   <Link key={section.id} href={section.href}>
