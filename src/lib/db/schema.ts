@@ -353,6 +353,12 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   lineClearanceBy: integer('line_clearance_by').references(() => sqliteUsers.id),
   lineClearanceAt: text('line_clearance_at'),
   lineClearanceChecklistId: integer('line_clearance_checklist_id'), // FK added after table creation
+  // Material requisition gate
+  requisitionStatus: text('requisition_status').notNull().default('none'), // none, requested, approved
+  requisitionRequestedBy: integer('requisition_requested_by').references(() => sqliteUsers.id),
+  requisitionRequestedAt: text('requisition_requested_at'),
+  requisitionApprovedBy: integer('requisition_approved_by').references(() => sqliteUsers.id),
+  requisitionApprovedAt: text('requisition_approved_at'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -1734,6 +1740,12 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   lineClearanceBy: int('line_clearance_by').references(() => mysqlUsers.id),
   lineClearanceAt: datetime('line_clearance_at'),
   lineClearanceChecklistId: int('line_clearance_checklist_id'), // FK added after table creation
+  // Material requisition gate
+  requisitionStatus: varchar('requisition_status', { length: 20 }).notNull().default('none'),
+  requisitionRequestedBy: int('requisition_requested_by').references(() => mysqlUsers.id),
+  requisitionRequestedAt: datetime('requisition_requested_at'),
+  requisitionApprovedBy: int('requisition_approved_by').references(() => mysqlUsers.id),
+  requisitionApprovedAt: datetime('requisition_approved_at'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
