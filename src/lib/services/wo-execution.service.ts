@@ -1605,7 +1605,25 @@ export async function getWOIPCTests(workOrderId: number) {
       )
       .orderBy(asc(tables.qualityTests.id));
 
-    // Get samples for each test + resolve testName from notes if specId is null
+    // Collect user IDs for name resolution
+    const userIds = new Set<number>();
+    for (const t of tests) {
+      if (t.testedBy) userIds.add(t.testedBy);
+      if (t.approvedBy) userIds.add(t.approvedBy);
+    }
+
+    // Resolve user names
+    let userMap = new Map<number, string>();
+    if (userIds.size > 0) {
+      const { inArray } = await import('drizzle-orm');
+      const users = await db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users)
+        .where(inArray(tables.users.id, [...userIds]));
+      for (const u of users) userMap.set(u.id, u.name);
+    }
+
+    // Get samples for each test + resolve testName + user names
     const testsWithSamples = await Promise.all(
       tests.map(async (test: any) => {
         const samples = await db
@@ -1615,8 +1633,9 @@ export async function getWOIPCTests(workOrderId: number) {
           .orderBy(asc(tables.ipcTestSamples.sampleNumber));
         return {
           ...test,
-          // Use notes as testName fallback when specId is null (IPC criteria-based tests)
           testName: test.testName || test.notes || test.specSpecification || `IPC-${test.sampleNumber || test.id}`,
+          testedByName: test.testedBy ? (userMap.get(test.testedBy) || null) : null,
+          approvedByName: test.approvedBy ? (userMap.get(test.approvedBy) || null) : null,
           samples,
         };
       })
@@ -1696,8 +1715,12 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
       }
     }
 
+    // Sanitize numericResult — NaN breaks MySQL
+    const safeNumericResult = (input.numericResult != null && !isNaN(input.numericResult))
+      ? input.numericResult : null;
+
     const updateData: any = {
-      numericResult: input.numericResult ?? null,
+      numericResult: safeNumericResult,
       result: autoResult || input.result || null,
       status: autoResult || 'pending',
       testedBy: input.testedBy,

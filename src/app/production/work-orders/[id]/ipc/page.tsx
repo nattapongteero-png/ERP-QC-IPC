@@ -51,6 +51,8 @@ interface IPCTest {
   disposition: string | null;
   testName: string | null;
   testMethod: string | null;
+  testedByName: string | null;
+  approvedByName: string | null;
   samples: IPCSample[];
 }
 
@@ -499,13 +501,19 @@ export default function IPCPage() {
                         </div>
                       )}
 
-                      {/* Test date and approval info */}
-                      <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                      {/* Tester and approver info */}
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-500 mt-2">
+                        {test.testedByName && (
+                          <span>ผู้บันทึก: <strong className="text-gray-700">{test.testedByName}</strong></span>
+                        )}
                         {test.testDate && (
-                          <span>{t('execution.testedAt')}: {new Date(test.testDate).toLocaleString('th-TH')}</span>
+                          <span>วันที่บันทึก: {new Date(test.testDate).toLocaleString('th-TH')}</span>
+                        )}
+                        {test.approvedByName && (
+                          <span>ผู้อนุมัติ: <strong className="text-emerald-700">{test.approvedByName}</strong></span>
                         )}
                         {test.approvedAt && (
-                          <span>{t('execution.approvedAt')}: {new Date(test.approvedAt).toLocaleString('th-TH')}</span>
+                          <span>วันที่อนุมัติ: {new Date(test.approvedAt).toLocaleString('th-TH')}</span>
                         )}
                       </div>
                     </div>
