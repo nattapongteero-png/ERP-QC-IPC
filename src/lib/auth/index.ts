@@ -258,11 +258,19 @@ export const PERMISSIONS = {
 
 export type Permission = keyof typeof PERMISSIONS;
 
+export function isAdminRole(role: string): boolean {
+  return role === ROLES.ADMIN;
+}
+
 export function hasPermission(role: Role, permission: Permission): boolean {
+  // Administrator bypasses all permission checks
+  if (isAdminRole(role)) return true;
   const allowedRoles = PERMISSIONS[permission];
   return allowedRoles.includes(role as any);
 }
 
 export function checkPermissions(role: Role, permissions: Permission[]): boolean {
+  // Administrator bypasses all permission checks
+  if (isAdminRole(role as string)) return true;
   return permissions.every(permission => hasPermission(role, permission));
 }

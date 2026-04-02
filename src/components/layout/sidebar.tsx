@@ -275,6 +275,8 @@ interface SidebarProps {
 // Helper function to filter navigation based on role
 function getFilteredNavigation(role: string | undefined): NavItem[] {
   return navigation.filter((item) => {
+    // Administrator sees all menu items — bypass role filtering
+    if (role?.toLowerCase() === 'admin') return true;
     // If no roles specified, item is visible to all authenticated users
     if (!item.roles || item.roles.length === 0) {
       return true;
@@ -289,10 +291,19 @@ function getFilteredNavigation(role: string | undefined): NavItem[] {
 
 // Helper to find parent item for current pathname
 function findParentForPath(pathname: string, navItems: NavItem[]): string | null {
-  const parentItem = navItems.find(
+  // First check if pathname matches the parent href directly
+  const directMatch = navItems.find(
     (item) => item.children && pathname.startsWith(item.href)
   );
-  return parentItem?.name ?? null;
+  if (directMatch) return directMatch.name;
+
+  // Also check children hrefs (e.g. /master-data is a child of Production at /production)
+  const childMatch = navItems.find(
+    (item) => item.children?.some(
+      (child) => pathname === child.href || pathname.startsWith(child.href + '/')
+    )
+  );
+  return childMatch?.name ?? null;
 }
 
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
@@ -567,7 +578,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
           </div>
 
           {/* Language Switcher */}
-          <div className="mt-3 px-1">
+          <div className="mt-3 px-1 sidebar-language-switcher">
             <LanguageSwitcher width="100%" showFlag={true} />
           </div>
         </div>

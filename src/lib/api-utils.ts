@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSession, hasPermission, Permission, Role } from './auth';
+import { getSession, hasPermission, isAdminRole, Permission, Role } from './auth';
 
 // Check if running in development mode
 export function isDevelopment(): boolean {
@@ -151,12 +151,15 @@ export async function withAuth(
   }
   
   if (requiredPermissions && requiredPermissions.length > 0) {
-    const hasAllPermissions = requiredPermissions.every(permission =>
-      hasPermission(session.role as Role, permission)
-    );
-    
-    if (!hasAllPermissions) {
-      return forbiddenResponse('You do not have permission to perform this action');
+    // Administrator bypasses all permission checks
+    if (!isAdminRole(session.role)) {
+      const hasAllPermissions = requiredPermissions.every(permission =>
+        hasPermission(session.role as Role, permission)
+      );
+
+      if (!hasAllPermissions) {
+        return forbiddenResponse('You do not have permission to perform this action');
+      }
     }
   }
   
