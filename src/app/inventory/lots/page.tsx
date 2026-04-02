@@ -23,6 +23,7 @@ import { ItemSearchDialog, type Item as SearchItem } from '@/components/ui/item-
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils/cn';
 
 /** Get today's date as YYYY-MM-DD using local timezone (avoids UTC shift from toISOString) */
@@ -304,7 +305,7 @@ export default function LotsPage() {
       const data = await res.json();
 
       if (data.success) {
-        let fetchedLots = data.data?.items || data.data || [];
+        let fetchedLots: Lot[] = data.data?.items || data.data || [];
 
         // Client-side search filter
         if (search) {
@@ -770,11 +771,18 @@ export default function LotsPage() {
           actions={
             <div className="flex items-center gap-2">
               <button
-                onClick={() => fetchLots()}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => {
+                  fetchLots().then(() => {
+                    toast.success('รีเฟรชข้อมูลสำเร็จ');
+                  }).catch(() => {
+                    toast.error('เกิดข้อผิดพลาดในการรีเฟรชข้อมูล');
+                  });
+                }}
+                disabled={isLoading}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                {t('common.refresh')}
+                {isLoading ? 'กำลังโหลด...' : t('common.refresh')}
               </button>
               <button
                 onClick={() => router.push('/inventory/items')}
