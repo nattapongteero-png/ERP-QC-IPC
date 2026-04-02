@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -26,6 +27,7 @@ import {
   Clock,
   UserCheck,
   AlertCircle,
+  AlertTriangle,
   Droplets,
   Beaker,
 } from 'lucide-react';
@@ -112,15 +114,29 @@ export default function MaterialWeighingPage() {
   });
 
   // Fetch materials
-  const { data: materials, isLoading: materialsLoading } = useQuery<MaterialLine[]>({
+  const { data: materialsResult, isLoading: materialsLoading } = useQuery<{
+    materials: MaterialLine[];
+    requisitionStatus: string;
+  }>({
     queryKey: ['wo-materials', workOrderId],
     queryFn: async () => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/material-weighing`);
       const data = await res.json();
-      if (!data.success) return [];
-      return data.data;
+      if (!data.success) return { materials: [], requisitionStatus: 'none' };
+      // Handle both old format (array) and new format ({ materials, requisitionStatus })
+      const rawData = data.data;
+      if (Array.isArray(rawData)) {
+        return { materials: rawData, requisitionStatus: 'none' };
+      }
+      return {
+        materials: rawData?.materials || [],
+        requisitionStatus: rawData?.requisitionStatus || 'none',
+      };
     },
   });
+
+  const materials = materialsResult?.materials || [];
+  const requisitionStatus = materialsResult?.requisitionStatus || 'none';
 
   // Fetch available lots for selected material
   const { data: availableLots, isLoading: lotsLoading } = useQuery<AvailableLot[]>({
@@ -193,7 +209,7 @@ export default function MaterialWeighingPage() {
       weighedQty: material.plannedQty,
       lotId: material.lotId || undefined,
       notes: '',
-      waterDate: material.waterDate || new Date().toISOString().split('T')[0],
+      waterDate: material.waterDate || toLocalDateStr(new Date()),
       waterConductivity: material.waterConductivity || 0,
       waterTemperature: material.waterTemperature || 25,
     });
@@ -293,6 +309,21 @@ export default function MaterialWeighingPage() {
           />
         }
       />
+
+      {/* Requisition Gate Warning */}
+      {requisitionStatus !== 'approved' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center gap-3 mb-4">
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-amber-800">ยังไม่สามารถชั่งวัตถุดิบได้</p>
+            <p className="text-sm text-amber-700">
+              {requisitionStatus === 'none'
+                ? 'กรุณาส่งใบเบิกวัตถุดิบก่อนที่หน้า Execution Dashboard'
+                : 'รอคลังอนุมัติใบเบิกวัตถุดิบ'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Progress Card */}
       <Card className="border-amber-200 bg-amber-50">
@@ -420,6 +451,7 @@ export default function MaterialWeighingPage() {
                           text={tw('actions.weigh')}
                           type="success"
                           onClick={() => handleOpenWeighDialog(material)}
+                          disabled={requisitionStatus !== 'approved'}
                         />
                       ) : !material.verifiedAt ? (
                         <>
@@ -429,13 +461,14 @@ export default function MaterialWeighingPage() {
                               type="normal"
                               stylingMode="outlined"
                               onClick={() => handleOpenWeighDialog(material)}
+                              disabled={requisitionStatus !== 'approved'}
                             />
                             {(material.itemAvailableQty ?? 0) > 0 ? (
                               <DxButton
                                 text={tw('actions.verify')}
                                 type="default"
                                 onClick={() => verifyWeightMutation.mutate(material.id)}
-                                disabled={verifyWeightMutation.isPending}
+                                disabled={verifyWeightMutation.isPending || requisitionStatus !== 'approved'}
                               />
                             ) : (
                               <span className="text-xs text-red-500 self-center max-w-[140px] text-right">
