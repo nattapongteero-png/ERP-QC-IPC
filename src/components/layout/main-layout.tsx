@@ -194,8 +194,8 @@ export function MainLayout({ children }: MainLayoutProps) {
             'min-w-0 max-w-full',
             // On tablet, fit content to viewport height (minus header)
             'md:h-[calc(100vh-56px)] md:overflow-hidden',
-            // On desktop, allow vertical scrolling but prevent horizontal overflow
-            'lg:h-auto lg:overflow-y-auto lg:overflow-x-hidden',
+            // On desktop, constrain to viewport height — pages handle their own scrolling
+            'lg:h-[calc(100vh)] lg:overflow-hidden',
             'animate-fade-in motion-reduce:animate-none',
             'focus:outline-none'
           )}
