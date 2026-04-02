@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   successResponse,
   errorResponse,
@@ -17,6 +17,15 @@ import { eq } from 'drizzle-orm';
 
 // Valid phases for environmental monitoring
 const VALID_PHASES = ['production', 'packaging'];
+
+// External API Key for IoT/sensor integration
+const EXTERNAL_API_KEY = process.env.EXTERNAL_ENV_API_KEY || 'env-monitor-2026-secret';
+
+/** Validate X-API-Key header for external callers */
+function validateApiKey(request: NextRequest): boolean {
+  const apiKey = request.headers.get('X-API-Key');
+  return !!apiKey && apiKey === EXTERNAL_API_KEY;
+}
 
 // GET /api/production/work-orders/[id]/environmental-logs - Get environmental logs
 export async function GET(
@@ -49,11 +58,15 @@ export async function GET(
 }
 
 // POST /api/production/work-orders/[id]/environmental-logs - Create environmental log
+// Supports both JWT session (internal) and X-API-Key header (external sensor/IoT)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(request, async (session) => {
+  const isExternal = validateApiKey(request);
+
+  // Core handler shared by both auth paths
+  const handlePost = async (operatorUserId: number): Promise<NextResponse> => {
     try {
       const { id } = await params;
       const workOrderId = Number(id);
@@ -74,6 +87,7 @@ export async function POST(
       }
 
       // Get work order to find BOM ID
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const workOrder = await executeDbOperation(async (db: any) => {
         const table = isSqlite() ? sqliteWorkOrders : mysqlWorkOrders;
         const orders = await db.select().from(table).where(eq(table.id, workOrderId));
@@ -92,8 +106,8 @@ export async function POST(
         data.humidity
       );
 
-      // Use session user as operator if not specified
-      const operatorId = data.operatorId || session.userId;
+      // Use provided operatorId, or fallback to the authenticated user
+      const operatorId = data.operatorId || operatorUserId;
 
       // Create the log
       const log = await createWOEnvironmentalLog({
@@ -106,7 +120,7 @@ export async function POST(
         humidity: data.humidity,
         isNormal: validation.isNormal,
         operatorId,
-        notes: data.notes,
+        notes: data.notes || (isExternal ? 'Auto-recorded by sensor' : undefined),
       });
 
       return successResponse(
@@ -119,5 +133,16 @@ export async function POST(
       console.error('Error creating WO environmental log:', error);
       return serverErrorResponse(error);
     }
+  };
+
+  // External: API Key auth (no JWT session needed)
+  if (isExternal) {
+    // Use userId=1 (System Administrator) as default operator for sensor data
+    return handlePost(1);
+  }
+
+  // Internal: JWT session auth (existing behavior)
+  return withAuth(request, async (session) => {
+    return handlePost(session.userId);
   });
 }
