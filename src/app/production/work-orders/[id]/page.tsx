@@ -120,6 +120,12 @@ interface WorkOrderDetail {
       actualStart: string;
       actualEnd: string;
     };
+    // Execution workflow data
+    sopExecution: any[];
+    cleaningLogs: any[];
+    environmentalLogs: any[];
+    materialWeighing: any[];
+    ipcTests: any[];
   };
   summary: {
     yieldPercent: number;
@@ -1149,6 +1155,242 @@ export default function WorkOrderDetailPage() {
                 </table>
               </CardContent>
             </Card>
+
+            {/* SOP Execution Steps */}
+            {ebmr.sopExecution && ebmr.sopExecution.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>SOP Execution Record</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full border-collapse border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-center text-gray-700 w-16">Step</th>
+                        <th className="border p-2 text-left text-gray-700">Step Name</th>
+                        <th className="border p-2 text-center text-gray-700 w-24">Status</th>
+                        <th className="border p-2 text-left text-gray-700">Parameters</th>
+                        <th className="border p-2 text-left text-gray-700">Notes</th>
+                        <th className="border p-2 text-left text-gray-700">Operator</th>
+                        <th className="border p-2 text-left text-gray-700">Verified</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.sopExecution.map((step: any) => (
+                        <tr key={step.id}>
+                          <td className="border p-2 text-center text-gray-900 font-medium">{step.sequence}</td>
+                          <td className="border p-2 text-gray-900">{step.stepNameTh || step.stepName}</td>
+                          <td className="border p-2 text-center">
+                            <Badge variant={
+                              step.verifiedAt ? 'primary' :
+                              step.isCompleted ? 'secondary' :
+                              step.status === 'in_progress' ? 'warning' : 'default'
+                            }>
+                              {step.verifiedAt ? 'Verified' : step.isCompleted ? 'Completed' : step.status || 'Pending'}
+                            </Badge>
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">
+                            {step.actualParameters && (() => {
+                              try {
+                                const params = typeof step.actualParameters === 'string' ? JSON.parse(step.actualParameters) : step.actualParameters;
+                                return Object.entries(params)
+                                  .filter(([k]) => !k.startsWith('_'))
+                                  .map(([k, v]) => `${k}: ${v}`)
+                                  .join(', ') || '-';
+                              } catch { return '-'; }
+                            })()}
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">{step.notes || '-'}</td>
+                          <td className="border p-2 text-gray-900 text-sm">
+                            {step.operatorName || (step.operatorId ? `User#${step.operatorId}` : '-')}
+                            {step.completedAt && <div className="text-xs text-gray-500">{new Date(step.completedAt).toLocaleString('th-TH')}</div>}
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">
+                            {step.verifierName || (step.verifierId ? `User#${step.verifierId}` : '-')}
+                            {step.verifiedAt && <div className="text-xs text-gray-500">{new Date(step.verifiedAt).toLocaleString('th-TH')}</div>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Cleaning Verification */}
+            {ebmr.cleaningLogs && ebmr.cleaningLogs.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cleaning Verification Record</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full border-collapse border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left text-gray-700">Phase</th>
+                        <th className="border p-2 text-left text-gray-700">Type</th>
+                        <th className="border p-2 text-center text-gray-700">Clean</th>
+                        <th className="border p-2 text-left text-gray-700">Operator</th>
+                        <th className="border p-2 text-left text-gray-700">Performed</th>
+                        <th className="border p-2 text-left text-gray-700">Verified</th>
+                        <th className="border p-2 text-left text-gray-700">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.cleaningLogs.map((log: any) => (
+                        <tr key={log.id}>
+                          <td className="border p-2 text-gray-900 capitalize">{(log.phase || '').replace(/_/g, ' ')}</td>
+                          <td className="border p-2 text-gray-900 capitalize">{log.itemType || '-'}</td>
+                          <td className="border p-2 text-center">
+                            {log.isClean ? <span className="text-green-600 font-bold">✓</span> : <span className="text-red-600 font-bold">✗</span>}
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">{log.operatorName || (log.operatorId ? `User#${log.operatorId}` : '-')}</td>
+                          <td className="border p-2 text-gray-900 text-sm">{log.performedAt ? new Date(log.performedAt).toLocaleString('th-TH') : '-'}</td>
+                          <td className="border p-2 text-gray-900 text-sm">
+                            {log.verifierName || (log.verifierId ? `User#${log.verifierId}` : '-')}
+                            {log.verifiedAt && <div className="text-xs text-gray-500">{new Date(log.verifiedAt).toLocaleString('th-TH')}</div>}
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">{log.notes || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Environmental Monitoring */}
+            {ebmr.environmentalLogs && ebmr.environmentalLogs.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Environmental Monitoring Record</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full border-collapse border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left text-gray-700">Phase</th>
+                        <th className="border p-2 text-left text-gray-700">Date</th>
+                        <th className="border p-2 text-left text-gray-700">Time</th>
+                        <th className="border p-2 text-right text-gray-700">Temp (°C)</th>
+                        <th className="border p-2 text-right text-gray-700">Humidity (%RH)</th>
+                        <th className="border p-2 text-center text-gray-700">Normal</th>
+                        <th className="border p-2 text-left text-gray-700">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.environmentalLogs.map((log: any) => (
+                        <tr key={log.id}>
+                          <td className="border p-2 text-gray-900 capitalize">{(log.phase || '').replace(/_/g, ' ')}</td>
+                          <td className="border p-2 text-gray-900">{log.recordedDate || '-'}</td>
+                          <td className="border p-2 text-gray-900">{log.recordedTime || '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{log.temperature ?? '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{log.humidity ?? '-'}</td>
+                          <td className="border p-2 text-center">
+                            {log.isNormal ? <span className="text-green-600 font-bold">✓</span> : <span className="text-red-600 font-bold">✗</span>}
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">{log.notes || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Material Weighing Record */}
+            {ebmr.materialWeighing && ebmr.materialWeighing.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Material Weighing Record</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full border-collapse border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left text-gray-700">Item</th>
+                        <th className="border p-2 text-left text-gray-700">Lot</th>
+                        <th className="border p-2 text-right text-gray-700">Planned</th>
+                        <th className="border p-2 text-right text-gray-700">Weighed</th>
+                        <th className="border p-2 text-center text-gray-700">Status</th>
+                        <th className="border p-2 text-left text-gray-700">Weighed By</th>
+                        <th className="border p-2 text-left text-gray-700">Verified By</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.materialWeighing.map((mat: any) => (
+                        <tr key={mat.id}>
+                          <td className="border p-2 text-gray-900">
+                            <div>{mat.itemNameTh || mat.itemName}</div>
+                            <div className="text-xs text-gray-500">{mat.itemCode}</div>
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">{mat.lotNumber || '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {mat.unit}</td>
+                          <td className="border p-2 text-right text-gray-900">{mat.weighedQty ?? '-'}</td>
+                          <td className="border p-2 text-center">
+                            <Badge variant={
+                              mat.verifiedAt ? 'primary' :
+                              mat.weighedAt ? 'secondary' : 'default'
+                            }>
+                              {mat.verifiedAt ? 'Verified' : mat.weighedAt ? 'Weighed' : 'Pending'}
+                            </Badge>
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">
+                            {mat.weighedByName || (mat.weighedBy ? `User#${mat.weighedBy}` : '-')}
+                            {mat.weighedAt && <div className="text-xs text-gray-500">{new Date(mat.weighedAt).toLocaleString('th-TH')}</div>}
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">
+                            {mat.verifiedByName || (mat.verifiedBy ? `User#${mat.verifiedBy}` : '-')}
+                            {mat.verifiedAt && <div className="text-xs text-gray-500">{new Date(mat.verifiedAt).toLocaleString('th-TH')}</div>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* IPC (In-Process Control) Results */}
+            {ebmr.ipcTests && ebmr.ipcTests.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>In-Process Control (IPC) Results</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full border-collapse border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left text-gray-700">Test</th>
+                        <th className="border p-2 text-left text-gray-700">Specification</th>
+                        <th className="border p-2 text-right text-gray-700">Result</th>
+                        <th className="border p-2 text-center text-gray-700">Status</th>
+                        <th className="border p-2 text-left text-gray-700">Tested By</th>
+                        <th className="border p-2 text-left text-gray-700">Approved By</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.ipcTests.map((test: any) => (
+                        <tr key={test.id}>
+                          <td className="border p-2 text-gray-900">{test.testName}</td>
+                          <td className="border p-2 text-gray-900 text-sm">
+                            {test.specSpecification || (test.specMinValue != null && test.specMaxValue != null ? `${test.specMinValue} - ${test.specMaxValue} ${test.specUnit || ''}` : '-')}
+                          </td>
+                          <td className="border p-2 text-right text-gray-900">{test.numericResult ?? test.result ?? '-'} {test.specUnit || ''}</td>
+                          <td className="border p-2 text-center">
+                            <Badge variant={test.status === 'pass' ? 'primary' : test.status === 'fail' ? 'danger' : 'default'}>
+                              {test.status}
+                            </Badge>
+                          </td>
+                          <td className="border p-2 text-gray-900 text-sm">{test.testedByName || '-'}</td>
+                          <td className="border p-2 text-gray-900 text-sm">{test.approvedByName || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Signatures */}
             <Card>

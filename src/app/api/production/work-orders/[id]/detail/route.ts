@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { eq, asc } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
+import {
+  getWOSOPExecution,
+  getWOCleaningLogs,
+  getWOEnvironmentalLogs,
+  getWOMaterials,
+  getWOIPCTests,
+} from '@/lib/services/wo-execution.service';
 
 export async function GET(
   request: NextRequest,
@@ -277,6 +284,22 @@ export async function GET(
         // batch_records table may not exist in older setups
       }
 
+      // Fetch execution workflow data in parallel
+      const woId = parseInt(id);
+      const [
+        sopExecutionData,
+        cleaningLogsAll,
+        envLogsAll,
+        materialWeighingData,
+        ipcTestsData,
+      ] = await Promise.all([
+        getWOSOPExecution(woId).catch(() => []),
+        getWOCleaningLogs(woId).catch(() => []),
+        getWOEnvironmentalLogs(woId).catch(() => []),
+        getWOMaterials(woId).catch(() => []),
+        getWOIPCTests(woId).catch(() => []),
+      ]);
+
       // eBMR (Electronic Batch Manufacturing Record) summary
       const ebmr = {
         batchNumber: workOrder.batchNumber,
@@ -300,6 +323,12 @@ export async function GET(
           actualStart: workOrder.actualStartDate,
           actualEnd: workOrder.actualEndDate,
         },
+        // Execution workflow data
+        sopExecution: sopExecutionData,
+        cleaningLogs: cleaningLogsAll,
+        environmentalLogs: envLogsAll,
+        materialWeighing: materialWeighingData,
+        ipcTests: Array.isArray(ipcTestsData) ? ipcTestsData : [],
       };
 
       return NextResponse.json({
