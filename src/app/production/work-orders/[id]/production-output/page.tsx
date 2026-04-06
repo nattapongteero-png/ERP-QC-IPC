@@ -154,24 +154,15 @@ export default function ProductionOutputPage() {
     },
   });
 
-  // Auto-calculate initial values from BOM yield/loss when WO loads
+  // Auto-calculate reject quantity when actual quantity changes
   useEffect(() => {
     if (!workOrder) return;
-    const hasExisting = workOrder.actualQuantity !== null && workOrder.actualQuantity !== undefined;
-    if (hasExisting) return; // Don't overwrite if already recorded
-
     const planned = Number(workOrder.plannedQuantity) || 0;
-    const yieldTarget = Number(workOrder.bomYieldTarget) || 0;
-    const lossAllowance = Number(workOrder.bomLossAllowance) || 0;
-
-    if (planned > 0 && (yieldTarget > 0 || lossAllowance > 0)) {
-      setFormData(prev => ({
-        ...prev,
-        actualQuantity: yieldTarget > 0 ? Math.round(planned * yieldTarget / 100 * 10000) / 10000 : prev.actualQuantity,
-        rejectQuantity: lossAllowance > 0 ? Math.round(planned * lossAllowance / 100 * 10000) / 10000 : prev.rejectQuantity,
-      }));
+    if (planned > 0 && formData.actualQuantity > 0) {
+      const reject = Math.max(0, Math.round((planned - formData.actualQuantity) * 10000) / 10000);
+      setFormData(prev => ({ ...prev, rejectQuantity: reject }));
     }
-  }, [workOrder]);
+  }, [formData.actualQuantity, workOrder]);
 
   const hasRecorded = workOrder?.actualQuantity !== null && workOrder?.actualQuantity !== undefined;
   const isInProgress = workOrder?.status === 'in_progress';
@@ -480,26 +471,22 @@ export default function ProductionOutputPage() {
                 )}
               </div>
 
-              {/* Reject Quantity */}
+              {/* Reject Quantity (auto-calculated) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {tw('form.rejectQuantity')} ({workOrder.unit})
+                  <span className="text-xs text-gray-400 ml-2">คำนวณอัตโนมัติ = แผน - ได้จริง</span>
                 </label>
                 <DxNumberBox
                   value={formData.rejectQuantity}
-                  onValueChanged={(e: { value?: number }) =>
-                    setFormData(prev => ({ ...prev, rejectQuantity: e.value || 0 }))
-                  }
                   format="#,##0.####"
                   min={0}
-                  showSpinButtons
+                  readOnly
                   width="100%"
                 />
-                {workOrder.bomLossAllowance && (
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    คำนวณจาก BOM Loss Allowance {Number(workOrder.bomLossAllowance).toFixed(2)}% = {(Number(workOrder.plannedQuantity) * Number(workOrder.bomLossAllowance) / 100).toLocaleString()} {workOrder.unit}
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {Number(workOrder.plannedQuantity).toLocaleString()} - {formData.actualQuantity.toLocaleString()} = {formData.rejectQuantity.toLocaleString()} {workOrder.unit}
+                </p>
               </div>
 
               {/* Warehouse Selection */}
