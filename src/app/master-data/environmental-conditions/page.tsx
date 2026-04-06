@@ -102,6 +102,7 @@ export default function EnvironmentalConditionsPage() {
         icon={Thermometer}
         iconBgColor="bg-teal-100"
         iconColor="text-teal-600"
+        onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'Environmental Conditions' },
@@ -124,12 +125,12 @@ export default function EnvironmentalConditionsPage() {
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >
           <DxSearchPanel visible placeholder="Search conditions..." width={200} />
-          <DxPaging defaultPageSize={15} />
+          <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
             <span className="font-mono font-medium text-teal-700">{cell.value}</span>

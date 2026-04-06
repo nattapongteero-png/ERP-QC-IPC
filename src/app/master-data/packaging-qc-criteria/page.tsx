@@ -104,6 +104,7 @@ export default function PackagingQCCriteriaPage() {
         icon={Scale}
         iconBgColor="bg-indigo-100"
         iconColor="text-indigo-600"
+        onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'Packaging QC Criteria' },
@@ -126,12 +127,12 @@ export default function PackagingQCCriteriaPage() {
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >
           <DxSearchPanel visible placeholder="Search criteria..." width={200} />
-          <DxPaging defaultPageSize={15} />
+          <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
             <span className="font-mono font-medium text-indigo-700">{cell.value}</span>

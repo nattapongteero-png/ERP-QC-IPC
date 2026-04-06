@@ -59,7 +59,7 @@ export default function IPCCriteriaPage() {
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >

@@ -151,7 +151,7 @@ export default function SOPTemplatesPage() {
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >

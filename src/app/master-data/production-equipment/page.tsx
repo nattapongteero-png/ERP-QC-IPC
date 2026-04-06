@@ -101,6 +101,7 @@ export default function ProductionEquipmentPage() {
         icon={Wrench}
         iconBgColor="bg-purple-100"
         iconColor="text-purple-600"
+        onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'Production Equipment' },
@@ -123,12 +124,12 @@ export default function ProductionEquipmentPage() {
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >
           <DxSearchPanel visible placeholder="Search equipment..." width={200} />
-          <DxPaging defaultPageSize={15} />
+          <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
             <span className="font-mono font-medium text-purple-700">{cell.value}</span>

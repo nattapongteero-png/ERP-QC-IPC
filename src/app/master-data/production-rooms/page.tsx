@@ -94,6 +94,7 @@ export default function ProductionRoomsPage() {
         icon={Building2}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
+        onBack={() => router.push('/master-data')}
         breadcrumbs={[
           { label: 'Master Data', href: '/master-data' },
           { label: 'Production Rooms' },
@@ -116,12 +117,12 @@ export default function ProductionRoomsPage() {
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
-          height={500}
+          height="auto"
           width="100%"
           columnAutoWidth
         >
           <DxSearchPanel visible placeholder="Search rooms..." width={200} />
-          <DxPaging defaultPageSize={15} />
+          <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="code" caption="Code" width={120} cellRender={(cell) => (
             <span className="font-mono font-medium text-blue-700">{cell.value}</span>
