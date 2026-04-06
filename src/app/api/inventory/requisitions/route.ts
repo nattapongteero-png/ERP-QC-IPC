@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       // Collect all work order IDs for bulk materials query
       const woIds = workOrders.map((wo) => wo.workOrderId as number);
 
-      // Fetch materials for all matching work orders in one query
+      // Fetch materials for all matching work orders in one query (with on-hand stock)
       const allMaterials = await executeDbOperation(async (db) => {
         return db
           .select({
@@ -110,6 +110,7 @@ export async function GET(request: NextRequest) {
             actualQuantity: workOrderMaterialsTable.actualQuantity,
             unit: workOrderMaterialsTable.unit,
             status: workOrderMaterialsTable.status,
+            onHand: itemsTable.onHand,
           })
           .from(workOrderMaterialsTable)
           .leftJoin(itemsTable, eq(workOrderMaterialsTable.itemId, itemsTable.id))
