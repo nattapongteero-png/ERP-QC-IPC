@@ -1587,7 +1587,6 @@ function RequisitionTab() {
                     <th className="pb-2">ชื่อวัตถุดิบ</th>
                     <th className="pb-2 text-right">จำนวนที่ต้องการ</th>
                     <th className="pb-2 text-right">คงเหลือในคลัง</th>
-                    <th className="pb-2">หน่วย</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1600,12 +1599,11 @@ function RequisitionTab() {
                       <tr key={idx} className="border-t border-gray-200">
                         <td className="py-1.5 font-mono text-xs">{mat.itemCode}</td>
                         <td className="py-1.5">{mat.itemName}</td>
-                        <td className="py-1.5 text-right">{mat.plannedQuantity}</td>
+                        <td className="py-1.5 text-right">{mat.plannedQuantity} {mat.unit}</td>
                         <td className={`py-1.5 text-right font-medium ${isShort ? 'text-red-600' : 'text-green-600'}`}>
-                          {onHand.toLocaleString()}
+                          {onHand.toLocaleString()} {mat.unit}
                           {isShort && <span className="ml-1 text-xs text-red-500">(ไม่พอ)</span>}
                         </td>
-                        <td className="py-1.5">{mat.unit}</td>
                       </tr>
                     );
                   })}
