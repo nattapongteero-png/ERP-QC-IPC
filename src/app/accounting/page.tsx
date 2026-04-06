@@ -7,6 +7,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import Link from 'next/link';
 import {
   FileText,
@@ -34,7 +35,7 @@ type Period = 'MTD' | 'QTD' | 'YTD';
 
 // Fetch executive metrics from API
 async function fetchExecutiveMetrics(period: Period): Promise<ExecutiveMetrics> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
   const res = await fetch(`/api/accounting/dashboard/executive-metrics?asOfDate=${today}&period=${period}`);
   if (!res.ok) throw new Error('Failed to fetch executive metrics');
   const data = await res.json();
@@ -43,7 +44,7 @@ async function fetchExecutiveMetrics(period: Period): Promise<ExecutiveMetrics> 
 
 // Fetch alerts from API
 async function fetchAlerts(): Promise<ExecutiveAlert[]> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
   const res = await fetch(`/api/accounting/dashboard/alerts?asOfDate=${today}`);
   if (!res.ok) throw new Error('Failed to fetch alerts');
   const data = await res.json();
@@ -103,7 +104,7 @@ export default function AccountingDashboardPage() {
       title: t('dashboard.quickLinks.receivables'),
       links: [
         { name: t('dashboard.quickLinks.arInvoices'), href: '/accounting/ar/invoices', icon: FileText },
-        { name: t('dashboard.quickLinks.arAging'), href: '/accounting/reports/aging?type=AR', icon: BarChart3 },
+        { name: t('dashboard.quickLinks.arAging'), href: '/accounting/ar/aging', icon: BarChart3 },
         { name: t('dashboard.quickLinks.receipts'), href: '/accounting/ar/receipts', icon: Receipt },
       ],
     },
@@ -111,7 +112,7 @@ export default function AccountingDashboardPage() {
       title: t('dashboard.quickLinks.payables'),
       links: [
         { name: t('dashboard.quickLinks.apInvoices'), href: '/accounting/ap/invoices', icon: FileText },
-        { name: t('dashboard.quickLinks.apAging'), href: '/accounting/reports/aging?type=AP', icon: BarChart3 },
+        { name: t('dashboard.quickLinks.apAging'), href: '/accounting/ap/aging', icon: BarChart3 },
         { name: t('dashboard.quickLinks.payments'), href: '/accounting/ap/payments', icon: DollarSign },
       ],
     },
