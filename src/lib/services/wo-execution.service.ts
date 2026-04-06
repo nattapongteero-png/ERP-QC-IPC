@@ -143,6 +143,7 @@ function getTables() {
 export interface CreateWOEnvironmentalLogInput {
   workOrderId: number;
   bomConditionId?: number;
+  roomId?: number;
   phase: string;
   recordedDate: string;
   recordedTime: string;
@@ -162,6 +163,10 @@ export async function getWOEnvironmentalLogs(workOrderId: number, phase?: string
         id: tables.woEnvironmentalLogs.id,
         workOrderId: tables.woEnvironmentalLogs.workOrderId,
         bomConditionId: tables.woEnvironmentalLogs.bomConditionId,
+        roomId: tables.woEnvironmentalLogs.roomId,
+        roomCode: tables.productionRooms.code,
+        roomName: tables.productionRooms.name,
+        roomNameTh: tables.productionRooms.nameTh,
         phase: tables.woEnvironmentalLogs.phase,
         recordedDate: tables.woEnvironmentalLogs.recordedDate,
         recordedTime: tables.woEnvironmentalLogs.recordedTime,
@@ -173,6 +178,7 @@ export async function getWOEnvironmentalLogs(workOrderId: number, phase?: string
         createdAt: tables.woEnvironmentalLogs.createdAt,
       })
       .from(tables.woEnvironmentalLogs)
+      .leftJoin(tables.productionRooms, eq(tables.woEnvironmentalLogs.roomId, tables.productionRooms.id))
       .where(eq(tables.woEnvironmentalLogs.workOrderId, workOrderId))
       .orderBy(
         desc(tables.woEnvironmentalLogs.recordedDate),
@@ -195,6 +201,7 @@ export async function createWOEnvironmentalLog(data: CreateWOEnvironmentalLogInp
     const values = {
       workOrderId: data.workOrderId,
       bomConditionId: data.bomConditionId,
+      roomId: data.roomId || null,
       phase: data.phase,
       recordedDate: data.recordedDate,
       recordedTime: data.recordedTime,

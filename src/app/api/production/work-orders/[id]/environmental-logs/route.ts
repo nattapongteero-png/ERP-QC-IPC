@@ -113,6 +113,7 @@ export async function POST(
       const log = await createWOEnvironmentalLog({
         workOrderId,
         bomConditionId: validation.bomConditionId,
+        roomId: data.roomId,
         phase: data.phase,
         recordedDate: data.recordedDate || new Date().toISOString().split('T')[0],
         recordedTime: data.recordedTime || new Date().toTimeString().split(' ')[0].substring(0, 5),

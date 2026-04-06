@@ -1290,6 +1290,7 @@ export const sqliteWOEnvironmentalLogs = sqliteTable('wo_environmental_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
   bomConditionId: integer('bom_condition_id').references(() => sqliteBOMEnvironmentalConditions.id),
+  roomId: integer('room_id').references(() => sqliteProductionRooms.id),
   phase: text('phase').notNull(), // production, packaging
   recordedDate: text('recorded_date').notNull(),
   recordedTime: text('recorded_time').notNull(),
@@ -4471,6 +4472,7 @@ export const mysqlWOEnvironmentalLogs = mysqlTable('wo_environmental_logs', {
   id: int('id').primaryKey().autoincrement(),
   workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
   bomConditionId: int('bom_condition_id').references(() => mysqlBOMEnvironmentalConditions.id),
+  roomId: int('room_id').references(() => mysqlProductionRooms.id),
   phase: varchar('phase', { length: 50 }).notNull(), // production, packaging
   recordedDate: varchar('recorded_date', { length: 20 }).notNull(),
   recordedTime: varchar('recorded_time', { length: 20 }).notNull(),
