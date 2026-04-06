@@ -1168,21 +1168,26 @@ export function ItemEditForm({
       </div>
 
       {/* Footer - pinned at bottom via flex layout */}
-      <div className="flex-none px-4 md:px-6 lg:px-8 py-4 border-t bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.08)] z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="text-sm text-gray-500">
+      <div className="flex-none border-t border-gray-200 bg-gray-50/80 backdrop-blur-sm z-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
             {isEditing && item?.createdAt ? (
-              <>Last updated: {new Date(item.createdAt).toLocaleDateString()}</>
+              <>
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Last updated: {new Date(item.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+              </>
             ) : (
               <>Creating new {typeConfig.label.toLowerCase()}</>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {onCancel && (
               <DxButton
                 text="Cancel"
                 type="normal"
-                stylingMode="text"
+                stylingMode="outlined"
                 onClick={onCancel}
                 disabled={isSaving}
               />
