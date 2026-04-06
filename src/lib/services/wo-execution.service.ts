@@ -1662,20 +1662,42 @@ export async function getWOIPCTests(workOrderId: number) {
       for (const u of users) userMap.set(u.id, u.name);
     }
 
-    // Get samples for each test + resolve testName + user names
+    // Get samples for each test + resolve testName + user names + group by round
     const testsWithSamples = await Promise.all(
       tests.map(async (test: any) => {
         const samples = await db
           .select()
           .from(tables.ipcTestSamples)
           .where(eq(tables.ipcTestSamples.qualityTestId, test.id))
-          .orderBy(asc(tables.ipcTestSamples.sampleNumber));
+          .orderBy(asc(tables.ipcTestSamples.testRound), asc(tables.ipcTestSamples.sampleNumber));
+
+        // Calculate max round and group samples by round
+        let maxRound = 0;
+        const roundsMap: Record<number, any[]> = {};
+        for (const s of samples) {
+          const round = Number(s.testRound) || 1;
+          if (round > maxRound) maxRound = round;
+          if (!roundsMap[round]) roundsMap[round] = [];
+          roundsMap[round].push(s);
+        }
+        const rounds = Object.entries(roundsMap).map(([round, roundSamples]) => ({
+          round: Number(round),
+          samples: roundSamples,
+          result: roundSamples.some((s: any) => s.result === 'fail') ? 'fail' : 'pass',
+          avg: (() => {
+            const nums = roundSamples.filter((s: any) => s.numericValue != null);
+            return nums.length > 0 ? nums.reduce((sum: number, s: any) => sum + Number(s.numericValue), 0) / nums.length : null;
+          })(),
+        }));
+
         return {
           ...test,
           testName: test.testName || test.notes || test.specSpecification || `IPC-${test.sampleNumber || test.id}`,
           testedByName: test.testedBy ? (userMap.get(test.testedBy) || null) : null,
           approvedByName: test.approvedBy ? (userMap.get(test.approvedBy) || null) : null,
           samples,
+          rounds,
+          totalRounds: maxRound,
         };
       })
     );
@@ -1693,6 +1715,7 @@ export interface RecordIPCTestInput {
   result?: string;
   notes?: string;
   testedBy: number;
+  testRound?: number; // auto-increments if not provided
   samples?: Array<{
     sampleNumber: number;
     numericValue?: number;
@@ -1712,6 +1735,19 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
 
     if (!test) throw new Error('Quality test not found');
 
+    // Determine test round: use provided or auto-increment from max existing round
+    let testRound = input.testRound;
+    if (!testRound) {
+      const existingSamples = await db
+        .select({ testRound: tables.ipcTestSamples.testRound })
+        .from(tables.ipcTestSamples)
+        .where(eq(tables.ipcTestSamples.qualityTestId, input.qualityTestId))
+        .orderBy(desc(tables.ipcTestSamples.testRound))
+        .limit(1);
+      const maxRound = existingSamples.length > 0 ? Number(existingSamples[0].testRound) : 0;
+      testRound = maxRound + 1;
+    }
+
     // Calculate pass/fail based on spec limits
     let autoResult = input.result;
     if (input.numericResult != null && test.specMinValue != null && test.specMaxValue != null) {
@@ -1721,7 +1757,15 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
 
     // If samples provided, calculate aggregate result
     if (input.samples && input.samples.length > 0) {
-      // Insert samples
+      // Delete existing samples for this round (in case of re-recording)
+      await db.delete(tables.ipcTestSamples).where(
+        and(
+          eq(tables.ipcTestSamples.qualityTestId, input.qualityTestId),
+          eq(tables.ipcTestSamples.testRound, testRound)
+        )
+      );
+
+      // Insert samples with round number
       for (const sample of input.samples) {
         let sampleResult: string | null = null;
         if (sample.numericValue != null && test.specMinValue != null && test.specMaxValue != null) {
@@ -1731,6 +1775,7 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
         await db.insert(tables.ipcTestSamples).values({
           qualityTestId: input.qualityTestId,
           sampleNumber: sample.sampleNumber,
+          testRound,
           numericValue: sample.numericValue ?? null,
           textValue: sample.textValue ?? null,
           result: sampleResult,
@@ -1752,6 +1797,28 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
       if (numericSamples.length > 0) {
         input.numericResult = numericSamples.reduce((sum, s) => sum + (s.numericValue || 0), 0) / numericSamples.length;
       }
+    } else if (input.numericResult != null) {
+      // Single-value record: also track as a sample for round history
+      await db.delete(tables.ipcTestSamples).where(
+        and(
+          eq(tables.ipcTestSamples.qualityTestId, input.qualityTestId),
+          eq(tables.ipcTestSamples.testRound, testRound)
+        )
+      );
+      let singleResult: string | null = null;
+      if (test.specMinValue != null && test.specMaxValue != null) {
+        singleResult = (input.numericResult >= Number(test.specMinValue) && input.numericResult <= Number(test.specMaxValue))
+          ? 'pass' : 'fail';
+      }
+      await db.insert(tables.ipcTestSamples).values({
+        qualityTestId: input.qualityTestId,
+        sampleNumber: 1,
+        testRound,
+        numericValue: input.numericResult,
+        textValue: null,
+        result: singleResult,
+        createdAt: getNow(),
+      });
     }
 
     // Sanitize numericResult — NaN breaks MySQL
@@ -1773,7 +1840,7 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
         .set(updateData)
         .where(eq(tables.qualityTests.id, input.qualityTestId))
         .returning();
-      return updated;
+      return { ...updated, testRound };
     } else {
       await db
         .update(tables.qualityTests)
@@ -1783,7 +1850,7 @@ export async function recordIPCTestResult(input: RecordIPCTestInput) {
         .select()
         .from(tables.qualityTests)
         .where(eq(tables.qualityTests.id, input.qualityTestId));
-      return updated;
+      return { ...updated, testRound };
     }
   });
 }

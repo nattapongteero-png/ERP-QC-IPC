@@ -107,6 +107,7 @@ export async function POST(
           result: data.result,
           notes: data.notes,
           testedBy: session.userId,
+          testRound: data.testRound,
           samples: data.samples,
         });
 

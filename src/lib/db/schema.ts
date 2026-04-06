@@ -1276,6 +1276,7 @@ export const sqliteIPCTestSamples = sqliteTable('ipc_test_samples', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   qualityTestId: integer('quality_test_id').notNull().references(() => sqliteQualityTests.id),
   sampleNumber: integer('sample_number').notNull(),
+  testRound: integer('test_round').notNull().default(1),
   numericValue: real('numeric_value'),
   textValue: text('text_value'),
   result: text('result'), // pass, fail
@@ -4454,6 +4455,7 @@ export const mysqlIPCTestSamples = mysqlTable('ipc_test_samples', {
   id: int('id').primaryKey().autoincrement(),
   qualityTestId: int('quality_test_id').notNull().references(() => mysqlQualityTests.id),
   sampleNumber: int('sample_number').notNull(),
+  testRound: int('test_round').notNull().default(1),
   numericValue: decimal('numeric_value', { precision: 15, scale: 4 }),
   textValue: mysqlText('text_value'),
   result: varchar('result', { length: 20 }), // pass, fail

@@ -54,15 +54,25 @@ interface IPCTest {
   testedByName: string | null;
   approvedByName: string | null;
   samples: IPCSample[];
+  rounds: IPCRound[];
+  totalRounds: number;
 }
 
 interface IPCSample {
   id: number;
   qualityTestId: number;
   sampleNumber: number;
+  testRound: number;
   numericValue: number | null;
   textValue: string | null;
   result: string | null;
+}
+
+interface IPCRound {
+  round: number;
+  samples: IPCSample[];
+  result: string;
+  avg: number | null;
 }
 
 interface BOMIPCConfig {
@@ -117,6 +127,7 @@ export default function IPCPage() {
   const [numericResult, setNumericResult] = useState<number | undefined>(undefined);
   const [sampleValues, setSampleValues] = useState<(number | undefined)[]>([]);
   const [recordNotes, setRecordNotes] = useState('');
+  const [recordRound, setRecordRound] = useState<number>(1);
   const [expandedTests, setExpandedTests] = useState<Set<number>>(new Set());
 
   // Fetch work order basic info
@@ -176,6 +187,7 @@ export default function IPCPage() {
       qualityTestId: number;
       numericResult?: number;
       notes?: string;
+      testRound?: number;
       samples?: Array<{ sampleNumber: number; numericValue?: number }>;
     }) => {
       const res = await fetch(`/api/production/work-orders/${workOrderId}/ipc`, {
@@ -222,23 +234,34 @@ export default function IPCPage() {
     setNumericResult(undefined);
     setSampleValues([]);
     setRecordNotes('');
+    setRecordRound(1);
     setSelectedTest(null);
   }
 
-  function openInlineRecord(test: IPCTest) {
+  function openInlineRecord(test: IPCTest, round?: number) {
     setSelectedTest(test);
-    setNumericResult(test.numericResult ?? undefined);
-    setRecordNotes(test.notes || '');
+    setRecordNotes('');
+
+    // Determine which round to record
+    const nextRound = round || (test.totalRounds || 0) + 1;
+    setRecordRound(nextRound);
 
     const sampleSize = test.sampleSize || 1;
+
+    // Load existing values for this round (if editing existing round)
+    const roundSamples = test.rounds?.find((r) => r.round === nextRound)?.samples || [];
+
     if (sampleSize > 1) {
-      const existing = test.samples || [];
       const values = Array.from({ length: sampleSize }, (_, i) => {
-        const sample = existing.find((s) => s.sampleNumber === i + 1);
-        return sample?.numericValue ?? undefined;
+        const sample = roundSamples.find((s) => s.sampleNumber === i + 1);
+        return sample?.numericValue != null ? Number(sample.numericValue) : undefined;
       });
       setSampleValues(values);
+      setNumericResult(undefined);
     } else {
+      const existingVal = roundSamples.length > 0 && roundSamples[0].numericValue != null
+        ? Number(roundSamples[0].numericValue) : undefined;
+      setNumericResult(existingVal);
       setSampleValues([]);
     }
   }
@@ -257,6 +280,7 @@ export default function IPCPage() {
       recordMutation.mutate({
         qualityTestId: selectedTest.id,
         notes: recordNotes || undefined,
+        testRound: recordRound,
         samples,
       });
     } else {
@@ -265,6 +289,7 @@ export default function IPCPage() {
         qualityTestId: selectedTest.id,
         numericResult,
         notes: recordNotes || undefined,
+        testRound: recordRound,
       });
     }
   }
@@ -402,11 +427,16 @@ export default function IPCPage() {
                         )}
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-gray-900">
                             {test.testName || `Test #${test.id}`}
                           </span>
                           <StatusBadge status={test.status} />
+                          {test.totalRounds > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              Round {test.totalRounds}
+                            </span>
+                          )}
                           {isApproved && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                               <ShieldCheck className="h-3 w-3" /> {t('execution.approved')}
@@ -455,11 +485,20 @@ export default function IPCPage() {
 
                     {/* Actions */}
                     <div className="flex gap-2">
-                      {!isApproved && (
+                      {!isApproved && !isRecorded && (
                         <DxButton
-                          text={isRecorded ? t('actions.edit') : t('execution.record')}
-                          type={isRecorded ? 'normal' : 'default'}
-                          stylingMode={isRecorded ? 'outlined' : 'contained'}
+                          text={t('execution.record')}
+                          type="default"
+                          stylingMode="contained"
+                          onClick={() => openInlineRecord(test)}
+                          disabled={workOrder?.status === 'completed'}
+                        />
+                      )}
+                      {isRecorded && !isApproved && (
+                        <DxButton
+                          text={`+ Round ${(test.totalRounds || 0) + 1}`}
+                          type="normal"
+                          stylingMode="outlined"
                           onClick={() => openInlineRecord(test)}
                           disabled={workOrder?.status === 'completed'}
                         />
@@ -476,38 +515,62 @@ export default function IPCPage() {
                     </div>
                   </div>
 
-                  {/* Expanded Details */}
+                  {/* Expanded Details — grouped by round */}
                   {isExpanded && (
                     <div className="mt-3 pt-3 border-t">
-                      {/* Sample results table */}
-                      {hasSamples && test.samples.length > 0 && (
-                        <div className="mb-3">
-                          <div className="text-xs font-medium text-gray-600 mb-1">
-                            {t('execution.sampleResults')}
-                          </div>
-                          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
-                            {test.samples.map((sample) => (
-                              <div
-                                key={sample.id}
-                                className={`text-center p-1.5 rounded text-xs ${
-                                  sample.result === 'pass'
-                                    ? 'bg-green-50 text-green-700'
-                                    : sample.result === 'fail'
-                                    ? 'bg-red-50 text-red-700'
-                                    : 'bg-gray-50 text-gray-600'
-                                }`}
-                              >
-                                <div className="font-medium">#{sample.sampleNumber}</div>
-                                <div>{sample.numericValue != null ? Number(sample.numericValue).toFixed(2) : sample.textValue || '-'}</div>
+                      {/* Round-by-round results */}
+                      {test.rounds && test.rounds.length > 0 ? (
+                        <div className="space-y-3">
+                          {test.rounds.map((round) => (
+                            <div key={round.round} className="border rounded-lg p-3 bg-gray-50/50">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-gray-800">
+                                    Round {round.round}
+                                  </span>
+                                  <StatusBadge status={round.result} />
+                                  {round.avg != null && (
+                                    <span className="text-xs text-gray-500">
+                                      Avg: <strong>{round.avg.toFixed(2)}</strong>{test.specUnit ? ` ${test.specUnit}` : ''}
+                                    </span>
+                                  )}
+                                </div>
+                                {!isApproved && (
+                                  <button
+                                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                    onClick={() => openInlineRecord(test, round.round)}
+                                  >
+                                    แก้ไข
+                                  </button>
+                                )}
                               </div>
-                            ))}
-                          </div>
+                              <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
+                                {round.samples.map((sample) => (
+                                  <div
+                                    key={sample.id}
+                                    className={`text-center p-1.5 rounded text-xs ${
+                                      sample.result === 'pass'
+                                        ? 'bg-green-50 text-green-700'
+                                        : sample.result === 'fail'
+                                        ? 'bg-red-50 text-red-700'
+                                        : 'bg-gray-50 text-gray-600'
+                                    }`}
+                                  >
+                                    <div className="font-medium">#{sample.sampleNumber}</div>
+                                    <div>{sample.numericValue != null ? Number(sample.numericValue).toFixed(2) : sample.textValue || '-'}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                         </div>
+                      ) : (
+                        <p className="text-xs text-gray-400">ยังไม่มีผลการทดสอบ</p>
                       )}
 
                       {/* Notes */}
                       {test.notes && (
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-gray-600 mt-2">
                           <span className="font-medium">{t('execution.notes')}:</span> {test.notes}
                         </div>
                       )}
@@ -533,6 +596,18 @@ export default function IPCPage() {
                   {/* Inline Record Form */}
                   {selectedTest?.id === test.id && !isApproved && (
                     <div className="mt-3 pt-3 border-t border-emerald-200 bg-emerald-50/50 rounded-lg p-3 space-y-3">
+                      {/* Round indicator */}
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                          Round {recordRound}
+                        </span>
+                        {recordRound > 1 && (
+                          <span className="text-xs text-gray-500">
+                            (ทดสอบรอบที่ {recordRound})
+                          </span>
+                        )}
+                      </div>
+
                       {/* Spec info */}
                       {(test.specMinValue != null || test.specSpecification) && (
                         <div className="text-xs text-blue-700 bg-blue-50 rounded p-2">
