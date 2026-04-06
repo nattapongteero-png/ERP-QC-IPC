@@ -21,9 +21,18 @@ function generateWONumber(): string {
   return `WO${year}${month}${day}${random}`;
 }
 
+// External API Key — same key used across APIs for IoT/sensor
+const EXTERNAL_API_KEY = process.env.EXTERNAL_ENV_API_KEY || 'env-monitor-2026-secret';
+
+function validateApiKey(request: NextRequest): boolean {
+  const apiKey = request.headers.get('X-API-Key');
+  return !!apiKey && apiKey === EXTERNAL_API_KEY;
+}
+
 // GET /api/production/work-orders - List work orders
+// Supports both session cookie (internal) and X-API-Key (external/IoT)
 export async function GET(request: NextRequest) {
-  return withAuth(request, async () => {
+  const handleGet = async () => {
     try {
       const { searchParams } = new URL(request.url);
       const pagination = getPaginationParams(searchParams);
@@ -95,7 +104,15 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       return serverErrorResponse(error);
     }
-  }, ['production:read']);
+  };
+
+  // API Key auth (external/IoT)
+  if (validateApiKey(request)) {
+    return handleGet();
+  }
+
+  // Session auth (internal)
+  return withAuth(request, handleGet, ['production:read']);
 }
 
 // POST /api/production/work-orders - Create work order
