@@ -7,71 +7,77 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Sarabun', 'Segoe UI', sans-serif; background: #f0f4f8; color: #1e293b; line-height: 1.5; }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Sarabun','Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b;line-height:1.6;font-size:15px;}
 
-    .header {
-      background: linear-gradient(135deg, #065f46 0%, #047857 30%, #059669 60%, #0d9488 100%);
-      color: white; padding: 40px 0 28px; text-align: center; position: relative; overflow: hidden;
-    }
-    .header::before { content:''; position:absolute; top:-50%; right:-20%; width:500px; height:500px; background:rgba(255,255,255,0.04); border-radius:50%; }
-    .header .logo { display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; background:rgba(255,255,255,0.15); border-radius:14px; font-size:26px; margin-bottom:10px; border:1px solid rgba(255,255,255,0.2); }
-    .header h1 { font-size:26px; font-weight:700; }
-    .header .subtitle { font-size:15px; opacity:0.85; }
-    .header .date-badge { display:inline-block; margin-top:12px; padding:5px 18px; background:rgba(255,255,255,0.15); border-radius:20px; font-size:13px; font-weight:500; border:1px solid rgba(255,255,255,0.2); }
+    .header{background:linear-gradient(135deg,#065f46 0%,#047857 30%,#059669 60%,#0d9488 100%);color:white;padding:44px 0 32px;text-align:center;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;top:-50%;right:-20%;width:500px;height:500px;background:rgba(255,255,255,0.04);border-radius:50%;}
+    .header .logo{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:16px;font-size:28px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.2);}
+    .header h1{font-size:28px;font-weight:700;}
+    .header .subtitle{font-size:16px;opacity:0.85;margin-top:4px;}
+    .header .date-badge{display:inline-block;margin-top:14px;padding:6px 20px;background:rgba(255,255,255,0.15);border-radius:22px;font-size:14px;font-weight:500;border:1px solid rgba(255,255,255,0.2);}
 
-    .top-bar { position:sticky; top:0; z-index:100; background:white; border-bottom:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+    .top-bar{position:sticky;top:0;z-index:100;background:white;border-bottom:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
 
-    .stats-row { display:flex; justify-content:center; align-items:center; gap:6px; padding:8px 16px; border-bottom:1px solid #f1f5f9; flex-wrap:wrap; }
-    .stat-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:7px; font-size:12px; font-weight:600; background:#f8fafc; border:1px solid #e2e8f0; }
-    .stat-chip .num { color:#059669; }
-    .stat-chip .lbl { color:#64748b; font-weight:400; font-size:11px; }
-    .stat-chip.hl { background:#ecfdf5; border-color:#a7f3d0; }
+    .stats-row{display:flex;justify-content:center;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;}
+    .stat-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:8px;font-size:14px;font-weight:600;background:#f8fafc;border:1px solid #e2e8f0;}
+    .stat-chip .num{color:#059669;font-size:16px;}
+    .stat-chip .lbl{color:#64748b;font-weight:400;font-size:13px;}
+    .stat-chip.hl{background:#ecfdf5;border-color:#a7f3d0;}
 
-    .btn-export { display:inline-flex; align-items:center; gap:5px; padding:5px 14px; border-radius:7px; font-size:12px; font-weight:600; border:1px solid #059669; background:#059669; color:white; cursor:pointer; transition:all 0.2s; margin-left:6px; }
-    .btn-export:hover { background:#047857; transform:translateY(-1px); box-shadow:0 2px 8px rgba(5,150,105,0.3); }
-    .btn-export svg { width:14px; height:14px; }
+    .btn-export{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:8px;font-size:14px;font-weight:600;border:1px solid #059669;background:#059669;color:white;cursor:pointer;transition:all 0.2s;margin-left:8px;}
+    .btn-export:hover{background:#047857;transform:translateY(-1px);box-shadow:0 2px 8px rgba(5,150,105,0.3);}
+    .btn-export svg{width:16px;height:16px;}
 
-    .nav-row { display:flex; gap:3px; padding:6px 12px; overflow-x:auto; justify-content:center; flex-wrap:wrap; }
-    .nav-pill { display:inline-flex; align-items:center; gap:3px; padding:4px 10px; border-radius:7px; font-size:11px; font-weight:500; text-decoration:none; color:#475569; background:transparent; transition:all 0.2s; white-space:nowrap; border:1px solid transparent; cursor:pointer; }
-    .nav-pill:hover { background:#f1f5f9; }
-    .nav-pill.active { background:#059669; color:white; border-color:#059669; box-shadow:0 1px 4px rgba(5,150,105,0.3); }
-    .nav-pill .cnt { font-size:9px; background:rgba(0,0,0,0.08); padding:1px 5px; border-radius:5px; font-weight:600; }
-    .nav-pill.active .cnt { background:rgba(255,255,255,0.25); }
+    .nav-row{display:flex;gap:4px;padding:8px 16px;overflow-x:auto;justify-content:center;flex-wrap:wrap;}
+    .nav-pill{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;color:#475569;background:transparent;transition:all 0.2s;white-space:nowrap;border:1px solid transparent;cursor:pointer;}
+    .nav-pill:hover{background:#f1f5f9;}
+    .nav-pill.active{background:#059669;color:white;border-color:#059669;box-shadow:0 1px 4px rgba(5,150,105,0.3);}
+    .nav-pill .cnt{font-size:11px;background:rgba(0,0,0,0.08);padding:1px 6px;border-radius:6px;font-weight:700;}
+    .nav-pill.active .cnt{background:rgba(255,255,255,0.25);}
 
-    .container { max-width:1200px; margin:0 auto; padding:0 16px; }
-    .content { padding:20px 0 60px; }
+    .container{max-width:1400px;margin:0 auto;padding:0 16px;}
+    .content{padding:20px 0 60px;}
 
-    .tbl-wrap { background:white; border-radius:12px; border:1px solid #e2e8f0; overflow:hidden; }
-    .tbl-title { padding:14px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; font-size:16px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:10px; }
-    .tbl-title .mod-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
-    .tbl-title .count { margin-left:auto; background:#e2e8f0; color:#475569; font-size:12px; font-weight:700; padding:3px 10px; border-radius:16px; }
+    /* Legend */
+    .legend-box{background:white;border-radius:10px;border:1px solid #e2e8f0;padding:14px 20px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;}
+    .legend-box .legend-title{font-weight:700;color:#475569;font-size:14px;margin-right:8px;}
+    .legend-item{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#475569;}
 
-    table.changelog { width:100%; border-collapse:collapse; font-size:13px; }
-    table.changelog th { background:#f1f5f9; padding:8px 12px; text-align:left; font-weight:600; color:#475569; border-bottom:2px solid #e2e8f0; position:sticky; top:0; white-space:nowrap; }
-    table.changelog td { padding:7px 12px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
-    table.changelog tr:hover td { background:#fafbfc; }
-    table.changelog tr:nth-child(even) td { background:#fafcfe; }
-    table.changelog tr:nth-child(even):hover td { background:#f0f7ff; }
-    table.changelog .no { text-align:center; color:#94a3b8; width:40px; }
-    table.changelog .type-badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; }
-    .t-feat { background:#dcfce7; color:#166534; }
-    .t-fix { background:#fef3c7; color:#92400e; }
-    .t-refac { background:#e0e7ff; color:#3730a3; }
-    .t-docs { background:#f1f5f9; color:#475569; }
-    .t-test { background:#fce7f3; color:#9d174d; }
-    td.prompt-col { font-size:12px; color:#475569; max-width:300px; }
-    td.date-col { white-space:nowrap; color:#64748b; font-size:12px; }
-    td.submenu-col { font-size:12px; color:#0f172a; }
-    td.desc-col { color:#1e293b; }
+    /* Table */
+    .tbl-wrap{background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;}
+    .tbl-title{padding:16px 24px;border-bottom:1px solid #e2e8f0;background:#f8fafc;font-size:18px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:12px;}
+    .tbl-title .count{margin-left:auto;background:#e2e8f0;color:#475569;font-size:13px;font-weight:700;padding:4px 14px;border-radius:18px;}
 
-    .back-to-top { position:fixed; bottom:20px; right:20px; width:40px; height:40px; border-radius:10px; background:#059669; color:white; border:none; cursor:pointer; display:none; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(5,150,105,0.3); z-index:50; font-size:18px; }
-    .back-to-top.visible { display:flex; }
+    table.cl{width:100%;border-collapse:collapse;font-size:14px;}
+    table.cl th{background:#f1f5f9;padding:10px 14px;text-align:left;font-weight:700;color:#374151;border-bottom:2px solid #d1d5db;white-space:nowrap;font-size:14px;}
+    table.cl td{padding:9px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+    table.cl tr:hover td{background:#f0fdf4;}
+    table.cl tr:nth-child(even) td{background:#fafcfe;}
+    table.cl tr:nth-child(even):hover td{background:#ecfdf5;}
+    table.cl .no{text-align:center;color:#94a3b8;width:45px;font-weight:600;}
 
-    .footer { text-align:center; padding:20px 0; color:#94a3b8; font-size:12px; border-top:1px solid #e2e8f0; background:white; }
+    .badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
+    .b-feat{background:#dcfce7;color:#166534;}
+    .b-fix{background:#fef3c7;color:#92400e;}
+    .b-refac{background:#e0e7ff;color:#3730a3;}
+    .b-docs{background:#f1f5f9;color:#475569;}
+    .b-test{background:#fce7f3;color:#9d174d;}
 
-    @media print { .top-bar{position:static;box-shadow:none;} .nav-row,.btn-export,.back-to-top{display:none!important;} table.changelog{font-size:11px;} }
-    @media (max-width:768px) { .header h1{font-size:20px;} table.changelog{font-size:11px;} td.prompt-col{max-width:200px;} .container{padding:0 8px;} }
+    td.mod-col{font-weight:600;color:#0f172a;}
+    td.menu-col{color:#1e293b;}
+    td.sub-col{color:#475569;font-size:13px;}
+    td.desc-col{color:#1e293b;font-size:14px;}
+    td.date-col{white-space:nowrap;color:#64748b;font-size:13px;}
+    td.prompt-col{color:#475569;font-size:13px;max-width:340px;}
+
+    .back-to-top{position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:12px;background:#059669;color:white;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(5,150,105,0.3);z-index:50;font-size:20px;}
+    .back-to-top.visible{display:flex;}
+
+    .footer{text-align:center;padding:24px 0;color:#94a3b8;font-size:13px;border-top:1px solid #e2e8f0;background:white;}
+
+    @media print{.top-bar{position:static;box-shadow:none;}.nav-row,.btn-export,.back-to-top,.legend-box{display:none!important;}table.cl{font-size:11px;}table.cl th{font-size:11px;}}
+    @media(max-width:768px){.header h1{font-size:22px;}table.cl{font-size:12px;}td.prompt-col{max-width:200px;}.container{padding:0 8px;}}
   </style>
 </head>
 <body>
@@ -80,8 +86,8 @@
   <div style="position:relative;z-index:1">
     <div class="logo">&#127807;</div>
     <h1>Herbal Medicine ERP</h1>
-    <p class="subtitle">Change Log Report</p>
-    <div class="date-badge">25 มีนาคม - 6 เมษายน พ.ศ. 2569</div>
+    <p class="subtitle">Change Log Report &mdash; รายงานสรุปการแก้ไข/พัฒนาระบบ</p>
+    <div class="date-badge">25 มีนาคม &mdash; 6 เมษายน พ.ศ. 2569</div>
   </div>
 </div>
 
@@ -101,6 +107,15 @@
 
 <div class="content">
   <div class="container">
+    <!-- Legend -->
+    <div class="legend-box">
+      <span class="legend-title">หมายเหตุประเภท:</span>
+      <span class="legend-item"><span class="badge b-feat">FEATURE</span> พัฒนาฟังก์ชันใหม่</span>
+      <span class="legend-item"><span class="badge b-fix">BUG FIX</span> แก้ไขข้อผิดพลาด/ปัญหา</span>
+      <span class="legend-item"><span class="badge b-refac">REFACTOR</span> ปรับปรุงโครงสร้างโค้ด</span>
+      <span class="legend-item"><span class="badge b-docs">DOCS</span> เอกสาร/Design Spec</span>
+      <span class="legend-item"><span class="badge b-test">TEST</span> เพิ่ม Test Coverage</span>
+    </div>
     <div id="tableArea"></div>
   </div>
 </div>
@@ -108,275 +123,171 @@
 <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</button>
 
 <div class="footer">
-  <p>Herbal Medicine ERP &mdash; Changelog | Branch: 015-i18n | 157 commits | 15 modules</p>
-  <p style="margin-top:3px;font-size:11px;">Generated on 6 April 2569</p>
+  <p>Herbal Medicine ERP &mdash; Changelog | Branch: 015-i18n | 157 commits</p>
+  <p style="margin-top:4px;font-size:12px;">Generated on 6 April 2569</p>
 </div>
 
 <script>
-// NOTE: All data is hardcoded static content from git log - no user input, safe for DOM rendering.
-var DATA = [
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'WO List',type:'feat',desc:'เพิ่มปุ่ม Edit/Delete สำหรับ Work Order สถานะ draft/planned',date:'25 มี.ค.',prompt:'ต้องการให้ Work Order ที่อยู่ในสถานะ draft หรือ planned สามารถแก้ไขและลบได้จากหน้ารายการ'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'WO Create/Edit',type:'feat',desc:'เพิ่มฟิลด์ Delivery Date ใน WO create + edit dialog',date:'26 มี.ค.',prompt:'เพิ่มช่องกำหนดวันส่งมอบ (Delivery Date) ให้สามารถระบุได้ตั้งแต่สร้างและแก้ไข Work Order'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'WO Create/Edit',type:'fix',desc:'ปิดฟิลด์ Delivery Date จนกว่าจะกำหนด Planned Start/End',date:'28 มี.ค.',prompt:'ฟิลด์ Delivery Date ควร disable จนกว่าจะกรอก Planned Start/End Date ก่อน เพื่อป้องกันข้อมูลไม่สมบูรณ์'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'WO Detail/eBMR',type:'feat',desc:'แสดง TTMT Code, รหัสยา 24 หลัก, เลขทะเบียน G บน WO detail',date:'1 เม.ย.',prompt:'แสดงข้อมูลทะเบียนยา (TTMT Code, Drug Code 24, เลข G) บนหน้ารายละเอียด Work Order และ eBMR'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'Production Output',type:'feat',desc:'Production Output / Yield Recording page (บันทึกผลผลิต)',date:'27 มี.ค.',prompt:'สร้างหน้าจอบันทึกผลผลิต สำหรับบันทึก Actual Quantity, Reject Quantity และ Yield %'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'Production Output',type:'fix',desc:'Manual Actual Qty input + Auto-calculate Reject Qty',date:'6 เม.ย.',prompt:'ให้ระบุ Actual Quantity เอง เมื่อระบุแล้วให้คำนวณ Reject Quantity อัตโนมัติ'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'WO Detail',type:'refac',desc:'Embed Execution Dashboard inline ใน WO detail tab',date:'6 เม.ย.',prompt:'เมื่อคลิก Tab Execution ให้แสดงข้อมูลเหมือนกับการกดปุ่ม OPEN EXECUTION DASHBOARD โดยไม่ต้องกดเข้าไป'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'WO Detail',type:'fix',desc:'ปุ่ม Back to Work Orders นำทางไปผิดหน้า',date:'27 มี.ค.',prompt:'ปุ่ม Back to Work Orders นำทางไปหน้า WO detail แทนที่จะกลับไปหน้ารายการ'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'Material Requisition',type:'feat',desc:'Material Requisition Gate - request/approve workflow ก่อนชั่งวัตถุดิบ',date:'2 เม.ย.',prompt:'เพิ่มระบบใบเบิกวัตถุดิบ ต้องขอเบิกและได้รับอนุมัติก่อนจึงจะสามารถชั่งวัตถุดิบได้'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'WO List',type:'fix',desc:'Work Orders table - 20 rows/page, page size selector, Thai summary',date:'6 เม.ย.',prompt:'กำหนดตาราง Work Orders แสดง 20 รายการต่อหน้า มีตัวเลือก 10/20/50/100 และสรุปจำนวนเป็นภาษาไทย'},
-  {mod:'Production - Work Orders',icon:'&#128220;',iconBg:'#dbeafe',iconC:'#2563eb',sub:'WO List',type:'fix',desc:'Chart Legend ถูกตัดขาด - เปลี่ยนเป็น Custom flex-wrap Legend',date:'6 เม.ย.',prompt:'หัวข้อ By Status แสดงข้อความไม่ครบ พื้นสีขาวบังข้อความ แก้ไขให้ Legend ไม่ถูกตัด'},
-
-  {mod:'Production - BOM/Recipes',icon:'&#128209;',iconBg:'#e0e7ff',iconC:'#4f46e5',sub:'BOM Config Panel',type:'feat',desc:'BOM Config Reference Panel + integrate ใน Execution pages',date:'25 มี.ค.',prompt:'สร้าง component แสดง BOM config อ้างอิงในหน้า Execution เพื่อให้ operator ดูสูตรได้ขณะปฏิบัติงาน'},
-  {mod:'Production - BOM/Recipes',icon:'&#128209;',iconBg:'#e0e7ff',iconC:'#4f46e5',sub:'SOP Steps',type:'feat',desc:'Integrate BOM SOP step config inline ใน execution step cards',date:'25 มี.ค.',prompt:'แสดงข้อมูล BOM SOP step inline ในแต่ละ step card ของหน้า Execution'},
-  {mod:'Production - BOM/Recipes',icon:'&#128209;',iconBg:'#e0e7ff',iconC:'#4f46e5',sub:'Cleaning',type:'feat',desc:'Map BOM room/equipment config ไป Cleaning execution checklist',date:'25 มี.ค.',prompt:'ดึงข้อมูลห้องผลิตและอุปกรณ์จาก BOM มาสร้าง checklist ทำความสะอาดอัตโนมัติ'},
-  {mod:'Production - BOM/Recipes',icon:'&#128209;',iconBg:'#e0e7ff',iconC:'#4f46e5',sub:'Unit Conversion',type:'feat',desc:'BOM unit dropdown + unit conversion on Verify',date:'27 มี.ค.',prompt:'เพิ่ม dropdown เลือกหน่วยใน BOM พร้อมแปลงหน่วยอัตโนมัติเมื่อ Verify'},
-  {mod:'Production - BOM/Recipes',icon:'&#128209;',iconBg:'#e0e7ff',iconC:'#4f46e5',sub:'BOM Create',type:'feat',desc:'Multi-select material picker สำหรับ BOM creation',date:'27 มี.ค.',prompt:'เพิ่มฟังก์ชัน multi-select เลือกวัตถุดิบหลายรายการพร้อมกันตอนสร้าง BOM'},
-  {mod:'Production - BOM/Recipes',icon:'&#128209;',iconBg:'#e0e7ff',iconC:'#4f46e5',sub:'BOM List',type:'feat',desc:'Edit/Delete buttons สำหรับ draft BOMs',date:'2 เม.ย.',prompt:'เพิ่มปุ่ม Edit และ Delete สำหรับ BOM ที่อยู่ในสถานะ draft'},
-  {mod:'Production - BOM/Recipes',icon:'&#128209;',iconBg:'#e0e7ff',iconC:'#4f46e5',sub:'BOM Config',type:'fix',desc:'Restore full BOM Configuration page with all sections + IPC tab',date:'2 เม.ย.',prompt:'หน้า BOM Configuration แสดงไม่ครบทุก section กู้คืนให้แสดงทุก tab รวมถึง IPC'},
-
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'Finished Inspection',type:'feat',desc:'Inline checklist UI สำหรับ Finished Product Inspection',date:'26 มี.ค.',prompt:'สร้าง UI checklist แบบ inline สำหรับตรวจสอบสินค้าสำเร็จรูป'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'SOP Execution',type:'feat',desc:'SOP Execution: แสดง sub-steps + confirmation checkboxes',date:'1-2 เม.ย.',prompt:'แสดงขั้นตอนย่อยของ SOP พร้อม checkbox ยืนยันการทำแต่ละขั้นตอน'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'SOP Execution',type:'fix',desc:'ต้อง Verify ก่อนถึงจะกด Step ถัดไปได้ + Complete กดแค่ 1 ครั้ง',date:'6 เม.ย.',prompt:'แก้ไข SOP ให้เพิ่มเงื่อนไข กรณีที่ยังไม่ Verify ต้องกด Step ถัดไปไม่ได้ และ Complete ต้องกดแค่ 1 ครั้ง'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'IPC',type:'feat',desc:'In-Process Control (IPC) recording - inline form + dynamic status',date:'1-2 เม.ย.',prompt:'สร้างหน้าจอบันทึกผล IPC แบบ inline form พร้อมสถานะ pass/fail อัตโนมัติ'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'IPC',type:'feat',desc:'เพิ่มรอบการทดสอบ IPC (Test Rounds) + ปุ่ม Approve แยกแต่ละรอบ',date:'6 เม.ย.',prompt:'แก้ไข IPC ให้เพิ่มรอบการทดสอบได้กี่ครั้งก็ได้ พร้อมปุ่ม Approve แยกของแต่ละรอบ'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'IPC Criteria',type:'feat',desc:'IPC Criteria master data + BOM IPC configuration',date:'2 เม.ย.',prompt:'สร้าง master data สำหรับเกณฑ์ IPC และเชื่อมโยงเข้ากับ BOM configuration'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'Material Weighing',type:'feat',desc:'Material weighing: bilingual name, lot SelectBox, unit conversion',date:'26-27 มี.ค.',prompt:'ปรับปรุงหน้าชั่งวัตถุดิบ แสดงชื่อ 2 ภาษา เลือก Lot จาก dropdown และแปลงหน่วยอัตโนมัติ'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'Packaging Weight',type:'feat',desc:'Packaging weight control: Edit + Delete functions',date:'25 มี.ค.',prompt:'เพิ่มปุ่ม Edit และ Delete สำหรับบันทึกน้ำหนักบรรจุภัณฑ์'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'Material Weighing',type:'feat',desc:'Block material weighing จนกว่า requisition จะ approved',date:'2 เม.ย.',prompt:'ป้องกันไม่ให้ชั่งวัตถุดิบจนกว่าใบเบิกจะได้รับการอนุมัติแล้ว'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'All Pages',type:'feat',desc:'แสดงชื่อ operator/verifier ทุกหน้า Execution',date:'1-2 เม.ย.',prompt:'แสดงชื่อผู้ปฏิบัติงานและผู้ตรวจสอบจริงแทนรหัส User ID ในทุกหน้า Execution'},
-  {mod:'Production - Execution',icon:'&#9881;',iconBg:'#ccfbf1',iconC:'#0d9488',sub:'Environmental',type:'feat',desc:'API Key auth สำหรับ external sensor environmental monitoring',date:'2 เม.ย.',prompt:'เพิ่มระบบ API Key authentication สำหรับ sensor ภายนอกส่งข้อมูลอุณหภูมิเข้าระบบ'},
-
-  {mod:'Production - eBMR',icon:'&#128196;',iconBg:'#fef3c7',iconC:'#d97706',sub:'eBMR Tab',type:'feat',desc:'เพิ่มข้อมูล execution (SOP, Cleaning, Environmental, Weighing, IPC) ใน eBMR',date:'2 เม.ย.',prompt:'eBMR tab ยังไม่แสดงข้อมูล execution ที่บันทึกไว้ เพิ่มทุก section ให้ครบถ้วน'},
-  {mod:'Production - eBMR',icon:'&#128196;',iconBg:'#fef3c7',iconC:'#d97706',sub:'Print eBMR',type:'feat',desc:'Professional print layout: ซ่อน sidebar/nav, company header/footer',date:'6 เม.ย.',prompt:'เมื่อคลิก Print eBMR หน้า Print Preview ยังไม่เป็นระเบียบ มี UI เว็บติดเข้าไป'},
-  {mod:'Production - eBMR',icon:'&#128196;',iconBg:'#fef3c7',iconC:'#d97706',sub:'Print eBMR',type:'fix',desc:'Page break control: ป้องกัน Card ถูกตัดกลางหน้า',date:'6 เม.ย.',prompt:'เวลาสั่งพิมพ์ เนื้อหา Card ถูกตัดแบ่งหน้ากระดาษในตำแหน่งที่ไม่เหมาะสม'},
-  {mod:'Production - eBMR',icon:'&#128196;',iconBg:'#fef3c7',iconC:'#d97706',sub:'Print eBMR',type:'fix',desc:'แก้รหัสยา 24 หลักทับเลขทะเบียน G + Material Consumption อ่านยาก',date:'6 เม.ย.',prompt:'เมื่อกดพิมพ์ ข้อมูลช่องรหัส 24 หลักทับกับช่องเลขทะเบียน G และตาราง Material Consumption อ่านไม่รู้เรื่อง'},
-  {mod:'Production - eBMR',icon:'&#128196;',iconBg:'#fef3c7',iconC:'#d97706',sub:'Batch Records',type:'fix',desc:'Batch Records page อ่านจาก wo_* execution tables',date:'2 เม.ย.',prompt:'หน้า Batch Records ไม่แสดงข้อมูลเพราะ query จากตาราง batch_records ที่ว่าง'},
-
-  {mod:'Inventory',icon:'&#128230;',iconBg:'#fce7f3',iconC:'#db2777',sub:'Lot API',type:'feat',desc:'getAvailableLots() API สำหรับ lot selection',date:'26 มี.ค.',prompt:'สร้าง API ดึงรายการ Lot ที่มี stock คงเหลือสำหรับ dropdown เลือก lot'},
-  {mod:'Inventory',icon:'&#128230;',iconBg:'#fce7f3',iconC:'#db2777',sub:'Lots Page',type:'feat',desc:'Material requisition tab ใน Inventory Lots page',date:'2 เม.ย.',prompt:'เพิ่ม Tab ใบเบิกวัตถุดิบในหน้า Inventory Lots สำหรับดูและอนุมัติใบเบิก'},
-  {mod:'Inventory',icon:'&#128230;',iconBg:'#fce7f3',iconC:'#db2777',sub:'Lots Page',type:'feat',desc:'แสดงจำนวนคงเหลือในคลังในใบเบิกวัตถุดิบ พร้อมหน่วยนับ',date:'6 เม.ย.',prompt:'ใบเบิกวัตถุดิบ LOT ขอเพิ่มให้แสดงจำนวนที่เหลือด้วย พร้อมแสดงหน่วยนับ'},
-  {mod:'Inventory',icon:'&#128230;',iconBg:'#fce7f3',iconC:'#db2777',sub:'On-hand Sync',type:'fix',desc:'Sync items.on_hand หลัง material issuance',date:'26 มี.ค.',prompt:'หลังจากตัด stock วัตถุดิบ ค่า on_hand ไม่ update ตาม ต้อง sync ใหม่'},
-  {mod:'Inventory',icon:'&#128230;',iconBg:'#fce7f3',iconC:'#db2777',sub:'Lots Page',type:'fix',desc:'ขยาย Warehouse column + 20 rows/page',date:'6 เม.ย.',prompt:'หน้า Inventory Lots ช่อง warehouse ข้อความตกบรรทัด และให้แสดง 20 record ต่อหน้า'},
-
-  {mod:'Quality Control',icon:'&#128300;',iconBg:'#ede9fe',iconC:'#7c3aed',sub:'Lot Detail',type:'feat',desc:'Enhanced QC Tests display บน lot detail page',date:'1 เม.ย.',prompt:'ปรับปรุงการแสดงผล QC Tests ในหน้ารายละเอียด Lot ให้ดูง่ายขึ้น'},
-  {mod:'Quality Control',icon:'&#128300;',iconBg:'#ede9fe',iconC:'#7c3aed',sub:'Spec Snapshot',type:'fix',desc:'Snapshot spec values ตอนบันทึกผล QC',date:'27 มี.ค.',prompt:'เมื่อแก้ไข spec ย้อนหลัง ผลทดสอบเก่าถูกคำนวณใหม่ ต้อง snapshot ค่า spec ณ เวลาบันทึก'},
-
-  {mod:'GMP Compliance',icon:'&#9989;',iconBg:'#dcfce7',iconC:'#16a34a',sub:'Document-Training',type:'feat',desc:'Document-Training integration: reverse mapping + re-training alerts',date:'27 มี.ค.',prompt:'เชื่อมโยงเอกสาร GMP กับหลักสูตรอบรม แจ้งเตือนเมื่อต้อง re-training'},
-  {mod:'GMP Compliance',icon:'&#9989;',iconBg:'#dcfce7',iconC:'#16a34a',sub:'Document Detail',type:'feat',desc:'Attachments section ใน GMP Document detail',date:'27 มี.ค.',prompt:'เพิ่มส่วนแนบไฟล์ (Attachments) ในหน้ารายละเอียดเอกสาร GMP'},
-  {mod:'GMP Compliance',icon:'&#9989;',iconBg:'#dcfce7',iconC:'#16a34a',sub:'Document Download',type:'fix',desc:'Enable document download สำหรับ BLOB-stored files',date:'27 มี.ค.',prompt:'ไม่สามารถดาวน์โหลดเอกสารที่เก็บเป็น BLOB ได้'},
-  {mod:'GMP Compliance',icon:'&#9989;',iconBg:'#dcfce7',iconC:'#16a34a',sub:'CAPA',type:'fix',desc:'แก้ crash ปุ่ม CAPA Add Action + validation ก่อนปิด CAPA',date:'27 มี.ค.',prompt:'กดปุ่ม Add Action ใน CAPA แล้วระบบ crash และไม่มี validation ก่อนปิด CAPA'},
-
-  {mod:'Accounting',icon:'&#128176;',iconBg:'#fff7ed',iconC:'#ea580c',sub:'Account Types',type:'feat',desc:'Account Types summary page: KPI cards + detail table',date:'6 เม.ย.',prompt:'ช่วยตรวจสอบว่าระบบมีหน้าจอดูข้อมูลสรุปประเภทบัญชีหรือยัง ถ้ายังไม่มีให้สร้าง'},
-  {mod:'Accounting',icon:'&#128176;',iconBg:'#fff7ed',iconC:'#ea580c',sub:'AP Invoice',type:'feat',desc:'Custom VAT rate selection (0%/7% + manual) ใน AP Invoice',date:'26 มี.ค.',prompt:'เพิ่มตัวเลือกอัตราภาษี VAT ใน AP Invoice ให้เลือก 0%, 7% หรือกรอกเอง'},
-  {mod:'Accounting',icon:'&#128176;',iconBg:'#fff7ed',iconC:'#ea580c',sub:'AR Invoice',type:'feat',desc:'Custom VAT rate selection ใน AR Invoice',date:'27 มี.ค.',prompt:'เพิ่มตัวเลือกอัตราภาษี VAT ใน AR Invoice เหมือนกับ AP Invoice'},
-  {mod:'Accounting',icon:'&#128176;',iconBg:'#fff7ed',iconC:'#ea580c',sub:'AP Invoice',type:'fix',desc:'AP vendor dropdown ว่างเปล่า',date:'26 มี.ค.',prompt:'dropdown เลือก vendor ในฟอร์ม AP Invoice ว่างเปล่า ไม่แสดงรายชื่อ'},
-  {mod:'Accounting',icon:'&#128176;',iconBg:'#fff7ed',iconC:'#ea580c',sub:'Dashboard',type:'fix',desc:'AP/AR aging links 404',date:'6 เม.ย.',prompt:'เมื่อคลิก card อายุเจ้าหนี้/ลูกหนี้ พบ Error 404'},
-  {mod:'Accounting',icon:'&#128176;',iconBg:'#fff7ed',iconC:'#ea580c',sub:'Chart of Accounts',type:'fix',desc:'ปุ่ม Save ไม่ทำงาน',date:'26 มี.ค.',prompt:'กดปุ่ม Save ในฟอร์ม Chart of Accounts แล้วไม่มีอะไรเกิดขึ้น'},
-
-  {mod:'Cost Management',icon:'&#128178;',iconBg:'#fef9c3',iconC:'#ca8a04',sub:'Work Centers',type:'fix',desc:'Work Center name field คืน null (alias collision)',date:'27 มี.ค.',prompt:'ชื่อ Work Center แสดงเป็น null เพราะ column name ชนกับ alias ใน SQL query'},
-  {mod:'Cost Management',icon:'&#128178;',iconBg:'#fef9c3',iconC:'#ca8a04',sub:'Landed Costs',type:'fix',desc:'Format invoiceDate เป็น YYYY-MM-DD',date:'27 มี.ค.',prompt:'invoiceDate ส่งไป API ในรูปแบบที่ MySQL ไม่รองรับ'},
-  {mod:'Cost Management',icon:'&#128178;',iconBg:'#fef9c3',iconC:'#ca8a04',sub:'Dashboard',type:'fix',desc:'Cost summary คำนวณจาก inventory_lots',date:'2 เม.ย.',prompt:'หน้า Cost Dashboard แสดงตัวเลขไม่ถูกต้อง ต้องคำนวณจาก inventory_lots'},
-
-  {mod:'HR / Admin',icon:'&#128101;',iconBg:'#e0f2fe',iconC:'#0284c7',sub:'Permissions',type:'feat',desc:'Admin role bypasses all permission checks',date:'2 เม.ย.',prompt:'ให้ admin role เข้าถึงทุกฟังก์ชันโดยไม่ต้องตรวจสอบ permission'},
-  {mod:'HR / Admin',icon:'&#128101;',iconBg:'#e0f2fe',iconC:'#0284c7',sub:'Settings',type:'feat',desc:'Company settings: real database persistence',date:'26 มี.ค.',prompt:'หน้า Company Settings บันทึกข้อมูลแล้วหายเมื่อ refresh ต้องบันทึกลง database จริง'},
-  {mod:'HR / Admin',icon:'&#128101;',iconBg:'#e0f2fe',iconC:'#0284c7',sub:'Organization',type:'fix',desc:'Organization Chart: infinite redirect loop',date:'26 มี.ค.',prompt:'เปิดหน้า Organization Chart แล้ว browser วนลูป redirect ไม่หยุด'},
-  {mod:'HR / Admin',icon:'&#128101;',iconBg:'#e0f2fe',iconC:'#0284c7',sub:'Roles',type:'fix',desc:'Role edit: infinite re-render + double MainLayout crash',date:'26 มี.ค.',prompt:'แก้ไข Role แล้ว component render วนลูปไม่หยุด และ MainLayout ซ้อนกัน 2 ชั้น'},
-  {mod:'HR / Admin',icon:'&#128101;',iconBg:'#e0f2fe',iconC:'#0284c7',sub:'Audit Trail',type:'fix',desc:'Audit trail: safe JSON parsing, user names',date:'26 มี.ค.',prompt:'Audit trail popup แสดงผิดพลาด JSON parse error และไม่แสดงชื่อ user'},
-  {mod:'HR / Admin',icon:'&#128101;',iconBg:'#e0f2fe',iconC:'#0284c7',sub:'Date Handling',type:'fix',desc:'Date shifting back 1 day (UTC timezone)',date:'26 มี.ค.',prompt:'วันที่ในระบบถูกเลื่อนย้อนหลัง 1 วันเพราะแปลง timezone ไม่ถูกต้อง'},
-
-  {mod:'Master Data',icon:'&#128218;',iconBg:'#fdf2f8',iconC:'#c026d3',sub:'Items',type:'feat',desc:'เพิ่ม G registration number field ใน item form',date:'1 เม.ย.',prompt:'เพิ่มช่องเลขทะเบียน G ในฟอร์มสินค้า เพื่อแสดงบน WO และ eBMR'},
-  {mod:'Master Data',icon:'&#128218;',iconBg:'#fdf2f8',iconC:'#c026d3',sub:'SOP Templates',type:'feat',desc:'SOP templates: procedure steps + sub-steps + 17 categories',date:'1 เม.ย.',prompt:'เพิ่มขั้นตอนย่อย (sub-steps) ใน SOP template และขยาย category เป็น 17 หมวดตาม GMP'},
-  {mod:'Master Data',icon:'&#128218;',iconBg:'#fdf2f8',iconC:'#c026d3',sub:'All Edit Forms',type:'fix',desc:'Master data edit forms ไม่โหลดข้อมูล (DevExtreme TextBox bug)',date:'1 เม.ย.',prompt:'ฟอร์มแก้ไข Master Data เปิดขึ้นมาแล้วช่อง input ว่างเปล่า ไม่แสดงข้อมูลเดิม'},
-  {mod:'Master Data',icon:'&#128218;',iconBg:'#fdf2f8',iconC:'#c026d3',sub:'All Tables',type:'fix',desc:'ตาราง Master Data แสดง 20 rows/page, auto height',date:'6 เม.ย.',prompt:'ตาราง Master Data ทุกหัวข้อให้แสดง 20 รายการต่อหน้า และไม่มี scrollbar ภายในตาราง'},
-  {mod:'Master Data',icon:'&#128218;',iconBg:'#fdf2f8',iconC:'#c026d3',sub:'Dashboard',type:'fix',desc:'เพิ่ม IPC Criteria ใน About Master Data section',date:'6 เม.ย.',prompt:'หน้า Master Data หัวข้อ About ไม่มี IPC Criteria แสดงอยู่'},
-
-  {mod:'VMI Portal',icon:'&#128666;',iconBg:'#ecfdf5',iconC:'#059669',sub:'Standard Codes',type:'feat',desc:'เพิ่มฟิลด์ รหัสยา 24 หลัก ใน VMI Standard Codes',date:'1 เม.ย.',prompt:'เพิ่มช่องรหัสยา 24 หลักใน VMI Standard Codes เพื่อเชื่อมกับระบบ TTMT'},
-
-  {mod:'UI / UX',icon:'&#127912;',iconBg:'#f5f3ff',iconC:'#7c3aed',sub:'Item Search',type:'feat',desc:'Quick-create item button ใน ItemSearchDialog',date:'27 มี.ค.',prompt:'เพิ่มปุ่มสร้างสินค้าใหม่ในหน้าต่าง ItemSearch เผื่อกรณียังไม่มีสินค้าในระบบ'},
-  {mod:'UI / UX',icon:'&#127912;',iconBg:'#f5f3ff',iconC:'#7c3aed',sub:'Edit Item Footer',type:'fix',desc:'Edit Item footer: sticky/fixed/flex layout + modern UI',date:'1-6 เม.ย.',prompt:'ส่วน Footer ของหน้า Edit Item มีดีไซน์ที่ไม่สวยงาม และปุ่มกดไม่ได้ ต้องแก้ไขหลายรอบ'},
-  {mod:'UI / UX',icon:'&#127912;',iconBg:'#f5f3ff',iconC:'#7c3aed',sub:'Dropdowns',type:'fix',desc:'Render dropdown popups ที่ document.body แก้ Chrome positioning',date:'27 มี.ค.',prompt:'Dropdown popup ใน Chrome แสดงตำแหน่งผิด ต้อง render ที่ document.body'},
-
-  {mod:'Documentation',icon:'&#128214;',iconBg:'#f0f9ff',iconC:'#0369a1',sub:'System Flow',type:'docs',desc:'System flow HTML: 17 modules, 79 pages, 44 APIs',date:'6 เม.ย.',prompt:'ระบบกวนทำ system flow ของระบบออกมาในรูปแบบ HTML ครอบคลุมทุก module'},
-  {mod:'Documentation',icon:'&#128214;',iconBg:'#f0f9ff',iconC:'#0369a1',sub:'Design Specs',type:'docs',desc:'Design specs + plans: BOM config, Weighing, Requisition',date:'25-27 มี.ค.',prompt:'เขียน design spec และ implementation plan สำหรับ BOM config, Material weighing และ Requisition gate'},
-  {mod:'Documentation',icon:'&#128214;',iconBg:'#f0f9ff',iconC:'#0369a1',sub:'Changelog',type:'docs',desc:'Changelog HTML report พร้อม Export Excel',date:'6 เม.ย.',prompt:'สรุปการแก้ไขโปรแกรมแยกตาม Module ทำเป็น HTML พร้อม Export Excel และแสดง Prompt ที่แก้ไข'},
+var DATA=[
+  // Production > Work Orders
+  {module:'Production',menu:'Work Orders',sub:'WO List',type:'feat',desc:'เพิ่มปุ่ม Edit/Delete สำหรับ Work Order สถานะ draft/planned',date:'25 มี.ค. 69',prompt:'ต้องการให้ Work Order ที่อยู่ในสถานะ draft หรือ planned สามารถแก้ไขและลบได้จากหน้ารายการ'},
+  {module:'Production',menu:'Work Orders',sub:'WO Create/Edit',type:'feat',desc:'เพิ่มฟิลด์ Delivery Date ใน WO create + edit dialog',date:'26 มี.ค. 69',prompt:'เพิ่มช่องกำหนดวันส่งมอบ (Delivery Date) ให้สามารถระบุได้ตั้งแต่สร้างและแก้ไข Work Order'},
+  {module:'Production',menu:'Work Orders',sub:'WO Create/Edit',type:'fix',desc:'ปิดฟิลด์ Delivery Date จนกว่าจะกำหนด Planned Start/End',date:'28 มี.ค. 69',prompt:'ฟิลด์ Delivery Date ควร disable จนกว่าจะกรอก Planned Start/End Date ก่อน'},
+  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'feat',desc:'แสดง TTMT Code, รหัสยา 24 หลัก, เลขทะเบียน G บน WO detail',date:'1 เม.ย. 69',prompt:'แสดงข้อมูลทะเบียนยาบนหน้ารายละเอียด Work Order และ eBMR'},
+  {module:'Production',menu:'Work Orders',sub:'Production Output',type:'feat',desc:'สร้างหน้าจอ Production Output / Yield Recording (บันทึกผลผลิต)',date:'27 มี.ค. 69',prompt:'สร้างหน้าจอบันทึกผลผลิต สำหรับบันทึก Actual Quantity, Reject Quantity และ Yield %'},
+  {module:'Production',menu:'Work Orders',sub:'Production Output',type:'fix',desc:'Manual Actual Qty input + Auto-calculate Reject Qty',date:'6 เม.ย. 69',prompt:'ให้ระบุ Actual Quantity เอง เมื่อระบุแล้วให้คำนวณ Reject Quantity อัตโนมัติ'},
+  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'refac',desc:'Embed Execution Dashboard inline ใน WO detail tab (ลด code ซ้ำ ~500 บรรทัด)',date:'6 เม.ย. 69',prompt:'เมื่อคลิก Tab Execution ให้แสดงข้อมูลทันทีโดยไม่ต้องกดปุ่ม OPEN EXECUTION DASHBOARD'},
+  {module:'Production',menu:'Work Orders',sub:'WO Detail',type:'fix',desc:'ปุ่ม Back to Work Orders นำทางไปผิดหน้า',date:'27 มี.ค. 69',prompt:'ปุ่ม Back to Work Orders นำทางไปหน้า WO detail แทนที่จะกลับไปหน้ารายการ'},
+  {module:'Production',menu:'Work Orders',sub:'Material Requisition',type:'feat',desc:'Material Requisition Gate — request/approve workflow ก่อนชั่งวัตถุดิบ',date:'2 เม.ย. 69',prompt:'เพิ่มระบบใบเบิกวัตถุดิบ ต้องขอเบิกและได้รับอนุมัติก่อนจึงจะชั่งวัตถุดิบได้'},
+  {module:'Production',menu:'Work Orders',sub:'WO List',type:'fix',desc:'ตาราง Work Orders แสดง 20 rows/page + page size selector + Thai summary',date:'6 เม.ย. 69',prompt:'กำหนดตาราง Work Orders แสดง 20 รายการต่อหน้า มีตัวเลือก 10/20/50/100 และสรุปจำนวนภาษาไทย'},
+  {module:'Production',menu:'Work Orders',sub:'WO List',type:'fix',desc:'Chart Legend (By Status) ถูกตัดขาด — เปลี่ยนเป็น Custom flex-wrap Legend',date:'6 เม.ย. 69',prompt:'หัวข้อ By Status แสดงข้อความไม่ครบ พื้นสีขาวบังข้อความ แก้ไขให้ Legend ไม่ถูกตัด'},
+  // Production > BOM/Recipes
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Config Panel',type:'feat',desc:'BOM Config Reference Panel + integrate ใน Execution pages ทุกหน้า',date:'25 มี.ค. 69',prompt:'สร้าง component แสดง BOM config อ้างอิงในหน้า Execution เพื่อให้ operator ดูสูตรได้ขณะปฏิบัติงาน'},
+  {module:'Production',menu:'BOM/Recipes',sub:'SOP Steps',type:'feat',desc:'Integrate BOM SOP step config inline ใน execution step cards',date:'25 มี.ค. 69',prompt:'แสดงข้อมูล BOM SOP step inline ในแต่ละ step card ของหน้า Execution'},
+  {module:'Production',menu:'BOM/Recipes',sub:'Cleaning Config',type:'feat',desc:'Map BOM room/equipment config ไป Cleaning execution checklist',date:'25 มี.ค. 69',prompt:'ดึงข้อมูลห้องผลิตและอุปกรณ์จาก BOM มาสร้าง checklist ทำความสะอาดอัตโนมัติ'},
+  {module:'Production',menu:'BOM/Recipes',sub:'Unit Conversion',type:'feat',desc:'BOM unit dropdown + unit conversion on Verify',date:'27 มี.ค. 69',prompt:'เพิ่ม dropdown เลือกหน่วยใน BOM พร้อมแปลงหน่วยอัตโนมัติเมื่อ Verify'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Create',type:'feat',desc:'Multi-select material picker สำหรับ BOM creation',date:'27 มี.ค. 69',prompt:'เพิ่มฟังก์ชัน multi-select เลือกวัตถุดิบหลายรายการพร้อมกันตอนสร้าง BOM'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM List',type:'feat',desc:'Edit/Delete buttons สำหรับ draft BOMs',date:'2 เม.ย. 69',prompt:'เพิ่มปุ่ม Edit และ Delete สำหรับ BOM ที่อยู่ในสถานะ draft'},
+  {module:'Production',menu:'BOM/Recipes',sub:'BOM Config Page',type:'fix',desc:'Restore full BOM Configuration page with all sections + IPC tab',date:'2 เม.ย. 69',prompt:'หน้า BOM Configuration แสดงไม่ครบทุก section กู้คืนให้แสดงทุก tab รวมถึง IPC'},
+  // Production > Execution
+  {module:'Production',menu:'Execution',sub:'Finished Inspection',type:'feat',desc:'Inline checklist UI สำหรับ Finished Product Inspection',date:'26 มี.ค. 69',prompt:'สร้าง UI checklist แบบ inline สำหรับตรวจสอบสินค้าสำเร็จรูป'},
+  {module:'Production',menu:'Execution',sub:'SOP Execution',type:'feat',desc:'SOP Execution: แสดง sub-steps + confirmation checkboxes',date:'1-2 เม.ย. 69',prompt:'แสดงขั้นตอนย่อยของ SOP พร้อม checkbox ยืนยันการทำแต่ละขั้นตอน'},
+  {module:'Production',menu:'Execution',sub:'SOP Execution',type:'fix',desc:'ต้อง Verify ก่อนถึงจะกด Step ถัดไปได้ + Complete กดแค่ 1 ครั้ง',date:'6 เม.ย. 69',prompt:'แก้ไข SOP ให้กรณีที่ยังไม่ Verify ต้องกด Step ถัดไปไม่ได้ และ Complete กดแค่ 1 ครั้ง'},
+  {module:'Production',menu:'Execution',sub:'IPC',type:'feat',desc:'In-Process Control (IPC) recording — inline form + dynamic status',date:'1-2 เม.ย. 69',prompt:'สร้างหน้าจอบันทึกผล IPC แบบ inline form พร้อมสถานะ pass/fail อัตโนมัติ'},
+  {module:'Production',menu:'Execution',sub:'IPC',type:'feat',desc:'เพิ่มรอบการทดสอบ IPC (Test Rounds) + ปุ่ม Approve แยกแต่ละรอบ',date:'6 เม.ย. 69',prompt:'แก้ไข IPC ให้เพิ่มรอบการทดสอบได้กี่ครั้งก็ได้ พร้อมปุ่ม Approve แยกของแต่ละรอบ'},
+  {module:'Production',menu:'Execution',sub:'Material Weighing',type:'feat',desc:'Material weighing: bilingual name, lot SelectBox, unit conversion',date:'26-27 มี.ค. 69',prompt:'ปรับปรุงหน้าชั่งวัตถุดิบ แสดงชื่อ 2 ภาษา เลือก Lot จาก dropdown และแปลงหน่วยอัตโนมัติ'},
+  {module:'Production',menu:'Execution',sub:'Packaging Weight',type:'feat',desc:'Packaging weight control: Edit + Delete functions',date:'25 มี.ค. 69',prompt:'เพิ่มปุ่ม Edit และ Delete สำหรับบันทึกน้ำหนักบรรจุภัณฑ์'},
+  {module:'Production',menu:'Execution',sub:'Material Weighing',type:'feat',desc:'Block material weighing จนกว่า requisition จะ approved',date:'2 เม.ย. 69',prompt:'ป้องกันไม่ให้ชั่งวัตถุดิบจนกว่าใบเบิกจะได้รับการอนุมัติแล้ว'},
+  {module:'Production',menu:'Execution',sub:'All Pages',type:'feat',desc:'แสดงชื่อ operator/verifier ทุกหน้า Execution',date:'1-2 เม.ย. 69',prompt:'แสดงชื่อผู้ปฏิบัติงานและผู้ตรวจสอบจริงแทนรหัส User ID'},
+  {module:'Production',menu:'Execution',sub:'Environmental',type:'feat',desc:'API Key auth สำหรับ external sensor environmental monitoring',date:'2 เม.ย. 69',prompt:'เพิ่มระบบ API Key authentication สำหรับ sensor ภายนอกส่งข้อมูลอุณหภูมิเข้าระบบ'},
+  // Production > eBMR
+  {module:'Production',menu:'eBMR',sub:'eBMR Tab',type:'feat',desc:'เพิ่มข้อมูล execution (SOP, Cleaning, Environmental, Weighing, IPC) ใน eBMR',date:'2 เม.ย. 69',prompt:'eBMR tab ยังไม่แสดงข้อมูล execution ที่บันทึกไว้ เพิ่มทุก section ให้ครบถ้วน'},
+  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'feat',desc:'Professional print layout: ซ่อน sidebar/nav, company header/footer, A4',date:'6 เม.ย. 69',prompt:'เมื่อคลิก Print eBMR หน้า Print Preview ยังไม่เป็นระเบียบ มี UI เว็บติดเข้าไป'},
+  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'fix',desc:'Page break control: ป้องกัน Card ถูกตัดกลางหน้า',date:'6 เม.ย. 69',prompt:'เวลาสั่งพิมพ์ เนื้อหา Card ถูกตัดแบ่งหน้ากระดาษไม่เหมาะสม'},
+  {module:'Production',menu:'eBMR',sub:'Print eBMR',type:'fix',desc:'แก้รหัสยา 24 หลักทับเลขทะเบียน G + Material Consumption อ่านยาก',date:'6 เม.ย. 69',prompt:'ข้อมูลช่องรหัส 24 หลักทับกับช่องเลขทะเบียน G และ Material Consumption อ่านไม่รู้เรื่อง'},
+  {module:'Production',menu:'eBMR',sub:'Batch Records',type:'fix',desc:'Batch Records page อ่านจาก wo_* execution tables',date:'2 เม.ย. 69',prompt:'หน้า Batch Records ไม่แสดงข้อมูลเพราะ query จากตาราง batch_records ที่ว่าง'},
+  // Production > Master Data
+  {module:'Production',menu:'Master Data',sub:'IPC Criteria',type:'feat',desc:'IPC Criteria master data + BOM IPC configuration',date:'2 เม.ย. 69',prompt:'สร้าง master data สำหรับเกณฑ์ IPC และเชื่อมโยงเข้ากับ BOM configuration'},
+  {module:'Production',menu:'Master Data',sub:'SOP Templates',type:'feat',desc:'SOP templates: procedure steps + sub-steps + 17 categories',date:'1 เม.ย. 69',prompt:'เพิ่มขั้นตอนย่อย (sub-steps) ใน SOP template และขยาย category เป็น 17 หมวดตาม GMP'},
+  {module:'Production',menu:'Master Data',sub:'Items',type:'feat',desc:'เพิ่ม G registration number field ใน item form',date:'1 เม.ย. 69',prompt:'เพิ่มช่องเลขทะเบียน G ในฟอร์มสินค้า เพื่อแสดงบน WO และ eBMR'},
+  {module:'Production',menu:'Master Data',sub:'All Edit Forms',type:'fix',desc:'Master data edit forms ไม่โหลดข้อมูล (DevExtreme TextBox bug)',date:'1 เม.ย. 69',prompt:'ฟอร์มแก้ไข Master Data เปิดขึ้นมาแล้วช่อง input ว่างเปล่า ไม่แสดงข้อมูลเดิม'},
+  {module:'Production',menu:'Master Data',sub:'All Tables',type:'fix',desc:'ตาราง Master Data ทุกหัวข้อแสดง 20 rows/page + auto height',date:'6 เม.ย. 69',prompt:'ตาราง Master Data ทุกหัวข้อให้แสดง 20 รายการต่อหน้า ไม่มี scrollbar ภายในตาราง'},
+  {module:'Production',menu:'Master Data',sub:'Dashboard',type:'fix',desc:'เพิ่ม IPC Criteria ใน About Master Data section',date:'6 เม.ย. 69',prompt:'หน้า Master Data หัวข้อ About ไม่มี IPC Criteria แสดงอยู่'},
+  // Inventory
+  {module:'Inventory',menu:'Lots',sub:'Lot API',type:'feat',desc:'getAvailableLots() API สำหรับ lot selection',date:'26 มี.ค. 69',prompt:'สร้าง API ดึงรายการ Lot ที่มี stock คงเหลือสำหรับ dropdown เลือก lot'},
+  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'Material requisition tab ใน Inventory Lots page',date:'2 เม.ย. 69',prompt:'เพิ่ม Tab ใบเบิกวัตถุดิบในหน้า Inventory Lots สำหรับดูและอนุมัติใบเบิก'},
+  {module:'Inventory',menu:'Lots',sub:'Requisition Tab',type:'feat',desc:'แสดงจำนวนคงเหลือในคลัง + หน่วยนับ ในใบเบิกวัตถุดิบ',date:'6 เม.ย. 69',prompt:'ใบเบิกวัตถุดิบ ขอเพิ่มให้แสดงจำนวนที่เหลือด้วย พร้อมแสดงหน่วยนับ'},
+  {module:'Inventory',menu:'Lots',sub:'On-hand Sync',type:'fix',desc:'Sync items.on_hand หลัง material issuance',date:'26 มี.ค. 69',prompt:'หลังจากตัด stock วัตถุดิบ ค่า on_hand ไม่ update ตาม ต้อง sync ใหม่'},
+  {module:'Inventory',menu:'Lots',sub:'Lot List',type:'fix',desc:'ขยาย Warehouse column ให้เต็มข้อความ + 20 rows/page',date:'6 เม.ย. 69',prompt:'หน้า Inventory Lots ช่อง warehouse ข้อความตกบรรทัด และให้แสดง 20 record ต่อหน้า'},
+  // Quality
+  {module:'Quality',menu:'QC Tests',sub:'Lot Detail',type:'feat',desc:'Enhanced QC Tests display บน lot detail page',date:'1 เม.ย. 69',prompt:'ปรับปรุงการแสดงผล QC Tests ในหน้ารายละเอียด Lot ให้ดูง่ายขึ้น'},
+  {module:'Quality',menu:'QC Tests',sub:'Spec Snapshot',type:'fix',desc:'Snapshot spec values ตอนบันทึกผล QC',date:'27 มี.ค. 69',prompt:'เมื่อแก้ไข spec ย้อนหลัง ผลทดสอบเก่าถูกคำนวณใหม่ ต้อง snapshot ค่า spec ณ เวลาบันทึก'},
+  // GMP
+  {module:'GMP',menu:'Documents',sub:'Document-Training',type:'feat',desc:'Document-Training integration: reverse mapping + re-training alerts',date:'27 มี.ค. 69',prompt:'เชื่อมโยงเอกสาร GMP กับหลักสูตรอบรม แจ้งเตือนเมื่อต้อง re-training'},
+  {module:'GMP',menu:'Documents',sub:'Document Detail',type:'feat',desc:'Attachments section ใน GMP Document detail',date:'27 มี.ค. 69',prompt:'เพิ่มส่วนแนบไฟล์ (Attachments) ในหน้ารายละเอียดเอกสาร GMP'},
+  {module:'GMP',menu:'Documents',sub:'File Download',type:'fix',desc:'Enable document download สำหรับ BLOB-stored files',date:'27 มี.ค. 69',prompt:'ไม่สามารถดาวน์โหลดเอกสารที่เก็บเป็น BLOB ได้'},
+  {module:'GMP',menu:'CAPA',sub:'Actions',type:'fix',desc:'แก้ crash ปุ่ม CAPA Add Action + validation ก่อนปิด CAPA',date:'27 มี.ค. 69',prompt:'กดปุ่ม Add Action ใน CAPA แล้วระบบ crash และไม่มี validation ก่อนปิด'},
+  // Accounting
+  {module:'Accounting',menu:'Account Types',sub:'Summary Page',type:'feat',desc:'Account Types summary page: KPI cards + detail table',date:'6 เม.ย. 69',prompt:'ช่วยตรวจสอบว่าระบบมีหน้าจอดูข้อมูลสรุปประเภทบัญชีหรือยัง ถ้ายังไม่มีให้สร้าง'},
+  {module:'Accounting',menu:'AP Invoice',sub:'VAT Rate',type:'feat',desc:'Custom VAT rate selection (0%/7% + manual) ใน AP Invoice',date:'26 มี.ค. 69',prompt:'เพิ่มตัวเลือกอัตราภาษี VAT ใน AP Invoice ให้เลือก 0%, 7% หรือกรอกเอง'},
+  {module:'Accounting',menu:'AR Invoice',sub:'VAT Rate',type:'feat',desc:'Custom VAT rate selection ใน AR Invoice',date:'27 มี.ค. 69',prompt:'เพิ่มตัวเลือกอัตราภาษี VAT ใน AR Invoice เหมือนกับ AP Invoice'},
+  {module:'Accounting',menu:'AP Invoice',sub:'Vendor Dropdown',type:'fix',desc:'AP vendor dropdown ว่างเปล่า',date:'26 มี.ค. 69',prompt:'dropdown เลือก vendor ในฟอร์ม AP Invoice ว่างเปล่า ไม่แสดงรายชื่อ'},
+  {module:'Accounting',menu:'Dashboard',sub:'Aging Links',type:'fix',desc:'AP/AR aging links 404',date:'6 เม.ย. 69',prompt:'เมื่อคลิก card อายุเจ้าหนี้/ลูกหนี้ พบ Error 404'},
+  {module:'Accounting',menu:'Chart of Accounts',sub:'Save Button',type:'fix',desc:'ปุ่ม Save ไม่ทำงาน',date:'26 มี.ค. 69',prompt:'กดปุ่ม Save ในฟอร์ม Chart of Accounts แล้วไม่มีอะไรเกิดขึ้น'},
+  // Cost
+  {module:'Cost',menu:'Work Centers',sub:'Name Field',type:'fix',desc:'Work Center name field คืน null (alias collision) — แก้ 3 รอบ',date:'27 มี.ค. 69',prompt:'ชื่อ Work Center แสดงเป็น null เพราะ column name ชนกับ alias ใน SQL query'},
+  {module:'Cost',menu:'Landed Costs',sub:'Invoice Date',type:'fix',desc:'Format invoiceDate เป็น YYYY-MM-DD',date:'27 มี.ค. 69',prompt:'invoiceDate ส่งไป API ในรูปแบบที่ MySQL ไม่รองรับ'},
+  {module:'Cost',menu:'Dashboard',sub:'Cost Summary',type:'fix',desc:'Cost summary คำนวณจาก inventory_lots',date:'2 เม.ย. 69',prompt:'หน้า Cost Dashboard แสดงตัวเลขไม่ถูกต้อง ต้องคำนวณจาก inventory_lots'},
+  // HR
+  {module:'HR/Admin',menu:'Permissions',sub:'Admin Role',type:'feat',desc:'Admin role bypasses all permission checks',date:'2 เม.ย. 69',prompt:'ให้ admin role เข้าถึงทุกฟังก์ชันโดยไม่ต้องตรวจสอบ permission'},
+  {module:'HR/Admin',menu:'Settings',sub:'Company Settings',type:'feat',desc:'Company settings: real database persistence',date:'26 มี.ค. 69',prompt:'หน้า Company Settings บันทึกข้อมูลแล้วหายเมื่อ refresh ต้องบันทึกลง database จริง'},
+  {module:'HR/Admin',menu:'Organization',sub:'Org Chart',type:'fix',desc:'Organization Chart: infinite redirect loop',date:'26 มี.ค. 69',prompt:'เปิดหน้า Organization Chart แล้ว browser วนลูป redirect ไม่หยุด'},
+  {module:'HR/Admin',menu:'Roles',sub:'Role Edit',type:'fix',desc:'Role edit: infinite re-render + double MainLayout crash',date:'26 มี.ค. 69',prompt:'แก้ไข Role แล้ว component render วนลูปไม่หยุด และ MainLayout ซ้อนกัน 2 ชั้น'},
+  {module:'HR/Admin',menu:'Audit Trail',sub:'Popup Detail',type:'fix',desc:'Audit trail: safe JSON parsing, user names',date:'26 มี.ค. 69',prompt:'Audit trail popup แสดงผิดพลาด JSON parse error และไม่แสดงชื่อ user'},
+  {module:'HR/Admin',menu:'System',sub:'Date Handling',type:'fix',desc:'Date shifting back 1 day (UTC timezone)',date:'26 มี.ค. 69',prompt:'วันที่ในระบบถูกเลื่อนย้อนหลัง 1 วันเพราะแปลง timezone ไม่ถูกต้อง'},
+  // VMI
+  {module:'Sales/VMI',menu:'VMI Portal',sub:'Standard Codes',type:'feat',desc:'เพิ่มฟิลด์ รหัสยา 24 หลัก ใน VMI Standard Codes',date:'1 เม.ย. 69',prompt:'เพิ่มช่องรหัสยา 24 หลักใน VMI Standard Codes เพื่อเชื่อมกับระบบ TTMT'},
+  // UI/UX
+  {module:'UI/UX',menu:'Components',sub:'Item Search',type:'feat',desc:'Quick-create item button ใน ItemSearchDialog',date:'27 มี.ค. 69',prompt:'เพิ่มปุ่มสร้างสินค้าใหม่ในหน้าต่าง ItemSearch เผื่อกรณียังไม่มีสินค้าในระบบ'},
+  {module:'UI/UX',menu:'Components',sub:'Edit Item Footer',type:'fix',desc:'Edit Item footer: sticky/fixed/flex layout + modern UI',date:'1-6 เม.ย. 69',prompt:'ส่วน Footer ของหน้า Edit Item มีดีไซน์ไม่สวยงาม และปุ่มกดไม่ได้ ต้องแก้ไขหลายรอบ'},
+  {module:'UI/UX',menu:'Components',sub:'Dropdowns',type:'fix',desc:'Render dropdown popups ที่ document.body แก้ Chrome positioning',date:'27 มี.ค. 69',prompt:'Dropdown popup ใน Chrome แสดงตำแหน่งผิด ต้อง render ที่ document.body'},
+  // Docs
+  {module:'Documentation',menu:'Reports',sub:'System Flow',type:'docs',desc:'System flow HTML: 17 modules, 79 pages, 44 APIs',date:'6 เม.ย. 69',prompt:'ระบบกวนทำ system flow ของระบบออกมาในรูปแบบ HTML ครอบคลุมทุก module'},
+  {module:'Documentation',menu:'Reports',sub:'Design Specs',type:'docs',desc:'Design specs + plans: BOM config, Weighing, Requisition',date:'25-27 มี.ค. 69',prompt:'เขียน design spec และ implementation plan สำหรับ BOM config, Material weighing, Requisition gate'},
+  {module:'Documentation',menu:'Reports',sub:'Changelog',type:'docs',desc:'Changelog HTML report พร้อม Export Excel',date:'6 เม.ย. 69',prompt:'สรุปการแก้ไขโปรแกรมแยกตาม Module ทำเป็น HTML พร้อม Export Excel และ Prompt ที่แก้ไข'},
 ];
 
-var MODULES = [];
-var seen = {};
-DATA.forEach(function(d) { if (!seen[d.mod]) { seen[d.mod] = true; MODULES.push(d.mod); } });
+// Build module list for nav
+var MOD_LIST=[];var modSeen={};
+DATA.forEach(function(d){if(!modSeen[d.module]){modSeen[d.module]=true;MOD_LIST.push(d.module);}});
 
-function renderNav() {
-  var nav = document.getElementById('navRow');
-  while (nav.firstChild) nav.removeChild(nav.firstChild);
-
-  var allPill = document.createElement('a');
-  allPill.className = 'nav-pill active';
-  allPill.setAttribute('data-mod', 'all');
-  allPill.onclick = function() { filterMod('all'); };
-  allPill.textContent = 'ทั้งหมด (' + DATA.length + ')';
-  nav.appendChild(allPill);
-
-  MODULES.forEach(function(mod) {
-    var items = DATA.filter(function(d) { return d.mod === mod; });
-    var pill = document.createElement('a');
-    pill.className = 'nav-pill';
-    pill.setAttribute('data-mod', mod);
-    pill.onclick = function() { filterMod(mod); };
-    pill.textContent = mod.replace('Production - ', '') + ' (' + items.length + ')';
-    nav.appendChild(pill);
+function renderNav(){
+  var nav=document.getElementById('navRow');
+  while(nav.firstChild)nav.removeChild(nav.firstChild);
+  var allP=document.createElement('a');allP.className='nav-pill active';allP.setAttribute('data-mod','all');
+  allP.onclick=function(){filterMod('all');};allP.textContent='ทั้งหมด ('+DATA.length+')';nav.appendChild(allP);
+  MOD_LIST.forEach(function(mod){
+    var cnt=DATA.filter(function(d){return d.module===mod;}).length;
+    var p=document.createElement('a');p.className='nav-pill';p.setAttribute('data-mod',mod);
+    p.onclick=function(){filterMod(mod);};p.textContent=mod+' ('+cnt+')';nav.appendChild(p);
   });
 }
 
-function filterMod(mod) {
-  document.querySelectorAll('.nav-pill').forEach(function(p) { p.classList.remove('active'); });
-  var active = document.querySelector('.nav-pill[data-mod="' + mod + '"]');
-  if (active) active.classList.add('active');
-
-  var filtered = mod === 'all' ? DATA : DATA.filter(function(d) { return d.mod === mod; });
-  renderTable(filtered, mod);
-  document.getElementById('tableArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+function filterMod(mod){
+  document.querySelectorAll('.nav-pill').forEach(function(p){p.classList.remove('active');});
+  var a=document.querySelector('.nav-pill[data-mod="'+mod+'"]');if(a)a.classList.add('active');
+  var items=mod==='all'?DATA:DATA.filter(function(d){return d.module===mod;});
+  renderTable(items,mod);
+  document.getElementById('tableArea').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function renderTable(items, mod) {
-  var area = document.getElementById('tableArea');
-  while (area.firstChild) area.removeChild(area.firstChild);
-
-  var first = items[0] || DATA[0];
-  var title = mod === 'all' ? 'ทั้งหมด' : mod;
-
-  // Wrapper
-  var wrap = document.createElement('div');
-  wrap.className = 'tbl-wrap';
-
-  // Title
-  var titleDiv = document.createElement('div');
-  titleDiv.className = 'tbl-title';
-  var iconDiv = document.createElement('div');
-  iconDiv.className = 'mod-icon';
-  iconDiv.style.background = mod === 'all' ? '#f1f5f9' : first.iconBg;
-  iconDiv.style.color = mod === 'all' ? '#475569' : first.iconC;
-  iconDiv.textContent = mod === 'all' ? '\uD83D\uDCCB' : '';
-  titleDiv.appendChild(iconDiv);
-  var titleText = document.createTextNode(' ' + title + ' ');
-  titleDiv.appendChild(titleText);
-  var countSpan = document.createElement('div');
-  countSpan.className = 'count';
-  countSpan.textContent = items.length + ' รายการ';
-  titleDiv.appendChild(countSpan);
-  wrap.appendChild(titleDiv);
-
-  // Scroll container
-  var scrollDiv = document.createElement('div');
-  scrollDiv.style.overflowX = 'auto';
-
-  // Table
-  var table = document.createElement('table');
-  table.className = 'changelog';
-
-  // Thead
-  var thead = document.createElement('thead');
-  var headRow = document.createElement('tr');
-  var headers = ['ลำดับ', 'Module', 'เมนูย่อย', 'ประเภท', 'การแก้ไข / การพัฒนา', 'ว/ด/ป', 'Prompt ที่แก้ไข'];
-  var widths = ['40px', '130px', '110px', '80px', '250px', '90px', '280px'];
-  headers.forEach(function(h, i) {
-    var th = document.createElement('th');
-    th.textContent = h;
-    if (widths[i]) th.style.minWidth = widths[i];
-    if (i === 0) th.style.width = '40px';
-    headRow.appendChild(th);
-  });
-  thead.appendChild(headRow);
-  table.appendChild(thead);
-
-  // Tbody
-  var tbody = document.createElement('tbody');
-  items.forEach(function(d, i) {
-    var tr = document.createElement('tr');
-
-    var tdNo = document.createElement('td');
-    tdNo.className = 'no';
-    tdNo.textContent = String(i + 1);
-    tr.appendChild(tdNo);
-
-    var tdMod = document.createElement('td');
-    tdMod.className = 'submenu-col';
-    tdMod.textContent = d.mod.replace('Production - ', '');
-    tr.appendChild(tdMod);
-
-    var tdSub = document.createElement('td');
-    tdSub.className = 'submenu-col';
-    tdSub.textContent = d.sub;
-    tr.appendChild(tdSub);
-
-    var tdType = document.createElement('td');
-    var badge = document.createElement('span');
-    badge.className = 'type-badge';
-    var typeMap = { feat: ['t-feat', 'Feature'], fix: ['t-fix', 'Bug Fix'], refac: ['t-refac', 'Refactor'], docs: ['t-docs', 'Docs'], test: ['t-test', 'Test'] };
-    var tm = typeMap[d.type] || ['t-docs', d.type];
-    badge.classList.add(tm[0]);
-    badge.textContent = tm[1];
-    tdType.appendChild(badge);
-    tr.appendChild(tdType);
-
-    var tdDesc = document.createElement('td');
-    tdDesc.className = 'desc-col';
-    tdDesc.textContent = d.desc;
-    tr.appendChild(tdDesc);
-
-    var tdDate = document.createElement('td');
-    tdDate.className = 'date-col';
-    tdDate.textContent = d.date;
-    tr.appendChild(tdDate);
-
-    var tdPrompt = document.createElement('td');
-    tdPrompt.className = 'prompt-col';
-    tdPrompt.textContent = d.prompt;
-    tr.appendChild(tdPrompt);
-
+function renderTable(items,mod){
+  var area=document.getElementById('tableArea');
+  while(area.firstChild)area.removeChild(area.firstChild);
+  var title=mod==='all'?'ทั้งหมด':mod;
+  var wrap=document.createElement('div');wrap.className='tbl-wrap';
+  var hdr=document.createElement('div');hdr.className='tbl-title';
+  hdr.appendChild(document.createTextNode(title));
+  var cnt=document.createElement('div');cnt.className='count';cnt.textContent=items.length+' รายการ';
+  hdr.appendChild(cnt);wrap.appendChild(hdr);
+  var sc=document.createElement('div');sc.style.overflowX='auto';
+  var tbl=document.createElement('table');tbl.className='cl';
+  var thead=document.createElement('thead');var hr=document.createElement('tr');
+  var cols=['ลำดับ','Module','Menu','Sub Menu','ประเภท','การแก้ไข / การพัฒนา','วัน/เดือน/ปี','Prompt ที่แก้ไข'];
+  cols.forEach(function(c,i){var th=document.createElement('th');th.textContent=c;if(i===0)th.style.width='50px';hr.appendChild(th);});
+  thead.appendChild(hr);tbl.appendChild(thead);
+  var tbody=document.createElement('tbody');
+  var typeMap={feat:['b-feat','FEATURE'],fix:['b-fix','BUG FIX'],refac:['b-refac','REFACTOR'],docs:['b-docs','DOCS'],test:['b-test','TEST']};
+  items.forEach(function(d,i){
+    var tr=document.createElement('tr');
+    var td0=document.createElement('td');td0.className='no';td0.textContent=String(i+1);tr.appendChild(td0);
+    var td1=document.createElement('td');td1.className='mod-col';td1.textContent=d.module;tr.appendChild(td1);
+    var td2=document.createElement('td');td2.className='menu-col';td2.textContent=d.menu;tr.appendChild(td2);
+    var td3=document.createElement('td');td3.className='sub-col';td3.textContent=d.sub;tr.appendChild(td3);
+    var td4=document.createElement('td');var bg=document.createElement('span');bg.className='badge';
+    var tm=typeMap[d.type]||['b-docs',d.type];bg.classList.add(tm[0]);bg.textContent=tm[1];td4.appendChild(bg);tr.appendChild(td4);
+    var td5=document.createElement('td');td5.className='desc-col';td5.textContent=d.desc;tr.appendChild(td5);
+    var td6=document.createElement('td');td6.className='date-col';td6.textContent=d.date;tr.appendChild(td6);
+    var td7=document.createElement('td');td7.className='prompt-col';td7.textContent=d.prompt;tr.appendChild(td7);
     tbody.appendChild(tr);
   });
-  table.appendChild(tbody);
-  scrollDiv.appendChild(table);
-  wrap.appendChild(scrollDiv);
-  area.appendChild(wrap);
+  tbl.appendChild(tbody);sc.appendChild(tbl);wrap.appendChild(sc);area.appendChild(wrap);
 }
 
-function exportExcel() {
-  var rows = DATA.map(function(d, i) {
-    return {
-      'ลำดับ': i + 1,
-      'Module': d.mod,
-      'เมนูย่อย': d.sub,
-      'ประเภท': d.type.toUpperCase(),
-      'การแก้ไข / การพัฒนา': d.desc,
-      'วันที่แก้ไข': d.date,
-      'Prompt ที่แก้ไข': d.prompt
-    };
-  });
-  var wb = XLSX.utils.book_new();
-  var ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{ wch: 6 }, { wch: 28 }, { wch: 18 }, { wch: 10 }, { wch: 65 }, { wch: 12 }, { wch: 70 }];
-  XLSX.utils.book_append_sheet(wb, ws, 'Changelog');
-
-  var summary = MODULES.map(function(mod) {
-    var items = DATA.filter(function(d) { return d.mod === mod; });
-    return { Module: mod, Features: items.filter(function(d){return d.type==='feat';}).length, Fixes: items.filter(function(d){return d.type==='fix';}).length, Others: items.filter(function(d){return d.type!=='feat'&&d.type!=='fix';}).length, Total: items.length };
-  });
-  summary.push({ Module: 'TOTAL', Features: summary.reduce(function(s,r){return s+r.Features;},0), Fixes: summary.reduce(function(s,r){return s+r.Fixes;},0), Others: summary.reduce(function(s,r){return s+r.Others;},0), Total: summary.reduce(function(s,r){return s+r.Total;},0) });
-  var ws2 = XLSX.utils.json_to_sheet(summary);
-  ws2['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
-  XLSX.writeFile(wb, 'Herbal-ERP-Changelog-2569-03-25.xlsx');
+function exportExcel(){
+  var rows=DATA.map(function(d,i){return{'ลำดับ':i+1,'Module':d.module,'Menu':d.menu,'Sub Menu':d.sub,'ประเภท':d.type.toUpperCase(),'การแก้ไข / การพัฒนา':d.desc,'วัน/เดือน/ปี':d.date,'Prompt ที่แก้ไข':d.prompt};});
+  var wb=XLSX.utils.book_new();var ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:6},{wch:16},{wch:18},{wch:18},{wch:10},{wch:65},{wch:14},{wch:70}];
+  XLSX.utils.book_append_sheet(wb,ws,'Changelog');
+  var summary=MOD_LIST.map(function(mod){var it=DATA.filter(function(d){return d.module===mod;});return{Module:mod,Features:it.filter(function(d){return d.type==='feat';}).length,Fixes:it.filter(function(d){return d.type==='fix';}).length,Others:it.filter(function(d){return d.type!=='feat'&&d.type!=='fix';}).length,Total:it.length};});
+  summary.push({Module:'TOTAL',Features:summary.reduce(function(s,r){return s+r.Features;},0),Fixes:summary.reduce(function(s,r){return s+r.Fixes;},0),Others:summary.reduce(function(s,r){return s+r.Others;},0),Total:summary.reduce(function(s,r){return s+r.Total;},0)});
+  var ws2=XLSX.utils.json_to_sheet(summary);ws2['!cols']=[{wch:20},{wch:10},{wch:10},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Summary');XLSX.writeFile(wb,'Herbal-ERP-Changelog-2569-03-25.xlsx');
 }
 
-window.addEventListener('scroll', function() {
-  document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 300);
-}, { passive: true });
+window.addEventListener('scroll',function(){document.getElementById('backToTop').classList.toggle('visible',window.scrollY>300);},{passive:true});
 
-renderNav();
-filterMod('all');
+renderNav();filterMod('all');
 </script>
-
 </body>
 </html>
