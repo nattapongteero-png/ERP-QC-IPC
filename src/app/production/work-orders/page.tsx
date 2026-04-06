@@ -8,6 +8,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -295,9 +296,9 @@ export default function WorkOrdersPage() {
         batchNumber: editForm.batchNumber,
         plannedQuantity: editForm.plannedQuantity,
         priority: editForm.priority,
-        plannedStartDate: editForm.plannedStartDate?.toISOString().split('T')[0] || null,
-        plannedEndDate: editForm.plannedEndDate?.toISOString().split('T')[0] || null,
-        deliveryDate: editForm.deliveryDate?.toISOString().split('T')[0] || null,
+        plannedStartDate: editForm.plannedStartDate ? toLocalDateStr(editForm.plannedStartDate) : null,
+        plannedEndDate: editForm.plannedEndDate ? toLocalDateStr(editForm.plannedEndDate) : null,
+        deliveryDate: editForm.deliveryDate ? toLocalDateStr(editForm.deliveryDate) : null,
         notes: editForm.notes || null,
       },
     });
@@ -323,7 +324,7 @@ export default function WorkOrdersPage() {
     const mediumPriority = workOrders.filter(wo => wo.priority > 3 && wo.priority <= 6 && wo.status !== 'completed' && wo.status !== 'cancelled').length;
 
     // Today's work orders
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateStr(new Date());
     const todayPlanned = workOrders.filter(wo => wo.plannedStartDate?.startsWith(today)).length;
 
     // Completion rate
@@ -406,7 +407,7 @@ export default function WorkOrdersPage() {
       workbook.xlsx.writeBuffer().then((buffer) => {
         saveAs(
           new Blob([buffer], { type: 'application/octet-stream' }),
-          `Work_Orders_${new Date().toISOString().split('T')[0]}.xlsx`
+          `Work_Orders_${toLocalDateStr(new Date())}.xlsx`
         );
       });
     });
@@ -654,7 +655,7 @@ export default function WorkOrdersPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={statusChartData.map(d => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 280 }}
             >
               <Series argumentField="status" valueField="count">
                 <Label visible={false} />
@@ -665,7 +666,9 @@ export default function WorkOrdersPage() {
                 orientation="horizontal"
                 horizontalAlignment="center"
                 verticalAlignment="bottom"
-                font={{ size: 11 }}
+                font={{ size: 12 }}
+                itemTextPosition="right"
+                markerSize={12}
               />
               <Tooltip
                 enabled={true}
@@ -693,13 +696,13 @@ export default function WorkOrdersPage() {
             </h3>
           </div>
           {priorityChartData.some(d => d.count > 0) ? (
-            <Chart id="priority-chart" dataSource={priorityChartData} size={{ height: 200 }}>
-              <CommonSeriesSettings argumentField="priority" type="bar" />
+            <Chart id="priority-chart" dataSource={priorityChartData} size={{ height: 280 }}>
+              <CommonSeriesSettings argumentField="priority" type="bar" barWidth={40} />
               <ChartSeries valueField="count" name="Orders" color="#6366f1" />
               <ArgumentAxis>
-                <ChartLabel overlappingBehavior="rotate" rotationAngle={-45} />
+                <ChartLabel font={{ size: 12 }} />
               </ArgumentAxis>
-              <ValueAxis />
+              <ValueAxis allowDecimals={false} />
               <ChartLegend visible={false} />
               <ChartTooltip
                 enabled={true}
