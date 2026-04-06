@@ -27,7 +27,7 @@ export default function IPCCriteriaPage() {
   const { data: criteria, isLoading } = useQuery<IPCCriteria[]>({
     queryKey: ['ipc-criteria'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/ipc-criteria');
+      const res = await fetch('/api/master-data/ipc-criteria?isActive=true');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;

@@ -35,7 +35,7 @@ export default function PackagingQCCriteriaPage() {
   const { data: criteria, isLoading } = useQuery<PackagingQCCriteria[]>({
     queryKey: ['packaging-qc-criteria'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/packaging-qc-criteria');
+      const res = await fetch('/api/master-data/packaging-qc-criteria?isActive=true');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;

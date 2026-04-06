@@ -48,7 +48,7 @@ export default function ProductionEquipmentPage() {
   const { data: equipment, isLoading } = useQuery<ProductionEquipment[]>({
     queryKey: ['production-equipment'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/production-equipment');
+      const res = await fetch('/api/master-data/production-equipment?isActive=true');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;

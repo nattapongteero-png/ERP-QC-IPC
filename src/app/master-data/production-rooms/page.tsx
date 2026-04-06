@@ -41,7 +41,7 @@ export default function ProductionRoomsPage() {
   const { data: rooms, isLoading } = useQuery<ProductionRoom[]>({
     queryKey: ['production-rooms'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/production-rooms');
+      const res = await fetch('/api/master-data/production-rooms?isActive=true');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;

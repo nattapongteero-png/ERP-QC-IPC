@@ -34,7 +34,7 @@ export default function EnvironmentalConditionsPage() {
   const { data: conditions, isLoading } = useQuery<EnvironmentalCondition[]>({
     queryKey: ['environmental-conditions'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/environmental-conditions');
+      const res = await fetch('/api/master-data/environmental-conditions?isActive=true');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;

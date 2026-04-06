@@ -92,6 +92,24 @@ export async function POST(request: NextRequest) {
   });
 }
 
+// DELETE /api/master-data/ipc-criteria?id=X - Deactivate
+export async function DELETE(request: NextRequest) {
+  return withAuth(request, async () => {
+    try {
+      const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
+      if (!id) return errorResponse('Missing ID');
+      const table = getTable();
+      await executeDbOperation(async (db) => {
+        await db.update(table).set({ isActive: false }).where(eq(table.id, Number(id)));
+      });
+      return successResponse(null, 'IPC criteria deactivated');
+    } catch (error) {
+      return serverErrorResponse(error);
+    }
+  });
+}
+
 // PUT /api/master-data/ipc-criteria
 export async function PUT(request: NextRequest) {
   return withAuth(request, async () => {

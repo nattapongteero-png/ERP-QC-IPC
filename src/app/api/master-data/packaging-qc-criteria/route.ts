@@ -85,6 +85,23 @@ export async function POST(request: NextRequest) {
   });
 }
 
+// DELETE /api/master-data/packaging-qc-criteria?id=X - Deactivate
+export async function DELETE(request: NextRequest) {
+  return withAuth(request, async () => {
+    try {
+      const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
+      if (!id) return errorResponse('Missing ID');
+      const existing = await getPackagingQCCriteriaById(Number(id));
+      if (!existing) return errorResponse('Criteria not found');
+      await updatePackagingQCCriteria(Number(id), { isActive: false });
+      return successResponse(null, 'Packaging QC criteria deactivated');
+    } catch (error) {
+      return serverErrorResponse(error);
+    }
+  });
+}
+
 // PUT /api/master-data/packaging-qc-criteria - Update packaging QC criteria
 export async function PUT(request: NextRequest) {
   return withAuth(request, async () => {

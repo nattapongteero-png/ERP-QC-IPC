@@ -74,7 +74,7 @@ export default function SOPTemplatesPage() {
   const { data: templates, isLoading } = useQuery<SOPTemplate[]>({
     queryKey: ['sop-templates'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/sop-templates');
+      const res = await fetch('/api/master-data/sop-templates?isActive=true');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       return data.data;

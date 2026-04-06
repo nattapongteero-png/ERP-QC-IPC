@@ -94,6 +94,23 @@ export async function POST(request: NextRequest) {
   });
 }
 
+// DELETE /api/master-data/sop-templates?id=X - Deactivate
+export async function DELETE(request: NextRequest) {
+  return withAuth(request, async () => {
+    try {
+      const { searchParams } = new URL(request.url);
+      const id = searchParams.get('id');
+      if (!id) return errorResponse('Missing ID');
+      const existing = await getSOPTemplateById(Number(id));
+      if (!existing) return errorResponse('SOP template not found');
+      await updateSOPTemplate(Number(id), { isActive: false });
+      return successResponse(null, 'SOP template deactivated');
+    } catch (error) {
+      return serverErrorResponse(error);
+    }
+  });
+}
+
 // PUT /api/master-data/sop-templates - Update SOP template
 export async function PUT(request: NextRequest) {
   return withAuth(request, async () => {
