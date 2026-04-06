@@ -641,7 +641,7 @@ export default function WorkOrdersPage() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
         {/* Status Distribution */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 min-h-0">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-indigo-500" />
@@ -649,34 +649,46 @@ export default function WorkOrdersPage() {
             </h3>
           </div>
           {statusChartData.length > 0 ? (
-            <PieChart
-              id="status-pie"
-              dataSource={statusChartData}
-              type="doughnut"
-              innerRadius={0.65}
-              palette={statusChartData.map(d => d.color)}
-              size={{ height: 280 }}
-            >
-              <Series argumentField="status" valueField="count">
-                <Label visible={false} />
-                <Connector visible={false} />
-              </Series>
-              <Legend
-                visible={true}
-                orientation="horizontal"
-                horizontalAlignment="center"
-                verticalAlignment="bottom"
-                font={{ size: 12 }}
-                itemTextPosition="right"
-                markerSize={12}
-              />
-              <Tooltip
-                enabled={true}
-                customizeTooltip={(arg: { argumentText?: string; valueText?: string; percentText?: string }) => ({
-                  text: `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`,
+            <div className="flex flex-col">
+              {/* Donut Chart — no built-in Legend (custom below) */}
+              <PieChart
+                id="status-pie"
+                dataSource={statusChartData}
+                type="doughnut"
+                innerRadius={0.65}
+                palette={statusChartData.map(d => d.color)}
+                size={{ height: 180 }}
+              >
+                <Series argumentField="status" valueField="count">
+                  <Label visible={false} />
+                  <Connector visible={false} />
+                </Series>
+                <Legend visible={false} />
+                <Tooltip
+                  enabled={true}
+                  customizeTooltip={(arg: { argumentText?: string; valueText?: string; percentText?: string }) => ({
+                    text: `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`,
+                  })}
+                />
+              </PieChart>
+              {/* Custom Legend — flex-wrap, auto height, no clipping */}
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-gray-100">
+                {statusChartData.map((d) => {
+                  const total = statusChartData.reduce((sum, s) => sum + s.count, 0);
+                  const pct = total > 0 ? ((d.count / total) * 100).toFixed(0) : '0';
+                  return (
+                    <div key={d.status} className="flex items-center gap-1.5 text-sm">
+                      <span
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: d.color }}
+                      />
+                      <span className="text-gray-700">{d.status}</span>
+                      <span className="text-gray-400 font-medium">{d.count} ({pct}%)</span>
+                    </div>
+                  );
                 })}
-              />
-            </PieChart>
+              </div>
+            </div>
           ) : (
             <div className="h-[200px] flex items-center justify-center text-gray-400">
               <div className="text-center">
